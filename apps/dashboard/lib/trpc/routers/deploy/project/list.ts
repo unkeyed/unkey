@@ -1,14 +1,50 @@
+import { projectsQueryPayload as projectsInputSchema } from "@/app/(app)/projects/_components/list/projects-list.schema";
 import { and, count, db, desc, eq, like, lt, or, schema } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { PROJECTS_LIMIT, projectsInputSchema, projectsResponseSchema } from "./filters.schema";
+import { z } from "zod";
+
+const HostnameResponse = z.object({
+  id: z.string(),
+  hostname: z.string(),
+});
+
+const ProjectResponse = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  gitRepositoryUrl: z.string().nullable(),
+  branch: z.string().nullable(),
+  deleteProtection: z.boolean().nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number().nullable(),
+  hostnames: z.array(HostnameResponse),
+});
+
+const projectsOutputSchema = z.object({
+  projects: z.array(ProjectResponse),
+  hasMore: z.boolean(),
+  total: z.number(),
+  nextCursor: z.number().int().nullish(),
+});
+
+type ProjectsOutputSchema = z.infer<typeof projectsOutputSchema>;
+export type Project = z.infer<typeof ProjectResponse>;
+
+export const PROJECTS_LIMIT = 10;
 
 export const queryProjects = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .input(projectsInputSchema)
-  .output(projectsResponseSchema)
+  .output(projectsOutputSchema)
   .query(async ({ ctx, input }) => {
     // Build base conditions
     const baseConditions = [eq(schema.projects.workspaceId, ctx.workspace.id)];
@@ -80,7 +116,9 @@ export const queryProjects = t.procedure
 
     // Combine all conditions
     const allConditions =
-      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
+      filterConditions.length > 0
+        ? [...baseConditions, ...filterConditions]
+        : baseConditions;
 
     try {
       const [totalResult, projectsResult] = await Promise.all([
@@ -114,21 +152,20 @@ export const queryProjects = t.procedure
       // Get project IDs for hostname lookup
       const projectIds = projectsWithoutExtra.map((p) => p.id);
 
-      // Fetch hostnames for all projects in a separate query
+      // Fetch hostnames for all projects in a separate query - only .unkey.app domains
       const hostnamesResult =
         projectIds.length > 0
-          ? await db.query.hostnames.findMany({
+          ? await db.query.routes.findMany({
               where: and(
-                eq(schema.hostnames.workspaceId, ctx.workspace.id),
-                or(...projectIds.map((id) => eq(schema.hostnames.projectId, id))),
+                eq(schema.routes.workspaceId, ctx.workspace.id),
+                or(...projectIds.map((id) => eq(schema.routes.projectId, id))),
+                // Only get .unkey.app domains
+                like(schema.routes.hostname, "%.unkey.app")
               ),
               columns: {
                 id: true,
                 projectId: true,
                 hostname: true,
-                isCustomDomain: true,
-                verificationStatus: true,
-                subdomainConfig: true,
               },
               orderBy: [desc(schema.hostnames.createdAt)],
             })
@@ -152,7 +189,7 @@ export const queryProjects = t.procedure
             id: string;
             hostname: string;
           }>
-        >,
+        >
       );
 
       const projects = projectsWithoutExtra.map((project) => ({
@@ -167,11 +204,12 @@ export const queryProjects = t.procedure
         hostnames: hostnamesByProject[project.id] || [],
       }));
 
-      const response = {
+      const response: ProjectsOutputSchema = {
         projects,
         hasMore,
         total: totalResult[0]?.count ?? 0,
-        nextCursor: projects.length > 0 ? projects[projects.length - 1].createdAt : null,
+        nextCursor:
+          projects.length > 0 ? projects[projects.length - 1].createdAt : null,
       };
 
       return response;

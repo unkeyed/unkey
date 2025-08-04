@@ -1,0 +1,94 @@
+import { Cube, Dots, CodeBranch, User } from "@unkey/icons";
+import { Button, InfoTooltip } from "@unkey/ui";
+import { RegionBadges } from "./region-badges";
+
+type ProjectCardProps = {
+  name: string;
+  domain: string;
+  commitTitle: string;
+  commitDate: string;
+  branch: string;
+  author: string;
+  regions: string[];
+  repository?: string;
+};
+
+export const ProjectCard = ({
+  name,
+  domain,
+  commitTitle,
+  commitDate,
+  branch,
+  author,
+  regions,
+  repository,
+}: ProjectCardProps) => (
+  <div className="p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5 group transition-all duration-400">
+    {/*Top Section*/}
+    <div className="flex gap-4 items-center">
+      <div className="relative size-10 bg-gradient-to-br from-grayA-2 to-grayA-7 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-grayA-2 to-grayA-4 rounded-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out" />
+        <Cube
+          size="xl-medium"
+          className="relative text-gray-11 shrink-0 size-5"
+        />
+      </div>
+      <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
+        {/*Top Section > Project Name*/}
+        <InfoTooltip content={name} asChild>
+          <div className="font-medium text-sm leading-[14px] text-accent-12 truncate">
+            {name}
+          </div>
+        </InfoTooltip>
+        {/*Top Section > Domains/Hostnames*/}
+        <InfoTooltip content={domain} asChild>
+          <a
+            href={`https://${domain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-xs leading-[12px] text-gray-11 truncate hover:text-accent-12 transition-colors hover:underline"
+          >
+            {domain}
+          </a>
+        </InfoTooltip>
+      </div>
+      {/*Top Section > Project actions*/}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="mb-auto shrink-0"
+        title="Project actions"
+      >
+        <Dots size="sm-regular" />
+      </Button>
+    </div>
+    {/*Middle Section > Last commit title*/}
+    <div className="flex flex-col gap-2">
+      <InfoTooltip content={commitTitle} asChild>
+        <div className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer">
+          {commitTitle}
+        </div>
+      </InfoTooltip>
+      <div className="flex gap-2 items-center min-w-0">
+        <span className="text-xs text-gray-11">{commitDate} on</span>
+        <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
+        <InfoTooltip content={branch} asChild>
+          <span className="text-xs text-gray-12 truncate max-w-[70px]">
+            {branch}
+          </span>
+        </InfoTooltip>
+        <span className="text-xs text-gray-10">by</span>
+        <div className="border border-grayA-6 items-center justify-center rounded-full size-[18px] flex">
+          <User className="text-gray-11 shrink-0" size="sm-regular" />
+        </div>
+        <InfoTooltip content={author} asChild>
+          <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">
+            {author}
+          </span>
+        </InfoTooltip>
+      </div>
+    </div>
+    {/*Bottom Section > Regions*/}
+    <RegionBadges regions={regions} repository={repository} />
+  </div>
+);
