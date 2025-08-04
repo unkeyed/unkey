@@ -170,6 +170,7 @@ curl -X POST https://api.unkey.com/v2/permissions.listPermissions # [!code ++]
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
+- Delete permission by ID or slug
 - Domain change: `api.unkey.dev` → `api.unkey.com`
 
 <Tabs>
@@ -185,7 +186,7 @@ curl -X POST https://api.unkey.dev/v1/permissions.deletePermission # [!code --]
 curl -X POST https://api.unkey.com/v2/permissions.deletePermission # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "documents.read"}' # [!code ++]
+  -d '{"permission": "documents.read"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="check-circle">
@@ -235,15 +236,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createRole # [!code ++]
     "requestId": "req_createrole123"
   },
   "data": {
-    "roleId": "role_abc123def456",
-    "name": "editor",
-    "description": "Content editor role",
-    "permissions": [
-      "documents.read",
-      "documents.write",
-      "comments.moderate"
-    ],
-    "createdAt": "2024-01-15T10:30:00Z"
+    "roleId": "role_abc123def456"
   }
 }
 ```
@@ -261,6 +254,8 @@ curl -X POST https://api.unkey.com/v2/keys.addRoles # [!code ++]
 
 ### GET /v1/permissions.getRole → POST /v2/permissions.getRole
 
+- Lookup role by either ID or name
+
 <Tabs>
 <Tab title="v2 Role Retrieval" icon="user">
 ```bash title="v1 vs v2: Role Retrieval" icon="user"
@@ -272,7 +267,7 @@ curl -X GET "https://api.unkey.dev/v1/permissions.getRole?roleId=role_123" # [!c
 curl -X POST https://api.unkey.com/v2/permissions.getRole # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "editor"}' # [!code ++]
+  -d '{"role": "editor"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="database">
@@ -282,7 +277,7 @@ curl -X POST https://api.unkey.com/v2/permissions.getRole # [!code ++]
     "requestId": "req_getrole456"
   },
   "data": {
-    "roleId": "role_abc123def456",
+    "id": "role_abc123def456",
     "name": "editor",
     "description": "Content editor role",
     "permissions": [
@@ -328,8 +323,7 @@ curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
         "documents.read",
         "documents.write",
         "comments.moderate"
-      ],
-      "createdAt": "2024-01-15T10:30:00Z"
+      ]
     },
     {
       "roleId": "role_def456",
@@ -339,8 +333,7 @@ curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
         "documents.*",
         "users.*",
         "settings.*"
-      ],
-      "createdAt": "2024-01-16T09:15:00Z"
+      ]
     }
   ],
   "pagination": {
@@ -353,6 +346,8 @@ curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
 </Tabs>
 
 ### POST /v1/permissions.deleteRole → POST /v2/permissions.deleteRole
+
+- Delete role by either ID or name
 
 <Tabs>
 <Tab title="v2 Role Deletion" icon="user-minus">
@@ -367,7 +362,7 @@ curl -X POST https://api.unkey.dev/v1/permissions.deleteRole # [!code --]
 curl -X POST https://api.unkey.com/v2/permissions.deleteRole # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "editor"}' # [!code ++]
+  -d '{"role": "editor"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="check-circle">
