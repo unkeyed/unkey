@@ -158,11 +158,12 @@ const ProjectCard = ({
   regions,
   repository,
 }: ProjectCardProps) => (
-  <div className="p-5 flex flex-col border border-grayA-4  hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5">
+  <div className="p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5 group transition-all duration-200">
     {/*Top Section*/}
     <div className="flex gap-4 items-center">
-      <div className="size-10 bg-gradient-to-br from-grayA-2 to-grayA-7 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
-        <Cube size="xl-medium" className="text-gray-11 shrink-0 size-5" />
+      <div className="relative size-10 bg-gradient-to-br from-grayA-2 to-grayA-7 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-grayA-2 to-grayA-4 rounded-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out" />
+        <Cube size="xl-medium" className="relative text-gray-11 shrink-0 size-5" />
       </div>
       <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
         {/*Top Section > Project Name*/}
