@@ -2319,7 +2319,6 @@ components:
 
                 This response includes:
                 - All direct permissions assigned to the key (both pre-existing and newly added)
-                - Permissions sorted alphabetically by name for consistent response format
                 - Both the permission ID and name for each permission
 
                 Important notes:
@@ -2379,7 +2378,6 @@ components:
                 The response includes:
                 - All roles now assigned to the key (both pre-existing and newly added)
                 - Both ID and name of each role for easy reference
-                - Roles sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - The response shows the complete current state after the addition
@@ -2464,7 +2462,6 @@ components:
                 The response includes:
                 - The remaining roles still assigned to the key (after removing the specified roles)
                 - Both ID and name for each role for easy reference
-                - Roles sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - The response reflects the current state after the removal operation
@@ -2482,7 +2479,6 @@ components:
                 The response includes:
                 - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
                 - Both ID and name for each permission for easy reference
-                - Permissions sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - This only shows direct permissions, not those granted through roles
@@ -2498,7 +2494,6 @@ components:
                 The response includes:
                 - The comprehensive, updated set of roles (reflecting the complete replacement)
                 - Both ID and name for each role for easy reference
-                - Roles sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - This response shows the final state after the complete replacement
@@ -5207,13 +5202,7 @@ paths:
             x-speakeasy-name-override: GetRole
     /v2/permissions.listPermissions:
         post:
-            description: |
-                Retrieve all permissions in your workspace. Results are paginated and sorted alphabetically by permission name.
-
-                **Required Permissions**
-
-                Your root key must have the following permission:
-                - `rbac.*.read_permission`
+            description: "Retrieve all permissions in your workspace. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_permission`\n"
             operationId: listPermissions
             requestBody:
                 content:
@@ -5260,13 +5249,7 @@ paths:
             x-speakeasy-name-override: ListPermissions
     /v2/permissions.listRoles:
         post:
-            description: |
-                Retrieve all roles in your workspace including their assigned permissions. Results are paginated and sorted alphabetically by role name.
-
-                **Required Permissions**
-
-                Your root key must have the following permission:
-                - `rbac.*.read_role`
+            description: "Retrieve all roles in your workspace including their assigned permissions. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_role`\n"
             operationId: listRoles
             requestBody:
                 content:
