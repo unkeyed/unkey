@@ -63,13 +63,13 @@ export const CreateProjectButton = ({ ...rest }: React.ButtonHTMLAttributes<HTML
   return (
     <>
       <NavbarActionButton
-        title="Create new namespace"
+        title="Create new project"
         {...rest}
         color="default"
         onClick={() => setIsOpen(true)}
       >
         <Plus size={18} className="w-4 h-4" />
-        Create new namespace
+        Create new project
       </NavbarActionButton>
 
       <DialogContainer
