@@ -417,6 +417,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					PermissionID: reqPerm.ID,
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
 					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{

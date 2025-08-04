@@ -25,7 +25,7 @@ properties:
     type: string
     minLength: 1
     maxLength: 512
-    description: The URL-safe identifier when this permission was created.
+    description: The unique URL-safe identifier for this permission.
     example: users-read
   description:
     type: string

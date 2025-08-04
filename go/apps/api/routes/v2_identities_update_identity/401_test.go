@@ -29,8 +29,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		// Call without auth header
@@ -49,8 +49,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		// Invalid format
@@ -69,8 +69,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		// Non-existent key
@@ -89,8 +89,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		headers := http.Header{
@@ -114,8 +114,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		headers := http.Header{
