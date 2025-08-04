@@ -60,14 +60,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Validate key exists and belongs to workspace
-	key, err := db.Query.FindKeyByIdOrHash(ctx,
-		h.DB.RO(),
-		db.FindKeyByIdOrHashParams{
-			ID:   sql.NullString{String: req.KeyId, Valid: true},
-			Hash: sql.NullString{String: "", Valid: false},
-		},
-	)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
