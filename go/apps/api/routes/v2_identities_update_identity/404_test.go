@@ -35,8 +35,8 @@ func TestNotFound(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: nonExistentExternalID,
-			Meta:       &meta,
+			Identity: nonExistentExternalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)

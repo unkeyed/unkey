@@ -244,6 +244,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
     "permissions": ["documents.read"], // [!code ++]
     "roles": ["editor"], // [!code ++]
     "identity": { // [!code ++]
+      "id": "id_123", // [!code ++]
       "externalId": "customer_789", // [!code ++]
       "meta": {}, // [!code ++]
       "ratelimits": [] // [!code ++]
@@ -469,14 +470,14 @@ In v2, this control is moved to the root key's permissions:
 <Tab title="Method & Format Changes">
 ```bash title="HTTP Method Change" icon="arrow-right"
 # v1: GET with query parameters
-curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \ # [!code --]
-  -H "Authorization: Bearer <your-root-key>" # [!code --]
+curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
+  -H "Authorization: Bearer <your-root-key>"
 
 # v2: POST with request body
-curl -X POST https://api.unkey.com/v2/keys.getKey \ # [!code ++]
-  -H "Authorization: Bearer <your-root-key>" \ # [!code ++]
-  -H "Content-Type: application/json" \ # [!code ++]
-  -d '{"keyId": "key_123"}' # [!code ++]
+curl -X POST https://api.unkey.com/v2/keys.getKey \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"keyId": "key_123"}'
 ```
 </Tab>
 <Tab title="Response Changes">
@@ -530,7 +531,6 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \ # [!code ++]
     "name": "Production API Key", // [!code ++]
     "prefix": "prod", // [!code ++]
     "start": "prod_1234", // [!code ++]
-    "externalId": "customer_789", // [!code ++]
     "meta": { // [!code ++]
       "plan": "enterprise" // [!code ++]
     }, // [!code ++]
@@ -552,6 +552,12 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \ # [!code ++]
         "autoApply": true // [!code ++]
       } // [!code ++]
     ], // [!code ++]
+    "identity": { // [!code ++]
+        "id": "id_123", // [!code ++]
+        "externalId": "customer_789", // [!code ++]
+        "meta": {}, // [!code ++]
+        "ratelimits": [] // [!code ++]
+    }, // [!code ++]
     "enabled": true, // [!code ++]
     "permissions": ["documents.read"], // [!code ++]
     "roles": ["editor"] // [!code ++]
@@ -734,7 +740,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 
 **Key Changes:**
 - Endpoint name change: `updateRemaining` → `updateCredits`
-- New operation types: `set`, `increment`, `decrement`
+- Request changes: `op` → `operation`
 - Response format: Direct response → `{meta, data}` envelope
 
 <Tabs>
@@ -743,14 +749,15 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 // v1 Request
 {
   "keyId": "key_123",
-  "value": 1000 // [!code --]
+  "op": "set", // [!code --]
+  "value": 1000
 }
 
 // v2 Request
 {
   "keyId": "key_123",
   "operation": "set", // [!code ++]
-  "value": 1000 // [!code focus]
+  "value": 1000
 }
 ```
 </Tab>
@@ -849,6 +856,12 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
     "workspaceId": "ws_xyz789", // [!code ++]
     "permissions": ["documents.read"], // [!code ++]
     "roles": ["editor"], // [!code ++]
+    "identity": { // [!code ++]
+      "id": "id_123", // [!code ++]
+      "externalId": "customer_789", // [!code ++]
+      "meta": {}, // [!code ++]
+      "ratelimits": [] // [!code ++]
+    }, // [!code ++]
     "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
   } // [!code ++]
 }

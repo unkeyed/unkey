@@ -107,8 +107,8 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: otherExternalID,
-			Meta:       &newMeta,
+			Identity: otherExternalID,
+			Meta:     &newMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -148,7 +148,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Ratelimits: &ratelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -195,7 +195,7 @@ func TestSuccess(t *testing.T) {
 		emptyRatelimits := []openapi.RatelimitRequest{}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Ratelimits: &emptyRatelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -214,8 +214,8 @@ func TestSuccess(t *testing.T) {
 		emptyMeta := map[string]interface{}{}
 
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &emptyMeta,
+			Identity: externalID,
+			Meta:     &emptyMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -245,7 +245,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Meta:       &newMeta,
 			Ratelimits: &ratelimits,
 		}
