@@ -44,7 +44,7 @@ curl -X POST https://api.unkey.dev/v1/permissions.createPermission # [!code --]
 curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "documents.read", "description": "Read access to documents"}' # [!code ++]
+  -d '{"slug": "documents.read", "name": "documents.read", "description": "Read access to documents"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="check-circle">
@@ -54,10 +54,10 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
     "requestId": "req_createpermission123"
   },
   "data": {
-    "permissionId": "perm_abc123def456",
+    "id": "perm_abc123def456",
     "name": "documents.read",
-    "description": "Read access to documents",
-    "createdAt": "2024-01-15T10:30:00Z"
+    "slug": "documents.read",
+    "description": "Read access to documents"
   }
 }
 ```
@@ -74,6 +74,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
 - HTTP method: GET → POST
 - Request format: Query parameters → Request body
 - Response format: Direct response → `{meta, data}` envelope
+- Lookup Permission by either ID or Slug
 
 <Tabs>
 <Tab title="cURL Migration" icon="arrow-right">
@@ -86,7 +87,7 @@ curl -X GET "https://api.unkey.dev/v1/permissions.getPermission?permissionId=per
 curl -X POST https://api.unkey.com/v2/permissions.getPermission # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "documents.read"}' # [!code ++]
+  -d '{"permission": "documents.read"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="database">
@@ -96,10 +97,10 @@ curl -X POST https://api.unkey.com/v2/permissions.getPermission # [!code ++]
     "requestId": "req_getpermission456"
   },
   "data": {
-    "permissionId": "perm_abc123def456",
+    "id": "perm_abc123def456",
     "name": "documents.read",
-    "description": "Read access to documents",
-    "createdAt": "2024-01-15T10:30:00Z"
+    "slug": "documents.read",
+    "description": "Read access to documents"
   }
 }
 ```
@@ -140,15 +141,15 @@ curl -X POST https://api.unkey.com/v2/permissions.listPermissions # [!code ++]
   "data": [
     {
       "permissionId": "perm_abc123",
-      "name": "documents.read",
+      "name": "Read documents",
+      "slug": "documents.read",
       "description": "Read access to documents",
-      "createdAt": "2024-01-15T10:30:00Z"
     },
     {
       "permissionId": "perm_def456",
-      "name": "documents.write",
+      "name": "Write documents",
+      "slug": "documents.write",
       "description": "Write access to documents",
-      "createdAt": "2024-01-16T09:15:00Z"
     }
   ],
   "pagination": {
@@ -168,6 +169,7 @@ curl -X POST https://api.unkey.com/v2/permissions.listPermissions # [!code ++]
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
+- Delete permission by ID or slug
 - Domain change: `api.unkey.dev` → `api.unkey.com`
 
 <Tabs>
@@ -183,7 +185,7 @@ curl -X POST https://api.unkey.dev/v1/permissions.deletePermission # [!code --]
 curl -X POST https://api.unkey.com/v2/permissions.deletePermission # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "documents.read"}' # [!code ++]
+  -d '{"permission": "documents.read"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="check-circle">
@@ -233,15 +235,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createRole # [!code ++]
     "requestId": "req_createrole123"
   },
   "data": {
-    "roleId": "role_abc123def456",
-    "name": "editor",
-    "description": "Content editor role",
-    "permissions": [
-      "documents.read",
-      "documents.write",
-      "comments.moderate"
-    ],
-    "createdAt": "2024-01-15T10:30:00Z"
+    "roleId": "role_abc123def456"
   }
 }
 ```
@@ -259,6 +253,8 @@ curl -X POST https://api.unkey.com/v2/keys.addRoles # [!code ++]
 
 ### GET /v1/permissions.getRole → POST /v2/permissions.getRole
 
+- Lookup role by either ID or name
+
 <Tabs>
 <Tab title="v2 Role Retrieval" icon="user">
 ```bash title="v1 vs v2: Role Retrieval" icon="user"
@@ -270,7 +266,7 @@ curl -X GET "https://api.unkey.dev/v1/permissions.getRole?roleId=role_123" # [!c
 curl -X POST https://api.unkey.com/v2/permissions.getRole # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "editor"}' # [!code ++]
+  -d '{"role": "editor"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="database">
@@ -280,15 +276,14 @@ curl -X POST https://api.unkey.com/v2/permissions.getRole # [!code ++]
     "requestId": "req_getrole456"
   },
   "data": {
-    "roleId": "role_abc123def456",
+    "id": "role_abc123def456",
     "name": "editor",
     "description": "Content editor role",
     "permissions": [
       "documents.read",
       "documents.write",
       "comments.moderate"
-    ],
-    "createdAt": "2024-01-15T10:30:00Z"
+    ]
   }
 }
 ```
@@ -326,8 +321,7 @@ curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
         "documents.read",
         "documents.write",
         "comments.moderate"
-      ],
-      "createdAt": "2024-01-15T10:30:00Z"
+      ]
     },
     {
       "roleId": "role_def456",
@@ -337,8 +331,7 @@ curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
         "documents.*",
         "users.*",
         "settings.*"
-      ],
-      "createdAt": "2024-01-16T09:15:00Z"
+      ]
     }
   ],
   "pagination": {
@@ -351,6 +344,8 @@ curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
 </Tabs>
 
 ### POST /v1/permissions.deleteRole → POST /v2/permissions.deleteRole
+
+- Delete role by either ID or name
 
 <Tabs>
 <Tab title="v2 Role Deletion" icon="user-minus">
@@ -365,7 +360,7 @@ curl -X POST https://api.unkey.dev/v1/permissions.deleteRole # [!code --]
 curl -X POST https://api.unkey.com/v2/permissions.deleteRole # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "editor"}' # [!code ++]
+  -d '{"role": "editor"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="check-circle">
@@ -593,12 +588,7 @@ Group related permissions into roles for easier management.
 ```json title="Auto-create when referenced" icon="magic-wand"
 {
   "keyId": "key_123",
-  "permissions": [
-    {
-      "name": "new.permission",
-      "description": "This will be auto-created if it doesn't exist"
-    }
-  ]
+  "permissions": ["new.permission"]
 }
 ```
 Permissions and roles are automatically created when referenced if they don't exist.
@@ -613,19 +603,7 @@ Permissions and roles are automatically created when referenced if they don't ex
 
 # Complex with parentheses
 "permissions": "read AND (write OR delete)"
-
-# Wildcard support
-"permissions": "documents.*"
 ```
-
-### Enhanced Management (Both v1 and v2)
-- List all permissions and roles in workspace
-- Delete permissions/roles globally (affects all keys)
-- Audit permission usage across keys
-- Build management dashboards with dedicated endpoints
-- v2 adds request IDs for better debugging
-
----
 
 ## Migration Checklist
 
@@ -652,15 +630,8 @@ Permissions and roles are automatically created when referenced if they don't ex
 - [ ] Extract and log `meta.requestId` from responses for debugging
 - [ ] Handle new error structure with meta envelope
 
-### Enhanced Features
-- [ ] Build centralized permission and role management systems
-- [ ] Implement RBAC dashboards using list endpoints
-- [ ] Use global deletion for permission/role cleanup
-- [ ] Leverage wildcard permissions for hierarchical access control
-
 ### Testing
 - [ ] Test HTTP method changes (GET → POST)
 - [ ] Verify request body format vs query parameters
 - [ ] Test permission queries with new string syntax
 - [ ] Confirm envelope response format parsing
-- [ ] Validate global deletion still works correctly
