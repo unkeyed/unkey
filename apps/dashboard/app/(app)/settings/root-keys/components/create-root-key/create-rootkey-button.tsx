@@ -32,7 +32,7 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 12;
 
 type Props = {
   className?: string;
@@ -163,6 +163,7 @@ export const CreateRootKeyButton = ({ className, ...props }: Props) => {
   const handlePermissionChange = useCallback((permissions: UnkeyPermission[]) => {
     setSelectedPermissions(permissions);
   }, []);
+
   return (
     <>
       <Button
