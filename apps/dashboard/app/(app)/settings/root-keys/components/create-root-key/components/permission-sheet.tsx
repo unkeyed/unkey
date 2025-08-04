@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
 
 // Type definitions for permission structure
@@ -35,6 +35,8 @@ type PermissionSheetProps = {
   loadMore?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
+  editMode?: boolean;
+  isLoading?: boolean;
 };
 
 export const PermissionSheet = ({
@@ -45,12 +47,12 @@ export const PermissionSheet = ({
   loadMore,
   hasNextPage,
   isFetchingNextPage,
+  editMode = false,
+  isLoading = false,
 }: PermissionSheetProps) => {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [workspacePermissionsState, setWorkspacePermissions] = useState<UnkeyPermission[]>([]);
-  const [apiPermissionsState, setApiPermissions] = useState<Record<string, UnkeyPermission[]>>({});
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,16 +65,70 @@ export const PermissionSheet = ({
     setIsProcessing(false);
   };
 
-  const handleOpenChange = (open: boolean) => {
-    setOpen(open);
-  };
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      // Only allow opening if APIs are loaded or we have selected permissions (edit mode)
+      if (open && isLoading && !editMode && selectedPermissions.length === 0) {
+        return;
+      }
+
+      setOpen(open);
+    },
+    [isLoading, editMode, selectedPermissions.length],
+  );
 
   const handleApiPermissionChange = (apiId: string, permissions: UnkeyPermission[]) => {
-    setApiPermissions((prev) => ({ ...prev, [apiId]: permissions }));
+    // Get all current permissions and update the specific API's permissions
+    const currentApiPerms = selectedPermissions.filter((permission) => {
+      // Check if this permission belongs to the specific API
+      const apiPermsList = Object.values(apiPermissions(apiId)).flatMap((category) =>
+        Object.values(category).map((item) => item.permission),
+      );
+      return apiPermsList.includes(permission);
+    });
+
+    // Get workspace permissions
+    const workspacePerms = selectedPermissions.filter((permission) => {
+      const workspacePermsList = Object.values(workspacePermissions).flatMap((category) =>
+        Object.values(category).map((item) => item.permission),
+      );
+      return workspacePermsList.includes(permission);
+    });
+
+    // Get other API permissions
+    const otherApiPerms = selectedPermissions.filter((permission) => {
+      const workspacePermsList = Object.values(workspacePermissions).flatMap((category) =>
+        Object.values(category).map((item) => item.permission),
+      );
+      if (workspacePermsList.includes(permission)) return false;
+
+      for (const api of apis) {
+        if (api.id === apiId) continue;
+        const apiPermsList = Object.values(apiPermissions(api.id)).flatMap((category) =>
+          Object.values(category).map((item) => item.permission),
+        );
+        if (apiPermsList.includes(permission)) return true;
+      }
+      return false;
+    });
+
+    // Combine all permissions
+    const allPermissions = [...workspacePerms, ...otherApiPerms, ...permissions];
+    onChange?.(allPermissions);
   };
 
   const handleWorkspacePermissionChange = (permissions: UnkeyPermission[]) => {
-    setWorkspacePermissions(permissions);
+    // Get all current API permissions
+    const apiPerms = selectedPermissions.filter((permission) => {
+      const workspacePermsList = Object.values(workspacePermissions).flatMap((category) =>
+        Object.values(category).map((item) => item.permission),
+      );
+      return !workspacePermsList.includes(permission);
+    });
+
+    // Combine workspace and API permissions
+    const allPermissions = [...permissions, ...apiPerms];
+    onChange?.(allPermissions);
   };
 
   // Helper function to check if permission list has any matching results
@@ -106,14 +162,6 @@ export const PermissionSheet = ({
 
     return !workspaceHasResults && (apis.length === 0 || !anyApiHasResults);
   }, [searchValue, apis]);
-
-  // Aggregate all permissions and call onChange
-  useEffect(() => {
-    if (onChange) {
-      const allApiPermissions = Object.values(apiPermissionsState).flat();
-      onChange([...workspacePermissionsState, ...allApiPermissions]);
-    }
-  }, [workspacePermissionsState, apiPermissionsState, onChange]);
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange} modal={true}>

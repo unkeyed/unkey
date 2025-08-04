@@ -60,6 +60,7 @@ import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
+import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
@@ -152,6 +153,7 @@ export const router = t.router({
     create: createRootKey,
     update: t.router({
       name: updateRootKeyName,
+      permissions: updateRootKeyPermissions,
     }),
   }),
   settings: t.router({
