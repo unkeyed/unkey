@@ -17,7 +17,7 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
 - **Async handling**: Removed `async` parameter
 - **Auto apply**: Added `autoApply` parameter to apply ratelimits to key verifications automatically
 - **Resources**: Removed `resources` array
-- **Metadata**: Removed `meta` object
+- **Metadata**: Removed `meta` object from request body
 
 ### Migration Impact:
 
@@ -78,7 +78,7 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
     "limit": 100, // [!code ++]
     "remaining": 99, // [!code ++]
     "reset": 1672531200000, // [!code ++]
-    "overrideId": "rlor_123", // [!code ++]
+    "overrideId": "rlor_123" // [!code ++]
   } // [!code ++]
 }
 ```
@@ -148,7 +148,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.limit \
     "requestId": "req_setoverride456" // [!code ++]
   }, // [!code ++]
   "data": { // [!code ++]
-    "overrideId": "rlor_123", // [!code ++]
+    "overrideId": "rlor_123" // [!code ++]
   } // [!code ++]
 }
 ```

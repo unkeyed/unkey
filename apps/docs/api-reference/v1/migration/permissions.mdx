@@ -54,11 +54,10 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
     "requestId": "req_createpermission123"
   },
   "data": {
-    "permissionId": "perm_abc123def456",
+    "id": "perm_abc123def456",
     "name": "documents.read",
     "slug": "documents.read",
-    "description": "Read access to documents",
-    "createdAt": "2024-01-15T10:30:00Z"
+    "description": "Read access to documents"
   }
 }
 ```
@@ -284,8 +283,7 @@ curl -X POST https://api.unkey.com/v2/permissions.getRole # [!code ++]
       "documents.read",
       "documents.write",
       "comments.moderate"
-    ],
-    "createdAt": "2024-01-15T10:30:00Z"
+    ]
   }
 }
 ```
