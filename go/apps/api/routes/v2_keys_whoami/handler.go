@@ -58,12 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	args := db.FindKeyByIdOrHashParams{
-		ID:   sql.NullString{String: "", Valid: false},
-		Hash: sql.NullString{String: hash.Sha256(req.Key), Valid: true},
-	}
-
-	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
+	key, err := db.Query.FindKeyByHash(ctx, h.DB.RO(), hash.Sha256(req.Key))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(

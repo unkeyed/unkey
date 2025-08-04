@@ -200,30 +200,30 @@ type Querier interface {
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
 	//FindKeyByHash
 	//
-	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
-	FindKeyByHash(ctx context.Context, db DBTX, hash string) (Key, error)
-	//FindKeyByID
-	//
 	//  SELECT
-	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-	//  FROM `keys`
-	//  WHERE id = ?
-	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
-	//FindKeyByIdOrHash
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+	//      ek.encrypted as encrypted_key,
+	//  	ek.encryption_key_id as encryption_key_id
+	//  FROM `keys` k
+	//  JOIN apis a ON a.id = k.key_auth_id
+	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  WHERE hash = ?
+	//  AND k.deleted_at_m IS NULL
+	//  AND a.deleted_at_m IS NULL
+	FindKeyByHash(ctx context.Context, db DBTX, hash string) (FindKeyByHashRow, error)
+	//FindKeyByID
 	//
 	//  SELECT
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ek.encrypted as encrypted_key,
 	//  	ek.encryption_key_id as encryption_key_id
 	//  FROM `keys` k
-	//  JOIN apis a USING(key_auth_id)
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE (CASE
-	//      WHEN ? IS NOT NULL THEN k.id = ?
-	//      WHEN ? IS NOT NULL THEN k.hash = ?
-	//      ELSE FALSE
-	//  END) AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
-	FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error)
+	//  JOIN apis a ON a.id = k.key_auth_id
+	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  WHERE k.id = ?
+	//  AND k.deleted_at_m IS NULL
+	//  AND a.deleted_at_m IS NULL
+	FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error)
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
