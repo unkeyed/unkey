@@ -62,7 +62,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	key, emit, err := h.Keys.Get(ctx, s, req.Key)
-	defer emit()
 	if err != nil {
 		return err
 	}
@@ -159,38 +158,40 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	res := Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		// nolint:exhaustruct
-		Data: openapi.V2KeysVerifyKeyResponseData{
-			Code:        key.ToOpenAPIStatus(),
-			Valid:       key.Status == keys.StatusValid,
-			Enabled:     ptr.P(key.Key.Enabled),
-			Name:        ptr.P(key.Key.Name.String),
-			Permissions: ptr.P(key.Permissions),
-			Roles:       ptr.P(key.Roles),
-			KeyId:       ptr.P(key.Key.ID),
-			Credits:     nil,
-			Expires:     nil,
-			Identity:    nil,
-			Meta:        nil,
-			Ratelimits:  nil,
-		},
+	keyData := openapi.V2KeysVerifyKeyResponseData{
+		Code:        key.ToOpenAPIStatus(),
+		Valid:       key.Status == keys.StatusValid,
+		Enabled:     ptr.P(key.Key.Enabled),
+		Name:        ptr.P(key.Key.Name.String),
+		KeyId:       ptr.P(key.Key.ID),
+		Permissions: nil,
+		Roles:       nil,
+		Credits:     nil,
+		Expires:     nil,
+		Identity:    nil,
+		Meta:        nil,
+		Ratelimits:  nil,
+	}
+
+	if len(key.Permissions) > 0 {
+		keyData.Permissions = ptr.P(key.Permissions)
+	}
+
+	if len(key.Roles) > 0 {
+		keyData.Roles = ptr.P(key.Roles)
 	}
 
 	remaining := key.Key.RemainingRequests
 	if remaining.Valid {
-		res.Data.Credits = ptr.P(remaining.Int32)
+		keyData.Credits = ptr.P(remaining.Int32)
 	}
 
 	if key.Key.Expires.Valid {
-		res.Data.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
+		keyData.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
 	}
 
 	if key.Key.Meta.Valid {
-		err = json.Unmarshal([]byte(key.Key.Meta.String), &res.Data.Meta)
+		err = json.Unmarshal([]byte(key.Key.Meta.String), &keyData.Meta)
 		if err != nil {
 			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Internal("unable to unmarshal key meta"),
@@ -200,18 +201,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		res.Data.Identity = &openapi.Identity{
+		keyData.Identity = &openapi.Identity{
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,
 			Meta:       nil,
 		}
 
+		identityRatelimits := make([]openapi.RatelimitResponse, 0)
 		for _, ratelimit := range key.GetRatelimitConfigs() {
 			if ratelimit.IdentityID == "" {
 				continue
 			}
 
-			res.Data.Identity.Ratelimits = append(res.Data.Identity.Ratelimits, openapi.RatelimitResponse{
+			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
 				AutoApply: ratelimit.AutoApply == 1,
 				Duration:  int64(ratelimit.Duration),
 				Id:        ratelimit.ID,
@@ -220,8 +222,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
+		if len(identityRatelimits) > 0 {
+			keyData.Identity.Ratelimits = ptr.P(identityRatelimits)
+		}
+
 		if len(key.Key.IdentityMeta) > 0 {
-			err = json.Unmarshal(key.Key.IdentityMeta, &res.Data.Identity.Meta)
+			err = json.Unmarshal(key.Key.IdentityMeta, &keyData.Identity.Meta)
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 					fault.Internal("unable to unmarshal identity meta"),
@@ -251,9 +257,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(ratelimitResponse) > 0 {
-			res.Data.Ratelimits = ptr.P(ratelimitResponse)
+			keyData.Ratelimits = ptr.P(ratelimitResponse)
 		}
 	}
 
-	return s.JSON(http.StatusOK, res)
+	emit()
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: keyData,
+	})
 }

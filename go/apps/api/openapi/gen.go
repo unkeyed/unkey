@@ -146,7 +146,7 @@ type Identity struct {
 
 	// Meta Identity metadata
 	Meta       *map[string]interface{} `json:"meta,omitempty"`
-	Ratelimits []RatelimitResponse     `json:"ratelimits"`
+	Ratelimits *[]RatelimitResponse    `json:"ratelimits,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -438,7 +438,7 @@ type Role struct {
 	// Use this list to understand the full scope of access provided by this role.
 	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
 	// Empty array indicates a role with no permissions currently assigned.
-	Permissions []Permission `json:"permissions"`
+	Permissions *[]Permission `json:"permissions,omitempty"`
 }
 
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:

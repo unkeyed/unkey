@@ -7,24 +7,24 @@ const requestLatencyTrend = new Trend("request_latency", true);
 
 const loadZones = [
   "amazon:us:ashburn", // US East
-  // 'amazon:us:portland',    // US West
+  //'amazon:us:portland',    // US West
   // 'amazon:ie:dublin',      // Europe West
-  // 'amazon:de:frankfurt',   // Europe Central
+  "amazon:de:frankfurt", // Europe Central
   // 'amazon:sg:singapore',   // Asia Pacific
-  // 'amazon:jp:tokyo',       // Asia Pacific East
-  // 'amazon:au:sydney',      // Australia
+  "amazon:jp:tokyo", // Asia Pacific East
+  "amazon:au:sydney", // Australia
   // 'amazon:br:sao paulo',   // South America
-  // 'amazon:in:mumbai',      // India
+  "amazon:in:mumbai", // India
   // 'amazon:ca:montreal'     // Canada
 ];
 
-const equalPercent = Math.floor(100 / loadZones.length);
+const percent = Math.floor(100 / loadZones.length);
+
 const distribution = {};
-loadZones.forEach((zone, index) => {
+loadZones.forEach((zone) => {
   distribution[zone] = {
     loadZone: zone,
-    percent:
-      index === loadZones.length - 1 ? 100 - equalPercent * (loadZones.length - 1) : equalPercent,
+    percent: percent,
   };
 });
 
@@ -33,9 +33,27 @@ export const options = {
     project: "3788521",
     distribution: distribution,
   },
-  stages: [
-    { duration: "10m", target: 10 }, // 10 req/s for 1 minute
-  ],
+  scenarios: {
+    api_v1_keyverify: {
+      executor: "constant-arrival-rate",
+      rate: 10,
+      timeUnit: "1s",
+      duration: "5m",
+      preAllocatedVUs: 10,
+      maxVUs: 15,
+      exec: "testV1KeyVerify",
+    },
+    api_v2_keyverify: {
+      executor: "constant-arrival-rate",
+      rate: 10,
+      timeUnit: "1s",
+      duration: "5m",
+      startTime: "5m",
+      preAllocatedVUs: 10,
+      maxVUs: 15,
+      exec: "testV2KeyVerify",
+    },
+  },
   thresholds: {
     http_req_duration: ["p(95)<500"], // 95% of requests must complete below 500ms
     checks: ["rate>0.99"], // 99% of checks must pass
@@ -43,14 +61,14 @@ export const options = {
 };
 
 const UNKEY_ROOT_KEY = __ENV.UNKEY_ROOT_KEY;
-const KEY = __ENV.KEY;
+const keys = __ENV.KEYS.split(",");
 
 if (!UNKEY_ROOT_KEY) {
   throw new Error("UNKEY_ROOT_KEY environment variable is required");
 }
 
-if (!KEY) {
-  throw new Error("KEY environment variable is required");
+if (keys.length === 0) {
+  throw new Error("KEYS environment variable is required");
 }
 
 const headers = {
@@ -58,30 +76,40 @@ const headers = {
   Authorization: `Bearer ${UNKEY_ROOT_KEY}`,
 };
 
-// biome-ignore lint/style/noDefaultExport: k6 needs a default export
-export default function () {
-  const response =
-    Math.random() < 0.5
-      ? http.post(
-          "https://api.unkey.dev/v1/keys.verifyKey",
-          JSON.stringify({
-            key: KEY,
-          }),
-          {
-            headers: headers,
-            tags: { version: "v1" },
-          },
-        )
-      : http.post(
-          "https://api.unkey.com/v2/keys.verifyKey",
-          JSON.stringify({
-            key: KEY,
-          }),
-          {
-            headers: headers,
-            tags: { version: "v2" },
-          },
-        );
+export function testV1KeyVerify() {
+  const key = keys[Math.floor(Math.random() * keys.length)];
+
+  const response = http.post(
+    "https://api.unkey.dev/v1/keys.verifyKey",
+    JSON.stringify({
+      key: key,
+    }),
+    {
+      headers: headers,
+      tags: { version: "v1" },
+    },
+  );
+
+  check(response, {
+    "status is 200": (r) => r.status === 200,
+  });
+
+  requestLatencyTrend.add(response.timings.duration, { url: response.request.url });
+}
+
+export function testV2KeyVerify() {
+  const key = keys[Math.floor(Math.random() * keys.length)];
+
+  const response = http.post(
+    "https://api.unkey.com/v2/keys.verifyKey",
+    JSON.stringify({
+      key: key,
+    }),
+    {
+      headers: headers,
+      tags: { version: "v2" },
+    },
+  );
 
   check(response, {
     "status is 200": (r) => r.status === 200,

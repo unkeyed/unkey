@@ -1,0 +1,458 @@
+---
+title: "/v1/identities.*"
+description: "Migrate from key-based identity patterns to dedicated identity management in v2"
+---
+
+This guide covers migrating from v1's key-based identity patterns to v2's dedicated identity management system.
+
+## Overview
+
+### What's New in v2:
+- **Dedicated identity endpoints**: Create, read, update, delete identities independently
+- **Shared rate limits**: Identity-level rate limiting across multiple keys
+- **Centralized metadata**: Single source of truth for user/entity data
+- **Direct management**: No longer need to infer identities from keys
+
+### Migration Impact:
+- **v1 Pattern**: Identity implied through key `externalId` field
+- **v2 Enhancement**: Explicit identity management with dedicated endpoints
+- **Benefit**: Better organization, shared resources, and centralized control
+
+---
+
+## Creating Identities: v1 Key Pattern → v2 Dedicated Endpoint
+
+**v1 Approach:** Identities were implicit - you created keys with `externalId` and metadata directly on each key.
+
+**v2 Approach:** Create explicit identities first, then reference them from keys for shared resources.
+
+**Key Benefits:**
+- Centralized identity metadata management
+- Shared rate limits across multiple keys
+- Direct identity operations without key dependency
+
+<Tabs>
+<Tab title="Identity Creation Migration" icon="user-plus">
+```json title="v1 vs v2: Identity Creation Patterns" expandable
+// v1: Create key with identity data embedded
+{
+  "apiId": "api_123", // [!code --]
+  "externalId": "user_123",
+  "meta": {
+    "email": "user@example.com",
+    "plan": "pro"
+  },
+  "ratelimit": { // [!code --]
+    "type": "fast", // [!code --]
+    "limit": 1000, // [!code --]
+    "refillRate": 1000, // [!code --]
+    "refillInterval": 3600000 // [!code --]
+  } // [!code --]
+}
+
+// v2: Create identity first with shared resources
+{
+  "externalId": "user_123",
+  "meta": {
+    "email": "user@example.com",
+    "plan": "pro"
+  },
+  "ratelimits": [ // [!code ++]
+    { // [!code ++]
+      "name": "requests", // [!code ++]
+      "limit": 1000, // [!code ++]
+      "duration": 3600000 // [!code ++]
+    } // [!code ++]
+  ] // [!code ++]
+}
+```
+</Tab>
+<Tab title="Response Comparison" icon="database">
+```json title="Response Format Differences" icon="check-circle" expandable
+// v1: Key creation response (identity data embedded)
+{
+  "keyId": "key_abc123def456", // [!code --]
+  "key": "uk_live_abc123...", // [!code --]
+  "apiId": "api_123", // [!code --]
+  "externalId": "user_123", // [!code --]
+  "meta": { // [!code --]
+    "email": "user@example.com", // [!code --]
+    "plan": "pro" // [!code --]
+  }, // [!code --]
+  "createdAt": "2024-01-15T10:30:00Z" // [!code --]
+}
+
+// v2: Dedicated identity response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_createidentity123" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "identityId": "identity_abc123def456", // [!code ++]
+    "externalId": "user_123", // [!code ++]
+    "meta": { // [!code ++]
+      "email": "user@example.com", // [!code ++]
+      "plan": "pro" // [!code ++]
+    }, // [!code ++]
+    "ratelimits": [ // [!code ++]
+      { // [!code ++]
+        "id": "rl_identity_456", // [!code ++]
+        "name": "requests", // [!code ++]
+        "limit": 1000, // [!code ++]
+        "duration": 3600000 // [!code ++]
+      } // [!code ++]
+    ], // [!code ++]
+    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples" icon="terminal">
+```bash title="Migration Example" icon="arrow-right"
+# v1: Create key with identity data
+curl -X POST https://api.unkey.dev/v1/keys.createKey # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123", "externalId": "user_123", "meta": {"email": "user@example.com", "plan": "pro"}}' # [!code --]
+
+# v2: Create identity first, then create key
+curl -X POST https://api.unkey.com/v2/identities.createIdentity # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"externalId": "user_123", "meta": {"email": "user@example.com", "plan": "pro"}, "ratelimits": [{"name": "requests", "limit": 1000, "duration": 3600000}]}' # [!code ++]
+
+# Then create key referencing the identity # [!code ++]
+curl -X POST https://api.unkey.com/v2/keys.createKey # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123", "externalId": "user_123"}' # [!code ++]
+```
+</Tab>
+</Tabs>
+
+---
+
+## Retrieving Identity Data: v1 Key Lookup → v2 Direct Access
+
+**v1 Approach:** To get identity data, you had to list/get keys and extract identity information from individual keys.
+
+**v2 Approach:** Directly retrieve identity data using the dedicated `getIdentity` endpoint.
+
+<Tabs>
+<Tab title="Identity Retrieval Migration" icon="user">
+```bash title="v1 vs v2: Identity Retrieval Patterns"
+# v1: Had to find keys by externalId to get identity data
+curl -X GET "https://api.unkey.dev/v1/apis.listKeys?apiId=api_123" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# Then filter results to find keys with matching externalId # [!code --]
+# Identity data scattered across multiple key records # [!code --]
+
+# v2: Direct identity lookup
+curl -X POST https://api.unkey.com/v2/identities.getIdentity # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"externalId": "user_123"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response Comparison" icon="database">
+```json title="Identity Data Access" icon="database" expandable
+// v1: Identity data from key response (partial, scattered)
+{
+  "keys": [ // [!code --]
+    { // [!code --]
+      "id": "key_123", // [!code --]
+      "externalId": "user_123", // [!code --]
+      "meta": {"email": "user@example.com"}, // [!code --]
+      "name": "Mobile App Key" // [!code --]
+    }, // [!code --]
+    { // [!code --]
+      "id": "key_456", // [!code --]
+      "externalId": "user_123", // [!code --]
+      "meta": {"plan": "pro"}, // [!code --]
+      "name": "Web App Key" // [!code --]
+    } // [!code --]
+  ] // [!code --]
+}
+
+// v2: Complete identity data in single response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_getidentity456" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "identityId": "identity_abc123def456", // [!code ++]
+    "externalId": "user_123", // [!code ++]
+    "meta": { // [!code ++]
+      "email": "user@example.com", // [!code ++]
+      "plan": "pro" // [!code ++]
+    }, // [!code ++]
+    "ratelimits": [ // [!code ++]
+      { // [!code ++]
+        "id": "rl_identity_456", // [!code ++]
+        "name": "requests", // [!code ++]
+        "limit": 1000, // [!code ++]
+        "remaining": 847, // [!code ++]
+        "duration": 3600000, // [!code ++]
+        "reset": 1672534800000 // [!code ++]
+      } // [!code ++]
+    ], // [!code ++]
+    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## NEW: POST /v2/identities.updateIdentity
+
+**Purpose:** Update identity metadata and rate limits - not possible in v1.
+
+**v1 Limitation:** To update identity data, you had to update each key individually.
+
+**v2 Enhancement:** Update identity once, changes apply to all associated keys.
+
+<Tabs>
+<Tab title="Identity Update Migration" icon="user-edit">
+```bash title="v1 vs v2: Identity Update Patterns"
+# v1: Had to update each key separately - very inefficient
+curl -X POST https://api.unkey.dev/v1/keys.updateKey # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"keyId": "key_123", "meta": {"plan": "enterprise"}}' # [!code --]
+
+curl -X POST https://api.unkey.dev/v1/keys.updateKey # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"keyId": "key_456", "meta": {"plan": "enterprise"}}' # [!code --]
+# ... repeat for every key with this externalId # [!code --]
+
+# v2: Update identity once, affects all associated keys
+curl -X POST https://api.unkey.com/v2/identities.updateIdentity # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"externalId": "user_123", "meta": {"plan": "enterprise"}, "ratelimits": [{"name": "requests", "limit": 5000, "duration": 3600000}]}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="check-circle">
+```json title="Update Identity Response" icon="check-circle" expandable
+{
+  "meta": {
+    "requestId": "req_updateidentity789"
+  },
+  "data": {
+    "identityId": "identity_abc123def456",
+    "externalId": "user_123",
+    "meta": {
+      "email": "user@example.com",
+      "plan": "enterprise"
+    },
+    "ratelimits": [
+      {
+        "id": "rl_identity_456",
+        "name": "requests",
+        "limit": 5000,
+        "duration": 3600000
+      }
+    ],
+    "updatedAt": "2024-01-15T11:45:00Z"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## NEW: POST /v2/identities.listIdentities
+
+**Purpose:** Get paginated list of all identities - not possible in v1.
+
+**v1 Limitation:** No direct way to list identities; had to infer from key listings.
+
+**v2 Enhancement:** Direct identity listing with metadata and pagination.
+
+<Tabs>
+<Tab title="Identity Listing Migration" icon="user-group">
+```bash title="v1 vs v2: Identity Listing Patterns"
+# v1: List all keys and manually group by externalId
+curl -X GET "https://api.unkey.dev/v1/apis.listKeys?apiId=api_123" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# Then manually process results to extract unique externalIds # [!code --]
+# No direct identity metadata or pagination # [!code --]
+
+# v2: Direct identity listing with pagination
+curl -X POST https://api.unkey.com/v2/identities.listIdentities # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"limit": 100, "cursor": "optional_cursor"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="list">
+```json title="List Identities Response" icon="list" expandable
+{
+  "meta": {
+    "requestId": "req_listidentities789"
+  },
+  "data": {
+    "identities": [
+      {
+        "identityId": "identity_abc123",
+        "externalId": "user_123",
+        "meta": {
+          "email": "user@example.com",
+          "plan": "pro"
+        },
+        "createdAt": "2024-01-15T10:30:00Z"
+      },
+      {
+        "identityId": "identity_def456",
+        "externalId": "user_456",
+        "meta": {
+          "email": "user2@example.com",
+          "plan": "enterprise"
+        },
+        "createdAt": "2024-01-16T09:15:00Z"
+      }
+    ],
+    "cursor": "next_page_cursor_here"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## NEW: POST /v2/identities.deleteIdentity
+
+**Purpose:** Permanently delete an identity - not directly possible in v1.
+
+**v1 Limitation:** To remove identity, had to delete all associated keys individually.
+
+**v2 Enhancement:** Delete identity while preserving or handling associated keys appropriately.
+
+<Tabs>
+<Tab title="Identity Deletion Migration" icon="user-minus">
+```bash title="v1 vs v2: Identity Deletion Patterns"
+# v1: Had to delete each key individually to remove identity
+curl -X POST https://api.unkey.dev/v1/keys.deleteKey # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"keyId": "key_123"}' # [!code --]
+
+curl -X POST https://api.unkey.dev/v1/keys.deleteKey # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"keyId": "key_456"}' # [!code --]
+# ... repeat for every key with this externalId # [!code --]
+
+# v2: Delete identity (associated keys remain but lose shared resources)
+curl -X POST https://api.unkey.com/v2/identities.deleteIdentity # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"externalId": "user_123"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="check-circle">
+```json title="Delete Identity Response" icon="check-circle"
+{
+  "meta": {
+    "requestId": "req_deleteidentity999"
+  },
+  "data": {}
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Migration Patterns
+
+### Response Format Migration
+
+<Tabs>
+<Tab title="Response Format Migration" icon="code">
+```typescript title="v1 vs v2: Identity Data Access Patterns"
+// v1: Get identity data by listing keys
+const response = await fetch('/v1/apis.listKeys?apiId=api_123', { // [!code --]
+  method: 'GET', // [!code --]
+  headers: { // [!code --]
+    'Authorization': 'Bearer <root-key>' // [!code --]
+  } // [!code --]
+}); // [!code --]
+
+const data = await response.json(); // [!code --]
+// Filter keys by externalId and aggregate identity data // [!code --]
+const userKeys = data.keys.filter(key => key.externalId === 'user_123'); // [!code --]
+const identityMeta = {}; // Manually merge metadata from all keys // [!code --]
+
+// v2: Direct identity retrieval
+const response = await fetch('/v2/identities.getIdentity', { // [!code ++]
+  method: 'POST', // [!code ++]
+  headers: { // [!code ++]
+    'Authorization': 'Bearer <root-key>', // [!code ++]
+    'Content-Type': 'application/json' // [!code ++]
+  }, // [!code ++]
+  body: JSON.stringify({ externalId: 'user_123' }) // [!code ++]
+}); // [!code ++]
+
+const result = await response.json(); // [!code ++]
+const identityData = result.data; // Complete identity data // [!code ++]
+const requestId = result.meta.requestId; // For debugging // [!code ++]
+```
+</Tab>
+</Tabs>
+
+### Identity-Key Relationship Patterns
+
+<Tabs>
+<Tab title="Identity-Key Relationship Migration" icon="user-cog">
+```typescript title="v1 vs v2: Identity-Key Relationship Patterns"
+// v1: Create keys with identity data embedded
+const keyResponse = await fetch('/v1/keys.createKey', { // [!code --]
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    apiId: 'api_123',
+    externalId: 'user_123', // [!code --]
+    meta: { email: 'user@example.com', plan: 'pro' } // [!code --]
+  })
+});
+
+// v2: Create identity first
+const identityResponse = await fetch('/v2/identities.createIdentity', { // [!code ++]
+  method: 'POST', // [!code ++]
+  headers: { // [!code ++]
+    'Authorization': 'Bearer <root-key>', // [!code ++]
+    'Content-Type': 'application/json' // [!code ++]
+  }, // [!code ++]
+  body: JSON.stringify({ // [!code ++]
+    externalId: 'user_123', // [!code ++]
+    meta: { email: 'user@example.com', plan: 'pro' }, // [!code ++]
+    ratelimits: [{ name: 'requests', limit: 1000, duration: 3600000 }] // [!code ++]
+  }) // [!code ++]
+}); // [!code ++]
+
+// Then create keys that reference the identity // [!code ++]
+const keyResponse = await fetch('/v2/keys.createKey', { // [!code ++]
+  method: 'POST', // [!code ++]
+  headers: { // [!code ++]
+    'Authorization': 'Bearer <root-key>', // [!code ++]
+    'Content-Type': 'application/json' // [!code ++]
+  }, // [!code ++]
+  body: JSON.stringify({ // [!code ++]
+    apiId: 'api_123', // [!code ++]
+    externalId: 'user_123' // References the identity // [!code ++]
+  }) // [!code ++]
+}); // [!code ++]
+```
+</Tab>
+</Tabs>

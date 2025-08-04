@@ -11,7 +11,6 @@ export default async function ProjectsPage() {
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 
-  //@ts-expect-error This will be gone once we add deployments flag
   if (!workspace?.betaFeatures?.deployments) {
     // right now, we want to block all external access to deploy
     // to make it easier to opt-in for local development, comment out the redirect

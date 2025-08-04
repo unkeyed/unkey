@@ -1245,7 +1245,6 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 1000
-                    pattern: "^[a-zA-Z0-9_.()\\s-]+$"
                     description: |
                         Checks if the key has the specified permission(s) using a query syntax.
                         Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
@@ -2180,7 +2179,6 @@ components:
                 description: {}
             required:
                 - externalId
-                - ratelimits
         RatelimitResponse:
             type: object
             properties:
@@ -2460,7 +2458,6 @@ components:
             required:
                 - id
                 - name
-                - permissions
             additionalProperties: false
         V2KeysCreateKeyResponseData:
             type: object
@@ -3074,7 +3071,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /_internal/chproxy/ratelimits:
         post:
             description: |-
@@ -3112,7 +3109,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /_internal/chproxy/verifications:
         post:
             description: |-
@@ -3150,7 +3147,7 @@ paths:
             tags:
                 - chproxy
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /v2/apis.createApi:
         post:
             description: |
@@ -4869,7 +4866,7 @@ paths:
             tags:
                 - liveness
             x-excluded: true
-            x-speakeasy-ignore: "true"
+            x-speakeasy-ignore: true
     /v2/permissions.createPermission:
         post:
             description: |

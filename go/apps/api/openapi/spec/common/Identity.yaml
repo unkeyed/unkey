@@ -13,4 +13,3 @@ properties:
   description: Identity ratelimits
 required:
   - externalId
-  - ratelimits
