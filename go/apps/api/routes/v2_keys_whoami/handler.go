@@ -58,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindKeyByHash(ctx, h.DB.RO(), hash.Sha256(req.Key))
+	key, err := db.Query.FindLiveKeyByHash(ctx, h.DB.RO(), hash.Sha256(req.Key))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(

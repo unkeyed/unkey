@@ -113,7 +113,7 @@ func TestKeyDeleteSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 
-		key, err := db.Query.FindKeyByIDRaw(ctx, h.DB.RO(), softDeleteKeyID)
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), softDeleteKeyID)
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.DeletedAtM.Valid, true)
