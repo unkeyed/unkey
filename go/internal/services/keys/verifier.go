@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -46,6 +45,7 @@ type KeyVerifier struct {
 	tags    []string // Tags associated with this verification
 
 	session *zen.Session // The current request session
+	region  string       // Geographic region identifier
 
 	// Services
 	rateLimiter  ratelimit.Service     // Rate limiting service
@@ -130,7 +130,7 @@ func (k *KeyVerifier) log() {
 		KeyID:       k.Key.ID,
 		IdentityID:  k.Key.IdentityID.String,
 		Tags:        k.tags,
-		Region:      os.Getenv("UNKEY_REGION"),
+		Region:      k.region,
 	})
 
 	keyType := "key"
