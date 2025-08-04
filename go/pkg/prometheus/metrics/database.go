@@ -12,19 +12,20 @@ import (
 )
 
 var (
-	// DatabaseOperationLatency tracks database operation latencies as a histogram,
+	// DatabaseOperationsLatency tracks database operation latencies as a histogram,
 	// labeled by replica type (rw/ro), operation type, and success status.
 	// This collector uses predefined buckets optimized for typical database operation latencies.
 	//
 	// Example usage:
 	//   timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
-	//       metrics.DatabaseOperationLatency.WithLabelValues("rw", "exec", "success").Observe(v)
+	//       metrics.DatabaseOperationsLatency.WithLabelValues("rw", "exec", "success").Observe(v)
 	//   }))
 	//   defer timer.ObserveDuration()
-	DatabaseOperationLatency = promauto.NewHistogramVec(
+	DatabaseOperationsLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
+			Namespace:   "unkey",
 			Subsystem:   "database",
-			Name:        "operation_latency_seconds",
+			Name:        "operations_latency_seconds",
 			Help:        "Histogram of database operation latencies in seconds.",
 			Buckets:     latencyBuckets,
 			ConstLabels: constLabels,
@@ -39,8 +40,9 @@ var (
 	// Example usage:
 	//   metrics.DatabaseOperationTotal.WithLabelValues("rw", "exec", "success").Inc()
 	//   metrics.DatabaseOperationTotal.WithLabelValues("ro", "query", "error").Inc()
-	DatabaseOperationTotal = promauto.NewCounterVec(
+	DatabaseOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
+			Namespace:   "unkey",
 			Subsystem:   "database",
 			Name:        "operations_total",
 			Help:        "Total number of database operations processed.",
@@ -48,4 +50,18 @@ var (
 		},
 		[]string{"replica", "operation", "status"},
 	)
+
+	// DatabaseOperationsErrorsTotal tracks the total number of database operation errors,
+	// labeled by replica type (rw/ro), and operation type.
+	// Use this counter to monitor database error rates and identify problematic operations.
+	//
+	// Example usage:
+	//   metrics.DatabaseOperationsErrorsTotal.WithLabelValues("rw", "exec").Inc()
+	DatabaseOperationsErrorsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "unkey",
+		Subsystem:   "database",
+		Name:        "operations_errors_total",
+		Help:        "Total number of database operation errors.",
+		ConstLabels: constLabels,
+	}, []string{"replica", "operation"})
 )
