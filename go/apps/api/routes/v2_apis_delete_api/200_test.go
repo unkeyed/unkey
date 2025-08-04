@@ -109,7 +109,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 
 		// Check that the key is still accessible (soft delete doesn't cascade to keys)
-		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), createKey.KeyID)
+		key, err := db.Query.FindKeyByIDRaw(ctx, h.DB.RO(), createKey.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, createKey.KeyID, key.ID)
 	})

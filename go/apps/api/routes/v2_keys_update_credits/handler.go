@@ -158,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		keyAfterUpdate, keyErr := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+		keyAfterUpdate, keyErr := db.Query.FindKeyByID(ctx, tx, req.KeyId)
 		if keyErr != nil {
 			if db.IsNotFound(keyErr) {
 				return db.FindKeyByIDRow{}, fault.Wrap(

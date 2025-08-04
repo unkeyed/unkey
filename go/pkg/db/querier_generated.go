@@ -205,7 +205,7 @@ type Querier interface {
 	//      ek.encrypted as encrypted_key,
 	//  	ek.encryption_key_id as encryption_key_id
 	//  FROM `keys` k
-	//  JOIN apis a ON a.id = k.key_auth_id
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
 	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 	//  WHERE hash = ?
 	//  AND k.deleted_at_m IS NULL
@@ -218,12 +218,17 @@ type Querier interface {
 	//      ek.encrypted as encrypted_key,
 	//  	ek.encryption_key_id as encryption_key_id
 	//  FROM `keys` k
-	//  JOIN apis a ON a.id = k.key_auth_id
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
 	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 	//  WHERE k.id = ?
 	//  AND k.deleted_at_m IS NULL
 	//  AND a.deleted_at_m IS NULL
 	FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error)
+	//FindKeyByIDRaw
+	//
+	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k
+	//  WHERE k.id = ?
+	FindKeyByIDRaw(ctx context.Context, db DBTX, id string) (Key, error)
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
