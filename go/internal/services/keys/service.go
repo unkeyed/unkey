@@ -19,6 +19,7 @@ type Config struct {
 	RateLimiter ratelimit.Service     // Rate limiting service
 	RBAC        *rbac.RBAC            // Role-based access control
 	Clickhouse  clickhouse.ClickHouse // Clickhouse for telemetry
+	Region      string                // Geographic region identifier
 
 	KeyCache cache.Cache[string, db.FindKeyForVerificationRow] // Cache for key lookups
 }
@@ -30,6 +31,7 @@ type service struct {
 	usageLimiter usagelimiter.Service
 	rbac         *rbac.RBAC
 	clickhouse   clickhouse.ClickHouse
+	region       string
 
 	// hash -> key
 	keyCache cache.Cache[string, db.FindKeyForVerificationRow]
@@ -52,6 +54,7 @@ func New(config Config) (*service, error) {
 		raterLimiter: config.RateLimiter,
 		usageLimiter: ulSvc,
 		clickhouse:   config.Clickhouse,
+		region:       config.Region,
 		keyCache:     config.KeyCache,
 	}, nil
 }

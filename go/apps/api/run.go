@@ -31,7 +31,6 @@ import (
 
 // nolint:gocognit
 func Run(ctx context.Context, cfg Config) error {
-
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
@@ -183,6 +182,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RateLimiter: rlSvc,
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
+		Region:      cfg.Region,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)

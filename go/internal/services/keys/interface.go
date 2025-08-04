@@ -11,8 +11,10 @@ import (
 type KeyService interface {
 	// Get retrieves a key and returns a KeyVerifier for validation
 	Get(ctx context.Context, sess *zen.Session, hash string) (*KeyVerifier, func(), error)
+
 	// GetRootKey retrieves and validates a root key from the session
 	GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifier, func(), error)
+
 	// CreateKey generates a new secure API key
 	CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKeyResponse, error)
 }
