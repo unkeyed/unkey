@@ -11,10 +11,7 @@ import {
 } from "../projects-filters.schema";
 
 export const queryParamsPayload = Object.fromEntries(
-  projectsListFilterFieldNames.map((field) => [
-    field,
-    parseAsAllOperatorsFilterArray,
-  ])
+  projectsListFilterFieldNames.map((field) => [field, parseAsAllOperatorsFilterArray]),
 ) as { [K in ProjectsFilterField]: typeof parseAsAllOperatorsFilterArray };
 
 export const useProjectsFilters = () => {
@@ -30,11 +27,7 @@ export const useProjectsFilters = () => {
         continue;
       }
       for (const filterItem of value) {
-        if (
-          filterItem &&
-          typeof filterItem.value === "string" &&
-          filterItem.operator
-        ) {
+        if (filterItem && typeof filterItem.value === "string" && filterItem.operator) {
           const baseFilter: ProjectsFilterValue = {
             id: crypto.randomUUID(),
             field: field,
@@ -51,16 +44,11 @@ export const useProjectsFilters = () => {
   const updateFilters = useCallback(
     (newFilters: ProjectsFilterValue[]) => {
       const newParams: Partial<ProjectsQuerySearchParams> = Object.fromEntries(
-        projectsListFilterFieldNames.map((field) => [field, null])
+        projectsListFilterFieldNames.map((field) => [field, null]),
       );
 
-      const filtersByField = new Map<
-        ProjectsFilterField,
-        AllOperatorsUrlValue[]
-      >();
-      projectsListFilterFieldNames.forEach((field) =>
-        filtersByField.set(field, [])
-      );
+      const filtersByField = new Map<ProjectsFilterField, AllOperatorsUrlValue[]>();
+      projectsListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
 
       newFilters.forEach((filter) => {
         if (!projectsListFilterFieldNames.includes(filter.field)) {
@@ -69,15 +57,11 @@ export const useProjectsFilters = () => {
 
         const fieldConfig = projectsFilterFieldConfig[filter.field];
         if (!fieldConfig.operators.includes(filter.operator)) {
-          throw new Error(
-            `Invalid operator '${filter.operator}' for field '${filter.field}'`
-          );
+          throw new Error(`Invalid operator '${filter.operator}' for field '${filter.field}'`);
         }
 
         if (typeof filter.value !== "string") {
-          throw new Error(
-            `Filter value must be a string for field '${filter.field}'`
-          );
+          throw new Error(`Filter value must be a string for field '${filter.field}'`);
         }
 
         const fieldFilters = filtersByField.get(filter.field);
@@ -100,7 +84,7 @@ export const useProjectsFilters = () => {
 
       setSearchParams(newParams);
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const removeFilter = useCallback(
@@ -108,7 +92,7 @@ export const useProjectsFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   return {

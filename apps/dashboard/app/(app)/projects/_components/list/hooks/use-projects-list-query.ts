@@ -2,36 +2,26 @@ import { trpc } from "@/lib/trpc/client";
 import type { Project } from "@/lib/trpc/routers/deploy/project/list";
 import { useEffect, useMemo, useState } from "react";
 import { useProjectsFilters } from "../../hooks/use-projects-filters";
-import type { ProjectsQueryPayload } from "../projects-list.schema";
 import {
   projectsFilterFieldConfig,
   projectsListFilterFieldNames,
 } from "../../projects-filters.schema";
+import type { ProjectsQueryPayload } from "../projects-list.schema";
 
 export function useProjectsListQuery() {
   const [totalCount, setTotalCount] = useState(0);
-  const [projectsMap, setProjectsMap] = useState(
-    () => new Map<string, Project>()
-  );
+  const [projectsMap, setProjectsMap] = useState(() => new Map<string, Project>());
   const { filters } = useProjectsFilters();
 
-  const projects = useMemo(
-    () => Array.from(projectsMap.values()),
-    [projectsMap]
-  );
+  const projects = useMemo(() => Array.from(projectsMap.values()), [projectsMap]);
 
   const queryParams = useMemo(() => {
     const params: ProjectsQueryPayload = {
-      ...Object.fromEntries(
-        projectsListFilterFieldNames.map((field) => [field, []])
-      ),
+      ...Object.fromEntries(projectsListFilterFieldNames.map((field) => [field, []])),
     };
 
     filters.forEach((filter) => {
-      if (
-        !projectsListFilterFieldNames.includes(filter.field) ||
-        !params[filter.field]
-      ) {
+      if (!projectsListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
         return;
       }
 

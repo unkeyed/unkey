@@ -16,7 +16,7 @@ const filterFieldsSchema = projectsListFilterFieldNames.reduce(
     acc[fieldName] = baseFilterArraySchema;
     return acc;
   },
-  {} as Record<string, typeof baseFilterArraySchema>
+  {} as Record<string, typeof baseFilterArraySchema>,
 );
 
 const baseProjectsSchema = z.object(filterFieldsSchema);

@@ -1,12 +1,6 @@
 import { projectsQueryPayload as projectsInputSchema } from "@/app/(app)/projects/_components/list/projects-list.schema";
 import { and, count, db, desc, eq, like, lt, or, schema } from "@/lib/db";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -116,9 +110,7 @@ export const queryProjects = t.procedure
 
     // Combine all conditions
     const allConditions =
-      filterConditions.length > 0
-        ? [...baseConditions, ...filterConditions]
-        : baseConditions;
+      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
 
     try {
       const [totalResult, projectsResult] = await Promise.all([
@@ -160,7 +152,7 @@ export const queryProjects = t.procedure
                 eq(schema.routes.workspaceId, ctx.workspace.id),
                 or(...projectIds.map((id) => eq(schema.routes.projectId, id))),
                 // Only get .unkey.app domains
-                like(schema.routes.hostname, "%.unkey.app")
+                like(schema.routes.hostname, "%.unkey.app"),
               ),
               columns: {
                 id: true,
@@ -189,7 +181,7 @@ export const queryProjects = t.procedure
             id: string;
             hostname: string;
           }>
-        >
+        >,
       );
 
       const projects = projectsWithoutExtra.map((project) => ({
@@ -208,8 +200,7 @@ export const queryProjects = t.procedure
         projects,
         hasMore,
         total: totalResult[0]?.count ?? 0,
-        nextCursor:
-          projects.length > 0 ? projects[projects.length - 1].createdAt : null,
+        nextCursor: projects.length > 0 ? projects[projects.length - 1].createdAt : null,
       };
 
       return response;
