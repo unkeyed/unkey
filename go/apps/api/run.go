@@ -31,7 +31,6 @@ import (
 
 // nolint:gocognit
 func Run(ctx context.Context, cfg Config) error {
-
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
