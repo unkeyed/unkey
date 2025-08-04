@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package partition.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1";
+
+
+// GatewayConfig contains all configuration needed for a hostname
+// including deployment metadata and middleware configurations
+message GatewayConfig {
+  // Routing configuration
+  bool is_enabled = 1;
+
+  // Deployment information
+  string deployment_id = 2;
+  string workspace_id = 3;
+  string project_id = 4;
+  string environment = 5;
+  string rootfs_image_id = 6;
+  DeploymentStatus status = 7;
+
+  // Middleware configurations
+  AuthConfig auth_config = 10;
+  RatelimitConfig ratelimit_config = 11;
+  ValidationConfig validation_config = 12;
+
+  // Deployment metadata
+  string git_commit_sha = 20;
+  string git_branch = 21;
+}
+
+// Authentication middleware configuration
+message AuthConfig {
+  bool require_api_key = 1;
+  repeated string required_scopes = 2;
+  string keyspace_id = 3;
+  bool allow_anonymous = 4;
+  // JWT configuration for downstream services
+  JWTConfig jwt_config = 10;
+}
+
+// JWT configuration for service-to-service auth
+message JWTConfig {
+  string signing_key = 1;
+  int32 expires_in_seconds = 2;
+  string issuer = 3;
+  repeated string audiences = 4;
+}
+
+// Rate limiting middleware configuration
+message RatelimitConfig {
+  bool enabled = 1;
+  int32 requests_per_minute = 2;
+  string window_type = 3; // "sliding", "fixed"
+  string identifier_type = 4; // "ip", "api_key", "user_id"
+  // Override rules for specific identifiers
+  repeated RatelimitOverride overrides = 10;
+}
+
+// Rate limit override for specific identifiers
+message RatelimitOverride {
+  string identifier = 1;
+  int32 requests_per_minute = 2;
+}
+
+// Request validation middleware configuration
+message ValidationConfig {
+  bool enabled = 1;
+  string openapi_spec = 2;
+  bool validate_request = 3;
+  bool validate_response = 4;
+  bool strict_mode = 5; // Reject requests with unknown fields
+}
+
+// Deployment status enum
+enum DeploymentStatus {
+  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
+  DEPLOYMENT_STATUS_PENDING = 1;
+  DEPLOYMENT_STATUS_BUILDING = 2;
+  DEPLOYMENT_STATUS_DEPLOYING = 3;
+  DEPLOYMENT_STATUS_ACTIVE = 4;
+  DEPLOYMENT_STATUS_FAILED = 5;
+  DEPLOYMENT_STATUS_ARCHIVED = 6;
+}
