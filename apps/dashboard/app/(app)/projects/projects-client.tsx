@@ -112,10 +112,7 @@ const RegionBadges = ({ regions, repository }: RegionBadgesProps) => {
           content={
             <div className="space-y-1">
               {remainingRegions.map((region) => (
-                <div
-                  key={region}
-                  className="text-xs font-medium flex items-center gap-1.5"
-                >
+                <div key={region} className="text-xs font-medium flex items-center gap-1.5">
                   <div className="w-1 h-1 bg-gray-8 rounded-full" />
                   {region}
                 </div>
@@ -161,18 +158,16 @@ const ProjectCard = ({
   regions,
   repository,
 }: ProjectCardProps) => (
-  <div className="p-5 flex flex-col border border-grayA-4 rounded-2xl w-full gap-5">
+  <div className="p-5 flex flex-col border border-grayA-4  hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5">
     {/*Top Section*/}
     <div className="flex gap-4 items-center">
-      <div className="size-10 bg-grayA-3 border border-grayA-3 rounded-[10px] flex items-center justify-center shrink-0">
-        <Cube size="xl-medium" className="shrink-0 size-5" />
+      <div className="size-10 bg-gradient-to-br from-grayA-2 to-grayA-7 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
+        <Cube size="xl-medium" className="text-gray-11 shrink-0 size-5" />
       </div>
       <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
         {/*Top Section > Project Name*/}
         <InfoTooltip content={name} asChild>
-          <div className="font-medium text-sm leading-[14px] text-accent-12 truncate">
-            {name}
-          </div>
+          <div className="font-medium text-sm leading-[14px] text-accent-12 truncate">{name}</div>
         </InfoTooltip>
         {/*Top Section > Domains/Hostnames*/}
         <InfoTooltip content={domain} asChild>
@@ -187,12 +182,7 @@ const ProjectCard = ({
         </InfoTooltip>
       </div>
       {/*Top Section > Project actions*/}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="mb-auto shrink-0"
-        title="Project actions"
-      >
+      <Button variant="ghost" size="icon" className="mb-auto shrink-0" title="Project actions">
         <Dots size="sm-regular" />
       </Button>
     </div>
@@ -207,18 +197,14 @@ const ProjectCard = ({
         <span className="text-xs text-gray-11">{commitDate} on</span>
         <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
         <InfoTooltip content={branch} asChild>
-          <span className="text-xs text-gray-12 truncate max-w-[70px]">
-            {branch}
-          </span>
+          <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
         </InfoTooltip>
         <span className="text-xs text-gray-10">by</span>
         <div className="border border-grayA-6 items-center justify-center rounded-full size-[18px] flex">
           <User className="text-gray-11 shrink-0" size="sm-regular" />
         </div>
         <InfoTooltip content={author} asChild>
-          <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">
-            {author}
-          </span>
+          <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">{author}</span>
         </InfoTooltip>
       </div>
     </div>
