@@ -1,5 +1,5 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { db, eq, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -73,43 +73,6 @@ export const updateRootKeyPermissions = t.procedure
             });
           });
 
-        // Remove existing permissions
-        await tx
-          .delete(schema.keysPermissions)
-          .where(eq(schema.keysPermissions.keyId, input.keyId))
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to remove existing permissions",
-            });
-          });
-
-        // Audit log for removed permissions
-        auditLogs.push(
-          ...currentPermissions.map((kp) => ({
-            workspaceId: ctx.workspace.id,
-            actor: { type: "user" as const, id: ctx.user.id },
-            event: "authorization.disconnect_permission_and_key" as const,
-            description: `Disconnected ${kp.permissionId} from ${input.keyId}`,
-            resources: [
-              {
-                type: "key" as const,
-                id: input.keyId,
-                name: key.name ?? undefined,
-              },
-              {
-                type: "permission" as const,
-                id: kp.permissionId,
-                name: kp.permission?.name ?? undefined,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          })),
-        );
-
         // Upsert new permissions
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
           ctx,
@@ -119,40 +82,95 @@ export const updateRootKeyPermissions = t.procedure
 
         auditLogs.push(...createPermissionLogs);
 
-        // Connect new permissions to the key
-        await tx.insert(schema.keysPermissions).values(
-          permissions.map((p) => ({
-            keyId: input.keyId,
-            permissionId: p.id,
-            workspaceId: env().UNKEY_WORKSPACE_ID,
-          })),
-        );
+        // Get current permission IDs for comparison
+        const currentPermissionIds = new Set(currentPermissions.map(kp => kp.permissionId));
+        const newPermissionIds = new Set(permissions.map(p => p.id));
 
-        // Audit log for new permission connections
-        auditLogs.push(
-          ...permissions.map((p) => ({
-            workspaceId: ctx.workspace.id,
-            actor: { type: "user" as const, id: ctx.user.id },
-            event: "authorization.connect_permission_and_key" as const,
-            description: `Connected ${p.id} and ${input.keyId}`,
-            resources: [
-              {
-                type: "key" as const,
-                id: input.keyId,
-                name: key.name ?? undefined,
+        // Find permissions to remove (in current but not in new)
+        const permissionsToRemove = currentPermissions.filter(kp => !newPermissionIds.has(kp.permissionId));
+        
+        // Find permissions to add (in new but not in current)
+        const permissionsToAdd = permissions.filter(p => !currentPermissionIds.has(p.id));
+
+        // Remove only the permissions that are no longer needed
+        if (permissionsToRemove.length > 0) {
+          const permissionIdsToRemove = permissionsToRemove.map(kp => kp.permissionId);
+          await tx
+            .delete(schema.keysPermissions)
+            .where(
+              eq(schema.keysPermissions.keyId, input.keyId) && 
+              inArray(schema.keysPermissions.permissionId, permissionIdsToRemove)
+            )
+            .catch((_err) => {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to remove existing permissions",
+              });
+            });
+
+          // Audit log for removed permissions
+          auditLogs.push(
+            ...permissionsToRemove.map((kp) => ({
+              workspaceId: ctx.workspace.id,
+              actor: { type: "user" as const, id: ctx.user.id },
+              event: "authorization.disconnect_permission_and_key" as const,
+              description: `Disconnected ${kp.permissionId} from ${input.keyId}`,
+              resources: [
+                {
+                  type: "key" as const,
+                  id: input.keyId,
+                  name: key.name ?? undefined,
+                },
+                {
+                  type: "permission" as const,
+                  id: kp.permissionId,
+                  name: kp.permission?.name ?? undefined,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
               },
-              {
-                type: "permission" as const,
-                id: p.id,
-                name: p.name ?? undefined,
+            })),
+          );
+        }
+
+        // Add only the new permissions
+        if (permissionsToAdd.length > 0) {
+          await tx.insert(schema.keysPermissions).values(
+            permissionsToAdd.map((p) => ({
+              keyId: input.keyId,
+              permissionId: p.id,
+              workspaceId: env().UNKEY_WORKSPACE_ID,
+            })),
+          );
+
+          // Audit log for new permission connections
+          auditLogs.push(
+            ...permissionsToAdd.map((p) => ({
+              workspaceId: ctx.workspace.id,
+              actor: { type: "user" as const, id: ctx.user.id },
+              event: "authorization.connect_permission_and_key" as const,
+              description: `Connected ${p.id} and ${input.keyId}`,
+              resources: [
+                {
+                  type: "key" as const,
+                  id: input.keyId,
+                  name: key.name ?? undefined,
+                },
+                {
+                  type: "permission" as const,
+                  id: p.id,
+                  name: p.name ?? undefined,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
               },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          })),
-        );
+            })),
+          );
+        }
 
         await insertAuditLogs(tx, auditLogs);
       });
