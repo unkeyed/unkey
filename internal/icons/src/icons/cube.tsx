@@ -28,7 +28,7 @@ export const Cube: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
-        stroke="#212121"
+        stroke="currentColor"
       >
         <polyline points="14.983 5.53 9 9 3.017 5.53" />
         <line x1="9" y1="15.938" x2="9" y2="9" />
