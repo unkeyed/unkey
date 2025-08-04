@@ -105,6 +105,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	kv := &KeyVerifier{
 		Status:  StatusWorkspaceDisabled,
 		message: "workspace is disabled",
+		region:  s.region,
 	}
 
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
@@ -152,6 +153,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		rBAC:                  s.rbac,
 		session:               sess,
 		logger:                s.logger,
+		region:                s.region,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
 

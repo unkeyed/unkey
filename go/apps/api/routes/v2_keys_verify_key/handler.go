@@ -249,7 +249,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				AutoApply: result.AutoApply,
 				Duration:  result.Duration.Milliseconds(),
 				Exceeded:  !result.Response.Success,
-				Id:        result.Name,
+				Id:        result.ID,
 				Limit:     result.Limit,
 				Name:      result.Name,
 				Remaining: result.Response.Remaining,
