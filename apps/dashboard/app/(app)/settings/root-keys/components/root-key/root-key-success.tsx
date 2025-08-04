@@ -1,4 +1,5 @@
 "use client";
+
 import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { ArrowRight, Check, CircleInfo, Key2 } from "@unkey/icons";
@@ -10,92 +11,33 @@ import {
   DialogContent,
   InfoTooltip,
   VisibleButton,
-  toast,
 } from "@unkey/ui";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { ROOT_KEY_CONSTANTS } from "./constants";
+import { useRootKeySuccess } from "./hooks/use-root-key-success";
 
-const UNNAMED_KEY = "Unnamed";
-
-type Props = {
+type RootKeySuccessProps = {
   keyValue?: string;
   keyId?: string;
   name?: string;
   onClose: () => void;
 };
 
-export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: Props) => {
-  const router = useRouter();
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<
-    "close" | "create-another" | "go-to-details" | null
-  >(null);
-  const dividerRef = useRef<HTMLDivElement>(null);
-
-  const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
-    setPendingAction(action);
-    setIsConfirmOpen(true);
-  };
-
-  const handleConfirmClose = () => {
-    if (!pendingAction) {
-      console.error("No pending action when confirming close");
-      return;
-    }
-
-    setIsConfirmOpen(false);
-
-    try {
-      // Always close the dialog first
-      onClose();
-
-      // Then execute the specific action
-      switch (pendingAction) {
-        case "create-another":
-          // Reset form for creating another key
-          break;
-
-        case "go-to-details":
-          router.push(`/settings/root-keys`);
-          break;
-
-        default:
-          // Dialog already closed, nothing more to do
-          router.push("/settings/root-keys");
-          break;
-      }
-    } catch (error) {
-      console.error("Error executing pending action:", error);
-      toast.error("Action Failed", {
-        description: "An unexpected error occurred. Please try again.",
-      });
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      handleCloseAttempt("close");
-    }
-  };
-
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.createKey' \\
-    -H 'Authorization: Bearer ${keyValue}' \\
-    -H 'Content-Type: application/json' \\
-    -d '{
-      "prefix": "hello",
-      "apiId": "<API_ID>"
-    }'`;
-
-  const split = keyValue?.split("_") ?? [];
-  const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
+export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: RootKeySuccessProps) => {
+  const {
+    showKeyInSnippet,
+    setShowKeyInSnippet,
+    isConfirmOpen,
+    setIsConfirmOpen,
+    dividerRef,
+    handleCloseAttempt,
+    handleConfirmClose,
+    handleDialogOpenChange,
+    snippet,
+    maskedKey,
+  } = useRootKeySuccess({
+    keyValue,
+    onClose,
+  });
 
   if (!keyValue || !keyId) {
     return null;
@@ -149,14 +91,14 @@ export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: Props) => {
                   <div className="flex flex-col gap-1 py-6">
                     <div className="text-accent-12 text-xs font-mono">{keyId}</div>
                     <InfoTooltip
-                      content={name ?? UNNAMED_KEY}
+                      content={name ?? ROOT_KEY_CONSTANTS.UNNAMED_KEY}
                       position={{ side: "bottom", align: "center" }}
                       asChild
                       disabled={!name}
                       variant="inverted"
                     >
                       <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                        {name ?? UNNAMED_KEY}
+                        {name ?? ROOT_KEY_CONSTANTS.UNNAMED_KEY}
                       </div>
                     </InfoTooltip>
                   </div>

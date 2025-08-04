@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
+import { ROOT_KEY_MESSAGES } from "./constants";
 import { RootKeyDialog } from "./root-key-dialog";
 
 type Props = {
@@ -17,17 +18,17 @@ export const CreateRootKeyButton = ({ className, ...props }: Props) => {
     <>
       <Button
         {...props}
-        title="New root key"
+        title={ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY}
         onClick={() => setIsOpen(true)}
         variant="primary"
         size="md"
         className={cn("rounded-lg", className)}
       >
         <Plus />
-        New root key
+        {ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY}
       </Button>
       <RootKeyDialog
-        title="New root key"
+        title={ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY}
         subTitle="Define a new root key and assign permissions"
         isOpen={isOpen}
         onOpenChange={setIsOpen}

@@ -1,6 +1,7 @@
 "use client";
 import { XMark } from "@unkey/icons";
 import { Button, InfoTooltip, SearchIcon } from "@unkey/ui";
+import { ROOT_KEY_MESSAGES } from "../constants";
 import { SearchInput } from "./search-input";
 
 type Props = {
@@ -19,7 +20,7 @@ export const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: 
         <SearchInput
           className="focus:ring-0 focus:outline-none focus:!bg-grayA-4 w-full"
           value={search || ""}
-          placeholder="Search permissions"
+          placeholder={ROOT_KEY_MESSAGES.UI.SEARCH_PERMISSIONS}
           isProcessing={isProcessing}
           isLoading={false}
           loadingText="Searching..."
@@ -31,7 +32,7 @@ export const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: 
         />
       </div>
       <div className="absolute right-2">
-        <InfoTooltip content="Clear search">
+        <InfoTooltip content={ROOT_KEY_MESSAGES.UI.CLEAR_SEARCH}>
           <Button
             variant="ghost"
             size="icon"
