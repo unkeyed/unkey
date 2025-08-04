@@ -160,8 +160,8 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 ## POST /v1/keys.verifyKey → POST /v2/keys.verifyKey
 
 **Key Changes:**
-- **🚨 CRITICAL**: v2 requires root key authentication with `api.*.verify_key` permission
-- **🚨 CRITICAL**: `apiId` parameter is no longer accepted in v2
+- **CRITICAL**: v2 requires root key authentication with `api.*.verify_key` permission
+- **CRITICAL**: `apiId` parameter is no longer accepted in v2
 - Remove `authorization` wrapper for permissions
 - Use string-based permission queries instead of object syntax
 - Change `remaining` → `credits` for cost parameters
@@ -809,7 +809,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
-- Enhanced response with additional metadata, mirrors the getKey response.
+- Enhanced response with additional metadata, mirroring the `v2/keys.getKey` response.
 - Added `meta.requestId` for debugging
 
 <Tabs>
@@ -868,14 +868,14 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
 curl -X POST https://api.unkey.dev/v1/keys.whoami \
   -H "Authorization: Bearer <your-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{ "key": "some_api_key" }'
 ```
 
 ```bash title="v2 cURL" icon="terminal" highlight={1}
 curl -X POST https://api.unkey.com/v2/keys.whoami \
   -H "Authorization: Bearer <your-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{ "key": "some_api_key" }'
 ```
 </Tab>
 </Tabs>
@@ -1081,7 +1081,7 @@ curl -X POST https://api.unkey.com/v2/keys.removePermissions \
       "create": true, // [!code --]
     }, // [!code --]
     { // [!code --]
-      "id": "perm_", // [!code --]
+      "id": "perm_123", // [!code --]
     } // [!code --]
   ]
 }
@@ -1211,7 +1211,7 @@ curl -X POST https://api.unkey.com/v2/keys.setPermissions \
   "data": [
     {
       "id": "role_123",
-      "name": "editor"
+      "name": "editor",
       "permissions": [{ // [!code ++]
         "id": "perm_123", // [!code ++]
         "name": "document reader", // [!code ++]
@@ -1491,7 +1491,12 @@ console.log(keyData.keyId);
 
 // v2 Key Structure
 {
-  "externalId": "user_456", // [!code ++]
+  "identity": { // [!code ++]
+    "externalId": "user_456", // [!code ++]
+    "id": "id_123", // [!code ++]
+    "ratelimits": [], // [!code ++]
+    "meta": {}, // [!code ++]
+}, // [!code ++]
   "credits": { // [!code ++]
     "remaining": 1000, // [!code ++]
     "refill": { // [!code ++]
