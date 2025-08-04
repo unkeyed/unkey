@@ -921,7 +921,7 @@ curl -X POST https://api.unkey.com/v2/keys.whoami \
 </Tab>
 <Tab title="Response Changes" icon="database">
 ```json title="Add Permissions Response Diff" icon="check-circle"
-// v1 Response (array of created permissions)
+// v1 Response (array of attached permissions)
 [
   {
     "id": "perm_123",
@@ -933,7 +933,7 @@ curl -X POST https://api.unkey.com/v2/keys.whoami \
   }
 ]
 
-// v2 Response, responds with the permissions that are on this key now
+// v2 Response, responds with the permissions that are attached to this key
 {
   "meta": { // [!code ++]
     "requestId": "req_addperms123" // [!code ++]
@@ -1023,9 +1023,9 @@ curl -X POST https://api.unkey.com/v2/keys.addPermissions \
   "data": [ // [!code ++]
     { // [!code ++]
       "id": "perm_123", // [!code ++]
-      "slug": "documents.write", // [!code ++]
-      "name": "Documents Write", // [!code ++]
-      "description": "Allows writing to documents" // [!code ++]
+      "slug": "documents.archive", // [!code ++]
+      "name": "Documents Archive", // [!code ++]
+      "description": "Allows archiving documents" // [!code ++]
     }, // [!code ++]
   ] // [!code ++]
 }
@@ -1177,7 +1177,7 @@ curl -X POST https://api.unkey.com/v2/keys.setPermissions \
   "keyId": "key_123",
   "roles": [
     { "name": "editor" }, // [!code --]
-    { "id": "moderator" } // [!code --]
+    { "id": "role_123" } // [!code --]
   ]
 }
 
@@ -1297,10 +1297,7 @@ curl -X POST https://api.unkey.com/v2/keys.addRoles \
   "meta": { // [!code ++]
     "requestId": "req_removeroles456" // [!code ++]
   }, // [!code ++]
-  "data": [{
-    "id": "key_123",
-    "roles": ["editor", "moderator"]
-  }]
+  "data": []
 }
 ```
 </Tab>
@@ -1336,38 +1333,67 @@ curl -X POST https://api.unkey.com/v2/keys.removeRoles \
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
 - Atomic replacement of all roles
+- Responds with all the roles that are now set
+- No auto creation of roles anymore
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Set Roles Request" icon="users-cog"
-// v1 & v2 Request (unchanged)
+// v1 Request
 {
   "keyId": "key_123",
-  "roles": ["editor", "admin"]
+  "roles": [
+    { "name": "editor" }, // [!code --]
+    { "id": "role_123" } // [!code --]
+  ]
+}
+
+// v2 Request
+{
+  "keyId": "key_123",
+  "roles": ["editor", "moderator"] // [!code ++]
 }
 ```
+
 </Tab>
 <Tab title="Response Changes" icon="database">
 ```json title="Set Roles Response Diff" icon="check-circle"
 // v1 Response (array of all roles on key)
 [
   {
-    "id": "role_123", // [!code --]
-    "name": "editor" // [!code --]
+    "id": "role_123",
+    "name": "editor"
   },
   {
-    "id": "role_789", // [!code --]
-    "name": "admin" // [!code --]
+    "id": "role_789",
+    "name": "moderator"
   }
-] // [!code --]
+]
 
 // v2 Response
 {
   "meta": { // [!code ++]
     "requestId": "req_setroles789" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": [
+    {
+      "id": "role_123",
+      "name": "editor",
+      "permissions": [  // [!code ++]
+        {  // [!code ++]
+          "id": "perm_123",  // [!code ++]
+          "name": "document reader",  // [!code ++]
+          "slug": "document.read",  // [!code ++]
+          "description": "Read documents but don't edit them"  // [!code ++]
+        }
+      ]
+    },
+    {
+      "id": "role_456",
+      "name": "moderator"
+    }
+  ]
 }
 ```
 </Tab>
@@ -1378,7 +1404,14 @@ curl -X POST https://api.unkey.dev/v1/keys.setRoles \
   -H "Content-Type: application/json" \
   -d '{
     "keyId": "key_123",
-    "roles": ["editor", "admin"]
+    "roles": [
+      {
+        "name": "editor"
+      },
+      {
+        "id": "role_789"
+      }
+    ]
   }'
 ```
 

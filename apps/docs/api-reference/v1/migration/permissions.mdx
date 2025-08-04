@@ -44,7 +44,7 @@ curl -X POST https://api.unkey.dev/v1/permissions.createPermission # [!code --]
 curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "documents.read", "description": "Read access to documents"}' # [!code ++]
+  -d '{"slug": "documents.read", "name": "documents.read", "description": "Read access to documents"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="check-circle">
@@ -56,6 +56,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
   "data": {
     "permissionId": "perm_abc123def456",
     "name": "documents.read",
+    "slug": "documents.read",
     "description": "Read access to documents",
     "createdAt": "2024-01-15T10:30:00Z"
   }
@@ -74,6 +75,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
 - HTTP method: GET → POST
 - Request format: Query parameters → Request body
 - Response format: Direct response → `{meta, data}` envelope
+- Lookup Permission by either ID or Slug
 
 <Tabs>
 <Tab title="cURL Migration" icon="arrow-right">
@@ -86,7 +88,7 @@ curl -X GET "https://api.unkey.dev/v1/permissions.getPermission?permissionId=per
 curl -X POST https://api.unkey.com/v2/permissions.getPermission # [!code ++]
   -H "Authorization: Bearer <your-root-key>" # [!code ++]
   -H "Content-Type: application/json"
-  -d '{"name": "documents.read"}' # [!code ++]
+  -d '{"permission": "documents.read"}' # [!code ++]
 ```
 </Tab>
 <Tab title="Response" icon="database">
@@ -96,10 +98,10 @@ curl -X POST https://api.unkey.com/v2/permissions.getPermission # [!code ++]
     "requestId": "req_getpermission456"
   },
   "data": {
-    "permissionId": "perm_abc123def456",
+    "id": "perm_abc123def456",
     "name": "documents.read",
-    "description": "Read access to documents",
-    "createdAt": "2024-01-15T10:30:00Z"
+    "slug": "documents.read",
+    "description": "Read access to documents"
   }
 }
 ```
@@ -140,15 +142,15 @@ curl -X POST https://api.unkey.com/v2/permissions.listPermissions # [!code ++]
   "data": [
     {
       "permissionId": "perm_abc123",
-      "name": "documents.read",
+      "name": "Read documents",
+      "slug": "documents.read",
       "description": "Read access to documents",
-      "createdAt": "2024-01-15T10:30:00Z"
     },
     {
       "permissionId": "perm_def456",
-      "name": "documents.write",
+      "name": "Write documents",
+      "slug": "documents.write",
       "description": "Write access to documents",
-      "createdAt": "2024-01-16T09:15:00Z"
     }
   ],
   "pagination": {
@@ -593,12 +595,7 @@ Group related permissions into roles for easier management.
 ```json title="Auto-create when referenced" icon="magic-wand"
 {
   "keyId": "key_123",
-  "permissions": [
-    {
-      "name": "new.permission",
-      "description": "This will be auto-created if it doesn't exist"
-    }
-  ]
+  "permissions": ["new.permission"]
 }
 ```
 Permissions and roles are automatically created when referenced if they don't exist.
@@ -613,19 +610,7 @@ Permissions and roles are automatically created when referenced if they don't ex
 
 # Complex with parentheses
 "permissions": "read AND (write OR delete)"
-
-# Wildcard support
-"permissions": "documents.*"
 ```
-
-### Enhanced Management (Both v1 and v2)
-- List all permissions and roles in workspace
-- Delete permissions/roles globally (affects all keys)
-- Audit permission usage across keys
-- Build management dashboards with dedicated endpoints
-- v2 adds request IDs for better debugging
-
----
 
 ## Migration Checklist
 
@@ -652,15 +637,8 @@ Permissions and roles are automatically created when referenced if they don't ex
 - [ ] Extract and log `meta.requestId` from responses for debugging
 - [ ] Handle new error structure with meta envelope
 
-### Enhanced Features
-- [ ] Build centralized permission and role management systems
-- [ ] Implement RBAC dashboards using list endpoints
-- [ ] Use global deletion for permission/role cleanup
-- [ ] Leverage wildcard permissions for hierarchical access control
-
 ### Testing
 - [ ] Test HTTP method changes (GET → POST)
 - [ ] Verify request body format vs query parameters
 - [ ] Test permission queries with new string syntax
 - [ ] Confirm envelope response format parsing
-- [ ] Validate global deletion still works correctly

@@ -15,8 +15,9 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
 - **Rate limit structure**: Single `ratelimit` object → `ratelimits` array with named limits
 - **Override management**: Enhanced override response format with additional metadata
 - **Async handling**: Removed `async` parameter
-- **Resources**: Removed `resources` array.
-- **Metadata**: Removed `meta` object.
+- **Auto apply**: Added `autoApply` parameter to assign ratelimits to key verifications automatically
+- **Resources**: Removed `resources` array
+- **Metadata**: Removed `meta` object
 
 ### Migration Impact:
 
@@ -77,9 +78,7 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
     "limit": 100, // [!code ++]
     "remaining": 99, // [!code ++]
     "reset": 1672531200000, // [!code ++]
-    "identifier": "user_123", // [!code ++]
-    "namespace": "email_sending", // [!code ++]
-    "cost": 1 // [!code ++]
+    "overrideId": "rlor_123", // [!code ++]
   } // [!code ++]
 }
 ```
@@ -140,7 +139,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.limit \
 ```json title="Set Override Response Diff" icon="check-circle" expandable
 // v1 Response (direct response)
 {
-  "overrideId": "over_123" // [!code --]
+  "overrideId": "rlor_123" // [!code --]
 }
 
 // v2 Response
@@ -149,13 +148,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.limit \
     "requestId": "req_setoverride456" // [!code ++]
   }, // [!code ++]
   "data": { // [!code ++]
-    "overrideId": "override_abc123", // [!code ++]
-    "namespace": "api_requests", // [!code ++]
-    "identifier": "premium_user_456", // [!code ++]
-    "limit": 10000, // [!code ++]
-    "duration": 3600000, // [!code ++]
-    "async": false, // [!code ++]
-    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+    "overrideId": "rlor_123", // [!code ++]
   } // [!code ++]
 }
 ```
@@ -181,8 +174,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.setOverride \
     "namespace": "api_requests",
     "identifier": "premium_user_456",
     "limit": 10000,
-    "duration": 3600000,
-    "async": false
+    "duration": 3600000
   }'
 ```
 </Tab>
@@ -223,12 +215,9 @@ curl -X POST https://api.unkey.com/v2/ratelimits.setOverride \
   }, // [!code ++]
   "data": { // [!code ++]
     "overrideId": "override_abc123", // [!code ++]
-    "namespace": "api_requests", // [!code ++]
     "identifier": "premium_user_456", // [!code ++]
     "limit": 10000, // [!code ++]
-    "duration": 3600000, // [!code ++]
-    "async": false, // [!code ++]
-    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+    "duration": 3600000 // [!code ++]
   } // [!code ++]
 }
 ```
@@ -298,12 +287,9 @@ curl -X POST https://api.unkey.com/v2/ratelimits.getOverride \
     "overrides": [ // [!code ++]
       { // [!code ++]
         "overrideId": "override_abc123", // [!code ++]
-        "namespace": "api_requests", // [!code ++]
         "identifier": "premium_user_456", // [!code ++]
         "limit": 10000, // [!code ++]
         "duration": 3600000, // [!code ++]
-        "async": false, // [!code ++]
-        "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
       } // [!code ++]
     ], // [!code ++]
     "cursor": "next_page_cursor_here" // [!code ++]
