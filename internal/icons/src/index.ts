@@ -48,6 +48,7 @@ export * from "./icons/clock-rotate-clockwise";
 export * from "./icons/clone";
 export * from "./icons/code";
 export * from "./icons/conversion";
+export * from "./icons/cube";
 export * from "./icons/dots";
 export * from "./icons/eye-slash";
 export * from "./icons/eye";
