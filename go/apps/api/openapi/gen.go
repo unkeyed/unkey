@@ -729,7 +729,6 @@ type V2KeysAddPermissionsResponseBody struct {
 	//
 	// This response includes:
 	// - All direct permissions assigned to the key (both pre-existing and newly added)
-	// - Permissions sorted alphabetically by name for consistent response format
 	// - Both the permission ID and name for each permission
 	//
 	// Important notes:
@@ -746,7 +745,6 @@ type V2KeysAddPermissionsResponseBody struct {
 //
 // This response includes:
 // - All direct permissions assigned to the key (both pre-existing and newly added)
-// - Permissions sorted alphabetically by name for consistent response format
 // - Both the permission ID and name for each permission
 //
 // Important notes:
@@ -778,7 +776,6 @@ type V2KeysAddRolesResponseBody struct {
 	// The response includes:
 	// - All roles now assigned to the key (both pre-existing and newly added)
 	// - Both ID and name of each role for easy reference
-	// - Roles sorted alphabetically by name for consistent response format
 	//
 	// Important notes:
 	// - The response shows the complete current state after the addition
@@ -796,7 +793,6 @@ type V2KeysAddRolesResponseBody struct {
 // The response includes:
 // - All roles now assigned to the key (both pre-existing and newly added)
 // - Both ID and name of each role for easy reference
-// - Roles sorted alphabetically by name for consistent response format
 //
 // Important notes:
 // - The response shows the complete current state after the addition
@@ -1016,7 +1012,6 @@ type V2KeysRemoveRolesResponseBody struct {
 	// The response includes:
 	// - The remaining roles still assigned to the key (after removing the specified roles)
 	// - Both ID and name for each role for easy reference
-	// - Roles sorted alphabetically by name for consistent response format
 	//
 	// Important notes:
 	// - The response reflects the current state after the removal operation
@@ -1035,7 +1030,6 @@ type V2KeysRemoveRolesResponseBody struct {
 // The response includes:
 // - The remaining roles still assigned to the key (after removing the specified roles)
 // - Both ID and name for each role for easy reference
-// - Roles sorted alphabetically by name for consistent response format
 //
 // Important notes:
 // - The response reflects the current state after the removal operation
@@ -1071,7 +1065,6 @@ type V2KeysSetPermissionsResponseBody struct {
 	// The response includes:
 	// - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
 	// - Both ID and name for each permission for easy reference
-	// - Permissions sorted alphabetically by name for consistent response format
 	//
 	// Important notes:
 	// - This only shows direct permissions, not those granted through roles
@@ -1088,7 +1081,6 @@ type V2KeysSetPermissionsResponseBody struct {
 // The response includes:
 // - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
 // - Both ID and name for each permission for easy reference
-// - Permissions sorted alphabetically by name for consistent response format
 //
 // Important notes:
 // - This only shows direct permissions, not those granted through roles
@@ -1120,7 +1112,6 @@ type V2KeysSetRolesResponseBody struct {
 	// The response includes:
 	// - The comprehensive, updated set of roles (reflecting the complete replacement)
 	// - Both ID and name for each role for easy reference
-	// - Roles sorted alphabetically by name for consistent response format
 	//
 	// Important notes:
 	// - This response shows the final state after the complete replacement
@@ -1139,7 +1130,6 @@ type V2KeysSetRolesResponseBody struct {
 // The response includes:
 // - The comprehensive, updated set of roles (reflecting the complete replacement)
 // - Both ID and name for each role for easy reference
-// - Roles sorted alphabetically by name for consistent response format
 //
 // Important notes:
 // - This response shows the final state after the complete replacement
