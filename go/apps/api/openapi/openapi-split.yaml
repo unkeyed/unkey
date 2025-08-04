@@ -97,6 +97,20 @@ x-speakeasy-retries:
 security:
   - rootKey: []
 
+tags:
+  - name: apis
+    description: API management operations
+  - name: identities
+    description: Identity management operations
+  - name: keys
+    description: API key management operations
+  - name: liveness
+    description: Health check operations
+  - name: permissions
+    description: Permission and role management operations
+  - name: ratelimit
+    description: Rate limiting operations
+
 paths:
   # Health Endpoints
   /v2/liveness:

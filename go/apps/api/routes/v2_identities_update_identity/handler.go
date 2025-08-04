@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -83,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("duplicate ratelimit name",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Internal("duplicate ratelimit name"),
-					fault.Public(fmt.Sprintf("Ratelimit with name %q is already defined in the request", ratelimit.Name)),
+					fault.Public(fmt.Sprintf("Ratelimit with name '%s' is already defined in the request", ratelimit.Name)),
 				)
 			}
 			nameSet[ratelimit.Name] = true
@@ -114,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identity, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.Identity, error) {
 		// Find by external ID
 		identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
-			Identity:    req.ExternalId,
+			Identity:    req.Identity,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
 		})
@@ -391,15 +392,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
+	identityData := openapi.Identity{
+		Id:         identity.ID,
+		ExternalId: identity.ExternalID,
+		Meta:       req.Meta,
+		Ratelimits: nil,
+	}
+
+	if len(responseRatelimits) > 0 {
+		identityData.Ratelimits = ptr.P(responseRatelimits)
+	}
+
 	response := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.Identity{
-			ExternalId: req.ExternalId,
-			Meta:       req.Meta,
-			Ratelimits: responseRatelimits,
-		},
+		Data: identityData,
 	}
 
 	return s.JSON(http.StatusOK, response)

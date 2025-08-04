@@ -224,12 +224,28 @@
         "groups": [
           {
             "group": "Introduction",
-            "pages": ["api-reference/v1/overview", "api-reference/v1/authentication"]
+            "pages": [
+              "api-reference/v1/overview",
+              "api-reference/v1/authentication",
+              {
+                "group": "Migration Guide",
+                "icon": "arrows-rotate",
+                "pages": [
+                  "api-reference/v1/migration/index",
+                  "api-reference/v1/migration/keys",
+                  "api-reference/v1/migration/apis",
+                  "api-reference/v1/migration/identities",
+                  "api-reference/v1/migration/permissions",
+                  "api-reference/v1/migration/ratelimiting",
+                  "api-reference/v1/migration/errors"
+                ]
+              }
+            ]
           },
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://canary.unkey.dev/openapi.json",
+              "source": "https://api.unkey.dev/openapi.json",
               "directory": "api-reference/v1"
             }
           }
@@ -251,7 +267,7 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://api.unkey.com/openapi.yaml",
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples",
               "directory": "api-reference/v2"
             }
           }
@@ -266,131 +282,37 @@
             "icon": "code",
             "pages": [
               {
-                "group": "@unkey/api",
+                "group": "Typescript",
                 "pages": [
-                  "libraries/ts/sdk/overview",
+                  "libraries/ts/api",
                   {
-                    "group": "Keys",
+                    "group": "@unkey/ratelimit",
                     "pages": [
-                      "libraries/ts/sdk/keys/create",
-                      "libraries/ts/sdk/keys/verify",
-                      "libraries/ts/sdk/keys/get",
-                      "libraries/ts/sdk/keys/update",
-                      "libraries/ts/sdk/keys/update-remaining",
-                      "libraries/ts/sdk/keys/delete",
-                      "libraries/ts/sdk/keys/add-permission",
-                      "libraries/ts/sdk/keys/remove-permission",
-                      "libraries/ts/sdk/keys/set-permission",
-                      "libraries/ts/sdk/keys/add-roles",
-                      "libraries/ts/sdk/keys/remove-roles",
-                      "libraries/ts/sdk/keys/set-roles"
-                    ]
-                  },
-                  {
-                    "group": "Analytics",
-                    "pages": ["libraries/ts/sdk/analytics/get"]
-                  },
-                  {
-                    "group": "APIs",
-                    "pages": [
-                      "libraries/ts/sdk/apis/create",
-                      "libraries/ts/sdk/apis/get",
-                      "libraries/ts/sdk/apis/list-keys",
-                      "libraries/ts/sdk/apis/delete"
-                    ]
-                  },
-                  {
-                    "group": "Identities",
-                    "pages": [
-                      "libraries/ts/sdk/identities/create-identity",
-                      "libraries/ts/sdk/identities/get-identity",
-                      "libraries/ts/sdk/identities/update-identity",
-                      "libraries/ts/sdk/identities/list-identity",
-                      "libraries/ts/sdk/identities/delete-identity"
-                    ]
-                  },
-                  {
-                    "group": "Ratelimits",
-                    "pages": [
-                      "libraries/ts/sdk/ratelimits/limit",
+                      "libraries/ts/ratelimit/ratelimit",
                       {
                         "group": "Overrides",
                         "pages": [
-                          "libraries/ts/sdk/ratelimits/overrides/set-override",
-                          "libraries/ts/sdk/ratelimits/overrides/get-override",
-                          "libraries/ts/sdk/ratelimits/overrides/list-overrides",
-                          "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                          "libraries/ts/ratelimit/override/overview",
+                          "libraries/ts/ratelimit/override/set-override",
+                          "libraries/ts/ratelimit/override/get-override",
+                          "libraries/ts/ratelimit/override/list-overrides",
+                          "libraries/ts/ratelimit/override/delete-override"
                         ]
                       }
                     ]
                   },
-                  {
-                    "group": "Migrations",
-                    "pages": ["libraries/ts/sdk/migrations/migrate-to-unkey"]
-                  },
-                  {
-                    "group": "Permissions",
-                    "pages": [
-                      {
-                        "group": "Roles",
-                        "pages": [
-                          "libraries/ts/sdk/permissions/create-role",
-                          "libraries/ts/sdk/permissions/get-role",
-                          "libraries/ts/sdk/permissions/delete-role"
-                        ]
-                      },
-                      {
-                        "group": "Permissions",
-                        "pages": [
-                          "libraries/ts/sdk/permissions/create-permission",
-                          "libraries/ts/sdk/permissions/get-permission",
-                          "libraries/ts/sdk/permissions/delete-permission"
-                        ]
-                      }
-                    ]
-                  }
+                  "libraries/ts/nextjs",
+                  "libraries/ts/hono",
+                  "libraries/ts/cache/overview"
                 ]
               },
               {
-                "group": "@unkey/ratelimit",
-                "pages": [
-                  "libraries/ts/ratelimit/ratelimit",
-                  {
-                    "group": "Overrides",
-                    "pages": [
-                      "libraries/ts/ratelimit/override/overview",
-                      "libraries/ts/ratelimit/override/set-override",
-                      "libraries/ts/ratelimit/override/get-override",
-                      "libraries/ts/ratelimit/override/list-overrides",
-                      "libraries/ts/ratelimit/override/delete-override"
-                    ]
-                  }
-                ]
-              },
-              "libraries/ts/nextjs",
-              "libraries/ts/hono",
-              "libraries/ts/cache/overview",
-              {
-                "group": "unkey-go",
-                "pages": ["libraries/go/overview"]
+                "group": "Go",
+                "pages": ["libraries/go/api"]
               },
               {
-                "group": "unkey.py",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/async",
-                  {
-                    "group": "Services",
-                    "pages": [
-                      "libraries/py/services/keys",
-                      "libraries/py/services/apis",
-                      "libraries/py/services/permissions",
-                      "libraries/py/services/migrations",
-                      "libraries/py/services/identities",
-                      "libraries/py/services/ratelimits"
-                    ]
-                  }
-                ]
+                "group": "Python",
+                "pages": ["libraries/py/api"]
               }
             ]
           },

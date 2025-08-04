@@ -59,13 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindKeyByIdOrHash(ctx,
-		h.DB.RO(),
-		db.FindKeyByIdOrHashParams{
-			ID:   sql.NullString{String: req.KeyId, Valid: true},
-			Hash: sql.NullString{String: "", Valid: false},
-		},
-	)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -134,14 +128,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true} // nolint:gosec
 	}
 
-	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindKeyByIdOrHashRow, error) {
+	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
 		err = db.Query.UpdateKeyCredits(ctx, tx, db.UpdateKeyCreditsParams{
 			ID:        key.ID,
 			Operation: string(req.Operation),
 			Credits:   credits,
 		})
 		if err != nil {
-			return db.FindKeyByIdOrHashRow{}, fault.Wrap(err,
+			return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to update key credits."),
@@ -156,7 +150,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillDay:    sql.NullInt16{Int16: 0, Valid: false},
 			})
 			if err != nil {
-				return db.FindKeyByIdOrHashRow{}, fault.Wrap(err,
+				return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"),
 					fault.Public("Failed to reset key refill data."),
@@ -164,17 +158,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		keyAfterUpdate, keyErr := db.Query.FindKeyByIdOrHash(ctx,
-			tx,
-			db.FindKeyByIdOrHashParams{
-				ID:   sql.NullString{String: req.KeyId, Valid: true},
-				Hash: sql.NullString{String: "", Valid: false},
-			},
-		)
-
+		keyAfterUpdate, keyErr := db.Query.FindLiveKeyByID(ctx, tx, req.KeyId)
 		if keyErr != nil {
 			if db.IsNotFound(keyErr) {
-				return db.FindKeyByIdOrHashRow{}, fault.Wrap(
+				return db.FindLiveKeyByIDRow{}, fault.Wrap(
 					keyErr,
 					fault.Code(codes.Data.Key.NotFound.URN()),
 					fault.Internal("key got deleted after update"),
@@ -182,7 +169,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			return db.FindKeyByIdOrHashRow{}, fault.Wrap(keyErr,
+			return db.FindLiveKeyByIDRow{}, fault.Wrap(keyErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to retrieve key information."),

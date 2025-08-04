@@ -1,0 +1,40 @@
+type: object
+properties:
+  id:
+    type: string
+    description: |
+      The unique identifier for this role within Unkey's system.
+      Generated automatically when the role is created and used to reference this role in API operations.
+      Always begins with 'role_' followed by alphanumeric characters and underscores.
+    example: role_1234567890abcdef
+  name:
+    type: string
+    description: |
+      The human-readable name for this role that describes its function.
+      Should be descriptive enough for administrators to understand what access this role provides.
+      Use clear, semantic names that reflect the job function or responsibility level.
+      Names must be unique within your workspace to avoid confusion during role assignment.
+    example: "support.readonly"
+  description:
+    type: string
+    description: |
+      Optional detailed explanation of what this role encompasses and what access it provides.
+      Helps team members understand the role's scope, intended use cases, and security implications.
+      Include information about what types of users should receive this role and what they can accomplish.
+      Not visible to end users - this is for internal documentation and access control audits.
+    example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
+  permissions:
+    type: array
+    items:
+      "$ref": "./Permission.yaml"
+    maxItems: 100
+    description: |
+      Complete list of permissions currently assigned to this role.
+      Each permission grants specific access rights that will be inherited by any keys or users assigned this role.
+      Use this list to understand the full scope of access provided by this role.
+      Permissions can be added or removed from roles without affecting the role's identity or other properties.
+      Empty array indicates a role with no permissions currently assigned.
+required:
+  - id
+  - name
+additionalProperties: false

@@ -417,6 +417,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					PermissionID: reqPerm.ID,
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
 					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
@@ -492,7 +493,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				return fault.New("role not found",
 					fault.Code(codes.Data.Role.NotFound.URN()),
-					fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role %q was not found.", requestedName)),
+					fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
 				)
 			}
 

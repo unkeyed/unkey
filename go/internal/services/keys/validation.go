@@ -143,6 +143,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		}
 
 		ratelimitsToCheck[name] = RatelimitConfigAndResult{
+			ID:         rl.ID,
 			Cost:       1,
 			Name:       rl.Name,
 			Duration:   time.Duration(rl.Duration) * time.Millisecond,
@@ -154,6 +155,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	}
 
 	for _, rl := range specifiedLimits {
+		// Custom limits are always applied on a key level
 		if rl.Limit != nil && rl.Duration != nil {
 			ratelimitsToCheck[rl.Name] = RatelimitConfigAndResult{
 				Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
@@ -161,8 +163,9 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 				Duration:   time.Duration(*rl.Duration) * time.Millisecond,
 				Limit:      int64(*rl.Limit),
 				AutoApply:  false,
-				Identifier: k.Key.ID, // Specified limits use key ID
+				Identifier: k.Key.ID,
 				Response:   nil,
+				ID:         "", // Doesn't exist and is custom so no ID
 			}
 
 			continue
@@ -170,9 +173,9 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 
 		dbRl, exists := k.ratelimitConfigs[rl.Name]
 		if !exists {
-			errorMsg := "ratelimit %q was requested but does not exist for key %q"
+			errorMsg := "ratelimit '%s' was requested but does not exist for key '%s'"
 			if k.Key.IdentityID.Valid {
-				errorMsg += " nor identity: %q external ID: %q"
+				errorMsg += " nor identity: '%s' external ID: '%s'"
 			} else {
 				errorMsg += " and there is no identity connected."
 			}
@@ -197,6 +200,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			AutoApply:  dbRl.AutoApply == 1,
 			Identifier: identifier,
 			Response:   nil,
+			ID:         dbRl.ID,
 		}
 	}
 

@@ -124,25 +124,13 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
-	//FindBranchByProjectName
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      name,
-	//      created_at,
-	//      updated_at
-	//  FROM branches
-	//  WHERE project_id = ? AND name = ?
-	FindBranchByProjectName(ctx context.Context, db DBTX, arg FindBranchByProjectNameParams) (Branch, error)
 	//FindBuildById
 	//
 	//  SELECT
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      version_id,
+	//      deployment_id,
 	//      rootfs_image_id,
 	//      git_commit_sha,
 	//      git_branch,
@@ -156,21 +144,52 @@ type Querier interface {
 	//  FROM `builds`
 	//  WHERE id = ?
 	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
-	//FindHostnameRoutesByVersionId
+	//FindDeploymentById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      openapi_spec,
+	//      status,
+	//      created_at,
+	//      updated_at
+	//  FROM `deployments`
+	//  WHERE id = ?
+	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
+	//FindDeploymentStepsByDeploymentId
+	//
+	//  SELECT
+	//      deployment_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  FROM deployment_steps
+	//  WHERE deployment_id = ?
+	//  ORDER BY created_at ASC
+	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error)
+	//FindHostnameRoutesByDeploymentId
 	//
 	//  SELECT
 	//      id,
 	//      workspace_id,
 	//      project_id,
 	//      hostname,
-	//      version_id,
+	//      deployment_id,
 	//      is_enabled,
 	//      created_at,
 	//      updated_at
 	//  FROM hostname_routes
-	//  WHERE version_id = ? AND is_enabled = true
+	//  WHERE deployment_id = ? AND is_enabled = true
 	//  ORDER BY created_at ASC
-	FindHostnameRoutesByVersionId(ctx context.Context, db DBTX, versionID string) ([]HostnameRoute, error)
+	FindHostnameRoutesByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]HostnameRoute, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -179,32 +198,11 @@ type Querier interface {
 	//   AND (external_id = ? OR id = ?)
 	//   AND deleted = ?
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
-	//FindKeyByHash
-	//
-	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` WHERE hash = ?
-	FindKeyByHash(ctx context.Context, db DBTX, hash string) (Key, error)
 	//FindKeyByID
 	//
-	//  SELECT
-	//      id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment
-	//  FROM `keys`
-	//  WHERE id = ?
+	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k
+	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
-	//FindKeyByIdOrHash
-	//
-	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-	//      ek.encrypted as encrypted_key,
-	//  	ek.encryption_key_id as encryption_key_id
-	//  FROM `keys` k
-	//  JOIN apis a USING(key_auth_id)
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE (CASE
-	//      WHEN ? IS NOT NULL THEN k.id = ?
-	//      WHEN ? IS NOT NULL THEN k.hash = ?
-	//      ELSE FALSE
-	//  END) AND k.deleted_at_m IS NULL AND a.deleted_at_m IS NULL
-	FindKeyByIdOrHash(ctx context.Context, db DBTX, arg FindKeyByIdOrHashParams) (FindKeyByIdOrHashRow, error)
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
@@ -303,13 +301,13 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
-	//FindLatestBuildByVersionId
+	//FindLatestBuildByDeploymentId
 	//
 	//  SELECT
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      version_id,
+	//      deployment_id,
 	//      rootfs_image_id,
 	//      git_commit_sha,
 	//      git_branch,
@@ -321,10 +319,36 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  FROM `builds`
-	//  WHERE version_id = ?
+	//  WHERE deployment_id = ?
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
-	FindLatestBuildByVersionId(ctx context.Context, db DBTX, versionID string) (Build, error)
+	FindLatestBuildByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (Build, error)
+	//FindLiveKeyByHash
+	//
+	//  SELECT
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+	//      ek.encrypted as encrypted_key,
+	//  	ek.encryption_key_id as encryption_key_id
+	//  FROM `keys` k
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
+	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  WHERE hash = ?
+	//  AND k.deleted_at_m IS NULL
+	//  AND a.deleted_at_m IS NULL
+	FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error)
+	//FindLiveKeyByID
+	//
+	//  SELECT
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+	//      ek.encrypted as encrypted_key,
+	//  	ek.encryption_key_id as encryption_key_id
+	//  FROM `keys` k
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
+	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  WHERE k.id = ?
+	//  AND k.deleted_at_m IS NULL
+	//  AND a.deleted_at_m IS NULL
+	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
 	//FindManyRolesByIdOrNameWithPerms
 	//
 	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
@@ -530,37 +554,6 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
-	//FindVersionById
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      branch_id,
-	//      build_id,
-	//      rootfs_image_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      config_snapshot,
-	//      openapi_spec,
-	//      status,
-	//      created_at,
-	//      updated_at
-	//  FROM `versions`
-	//  WHERE id = ?
-	FindVersionById(ctx context.Context, db DBTX, id string) (Version, error)
-	//FindVersionStepsByVersionId
-	//
-	//  SELECT
-	//      version_id,
-	//      status,
-	//      message,
-	//      error_message,
-	//      created_at
-	//  FROM version_steps
-	//  WHERE version_id = ?
-	//  ORDER BY created_at ASC
-	FindVersionStepsByVersionId(ctx context.Context, db DBTX, versionID string) ([]VersionStep, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -654,26 +647,13 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
-	//InsertBranch
-	//
-	//  INSERT INTO branches (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      name,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?
-	//  )
-	InsertBranch(ctx context.Context, db DBTX, arg InsertBranchParams) error
 	//InsertBuild
 	//
 	//  INSERT INTO builds (
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      version_id,
+	//      deployment_id,
 	//      rootfs_image_id,
 	//      git_commit_sha,
 	//      git_branch,
@@ -701,6 +681,55 @@ type Querier interface {
 	//      NULL
 	//  )
 	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
+	//InsertDeployment
+	//
+	//  INSERT INTO `deployments` (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment,
+	//      build_id,
+	//      rootfs_image_id,
+	//      git_commit_sha,
+	//      git_branch,
+	//      config_snapshot,
+	//      openapi_spec,
+	//      status,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
+	//InsertDeploymentStep
+	//
+	//  INSERT INTO deployment_steps (
+	//      deployment_id,
+	//      status,
+	//      message,
+	//      error_message,
+	//      created_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      message = VALUES(message),
+	//      error_message = VALUES(error_message),
+	//      created_at = VALUES(created_at)
+	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
 	//InsertHostnameRoute
 	//
 	//  INSERT INTO hostname_routes (
@@ -708,7 +737,7 @@ type Querier interface {
 	//      workspace_id,
 	//      project_id,
 	//      hostname,
-	//      version_id,
+	//      deployment_id,
 	//      is_enabled,
 	//      created_at,
 	//      updated_at
@@ -995,55 +1024,6 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
-	//InsertVersion
-	//
-	//  INSERT INTO `versions` (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      branch_id,
-	//      build_id,
-	//      rootfs_image_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      config_snapshot,
-	//      openapi_spec,
-	//      status,
-	//      created_at,
-	//      updated_at
-	//  )
-	//  VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertVersion(ctx context.Context, db DBTX, arg InsertVersionParams) error
-	//InsertVersionStep
-	//
-	//  INSERT INTO version_steps (
-	//      version_id,
-	//      status,
-	//      message,
-	//      error_message,
-	//      created_at
-	//  ) VALUES (
-	//      ?, ?, ?, ?, ?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      message = VALUES(message),
-	//      error_message = VALUES(error_message),
-	//      created_at = VALUES(created_at)
-	InsertVersionStep(ctx context.Context, db DBTX, arg InsertVersionStepParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -1127,9 +1107,9 @@ type Querier interface {
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
-	//    AND p.id > ?
+	//    AND p.id >= ?
 	//  ORDER BY p.id
-	//  LIMIT 101
+	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
 	//ListPermissionsByKeyID
 	//
@@ -1165,8 +1145,12 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 	//  WHERE
-	//      workspace_id = ?
-	//      AND namespace_id = ?
+	//  workspace_id = ?
+	//  AND namespace_id = ?
+	//  AND deleted_at_m IS NULL
+	//  AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
 	ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error)
 	//ListRatelimitsByKeyID
 	//
@@ -1211,9 +1195,9 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
-	//  AND r.id > ?
+	//  AND r.id >= ?
 	//  ORDER BY r.id
-	//  LIMIT 101
+	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
 	//ListRolesByKeyID
 	//
@@ -1323,6 +1307,18 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error
+	//UpdateDeploymentOpenapiSpec
+	//
+	//  UPDATE deployments
+	//  SET openapi_spec = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentOpenapiSpec(ctx context.Context, db DBTX, arg UpdateDeploymentOpenapiSpecParams) error
+	//UpdateDeploymentStatus
+	//
+	//  UPDATE deployments
+	//  SET status = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -1412,19 +1408,6 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
-	//UpdateVersionOpenApiSpec
-	//
-	//  UPDATE versions SET
-	//      openapi_spec = ?
-	//  WHERE id = ?
-	UpdateVersionOpenApiSpec(ctx context.Context, db DBTX, arg UpdateVersionOpenApiSpecParams) error
-	//UpdateVersionStatus
-	//
-	//  UPDATE versions SET
-	//      status = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateVersionStatus(ctx context.Context, db DBTX, arg UpdateVersionStatusParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -1437,20 +1420,6 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
-	//UpsertBranch
-	//
-	//  INSERT INTO branches (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      name,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?
-	//  ) ON DUPLICATE KEY UPDATE
-	//      updated_at = VALUES(updated_at)
-	UpsertBranch(ctx context.Context, db DBTX, arg UpsertBranchParams) error
 }
 
 var _ Querier = (*Queries)(nil)

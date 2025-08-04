@@ -11,9 +11,12 @@ const validation = {
 };
 
 const route = createRoute({
+  deprecated: true,
   tags: ["analytics"],
   operationId: "getVerifications",
   summary: "Get verification analytics",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "get",
   path: "/v1/analytics.getVerifications",
   security: [{ bearerAuth: [] }],

@@ -1,0 +1,54 @@
+type: object
+required:
+  - name
+  - limit
+  - duration
+  - autoApply
+properties:
+  name:
+    description: |-
+      The name of this rate limit. This name is used to identify which limit to check during key verification.
+
+      Best practices for limit names:
+      - Use descriptive, semantic names like 'api_requests', 'heavy_operations', or 'downloads'
+      - Be consistent with naming conventions across your application
+      - Create separate limits for different resource types or operation costs
+      - Consider using namespaced names for better organization (e.g., 'files.downloads', 'compute.training')
+
+      You will reference this exact name when verifying keys to check against this specific limit.
+    type: string
+    example: api
+    minLength: 3
+    maxLength: 128
+  limit:
+    description: |-
+      The maximum number of operations allowed within the specified time window.
+
+      When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets. The limit should reflect:
+      - Your infrastructure capacity and scaling limitations
+      - Fair usage expectations for your service
+      - Different tier levels for various user types
+      - The relative cost of the operations being limited
+
+      Higher values allow more frequent access but may impact service performance.
+    type: integer
+    format: int64
+    minimum: 1
+  duration:
+    description: |-
+      The duration for each ratelimit window in milliseconds.
+
+      This controls how long the rate limit counter accumulates before resetting. Common values include:
+      - 1000 (1 second): For strict per-second limits on high-frequency operations
+      - 60000 (1 minute): For moderate API usage control
+      - 3600000 (1 hour): For less frequent but costly operations
+      - 86400000 (24 hours): For daily quotas
+
+      Shorter windows provide more frequent resets but may allow large burst usage. Longer windows provide more consistent usage patterns but take longer to reset after limit exhaustion.
+    type: integer
+    format: int64
+    minimum: 1000
+  autoApply:
+    description: Whether this ratelimit should be automatically applied when verifying a key.
+    type: boolean
+    default: false

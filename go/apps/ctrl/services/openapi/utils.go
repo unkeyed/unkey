@@ -8,16 +8,16 @@ import (
 )
 
 func (s *Service) loadVersionSpec(ctx context.Context, versionID string) (string, error) {
-	version, err := db.Query.FindVersionById(ctx, s.db.RO(), versionID)
+	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), versionID)
 	if err != nil {
 		return "", err
 	}
 
-	if !version.OpenapiSpec.Valid {
-		return "", fault.New("version has no OpenAPI spec stored",
-			fault.Public("OpenAPI specification not available for this version"),
+	if !deployment.OpenapiSpec.Valid {
+		return "", fault.New("deployment has no OpenAPI spec stored",
+			fault.Public("OpenAPI specification not available for this deployment"),
 		)
 	}
 
-	return version.OpenapiSpec.String, nil
+	return deployment.OpenapiSpec.String, nil
 }

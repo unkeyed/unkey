@@ -37,6 +37,8 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { queryProjects } from "./deploy/project/list";
+import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -111,7 +113,6 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
-import { versionRouter } from "./version";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { onboardingKeyCreation } from "./workspace/onboarding";
@@ -309,7 +310,12 @@ export const router = t.router({
     search: searchIdentities,
   }),
   project: projectRouter,
-  version: versionRouter,
+  deploy: t.router({
+    project: t.router({
+      list: queryProjects,
+    }),
+  }),
+  deployment: deploymentRouter,
 });
 
 // export type definition of API

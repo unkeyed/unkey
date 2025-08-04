@@ -53,8 +53,8 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: "",
-			Meta:       &meta,
+			Identity: "",
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
@@ -85,7 +85,7 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Ratelimits: &ratelimits,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -104,8 +104,8 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &largeMeta,
+			Identity: externalID,
+			Meta:     &largeMeta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)

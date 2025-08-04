@@ -1,0 +1,40 @@
+type: object
+properties:
+  id:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^rl_[a-zA-Z0-9_]+$"
+    description: Unique identifier for this rate limit configuration.
+    example: rl_1234567890abcdef
+  name:
+    type: string
+    minLength: 1
+    maxLength: 128
+    description: Human-readable name for this rate limit.
+    example: api_requests
+  limit:
+    type: integer
+    format: int64
+    minimum: 1
+    maximum: 1000000
+    description: Maximum requests allowed within the time window.
+    example: 1000
+  duration:
+    type: integer
+    format: int64
+    minimum: 1000
+    maximum: 2592000000
+    description: Rate limit window duration in milliseconds.
+    example: 3600000
+  autoApply:
+    type: boolean
+    description: Whether this rate limit was automatically applied when verifying the key.
+    example: true
+required:
+  - id
+  - name
+  - limit
+  - duration
+  - autoApply
+additionalProperties: false

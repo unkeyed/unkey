@@ -6,4 +6,4 @@ properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    "$ref": "./V2IdentitiesGetIdentityResponseData.yaml"
+    "$ref": "../../../../common/Identity.yaml"
