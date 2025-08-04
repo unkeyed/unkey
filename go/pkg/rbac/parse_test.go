@@ -55,6 +55,37 @@ func TestParseQuery(t *testing.T) {
 				S("perm3"),
 			),
 		},
+		{
+			name:     "Permission with asterisk (literal)",
+			query:    "api.*",
+			expected: S("api.*"),
+		},
+		{
+			name:  "Complex query with asterisk permissions",
+			query: "api.* OR api.read",
+			expected: Or(
+				S("api.*"),
+				S("api.read"),
+			),
+		},
+		{
+			name:     "Permission with multiple asterisks",
+			query:    "api.*.*.read",
+			expected: S("api.*.*.read"),
+		},
+		{
+			name:     "Permission with colon namespace",
+			query:    "system:admin:read",
+			expected: S("system:admin:read"),
+		},
+		{
+			name:  "Complex query with all allowed characters",
+			query: "system:admin.* AND api_v2-test:*",
+			expected: And(
+				S("system:admin.*"),
+				S("api_v2-test:*"),
+			),
+		},
 	}
 
 	for _, tt := range tests {
