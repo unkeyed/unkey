@@ -12,7 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Cube: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+export const CodeBranch: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
@@ -28,11 +28,13 @@ export const Cube: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
-        stroke="#212121"
+        stroke="currentColor"
       >
-        <polyline points="14.983 5.53 9 9 3.017 5.53" />
-        <line x1="9" y1="15.938" x2="9" y2="9" />
-        <path d="M7.997,2.332L3.747,4.797c-.617,.358-.997,1.017-.997,1.73v4.946c0,.713,.38,1.372,.997,1.73l4.25,2.465c.621,.36,1.386,.36,2.007,0l4.25-2.465c.617-.358,.997-1.017,.997-1.73V6.527c0-.713-.38-1.372-.997-1.73l-4.25-2.465c-.621-.36-1.386-.36-2.007,0Z" />
+        <line x1="4.75" y1="5.75" x2="4.75" y2="12.25" />
+        <path d="M13.25,5.75v1c0,1.105-.895,2-2,2H6.75c-1.105,0-2,.895-2,2" />
+        <circle cx="4.75" cy="3.75" r="2" />
+        <circle cx="13.25" cy="3.75" r="2" />
+        <circle cx="4.75" cy="14.25" r="2" />
       </g>
     </svg>
   );
