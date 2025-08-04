@@ -175,6 +175,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
+	shutdowns.Register(rlSvc.Close)
+
 	keySvc, err := keys.New(keys.Config{
 		Logger:      logger,
 		DB:          db,
