@@ -125,6 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Create a new identity with its ratelimits
 		newIdentity := openapi.Identity{
+			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Ratelimits: nil,
 			Meta:       nil,

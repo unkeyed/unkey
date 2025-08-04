@@ -10,12 +10,16 @@ This guide covers rate limiting functionality including namespace creation, over
 Rate limiting endpoints manage request limits, overrides, and namespace-based rate limiting across your API infrastructure.
 
 ### Key Changes in v2:
+
 - **Response format**: `result` → `{meta, data}` wrapper
 - **Rate limit structure**: Single `ratelimit` object → `ratelimits` array with named limits
 - **Override management**: Enhanced override response format with additional metadata
-- **Async handling**: Improved `autoApply` parameter (formerly `async`)
+- **Async handling**: Removed `async` parameter
+- **Resources**: Removed `resources` array.
+- **Metadata**: Removed `meta` object.
 
 ### Migration Impact:
+
 - **Existing in v1**: Full rate limiting and override management functionality
 - **Enhanced in v2**: Improved response format, better override metadata, and new listing capabilities
 - **Maintained in v2**: All core rate limiting functionality with backward-compatible request formats
@@ -27,19 +31,29 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
 ### POST /v1/ratelimits.limit → POST /v2/ratelimits.limit
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Enhanced response with additional metadata
 - Better override handling
 
 <Tabs>
-<Tab title="Request Format">
+<Tab title="Request Structure Changes">
 ```json title="Rate Limit Request" icon="bolt"
 {
   "namespace": "email_sending",
   "identifier": "user_123",
   "limit": 100,
   "duration": 3600000,
-  "cost": 1
+  "cost": 1,
+  "async": false,  // [!code --]
+  "meta": {},  // [!code --]
+  "resources": [  // [!code --]
+    {  // [!code --]
+      "type": "project",  // [!code --]
+      "id": "p_123", // [!code --]
+      "name": "unkey"  // [!code --]
+    }  // [!code --]
+  ]  // [!code --]
 }
 ```
 </Tab>
@@ -725,7 +739,8 @@ for (const override of overrides.data?.overrides || []) {
 ### Key-Level Rate Limiting Updates
 - [ ] Convert `ratelimit` object to `ratelimits` array in key creation
 - [ ] Add `name` field to all rate limit configurations
-- [ ] Change `async` parameter to `autoApply`
+- [ ] Remove `async` parameter
+- [ ] Update Key creation to use autoApply if necessary
 - [ ] Plan for multiple rate limits per key (different operation types)
 - [ ] Update key verification to handle multiple rate limits
 

@@ -1,8 +1,0 @@
-type: object
-properties:
-  permission:
-    "$ref": "../../../../common/Permission.yaml"
-required:
-  - permission
-additionalProperties: false
-description: Complete permission details including ID, name, and metadata.
