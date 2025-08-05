@@ -1,4 +1,6 @@
 import { LoadMoreFooter } from "@/components/virtual-table/components/loading-indicator";
+import { BookBookmark } from "@unkey/icons";
+import { Button, Empty } from "@unkey/ui";
 import { useProjectsListQuery } from "./hooks/use-projects-list-query";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
@@ -30,8 +32,27 @@ export const ProjectsList = () => {
 
   if (projects.length === 0) {
     return (
-      <div className="p-4 flex justify-center">
-        <div className="text-sm text-gray-11">No projects found</div>
+      <div className="w-full flex justify-center items-center h-full p-4">
+        <Empty className="w-[400px] flex items-start">
+          <Empty.Icon className="w-auto" />
+          <Empty.Title>No Projects Found</Empty.Title>
+          <Empty.Description className="text-left">
+            There are no projects configured yet. Create your first project to start deploying and
+            managing your applications.
+          </Empty.Description>
+          <Empty.Actions className="mt-4 justify-start">
+            <a
+              href="https://docs.example.com/projects" // Replace with your actual docs URL
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button size="md">
+                <BookBookmark />
+                Learn about Deploy
+              </Button>
+            </a>
+          </Empty.Actions>
+        </Empty>
       </div>
     );
   }
@@ -63,7 +84,6 @@ export const ProjectsList = () => {
           })}
         </div>
       </div>
-
       {totalCount > MINIMUM_DISPLAY_LIMIT ? (
         <LoadMoreFooter
           onLoadMore={loadMore}
