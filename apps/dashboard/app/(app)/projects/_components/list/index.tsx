@@ -3,6 +3,9 @@ import { useProjectsListQuery } from "./hooks/use-projects-list-query";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
 
+const MAX_SKELETON_COUNT = 8;
+const MINIMUM_DISPLAY_LIMIT = 10;
+
 export const ProjectsList = () => {
   const { projects, isLoading, totalCount, hasMore, loadMore, isLoadingMore } =
     useProjectsListQuery();
@@ -10,8 +13,13 @@ export const ProjectsList = () => {
   if (isLoading) {
     return (
       <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+          }}
+        >
+          {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             <ProjectCardSkeleton key={i} />
           ))}
@@ -31,7 +39,12 @@ export const ProjectsList = () => {
   return (
     <>
       <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+          }}
+        >
           {projects.map((project) => {
             const primaryHostname = project.hostnames[0]?.hostname || "No domain";
             return (
@@ -51,25 +64,27 @@ export const ProjectsList = () => {
         </div>
       </div>
 
-      <LoadMoreFooter
-        onLoadMore={loadMore}
-        isFetchingNextPage={isLoadingMore}
-        totalVisible={projects.length}
-        totalCount={totalCount}
-        itemLabel="projects"
-        buttonText="Load more projects"
-        hasMore={hasMore}
-        hide={!hasMore && projects.length === totalCount}
-        countInfoText={
-          <div className="flex gap-2">
-            <span>Viewing</span>
-            <span className="text-accent-12">{projects.length}</span>
-            <span>of</span>
-            <span className="text-grayA-12">{totalCount}</span>
-            <span>projects</span>
-          </div>
-        }
-      />
+      {totalCount > MINIMUM_DISPLAY_LIMIT ? (
+        <LoadMoreFooter
+          onLoadMore={loadMore}
+          isFetchingNextPage={isLoadingMore}
+          totalVisible={projects.length}
+          totalCount={totalCount}
+          itemLabel="projects"
+          buttonText="Load more projects"
+          hasMore={hasMore}
+          hide={!hasMore && projects.length === totalCount}
+          countInfoText={
+            <div className="flex gap-2">
+              <span>Viewing</span>
+              <span className="text-accent-12">{projects.length}</span>
+              <span>of</span>
+              <span className="text-grayA-12">{totalCount}</span>
+              <span>projects</span>
+            </div>
+          }
+        />
+      ) : null}
     </>
   );
 };

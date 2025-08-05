@@ -41,7 +41,7 @@ export const ProjectCard = ({
             href={`https://${domain}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-xs leading-[12px] text-gray-11 truncate hover:text-accent-12 transition-colors hover:underline"
+            className="font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
           >
             {domain}
           </a>

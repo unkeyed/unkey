@@ -28,14 +28,14 @@ export const ProjectCardSkeleton = () => {
 
         <div className="flex gap-2 items-center min-w-0">
           {/* Commit Date Skeleton */}
-          <div className="h-3 w-16 bg-grayA-3 rounded animate-pulse" />
+          <div className="h-4 w-10 bg-grayA-3 rounded animate-pulse" />
           <span className="text-xs text-gray-11 opacity-30 h-3 flex items-center">on</span>
 
           {/* Branch Icon */}
           <CodeBranch className="text-gray-12 opacity-30 shrink-0" size="sm-regular" />
 
           {/* Branch Name Skeleton */}
-          <div className="h-3 w-12 max-w-[70px] bg-grayA-3 rounded animate-pulse" />
+          <div className="h-4 w-10 max-w-[70px] bg-grayA-3 rounded animate-pulse" />
 
           <span className="text-xs text-gray-10 opacity-30 h-3 flex items-center">by</span>
 
@@ -45,7 +45,7 @@ export const ProjectCardSkeleton = () => {
           </div>
 
           {/* Author Name Skeleton */}
-          <div className="h-3 w-16 max-w-[90px] bg-grayA-3 rounded animate-pulse" />
+          <div className="h-4 w-16 max-w-[90px] bg-grayA-3 rounded animate-pulse" />
         </div>
       </div>
 
