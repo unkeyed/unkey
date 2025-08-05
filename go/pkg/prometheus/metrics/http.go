@@ -57,6 +57,7 @@ var (
 	//   defer timer.ObserveDuration()
 	HTTPRequestLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
+			Namespace:   "unkey",
 			Subsystem:   "http",
 			Name:        "request_latency_seconds",
 			Help:        "Histogram of HTTP request latencies in seconds.",
@@ -73,9 +74,26 @@ var (
 	//   metrics.HTTPRequestTotal.WithLabelValues("GET", "/users", "200").Inc()
 	HTTPRequestTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
+			Namespace:   "unkey",
 			Subsystem:   "http",
 			Name:        "requests_total",
 			Help:        "Total number of HTTP requests processed.",
+			ConstLabels: constLabels,
+		},
+		[]string{"method", "path", "status"},
+	)
+
+	// HTTPRequestErrorTotal tracks the total number of HTTP request errors,
+	// labeled by method, path, and status. Use this counter to monitor error rates by endpoint.
+	//
+	// Example usage:
+	//   metrics.HTTPRequestErrorTotal.WithLabelValues("POST", "/api/keys", "500").Inc()
+	HTTPRequestErrorTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace:   "unkey",
+			Subsystem:   "http",
+			Name:        "requests_errors_total",
+			Help:        "Total number of HTTP request errors.",
 			ConstLabels: constLabels,
 		},
 		[]string{"method", "path", "status"},
@@ -89,6 +107,7 @@ var (
 	//   metrics.HTTPRequestBodySize.WithLabelValues("POST", "/api/upload", "200").Observe(float64(bodySize))
 	HTTPRequestBodySize = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
+			Namespace:   "unkey",
 			Subsystem:   "http",
 			Name:        "request_body_size_bytes",
 			Help:        "Histogram of HTTP request body sizes in bytes.",

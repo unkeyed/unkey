@@ -119,8 +119,8 @@ importers:
         specifier: ^4.20240603.0
         version: 4.20240603.0
       '@unkey/api':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.0.3
+        version: 2.0.3
       '@unkey/tsconfig':
         specifier: workspace:^
         version: link:../../internal/tsconfig
@@ -132,7 +132,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^1.6.1
-        version: 1.6.1(@types/node@22.14.0)(@vitest/ui@1.6.1)
+        version: 1.6.1(@vitest/ui@1.6.1)
       wrangler:
         specifier: ^4.10.0
         version: 4.10.0(@cloudflare/workers-types@4.20240603.0)
@@ -263,8 +263,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/keys
       '@unkey/ratelimit':
-        specifier: ^2.0.0
-        version: 2.0.0(zod@3.23.8)
+        specifier: ^2.1.2
+        version: 2.1.2
       '@unkey/rbac':
         specifier: workspace:^
         version: link:../../packages/rbac
@@ -406,7 +406,7 @@ importers:
         version: 0.4.2(tailwindcss@3.4.15)
       '@testing-library/react':
         specifier: ^16.2.0
-        version: 16.2.0(@testing-library/dom@10.4.0)(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
+        version: 16.2.0(@testing-library/dom@10.4.1)(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       '@testing-library/react-hooks':
         specifier: ^8.0.1
         version: 8.0.1(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
@@ -427,7 +427,7 @@ importers:
         version: 26.0.0
       vitest:
         specifier: ^1.6.1
-        version: 1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4)(jsdom@26.0.0)
+        version: 1.6.1(@types/node@22.14.0)(jsdom@26.0.0)
 
   apps/docs:
     dependencies:
@@ -1579,6 +1579,11 @@ packages:
     resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
     engines: {node: '>=6.9.0'}
 
+  /@babel/runtime@7.28.2:
+    resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
+    engines: {node: '>=6.9.0'}
+    dev: true
+
   /@babel/types@7.28.0:
     resolution: {integrity: sha512-jYnje+JyZG5YThjHiF28oT4SIZLnYOcSBb6+SDaFIyzDVSkXQmQQYclJ2R+YxcdmK0AX6x1E5OQNtuh3jHDrUg==}
     engines: {node: '>=6.9.0'}
@@ -1945,7 +1950,7 @@ packages:
       esbuild: 0.24.2
       miniflare: 4.20250405.0
       semver: 7.7.2
-      vitest: 1.6.1(@types/node@22.14.0)(@vitest/ui@1.6.1)
+      vitest: 1.6.1(@vitest/ui@1.6.1)
       wrangler: 4.8.0(@cloudflare/workers-types@4.20240603.0)
       zod: 3.23.8
     transitivePeerDependencies:
@@ -10085,6 +10090,20 @@ packages:
       pretty-format: 27.5.1
     dev: true
 
+  /@testing-library/dom@10.4.1:
+    resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@babel/code-frame': 7.27.1
+      '@babel/runtime': 7.28.2
+      '@types/aria-query': 5.0.4
+      aria-query: 5.3.0
+      dom-accessibility-api: 0.5.16
+      lz-string: 1.5.0
+      picocolors: 1.1.1
+      pretty-format: 27.5.1
+    dev: true
+
   /@testing-library/react-hooks@8.0.1(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-Aqhl2IVmLt8IovEVarNDFuJDVWVvhnr9/GCU6UUnrYXwgDFF9h2L2o2P9KBni1AST5sT6riAyoukFLyjQUgD/g==}
     engines: {node: '>=12'}
@@ -10125,6 +10144,29 @@ packages:
     dependencies:
       '@babel/runtime': 7.27.6
       '@testing-library/dom': 10.4.0
+      '@types/react': 18.3.11
+      '@types/react-dom': 18.3.0
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    dev: true
+
+  /@testing-library/react@16.2.0(@testing-library/dom@10.4.1)(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-2cSskAvA1QNtKc8Y9VJQRv0tm3hLVgxRGDB+KYhIaPQJ1I+RHbhIXcM+zClKXzMes/wshsMVzf4B9vS4IZpqDQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@testing-library/dom': ^10.0.0
+      '@types/react': ^18.0.0 || ^19.0.0
+      '@types/react-dom': ^18.0.0 || ^19.0.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.27.6
+      '@testing-library/dom': 10.4.1
       '@types/react': 18.3.11
       '@types/react-dom': 18.3.0
       react: 18.3.1
@@ -10669,8 +10711,8 @@ packages:
   /@ungap/structured-clone@1.3.0:
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
 
-  /@unkey/api@2.0.0:
-    resolution: {integrity: sha512-hCC4D+RrkqrPg1EJ2PbCSiWnlnIveeGF5S3+EvOTP1J33CIzFYlDxO212oHffi317m1GSTojlF7qW4pgjhpLsQ==}
+  /@unkey/api@2.0.3:
+    resolution: {integrity: sha512-ru+I//qmSTBcZUTV43Pb4LF3JWLgcvXe8/MQKQZV2tA5Ypw61rFwIiOzNM1qKjB4erunFuv7I86/MTCdqfb0eA==}
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': '>=1.5.0 <1.10.0'
@@ -10679,28 +10721,13 @@ packages:
         optional: true
     dependencies:
       zod: 3.23.8
-    dev: true
 
-  /@unkey/api@2.0.0-alpha.7(zod@3.23.8):
-    resolution: {integrity: sha512-iiA+PVXn5T3dlZT8woKrnr0kB15XLtmkFWHV2+ox+980W/7vQLP1gdgcU/lrX/qA09Z+0w0wN+n0C88RLd4nvw==}
-    hasBin: true
-    peerDependencies:
-      '@modelcontextprotocol/sdk': ^1.5.0
-      zod: '>= 3'
-    peerDependenciesMeta:
-      '@modelcontextprotocol/sdk':
-        optional: true
+  /@unkey/ratelimit@2.1.2:
+    resolution: {integrity: sha512-8zBMmleW5bzwSu9iim0Z5GA1taW2sM+KD3hxQYqemPETwXHqPvghZaMAuPWSfzqda4gLnZSjW0FjUeo4xXWv4A==}
     dependencies:
-      zod: 3.23.8
-    dev: false
-
-  /@unkey/ratelimit@2.0.0(zod@3.23.8):
-    resolution: {integrity: sha512-QwOBO7n7BngOZ8yknh4KyHVFweBYk9gVED33y7BpBZMLXnBeLnc2ttMXqTUH7b5rhyQkqnWrqHw4fbxLu8UnkQ==}
-    dependencies:
-      '@unkey/api': 2.0.0-alpha.7(zod@3.23.8)
+      '@unkey/api': 2.0.3
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
-      - zod
     dev: false
 
   /@upstash/redis@1.34.3:
@@ -10836,7 +10863,7 @@ packages:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@22.14.0)(@vitest/ui@1.6.1)
+      vitest: 1.6.1(@vitest/ui@1.6.1)
     dev: true
 
   /@vitest/ui@3.2.4(vitest@3.2.4):
@@ -12888,6 +12915,18 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.3
+
+  /debug@4.4.1:
+    resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
+    engines: {node: '>=6.0'}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+    dependencies:
+      ms: 2.1.3
+    dev: true
 
   /debug@4.4.1(supports-color@8.1.1):
     resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
@@ -15680,7 +15719,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.1(supports-color@8.1.1)
+      debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -15698,7 +15737,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.1(supports-color@8.1.1)
+      debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -22502,7 +22541,7 @@ packages:
     hasBin: true
     dependencies:
       cac: 6.7.14
-      debug: 4.4.1(supports-color@8.1.1)
+      debug: 4.4.1
       pathe: 1.1.2
       picocolors: 1.1.1
       vite: 5.4.19(@types/node@22.14.0)
@@ -22806,64 +22845,6 @@ packages:
       - terser
     dev: true
 
-  /vitest@1.6.1(@types/node@22.14.0)(@vitest/ui@1.6.1):
-    resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@edge-runtime/vm': '*'
-      '@types/node': ^18.0.0 || >=20.0.0
-      '@vitest/browser': 1.6.1
-      '@vitest/ui': 1.6.1
-      happy-dom: '*'
-      jsdom: '*'
-    peerDependenciesMeta:
-      '@edge-runtime/vm':
-        optional: true
-      '@types/node':
-        optional: true
-      '@vitest/browser':
-        optional: true
-      '@vitest/ui':
-        optional: true
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-    dependencies:
-      '@types/node': 22.14.0
-      '@vitest/expect': 1.6.1
-      '@vitest/runner': 1.6.1
-      '@vitest/snapshot': 1.6.1
-      '@vitest/spy': 1.6.1
-      '@vitest/ui': 1.6.1(vitest@1.6.1)
-      '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.4
-      chai: 4.5.0
-      debug: 4.4.1(supports-color@8.1.1)
-      execa: 8.0.1
-      local-pkg: 0.5.1
-      magic-string: 0.30.17
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      std-env: 3.9.0
-      strip-literal: 2.1.1
-      tinybench: 2.9.0
-      tinypool: 0.8.4
-      vite: 5.4.19(@types/node@22.14.0)
-      vite-node: 1.6.1(@types/node@22.14.0)
-      why-is-node-running: 2.3.0
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-    dev: true
-
   /vitest@1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4)(jsdom@26.0.0):
     resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -22901,6 +22882,121 @@ packages:
       debug: 4.4.1(supports-color@8.1.1)
       execa: 8.0.1
       jsdom: 26.0.0
+      local-pkg: 0.5.1
+      magic-string: 0.30.17
+      pathe: 1.1.2
+      picocolors: 1.1.1
+      std-env: 3.9.0
+      strip-literal: 2.1.1
+      tinybench: 2.9.0
+      tinypool: 0.8.4
+      vite: 5.4.19(@types/node@22.14.0)
+      vite-node: 1.6.1(@types/node@22.14.0)
+      why-is-node-running: 2.3.0
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    dev: true
+
+  /vitest@1.6.1(@types/node@22.14.0)(jsdom@26.0.0):
+    resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@types/node': ^18.0.0 || >=20.0.0
+      '@vitest/browser': 1.6.1
+      '@vitest/ui': 1.6.1
+      happy-dom: '*'
+      jsdom: '*'
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+    dependencies:
+      '@types/node': 22.14.0
+      '@vitest/expect': 1.6.1
+      '@vitest/runner': 1.6.1
+      '@vitest/snapshot': 1.6.1
+      '@vitest/spy': 1.6.1
+      '@vitest/utils': 1.6.1
+      acorn-walk: 8.3.4
+      chai: 4.5.0
+      debug: 4.4.1
+      execa: 8.0.1
+      jsdom: 26.0.0
+      local-pkg: 0.5.1
+      magic-string: 0.30.17
+      pathe: 1.1.2
+      picocolors: 1.1.1
+      std-env: 3.9.0
+      strip-literal: 2.1.1
+      tinybench: 2.9.0
+      tinypool: 0.8.4
+      vite: 5.4.19(@types/node@22.14.0)
+      vite-node: 1.6.1(@types/node@22.14.0)
+      why-is-node-running: 2.3.0
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    dev: true
+
+  /vitest@1.6.1(@vitest/ui@1.6.1):
+    resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@types/node': ^18.0.0 || >=20.0.0
+      '@vitest/browser': 1.6.1
+      '@vitest/ui': 1.6.1
+      happy-dom: '*'
+      jsdom: '*'
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+    dependencies:
+      '@vitest/expect': 1.6.1
+      '@vitest/runner': 1.6.1
+      '@vitest/snapshot': 1.6.1
+      '@vitest/spy': 1.6.1
+      '@vitest/ui': 1.6.1(vitest@1.6.1)
+      '@vitest/utils': 1.6.1
+      acorn-walk: 8.3.4
+      chai: 4.5.0
+      debug: 4.4.1
+      execa: 8.0.1
       local-pkg: 0.5.1
       magic-string: 0.30.17
       pathe: 1.1.2
