@@ -2,7 +2,6 @@
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
@@ -10,8 +9,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { createProjectSchema } from "./create-project.schema";
+import { useCreateProject } from "./use-create-project";
 
 type FormValues = z.infer<typeof createProjectSchema>;
+
 export const CreateProjectDialog = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -30,22 +31,12 @@ export const CreateProjectDialog = () => {
     },
   });
 
-  const { deploy } = trpc.useUtils();
-
-  const createProject = trpc.deploy.project.create.useMutation({
-    onSuccess() {
-      toast.success("Project has been created", {
-        description: "Your new project is ready to use",
-      });
-      reset();
-      setIsModalOpen(false);
-      deploy.project.list.invalidate();
-    },
-    onError(err) {
-      toast.error("Failed to create project", {
-        description: err.message,
-      });
-    },
+  const createProject = useCreateProject((data) => {
+    toast.success("Project has been created", {
+      description: `${data.name} is ready to use`,
+    });
+    reset();
+    setIsModalOpen(false);
   });
 
   const onSubmitForm = async (values: FormValues) => {
@@ -82,7 +73,7 @@ export const CreateProjectDialog = () => {
   return (
     <>
       <Navbar.Actions>
-        <NavbarActionButton title="Create new key" onClick={() => setIsModalOpen(true)}>
+        <NavbarActionButton title="Create new project" onClick={() => setIsModalOpen(true)}>
           <Plus />
           Create new project
         </NavbarActionButton>
@@ -100,8 +91,8 @@ export const CreateProjectDialog = () => {
               form="project-form"
               variant="primary"
               size="xlg"
-              disabled={isSubmitting}
-              loading={isSubmitting}
+              disabled={isSubmitting || createProject.isLoading}
+              loading={isSubmitting || createProject.isLoading}
               className="w-full rounded-lg"
             >
               Create Project
