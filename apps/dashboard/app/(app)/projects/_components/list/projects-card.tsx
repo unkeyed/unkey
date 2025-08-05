@@ -1,5 +1,6 @@
-import { CodeBranch, Cube, Dots, User } from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
+import { CodeBranch, Cube, User } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
+import type { ReactNode } from "react";
 import { RegionBadges } from "./region-badges";
 
 type ProjectCardProps = {
@@ -11,6 +12,7 @@ type ProjectCardProps = {
   author: string;
   regions: string[];
   repository?: string;
+  actions: ReactNode;
 };
 
 export const ProjectCard = ({
@@ -22,6 +24,7 @@ export const ProjectCard = ({
   author,
   regions,
   repository,
+  actions,
 }: ProjectCardProps) => (
   <div className="p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5 group transition-all duration-400">
     {/*Top Section*/}
@@ -48,9 +51,7 @@ export const ProjectCard = ({
         </InfoTooltip>
       </div>
       {/*Top Section > Project actions*/}
-      <Button variant="ghost" size="icon" className="mb-auto shrink-0" title="Project actions">
-        <Dots size="sm-regular" />
-      </Button>
+      {actions}
     </div>
     {/*Middle Section > Last commit title*/}
     <div className="flex flex-col gap-2">

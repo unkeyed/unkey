@@ -1,7 +1,8 @@
 import { LoadMoreFooter } from "@/components/virtual-table/components/loading-indicator";
-import { BookBookmark } from "@unkey/icons";
+import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsListQuery } from "./hooks/use-projects-list-query";
+import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
 
@@ -18,11 +19,11 @@ export const ProjectsList = () => {
         <div
           className="grid gap-4"
           style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 350px))",
           }}
         >
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
             <ProjectCardSkeleton key={i} />
           ))}
         </div>
@@ -41,11 +42,7 @@ export const ProjectsList = () => {
             managing your applications.
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
-            <a
-              href="https://docs.example.com/projects" // Replace with your actual docs URL
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://docs.example.com/projects" target="_blank" rel="noopener noreferrer">
               <Button size="md">
                 <BookBookmark />
                 Learn about Deploy
@@ -79,6 +76,18 @@ export const ProjectsList = () => {
                 author="Unknown"
                 regions={["us-east-1", "us-west-2", "ap-east-1"]}
                 repository={project.gitRepositoryUrl || undefined}
+                actions={
+                  <ProjectActions project={project}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mb-auto shrink-0"
+                      title="Project actions"
+                    >
+                      <Dots size="sm-regular" />
+                    </Button>
+                  </ProjectActions>
+                }
               />
             );
           })}
