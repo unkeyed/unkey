@@ -32,6 +32,6 @@
 //	// Get a key
 //	data, found, err := store.Get(ctx, "user:123")
 //
-//	// List keys by workspace with cursor pagination  
+//	// List keys by workspace with cursor pagination
 //	entries, err := store.ListByWorkspace(ctx, "workspace1", 0, 10)
 package kv

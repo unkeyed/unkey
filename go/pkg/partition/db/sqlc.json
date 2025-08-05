@@ -5,15 +5,6 @@
       "engine": "mysql",
       "queries": "./queries",
       "schema": "schema.sql",
-      "codegen": [
-        {
-          "out": ".",
-          "plugin": "bulk-insert",
-          "options": {
-            "emit_methods_with_db_argument": true
-          }
-        }
-      ],
       "gen": {
         "go": {
           "package": "db",
@@ -29,25 +20,8 @@
           "output_querier_file_name": "querier_generated",
           "output_batch_file_name": "batch_generated",
           "output_copyfrom_file_name": "copyfrom_generated",
-          "output_db_file_name": "delete_me",
-          "overrides": [
-            {
-              "db_type": "json",
-              "go_type": {
-                "type": "[]byte"
-              },
-              "nullable": true
-            }
-          ]
+          "output_db_file_name": "delete_me"
         }
-      }
-    }
-  ],
-  "plugins": [
-    {
-      "name": "bulk-insert",
-      "process": {
-        "cmd": "../../../pkg/db/plugins/dist/bulk-insert"
       }
     }
   ]

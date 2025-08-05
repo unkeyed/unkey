@@ -85,21 +85,21 @@ func NewStore(config Config) (kv.Store, error) {
 
 func (s *Store) Get(ctx context.Context, key string) ([]byte, bool, error) {
 	now := time.Now().UnixMilli()
-	
+
 	// Use readonly connection for Get operations
 	queries := New(s.readonly)
 	row, err := queries.Get(ctx, GetParams{
 		Key: key,
 		Ttl: sql.NullInt64{Int64: now, Valid: true},
 	})
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("failed to get key %s: %w", key, err)
 	}
-	
+
 	// Check if TTL is expired and delete if so
 	if row.Ttl.Valid && row.Ttl.Int64 <= now {
 		// Delete the expired key using primary connection
@@ -112,19 +112,19 @@ func (s *Store) Get(ctx context.Context, key string) ([]byte, bool, error) {
 		}
 		return nil, false, nil
 	}
-	
+
 	return row.Value, true, nil
 }
 
 func (s *Store) Set(ctx context.Context, key string, workspaceID string, value []byte, ttl *time.Duration) error {
 	now := time.Now().UnixMilli()
-	
+
 	var ttlValue sql.NullInt64
 	if ttl != nil {
 		ttlMs := now + ttl.Milliseconds()
 		ttlValue = sql.NullInt64{Int64: ttlMs, Valid: true}
 	}
-	
+
 	err := s.queries.Set(ctx, SetParams{
 		Key:         key,
 		WorkspaceID: workspaceID,
@@ -132,11 +132,11 @@ func (s *Store) Set(ctx context.Context, key string, workspaceID string, value [
 		Ttl:         ttlValue,
 		CreatedAt:   now,
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to set key %s: %w", key, err)
 	}
-	
+
 	return nil
 }
 
@@ -148,12 +148,11 @@ func (s *Store) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-
 func (s *Store) ListByWorkspace(ctx context.Context, workspaceID string, cursor int64, limit int) ([]kv.KvEntry, error) {
 	now := time.Now().UnixMilli()
-	
+
 	// cursor = 0 means start from the beginning (oldest records first)
-	
+
 	// Use readonly connection for List operations
 	queries := New(s.readonly)
 	rows, err := queries.ListByWorkspace(ctx, ListByWorkspaceParams{
@@ -162,24 +161,23 @@ func (s *Store) ListByWorkspace(ctx context.Context, workspaceID string, cursor 
 		ID:          cursor,
 		Limit:       int32(limit),
 	})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to list by workspace: %w", err)
 	}
-	
+
 	return s.convertRows(rows)
 }
 
-
 func (s *Store) convertRows(rows []Kv) ([]kv.KvEntry, error) {
 	entries := make([]kv.KvEntry, len(rows))
-	
+
 	for i, row := range rows {
 		var ttl *int64
 		if row.Ttl.Valid {
 			ttl = &row.Ttl.Int64
 		}
-		
+
 		entries[i] = kv.KvEntry{
 			ID:          row.ID,
 			Key:         row.Key,
@@ -189,27 +187,27 @@ func (s *Store) convertRows(rows []Kv) ([]kv.KvEntry, error) {
 			CreatedAt:   row.CreatedAt,
 		}
 	}
-	
+
 	return entries, nil
 }
 
 // Close closes the database connections
 func (s *Store) Close() error {
 	var errs []error
-	
+
 	if err := s.primary.Close(); err != nil {
 		errs = append(errs, fmt.Errorf("failed to close primary connection: %w", err))
 	}
-	
+
 	if s.readonly != s.primary {
 		if err := s.readonly.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("failed to close readonly connection: %w", err))
 		}
 	}
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors closing connections: %v", errs)
 	}
-	
+
 	return nil
 }

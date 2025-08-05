@@ -19,7 +19,7 @@
 //	    value BLOB NOT NULL,
 //	    ttl BIGINT NULL,
 //	    created_at BIGINT NOT NULL,
-//	    
+//
 //	    PRIMARY KEY (id),
 //	    UNIQUE KEY unique_key (`key`),
 //	    INDEX idx_workspace_id (workspace_id),

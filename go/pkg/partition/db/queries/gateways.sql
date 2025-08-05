@@ -9,10 +9,6 @@ VALUES (?, ?)
 ON DUPLICATE KEY UPDATE
     gateway_config = VALUES(gateway_config);
 
--- name: ListAllGatewayConfigs :many
-SELECT hostname, gateway_config
-FROM gateways
-ORDER BY hostname;
 
 -- name: DeleteGatewayConfig :exec
 DELETE FROM gateways

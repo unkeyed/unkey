@@ -65,7 +65,7 @@ func (r *Replica) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, er
 	if r.mode == "ro" {
 		return nil, fault.New("cannot start transaction on read-only replica")
 	}
-	
+
 	tx, err := r.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to begin transaction"))
