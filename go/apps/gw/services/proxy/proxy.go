@@ -7,7 +7,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -27,27 +26,6 @@ type proxy struct {
 type target struct {
 	url    *url.URL
 	weight int // For weighted load balancing (future use)
-}
-
-// Config holds configuration for the proxy.
-type Config struct {
-	// Targets is a list of backend URLs to proxy to
-	Targets []string
-
-	// Logger for debugging and monitoring
-	Logger logging.Logger
-
-	// LoadBalancer strategy (optional, defaults to round-robin)
-	LoadBalancer LoadBalancer
-
-	// MaxIdleConns is the maximum number of idle connections to keep open.
-	MaxIdleConns int
-
-	// IdleConnTimeout is the maximum amount of time an idle connection will remain open.
-	IdleConnTimeout string
-
-	// TLSHandshakeTimeout is the maximum amount of time a TLS handshake will take.
-	TLSHandshakeTimeout string
 }
 
 // New creates a new proxy with the given configuration.
@@ -167,13 +145,17 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 					"path", r.URL.Path,
 				)
 			}
-			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte("Bad Gateway"))
+
+			// we handle errors ourselves
+
+			// w.WriteHeader(http.StatusBadGateway)
+			// w.Write([]byte("Bad Gateway"))
 		},
 	}
 
 	// Execute the proxy
 	proxy.ServeHTTP(w, r)
+
 	return nil
 }
 
@@ -185,6 +167,7 @@ func getClientIP(r *http.Request) string {
 		if idx := strings.Index(xff, ","); idx != -1 {
 			return strings.TrimSpace(xff[:idx])
 		}
+
 		return strings.TrimSpace(xff)
 	}
 
@@ -198,38 +181,4 @@ func getClientIP(r *http.Request) string {
 		return r.RemoteAddr[:idx]
 	}
 	return r.RemoteAddr
-}
-
-// RoundRobinBalancer implements a simple round-robin load balancing strategy.
-type RoundRobinBalancer struct {
-	mu      sync.Mutex
-	current int
-}
-
-// NewRoundRobinBalancer creates a new round-robin load balancer.
-func NewRoundRobinBalancer() *RoundRobinBalancer {
-	return &RoundRobinBalancer{}
-}
-
-// SelectTarget implements the LoadBalancer interface.
-func (rr *RoundRobinBalancer) SelectTarget(ctx context.Context, targets []*url.URL) (*url.URL, error) {
-	if len(targets) == 0 {
-		return nil, fmt.Errorf("no targets available")
-	}
-
-	rr.mu.Lock()
-	defer rr.mu.Unlock()
-
-	target := targets[rr.current]
-	rr.current = (rr.current + 1) % len(targets)
-
-	return target, nil
-}
-
-// SingleTargetProxy creates a proxy that always forwards to a single target.
-func SingleTargetProxy(targetURL string, logger logging.Logger) (Proxy, error) {
-	return New(Config{
-		Targets: []string{targetURL},
-		Logger:  logger,
-	})
 }

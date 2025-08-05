@@ -17,8 +17,8 @@ message GatewayConfig {
   string project_id = 4;
   string environment = 5;
 
-
   repeated VM vms = 6;
+
   // Middleware configurations
   AuthConfig auth_config = 10;
   RatelimitConfig ratelimit_config = 11;
@@ -31,9 +31,7 @@ message GatewayConfig {
 
 message VM {
   string id = 1;
-  string ip = 2;
-  int32 port = 3;
-  string region = 4;
+  string region = 2;
 }
 
 // Authentication middleware configuration

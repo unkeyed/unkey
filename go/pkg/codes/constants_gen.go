@@ -127,4 +127,13 @@ const (
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
+
+	// ----------------
+	// GatewayErrors
+	// ----------------
+
+	// BadRequest
+
+	// BadGateway indicates that the upstream server is unavailable.
+	GatewayErrorsBadRequestBadGateway URN = "err:gateway:bad_gateway:gateway_unavailable"
 )

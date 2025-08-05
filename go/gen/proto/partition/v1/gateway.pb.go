@@ -154,9 +154,7 @@ func (x *GatewayConfig) GetGitBranch() string {
 type VM struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Ip            string                 `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
-	Port          int32                  `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
-	Region        string                 `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
+	Region        string                 `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,20 +194,6 @@ func (x *VM) GetId() string {
 		return x.Id
 	}
 	return ""
-}
-
-func (x *VM) GetIp() string {
-	if x != nil {
-		return x.Ip
-	}
-	return ""
-}
-
-func (x *VM) GetPort() int32 {
-	if x != nil {
-		return x.Port
-	}
-	return 0
 }
 
 func (x *VM) GetRegion() string {
@@ -598,12 +582,10 @@ const file_proto_partition_v1_gateway_proto_rawDesc = "" +
 	"\x11validation_config\x18\f \x01(\v2\x1e.partition.v1.ValidationConfigR\x10validationConfig\x12$\n" +
 	"\x0egit_commit_sha\x18\x14 \x01(\tR\fgitCommitSha\x12\x1d\n" +
 	"\n" +
-	"git_branch\x18\x15 \x01(\tR\tgitBranch\"P\n" +
+	"git_branch\x18\x15 \x01(\tR\tgitBranch\",\n" +
 	"\x02VM\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x0e\n" +
-	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x12\n" +
-	"\x04port\x18\x03 \x01(\x05R\x04port\x12\x16\n" +
-	"\x06region\x18\x04 \x01(\tR\x06region\"\xdf\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06region\x18\x02 \x01(\tR\x06region\"\xdf\x01\n" +
 	"\n" +
 	"AuthConfig\x12&\n" +
 	"\x0frequire_api_key\x18\x01 \x01(\bR\rrequireApiKey\x12'\n" +

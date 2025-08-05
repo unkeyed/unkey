@@ -25,6 +25,9 @@ const (
 	// SystemUser indicates errors caused by user inputs or client behavior.
 	SystemUser System = "user"
 
+	// SystemGateway indicates errors caused by gateway issues.
+	SystemGateway System = "gateway"
+
 	// SystemUnkey indicates errors originating from Unkey's internal systems.
 	SystemUnkey System = "unkey"
 
@@ -44,6 +47,9 @@ const (
 
 	// CategoryUserBadRequest represents invalid user input errors.
 	CategoryUserBadRequest Category = "bad_request"
+
+	// CategoryBadGateway represents errors related to upstream server unavailability.
+	CategoryBadGateway Category = "bad_gateway"
 
 	// Unkey categories
 

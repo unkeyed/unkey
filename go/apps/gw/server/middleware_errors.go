@@ -54,47 +54,9 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			status := http.StatusInternalServerError
 
 			switch urn {
-			// Not Found errors
-			case codes.UnkeyDataErrorsKeyNotFound,
-				codes.UnkeyDataErrorsWorkspaceNotFound,
-				codes.UnkeyDataErrorsApiNotFound,
-				codes.UnkeyDataErrorsPermissionNotFound,
-				codes.UnkeyDataErrorsRoleNotFound,
-				codes.UnkeyDataErrorsKeyAuthNotFound,
-				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
-				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
-				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound:
-				status = http.StatusNotFound
-
 			// Bad Request errors
-			case codes.UnkeyAppErrorsValidationInvalidInput,
-				codes.UnkeyAuthErrorsAuthenticationMissing,
-				codes.UnkeyAuthErrorsAuthenticationMalformed,
-				codes.UserErrorsBadRequestPermissionsQuerySyntaxError:
-				status = http.StatusBadRequest
-
-			// Unauthorized errors
-			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
-				status = http.StatusUnauthorized
-
-			// Forbidden errors
-			case codes.UnkeyAuthErrorsAuthorizationForbidden,
-				codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions,
-				codes.UnkeyAuthErrorsAuthorizationKeyDisabled,
-				codes.UnkeyAuthErrorsAuthorizationWorkspaceDisabled:
-				status = http.StatusForbidden
-
-			// Conflict errors
-			case codes.UnkeyDataErrorsIdentityDuplicate,
-				codes.UnkeyDataErrorsRoleDuplicate,
-				codes.UnkeyDataErrorsPermissionDuplicate:
-				status = http.StatusConflict
-
-			// Precondition Failed
-			case codes.UnkeyAppErrorsProtectionProtectedResource,
-				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
-				status = http.StatusPreconditionFailed
+			case codes.GatewayErrorsBadRequestBadGateway:
+				status = http.StatusBadGateway
 			}
 
 			// Log the error

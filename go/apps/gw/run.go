@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/gw/router"
 	"github.com/unkeyed/unkey/go/apps/gw/server"
+	"github.com/unkeyed/unkey/go/apps/gw/services/caches"
 	"github.com/unkeyed/unkey/go/apps/gw/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -56,7 +57,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// clk := clock.New()
+	clk := clock.New()
 	shutdowns := shutdown.New()
 
 	if cfg.OtelEnabled {
@@ -116,25 +117,38 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	caches, err := caches.New(caches.Config{
+		Logger: logger,
+		Clock:  clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create caches: %w", err)
+	}
+
 	// Create routing service for dynamic routing
 	routingService, err := routing.New(routing.Config{
-		DB:     db,
-		Logger: logger,
-		Clock:  clock.New(),
+		DB:                 db,
+		Logger:             logger,
+		Clock:              clk,
+		GatewayConfigCache: caches.GatewayConfig,
+		VMCache:            caches.VM,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create routing service: %w", err)
 	}
 
 	// Create certificate manager - for now, create empty manager
-	certManager := certmanager.New(logger)
+	certManager := certmanager.New(certmanager.Config{
+		Logger: logger,
+		DB:     db,
+	})
 
 	// Create gateway server
 	srv, err := server.New(server.Config{
 		Logger:      logger,
-		Handler:     nil, // Will be set by router
+		Handler:     nil,
 		CertManager: certManager,
-		EnableTLS:   false, // For now, disable TLS until we have proper cert management
+		EnableTLS:   false,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create gateway server: %w", err)

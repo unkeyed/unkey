@@ -6,6 +6,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
@@ -31,7 +33,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 	)
 
 	// Look up target configuration based on the request host
-	targetInfo, err := h.RoutingService.GetTargetByHost(ctx, req.Host)
+	targetInfo, err := h.RoutingService.GetConfig(ctx, req.Host)
 	if err != nil {
 		h.Logger.Error("failed to lookup target configuration",
 			"requestId", sess.RequestID(),
@@ -49,7 +51,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 	if err != nil {
 		h.Logger.Error("failed to select VM",
 			"requestId", sess.RequestID(),
-			"gatewayID", targetInfo.GatewayID,
+			"deploymentID", targetInfo.DeploymentId,
 			"host", req.Host,
 			"error", err.Error(),
 		)
@@ -58,7 +60,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 
 	h.Logger.Debug("selected VM for request",
 		"requestId", sess.RequestID(),
-		"gatewayID", targetInfo.GatewayID,
+		"deploymentID", targetInfo.DeploymentId,
 		"selectedVM", targetURL.String(),
 	)
 
@@ -78,13 +80,17 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 	if err != nil {
 		h.Logger.Error("failed to forward request",
 			"requestId", sess.RequestID(),
-			"gatewayID", targetInfo.GatewayID,
+			"deploymentID", targetInfo.DeploymentId,
 			"selectedVM", targetURL.String(),
 			"error", err.Error(),
 		)
-		return err
+
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.BadRequest.BadGateway.URN()),
+			fault.Internal("gateway error"),
+			fault.Public("Bad Gateway"),
+		)
 	}
 
-	// No need to write a response here - the proxy has already handled it
 	return nil
 }
