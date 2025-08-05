@@ -147,7 +147,7 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, pErr error) {
 			if p.logger != nil {
 				p.logger.Error("proxy error",
-					"error", err.Error(),
+					"error", pErr.Error(),
 					"backend", target.String(),
 					"path", r.URL.Path,
 				)

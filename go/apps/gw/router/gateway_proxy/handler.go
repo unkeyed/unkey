@@ -107,6 +107,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"proxy_latency_ms", proxyLatency.Milliseconds(),
 			"error", err.Error(),
 		)
+
 		return err
 	}
 
