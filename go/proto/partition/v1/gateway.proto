@@ -16,9 +16,9 @@ message GatewayConfig {
   string workspace_id = 3;
   string project_id = 4;
   string environment = 5;
-  string rootfs_image_id = 6;
-  DeploymentStatus status = 7;
 
+
+  repeated VM vms = 6;
   // Middleware configurations
   AuthConfig auth_config = 10;
   RatelimitConfig ratelimit_config = 11;
@@ -29,7 +29,15 @@ message GatewayConfig {
   string git_branch = 21;
 }
 
+message VM {
+  string id = 1;
+  string ip = 2;
+  int32 port = 3;
+  string region = 4;
+}
+
 // Authentication middleware configuration
+// Claude BS, treat it as example
 message AuthConfig {
   bool require_api_key = 1;
   repeated string required_scopes = 2;
@@ -40,6 +48,7 @@ message AuthConfig {
 }
 
 // JWT configuration for service-to-service auth
+// Claude BS, treat it as example
 message JWTConfig {
   string signing_key = 1;
   int32 expires_in_seconds = 2;
@@ -48,6 +57,7 @@ message JWTConfig {
 }
 
 // Rate limiting middleware configuration
+// Claude BS, treat it as example
 message RatelimitConfig {
   bool enabled = 1;
   int32 requests_per_minute = 2;
@@ -70,15 +80,4 @@ message ValidationConfig {
   bool validate_request = 3;
   bool validate_response = 4;
   bool strict_mode = 5; // Reject requests with unknown fields
-}
-
-// Deployment status enum
-enum DeploymentStatus {
-  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
-  DEPLOYMENT_STATUS_PENDING = 1;
-  DEPLOYMENT_STATUS_BUILDING = 2;
-  DEPLOYMENT_STATUS_DEPLOYING = 3;
-  DEPLOYMENT_STATUS_ACTIVE = 4;
-  DEPLOYMENT_STATUS_FAILED = 5;
-  DEPLOYMENT_STATUS_ARCHIVED = 6;
 }
