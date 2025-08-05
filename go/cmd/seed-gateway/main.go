@@ -167,19 +167,19 @@ func SeedGatewayAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Insert gateway config into database
-	params := db.UpsertGatewayConfigParams{
+	params := db.UpsertGatewayParams{
 		Hostname: hostname,
 		Config:   configBytes,
 	}
 
-	if err := db.Query.UpsertGatewayConfig(ctx, database.RW(), params); err != nil {
+	if err := db.Query.UpsertGateway(ctx, database.RW(), params); err != nil {
 		return fmt.Errorf("failed to upsert gateway config: %w", err)
 	}
 	fmt.Printf("Created gateway config for hostname: %s\n", hostname)
 
 	// Verify by reading it back
 	fmt.Println("\nVerifying gateway config...")
-	gatewayRow, err := db.Query.GetGatewayConfig(ctx, database.RO(), hostname)
+	gatewayRow, err := db.Query.FindGatewayByHostname(ctx, database.RO(), hostname)
 	if err != nil {
 		return fmt.Errorf("failed to read gateway config: %w", err)
 	}
@@ -196,7 +196,7 @@ func SeedGatewayAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Printf("  VMs: %d\n", len(readConfig.Vms))
 	for i, vm := range readConfig.Vms {
 		// Read VM details from database to show IP and port
-		vmDetails, err := db.Query.GetVMByID(ctx, database.RO(), vm.Id)
+		vmDetails, err := db.Query.FindVMById(ctx, database.RO(), vm.Id)
 		if err != nil {
 			fmt.Printf("    VM %d: %s (details unavailable: %v)\n", i+1, vm.Id, err)
 		} else {

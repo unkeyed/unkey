@@ -139,8 +139,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create certificate manager - for now, create empty manager
 	certManager := certmanager.New(certmanager.Config{
-		Logger: logger,
-		DB:     db,
+		Logger:              logger,
+		DB:                  db,
+		TLSCertificateCache: caches.TLSCertificate,
 	})
 
 	// Create gateway server

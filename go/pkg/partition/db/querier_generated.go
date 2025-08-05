@@ -9,26 +9,25 @@ import (
 )
 
 type Querier interface {
-	//DeleteGatewayConfig
+	//DeleteGatewayByHostname
 	//
-	//  DELETE FROM gateways
-	//  WHERE hostname = ?
-	DeleteGatewayConfig(ctx context.Context, db DBTX, hostname string) error
-	//GetGatewayConfig
+	//  DELETE FROM gateways WHERE hostname = ?
+	DeleteGatewayByHostname(ctx context.Context, db DBTX, hostname string) error
+	//FindGatewayByHostname
 	//
 	//  SELECT hostname, config
 	//  FROM gateways
 	//  WHERE hostname = ?
-	GetGatewayConfig(ctx context.Context, db DBTX, hostname string) (GetGatewayConfigRow, error)
-	//GetVMByID
+	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
+	//FindVMById
 	//
 	//  SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
-	GetVMByID(ctx context.Context, db DBTX, id string) (Vm, error)
-	//UpsertGatewayConfig
+	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
+	//UpsertGateway
 	//
 	//  INSERT INTO gateways (hostname, config)
 	//  VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
-	UpsertGatewayConfig(ctx context.Context, db DBTX, arg UpsertGatewayConfigParams) error
+	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
 	//UpsertVM
 	//
 	//  INSERT INTO vms (id, deployment_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status)

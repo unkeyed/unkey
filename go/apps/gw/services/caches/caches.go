@@ -1,6 +1,7 @@
 package caches
 
 import (
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -15,9 +16,14 @@ import (
 // Caches holds all cache instances used throughout the application.
 // Each field represents a specialized cache for a specific data entity.
 type Caches struct {
+	// HostName -> Config
 	GatewayConfig cache.Cache[string, *partitionv1.GatewayConfig]
 
+	// VmID -> VM Info
 	VM cache.Cache[string, db.Vm]
+
+	// HostName -> Certificate
+	TLSCertificate cache.Cache[string, tls.Certificate]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -83,8 +89,21 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create vm cache: %w", err)
 	}
 
+	tlsCertificate, err := cache.New(cache.Config[string, tls.Certificate]{
+		Fresh:    time.Hour,
+		Stale:    time.Hour * 12,
+		Logger:   config.Logger,
+		MaxSize:  10_000,
+		Resource: "tls_certificate",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, fmt.Errorf("failed to create certificate cache: %w", err)
+	}
+
 	return Caches{
-		GatewayConfig: middleware.WithTracing(gatewayConfig),
-		VM:            middleware.WithTracing(vmCache),
+		GatewayConfig:  middleware.WithTracing(gatewayConfig),
+		VM:             middleware.WithTracing(vmCache),
+		TLSCertificate: middleware.WithTracing(tlsCertificate),
 	}, nil
 }

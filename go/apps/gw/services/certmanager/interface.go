@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/partition/db"
 )
@@ -19,4 +20,6 @@ type Config struct {
 
 	// DB is the database used to store certificates.
 	DB db.Database
+
+	TLSCertificateCache cache.Cache[string, tls.Certificate]
 }

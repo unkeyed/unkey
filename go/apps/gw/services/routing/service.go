@@ -55,7 +55,7 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 		s.logger.Debug("fetching target from database", "host", host)
 
 		// Query the database for the gateway config blob
-		gatewayRow, err := db.Query.GetGatewayConfig(ctx, s.db.RO(), host)
+		gatewayRow, err := db.Query.FindGatewayByHostname(ctx, s.db.RO(), host)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +121,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	for _, vm := range config.Vms {
 		vm, hit, err := s.vmCache.SWR(ctx, vm.Id, func(ctx context.Context) (db.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
-			return db.Query.GetVMByID(ctx, s.db.RO(), vm.Id)
+			return db.Query.FindVMById(ctx, s.db.RO(), vm.Id)
 		}, caches.DefaultFindFirstOp)
 
 		if err != nil {
