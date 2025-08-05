@@ -83,23 +83,25 @@ export const updateRootKeyPermissions = t.procedure
         auditLogs.push(...createPermissionLogs);
 
         // Get current permission IDs for comparison
-        const currentPermissionIds = new Set(currentPermissions.map(kp => kp.permissionId));
-        const newPermissionIds = new Set(permissions.map(p => p.id));
+        const currentPermissionIds = new Set(currentPermissions.map((kp) => kp.permissionId));
+        const newPermissionIds = new Set(permissions.map((p) => p.id));
 
         // Find permissions to remove (in current but not in new)
-        const permissionsToRemove = currentPermissions.filter(kp => !newPermissionIds.has(kp.permissionId));
-        
+        const permissionsToRemove = currentPermissions.filter(
+          (kp) => !newPermissionIds.has(kp.permissionId),
+        );
+
         // Find permissions to add (in new but not in current)
-        const permissionsToAdd = permissions.filter(p => !currentPermissionIds.has(p.id));
+        const permissionsToAdd = permissions.filter((p) => !currentPermissionIds.has(p.id));
 
         // Remove only the permissions that are no longer needed
         if (permissionsToRemove.length > 0) {
-          const permissionIdsToRemove = permissionsToRemove.map(kp => kp.permissionId);
+          const permissionIdsToRemove = permissionsToRemove.map((kp) => kp.permissionId);
           await tx
             .delete(schema.keysPermissions)
             .where(
-              eq(schema.keysPermissions.keyId, input.keyId) && 
-              inArray(schema.keysPermissions.permissionId, permissionIdsToRemove)
+              eq(schema.keysPermissions.keyId, input.keyId) &&
+                inArray(schema.keysPermissions.permissionId, permissionIdsToRemove),
             )
             .catch((_err) => {
               throw new TRPCError({
