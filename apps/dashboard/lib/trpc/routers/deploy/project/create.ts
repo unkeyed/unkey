@@ -110,15 +110,6 @@ export const createProject = t.procedure
         throw txErr; // Re-throw to be caught by outer catch
       }
 
-      console.info({
-        message: "Project created successfully",
-        userId,
-        workspaceId,
-        projectId,
-        projectName: input.name,
-        projectSlug: input.slug,
-      });
-
       return {
         id: projectId,
         name: input.name,
