@@ -1,22 +1,12 @@
-import {
-  ControlsContainer,
-  ControlsLeft,
-  ControlsRight,
-} from "@/components/logs/controls-container";
-import { LogsDisplay } from "./components/logs-display";
-import { LogsFilters } from "./components/logs-filters";
-import { LogsSearch } from "./components/logs-search";
+import { ControlsContainer, ControlsLeft } from "@/components/logs/controls-container";
+import { ProjectsSearchInput } from "./components/projects-list-search.ts";
 
-export function LogsControls() {
+export function ProjectsListControls() {
   return (
     <ControlsContainer>
       <ControlsLeft>
-        <LogsSearch />
-        <LogsFilters />
+        <ProjectsSearchInput />
       </ControlsLeft>
-      <ControlsRight>
-        <LogsDisplay />
-      </ControlsRight>
     </ControlsContainer>
   );
 }

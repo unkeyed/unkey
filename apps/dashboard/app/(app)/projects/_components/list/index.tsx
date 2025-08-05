@@ -42,7 +42,7 @@ export const ProjectsList = () => {
         <div
           className="grid gap-4"
           style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 350px))",
           }}
         >
           {projects.map((project) => {

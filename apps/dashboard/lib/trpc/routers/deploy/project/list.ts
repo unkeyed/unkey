@@ -1,5 +1,5 @@
 import { projectsQueryPayload as projectsInputSchema } from "@/app/(app)/projects/_components/list/projects-list.schema";
-import { and, count, db, desc, eq, like, lt, or, schema } from "@/lib/db";
+import { and, count, db, desc, eq, inArray, like, lt, or, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -45,66 +45,58 @@ export const queryProjects = t.procedure
 
     // Add cursor condition for pagination
     if (input.cursor && typeof input.cursor === "number") {
-      baseConditions.push(lt(schema.projects.createdAt, input.cursor));
+      baseConditions.push(lt(schema.projects.updatedAt, input.cursor));
     }
 
-    // Build filter conditions
     const filterConditions = [];
 
-    // Name filter
-    if (input.name && input.name.length > 0) {
-      const nameConditions = input.name.map((filter) => {
-        if (filter.operator === "contains") {
-          return like(schema.projects.name, `%${filter.value}%`);
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported name operator: ${filter.operator}`,
-        });
-      });
+    // Single query field that searches across name, branch, and hostnames
+    if (input.query && input.query.length > 0) {
+      const searchConditions = [];
 
-      if (nameConditions.length === 1) {
-        filterConditions.push(nameConditions[0]);
-      } else {
-        filterConditions.push(or(...nameConditions));
+      // Process each query filter
+      for (const filter of input.query) {
+        if (filter.operator !== "contains") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Unsupported query operator: ${filter.operator}`,
+          });
+        }
+
+        const searchValue = `%${filter.value}%`;
+        const queryConditions = [];
+
+        // Search in project name
+        queryConditions.push(like(schema.projects.name, searchValue));
+
+        // Search in project branch (defaultBranch)
+        queryConditions.push(like(schema.projects.defaultBranch, searchValue));
+
+        // Search in hostnames - get project IDs that have matching hostnames
+        const projectIdsWithMatchingHostnames = await db
+          .selectDistinct({ projectId: schema.routes.projectId })
+          .from(schema.routes)
+          .where(
+            and(
+              eq(schema.routes.workspaceId, ctx.workspace.id),
+              like(schema.routes.hostname, searchValue),
+            ),
+          );
+
+        const matchingProjectIds = projectIdsWithMatchingHostnames.map((r) => r.projectId);
+
+        if (matchingProjectIds.length > 0) {
+          queryConditions.push(inArray(schema.projects.id, matchingProjectIds));
+        }
+
+        // Combine all search conditions with OR for this specific query value
+        if (queryConditions.length > 0) {
+          searchConditions.push(or(...queryConditions));
+        }
       }
-    }
 
-    // Slug filter
-    if (input.slug && input.slug.length > 0) {
-      const slugConditions = input.slug.map((filter) => {
-        if (filter.operator === "contains") {
-          return like(schema.projects.slug, `%${filter.value}%`);
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported slug operator: ${filter.operator}`,
-        });
-      });
-
-      if (slugConditions.length === 1) {
-        filterConditions.push(slugConditions[0]);
-      } else {
-        filterConditions.push(or(...slugConditions));
-      }
-    }
-
-    // Branch filter (searches defaultBranch)
-    if (input.branch && input.branch.length > 0) {
-      const branchConditions = input.branch.map((filter) => {
-        if (filter.operator === "contains") {
-          return like(schema.projects.defaultBranch, `%${filter.value}%`);
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported branch operator: ${filter.operator}`,
-        });
-      });
-
-      if (branchConditions.length === 1) {
-        filterConditions.push(branchConditions[0]);
-      } else {
-        filterConditions.push(or(...branchConditions));
+      if (searchConditions.length > 0) {
+        filterConditions.push(or(...searchConditions));
       }
     }
 
@@ -121,7 +113,7 @@ export const queryProjects = t.procedure
         db.query.projects.findMany({
           where: and(...allConditions),
           orderBy: [desc(schema.projects.createdAt)],
-          limit: PROJECTS_LIMIT + 1, // Get one extra to check if there are more
+          limit: PROJECTS_LIMIT + 1,
           columns: {
             id: true,
             name: true,
@@ -144,14 +136,13 @@ export const queryProjects = t.procedure
       // Get project IDs for hostname lookup
       const projectIds = projectsWithoutExtra.map((p) => p.id);
 
-      // Fetch hostnames for all projects in a separate query - only .unkey.app domains
+      // Fetch hostnames for all projects - only .unkey.app domains
       const hostnamesResult =
         projectIds.length > 0
           ? await db.query.routes.findMany({
               where: and(
                 eq(schema.routes.workspaceId, ctx.workspace.id),
                 or(...projectIds.map((id) => eq(schema.routes.projectId, id))),
-                // Only get .unkey.app domains
                 like(schema.routes.hostname, "%.unkey.app"),
               ),
               columns: {
@@ -159,7 +150,7 @@ export const queryProjects = t.procedure
                 projectId: true,
                 hostname: true,
               },
-              orderBy: [desc(schema.hostnames.createdAt)],
+              orderBy: [desc(schema.routes.createdAt)],
             })
           : [];
 
@@ -175,13 +166,7 @@ export const queryProjects = t.procedure
           });
           return acc;
         },
-        {} as Record<
-          string,
-          Array<{
-            id: string;
-            hostname: string;
-          }>
-        >,
+        {} as Record<string, Array<{ id: string; hostname: string }>>,
       );
 
       const projects = projectsWithoutExtra.map((project) => ({

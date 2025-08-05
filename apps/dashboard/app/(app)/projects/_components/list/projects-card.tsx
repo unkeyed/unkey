@@ -32,11 +32,11 @@ export const ProjectCard = ({
       </div>
       <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
         {/*Top Section > Project Name*/}
-        <InfoTooltip content={name} asChild>
+        <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
           <div className="font-medium text-sm leading-[14px] text-accent-12 truncate">{name}</div>
         </InfoTooltip>
         {/*Top Section > Domains/Hostnames*/}
-        <InfoTooltip content={domain} asChild>
+        <InfoTooltip content={domain} asChild position={{ align: "start", side: "top" }}>
           <a
             href={`https://${domain}`}
             target="_blank"
@@ -54,7 +54,7 @@ export const ProjectCard = ({
     </div>
     {/*Middle Section > Last commit title*/}
     <div className="flex flex-col gap-2">
-      <InfoTooltip content={commitTitle} asChild>
+      <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
         <div className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer">
           {commitTitle}
         </div>
@@ -62,14 +62,14 @@ export const ProjectCard = ({
       <div className="flex gap-2 items-center min-w-0">
         <span className="text-xs text-gray-11">{commitDate} on</span>
         <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
-        <InfoTooltip content={branch} asChild>
+        <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
           <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
         </InfoTooltip>
         <span className="text-xs text-gray-10">by</span>
         <div className="border border-grayA-6 items-center justify-center rounded-full size-[18px] flex">
           <User className="text-gray-11 shrink-0" size="sm-regular" />
         </div>
-        <InfoTooltip content={author} asChild>
+        <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
           <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">{author}</span>
         </InfoTooltip>
       </div>
