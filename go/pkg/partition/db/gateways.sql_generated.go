@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const deleteGatewayConfig = `-- name: DeleteGatewayConfig :exec
@@ -24,42 +25,123 @@ func (q *Queries) DeleteGatewayConfig(ctx context.Context, db DBTX, hostname str
 }
 
 const getGatewayConfig = `-- name: GetGatewayConfig :one
-SELECT hostname, gateway_config
+SELECT hostname, config
 FROM gateways
 WHERE hostname = ?
 `
 
+type GetGatewayConfigRow struct {
+	Hostname string `db:"hostname"`
+	Config   []byte `db:"config"`
+}
+
 // GetGatewayConfig
 //
-//	SELECT hostname, gateway_config
+//	SELECT hostname, config
 //	FROM gateways
 //	WHERE hostname = ?
-func (q *Queries) GetGatewayConfig(ctx context.Context, db DBTX, hostname string) (Gateway, error) {
+func (q *Queries) GetGatewayConfig(ctx context.Context, db DBTX, hostname string) (GetGatewayConfigRow, error) {
 	row := db.QueryRowContext(ctx, getGatewayConfig, hostname)
-	var i Gateway
-	err := row.Scan(&i.Hostname, &i.GatewayConfig)
+	var i GetGatewayConfigRow
+	err := row.Scan(&i.Hostname, &i.Config)
+	return i, err
+}
+
+const getVMByID = `-- name: GetVMByID :one
+SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
+`
+
+// GetVMByID
+//
+//	SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
+func (q *Queries) GetVMByID(ctx context.Context, db DBTX, id string) (Vm, error) {
+	row := db.QueryRowContext(ctx, getVMByID, id)
+	var i Vm
+	err := row.Scan(
+		&i.ID,
+		&i.DeploymentID,
+		&i.MetalHostID,
+		&i.Region,
+		&i.PrivateIp,
+		&i.Port,
+		&i.CpuMillicores,
+		&i.MemoryMb,
+		&i.Status,
+		&i.HealthStatus,
+		&i.LastHeartbeat,
+	)
 	return i, err
 }
 
 const upsertGatewayConfig = `-- name: UpsertGatewayConfig :exec
-INSERT INTO gateways (hostname, gateway_config)
-VALUES (?, ?)
-ON DUPLICATE KEY UPDATE
-    gateway_config = VALUES(gateway_config)
+INSERT INTO gateways (hostname, config)
+VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
 `
 
 type UpsertGatewayConfigParams struct {
-	Hostname      string `db:"hostname"`
-	GatewayConfig []byte `db:"gateway_config"`
+	Hostname string `db:"hostname"`
+	Config   []byte `db:"config"`
 }
 
 // UpsertGatewayConfig
 //
-//	INSERT INTO gateways (hostname, gateway_config)
-//	VALUES (?, ?)
-//	ON DUPLICATE KEY UPDATE
-//	    gateway_config = VALUES(gateway_config)
+//	INSERT INTO gateways (hostname, config)
+//	VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
 func (q *Queries) UpsertGatewayConfig(ctx context.Context, db DBTX, arg UpsertGatewayConfigParams) error {
-	_, err := db.ExecContext(ctx, upsertGatewayConfig, arg.Hostname, arg.GatewayConfig)
+	_, err := db.ExecContext(ctx, upsertGatewayConfig, arg.Hostname, arg.Config)
+	return err
+}
+
+const upsertVM = `-- name: UpsertVM :exec
+INSERT INTO vms (id, deployment_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  deployment_id = VALUES(deployment_id),
+  region = VALUES(region),
+  private_ip = VALUES(private_ip),
+  port = VALUES(port),
+  cpu_millicores = VALUES(cpu_millicores),
+  memory_mb = VALUES(memory_mb),
+  status = VALUES(status),
+  health_status = VALUES(health_status)
+`
+
+type UpsertVMParams struct {
+	ID            string          `db:"id"`
+	DeploymentID  string          `db:"deployment_id"`
+	Region        string          `db:"region"`
+	PrivateIp     sql.NullString  `db:"private_ip"`
+	Port          sql.NullInt32   `db:"port"`
+	CpuMillicores int32           `db:"cpu_millicores"`
+	MemoryMb      int32           `db:"memory_mb"`
+	Status        VmsStatus       `db:"status"`
+	HealthStatus  VmsHealthStatus `db:"health_status"`
+}
+
+// UpsertVM
+//
+//	INSERT INTO vms (id, deployment_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status)
+//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	ON DUPLICATE KEY UPDATE
+//	  deployment_id = VALUES(deployment_id),
+//	  region = VALUES(region),
+//	  private_ip = VALUES(private_ip),
+//	  port = VALUES(port),
+//	  cpu_millicores = VALUES(cpu_millicores),
+//	  memory_mb = VALUES(memory_mb),
+//	  status = VALUES(status),
+//	  health_status = VALUES(health_status)
+func (q *Queries) UpsertVM(ctx context.Context, db DBTX, arg UpsertVMParams) error {
+	_, err := db.ExecContext(ctx, upsertVM,
+		arg.ID,
+		arg.DeploymentID,
+		arg.Region,
+		arg.PrivateIp,
+		arg.Port,
+		arg.CpuMillicores,
+		arg.MemoryMb,
+		arg.Status,
+		arg.HealthStatus,
+	)
 	return err
 }

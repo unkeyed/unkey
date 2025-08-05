@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
+	seedgateway "github.com/unkeyed/unkey/go/cmd/seed-gateway"
 	"github.com/unkeyed/unkey/go/cmd/version"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	versioncmd "github.com/unkeyed/unkey/go/pkg/version"
@@ -26,6 +27,7 @@ func main() {
 			deploy.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
+			seedgateway.Cmd,
 		},
 	}
 

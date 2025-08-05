@@ -154,15 +154,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create gateway server: %w", err)
 	}
 
-	services := &router.Services{
+	// Register routes
+	router.Register(srv, &router.Services{
 		Logger:         logger,
 		CertManager:    certManager,
 		RoutingService: routingService,
 		ClickHouse:     ch,
-	}
-
-	// Register routes
-	router.Register(srv, services)
+	})
 
 	shutdowns.RegisterCtx(srv.Shutdown)
 

@@ -153,8 +153,9 @@ type Certificate struct {
 }
 
 type Gateway struct {
-	Hostname      string `db:"hostname"`
-	GatewayConfig []byte `db:"gateway_config"`
+	ID       uint64 `db:"id"`
+	Hostname string `db:"hostname"`
+	Config   []byte `db:"config"`
 }
 
 type MetalHost struct {

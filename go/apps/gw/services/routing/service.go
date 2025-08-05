@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"time"
 
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
@@ -12,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/partition/db"
+	"google.golang.org/protobuf/proto"
 )
 
 // service implements the RoutingService interface with database backend.
@@ -37,35 +39,50 @@ func New(config Config) (*service, error) {
 
 // GetTarget retrieves target configuration by ID.
 func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.GatewayConfig, error) {
+	start := time.Now()
+	defer func() {
+		latency := time.Since(start)
+		s.logger.Debug("gateway config lookup completed",
+			"host", host,
+			"latency_ms", latency.Milliseconds(),
+			"latency_us", latency.Microseconds(),
+		)
+	}()
+
 	// Use SWR (Stale-While-Revalidate) cache pattern
 	config, hit, err := s.gatewayConfigCache.SWR(ctx, host, func(ctx context.Context) (*partitionv1.GatewayConfig, error) {
+		dbStart := time.Now()
 		s.logger.Debug("fetching target from database", "host", host)
 
-		// For now, return a mock gateway since we don't have the actual DB schema
-		// In production, this would query the database for gateway configuration
-		target := &partitionv1.GatewayConfig{
-			// GatewayID:    targetID,
-			// WorkspaceID:  "default-workspace",
-			// Name:         fmt.Sprintf("Gateway %s", targetID),
-			// Enabled:      true,
-			// AvailableVMs: []string{"http://localhost:33667"}, // Mock VMs
-			// Metadata: map[string]string{
-			// 	"version": "1.0",
-			// },
-		}
-
-		return target, nil
-	}, func(err error) cache.Op {
+		// Query the database for the gateway config blob
+		gatewayRow, err := db.Query.GetGatewayConfig(ctx, s.db.RO(), host)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return cache.WriteNull
-			}
-
-			return cache.Noop
+			return nil, err
 		}
 
-		return cache.WriteValue
-	})
+		// Unmarshal the protobuf blob from the database
+		var gatewayConfig partitionv1.GatewayConfig
+		if err := proto.Unmarshal(gatewayRow.Config, &gatewayConfig); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal gateway config: %w", err)
+		}
+
+		dbLatency := time.Since(dbStart)
+		s.logger.Debug("database lookup completed",
+			"host", host,
+			"db_latency_ms", dbLatency.Milliseconds(),
+			"db_latency_us", dbLatency.Microseconds(),
+		)
+
+		return &gatewayConfig, nil
+	}, caches.DefaultFindFirstOp)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, fault.Wrap(err)
+		}
+
+		return nil, fault.Wrap(err)
+	}
 
 	if hit == cache.Null {
 		return nil, fault.New("no target found")
@@ -76,8 +93,20 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 
 // SelectVM picks an available VM from the gateway's VM list using simple round-robin.
 func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
-	s.logger.Debug("selecting VM for gateway") // "gatewayID", targetInfo.GatewayID,
-	// "availableVMs", len(targetInfo.AvailableVMs),
+	start := time.Now()
+	defer func() {
+		latency := time.Since(start)
+		s.logger.Debug("VM selection completed",
+			"deploymentID", config.DeploymentId,
+			"latency_ms", latency.Milliseconds(),
+			"latency_us", latency.Microseconds(),
+		)
+	}()
+
+	s.logger.Debug("selecting VM for gateway",
+		"deploymentID", config.DeploymentId,
+		"total_vms", len(config.Vms),
+	)
 
 	if !config.IsEnabled {
 		return nil, fmt.Errorf("gateway %s is disabled", config.DeploymentId)
@@ -88,10 +117,11 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	availableVms := make([]db.Vm, 0)
+	vmLookupStart := time.Now()
 	for _, vm := range config.Vms {
 		vm, hit, err := s.vmCache.SWR(ctx, vm.Id, func(ctx context.Context) (db.Vm, error) {
-			// todo:
-			return db.Vm{}, nil
+			// refactor: this is bad BAD, we should really add a getMany method to the cache
+			return db.Query.GetVMByID(ctx, s.db.RO(), vm.Id)
 		}, caches.DefaultFindFirstOp)
 
 		if err != nil {
@@ -112,6 +142,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 
 		availableVms = append(availableVms, vm)
 	}
+	vmLookupLatency := time.Since(vmLookupStart)
 
 	if len(availableVms) == 0 {
 		return nil, fmt.Errorf("no available VMs for gateway %s", config.DeploymentId)
@@ -120,14 +151,20 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	// select random VM
 	selectedVM := availableVms[rand.Intn(len(availableVms))]
 
-	targetURL, err := url.Parse("http://" + selectedVM.PrivateIp.String)
+	fullUrl := fmt.Sprintf("http://%s:%d", selectedVM.PrivateIp.String, selectedVM.Port.Int32)
+
+	targetURL, err := url.Parse(fullUrl)
 	if err != nil {
-		return nil, fmt.Errorf("invalid VM URL %s: %w", selectedVM.PrivateIp.String, err)
+		return nil, fmt.Errorf("invalid VM URL %s: %w", fullUrl, err)
 	}
 
 	s.logger.Debug("selected VM",
-		"gatewayID", config.DeploymentId,
+		"deploymentID", config.DeploymentId,
 		"selectedVM", targetURL.String(),
+		"fullUrl", fullUrl,
+		"available_vms", len(availableVms),
+		"vm_lookup_latency_ms", vmLookupLatency.Milliseconds(),
+		"vm_lookup_latency_us", vmLookupLatency.Microseconds(),
 	)
 
 	return targetURL, nil

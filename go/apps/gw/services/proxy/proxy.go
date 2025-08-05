@@ -51,30 +51,36 @@ func New(config Config) (Proxy, error) {
 		balancer = NewRoundRobinBalancer()
 	}
 
-	// Configure transport with defaults
-	transport := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second,
-	}
-
-	// Apply config overrides if provided
-	if config.MaxIdleConns > 0 {
-		transport.MaxIdleConns = config.MaxIdleConns
-	}
-
-	if config.IdleConnTimeout != "" {
-		if timeout, err := time.ParseDuration(config.IdleConnTimeout); err == nil {
-			transport.IdleConnTimeout = timeout
+	// Use shared transport if provided, otherwise create a new one
+	var transport *http.Transport
+	if config.Transport != nil {
+		transport = config.Transport
+	} else {
+		// Configure transport with defaults
+		transport = &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
 		}
-	}
 
-	if config.TLSHandshakeTimeout != "" {
-		if timeout, err := time.ParseDuration(config.TLSHandshakeTimeout); err == nil {
-			transport.TLSHandshakeTimeout = timeout
+		// Apply config overrides if provided
+		if config.MaxIdleConns > 0 {
+			transport.MaxIdleConns = config.MaxIdleConns
+		}
+
+		if config.IdleConnTimeout != "" {
+			if timeout, err := time.ParseDuration(config.IdleConnTimeout); err == nil {
+				transport.IdleConnTimeout = timeout
+			}
+		}
+
+		if config.TLSHandshakeTimeout != "" {
+			if timeout, err := time.ParseDuration(config.TLSHandshakeTimeout); err == nil {
+				transport.TLSHandshakeTimeout = timeout
+			}
 		}
 	}
 
@@ -88,6 +94,7 @@ func New(config Config) (Proxy, error) {
 
 // Forward implements the Proxy interface.
 func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWriter, r *http.Request) error {
+	var err error
 	// If no specific target is provided, use load balancer to select one
 	if target == nil {
 		if len(p.targets) == 0 {
@@ -137,7 +144,7 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 			}
 		},
 		Transport: p.transport,
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, pErr error) {
 			if p.logger != nil {
 				p.logger.Error("proxy error",
 					"error", err.Error(),
@@ -145,6 +152,8 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 					"path", r.URL.Path,
 				)
 			}
+
+			err = pErr
 
 			// we handle errors ourselves
 
@@ -156,7 +165,7 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 	// Execute the proxy
 	proxy.ServeHTTP(w, r)
 
-	return nil
+	return err
 }
 
 // getClientIP extracts the client IP from various headers.

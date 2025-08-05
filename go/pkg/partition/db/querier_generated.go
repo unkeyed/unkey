@@ -16,17 +16,33 @@ type Querier interface {
 	DeleteGatewayConfig(ctx context.Context, db DBTX, hostname string) error
 	//GetGatewayConfig
 	//
-	//  SELECT hostname, gateway_config
+	//  SELECT hostname, config
 	//  FROM gateways
 	//  WHERE hostname = ?
-	GetGatewayConfig(ctx context.Context, db DBTX, hostname string) (Gateway, error)
+	GetGatewayConfig(ctx context.Context, db DBTX, hostname string) (GetGatewayConfigRow, error)
+	//GetVMByID
+	//
+	//  SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
+	GetVMByID(ctx context.Context, db DBTX, id string) (Vm, error)
 	//UpsertGatewayConfig
 	//
-	//  INSERT INTO gateways (hostname, gateway_config)
-	//  VALUES (?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      gateway_config = VALUES(gateway_config)
+	//  INSERT INTO gateways (hostname, config)
+	//  VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
 	UpsertGatewayConfig(ctx context.Context, db DBTX, arg UpsertGatewayConfigParams) error
+	//UpsertVM
+	//
+	//  INSERT INTO vms (id, deployment_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//    deployment_id = VALUES(deployment_id),
+	//    region = VALUES(region),
+	//    private_ip = VALUES(private_ip),
+	//    port = VALUES(port),
+	//    cpu_millicores = VALUES(cpu_millicores),
+	//    memory_mb = VALUES(memory_mb),
+	//    status = VALUES(status),
+	//    health_status = VALUES(health_status)
+	UpsertVM(ctx context.Context, db DBTX, arg UpsertVMParams) error
 }
 
 var _ Querier = (*Queries)(nil)

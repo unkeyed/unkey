@@ -8,9 +8,13 @@ USE `partition_001`;
 -- Gateway configuration per hostname
 -- Contains all middleware configuration (auth, rate limiting, validation, etc.) as protobuf
 CREATE TABLE gateways (
-    hostname VARCHAR(255) NOT NULL PRIMARY KEY,
-    gateway_config BLOB NOT NULL            -- Protobuf with all configuration including deployment_id, workspace_id
-);
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `hostname` varchar(255) NOT NULL,
+  `config` blob NOT NULL,
+  -- Protobuf with all configuration including deployment_id, workspace_id
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `gateways_pk` (`hostname`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Virtual machine instances
 -- Tracks complete VM lifecycle from allocation to termination
