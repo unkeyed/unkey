@@ -1,4 +1,5 @@
 import { CodeBranch, Cube, Dots, Earth, Github, User } from "@unkey/icons";
+import { Button } from "@unkey/ui";
 
 export const ProjectCardSkeleton = () => {
   return (
@@ -16,9 +17,9 @@ export const ProjectCardSkeleton = () => {
           <div className="h-3 leading-3 w-32 bg-grayA-3 rounded animate-pulse" />
         </div>
         {/* Actions Button Skeleton */}
-        <div className="mb-auto shrink-0 size-6 bg-grayA-2 rounded flex items-center justify-center">
+        <Button variant="ghost" size="icon" className="shrink-0" title="Project actions">
           <Dots size="sm-regular" className="text-gray-11 opacity-30 shrink-0" />
-        </div>
+        </Button>
       </div>
 
       {/* Middle Section - Commit Info */}
