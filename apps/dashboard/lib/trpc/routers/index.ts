@@ -75,7 +75,6 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { projectRouter } from "./project";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
@@ -307,7 +306,6 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
-  project: projectRouter,
   deploy: t.router({
     project: t.router({
       list: queryProjects,

@@ -1,25 +1,13 @@
+import { createProjectSchema } from "@/app/(app)/projects/_components/create-project/create-project.schema";
 import { db, schema } from "@/lib/db";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const createProject = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
-  .input(
-    z.object({
-      name: z.string().min(1, "Project name is required").max(256, "Project name too long"),
-      slug: z
-        .string()
-        .min(1, "Project slug is required")
-        .max(256, "Project slug too long")
-        .regex(
-          /^[a-z0-9-]+$/,
-          "Project slug must contain only lowercase letters, numbers, and hyphens",
-        ),
-      gitRepositoryUrl: z.string().url().optional().or(z.literal("")),
-    }),
-  )
+  .input(createProjectSchema)
+  .use(withRatelimit(ratelimit.create))
   .mutation(async ({ ctx, input }) => {
     try {
       // Check if slug already exists in workspace
