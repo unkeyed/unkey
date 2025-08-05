@@ -1,3 +1,6 @@
+CREATE DATABASE IF NOT EXISTS `partition_001`;
+USE `partition_001`;
+
 -- Partition Database Schema
 -- This database is regionally replicated and optimized for high-throughput, low-latency data plane access.
 -- It provides gateways with routing tables, TLS certificates, and VM status.
@@ -23,7 +26,7 @@ CREATE TABLE vms (
     status ENUM('allocated', 'provisioning', 'starting', 'running', 'stopping', 'stopped', 'failed') NOT NULL,
     health_status ENUM('unknown', 'healthy', 'unhealthy') NOT NULL DEFAULT 'unknown',
     last_heartbeat BIGINT,       -- NULL until running
-    
+
     INDEX idx_deployment_available (deployment_id, region, status),
     INDEX idx_deployment_health (deployment_id, health_status, last_heartbeat),
     INDEX idx_host_id (metal_host_id),
@@ -47,7 +50,7 @@ CREATE TABLE metal_hosts (
     allocated_cpu_millicores INT NOT NULL DEFAULT 0,
     allocated_memory_mb INT NOT NULL DEFAULT 0,
     last_heartbeat BIGINT NOT NULL,
-    
+
     INDEX idx_region_status (region, status),
     INDEX idx_az (availability_zone),
     INDEX idx_status (status),
@@ -64,8 +67,7 @@ CREATE TABLE certificates (
     certificate_pem TEXT NOT NULL,
     private_key_encrypted BLOB NOT NULL,
     expires_at BIGINT NOT NULL,
-    
+
     UNIQUE KEY unique_hostname (hostname),
     INDEX idx_expires_at (expires_at)
 );
-
