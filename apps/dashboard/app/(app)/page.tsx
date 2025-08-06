@@ -12,5 +12,5 @@ export default async function TenantOverviewPage() {
   if (!workspace) {
     return redirect("/new");
   }
-  return redirect("/apis");
+  return redirect(`/${workspace.id}/apis`);
 }

@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
 import { CreateApiButton } from "./_components/create-api-button";
 
-export default function ApisOverviewPage() {
+export default function ApisOverviewPage({params}: {params: {workspaceId: string}}) {
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
 
@@ -14,7 +14,7 @@ export default function ApisOverviewPage() {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis" active>
+          <Navbar.Breadcrumbs.Link href={`/${params.workspaceId}/apis`} active>
             APIs
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -22,7 +22,7 @@ export default function ApisOverviewPage() {
           <CreateApiButton key="createApi" defaultOpen={isNewApi} />
         </Navbar.Actions>
       </Navbar>
-      <ApiListClient />
+      <ApiListClient workspaceId={params.workspaceId} />
     </div>
   );
 }
