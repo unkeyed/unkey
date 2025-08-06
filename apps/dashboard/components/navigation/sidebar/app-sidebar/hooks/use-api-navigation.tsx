@@ -10,7 +10,6 @@ const DEFAULT_LIMIT = 10;
 
 export const useApiNavigation = (baseNavItems: NavItem[], workspaceId: string) => {
   const segments = useSelectedLayoutSegments() ?? [];
-  console.log({ segments: segments, workspaceId });
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.api.overview.query.useInfiniteQuery(
       {
@@ -29,7 +28,7 @@ export const useApiNavigation = (baseNavItems: NavItem[], workspaceId: string) =
 
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
-        const currentApiActive = segments.at(0) === `/${workspaceId}/apis` && segments.at(1) === api.id;
+        const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
         const isExactlyApiRoot = currentApiActive && segments.length === 2;
 
         const settingsItem: NavItem = {
@@ -77,11 +76,11 @@ export const useApiNavigation = (baseNavItems: NavItem[], workspaceId: string) =
         return apiNavItem;
       }),
     );
-  }, [data?.pages, segments]);
+  }, [data?.pages, segments, workspaceId]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex((item) => item.href === `/${workspaceId}/apis`);
+    const apisItemIndex = items.findIndex((item) => item.href === "/apis");
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };
@@ -104,7 +103,7 @@ export const useApiNavigation = (baseNavItems: NavItem[], workspaceId: string) =
     }
 
     return items;
-  }, [baseNavItems, apiNavItems, hasNextPage]);
+  }, [baseNavItems, apiNavItems, hasNextPage, workspaceId]);
 
   const loadMore = () => {
     if (!isFetchingNextPage && hasNextPage) {
