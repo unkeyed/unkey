@@ -1,8 +1,6 @@
 package repeat
 
 import (
-	"context"
-	"log/slog"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -10,58 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
-
-// mockLogger implements logging.Logger for testing
-type mockLogger struct {
-	mu       sync.Mutex
-	messages []logMessage
-}
-
-type logMessage struct {
-	level string
-	msg   string
-	args  []any
-}
-
-func (m *mockLogger) With(args ...any) logging.Logger             { return m }
-func (m *mockLogger) WithAttrs(attrs ...slog.Attr) logging.Logger { return m }
-func (m *mockLogger) Debug(msg string, args ...any)               { m.log("debug", msg, args) }
-func (m *mockLogger) Info(msg string, args ...any)                { m.log("info", msg, args) }
-func (m *mockLogger) Warn(msg string, args ...any)                { m.log("warn", msg, args) }
-func (m *mockLogger) Error(msg string, args ...any)               { m.log("error", msg, args) }
-func (m *mockLogger) DebugContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	m.log("debug", msg, nil)
-}
-func (m *mockLogger) InfoContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	m.log("info", msg, nil)
-}
-func (m *mockLogger) WarnContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	m.log("warn", msg, nil)
-}
-func (m *mockLogger) ErrorContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	m.log("error", msg, nil)
-}
-
-func (m *mockLogger) log(level, msg string, args []any) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.messages = append(m.messages, logMessage{level: level, msg: msg, args: args})
-}
-
-func (m *mockLogger) getMessages() []logMessage {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return append([]logMessage(nil), m.messages...)
-}
-
-func (m *mockLogger) reset() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.messages = nil
-}
 
 func TestEvery_BasicFunctionality(t *testing.T) {
 	t.Run("calls function repeatedly", func(t *testing.T) {
@@ -149,8 +96,7 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 }
 
 func TestEvery_PanicRecovery(t *testing.T) {
-	t.Run("recovers from panic with logger", func(t *testing.T) {
-		logger := &mockLogger{}
+	t.Run("recovers from panic", func(t *testing.T) {
 		var callCount atomic.Int32
 
 		stop := Every(5*time.Millisecond, func() {
@@ -167,39 +113,6 @@ func TestEvery_PanicRecovery(t *testing.T) {
 		// Should have continued calling after panic
 		assert.GreaterOrEqual(t, callCount.Load(), int32(3),
 			"should continue calling function after panic")
-
-		// Check that panic was logged
-		messages := logger.getMessages()
-		found := false
-		for _, msg := range messages {
-			if msg.level == "error" && msg.msg == "panic recovered in repeat.Every function call" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Logf("Logged messages: %+v", messages)
-		}
-		assert.True(t, found, "should have logged the panic")
-	})
-
-	t.Run("recovers from panic with nil logger", func(t *testing.T) {
-		var callCount atomic.Int32
-
-		stop := Every(5*time.Millisecond, func() {
-			count := callCount.Add(1)
-			if count == 2 {
-				panic("test panic with nil logger")
-			}
-		})
-
-		// Wait longer for panic to occur and recovery
-		time.Sleep(100 * time.Millisecond)
-		stop()
-
-		// Should have continued calling after panic
-		assert.GreaterOrEqual(t, callCount.Load(), int32(3),
-			"should continue calling function after panic even with nil logger")
 	})
 
 	t.Run("panic in function does not crash program", func(t *testing.T) {

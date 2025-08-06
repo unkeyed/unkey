@@ -8,7 +8,6 @@ import (
 )
 
 // Every runs the given function in a go routine every d duration until the returned function is called.
-// The logger parameter is used for panic recovery logging to maintain observability.
 func Every(d time.Duration, fn func()) func() {
 	t := time.NewTicker(d)
 	done := make(chan struct{})
