@@ -35,7 +35,15 @@ func New(cfg Config) *service {
 // GetCertificate implements the CertManager interface.
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
 	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
-		return tls.Certificate{}, nil
+		row, err := db.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+
+		// For non production use aka development
+		cert, err := tls.X509KeyPair([]byte(row.CertificatePem), []byte(row.PrivateKeyEncrypted))
+
+		return cert, nil
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {

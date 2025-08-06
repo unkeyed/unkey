@@ -149,7 +149,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:      logger,
 		Handler:     nil,
 		CertManager: certManager,
-		EnableTLS:   false,
+		EnableTLS:   cfg.EnableTLS,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create gateway server: %w", err)
@@ -178,7 +178,6 @@ func Run(ctx context.Context, cfg Config) error {
 		if serveErr != nil {
 			panic(serveErr)
 		}
-
 	}()
 
 	// Wait for either OS signals or context cancellation, then shutdown

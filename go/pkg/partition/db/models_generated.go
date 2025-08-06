@@ -148,7 +148,7 @@ type Certificate struct {
 	ID                  string `db:"id"`
 	Hostname            string `db:"hostname"`
 	CertificatePem      string `db:"certificate_pem"`
-	PrivateKeyEncrypted []byte `db:"private_key_encrypted"`
+	PrivateKeyEncrypted string `db:"private_key_encrypted"`
 	ExpiresAt           int64  `db:"expires_at"`
 }
 

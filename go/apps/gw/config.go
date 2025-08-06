@@ -16,6 +16,9 @@ type Config struct {
 	// Region identifies the geographic region where this node is deployed
 	Region string
 
+	// EnableTLS specifies whether TLS should be enabled for the Gateway server
+	EnableTLS bool
+
 	// --- ClickHouse configuration ---
 
 	// ClickhouseURL is the ClickHouse database connection string

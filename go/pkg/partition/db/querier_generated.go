@@ -13,6 +13,10 @@ type Querier interface {
 	//
 	//  DELETE FROM gateways WHERE hostname = ?
 	DeleteGatewayByHostname(ctx context.Context, db DBTX, hostname string) error
+	//FindCertificateByHostname
+	//
+	//  SELECT id, hostname, certificate_pem, private_key_encrypted, expires_at FROM certificates WHERE hostname = ?
+	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
 	//FindGatewayByHostname
 	//
 	//  SELECT hostname, config

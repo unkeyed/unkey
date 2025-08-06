@@ -69,7 +69,7 @@ CREATE TABLE certificates (
     id VARCHAR(255) NOT NULL PRIMARY KEY,
     hostname VARCHAR(255) NOT NULL,
     certificate_pem TEXT NOT NULL,
-    private_key_encrypted BLOB NOT NULL,
+    private_key_encrypted TEXT NOT NULL,
     expires_at BIGINT NOT NULL,
 
     UNIQUE KEY unique_hostname (hostname),

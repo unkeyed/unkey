@@ -20,12 +20,18 @@ var Cmd = &cli.Command{
 		// Instance Identification
 		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
 			cli.EnvVar("UNKEY_PLATFORM")),
+
 		cli.String("image", "Container image identifier. Used for logging and metrics.",
 			cli.EnvVar("UNKEY_IMAGE")),
+
 		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
 			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
+
 		cli.String("gateway-id", "Unique identifier for this instance. Auto-generated if not provided.",
 			cli.Default(uid.New(uid.GatewayPrefix, 4)), cli.EnvVar("UNKEY_GATEWAY_ID")),
+
+		cli.Bool("tls-enabled", "Enable TLS termination for the gateway. Default: false",
+			cli.Default(false), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
 		// Database Configuration
 		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
@@ -33,6 +39,7 @@ var Cmd = &cli.Command{
 		cli.String("database-replica", "MySQL connection string for read-replica. Reduces load on primary database. Format same as database-primary.",
 			cli.EnvVar("UNKEY_DATABASE_REPLICA")),
 
+		// ClickHouse Proxy Service Configuration
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
@@ -43,13 +50,6 @@ var Cmd = &cli.Command{
 			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
 		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.",
 			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
-
-		// ClickHouse Proxy Service Configuration
-		cli.String(
-			"chproxy-auth-token",
-			"Authentication token for ClickHouse proxy endpoints. Required when proxy is enabled.",
-			cli.EnvVar("UNKEY_CHPROXY_AUTH_TOKEN"),
-		),
 	},
 
 	Action: action,
@@ -58,9 +58,16 @@ var Cmd = &cli.Command{
 func action(ctx context.Context, cmd *cli.Command) error {
 	config := gw.Config{
 		// Basic configuration
-		Platform: cmd.String("platform"),
-		Image:    cmd.String("image"),
-		Region:   cmd.String("region"),
+		GatewayID: cmd.String("gateway-id"),
+		Platform:  cmd.String("platform"),
+		Image:     cmd.String("image"),
+		Region:    cmd.String("region"),
+
+		// HTTP configuration
+		HttpPort: cmd.Int("http-port"),
+
+		// TLS configuration
+		EnableTLS: cmd.Bool("tls-enabled"),
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),
@@ -72,12 +79,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// OpenTelemetry configuration
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
-
-		GatewayID:      cmd.String("gateway-id"),
-		PrometheusPort: cmd.Int("prometheus-port"),
-
-		// HTTP configuration
-		HttpPort: cmd.Int("http-port"),
+		PrometheusPort:        cmd.Int("prometheus-port"),
 	}
 
 	err := config.Validate()
