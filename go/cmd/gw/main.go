@@ -56,7 +56,6 @@ var Cmd = &cli.Command{
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-
 	config := gw.Config{
 		// Basic configuration
 		Platform: cmd.String("platform"),

@@ -94,6 +94,7 @@ func (s *Service) CreateVersion(
 		ProjectID:    req.Msg.GetProjectId(),
 		DeploymentID: deploymentID,
 		DockerImage:  req.Msg.GetDockerImageTag(),
+		Hostname:     req.Msg.GetHostname(),
 	}
 
 	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,

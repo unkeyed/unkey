@@ -58,6 +58,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 		GitCommitSha:   c.opts.Commit,
 		EnvironmentId:  "env_prod", // TODO: Make this configurable
 		DockerImageTag: dockerImage,
+		Hostname:       c.opts.Hostname,
 	})
 
 	createReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)

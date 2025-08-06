@@ -205,6 +205,7 @@ services:
       # Database configuration - use existing mysql service
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true"
+      UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"

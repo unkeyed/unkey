@@ -92,6 +92,7 @@ type DeployOptions struct {
 	Verbose         bool
 	ControlPlaneURL string
 	AuthToken       string
+	Hostname        string
 }
 
 var DeployFlags = []cli.Flag{
@@ -117,6 +118,7 @@ var DeployFlags = []cli.Flag{
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
+	cli.String("hostname", "Gateway hostname for routing (e.g., api.unkey.com)"),
 }
 
 // Cmd defines the deploy CLI command
@@ -215,6 +217,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Verbose:         cmd.Bool("verbose"),
 		ControlPlaneURL: cmd.String("control-plane-url"),
 		AuthToken:       cmd.String("auth-token"),
+		Hostname:        cmd.String("hostname"),
 	}
 
 	return executeDeploy(ctx, opts)
