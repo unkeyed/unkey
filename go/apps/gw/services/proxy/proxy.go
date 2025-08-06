@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -16,41 +15,12 @@ var _ Proxy = (*proxy)(nil)
 
 // proxy implements the Proxy interface with support for single or multiple backend URLs.
 type proxy struct {
-	targets   []target
 	logger    logging.Logger
-	balancer  LoadBalancer
 	transport *http.Transport
-}
-
-// target represents a backend target with its URL and optional configuration.
-type target struct {
-	url    *url.URL
-	weight int // For weighted load balancing (future use)
 }
 
 // New creates a new proxy with the given configuration.
 func New(config Config) (Proxy, error) {
-	// Allow empty targets for dynamic routing scenarios
-	// Targets will be provided per-request via the Forward method
-
-	targets := make([]target, len(config.Targets))
-	for i, targetURL := range config.Targets {
-		u, err := url.Parse(targetURL)
-		if err != nil {
-			return nil, fmt.Errorf("invalid target URL %s: %w", targetURL, err)
-		}
-		targets[i] = target{
-			url:    u,
-			weight: 1, // Default weight
-		}
-	}
-
-	// Default load balancer is round-robin
-	balancer := config.LoadBalancer
-	if balancer == nil {
-		balancer = NewRoundRobinBalancer()
-	}
-
 	// Use shared transport if provided, otherwise create a new one
 	var transport *http.Transport
 	if config.Transport != nil {
@@ -85,33 +55,14 @@ func New(config Config) (Proxy, error) {
 	}
 
 	return &proxy{
-		targets:   targets,
 		logger:    config.Logger,
-		balancer:  balancer,
 		transport: transport,
 	}, nil
 }
 
 // Forward implements the Proxy interface.
-func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWriter, r *http.Request) error {
+func (p *proxy) Forward(ctx context.Context, target url.URL, w http.ResponseWriter, r *http.Request) error {
 	var err error
-	// If no specific target is provided, use load balancer to select one
-	if target == nil {
-		if len(p.targets) == 0 {
-			return fmt.Errorf("no target URL provided and no default targets configured")
-		}
-
-		targetURLs := make([]*url.URL, len(p.targets))
-		for i, t := range p.targets {
-			targetURLs[i] = t.url
-		}
-
-		selectedTarget, err := p.balancer.SelectTarget(ctx, targetURLs)
-		if err != nil {
-			return fmt.Errorf("failed to select target: %w", err)
-		}
-		target = selectedTarget
-	}
 
 	// Create reverse proxy
 	proxy := &httputil.ReverseProxy{

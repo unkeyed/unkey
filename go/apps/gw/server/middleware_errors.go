@@ -53,12 +53,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			// Determine status code based on error type
 			status := http.StatusInternalServerError
 
-			switch urn {
-			// Bad Request errors
-			case codes.GatewayErrorsBadRequestBadGateway:
-				status = http.StatusBadGateway
-			}
-
 			// Log the error
 			logger.Error("gateway error",
 				"error", err.Error(),
@@ -67,8 +61,27 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				"status", status,
 			)
 
-			// Create error response
+			switch urn {
+			// Bad Request errors
+			case codes.GatewayErrorsBadRequestBadGateway:
+				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>502 Bad Gateway</title>
+</head>
+<body>
+   <h1>502 Bad Gateway</h1>
+   <p>The server received an invalid response from an upstream server.</p>
+   <p>Please try again later.</p>
+   <a href="/">Return to homepage</a>
+</body>
+</html>`))
 
+			}
+
+			// Create error response
 			return s.JSON(status, ErrorResponse{
 				Meta: Meta{
 					RequestID: s.RequestID(),

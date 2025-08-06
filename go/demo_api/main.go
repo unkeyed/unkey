@@ -3,15 +3,28 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
 type HelloResponse struct {
 	Message   string    `json:"message"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type DebugResponse struct {
+	Method      string            `json:"method"`
+	URL         string            `json:"url"`
+	Proto       string            `json:"proto"`
+	Headers     map[string]string `json:"headers"`
+	RawBody     string            `json:"raw_body"`
+	ContentType string            `json:"content_type"`
+	UserAgent   string            `json:"user_agent"`
+	RemoteAddr  string            `json:"remote_addr"`
 }
 
 func main() {
@@ -29,6 +42,42 @@ func main() {
 		fmt.Fprint(w, "OK")
 	})
 
+	// Debug endpoint - dumps request headers and body
+	mux.HandleFunc("/v1/debug", func(w http.ResponseWriter, r *http.Request) {
+		// Read body
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+			return
+		}
+		defer r.Body.Close()
+
+		// Convert headers to map
+		headers := make(map[string]string)
+		for key, values := range r.Header {
+			// Join multiple values with comma
+			headers[key] = strings.Join(values, ", ")
+		}
+
+		response := DebugResponse{
+			Method:      r.Method,
+			URL:         r.URL.String(),
+			Proto:       r.Proto,
+			Headers:     headers,
+			RawBody:     string(bodyBytes),
+			ContentType: r.Header.Get("Content-Type"),
+			UserAgent:   r.Header.Get("User-Agent"),
+			RemoteAddr:  r.RemoteAddr,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cookie", "123=123")
+		w.Header().Set("X-Custom-Header", "CustomValue")
+		w.Header().Set("X-Custom-Header", "CustomValue")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	})
+
 	// Hello endpoint
 	mux.HandleFunc("/v1/hello", func(w http.ResponseWriter, r *http.Request) {
 		response := HelloResponse{
@@ -39,6 +88,18 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(response)
+	})
+
+	mux.HandleFunc("/v1/protected", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+
+		if auth == "" || auth != "Bearer 123" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 	})
 
 	// OpenAPI spec endpoint - VERSION 2 (Breaking Changes)

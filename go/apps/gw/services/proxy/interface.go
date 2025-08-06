@@ -11,25 +11,13 @@ import (
 // Proxy defines the interface for request forwarding.
 type Proxy interface {
 	// Forward forwards a request to a backend target.
-	Forward(ctx context.Context, target *url.URL, w http.ResponseWriter, r *http.Request) error
-}
-
-// LoadBalancer defines strategies for selecting backend targets.
-type LoadBalancer interface {
-	// SelectTarget returns the next target URL for load balancing.
-	SelectTarget(ctx context.Context, targets []*url.URL) (*url.URL, error)
+	Forward(ctx context.Context, target url.URL, w http.ResponseWriter, r *http.Request) error
 }
 
 // Config holds configuration for the proxy.
 type Config struct {
-	// Targets is a list of backend URLs to proxy to
-	Targets []string
-
 	// Logger for debugging and monitoring
 	Logger logging.Logger
-
-	// LoadBalancer strategy (optional, defaults to round-robin)
-	LoadBalancer LoadBalancer
 
 	// MaxIdleConns is the maximum number of idle connections to keep open.
 	MaxIdleConns int

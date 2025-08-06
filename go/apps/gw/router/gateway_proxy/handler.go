@@ -98,7 +98,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 
 	// Forward the request using the proxy service
 	proxyStart := time.Now()
-	err = h.Proxy.Forward(ctx, targetURL, sess.ResponseWriter(), req)
+	err = h.Proxy.Forward(ctx, *targetURL, sess.ResponseWriter(), req)
 	proxyLatency := time.Since(proxyStart)
 	if err != nil {
 		h.Logger.Error("failed to forward request",

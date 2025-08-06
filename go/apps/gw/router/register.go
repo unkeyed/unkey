@@ -36,7 +36,6 @@ func Register(srv *server.Server, svc *Services, region string) {
 
 	// Create proxy service with shared transport
 	proxyService, err := proxy.New(proxy.Config{
-		Targets:             []string{}, // Dynamic routing - targets resolved per request
 		Logger:              svc.Logger,
 		MaxIdleConns:        transport.MaxIdleConns,
 		IdleConnTimeout:     "90s",

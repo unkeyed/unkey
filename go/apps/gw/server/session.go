@@ -2,12 +2,9 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -109,16 +106,19 @@ func (s *Session) JSON(status int, body any) error {
 	// Calculate and set latency header before writing response
 	latency := time.Since(s.startTime)
 	s.w.Header().Set("X-Unkey-Latency", latency.String())
-
-	responseHeaders := []string{}
-	for k, vv := range s.w.Header() {
-		responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
-	}
-
-	log.Printf("[SESSION JSON] Response Headers at error time: %v\n", responseHeaders)
 	s.w.Header().Set("Content-Type", "application/json")
 
 	return s.send(status, b)
+}
+
+// HTML sends an HTML response with the given status code.
+func (s *Session) HTML(status int, body []byte) error {
+	// Calculate and set latency header before writing response
+	latency := time.Since(s.startTime)
+	s.w.Header().Set("X-Unkey-Latency", latency.String())
+	s.w.Header().Set("Content-Type", "text/html")
+
+	return s.send(status, body)
 }
 
 // Send sends a raw response with the given status code.
@@ -161,7 +161,7 @@ type wrapResponseWriter struct {
 
 func (w *wrapResponseWriter) WriteHeader(code int) {
 	if w.written {
-		return  // Already written, don't write again
+		return // Already written, don't write again
 	}
 
 	w.statusCode = code

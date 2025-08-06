@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -27,11 +26,8 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 			// Set headers that don't depend on execution time BEFORE calling next
 			s.w.Header().Set("X-Unkey-Request-Id", s.RequestID())
 			s.w.Header().Set("X-Unkey-Region", region)
-			
-			nextErr := next(ctx, s)
 
-			// Set latency header after execution (this won't work for proxied responses)
-			s.w.Header().Set("X-Unkey-Latency", s.Latency().String())
+			nextErr := next(ctx, s)
 
 			// Collect headers for logging
 			requestHeaders := []string{}
@@ -47,8 +43,6 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 			for k, vv := range s.w.Header() {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
-
-			log.Printf("[METRICS MW] Request Headers: %v\nResponse Headers: %v\n", requestHeaders, responseHeaders)
 
 			// Record metrics
 			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
