@@ -31,10 +31,10 @@ test-full: export INTEGRATION_TEST=true
 test-full: export SIMULATION_TEST=false
 test-full: up
 	@echo "Running full tests... this can take more than 30min... run 'make test-unit' for faster tests"
-	@go test -failfast -timeout=60m -shuffle=on -v -json ./... | tparse -all -progress -smallscreen
+	@go test -failfast -timeout=60m -parallel=4 -v -json ./... | tparse -all -progress -smallscreen
 
 test-unit: up
-	@go test -json -race -failfast -timeout=30m ./... | tparse -all -progress -smallscreen
+	@go test -json -race -failfast -parallel=4 -timeout=30m ./... | tparse -all -progress -smallscreen
 
 build:
 	go build -o unkey ./main.go
