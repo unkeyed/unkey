@@ -5,7 +5,7 @@ on:
   workflow_call:
 jobs:
   test_agent_local:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -20,5 +20,5 @@ jobs:
         working-directory: apps/agent
 
       - name: Test
-        run: go test -cover -json -timeout=60m -failfast ./pkg/... ./services/... | tparse -all -progress
+        run: go test -json -timeout=60m -failfast ./pkg/... ./services/... | tparse -all -progress -smallscreen
         working-directory: apps/agent
