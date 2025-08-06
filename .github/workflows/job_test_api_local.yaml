@@ -16,7 +16,7 @@ jobs:
         run: rm -rf /opt/hostedtoolcache
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up mysql planetscale agent s3 apiv2 api -d
+        run: docker compose -f ./deployment/docker-compose.yaml up --force-recreate mysql planetscale agent s3 apiv2 api -d
 
       - name: Install
         uses: ./.github/actions/install
@@ -42,7 +42,7 @@ jobs:
           GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
 
       - name: Test
-        run: pnpm vitest run -c vitest.integration.ts
+        run: pnpm vitest run -c vitest.integration.ts --bail=1
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: http://localhost:8787
