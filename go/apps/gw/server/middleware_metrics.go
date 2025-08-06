@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -21,12 +21,17 @@ type EventBuffer interface {
 // including request counts, latencies, and status codes.
 //
 // If an EventBuffer is provided, it will also buffer request data for ClickHouse.
-func WithMetrics(eventBuffer EventBuffer) Middleware {
+func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-			start := time.Now()
+			// Set headers that don't depend on execution time BEFORE calling next
+			s.w.Header().Set("X-Unkey-Request-Id", s.RequestID())
+			s.w.Header().Set("X-Unkey-Region", region)
+			
 			nextErr := next(ctx, s)
-			serviceLatency := time.Since(start)
+
+			// Set latency header after execution (this won't work for proxied responses)
+			s.w.Header().Set("X-Unkey-Latency", s.Latency().String())
 
 			// Collect headers for logging
 			requestHeaders := []string{}
@@ -43,46 +48,49 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 			}
 
+			log.Printf("[METRICS MW] Request Headers: %v\nResponse Headers: %v\n", requestHeaders, responseHeaders)
+
 			// Record metrics
 			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
 			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
 			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
-			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
+			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(s.Latency().Seconds())
 
 			// Buffer to ClickHouse if enabled
-			if eventBuffer != nil && s.r.Header.Get("X-Unkey-Metrics") != "disabled" {
-				// Extract IP address from headers
-				ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
-				ipAddress := ""
-				if len(ips) > 0 {
-					ipAddress = strings.TrimSpace(ips[0])
-				}
-				if ipAddress == "" {
-					ipAddress = s.Location()
-				}
+			// We don't need this ATM
+			// if eventBuffer != nil && s.r.Header.Get("X-Unkey-Metrics") != "disabled" {
+			// 	// Extract IP address from headers
+			// 	ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
+			// 	ipAddress := ""
+			// 	if len(ips) > 0 {
+			// 		ipAddress = strings.TrimSpace(ips[0])
+			// 	}
+			// 	if ipAddress == "" {
+			// 		ipAddress = s.Location()
+			// 	}
 
-				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
-					WorkspaceID:     s.WorkspaceID,
-					RequestID:       s.RequestID(),
-					Time:            start.UnixMilli(),
-					Host:            s.r.Host,
-					Method:          s.r.Method,
-					Path:            s.r.URL.Path,
-					RequestHeaders:  requestHeaders,
-					RequestBody:     string(s.requestBody),
-					ResponseStatus:  s.responseStatus,
-					ResponseHeaders: responseHeaders,
-					ResponseBody:    string(s.responseBody),
-					Error:           getErrorMessage(nextErr),
-					ServiceLatency:  serviceLatency.Milliseconds(),
-					UserAgent:       s.UserAgent(),
-					IpAddress:       ipAddress,
-					Country:         "",
-					City:            "",
-					Colo:            "",
-					Continent:       "",
-				})
-			}
+			// 	eventBuffer.BufferApiRequest(schema.ApiRequestV1{
+			// 		WorkspaceID:     s.WorkspaceID,
+			// 		RequestID:       s.RequestID(),
+			// 		Time:            s.startTime.UnixMilli(),
+			// 		Host:            s.r.Host,
+			// 		Method:          s.r.Method,
+			// 		Path:            s.r.URL.Path,
+			// 		RequestHeaders:  requestHeaders,
+			// 		RequestBody:     string(s.requestBody),
+			// 		ResponseStatus:  s.responseStatus,
+			// 		ResponseHeaders: responseHeaders,
+			// 		ResponseBody:    string(s.responseBody),
+			// 		Error:           getErrorMessage(nextErr),
+			// 		ServiceLatency:  s.Latency().Milliseconds(),
+			// 		UserAgent:       s.UserAgent(),
+			// 		IpAddress:       ipAddress,
+			// 		Country:         "",
+			// 		City:            "",
+			// 		Colo:            "",
+			// 		Continent:       "",
+			// 	})
+			// }
 
 			return nextErr
 		}

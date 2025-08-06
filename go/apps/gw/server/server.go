@@ -88,6 +88,7 @@ func New(config Config) (*Server, error) {
 				return &Session{
 					WorkspaceID:    "",
 					requestID:      "",
+					startTime:      time.Time{},
 					w:              nil,
 					r:              nil,
 					requestBody:    []byte{},

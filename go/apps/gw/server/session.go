@@ -2,9 +2,13 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -14,6 +18,7 @@ import (
 // in the gateway. It provides request ID tracking and workspace association.
 type Session struct {
 	requestID string
+	startTime time.Time
 
 	w http.ResponseWriter
 	r *http.Request
@@ -30,6 +35,7 @@ type Session struct {
 // init initializes the session with a new request and response writer.
 func (s *Session) init(w http.ResponseWriter, r *http.Request) {
 	s.requestID = uid.New(uid.RequestPrefix)
+	s.startTime = time.Now()
 	s.w = w
 	s.r = r
 	s.WorkspaceID = ""
@@ -38,6 +44,11 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) {
 // RequestID returns the unique request ID for this session.
 func (s *Session) RequestID() string {
 	return s.requestID
+}
+
+// Latency returns the time elapsed since the request started.
+func (s *Session) Latency() time.Duration {
+	return time.Since(s.startTime)
 }
 
 // Request returns the underlying http.Request.
@@ -95,7 +106,18 @@ func (s *Session) JSON(status int, body any) error {
 		return fault.Wrap(err, fault.Internal("json marshal failed"))
 	}
 
+	// Calculate and set latency header before writing response
+	latency := time.Since(s.startTime)
+	s.w.Header().Set("X-Unkey-Latency", latency.String())
+
+	responseHeaders := []string{}
+	for k, vv := range s.w.Header() {
+		responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
+	}
+
+	log.Printf("[SESSION JSON] Response Headers at error time: %v\n", responseHeaders)
 	s.w.Header().Set("Content-Type", "application/json")
+
 	return s.send(status, b)
 }
 
@@ -138,16 +160,19 @@ type wrapResponseWriter struct {
 }
 
 func (w *wrapResponseWriter) WriteHeader(code int) {
-	if !w.written {
-		w.statusCode = code
-		w.written = true
-		w.ResponseWriter.WriteHeader(code)
+	if w.written {
+		return  // Already written, don't write again
 	}
+
+	w.statusCode = code
+	w.written = true
+	w.ResponseWriter.WriteHeader(code)
 }
 
 func (w *wrapResponseWriter) Write(b []byte) (int, error) {
 	if !w.written {
 		w.WriteHeader(http.StatusOK)
 	}
+
 	return w.ResponseWriter.Write(b)
 }

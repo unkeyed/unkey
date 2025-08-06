@@ -144,6 +144,13 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 			}
 		},
 		Transport: p.transport,
+		ModifyResponse: func(resp *http.Response) error {
+			// This is called after receiving the response from backend
+			// but BEFORE writing it to the client.
+			// This is where custom headers should be added.
+			// The middleware will need to pass these values somehow.
+			return nil
+		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, pErr error) {
 			if p.logger != nil {
 				p.logger.Error("proxy error",
@@ -154,11 +161,6 @@ func (p *proxy) Forward(ctx context.Context, target *url.URL, w http.ResponseWri
 			}
 
 			err = pErr
-
-			// we handle errors ourselves
-
-			// w.WriteHeader(http.StatusBadGateway)
-			// w.Write([]byte("Bad Gateway"))
 		},
 	}
 

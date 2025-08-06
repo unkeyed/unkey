@@ -161,7 +161,7 @@ func Run(ctx context.Context, cfg Config) error {
 		CertManager:    certManager,
 		RoutingService: routingService,
 		ClickHouse:     ch,
-	})
+	}, cfg.Region)
 
 	shutdowns.RegisterCtx(srv.Shutdown)
 

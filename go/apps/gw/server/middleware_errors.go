@@ -68,7 +68,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			)
 
 			// Create error response
-			response := ErrorResponse{
+
+			return s.JSON(status, ErrorResponse{
 				Meta: Meta{
 					RequestID: s.RequestID(),
 				},
@@ -78,9 +79,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					Detail: fault.UserFacingMessage(err),
 					Status: status,
 				},
-			}
-
-			return s.JSON(status, response)
+			})
 		}
 	}
 }

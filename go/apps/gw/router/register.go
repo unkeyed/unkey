@@ -11,14 +11,14 @@ import (
 
 // Register registers all routes with the gateway server.
 // This function runs during startup and sets up the middleware chain and routes.
-func Register(srv *server.Server, svc *Services) {
+func Register(srv *server.Server, svc *Services, region string) {
 	// Define default middleware stack
 	defaultMiddlewares := []server.Middleware{
+		server.WithTracing(),
+		server.WithMetrics(svc.ClickHouse, region), // Pass ClickHouse for event buffering
+		server.WithLogging(svc.Logger),
 		server.WithPanicRecovery(svc.Logger),
 		server.WithErrorHandling(svc.Logger),
-		server.WithTracing(),
-		server.WithMetrics(svc.ClickHouse), // Pass ClickHouse for event buffering
-		server.WithLogging(svc.Logger),
 	}
 
 	// Create shared transport for connection pooling and HTTP/2 support
