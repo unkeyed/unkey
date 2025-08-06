@@ -13,7 +13,7 @@ import { useMemo } from "react";
 
 const DEFAULT_LIMIT = 10;
 
-export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
+export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: string) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -43,25 +43,25 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         const subItems: NavItem[] = [
           {
             icon: ArrowOppositeDirectionY,
-            href: `/ratelimits/${namespace.id}`,
+            href: `/${workspaceId}/ratelimits/${namespace.id}`,
             label: "Requests",
             active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
           },
           {
             icon: Layers3,
-            href: `/ratelimits/${namespace.id}/logs`,
+            href: `/${workspaceId}/ratelimits/${namespace.id}/logs`,
             label: "Logs",
             active: currentNamespaceActive && segments.at(2) === "logs",
           },
           {
             icon: Gear,
-            href: `/ratelimits/${namespace.id}/settings`,
+            href: `/${workspaceId}/ratelimits/${namespace.id}/settings`,
             label: "Settings",
             active: currentNamespaceActive && segments.at(2) === "settings",
           },
           {
             icon: ArrowDottedRotateAnticlockwise,
-            href: `/ratelimits/${namespace.id}/overrides`,
+            href: `/${workspaceId}/ratelimits/${namespace.id}/overrides`,
             label: "Overrides",
             active: currentNamespaceActive && segments.at(2) === "overrides",
           },
@@ -70,7 +70,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         // Create the main namespace nav item
         const namespaceNavItem: NavItem = {
           icon: null,
-          href: `/ratelimits/${namespace.id}`,
+          href: `/${workspaceId}/ratelimits/${namespace.id}`,
           label: namespace.name,
           active: currentNamespaceActive,
           // Include sub-items
@@ -84,7 +84,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex((item) => item.href === "/ratelimits");
+    const ratelimitsItemIndex = items.findIndex((item) => item.href === `/${workspaceId}/ratelimits`);
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };

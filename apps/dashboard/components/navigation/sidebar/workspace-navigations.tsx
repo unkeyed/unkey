@@ -40,7 +40,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures">,
+  workspace: Pick<Workspace, "features" | "betaFeatures" | "id">,
   segments: string[],
 ) => {
   return [

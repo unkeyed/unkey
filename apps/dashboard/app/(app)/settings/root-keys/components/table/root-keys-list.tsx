@@ -1,5 +1,5 @@
 "use client";
-import { HiddenValueCell } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
+import { HiddenValueCell } from "@/app/(app)/[workspace]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";

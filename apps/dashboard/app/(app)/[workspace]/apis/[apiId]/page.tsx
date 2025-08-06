@@ -1,17 +1,17 @@
 "use client";
-import { LogsClient } from "@/app/(app)/apis/[apiId]/_overview/logs-client";
+import { LogsClient } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/logs-client";
 import { ApisNavbar } from "./api-id-navbar";
 
-export default function ApiPage(props: { params: { apiId: string, workspace: string } }) {
+export default function ApiPage(props: { params: { apiId: string; workspaceId: string } }) {
   const apiId = props.params.apiId;
-  const workspace = props.params.workspace;
+  const workspaceId = props.params.workspaceId;
 
   return (
     <div className="min-h-screen">
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace}/apis/${apiId}`,
+          href: `/${workspaceId}/apis/${apiId}`,
           text: "Requests",
         }}
       />

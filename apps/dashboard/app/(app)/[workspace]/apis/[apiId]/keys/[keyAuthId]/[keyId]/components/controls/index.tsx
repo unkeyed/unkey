@@ -1,4 +1,4 @@
-import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status-badge";
+import { StatusBadge } from "@/app/(app)/[workspace]/apis/[apiId]/settings/components/status-badge";
 import {
   ControlsContainer,
   ControlsLeft,

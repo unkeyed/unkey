@@ -1,4 +1,4 @@
-import type { KeysOverviewFilterUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
+import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/filters.schema";
 import { type InferSelectModel, type SQL, db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities } from "@unkey/db/src/schema";

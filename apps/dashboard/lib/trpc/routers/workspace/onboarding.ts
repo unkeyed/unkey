@@ -1,4 +1,4 @@
-import { createKeyInputSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
+import { createKeyInputSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";

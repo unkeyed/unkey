@@ -26,7 +26,7 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
-import { SecretKey } from "../../../apis/[apiId]/_components/create-key/components/secret-key";
+import { SecretKey } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/secret-key";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 
 type Props = {
