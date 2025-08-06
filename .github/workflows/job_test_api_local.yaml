@@ -8,7 +8,7 @@ jobs:
   test:
     name: API Test Local
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
