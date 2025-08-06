@@ -267,7 +267,7 @@ components:
                     description: |
                         Pagination cursor from previous response to fetch next page.
                         Use when `hasMore: true` in previous response.
-                    example: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
+                    example: key_1234abcd
                 externalId:
                     type: string
                     minLength: 3
@@ -423,7 +423,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2IdentitiesGetIdentityResponseData"
+                    "$ref": "#/components/schemas/Identity"
         V2IdentitiesListIdentitiesRequestBody:
             type: object
             properties:
@@ -456,16 +456,11 @@ components:
         V2IdentitiesUpdateIdentityRequestBody:
             type: object
             properties:
-                externalId:
+                identity:
                     type: string
                     minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_.-]+$"
-                    description: |
-                        Specifies which identity to update using your system's identifier from identity creation.
-                        Use this when you track identities by your own user IDs, organization IDs, or tenant identifiers.
-                        Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
-                    example: user_abc123
+                    description: The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
+                    example: user_123
                 meta:
                     type: object
                     additionalProperties: true
@@ -496,7 +491,7 @@ components:
                           autoApply: true
             additionalProperties: false
             required:
-                - externalId
+                - identity
         V2IdentitiesUpdateIdentityResponseBody:
             type: object
             required:
@@ -1511,7 +1506,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2PermissionsGetPermissionResponseData"
+                    "$ref": "#/components/schemas/Permission"
             additionalProperties: false
         V2PermissionsGetRoleRequestBody:
             type: object
@@ -1540,7 +1535,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/V2PermissionsGetRoleResponseData"
+                    "$ref": "#/components/schemas/Role"
             additionalProperties: false
         V2PermissionsListPermissionsRequestBody:
             type: object
@@ -1741,7 +1736,6 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_.:/-]+$"
                     description: |
                         Defines the scope of rate limiting by identifying the entity being limited.
                         Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
@@ -2105,11 +2099,6 @@ components:
                     maximum: 9223372036854776000
                     description: Unix timestamp in milliseconds when key expires (if set).
                     example: 1735689600000
-                externalId:
-                    type: string
-                    maxLength: 255
-                    description: External identifier linking this key to an entity in your system.
-                    example: user_12345
                 permissions:
                     type: array
                     items:
@@ -2139,7 +2128,6 @@ components:
                     maxItems: 50
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
-                        description: Rate limit configurations for this key.
             required:
                 - keyId
                 - start
@@ -2166,6 +2154,9 @@ components:
         Identity:
             type: object
             properties:
+                id:
+                    type: string
+                    description: Identity ID
                 externalId:
                     type: string
                     description: External identity ID
@@ -2174,11 +2165,12 @@ components:
                     description: Identity metadata
                 ratelimits:
                     type: array
+                    description: Identity ratelimits
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
-                description: {}
             required:
                 - externalId
+                - id
         RatelimitResponse:
             type: object
             properties:
@@ -2303,8 +2295,7 @@ components:
                     format: int64
                     minimum: 1000
                 autoApply:
-                    description: |-
-                        Whether this ratelimit should be automatically applied when verifying a key.
+                    description: Whether this ratelimit should be automatically applied when verifying a key.
                     type: boolean
                     default: false
         V2IdentitiesCreateIdentityResponseData:
@@ -2315,28 +2306,6 @@ components:
                     description: The unique identifier of the created identity.
             required:
                 - identityId
-        V2IdentitiesGetIdentityResponseData:
-            type: object
-            required:
-                - externalId
-            properties:
-                externalId:
-                    type: string
-                    description: The external identifier for this identity in your system. This is the ID you provided during identity creation.
-                    example: user_abc123
-                meta:
-                    type: object
-                    additionalProperties: true
-                    description: Custom metadata associated with this identity. This can include any JSON-serializable data you stored with the identity during creation or updates.
-                    example:
-                        name: Alice Smith
-                        email: alice@example.com
-                        plan: premium
-                ratelimits:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/RatelimitResponse"
-                    description: Rate limits associated with this identity. These limits are shared across all API keys linked to this identity, providing consistent rate limiting regardless of which key is used.
         V2IdentitiesListIdentitiesResponseData:
             type: array
             items:
@@ -2349,7 +2318,6 @@ components:
 
                 This response includes:
                 - All direct permissions assigned to the key (both pre-existing and newly added)
-                - Permissions sorted alphabetically by name for consistent response format
                 - Both the permission ID and name for each permission
 
                 Important notes:
@@ -2386,7 +2354,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
-                    description: The URL-safe identifier when this permission was created.
+                    description: The unique URL-safe identifier for this permission.
                     example: users-read
                 description:
                     type: string
@@ -2409,7 +2377,6 @@ components:
                 The response includes:
                 - All roles now assigned to the key (both pre-existing and newly added)
                 - Both ID and name of each role for easy reference
-                - Roles sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - The response shows the complete current state after the addition
@@ -2494,7 +2461,6 @@ components:
                 The response includes:
                 - The remaining roles still assigned to the key (after removing the specified roles)
                 - Both ID and name for each role for easy reference
-                - Roles sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - The response reflects the current state after the removal operation
@@ -2512,7 +2478,6 @@ components:
                 The response includes:
                 - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
                 - Both ID and name for each permission for easy reference
-                - Permissions sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - This only shows direct permissions, not those granted through roles
@@ -2528,7 +2493,6 @@ components:
                 The response includes:
                 - The comprehensive, updated set of roles (reflecting the complete replacement)
                 - Both ID and name for each role for easy reference
-                - Roles sorted alphabetically by name for consistent response format
 
                 Important notes:
                 - This response shows the final state after the complete replacement
@@ -2795,24 +2759,6 @@ components:
             required:
                 - roleId
             additionalProperties: false
-        V2PermissionsGetPermissionResponseData:
-            type: object
-            properties:
-                permission:
-                    "$ref": "#/components/schemas/Permission"
-            required:
-                - permission
-            additionalProperties: false
-            description: Complete permission details including ID, name, and metadata.
-        V2PermissionsGetRoleResponseData:
-            type: object
-            properties:
-                role:
-                    "$ref": "#/components/schemas/Role"
-            required:
-                - role
-            additionalProperties: false
-            description: Complete role details including assigned permissions.
         V2PermissionsListPermissionsResponseData:
             type: array
             maxItems: 1000
@@ -3211,9 +3157,11 @@ paths:
             description: |
                 Permanently delete an API namespace and immediately invalidate all associated keys.
 
-                Use this for cleaning up development environments, retiring deprecated services, or removing unused resources. All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
+                Use this for cleaning up development environments, retiring deprecated services, or removing unused resources.
+                All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
 
-                **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion. If delete protection is enabled, disable it first through the dashboard or API configuration.
+                **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion.
+                If delete protection is enabled, disable it first through the dashboard or API configuration.
 
                 **Required Permissions**
 
@@ -3233,8 +3181,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/V2ApisDeleteApiResponseBody'
-                    description: |
-                        API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
+                    description: API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
                 "400":
                     content:
                         application/json:
@@ -3302,8 +3249,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/V2ApisGetApiResponseBody'
-                    description: |
-                        API information retrieved successfully. Contains the unique API ID and human-readable name.
+                    description: API information retrieved successfully. Contains the unique API ID and human-readable name.
                 "400":
                     content:
                         application/json:
@@ -3413,7 +3359,13 @@ paths:
             x-speakeasy-name-override: listKeys
     /v2/identities.createIdentity:
         post:
-            description: "Create an identity to group multiple API keys under a single entity. Identities enable shared rate limits and metadata across all associated keys.\n\nPerfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.\n\n> **Important**  \n> Requires `identity.*.create_identity` permission\n"
+            description: |
+                Create an identity to group multiple API keys under a single entity. Identities enable shared rate limits and metadata across all associated keys.
+
+                Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
+
+                **Important**
+                Requires `identity.*.create_identity` permission
             operationId: identities.createIdentity
             requestBody:
                 content:
@@ -3802,7 +3754,14 @@ paths:
                 type: cursor
     /v2/identities.updateIdentity:
         post:
-            description: "Update an identity's metadata and rate limits. Only specified fields are modified - others remain unchanged.\n\nPerfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.\n\n> **Important**  \n> Requires `identity.*.update_identity` permission  \n> Rate limit changes propagate within 30 seconds\n"
+            description: |
+                Update an identity's metadata and rate limits. Only specified fields are modified - others remain unchanged.
+
+                Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
+
+                > **Important**
+                > Requires `identity.*.update_identity` permission
+                > Rate limit changes propagate within 30 seconds
             operationId: v2.identities.updateIdentity
             requestBody:
                 content:
@@ -3811,7 +3770,7 @@ paths:
                             updateMetadata:
                                 summary: Update metadata
                                 value:
-                                    externalId: user_123
+                                    identity: user_123
                                     meta:
                                         email: alice@example.com
                                         name: Alice Smith
@@ -5242,13 +5201,7 @@ paths:
             x-speakeasy-name-override: GetRole
     /v2/permissions.listPermissions:
         post:
-            description: |
-                Retrieve all permissions in your workspace. Results are paginated and sorted alphabetically by permission name.
-
-                **Required Permissions**
-
-                Your root key must have the following permission:
-                - `rbac.*.read_permission`
+            description: "Retrieve all permissions in your workspace. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_permission`\n"
             operationId: listPermissions
             requestBody:
                 content:
@@ -5295,13 +5248,7 @@ paths:
             x-speakeasy-name-override: ListPermissions
     /v2/permissions.listRoles:
         post:
-            description: |
-                Retrieve all roles in your workspace including their assigned permissions. Results are paginated and sorted alphabetically by role name.
-
-                **Required Permissions**
-
-                Your root key must have the following permission:
-                - `rbac.*.read_role`
+            description: "Retrieve all roles in your workspace including their assigned permissions. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_role`\n"
             operationId: listRoles
             requestBody:
                 content:

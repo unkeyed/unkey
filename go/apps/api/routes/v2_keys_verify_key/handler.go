@@ -202,6 +202,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if key.Key.IdentityID.Valid {
 		keyData.Identity = &openapi.Identity{
+			Id:         key.Key.IdentityID.String,
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,
 			Meta:       nil,
@@ -248,7 +249,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				AutoApply: result.AutoApply,
 				Duration:  result.Duration.Milliseconds(),
 				Exceeded:  !result.Response.Success,
-				Id:        result.Name,
+				Id:        result.ID,
 				Limit:     result.Limit,
 				Name:      result.Name,
 				Remaining: result.Response.Remaining,

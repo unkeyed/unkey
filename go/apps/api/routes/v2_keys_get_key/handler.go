@@ -62,12 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	args := db.FindKeyByIdOrHashParams{
-		ID:   sql.NullString{String: req.KeyId, Valid: true},
-		Hash: sql.NullString{String: "", Valid: false},
-	}
-
-	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -253,6 +248,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		k.Identity = &openapi.Identity{
+			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       nil,
 			Ratelimits: nil,

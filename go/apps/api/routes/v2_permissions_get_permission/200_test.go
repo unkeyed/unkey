@@ -73,10 +73,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Permission)
 
 		// Verify permission data
-		permission := res.Body.Data.Permission
+		permission := res.Body.Data
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
@@ -95,10 +94,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Permission)
 
 		// Verify permission data
-		permission := res.Body.Data.Permission
+		permission := res.Body.Data
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
@@ -136,10 +134,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Permission)
 
 		// Verify permission data
-		permission := res.Body.Data.Permission
+		permission := res.Body.Data
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.Nil(t, permission.Description)

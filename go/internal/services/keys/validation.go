@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 )
@@ -43,26 +41,6 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
 	}
-
-	// Emit Prometheus metrics for credits spent
-	identityID := ""
-	if k.Key.IdentityID.Valid {
-		identityID = k.Key.IdentityID.String
-	}
-
-	// Credits are deducted when usage is valid AND cost > 0
-	deducted := usage.Valid && cost > 0
-	actualCostDeducted := int32(0)
-	if deducted {
-		actualCostDeducted = cost
-	}
-
-	metrics.KeyCreditsSpentTotal.WithLabelValues(
-		k.AuthorizedWorkspaceID,      // workspace_id
-		k.Key.ID,                     // key_id
-		identityID,                   // identity_id
-		strconv.FormatBool(deducted), // deducted - whether credits were actually deducted
-	).Add(float64(actualCostDeducted)) // Add the actual amount deducted, not the requested cost
 
 	return nil
 }
@@ -143,6 +121,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		}
 
 		ratelimitsToCheck[name] = RatelimitConfigAndResult{
+			ID:         rl.ID,
 			Cost:       1,
 			Name:       rl.Name,
 			Duration:   time.Duration(rl.Duration) * time.Millisecond,
@@ -154,6 +133,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	}
 
 	for _, rl := range specifiedLimits {
+		// Custom limits are always applied on a key level
 		if rl.Limit != nil && rl.Duration != nil {
 			ratelimitsToCheck[rl.Name] = RatelimitConfigAndResult{
 				Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
@@ -161,8 +141,9 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 				Duration:   time.Duration(*rl.Duration) * time.Millisecond,
 				Limit:      int64(*rl.Limit),
 				AutoApply:  false,
-				Identifier: k.Key.ID, // Specified limits use key ID
+				Identifier: k.Key.ID,
 				Response:   nil,
+				ID:         "", // Doesn't exist and is custom so no ID
 			}
 
 			continue
@@ -197,6 +178,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			AutoApply:  dbRl.AutoApply == 1,
 			Identifier: identifier,
 			Response:   nil,
+			ID:         dbRl.ID,
 		}
 	}
 

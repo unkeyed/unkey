@@ -22,7 +22,7 @@ properties:
     description: |
       Pagination cursor from previous response to fetch next page.
       Use when `hasMore: true` in previous response.
-    example: cursor_eyJsYXN0S2V5SWQiOiJrZXlfMjNld3MiLCJsYXN0Q3JlYXRlZEF0IjoxNjcyNTI0MjM0MDAwfQ==
+    example: key_1234abcd
   externalId:
     type: string
     minLength: 3

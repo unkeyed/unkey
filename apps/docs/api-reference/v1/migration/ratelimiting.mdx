@@ -10,12 +10,17 @@ This guide covers rate limiting functionality including namespace creation, over
 Rate limiting endpoints manage request limits, overrides, and namespace-based rate limiting across your API infrastructure.
 
 ### Key Changes in v2:
+
 - **Response format**: `result` → `{meta, data}` wrapper
 - **Rate limit structure**: Single `ratelimit` object → `ratelimits` array with named limits
 - **Override management**: Enhanced override response format with additional metadata
-- **Async handling**: Improved `autoApply` parameter (formerly `async`)
+- **Async handling**: Removed `async` parameter
+- **Auto apply**: Added `autoApply` parameter to apply ratelimits to key verifications automatically
+- **Resources**: Removed `resources` array
+- **Metadata**: Removed `meta` object from request body
 
 ### Migration Impact:
+
 - **Existing in v1**: Full rate limiting and override management functionality
 - **Enhanced in v2**: Improved response format, better override metadata, and new listing capabilities
 - **Maintained in v2**: All core rate limiting functionality with backward-compatible request formats
@@ -27,19 +32,29 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
 ### POST /v1/ratelimits.limit → POST /v2/ratelimits.limit
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Enhanced response with additional metadata
 - Better override handling
 
 <Tabs>
-<Tab title="Request Format">
+<Tab title="Request Structure Changes">
 ```json title="Rate Limit Request" icon="bolt"
 {
   "namespace": "email_sending",
   "identifier": "user_123",
   "limit": 100,
   "duration": 3600000,
-  "cost": 1
+  "cost": 1,
+  "async": false,  // [!code --]
+  "meta": {},  // [!code --]
+  "resources": [  // [!code --]
+    {  // [!code --]
+      "type": "project",  // [!code --]
+      "id": "p_123", // [!code --]
+      "name": "unkey"  // [!code --]
+    }  // [!code --]
+  ]  // [!code --]
 }
 ```
 </Tab>
@@ -63,9 +78,7 @@ Rate limiting endpoints manage request limits, overrides, and namespace-based ra
     "limit": 100, // [!code ++]
     "remaining": 99, // [!code ++]
     "reset": 1672531200000, // [!code ++]
-    "identifier": "user_123", // [!code ++]
-    "namespace": "email_sending", // [!code ++]
-    "cost": 1 // [!code ++]
+    "overrideId": "rlor_123" // [!code ++]
   } // [!code ++]
 }
 ```
@@ -126,7 +139,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.limit \
 ```json title="Set Override Response Diff" icon="check-circle" expandable
 // v1 Response (direct response)
 {
-  "overrideId": "over_123" // [!code --]
+  "overrideId": "rlor_123" // [!code --]
 }
 
 // v2 Response
@@ -135,13 +148,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.limit \
     "requestId": "req_setoverride456" // [!code ++]
   }, // [!code ++]
   "data": { // [!code ++]
-    "overrideId": "override_abc123", // [!code ++]
-    "namespace": "api_requests", // [!code ++]
-    "identifier": "premium_user_456", // [!code ++]
-    "limit": 10000, // [!code ++]
-    "duration": 3600000, // [!code ++]
-    "async": false, // [!code ++]
-    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+    "overrideId": "rlor_123" // [!code ++]
   } // [!code ++]
 }
 ```
@@ -167,8 +174,7 @@ curl -X POST https://api.unkey.com/v2/ratelimits.setOverride \
     "namespace": "api_requests",
     "identifier": "premium_user_456",
     "limit": 10000,
-    "duration": 3600000,
-    "async": false
+    "duration": 3600000
   }'
 ```
 </Tab>
@@ -209,12 +215,9 @@ curl -X POST https://api.unkey.com/v2/ratelimits.setOverride \
   }, // [!code ++]
   "data": { // [!code ++]
     "overrideId": "override_abc123", // [!code ++]
-    "namespace": "api_requests", // [!code ++]
     "identifier": "premium_user_456", // [!code ++]
     "limit": 10000, // [!code ++]
-    "duration": 3600000, // [!code ++]
-    "async": false, // [!code ++]
-    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+    "duration": 3600000 // [!code ++]
   } // [!code ++]
 }
 ```
@@ -284,12 +287,9 @@ curl -X POST https://api.unkey.com/v2/ratelimits.getOverride \
     "overrides": [ // [!code ++]
       { // [!code ++]
         "overrideId": "override_abc123", // [!code ++]
-        "namespace": "api_requests", // [!code ++]
         "identifier": "premium_user_456", // [!code ++]
         "limit": 10000, // [!code ++]
         "duration": 3600000, // [!code ++]
-        "async": false, // [!code ++]
-        "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
       } // [!code ++]
     ], // [!code ++]
     "cursor": "next_page_cursor_here" // [!code ++]
@@ -725,7 +725,8 @@ for (const override of overrides.data?.overrides || []) {
 ### Key-Level Rate Limiting Updates
 - [ ] Convert `ratelimit` object to `ratelimits` array in key creation
 - [ ] Add `name` field to all rate limit configurations
-- [ ] Change `async` parameter to `autoApply`
+- [ ] Remove `async` parameter
+- [ ] Update Key creation to use autoApply if necessary
 - [ ] Plan for multiple rate limits per key (different operation types)
 - [ ] Update key verification to handle multiple rate limits
 

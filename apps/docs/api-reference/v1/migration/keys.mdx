@@ -160,8 +160,8 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 ## POST /v1/keys.verifyKey → POST /v2/keys.verifyKey
 
 **Key Changes:**
-- **🚨 CRITICAL**: v2 requires root key authentication with `api.*.verify_key` permission
-- **🚨 CRITICAL**: `apiId` parameter is no longer accepted in v2
+- **CRITICAL**: v2 requires root key authentication with `api.*.verify_key` permission
+- **CRITICAL**: `apiId` parameter is no longer accepted in v2
 - Remove `authorization` wrapper for permissions
 - Use string-based permission queries instead of object syntax
 - Change `remaining` → `credits` for cost parameters
@@ -244,6 +244,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
     "permissions": ["documents.read"], // [!code ++]
     "roles": ["editor"], // [!code ++]
     "identity": { // [!code ++]
+      "id": "id_123", // [!code ++]
       "externalId": "customer_789", // [!code ++]
       "meta": {}, // [!code ++]
       "ratelimits": [] // [!code ++]
@@ -469,14 +470,14 @@ In v2, this control is moved to the root key's permissions:
 <Tab title="Method & Format Changes">
 ```bash title="HTTP Method Change" icon="arrow-right"
 # v1: GET with query parameters
-curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \ # [!code --]
-  -H "Authorization: Bearer <your-root-key>" # [!code --]
+curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
+  -H "Authorization: Bearer <your-root-key>"
 
 # v2: POST with request body
-curl -X POST https://api.unkey.com/v2/keys.getKey \ # [!code ++]
-  -H "Authorization: Bearer <your-root-key>" \ # [!code ++]
-  -H "Content-Type: application/json" \ # [!code ++]
-  -d '{"keyId": "key_123"}' # [!code ++]
+curl -X POST https://api.unkey.com/v2/keys.getKey \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"keyId": "key_123"}'
 ```
 </Tab>
 <Tab title="Response Changes">
@@ -526,16 +527,14 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \ # [!code ++]
   }, // [!code ++]
   "data": { // [!code ++]
     "id": "key_123", // [!code ++]
-    "apiId": "api_abc", // [!code ++]
     "name": "Production API Key", // [!code ++]
-    "prefix": "prod", // [!code ++]
     "start": "prod_1234", // [!code ++]
-    "externalId": "customer_789", // [!code ++]
     "meta": { // [!code ++]
       "plan": "enterprise" // [!code ++]
     }, // [!code ++]
-    "createdAt": "2024-01-15T10:30:00Z", // [!code ++]
-    "expires": null, // [!code ++]
+    "createdAt": 1754304517, // [!code ++]
+    "updatedAt": 1754304518, // [!code ++]
+    "expires": 1764841705, // [!code ++]
     "credits": { // [!code ++]
       "remaining": 995, // [!code ++]
       "refill": { // [!code ++]
@@ -552,6 +551,12 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \ # [!code ++]
         "autoApply": true // [!code ++]
       } // [!code ++]
     ], // [!code ++]
+    "identity": { // [!code ++]
+        "id": "id_123", // [!code ++]
+        "externalId": "customer_789", // [!code ++]
+        "meta": {}, // [!code ++]
+        "ratelimits": [] // [!code ++]
+    }, // [!code ++]
     "enabled": true, // [!code ++]
     "permissions": ["documents.read"], // [!code ++]
     "roles": ["editor"] // [!code ++]
@@ -692,10 +697,7 @@ curl -X POST https://api.unkey.com/v2/keys.deleteKey \
   "meta": { // [!code ++]
     "requestId": "req_updatekey456" // [!code ++]
   }, // [!code ++]
-  "data": { // [!code ++]
-    "keyId": "key_123", // [!code ++]
-    "updatedAt": "2024-01-15T11:30:00Z" // [!code ++]
-  } // [!code ++]
+  "data": {}
 }
 ```
 </Tab>
@@ -734,7 +736,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 
 **Key Changes:**
 - Endpoint name change: `updateRemaining` → `updateCredits`
-- New operation types: `set`, `increment`, `decrement`
+- Request changes: `op` → `operation`
 - Response format: Direct response → `{meta, data}` envelope
 
 <Tabs>
@@ -743,14 +745,15 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 // v1 Request
 {
   "keyId": "key_123",
-  "value": 1000 // [!code --]
+  "op": "set", // [!code --]
+  "value": 1000
 }
 
 // v2 Request
 {
   "keyId": "key_123",
   "operation": "set", // [!code ++]
-  "value": 1000 // [!code focus]
+  "value": 1000
 }
 ```
 </Tab>
@@ -767,7 +770,6 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
     "requestId": "req_updatecredits123" // [!code ++]
   }, // [!code ++]
   "data": { // [!code ++]
-    "keyId": "key_123", // [!code ++]
     "credits": { // [!code ++]
       "remaining": 1000 // [!code ++]
     } // [!code ++]
@@ -807,16 +809,19 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
-- Enhanced response with additional metadata
+- Enhanced response with additional metadata, mirroring the `v2/keys.getKey` response.
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Whoami Request" icon="user"
 // v1 & v2 Request (unchanged)
-{}
+{
+  "key": "your_api_key_here"
+}
 ```
 </Tab>
+
 <Tab title="Response Changes" icon="database">
 ```json title="Whoami Response Diff" icon="database" expandable
 // v1 Response (direct response)
@@ -845,11 +850,15 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
   "data": { // [!code ++]
     "keyId": "key_123", // [!code ++]
     "name": "Production API Key", // [!code ++]
-    "apiId": "api_abc123", // [!code ++]
-    "workspaceId": "ws_xyz789", // [!code ++]
     "permissions": ["documents.read"], // [!code ++]
     "roles": ["editor"], // [!code ++]
-    "createdAt": "2024-01-15T10:30:00Z" // [!code ++]
+    "identity": { // [!code ++]
+      "id": "id_123", // [!code ++]
+      "externalId": "customer_789", // [!code ++]
+      "meta": {}, // [!code ++]
+      "ratelimits": [] // [!code ++]
+    }, // [!code ++]
+    "createdAt": 1754304517 // [!code ++]
   } // [!code ++]
 }
 ```
@@ -859,14 +868,14 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
 curl -X POST https://api.unkey.dev/v1/keys.whoami \
   -H "Authorization: Bearer <your-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{ "key": "some_api_key" }'
 ```
 
 ```bash title="v2 cURL" icon="terminal" highlight={1}
 curl -X POST https://api.unkey.com/v2/keys.whoami \
   -H "Authorization: Bearer <your-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{ "key": "some_api_key" }'
 ```
 </Tab>
 </Tabs>
@@ -881,51 +890,64 @@ curl -X POST https://api.unkey.com/v2/keys.whoami \
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
-- Auto-creation of permissions if they don't exist
+- Will auto create permissions if they don't exist, and the root key has the `rbac.*.create_permission` permission. Otherwise it will return a permission error.
+- Only identify permission by their slugs.
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Add Permissions Request" icon="shield-plus" expandable
-// v1 & v2 Request (unchanged)
+// v1 request
 {
   "keyId": "key_123",
   "permissions": [
-    {
-      "name": "documents.read",
-      "description": "Read access to documents"
-    },
-    {
-      "name": "documents.write",
-      "description": "Write access to documents"
-    }
+    { // [!code --]
+      "id": "perm_123", // [!code --]
+      "create": true // [!code --]
+    }, // [!code --]
+    { // [!code --]
+      "name": "documents.read", // [!code --]
+    } // [!code --]
   ]
 }
+
+// v2 request
+{
+  "keyId": "key_123",
+  "permissions": ["documents.read", "documents.write"] // [!code ++]
+}
 ```
+
 </Tab>
 <Tab title="Response Changes" icon="database">
 ```json title="Add Permissions Response Diff" icon="check-circle"
-// v1 Response (array of created permissions)
+// v1 Response (array of attached permissions)
 [
   {
-    "id": "perm_123", // [!code --]
-    "name": "documents.read" // [!code --]
+    "id": "perm_123",
+    "name": "documents.read"
   },
   {
-    "id": "perm_456", // [!code --]
-    "name": "documents.write" // [!code --]
+    "id": "perm_456",
+    "name": "documents.write"
   }
-] // [!code --]
+]
 
-// v2 Response
+// v2 Response, responds with the permissions that are attached to this key
 {
   "meta": { // [!code ++]
     "requestId": "req_addperms123" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": [{
+    "id": "perm_123",
+    "name" : "Read Documents",
+    "slug" : "documents.read", // [!code ++]
+    "description": "Read documents but don't write them", // [!code ++]
+  }] // [!code ++]
 }
 ```
 </Tab>
+
 <Tab title="cURL Examples" icon="terminal">
 ```bash title="v1 cURL" icon="terminal"
 curl -X POST https://api.unkey.dev/v1/keys.addPermissions \
@@ -948,12 +970,7 @@ curl -X POST https://api.unkey.com/v2/keys.addPermissions \
   -H "Content-Type: application/json" \
   -d '{
     "keyId": "key_123",
-    "permissions": [
-      {
-        "name": "documents.read",
-        "description": "Read access to documents"
-      }
-    ]
+    "permissions": ["documents.read"]
   }'
 ```
 </Tab>
@@ -967,15 +984,29 @@ curl -X POST https://api.unkey.com/v2/keys.addPermissions \
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
+- Only accepts permission slugs now
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Remove Permissions Request" icon="shield-minus"
-// v1 & v2 Request (unchanged)
+// v1 Request 
 {
   "keyId": "key_123",
-  "permissions": ["documents.write", "documents.delete"]
+  "permissions": [
+    { // [!code --]
+      "id": "perm_123" // [!code --]
+    }, // [!code --]
+    { // [!code --]
+      "slug": "description.read" // [!code --]
+    }, // [!code --]
+  ]
+}
+
+// v2 Request 
+{
+  "keyId": "key_123",
+  "permissions": ["documents.write", "documents.delete"] // [!code ++]
 }
 ```
 </Tab>
@@ -984,15 +1015,23 @@ curl -X POST https://api.unkey.com/v2/keys.addPermissions \
 // v1 Response (direct empty response)
 {} // [!code --]
 
-// v2 Response
+// v2 Response, responds with the remaining permissions
 {
   "meta": { // [!code ++]
     "requestId": "req_removeperms456" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": [ // [!code ++]
+    { // [!code ++]
+      "id": "perm_123", // [!code ++]
+      "slug": "documents.archive", // [!code ++]
+      "name": "Documents Archive", // [!code ++]
+      "description": "Allows archiving documents" // [!code ++]
+    }, // [!code ++]
+  ] // [!code ++]
 }
 ```
 </Tab>
+
 <Tab title="cURL Examples" icon="terminal">
 ```bash title="v1 cURL" icon="terminal"
 curl -X POST https://api.unkey.dev/v1/keys.removePermissions \
@@ -1000,7 +1039,9 @@ curl -X POST https://api.unkey.dev/v1/keys.removePermissions \
   -H "Content-Type: application/json" \
   -d '{
     "keyId": "key_123",
-    "permissions": ["documents.write", "documents.delete"]
+    "permissions": [{
+       "slug": "documents.write",
+    }]
   }'
 ```
 
@@ -1025,25 +1066,32 @@ curl -X POST https://api.unkey.com/v2/keys.removePermissions \
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
 - Atomic replacement of all permissions
+- Will auto create permissions if they don't exist, and the root key has the `rbac.*.create_permission` permission. Otherwise it will return a permission error.
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Set Permissions Request" icon="shield-check" expandable
-// v1 & v2 Request (unchanged)
+// v1 Request
 {
   "keyId": "key_123",
   "permissions": [
-    {
-      "name": "documents.read",
-      "description": "Read access to documents"
-    },
-    {
-      "name": "comments.moderate",
-      "description": "Moderate comments"
-    }
+    { // [!code --]
+      "slug": "documents.read", // [!code --]
+      "create": true, // [!code --]
+    }, // [!code --]
+    { // [!code --]
+      "id": "perm_123", // [!code --]
+    } // [!code --]
   ]
 }
+
+// v2 Request
+{
+  "keyId": "key_123",
+  "permissions": ["documents.read", "comments.moderate"] // [!code ++]
+}
+
 ```
 </Tab>
 <Tab title="Response Changes" icon="database">
@@ -1065,7 +1113,18 @@ curl -X POST https://api.unkey.com/v2/keys.removePermissions \
   "meta": { // [!code ++]
     "requestId": "req_setperms789" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": [{ // [!code ++]
+    "id": "perm_123", // [!code ++]
+    "slug": "documents.read", // [!code ++]
+    "name": "Documents Read", // [!code ++]
+    "description": "Read access to documents" // [!code ++]
+  }, // [!code ++]
+  { // [!code ++]
+    "id": "perm_789", // [!code ++]
+    "slug": "comments.moderate", // [!code ++]
+    "name": "Comments Moderate", // [!code ++]
+    "description": "Moderate comments" // [!code ++]
+  }] // [!code ++]
 }
 ```
 </Tab>
@@ -1078,8 +1137,7 @@ curl -X POST https://api.unkey.dev/v1/keys.setPermissions \
     "keyId": "key_123",
     "permissions": [
       {
-        "name": "documents.read",
-        "description": "Read access to documents"
+        "slug": "documents.read",
       }
     ]
   }'
@@ -1091,12 +1149,7 @@ curl -X POST https://api.unkey.com/v2/keys.setPermissions \
   -H "Content-Type: application/json" \
   -d '{
     "keyId": "key_123",
-    "permissions": [
-      {
-        "name": "documents.read",
-        "description": "Read access to documents"
-      }
-    ]
+    "permissions": ["documents.read"]
   }'
 ```
 </Tab>
@@ -1112,17 +1165,28 @@ curl -X POST https://api.unkey.com/v2/keys.setPermissions \
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
-- Auto-creation of roles if they don't exist
+- No option to auto-create roles if they don't exist
+- Responds with all the roles that are attached to the key
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Add Roles Request" icon="user-plus"
-// v1 & v2 Request (unchanged)
+// v1 Request
 {
   "keyId": "key_123",
-  "roles": ["editor", "moderator"]
+  "roles": [
+    { "name": "editor" }, // [!code --]
+    { "id": "role_123" } // [!code --]
+  ]
 }
+
+// v2 Request
+{
+  "keyId": "key_123",
+  "roles": ["editor", "moderator"] // [!code ++]
+}
+
 ```
 </Tab>
 <Tab title="Response Changes" icon="database">
@@ -1130,21 +1194,36 @@ curl -X POST https://api.unkey.com/v2/keys.setPermissions \
 // v1 Response (array of added roles)
 [
   {
-    "id": "role_123", // [!code --]
-    "name": "editor" // [!code --]
+    "id": "role_123",
+    "name": "editor"
   },
   {
-    "id": "role_456", // [!code --]
-    "name": "moderator" // [!code --]
+    "id": "role_456",
+    "name": "moderator"
   }
-] // [!code --]
+]
 
 // v2 Response
 {
   "meta": { // [!code ++]
     "requestId": "req_addroles123" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": [
+    {
+      "id": "role_123",
+      "name": "editor",
+      "permissions": [{ // [!code ++]
+        "id": "perm_123", // [!code ++]
+        "name": "document reader", // [!code ++]
+        "slug": "document.read", // [!code ++]
+        "description": "Read documents but don't edit them" // [!code ++]
+      }] // [!code ++]
+    },
+    {
+      "id": "role_456",
+      "name": "moderator"
+    }
+  ]
 }
 ```
 </Tab>
@@ -1155,7 +1234,14 @@ curl -X POST https://api.unkey.dev/v1/keys.addRoles \
   -H "Content-Type: application/json" \
   -d '{
     "keyId": "key_123",
-    "roles": ["editor", "moderator"]
+    "roles": [
+      {
+        "id": "role_123"
+      },
+      {
+        "name": "editor"
+      }
+    ]
   }'
 ```
 
@@ -1179,15 +1265,25 @@ curl -X POST https://api.unkey.com/v2/keys.addRoles \
 
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
+- Responds with the remaining roles on the key
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Remove Roles Request" icon="user-minus"
-// v1 & v2 Request (unchanged)
+// v1 Request
 {
   "keyId": "key_123",
-  "roles": ["moderator"]
+  "roles": [
+    { "name": "editor" }, // [!code --]
+    { "id": "role_123" } // [!code --]
+  ]
+}
+
+// v2 Request
+{
+  "keyId": "key_123",
+  "roles": ["editor", "moderator"] // [!code ++]
 }
 ```
 </Tab>
@@ -1201,7 +1297,7 @@ curl -X POST https://api.unkey.com/v2/keys.addRoles \
   "meta": { // [!code ++]
     "requestId": "req_removeroles456" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": []
 }
 ```
 </Tab>
@@ -1237,38 +1333,67 @@ curl -X POST https://api.unkey.com/v2/keys.removeRoles \
 **Key Changes:**
 - Response format: Direct response → `{meta, data}` envelope
 - Atomic replacement of all roles
+- Responds with all the roles that are now set
+- No auto creation of roles anymore
 - Added `meta.requestId` for debugging
 
 <Tabs>
 <Tab title="Request Changes" icon="code">
 ```json title="Set Roles Request" icon="users-cog"
-// v1 & v2 Request (unchanged)
+// v1 Request
 {
   "keyId": "key_123",
-  "roles": ["editor", "admin"]
+  "roles": [
+    { "name": "editor" }, // [!code --]
+    { "id": "role_123" } // [!code --]
+  ]
+}
+
+// v2 Request
+{
+  "keyId": "key_123",
+  "roles": ["editor", "moderator"] // [!code ++]
 }
 ```
+
 </Tab>
 <Tab title="Response Changes" icon="database">
 ```json title="Set Roles Response Diff" icon="check-circle"
 // v1 Response (array of all roles on key)
 [
   {
-    "id": "role_123", // [!code --]
-    "name": "editor" // [!code --]
+    "id": "role_123",
+    "name": "editor"
   },
   {
-    "id": "role_789", // [!code --]
-    "name": "admin" // [!code --]
+    "id": "role_789",
+    "name": "moderator"
   }
-] // [!code --]
+]
 
 // v2 Response
 {
   "meta": { // [!code ++]
     "requestId": "req_setroles789" // [!code ++]
   }, // [!code ++]
-  "data": {} // [!code ++]
+  "data": [
+    {
+      "id": "role_123",
+      "name": "editor",
+      "permissions": [  // [!code ++]
+        {  // [!code ++]
+          "id": "perm_123",  // [!code ++]
+          "name": "document reader",  // [!code ++]
+          "slug": "document.read",  // [!code ++]
+          "description": "Read documents but don't edit them"  // [!code ++]
+        }
+      ]
+    },
+    {
+      "id": "role_456",
+      "name": "moderator"
+    }
+  ]
 }
 ```
 </Tab>
@@ -1279,7 +1404,14 @@ curl -X POST https://api.unkey.dev/v1/keys.setRoles \
   -H "Content-Type: application/json" \
   -d '{
     "keyId": "key_123",
-    "roles": ["editor", "admin"]
+    "roles": [
+      {
+        "name": "editor"
+      },
+      {
+        "id": "role_789"
+      }
+    ]
   }'
 ```
 
@@ -1359,8 +1491,12 @@ console.log(keyData.keyId);
 
 // v2 Key Structure
 {
-  "apiId": "api_123",
-  "externalId": "user_456", // [!code ++]
+  "identity": { // [!code ++]
+    "externalId": "user_456", // [!code ++]
+    "id": "id_123", // [!code ++]
+    "ratelimits": [], // [!code ++]
+    "meta": {}, // [!code ++]
+}, // [!code ++]
   "credits": { // [!code ++]
     "remaining": 1000, // [!code ++]
     "refill": { // [!code ++]

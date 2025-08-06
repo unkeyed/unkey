@@ -245,7 +245,7 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://canary.unkey.dev/openapi.json",
+              "source": "https://api.unkey.dev/openapi.json",
               "directory": "api-reference/v1"
             }
           }
@@ -267,7 +267,7 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://api.unkey.com/openapi.yaml",
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples",
               "directory": "api-reference/v2"
             }
           }

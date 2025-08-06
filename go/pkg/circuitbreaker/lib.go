@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 type CB[Res any] struct {
@@ -198,7 +199,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		cb.resetStateAt = now.Add(cb.config.timeout)
 	}
 
-	requests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
+	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
 
 	if cb.state == Open {
 		return ErrTripped
