@@ -20,6 +20,8 @@ type EventBuffer interface {
 // including request counts, latencies, and status codes.
 //
 // If an EventBuffer is provided, it will also buffer request data for ClickHouse.
+// We need some sort of config to determine what of the request and or response we should redacted, since we would potentially
+// log sensitive information to our ClickHouse instance.
 func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
