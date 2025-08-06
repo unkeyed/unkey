@@ -18,9 +18,6 @@ jobs:
           go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run containers
-        run: make up
-        working-directory: go
       - name: Test
         run: make test-full
         working-directory: go
