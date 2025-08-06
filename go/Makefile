@@ -5,13 +5,13 @@ install:
 
 fmt: lint
 	go fmt ./...
-	golangci-lint run 
+	golangci-lint run
 
 pull:
-	@docker compose -f ../deployment/docker-compose.yaml pull 
+	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up:
-	@docker compose -f ../deployment/docker-compose.yaml up -d mysql redis clickhouse s3 otel
+	@docker compose -f ../deployment/docker-compose.yaml up --force-recreate -d mysql redis clickhouse s3 otel
 	@echo "Starting ClickHouse migrations (will retry if ClickHouse isn't ready)..."
 	@for i in {1..10}; do \
 		echo "Migration attempt $$i..."; \
@@ -25,16 +25,18 @@ up:
 	done
 
 down:
-	@docker compose -f ../deployment/docker-compose.yaml down
+	@docker compose -f ../deployment/docker-compose.yaml down --volumes
 
 test-full: export INTEGRATION_TEST=true
 test-full: export SIMULATION_TEST=false
 test-full: up
 	@echo "Running full tests... this can take more than 30min... run 'make test-unit' for faster tests"
-	@go test -failfast -timeout=60m -shuffle=on -v -json ./... | tparse -all -progress -smallscreen
+	@echo "Using $$(($${GOMAXPROCS:-4}/2)) parallel test processes"
+	@go test -json -failfast -timeout=15m -parallel=$$(($${GOMAXPROCS:-4}/2)) ./... | tparse -all -progress -smallscreen
 
 test-unit: up
-	@go test -json -race -failfast -timeout=30m ./... | tparse -all -progress -smallscreen
+	@echo "Using $$(($${GOMAXPROCS:-4}/2)) parallel test processes"
+	@go test -json -failfast -timeout=15m -parallel=$$(($${GOMAXPROCS:-4}/2)) -race ./... | tparse -all -progress -smallscreen
 
 build:
 	go build -o unkey ./main.go
@@ -42,4 +44,3 @@ build:
 generate:
 	buf generate
 	go generate ./...
-
