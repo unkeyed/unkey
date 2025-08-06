@@ -129,11 +129,15 @@ const (
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 
 	// ----------------
-	// GatewayErrors
+	// UnkeyGatewayErrors
 	// ----------------
 
-	// BadRequest
+	// Proxy
 
-	// BadGateway indicates that the upstream server is unavailable.
-	GatewayErrorsBadRequestBadGateway URN = "err:gateway:bad_gateway:gateway_unavailable"
+	// BadGateway represents a 502 error - invalid response from upstream server
+	UnkeyGatewayErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
+	// ServiceUnavailable represents a 503 error - backend service is unavailable
+	UnkeyGatewayErrorsProxyServiceUnavailable URN = "err:unkey:bad_gateway:service_unavailable"
+	// GatewayTimeout represents a 504 error - upstream server timeout
+	UnkeyGatewayErrorsProxyGatewayTimeout URN = "err:unkey:bad_gateway:gateway_timeout"
 )

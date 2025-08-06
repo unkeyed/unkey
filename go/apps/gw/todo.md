@@ -8,10 +8,11 @@ Todos for Demo
 
 - [] Handles HTTPs requests with SSL certificate
 
-  - [] Gateway handles SSL generation via letsencrypt
+  - [] Gateway handles SSL letsencrypt challenges HTTP-01
   - [] Handle local generated certificate `mkcert api.unkey.app`
+  - [x] Handles actual SSL cert pointing to localhost
 
-- [] Hook up VM's to control-plane
+- [x] Hook up VM's to control-plane
 
   - [] Generate gateway config
   - [] Insert the VM's into the db

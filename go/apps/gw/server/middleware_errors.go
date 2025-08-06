@@ -62,9 +62,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			)
 
 			switch urn {
-			// Bad Request errors
-			case codes.GatewayErrorsBadRequestBadGateway:
-				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
+			// Gateway errors - 502, 503, 504
+			case codes.UnkeyGatewayErrorsProxyBadGateway:
+				status = http.StatusBadGateway
+				return s.HTML(status, []byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
    <meta charset="UTF-8">
@@ -74,6 +75,40 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 <body>
    <h1>502 Bad Gateway</h1>
    <p>The server received an invalid response from an upstream server.</p>
+   <p>Please try again later.</p>
+   <a href="/">Return to homepage</a>
+</body>
+</html>`))
+
+			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
+				status = http.StatusServiceUnavailable
+				return s.HTML(status, []byte(`<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>503 Service Unavailable</title>
+</head>
+<body>
+   <h1>503 Service Unavailable</h1>
+   <p>The service is temporarily unavailable.</p>
+   <p>Please try again later.</p>
+   <a href="/">Return to homepage</a>
+</body>
+</html>`))
+
+			case codes.UnkeyGatewayErrorsProxyGatewayTimeout:
+				status = http.StatusGatewayTimeout
+				return s.HTML(status, []byte(`<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>504 Gateway Timeout</title>
+</head>
+<body>
+   <h1>504 Gateway Timeout</h1>
+   <p>The upstream server failed to respond within the timeout period.</p>
    <p>Please try again later.</p>
    <a href="/">Return to homepage</a>
 </body>

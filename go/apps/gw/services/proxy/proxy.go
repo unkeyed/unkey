@@ -13,7 +13,6 @@ import (
 
 var _ Proxy = (*proxy)(nil)
 
-// proxy implements the Proxy interface with support for single or multiple backend URLs.
 type proxy struct {
 	logger    logging.Logger
 	transport *http.Transport
@@ -95,13 +94,6 @@ func (p *proxy) Forward(ctx context.Context, target url.URL, w http.ResponseWrit
 			}
 		},
 		Transport: p.transport,
-		ModifyResponse: func(resp *http.Response) error {
-			// This is called after receiving the response from backend
-			// but BEFORE writing it to the client.
-			// This is where custom headers should be added.
-			// The middleware will need to pass these values somehow.
-			return nil
-		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, pErr error) {
 			if p.logger != nil {
 				p.logger.Error("proxy error",
@@ -142,5 +134,6 @@ func getClientIP(r *http.Request) string {
 	if idx := strings.LastIndex(r.RemoteAddr, ":"); idx != -1 {
 		return r.RemoteAddr[:idx]
 	}
+
 	return r.RemoteAddr
 }

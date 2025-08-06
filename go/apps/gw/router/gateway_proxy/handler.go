@@ -111,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		)
 
 		return fault.Wrap(err,
-			fault.Code(codes.Gateway.BadRequest.BadGateway.URN()),
+			fault.Code(codes.Gateway.Proxy.BadGateway.URN()),
 			fault.Internal("something went wrong proxying the request"),
 			fault.Public("We're unable to forward the request"),
 		)

@@ -90,6 +90,10 @@ func main() {
 		json.NewEncoder(w).Encode(response)
 	})
 
+	mux.HandleFunc("/v1/timeout", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Second * 35)
+	})
+
 	mux.HandleFunc("/v1/protected", func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 
