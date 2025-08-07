@@ -112,7 +112,7 @@ export const ApiListClient = ({ workspaceId }: { workspaceId: string }) => {
             </Empty.Description>
             {!isSearching && (
               <Empty.Actions className="mt-4">
-                <CreateApiButton defaultOpen={isNewApi} />
+                <CreateApiButton defaultOpen={isNewApi} workspaceId={workspaceId} />
                 <a
                   href="https://www.unkey.com/docs/introduction"
                   target="_blank"

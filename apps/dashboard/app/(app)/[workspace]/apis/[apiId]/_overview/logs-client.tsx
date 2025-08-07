@@ -8,7 +8,7 @@ import { KeysOverviewLogsControls } from "./components/controls";
 import { KeysOverviewLogDetails } from "./components/table/components/log-details";
 import { KeysOverviewLogsTable } from "./components/table/logs-table";
 
-export const LogsClient = ({ apiId }: { apiId: string }) => {
+export const LogsClient = ({ apiId, workspaceId }: { apiId: string; workspaceId: string }) => {
   const [selectedLog, setSelectedLog] = useState<KeysOverviewLog | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
@@ -26,13 +26,19 @@ export const LogsClient = ({ apiId }: { apiId: string }) => {
       <KeysOverviewLogsControlCloud />
       <div className="flex flex-col">
         <KeysOverviewLogsCharts apiId={apiId} onMount={handleDistanceToTop} />
-        <KeysOverviewLogsTable apiId={apiId} setSelectedLog={handleSelectedLog} log={selectedLog} />
+        <KeysOverviewLogsTable
+          apiId={apiId}
+          setSelectedLog={handleSelectedLog}
+          log={selectedLog}
+          workspaceId={workspaceId}
+        />
       </div>
       <KeysOverviewLogDetails
         apiId={apiId}
         distanceToTop={tableDistanceToTop}
         setSelectedLog={handleSelectedLog}
         log={selectedLog}
+        workspaceId={workspaceId}
       />
     </div>
   );

@@ -1,17 +1,17 @@
-export const navigation = (apiId: string, keyAuthId: string) => [
+export const navigation = (apiId: string, keyAuthId: string, workspaceId: string) => [
   {
     label: "Overview",
-    href: `/apis/${apiId}`,
+    href: `/${workspaceId}/apis/${apiId}`,
     segment: "overview",
   },
   {
     label: "Keys",
-    href: `/apis/${apiId}/keys/${keyAuthId}`,
+    href: `/${workspaceId}/apis/${apiId}/keys/${keyAuthId}`,
     segment: "keys",
   },
   {
     label: "API Settings",
-    href: `/apis/${apiId}/settings`,
+    href: `/${workspaceId}/apis/${apiId}/settings`,
     segment: "settings",
   },
 ];

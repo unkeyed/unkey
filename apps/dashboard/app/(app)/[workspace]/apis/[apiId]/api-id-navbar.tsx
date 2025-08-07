@@ -36,6 +36,7 @@ export const ApisNavbar = ({
   keyspaceId,
   keyId,
   activePage,
+  workspaceId,
 }: {
   apiId: string;
   keyspaceId?: string;
@@ -44,6 +45,7 @@ export const ApisNavbar = ({
     href: string;
     text: string;
   };
+  workspaceId: string;
 }) => {
   const isMobile = useIsMobile();
   const trpcUtils = trpc.useUtils();
@@ -85,7 +87,7 @@ export const ApisNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/apis`}>APIs</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -137,7 +139,7 @@ export const ApisNavbar = ({
                   APIs
                 </Navbar.Breadcrumbs.Link>
                 <Navbar.Breadcrumbs.Link
-                  href={`/apis/${currentApi.id}`}
+                  href={`/${workspaceId}/apis/${currentApi.id}`}
                   isIdentifier
                   className="group max-md:hidden"
                   noop
@@ -146,7 +148,7 @@ export const ApisNavbar = ({
                     items={workspaceApis.map((api) => ({
                       id: api.id,
                       label: api.name,
-                      href: `/apis/${api.id}`,
+                      href: `/${workspaceId}/apis/${api.id}`,
                     }))}
                     shortcutKey="N"
                   >
@@ -163,17 +165,17 @@ export const ApisNavbar = ({
                   {
                     id: "requests",
                     label: "Requests",
-                    href: `/apis/${currentApi.id}`,
+                    href: `/${workspaceId}/apis/${currentApi.id}`,
                   },
                   {
                     id: "keys",
                     label: "Keys",
-                    href: `/apis/${currentApi.id}/keys/${currentApi.keyAuthId}`,
+                    href: `/${workspaceId}/apis/${currentApi.id}/keys/${currentApi.keyAuthId}`,
                   },
                   {
                     id: "settings",
                     label: "Settings",
-                    href: `/apis/${currentApi.id}/settings`,
+                    href: `/${workspaceId}/apis/${currentApi.id}/settings`,
                   },
                 ]}
               >
@@ -185,7 +187,7 @@ export const ApisNavbar = ({
             </Navbar.Breadcrumbs.Link>
             {specificKey && (
               <Navbar.Breadcrumbs.Link
-                href={`/apis/${currentApi.id}/keys/${currentApi.keyAuthId}/${specificKey.id}`}
+                href={`/${workspaceId}/apis/${currentApi.id}/keys/${currentApi.keyAuthId}/${specificKey.id}`}
                 className="max-md:hidden"
                 isLast
                 isIdentifier
@@ -213,6 +215,7 @@ export const ApisNavbar = ({
                 keyspaceId={currentApi.keyAuthId}
                 apiId={currentApi.id}
                 keyspaceDefaults={currentApi.keyspaceDefaults}
+                workspaceId={workspaceId}
               />
             )
           )}

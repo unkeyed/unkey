@@ -12,6 +12,7 @@ import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
   apiId: string;
+  workspaceId: string;
   onNavigate?: () => void;
 };
 
@@ -43,12 +44,16 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
+export const KeyIdentifierColumn = ({
+  log,
+  apiId,
+  onNavigate,
+  workspaceId,
+}: KeyIdentifierColumnProps) => {
   const router = useRouter();
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
   const hasErrors = severity !== "none";
-
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleLinkClick = useCallback(
@@ -83,7 +88,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono group-hover:underline decoration-dotted"
-        href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        href={`/${workspaceId}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
         onClick={handleLinkClick}
       >
         <div className="font-mono font-medium truncate flex items-center">

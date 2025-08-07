@@ -49,9 +49,11 @@ const KeysTableActionPopover = dynamic(
 export const KeysList = ({
   keyspaceId,
   apiId,
+  workspaceId,
 }: {
   keyspaceId: string;
   apiId: string;
+  workspaceId: string;
 }) => {
   const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
     keyAuthId: keyspaceId,
@@ -62,7 +64,6 @@ export const KeysList = ({
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   // Track which row is being hovered
   const [hoveredKeyId, setHoveredKeyId] = useState<string | null>(null);
-
   const handleLinkClick = useCallback((keyId: string) => {
     setNavigatingKeyId(keyId);
     setSelectedKey(null);
@@ -176,7 +177,7 @@ export const KeysList = ({
                   <Link
                     title={`View details for ${key.id}`}
                     className="font-mono group-hover:underline decoration-dotted"
-                    href={`/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
+                    href={`/${workspaceId}/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
                     aria-disabled={isNavigating}
                     onClick={() => {
                       handleLinkClick(key.id);
@@ -266,6 +267,7 @@ export const KeysList = ({
       selectedKeys,
       toggleSelection,
       hoveredKeyId,
+      workspaceId,
     ],
   );
 

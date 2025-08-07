@@ -1,31 +1,21 @@
 import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { getAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
-import { WorkspaceProviderWrapper } from "../../providers/workspace-provider-wrapper";
-
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default async function Layout({ children }: LayoutProps) {
-  const { orgId, impersonator } = await getAuth();
+  const { impersonator } = await getAuth();
 
   const isImpersonator = !!impersonator;
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: {
-      apis: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
-      },
-      quotas: true,
-    },
-  });
+  const workspace = await useWorkspace();
 
   if (!workspace) {
     return redirect("/new");
@@ -52,9 +42,7 @@ export default async function Layout({ children }: LayoutProps) {
 
               <div className="w-full">
                 {workspace.enabled ? (
-                  <WorkspaceProviderWrapper initialWorkspace={workspace}>
-                    <QueryTimeProvider>{children}</QueryTimeProvider>
-                  </WorkspaceProviderWrapper>
+                  <QueryTimeProvider>{children}</QueryTimeProvider>
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
                     <Empty>

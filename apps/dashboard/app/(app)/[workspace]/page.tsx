@@ -1,20 +1,18 @@
 "use client";
 
-import { useWorkspaceIdRequired } from "@/hooks/use-workspace-id";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-export default function WorkspacePage() {
-  const workspaceId = useWorkspaceIdRequired();
+export default function WorkspacePage({ params }: { params: { workspaceId: string } }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (workspaceId) {
-      router.replace(`/${workspaceId}/apis`);
+    if (params.workspaceId) {
+      router.replace(`/${params.workspaceId}/apis`);
     } else {
       router.replace("/new");
     }
-  }, [workspaceId, router]);
+  }, [params.workspaceId, router]);
 
   // Show loading state while redirecting
   return (

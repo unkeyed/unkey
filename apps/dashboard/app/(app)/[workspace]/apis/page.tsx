@@ -19,7 +19,7 @@ export default function ApisOverviewPage({ params }: { params: { workspace: stri
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <CreateApiButton key="createApi" defaultOpen={isNewApi} />
+          <CreateApiButton key="createApi" defaultOpen={isNewApi} workspaceId={params.workspace} />
         </Navbar.Actions>
       </Navbar>
       <ApiListClient workspaceId={params.workspace} />

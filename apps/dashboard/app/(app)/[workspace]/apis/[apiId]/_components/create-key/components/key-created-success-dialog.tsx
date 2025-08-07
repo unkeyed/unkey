@@ -15,6 +15,7 @@ export const KeyCreatedSuccessDialog = ({
   keyData,
   apiId,
   keyspaceId,
+  workspaceId,
   onCreateAnother,
 }: {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const KeyCreatedSuccessDialog = ({
   keyData: { key: string; id: string; name?: string } | null;
   apiId: string;
   keyspaceId?: string | null;
+  workspaceId: string;
   onCreateAnother?: () => void;
 }) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -30,7 +32,6 @@ export const KeyCreatedSuccessDialog = ({
   >(null);
   const dividerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
   // Prevent accidental tab/window close when dialog is open
   useEffect(() => {
     if (!isOpen) {
@@ -90,7 +91,7 @@ export const KeyCreatedSuccessDialog = ({
             });
             return;
           }
-          router.push(`/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
+          router.push(`/${workspaceId}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
           break;
 
         default:
