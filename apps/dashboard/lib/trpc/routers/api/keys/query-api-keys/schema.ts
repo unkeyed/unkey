@@ -10,6 +10,7 @@ export const ratelimitItemSchema = z.object({
   name: z.string(),
   limit: z.number(),
   refillInterval: z.number(),
+  autoApply: z.boolean(),
   id: z.string(),
 });
 
