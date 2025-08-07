@@ -71,7 +71,6 @@ func New(config Config) (*Server, error) {
 
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				fmt.Printf("TLS ClientHello for: %s\n", hello.ServerName)
 				return config.CertManager.GetCertificate(context.Background(), hello.ServerName)
 			},
 			MinVersion: tls.VersionTLS12,

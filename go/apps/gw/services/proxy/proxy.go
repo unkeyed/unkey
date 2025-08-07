@@ -2,12 +2,16 @@ package proxy
 
 import (
 	"context"
+	"errors"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
@@ -59,6 +63,53 @@ func New(config Config) (Proxy, error) {
 	}, nil
 }
 
+// classifyProxyError determines the appropriate error type based on the error content
+func (p *proxy) classifyProxyError(err error) error {
+	// Check for context cancellation (timeout)
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Proxy.GatewayTimeout.URN()),
+			fault.Internal("request timeout or cancellation"),
+			fault.Public("The server took too long to respond"),
+		)
+	}
+
+	// Check for net.Error timeout (handles most timeout cases)
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Proxy.GatewayTimeout.URN()),
+			fault.Internal("upstream server timeout"),
+			fault.Public("The server took too long to respond"),
+		)
+	}
+
+	// Check for specific timeout strings
+	errorStr := err.Error()
+	if strings.Contains(errorStr, "timeout awaiting response headers") {
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Proxy.GatewayTimeout.URN()),
+			fault.Internal("upstream server timeout"),
+			fault.Public("The server took too long to respond"),
+		)
+	}
+
+	// Check for connection refused
+	if strings.Contains(errorStr, "connection refused") {
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Proxy.ServiceUnavailable.URN()),
+			fault.Internal("backend service unavailable"),
+			fault.Public("The service is currently unavailable"),
+		)
+	}
+
+	// Default to bad gateway
+	return fault.Wrap(err,
+		fault.Code(codes.Gateway.Proxy.BadGateway.URN()),
+		fault.Internal("proxy error occurred"),
+		fault.Public("Unable to process the request"),
+	)
+}
+
 // Forward implements the Proxy interface.
 func (p *proxy) Forward(ctx context.Context, target url.URL, w http.ResponseWriter, r *http.Request) error {
 	var err error
@@ -103,7 +154,8 @@ func (p *proxy) Forward(ctx context.Context, target url.URL, w http.ResponseWrit
 				)
 			}
 
-			err = pErr
+			// Classify the error and wrap it with appropriate fault
+			err = p.classifyProxyError(pErr)
 		},
 	}
 

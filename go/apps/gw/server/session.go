@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -133,6 +134,8 @@ func (s *Session) send(status int, body []byte) error {
 	s.responseBody = body
 
 	s.w.WriteHeader(status)
+	log.Printf("gateway error: %d urn: %s", status, s.RequestID())
+
 	_, err := s.w.Write(body)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to send bytes"))

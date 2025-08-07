@@ -53,7 +53,17 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			// Determine status code based on error type
 			status := http.StatusInternalServerError
 
-			// Log the error
+			switch urn {
+			// Gateway errors - 502, 503, 504
+			case codes.UnkeyGatewayErrorsProxyBadGateway:
+				status = http.StatusBadGateway
+			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
+				status = http.StatusServiceUnavailable
+			case codes.UnkeyGatewayErrorsProxyGatewayTimeout:
+				status = http.StatusGatewayTimeout
+			}
+
+			// Log the error with correct status
 			logger.Error("gateway error",
 				"error", err.Error(),
 				"requestId", s.RequestID(),
@@ -61,11 +71,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				"status", status,
 			)
 
+			// Handle gateway errors with HTML responses
 			switch urn {
-			// Gateway errors - 502, 503, 504
 			case codes.UnkeyGatewayErrorsProxyBadGateway:
-				status = http.StatusBadGateway
-				return s.HTML(status, []byte(`<!DOCTYPE html>
+				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
    <meta charset="UTF-8">
@@ -81,8 +90,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 </html>`))
 
 			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
-				status = http.StatusServiceUnavailable
-				return s.HTML(status, []byte(`<!DOCTYPE html>
+				return s.HTML(http.StatusServiceUnavailable, []byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
    <meta charset="UTF-8">
@@ -98,8 +106,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 </html>`))
 
 			case codes.UnkeyGatewayErrorsProxyGatewayTimeout:
-				status = http.StatusGatewayTimeout
-				return s.HTML(status, []byte(`<!DOCTYPE html>
+				return s.HTML(http.StatusGatewayTimeout, []byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
    <meta charset="UTF-8">
@@ -113,7 +120,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
    <a href="/">Return to homepage</a>
 </body>
 </html>`))
-
 			}
 
 			// Create error response

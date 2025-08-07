@@ -8,8 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
-	"github.com/unkeyed/unkey/go/pkg/codes"
-	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
@@ -58,6 +56,9 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		)
 		return err
 	}
+
+	// verify key
+	// Authorization Header Bearer someAPiKey
 
 	// Associate the workspace ID with the session for metrics/logging
 	// EHH TODO:
@@ -110,11 +111,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"error", err.Error(),
 		)
 
-		return fault.Wrap(err,
-			fault.Code(codes.Gateway.Proxy.BadGateway.URN()),
-			fault.Internal("something went wrong proxying the request"),
-			fault.Public("We're unable to forward the request"),
-		)
+		return err
 	}
 
 	// Log successful request completion with full timing breakdown
