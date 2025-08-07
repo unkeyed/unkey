@@ -80,11 +80,13 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: str
         return namespaceNavItem;
       }),
     );
-  }, [data?.pages, segments]);
+  }, [data?.pages, segments, workspaceId]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex((item) => item.href === `/${workspaceId}/ratelimits`);
+    const ratelimitsItemIndex = items.findIndex(
+      (item) => item.href === `/${workspaceId}/ratelimits`,
+    );
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
@@ -104,7 +106,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: str
     }
 
     return items;
-  }, [baseNavItems, ratelimitNavItems, hasNextPage]);
+  }, [baseNavItems, ratelimitNavItems, hasNextPage, workspaceId]);
 
   const loadMore = () => {
     if (!isFetchingNextPage && hasNextPage) {
