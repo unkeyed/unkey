@@ -13,7 +13,7 @@ import (
 var (
 	PanicsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
-		Subsystem: "handler",
+		Subsystem: "internal",
 		Name:      "panics_total",
 		Help:      "Counter to track panics across http handlers",
 	}, []string{"caller", "path"})

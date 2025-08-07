@@ -67,7 +67,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       if: ${{ inputs.ts == 'true' }}
       name: Setup pnpm cache
       with:

@@ -13,12 +13,13 @@ import (
 var (
 	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type and outcome.
 	// The type should be either "root_key" or "key"
-	// Use this counter to monitor API traffic patterns and error rates.
+	// Use this counter to monitor API traffic patterns.
 	//
 	// Example usage:
 	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
 	KeyVerificationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
+			Namespace:   "unkey",
 			Subsystem:   "key",
 			Name:        "verifications_total",
 			Help:        "Total number of Key verifications processed.",
@@ -27,17 +28,21 @@ var (
 		[]string{"type", "code"},
 	)
 
-	// KeyCreditsSpentTotal tracks the total credits spent by keys, labeled by workspace ID, key ID, and identity ID.
-	// Use this counter to monitor credit usage patterns and error rates.
+	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
+	// These are not errors in the keys themselves like "FORBIDDEN", or "RATE_LIMITED" but errors in
+	// program functionality. Use this with the unkey_key_verifications_total metric to calculate
+	// the error rate.
 	//
 	// Example usage:
-	//   metrics.KeyCreditsSpentTotal.WithLabelValues("ws_1234", "key_abcd", "identity_xyz", "true").Add(5)
-	KeyCreditsSpentTotal = promauto.NewCounterVec(
+	//   metrics.KeyVerificationErrorsTotal.WithLabelValues("root_key").Inc()
+	KeyVerificationErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "key",
-			Name:      "credits_spent_total",
-			Help:      "Total credits spent by keys",
+			Namespace:   "unkey",
+			Subsystem:   "key",
+			Name:        "verification_errors_total",
+			Help:        "Total number of key verification errors",
+			ConstLabels: constLabels,
 		},
-		[]string{"workspace_id", "key_id", "identity_id", "deducted"},
+		[]string{"type"},
 	)
 )

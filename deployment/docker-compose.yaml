@@ -12,11 +12,19 @@ services:
       MYSQL_DATABASE: unkey
       MYSQL_USER: unkey
       MYSQL_PASSWORD: password
-    command: ["--max_connections=1000"]
+    command: ["--max_connections=1000", "--skip-log-bin"]
     ports:
       - 3306:3306
     volumes:
       - mysql:/var/lib/mysql
+    healthcheck:
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 10s
+
   planetscale:
     container_name: planetscale
     build:
@@ -31,7 +39,8 @@ services:
         "-mysql-idle-timeout=1s",
       ]
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     ports:
       - 3900:3900
 
@@ -121,6 +130,7 @@ services:
       BASIC_AUTH: proxy:password
     ports:
       - "7123:7123"
+
   clickhouse:
     image: bitnami/clickhouse:latest
     container_name: clickhouse
@@ -209,8 +219,6 @@ services:
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
       UNKEY_METALD_ADDRESS: "http://metald-aio:8080"
-
-    # Override the entrypoint to run ctrl command
 
   otel:
     image: grafana/otel-lgtm:latest
