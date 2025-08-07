@@ -100,8 +100,7 @@ export const queryProjects = t.procedure
     }
 
     // Combine all conditions
-    const allConditions =
-      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
+    const allConditions = [...baseConditions, ...filterConditions];
 
     try {
       const [totalResult, projectsResult] = await Promise.all([
