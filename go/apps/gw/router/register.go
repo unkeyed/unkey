@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gw/router/gateway_proxy"
@@ -49,7 +50,7 @@ func Register(srv *server.Server, svc *Services, region string) {
 		return
 	}
 
-	// Create the main proxy handler that handles all requests
+	// Create the main proxy handler that handles all gateway requests
 	proxyHandler := &gateway_proxy.Handler{
 		Logger:         svc.Logger,
 		RoutingService: svc.RoutingService,
@@ -57,9 +58,32 @@ func Register(srv *server.Server, svc *Services, region string) {
 		Keys:           svc.Keys,
 	}
 
-	// Wrap the handler with middleware and assign it to the server
-	// Since this is a gateway, we handle all routes with a single handler
-	srv.SetHandler(
-		srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares),
-	)
+	// Create a mux for routing
+	mux := http.NewServeMux()
+
+	// Health check endpoint - only on main domain
+	mux.HandleFunc("/unkey/_internal/liveness", func(w http.ResponseWriter, r *http.Request) {
+		// Extract host without port
+		host := r.Host
+		if idx := strings.Index(host, ":"); idx != -1 {
+			host = host[:idx]
+		}
+
+		// Only allow health checks from the main gateway domain
+		if svc.MainDomain != "" && host != svc.MainDomain {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Return health status
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok","service":"gateway"}`))
+	})
+
+	// All other routes go to the proxy handler (wrapped with middleware)
+	mux.Handle("/", srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares))
+
+	// Set the mux as the server handler
+	srv.SetHandler(mux)
 }

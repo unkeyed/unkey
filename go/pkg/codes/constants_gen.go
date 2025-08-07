@@ -140,4 +140,9 @@ const (
 	UnkeyGatewayErrorsProxyServiceUnavailable URN = "err:unkey:bad_gateway:service_unavailable"
 	// GatewayTimeout represents a 504 error - upstream server timeout
 	UnkeyGatewayErrorsProxyGatewayTimeout URN = "err:unkey:bad_gateway:gateway_timeout"
+
+	// Routing
+
+	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
+	UnkeyGatewayErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
 )

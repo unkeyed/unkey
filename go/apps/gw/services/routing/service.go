@@ -10,6 +10,7 @@ import (
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/partition/db"
@@ -78,14 +79,22 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, fault.Wrap(err)
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
+				fault.Internal("no gateway configuration found for hostname"),
+				fault.Public("No configuration found for this domain"),
+			)
 		}
 
 		return nil, fault.Wrap(err)
 	}
 
 	if hit == cache.Null {
-		return nil, fault.New("no target found")
+		return nil, fault.New("no target found",
+			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
+			fault.Internal("gateway config returned null"),
+			fault.Public("No configuration found for this domain"),
+		)
 	}
 
 	return config, err

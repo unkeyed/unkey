@@ -21,14 +21,19 @@ type service struct {
 	db db.Database
 
 	cache cache.Cache[string, tls.Certificate]
+
+	// DefaultCertDomain is the domain to use for fallback certificate
+	// When a domain has no cert, use this domain's cert instead
+	defaultCertDomain string
 }
 
 // New creates a new certificate manager.
 func New(cfg Config) *service {
 	return &service{
-		logger: cfg.Logger,
-		db:     cfg.DB,
-		cache:  cfg.TLSCertificateCache,
+		logger:            cfg.Logger,
+		db:                cfg.DB,
+		cache:             cfg.TLSCertificateCache,
+		defaultCertDomain: cfg.DefaultCertDomain,
 	}
 }
 
@@ -47,7 +52,17 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
-			// todo: return wrapped 404
+			// If we have a default cert domain configured, try to fetch that cert
+			if s.defaultCertDomain != "" && domain != s.defaultCertDomain {
+				s.logger.Warn("certificate not found, trying default certificate",
+					"domain", domain,
+					"defaultDomain", s.defaultCertDomain,
+				)
+				// Recursively call GetCertificate with the default domain
+				// This will use caching properly and fetch from DB if needed
+				return s.GetCertificate(ctx, s.defaultCertDomain)
+			}
+			// No default cert domain or the default domain itself has no cert
 			return nil, err
 		}
 

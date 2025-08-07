@@ -17,4 +17,5 @@ type Services struct {
 	ClickHouse     clickhouse.ClickHouse // For metrics middleware
 	Keys           keys.KeyService
 	Ratelimit      ratelimit.Service
+	MainDomain     string // Main gateway domain for internal endpoints
 }

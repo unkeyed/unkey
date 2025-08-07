@@ -34,6 +34,7 @@ Todos for Demo
 - [] OpenAPI request validation
 
 - just use current validator
+
 <!--- Find good library that supports spec 2.0 3.0 3.1
 - or write our own
 - Make this opt in as some API's might auto generate the schema and validate them ourselves-->

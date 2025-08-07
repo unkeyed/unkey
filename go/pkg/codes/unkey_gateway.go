@@ -12,11 +12,20 @@ type gatewayProxy struct {
 	GatewayTimeout Code
 }
 
+// gatewayRouting defines errors related to gateway routing functionality.
+type gatewayRouting struct {
+	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
+	ConfigNotFound Code
+}
+
 // UnkeyGatewayErrors defines all gateway-related errors in the Unkey system.
 // These errors occur when the gateway has issues communicating with backend services.
 type UnkeyGatewayErrors struct {
 	// Proxy contains errors related to gateway proxy functionality.
 	Proxy gatewayProxy
+
+	// Routing contains errors related to gateway routing functionality.
+	Routing gatewayRouting
 }
 
 // Gateway contains all predefined gateway error codes.
@@ -27,5 +36,8 @@ var Gateway = UnkeyGatewayErrors{
 		BadGateway:         Code{SystemUnkey, CategoryBadGateway, "bad_gateway"},
 		ServiceUnavailable: Code{SystemUnkey, CategoryBadGateway, "service_unavailable"},
 		GatewayTimeout:     Code{SystemUnkey, CategoryBadGateway, "gateway_timeout"},
+	},
+	Routing: gatewayRouting{
+		ConfigNotFound: Code{SystemUnkey, CategoryNotFound, "config_not_found"},
 	},
 }

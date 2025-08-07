@@ -185,11 +185,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create routing service: %w", err)
 	}
 
-	// Create certificate manager with partitioned database
+	// Create certificate manager with optional default cert domain
 	certManager := certmanager.New(certmanager.Config{
 		Logger:              logger,
 		DB:                  partitionedDB,
 		TLSCertificateCache: caches.TLSCertificate,
+		DefaultCertDomain:   cfg.DefaultCertDomain,
 	})
 
 	// Create gateway server
@@ -211,6 +212,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ClickHouse:     ch,
 		Keys:           keySvc,
 		Ratelimit:      nil,
+		MainDomain:     cfg.MainDomain,
 	}, cfg.Region)
 
 	shutdowns.RegisterCtx(srv.Shutdown)
