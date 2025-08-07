@@ -7,6 +7,7 @@ import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
+import { WorkspaceProviderWrapper } from "../../providers/workspace-provider-wrapper";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,7 +28,6 @@ export default async function Layout({ children }: LayoutProps) {
   });
 
   if (!workspace) {
-    console.log({ redirecting: "new", orgId: orgId, workspace: workspace });
     return redirect("/new");
   }
 
@@ -52,7 +52,9 @@ export default async function Layout({ children }: LayoutProps) {
 
               <div className="w-full">
                 {workspace.enabled ? (
-                  <QueryTimeProvider>{children}</QueryTimeProvider>
+                  <WorkspaceProviderWrapper initialWorkspace={workspace}>
+                    <QueryTimeProvider>{children}</QueryTimeProvider>
+                  </WorkspaceProviderWrapper>
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
                     <Empty>

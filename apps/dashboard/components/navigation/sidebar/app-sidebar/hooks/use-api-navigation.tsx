@@ -80,7 +80,7 @@ export const useApiNavigation = (baseNavItems: NavItem[], workspaceId: string) =
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex((item) => item.href === "/apis");
+    const apisItemIndex = items.findIndex((item) => item.href === `/${workspaceId}/apis`);
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };

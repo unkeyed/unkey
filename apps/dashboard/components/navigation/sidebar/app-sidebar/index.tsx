@@ -49,8 +49,10 @@ export function AppSidebar({
     [props.workspace, segments],
   );
 
-  const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
-    useApiNavigation(baseNavItems, props.workspace.id);
+  const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } = useApiNavigation(
+    baseNavItems,
+    props.workspace.id,
+  );
 
   const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
     useRatelimitNavigation(apiAddedNavItems, props.workspace.id);

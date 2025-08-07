@@ -1,4 +1,7 @@
-import { getOutcomeColor, getOutcomeOptions } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/utils";
+import {
+  getOutcomeColor,
+  getOutcomeOptions,
+} from "@/app/(app)/[workspace]/apis/[apiId]/_overview/utils";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { useFilters } from "../../../../hooks/use-filters";
 
