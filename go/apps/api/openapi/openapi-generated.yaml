@@ -1736,7 +1736,6 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_.:/-]+$"
                     description: |
                         Defines the scope of rate limiting by identifying the entity being limited.
                         Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.

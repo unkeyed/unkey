@@ -23,7 +23,7 @@ export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string):
     identityId: formValues.identityId || null,
     name: formValues.name === "" ? undefined : formValues.name,
     enabled: true,
-    environment: formValues.environment === "" ? undefined : formValues.name,
+    environment: formValues.environment === "" ? undefined : formValues.environment,
     meta:
       formValues.metadata?.enabled && formValues.metadata.data
         ? JSON.parse(formValues.metadata.data)
