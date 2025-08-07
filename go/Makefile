@@ -11,7 +11,7 @@ else
 endif
 
 GOMAXPROCS_VAL := $(or $(GOMAXPROCS),$(DETECTED_PROCS))
-PARALLEL_PROCS := $(shell echo $$(($(GOMAXPROCS_VAL) > 1 ? $(GOMAXPROCS_VAL)/2 : 1)))
+PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS_VAL) / 2; else echo 1; fi)
 
 install:
 	go mod tidy
@@ -28,7 +28,7 @@ up:
 	@echo "Starting ClickHouse migrations (will retry if ClickHouse isn't ready)..."
 	@for i in {1..10}; do \
 		echo "Migration attempt $$i..."; \
-		if docker compose -f ../deployment/docker-compose.yaml run --force-recreate --rm clickhouse_migrator; then \
+		if docker compose -f ../deployment/docker-compose.yaml run --rm clickhouse_migrator; then \
 			echo "Migrations completed successfully!"; \
 			break; \
 		else \
