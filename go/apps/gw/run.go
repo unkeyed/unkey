@@ -14,8 +14,10 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -109,7 +111,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	defer partitionedDB.Close()
 
-	// Database connection for keys service
+	// Create separate non-partitioned database connection for keys service
 	var keysDB db.Database
 	if cfg.KeysDatabasePrimary != "" {
 		keysDB, err = db.New(db.Config{
@@ -144,12 +146,25 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
 
+	// Use in-memory counter since Redis is nil
+	ctr := counter.NewMemory()
+
+	// Create rate limiting service
+	rlSvc, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Clock:   clk,
+		Counter: ctr,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create ratelimit service: %w", err)
+	}
+
 	// Create key service with non-partitioned database
 	keySvc, err := keys.New(keys.Config{
 		Logger:      logger,
 		DB:          keysDB,
 		KeyCache:    caches.VerificationKeyByHash,
-		RateLimiter: nil,
+		RateLimiter: rlSvc,
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
 		Region:      cfg.Region,
@@ -195,6 +210,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RoutingService: routingService,
 		ClickHouse:     ch,
 		Keys:           keySvc,
+		Ratelimit:      rlSvc,
 	}, cfg.Region)
 
 	shutdowns.RegisterCtx(srv.Shutdown)

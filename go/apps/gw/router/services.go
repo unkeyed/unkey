@@ -4,6 +4,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -15,4 +16,5 @@ type Services struct {
 	RoutingService routing.Service
 	ClickHouse     clickhouse.ClickHouse // For metrics middleware
 	Keys           keys.KeyService
+	Ratelimit      ratelimit.Service
 }
