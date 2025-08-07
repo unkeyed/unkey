@@ -3,12 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 // EventBuffer defines the interface for buffering events to be sent to ClickHouse.
@@ -47,10 +45,10 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 			}
 
 			// Record metrics
-			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
-			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
-			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
-			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(s.Latency().Seconds())
+			// labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
+			// metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
+			// metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
+			// metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(s.Latency().Seconds())
 
 			// Buffer to ClickHouse if enabled
 			// We don't need this ATM

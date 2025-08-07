@@ -19,6 +19,13 @@ type Config struct {
 	// EnableTLS specifies whether TLS should be enabled for the Gateway server
 	EnableTLS bool
 
+	// DefaultCertDomain is the domain to use for fallback TLS certificate
+	DefaultCertDomain string
+
+	// MainDomain is the primary domain for the gateway (e.g., gateway.unkey.com)
+	// Internal endpoints like /_internal/liveness are only accessible on this domain
+	MainDomain string
+
 	// --- ClickHouse configuration ---
 
 	// ClickhouseURL is the ClickHouse database connection string

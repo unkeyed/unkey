@@ -13,4 +13,5 @@ type Services struct {
 	CertManager    certmanager.Service
 	RoutingService routing.Service
 	ClickHouse     clickhouse.ClickHouse // For metrics middleware
+	MainDomain     string               // Main gateway domain for internal endpoints
 }

@@ -32,6 +32,12 @@ var Cmd = &cli.Command{
 
 		cli.Bool("tls-enabled", "Enable TLS termination for the gateway. Default: false",
 			cli.Default(false), cli.EnvVar("UNKEY_TLS_ENABLED")),
+		
+		cli.String("default-cert-domain", "Domain to use for fallback TLS certificate when a domain has no cert configured",
+			cli.EnvVar("UNKEY_DEFAULT_CERT_DOMAIN")),
+		
+		cli.String("main-domain", "Main gateway domain for internal endpoints (e.g., gateway.unkey.com)",
+			cli.EnvVar("UNKEY_MAIN_DOMAIN")),
 
 		// Database Configuration
 		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
@@ -67,7 +73,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		HttpPort: cmd.Int("http-port"),
 
 		// TLS configuration
-		EnableTLS: cmd.Bool("tls-enabled"),
+		EnableTLS:         cmd.Bool("tls-enabled"),
+		DefaultCertDomain: cmd.String("default-cert-domain"),
+		MainDomain:        cmd.String("main-domain"),
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),

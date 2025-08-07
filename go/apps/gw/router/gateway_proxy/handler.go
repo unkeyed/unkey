@@ -89,12 +89,9 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		"normalized_hostname", hostname,
 		"deploymentID", targetInfo.DeploymentId,
 		"selectedVM", targetURL.String(),
-		"config_lookup_latency_ms", configLookupLatency.Milliseconds(),
-		"config_lookup_latency_us", configLookupLatency.Microseconds(),
-		"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
-		"vm_selection_latency_us", vmSelectionLatency.Microseconds(),
-		"total_routing_latency_ms", routingLatency.Milliseconds(),
-		"total_routing_latency_us", routingLatency.Microseconds(),
+		"config_lookup_latency", configLookupLatency.String(),
+		"vm_selection_latency", vmSelectionLatency.String(),
+		"total_routing_latency", routingLatency.String(),
 	)
 
 	// Forward the request using the proxy service
@@ -106,8 +103,8 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"requestId", sess.RequestID(),
 			"deploymentID", targetInfo.DeploymentId,
 			"selectedVM", targetURL.String(),
-			"total_routing_latency_ms", routingLatency.Milliseconds(),
-			"proxy_latency_ms", proxyLatency.Milliseconds(),
+			"total_routing_latency", routingLatency.String(),
+			"proxy_latency_ms", proxyLatency.String(),
 			"error", err.Error(),
 		)
 
@@ -124,11 +121,11 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		"path", req.URL.Path,
 		"deploymentID", targetInfo.DeploymentId,
 		"selectedVM", targetURL.String(),
-		"config_lookup_latency_ms", configLookupLatency.Milliseconds(),
-		"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
-		"total_routing_latency_ms", routingLatency.Milliseconds(),
-		"proxy_latency_ms", proxyLatency.Milliseconds(),
-		"total_request_latency_ms", totalLatency.Milliseconds(),
+		"config_lookup_latency_ms", configLookupLatency.String(),
+		"vm_selection_latency_ms", vmSelectionLatency.String(),
+		"total_routing_latency_ms", routingLatency.String(),
+		"proxy_latency_ms", proxyLatency.String(),
+		"total_request_latency_ms", totalLatency.String(),
 		"routing_overhead_percent", float64(routingLatency.Microseconds())/float64(totalLatency.Microseconds())*100,
 	)
 

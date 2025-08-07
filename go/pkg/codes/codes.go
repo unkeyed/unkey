@@ -48,6 +48,9 @@ const (
 	// CategoryUserBadRequest represents invalid user input errors.
 	CategoryUserBadRequest Category = "bad_request"
 
+	// CategoryNotFound represents resource not found errors.
+	CategoryNotFound Category = "not_found"
+
 	// CategoryBadGateway represents errors related to upstream server unavailability.
 	CategoryBadGateway Category = "bad_gateway"
 

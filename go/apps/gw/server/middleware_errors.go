@@ -54,7 +54,9 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			status := http.StatusInternalServerError
 
 			switch urn {
-			// Gateway errors - 502, 503, 504
+			// Gateway errors - 404, 502, 503, 504
+			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
+				status = http.StatusNotFound
 			case codes.UnkeyGatewayErrorsProxyBadGateway:
 				status = http.StatusBadGateway
 			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
@@ -73,6 +75,22 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 
 			// Handle gateway errors with HTML responses
 			switch urn {
+			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
+				return s.HTML(http.StatusNotFound, []byte(`<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>404 Not Found</title>
+</head>
+<body>
+   <h1>404 Not Found</h1>
+   <p>No gateway configuration found for this hostname.</p>
+   <p>Please check your domain configuration.</p>
+   <a href="/">Return to homepage</a>
+</body>
+</html>`))
+
 			case codes.UnkeyGatewayErrorsProxyBadGateway:
 				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
 <html lang="en">
