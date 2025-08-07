@@ -468,6 +468,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			DeploymentId: req.DeploymentID,
 			IsEnabled:    true,
 			Vms:          vms,
+			// if we have keyspaceId set those to true `Enabled`, `RequireApiKey` and `keyspaceId`, if not just skip it
+			// Also update CLI to accept keyspaceId so we can verify it later in the gateway
+			AuthConfig: &partitionv1.AuthConfig{
+				Enabled:       true,
+				RequireApiKey: true,
+			},
 		}
 
 		// Marshal protobuf to bytes

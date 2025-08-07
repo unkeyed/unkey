@@ -210,7 +210,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RoutingService: routingService,
 		ClickHouse:     ch,
 		Keys:           keySvc,
-		Ratelimit:      rlSvc,
+		Ratelimit:      nil,
 	}, cfg.Region)
 
 	shutdowns.RegisterCtx(srv.Shutdown)

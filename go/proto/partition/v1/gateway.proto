@@ -4,7 +4,6 @@ package partition.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1";
 
-
 // GatewayConfig contains all configuration needed for a hostname
 // including deployment metadata and middleware configurations
 message GatewayConfig {
@@ -41,6 +40,7 @@ message AuthConfig {
   repeated string required_scopes = 2;
   string keyspace_id = 3;
   bool allow_anonymous = 4;
+  bool enabled = 5;
   // JWT configuration for downstream services
   JWTConfig jwt_config = 10;
 }

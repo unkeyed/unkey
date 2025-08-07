@@ -211,6 +211,7 @@ type AuthConfig struct {
 	RequiredScopes []string               `protobuf:"bytes,2,rep,name=required_scopes,json=requiredScopes,proto3" json:"required_scopes,omitempty"`
 	KeyspaceId     string                 `protobuf:"bytes,3,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
 	AllowAnonymous bool                   `protobuf:"varint,4,opt,name=allow_anonymous,json=allowAnonymous,proto3" json:"allow_anonymous,omitempty"`
+	Enabled        bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// JWT configuration for downstream services
 	JwtConfig     *JWTConfig `protobuf:"bytes,10,opt,name=jwt_config,json=jwtConfig,proto3" json:"jwt_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -271,6 +272,13 @@ func (x *AuthConfig) GetKeyspaceId() string {
 func (x *AuthConfig) GetAllowAnonymous() bool {
 	if x != nil {
 		return x.AllowAnonymous
+	}
+	return false
+}
+
+func (x *AuthConfig) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
 	}
 	return false
 }
@@ -585,14 +593,15 @@ const file_proto_partition_v1_gateway_proto_rawDesc = "" +
 	"git_branch\x18\x15 \x01(\tR\tgitBranch\",\n" +
 	"\x02VM\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06region\x18\x02 \x01(\tR\x06region\"\xdf\x01\n" +
+	"\x06region\x18\x02 \x01(\tR\x06region\"\xf9\x01\n" +
 	"\n" +
 	"AuthConfig\x12&\n" +
 	"\x0frequire_api_key\x18\x01 \x01(\bR\rrequireApiKey\x12'\n" +
 	"\x0frequired_scopes\x18\x02 \x03(\tR\x0erequiredScopes\x12\x1f\n" +
 	"\vkeyspace_id\x18\x03 \x01(\tR\n" +
 	"keyspaceId\x12'\n" +
-	"\x0fallow_anonymous\x18\x04 \x01(\bR\x0eallowAnonymous\x126\n" +
+	"\x0fallow_anonymous\x18\x04 \x01(\bR\x0eallowAnonymous\x12\x18\n" +
+	"\aenabled\x18\x05 \x01(\bR\aenabled\x126\n" +
 	"\n" +
 	"jwt_config\x18\n" +
 	" \x01(\v2\x17.partition.v1.JWTConfigR\tjwtConfig\"\x90\x01\n" +

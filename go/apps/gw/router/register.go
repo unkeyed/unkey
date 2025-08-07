@@ -54,6 +54,7 @@ func Register(srv *server.Server, svc *Services, region string) {
 		Logger:         svc.Logger,
 		RoutingService: svc.RoutingService,
 		Proxy:          proxyService,
+		Keys:           svc.Keys,
 	}
 
 	// Wrap the handler with middleware and assign it to the server
