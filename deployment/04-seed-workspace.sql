@@ -5,11 +5,11 @@ USE unkey;
 
 -- Insert root workspace
 INSERT INTO workspaces (
-  id, 
-  org_id, 
-  name, 
-  created_at_m, 
-  beta_features, 
+  id,
+  org_id,
+  name,
+  created_at_m,
+  beta_features,
   features
 ) VALUES (
   'ws_local_root',
@@ -20,8 +20,7 @@ INSERT INTO workspaces (
   '{}'
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
 
--- Insert quotas for the workspace
-INSERT INTO quotas (
+INSERT INTO quota (
   workspace_id,
   requests_per_month,
   audit_logs_retention_days,
