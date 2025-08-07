@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/go/pkg/repeat"
 )
@@ -24,10 +23,9 @@ type Buffer[T any] struct {
 }
 
 type Config struct {
-	Capacity int            // Maximum number of elements the buffer can hold
-	Drop     bool           // Whether to drop new elements when buffer is full
-	Name     string         // name of the buffer
-	Logger   logging.Logger // Logger for panic recovery and debugging
+	Capacity int    // Maximum number of elements the buffer can hold
+	Drop     bool   // Whether to drop new elements when buffer is full
+	Name     string // name of the buffer
 }
 
 // New creates a new Buffer with the specified configuration.
