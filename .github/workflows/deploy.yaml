@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   agent_local_test:
-    uses: ./.github/workflows/test_agent_local.yaml
+    uses: ./.github/workflows/job_test_agent_local.yaml
 
   build_agent_image:
     uses: ./.github/workflows/job_build_agent_image.yaml
