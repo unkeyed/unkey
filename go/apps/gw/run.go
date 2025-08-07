@@ -13,12 +13,15 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/services/caches"
 	"github.com/unkeyed/unkey/go/apps/gw/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/partition/db"
+	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
+	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/version"
 )
@@ -62,7 +65,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "api",
+			Application:     "gateway",
 			Version:         version.Version,
 			InstanceID:      cfg.GatewayID,
 			CloudRegion:     cfg.Region,
@@ -95,16 +98,32 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	db, err := db.New(db.Config{
+	// Create partitioned database connection for gateway operations
+	partitionedDB, err := partitiondb.New(partitiondb.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
 		Logger:      logger,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to create db: %w", err)
+		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
+	defer partitionedDB.Close()
 
-	defer db.Close()
+	// Database connection for keys service
+	var keysDB db.Database
+	if cfg.KeysDatabasePrimary != "" {
+		keysDB, err = db.New(db.Config{
+			PrimaryDSN:  cfg.KeysDatabasePrimary,
+			ReadOnlyDSN: cfg.KeysDatabaseReadonlyReplica,
+			Logger:      logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create keys db: %w", err)
+		}
+		defer keysDB.Close()
+	} else {
+		return fmt.Errorf("KeysDatabasePrimary is required for keys service")
+	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -125,9 +144,23 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
 
-	// Create routing service for dynamic routing
+	// Create key service with non-partitioned database
+	keySvc, err := keys.New(keys.Config{
+		Logger:      logger,
+		DB:          keysDB,
+		KeyCache:    caches.VerificationKeyByHash,
+		RateLimiter: nil,
+		RBAC:        rbac.New(),
+		Clickhouse:  ch,
+		Region:      cfg.Region,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
+
+	// Create routing service with partitioned database
 	routingService, err := routing.New(routing.Config{
-		DB:                 db,
+		DB:                 partitionedDB,
 		Logger:             logger,
 		Clock:              clk,
 		GatewayConfigCache: caches.GatewayConfig,
@@ -137,10 +170,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create routing service: %w", err)
 	}
 
-	// Create certificate manager - for now, create empty manager
+	// Create certificate manager with partitioned database
 	certManager := certmanager.New(certmanager.Config{
 		Logger:              logger,
-		DB:                  db,
+		DB:                  partitionedDB,
 		TLSCertificateCache: caches.TLSCertificate,
 	})
 
@@ -155,12 +188,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create gateway server: %w", err)
 	}
 
-	// Register routes
+	// Register routes with all services
 	router.Register(srv, &router.Services{
 		Logger:         logger,
 		CertManager:    certManager,
 		RoutingService: routingService,
 		ClickHouse:     ch,
+		Keys:           keySvc,
 	}, cfg.Region)
 
 	shutdowns.RegisterCtx(srv.Shutdown)
@@ -186,6 +220,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
-	logger.Info("API server shut down successfully")
+	logger.Info("Gateway server shut down successfully")
 	return nil
 }

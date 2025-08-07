@@ -9,8 +9,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/partition/db"
+	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // Caches holds all cache instances used throughout the application.
@@ -20,17 +21,17 @@ type Caches struct {
 	GatewayConfig cache.Cache[string, *partitionv1.GatewayConfig]
 
 	// VmID -> VM Info
-	VM cache.Cache[string, db.Vm]
-
+	VM cache.Cache[string, partitiondb.Vm]
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
+	// KeyHash -> Key verification data (for keys service)
+	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
 }
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
 	// Logger is used for logging cache operations and errors.
 	Logger logging.Logger
-
 	// Clock provides time functionality, allowing easier testing.
 	Clock clock.Clock
 }
@@ -77,7 +78,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create routing cache: %w", err)
 	}
 
-	vmCache, err := cache.New(cache.Config[string, db.Vm]{
+	vmCache, err := cache.New(cache.Config[string, partitiondb.Vm]{
 		Fresh:    30 * time.Second,
 		Stale:    30 * time.Minute,
 		Logger:   config.Logger,
@@ -101,9 +102,22 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create certificate cache: %w", err)
 	}
 
+	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		Logger:   config.Logger,
+		MaxSize:  1_000_000,
+		Resource: "verification_key_by_hash",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
-		GatewayConfig:  middleware.WithTracing(gatewayConfig),
-		VM:             middleware.WithTracing(vmCache),
-		TLSCertificate: middleware.WithTracing(tlsCertificate),
+		GatewayConfig:         middleware.WithTracing(gatewayConfig),
+		VM:                    middleware.WithTracing(vmCache),
+		TLSCertificate:        middleware.WithTracing(tlsCertificate),
+		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 	}, nil
 }

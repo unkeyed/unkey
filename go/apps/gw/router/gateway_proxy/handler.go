@@ -3,12 +3,16 @@ package gateway_proxy
 import (
 	"context"
 	"net"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 // Handler implements the main gateway proxy functionality.
@@ -17,6 +21,7 @@ type Handler struct {
 	Logger         logging.Logger
 	RoutingService routing.Service
 	Proxy          proxy.Proxy
+	Keys           keys.KeyService
 }
 
 // Handle processes all HTTP requests for the gateway.
@@ -57,12 +62,86 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		return err
 	}
 
-	// verify key
-	// Authorization Header Bearer someAPiKey
+	// Verify API key from Authorization header
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		h.Logger.Warn("missing authorization header",
+			"requestId", sess.RequestID(),
+			"host", req.Host,
+			"path", req.URL.Path,
+		)
+		http.Error(sess.ResponseWriter(), "Authorization header required", http.StatusUnauthorized)
+		return nil
+	}
+
+	// Extract Bearer token
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		h.Logger.Warn("invalid authorization header format",
+			"requestId", sess.RequestID(),
+			"host", req.Host,
+			"path", req.URL.Path,
+		)
+		http.Error(sess.ResponseWriter(), "Invalid authorization header format", http.StatusUnauthorized)
+		return nil
+	}
+
+	rootKey := strings.TrimPrefix(authHeader, "Bearer ")
+	if rootKey == "" {
+		h.Logger.Warn("empty api key",
+			"requestId", sess.RequestID(),
+			"host", req.Host,
+			"path", req.URL.Path,
+		)
+		http.Error(sess.ResponseWriter(), "API key is required", http.StatusUnauthorized)
+		return nil
+	}
+
+	// The keys service needs this for workspace tracking
+	zenSess := &zen.Session{}
+
+	// Verify the API key
+	keyVerifyStart := time.Now()
+	key, logKeyFunc, err := h.Keys.Get(ctx, zenSess, rootKey)
+	defer logKeyFunc()
+	keyVerifyLatency := time.Since(keyVerifyStart)
+
+	if err != nil {
+		h.Logger.Error("failed to verify api key",
+			"requestId", sess.RequestID(),
+			"host", req.Host,
+			"path", req.URL.Path,
+			"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
+			"error", err.Error(),
+		)
+		http.Error(sess.ResponseWriter(), "Internal server error", http.StatusInternalServerError)
+		return nil
+	}
+
+	// Check if key is valid
+	if key.Status != keys.StatusValid {
+		h.Logger.Warn("invalid api key",
+			"requestId", sess.RequestID(),
+			"host", req.Host,
+			"path", req.URL.Path,
+			"key_status", key.Status,
+			"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
+		)
+		http.Error(sess.ResponseWriter(), "Invalid API key", http.StatusUnauthorized)
+		return nil
+	}
+
+	// API key is valid, continue with request
+	h.Logger.Debug("api key verified successfully",
+		"requestId", sess.RequestID(),
+		"host", req.Host,
+		"path", req.URL.Path,
+		"key_id", key.Key.ID,
+		"workspace_id", key.Key.WorkspaceID,
+		"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
+	)
 
 	// Associate the workspace ID with the session for metrics/logging
-	// EHH TODO:
-	// sess.WorkspaceID = targetInfo.WorkspaceID
+	sess.WorkspaceID = key.Key.WorkspaceID
 
 	// Select an available VM for this gateway
 	vmSelectionStart := time.Now()
@@ -74,13 +153,14 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"deploymentID", targetInfo.DeploymentId,
 			"host", req.Host,
 			"config_lookup_latency_ms", configLookupLatency.Milliseconds(),
+			"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
 			"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
 			"error", err.Error(),
 		)
 		return err
 	}
 
-	// Calculate total routing overhead
+	// Calculate total routing overhead (including key verification)
 	routingLatency := time.Since(requestStart)
 
 	h.Logger.Debug("routing completed for request",
@@ -89,8 +169,12 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		"normalized_hostname", hostname,
 		"deploymentID", targetInfo.DeploymentId,
 		"selectedVM", targetURL.String(),
+		"key_id", key.Key.ID,
+		"workspace_id", key.Key.WorkspaceID,
 		"config_lookup_latency_ms", configLookupLatency.Milliseconds(),
 		"config_lookup_latency_us", configLookupLatency.Microseconds(),
+		"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
+		"key_verify_latency_us", keyVerifyLatency.Microseconds(),
 		"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
 		"vm_selection_latency_us", vmSelectionLatency.Microseconds(),
 		"total_routing_latency_ms", routingLatency.Milliseconds(),
@@ -106,7 +190,10 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"requestId", sess.RequestID(),
 			"deploymentID", targetInfo.DeploymentId,
 			"selectedVM", targetURL.String(),
+			"key_id", key.Key.ID,
+			"workspace_id", key.Key.WorkspaceID,
 			"total_routing_latency_ms", routingLatency.Milliseconds(),
+			"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
 			"proxy_latency_ms", proxyLatency.Milliseconds(),
 			"error", err.Error(),
 		)
@@ -124,12 +211,16 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		"path", req.URL.Path,
 		"deploymentID", targetInfo.DeploymentId,
 		"selectedVM", targetURL.String(),
+		"key_id", key.Key.ID,
+		"workspace_id", key.Key.WorkspaceID,
 		"config_lookup_latency_ms", configLookupLatency.Milliseconds(),
+		"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
 		"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
 		"total_routing_latency_ms", routingLatency.Milliseconds(),
 		"proxy_latency_ms", proxyLatency.Milliseconds(),
 		"total_request_latency_ms", totalLatency.Milliseconds(),
 		"routing_overhead_percent", float64(routingLatency.Microseconds())/float64(totalLatency.Microseconds())*100,
+		"key_verify_overhead_percent", float64(keyVerifyLatency.Microseconds())/float64(totalLatency.Microseconds())*100,
 	)
 
 	return nil
