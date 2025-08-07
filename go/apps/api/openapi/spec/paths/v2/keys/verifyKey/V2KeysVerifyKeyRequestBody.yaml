@@ -47,8 +47,7 @@ properties:
   permissions:
     type: string
     minLength: 1
-    maxLength: 1000 # Allow for complex permission queries
-    pattern: "^[a-zA-Z0-9_.()\\s-]+$"
+    maxLength: 1000
     description: |
       Checks if the key has the specified permission(s) using a query syntax.
       Supports single permissions, logical operators (AND, OR), and parentheses for grouping.

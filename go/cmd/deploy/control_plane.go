@@ -16,19 +16,19 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// VersionStatusEvent represents a status change event
-type VersionStatusEvent struct {
-	VersionID      string
+// DeploymentStatusEvent represents a status change event
+type DeploymentStatusEvent struct {
+	DeploymentID   string
 	PreviousStatus ctrlv1.VersionStatus
 	CurrentStatus  ctrlv1.VersionStatus
 	Version        *ctrlv1.Version
 }
 
-// VersionStepEvent represents a step update event
-type VersionStepEvent struct {
-	VersionID string
-	Step      *ctrlv1.VersionStep
-	Status    ctrlv1.VersionStatus
+// DeploymentStepEvent represents a step update event
+type DeploymentStepEvent struct {
+	DeploymentID string
+	Step         *ctrlv1.VersionStep
+	Status       ctrlv1.VersionStatus
 }
 
 // ControlPlaneClient handles API operations with the control plane
@@ -48,8 +48,8 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	}
 }
 
-// CreateVersion creates a new version in the control plane
-func (c *ControlPlaneClient) CreateVersion(ctx context.Context, dockerImage string) (string, error) {
+// CreateDeployment creates a new deployment in the control plane
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
 	createReq := connect.NewRequest(&ctrlv1.CreateVersionRequest{
 		WorkspaceId:    c.opts.WorkspaceID,
 		ProjectId:      c.opts.ProjectID,
@@ -64,21 +64,21 @@ func (c *ControlPlaneClient) CreateVersion(ctx context.Context, dockerImage stri
 
 	createResp, err := c.client.CreateVersion(ctx, createReq)
 	if err != nil {
-		return "", c.handleCreateVersionError(err)
+		return "", c.handleCreateDeploymentError(err)
 	}
 
-	versionId := createResp.Msg.GetVersionId()
-	if versionId == "" {
-		return "", fmt.Errorf("empty version ID returned from control plane")
+	deploymentId := createResp.Msg.GetVersionId()
+	if deploymentId == "" {
+		return "", fmt.Errorf("empty deployment ID returned from control plane")
 	}
 
-	return versionId, nil
+	return deploymentId, nil
 }
 
-// GetVersion retrieves version information from the control plane
-func (c *ControlPlaneClient) GetVersion(ctx context.Context, versionId string) (*ctrlv1.Version, error) {
+// GetDeployment retrieves deployment information from the control plane
+func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId string) (*ctrlv1.Version, error) {
 	getReq := connect.NewRequest(&ctrlv1.GetVersionRequest{
-		VersionId: versionId,
+		VersionId: deploymentId,
 	})
 	getReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
 
@@ -90,13 +90,13 @@ func (c *ControlPlaneClient) GetVersion(ctx context.Context, versionId string) (
 	return getResp.Msg.GetVersion(), nil
 }
 
-// PollVersionStatus polls for version changes and calls event handlers
-func (c *ControlPlaneClient) PollVersionStatus(
+// PollDeploymentStatus polls for deployment changes and calls event handlers
+func (c *ControlPlaneClient) PollDeploymentStatus(
 	ctx context.Context,
 	logger logging.Logger,
-	versionId string,
-	onStatusChange func(VersionStatusEvent) error,
-	onStepUpdate func(VersionStepEvent) error,
+	deploymentId string,
+	onStatusChange func(DeploymentStatusEvent) error,
+	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
@@ -114,18 +114,18 @@ func (c *ControlPlaneClient) PollVersionStatus(
 		case <-timeout.C:
 			return fmt.Errorf("deployment timeout after 5 minutes")
 		case <-ticker.C:
-			version, err := c.GetVersion(ctx, versionId)
+			version, err := c.GetDeployment(ctx, deploymentId)
 			if err != nil {
-				logger.Debug("Failed to get version status", "error", err, "version_id", versionId)
+				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentId)
 				continue
 			}
 
 			currentStatus := version.GetStatus()
 
-			// Handle version status changes
+			// Handle deployment status changes
 			if currentStatus != lastStatus {
-				event := VersionStatusEvent{
-					VersionID:      versionId,
+				event := DeploymentStatusEvent{
+					DeploymentID:   deploymentId,
 					PreviousStatus: lastStatus,
 					CurrentStatus:  currentStatus,
 					Version:        version,
@@ -138,7 +138,7 @@ func (c *ControlPlaneClient) PollVersionStatus(
 			}
 
 			// Process new step updates
-			if err := c.processNewSteps(versionId, version.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
+			if err := c.processNewSteps(deploymentId, version.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
 				return err
 			}
 
@@ -152,11 +152,11 @@ func (c *ControlPlaneClient) PollVersionStatus(
 
 // processNewSteps processes new deployment steps and calls the event handler
 func (c *ControlPlaneClient) processNewSteps(
-	versionId string,
+	deploymentId string,
 	steps []*ctrlv1.VersionStep,
 	processedSteps map[int64]bool,
 	currentStatus ctrlv1.VersionStatus,
-	onStepUpdate func(VersionStepEvent) error,
+	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
 	for _, step := range steps {
 		// Creation timestamp as unique identifier
@@ -173,10 +173,10 @@ func (c *ControlPlaneClient) processNewSteps(
 
 		// Call step update handler
 		if step.GetMessage() != "" {
-			event := VersionStepEvent{
-				VersionID: versionId,
-				Step:      step,
-				Status:    currentStatus,
+			event := DeploymentStepEvent{
+				DeploymentID: deploymentId,
+				Step:         step,
+				Status:       currentStatus,
 			}
 			if err := onStepUpdate(event); err != nil {
 				return err
@@ -211,8 +211,8 @@ func (c *ControlPlaneClient) getFailureMessage(version *ctrlv1.Version) string {
 	return "Unknown deployment error"
 }
 
-// handleCreateVersionError provides specific error handling for version creation
-func (c *ControlPlaneClient) handleCreateVersionError(err error) error {
+// handleCreateDeploymentError provides specific error handling for deployment creation
+func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
 	// Check if it's a connection error
 	if strings.Contains(err.Error(), "connection refused") {
 		return fault.Wrap(err,
@@ -236,7 +236,7 @@ func (c *ControlPlaneClient) handleCreateVersionError(err error) error {
 	// Generic API error
 	return fault.Wrap(err,
 		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-		fault.Internal(fmt.Sprintf("CreateVersion API call failed: %v", err)),
-		fault.Public("Failed to create version. Please try again."),
+		fault.Internal(fmt.Sprintf("CreateDeployment API call failed: %v", err)),
+		fault.Public("Failed to create deployment. Please try again."),
 	)
 }

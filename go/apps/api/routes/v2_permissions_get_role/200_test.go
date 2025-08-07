@@ -95,10 +95,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Role)
 
 		// Verify role data
-		role := res.Body.Data.Role
+		role := res.Body.Data
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)
@@ -106,11 +105,11 @@ func TestSuccess(t *testing.T) {
 
 		// Verify permissions
 		require.NotNil(t, role.Permissions)
-		require.Len(t, role.Permissions, 2)
+		require.Len(t, *role.Permissions, 2)
 
 		// Create a map of permission IDs for easier checking
 		permMap := make(map[string]bool)
-		for _, perm := range role.Permissions {
+		for _, perm := range *role.Permissions {
 			permMap[perm.Id] = true
 		}
 
@@ -150,17 +149,15 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Role)
 
 		// Verify role data
-		role := res.Body.Data.Role
+		role := res.Body.Data
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)
 		require.Equal(t, roleDesc, *role.Description)
 
 		// Verify permissions array is empty
-		require.Empty(t, role.Permissions)
-		require.Len(t, role.Permissions, 0)
+		require.Nil(t, role.Permissions)
 	})
 }

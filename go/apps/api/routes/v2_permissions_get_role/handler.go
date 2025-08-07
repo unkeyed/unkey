@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -94,6 +95,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rolePermissions := make([]db.Permission, 0)
 	json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
+
+	perms := make([]openapi.Permission, 0)
 	for _, perm := range rolePermissions {
 		permission := openapi.Permission{
 			Id:          perm.ID,
@@ -107,15 +110,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permission.Description = &perm.Description.String
 		}
 
-		roleResponse.Permissions = append(roleResponse.Permissions, permission)
+		perms = append(perms, permission)
+	}
+
+	if len(perms) > 0 {
+		roleResponse.Permissions = ptr.P(perms)
 	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.V2PermissionsGetRoleResponseData{
-			Role: roleResponse,
-		},
+		Data: roleResponse,
 	})
 }

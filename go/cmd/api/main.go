@@ -62,23 +62,16 @@ var Cmd = &cli.Command{
 		// Vault Configuration
 		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
 			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
-
-		// S3 Configuration
 		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
 			cli.EnvVar("UNKEY_VAULT_S3_URL")),
 		cli.String("vault-s3-bucket", "S3 bucket name",
 			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
 		cli.String("vault-s3-access-key-id", "S3 access key ID",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
-		cli.String("vault-s3-secret-access-key", "S3 secret access key",
-			cli.EnvVar("UNKEY_VAULT_S3_SECRET_ACCESS_KEY")),
+		cli.String("vault-s3-access-key-secret", "S3 secret access key",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		// ClickHouse Proxy Service Configuration
-		cli.Bool(
-			"chproxy-enabled",
-			"Enable ClickHouse proxy endpoints for high-throughput event collection",
-			cli.EnvVar("UNKEY_CHPROXY_ENABLED"),
-		),
 		cli.String(
 			"chproxy-auth-token",
 			"Authentication token for ClickHouse proxy endpoints. Required when proxy is enabled.",
@@ -113,7 +106,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
-			SecretAccessKey: cmd.String("vault-s3-secret-access-key"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
 		}
 	}
 
@@ -152,8 +145,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		VaultS3:         vaultS3Config,
 
 		// ClickHouse proxy configuration
-		ChproxyEnabled: cmd.Bool("chproxy-enabled"),
-		ChproxyToken:   cmd.String("chproxy-auth-token"),
+		ChproxyToken: cmd.String("chproxy-auth-token"),
 	}
 
 	err := config.Validate()

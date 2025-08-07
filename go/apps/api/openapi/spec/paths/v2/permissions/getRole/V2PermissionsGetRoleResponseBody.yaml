@@ -6,5 +6,5 @@ properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    "$ref": "./V2PermissionsGetRoleResponseData.yaml"
+    "$ref": "../../../../common/Role.yaml"
 additionalProperties: false

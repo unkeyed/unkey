@@ -17,6 +17,7 @@ import (
 
 // RatelimitConfigAndResult holds both the configuration and result for a rate limit
 type RatelimitConfigAndResult struct {
+	ID         string
 	Cost       int64
 	Name       string
 	Duration   time.Duration
@@ -29,22 +30,29 @@ type RatelimitConfigAndResult struct {
 // KeyVerifier represents a key that has been loaded from the database and is ready for verification.
 // It contains all the necessary information and services to perform various validation checks.
 type KeyVerifier struct {
-	Key                   db.FindKeyForVerificationRow                  // The key data from the database
-	ratelimitConfigs      map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
-	Roles                 []string                                      // RBAC roles assigned to this key
-	Permissions           []string                                      // RBAC permissions assigned to this key
-	Status                KeyStatus                                     // The current validation status
-	AuthorizedWorkspaceID string                                        // The workspace ID this key is authorized for
-	RatelimitResults      map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
-	isRootKey             bool                                          // Whether this is a root key (special handling)
-	session               *zen.Session                                  // The current request session
-	rateLimiter           ratelimit.Service                             // Rate limiting service
-	usageLimiter          usagelimiter.Service                          // Usage limiting service
-	rBAC                  *rbac.RBAC                                    // Role-based access control service
-	clickhouse            clickhouse.ClickHouse                         // Clickhouse for telemetry
-	logger                logging.Logger                                // Logger for verification operations
-	message               string                                        // Internal message for validation failures
-	tags                  []string                                      // Tags associated with the key
+	Key                   db.FindKeyForVerificationRow // The key data from the database
+	Roles                 []string                     // RBAC roles assigned to this key
+	Permissions           []string                     // RBAC permissions assigned to this key
+	Status                KeyStatus                    // The current validation status
+	AuthorizedWorkspaceID string                       // The workspace ID this key is authorized for
+
+	ratelimitConfigs map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
+	RatelimitResults map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
+
+	isRootKey bool // Whether this is a root key (special handling)
+
+	message string   // Internal message for validation failures
+	tags    []string // Tags associated with this verification
+
+	session *zen.Session // The current request session
+	region  string       // Geographic region identifier
+
+	// Services
+	rateLimiter  ratelimit.Service     // Rate limiting service
+	usageLimiter usagelimiter.Service  // Usage limiting service
+	rBAC         *rbac.RBAC            // Role-based access control service
+	clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
+	logger       logging.Logger        // Logger for verification operations
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
@@ -115,14 +123,14 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 func (k *KeyVerifier) log() {
 	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
 		RequestID:   k.session.RequestID(),
-		WorkspaceID: k.session.AuthorizedWorkspaceID(),
+		WorkspaceID: k.Key.WorkspaceID,
 		Time:        time.Now().UnixMilli(),
-		Region:      "",
 		Outcome:     string(k.Status),
 		KeySpaceID:  k.Key.KeyAuthID,
 		KeyID:       k.Key.ID,
 		IdentityID:  k.Key.IdentityID.String,
 		Tags:        k.tags,
+		Region:      k.region,
 	})
 
 	keyType := "key"

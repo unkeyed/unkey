@@ -103,7 +103,7 @@ post:
     type: cursor
     inputs:
       - name: cursor
-        in: parameters
+        in: requestBody
         type: cursor
     outputs:
       nextCursor: "$.data.cursor"

@@ -5,7 +5,6 @@ import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type { ErrorResponse } from "@unkey/api/src";
 import { sha256 } from "@unkey/hash";
 import { KeyV1 } from "@unkey/keys";
 import type { V1KeysGetKeyResponse } from "./v1_keys_getKey";
@@ -481,7 +480,12 @@ test("an error rolls back and does not create any keys", async (t) => {
   // add a duplicate
   req.push(req[0]);
 
-  const res = await h.post<V1MigrationsCreateKeysRequest, ErrorResponse>({
+  const res = await h.post<
+    V1MigrationsCreateKeysRequest,
+    {
+      error: { code: string };
+    }
+  >({
     url: "/v1/migrations.createKeys",
     headers: {
       "Content-Type": "application/json",

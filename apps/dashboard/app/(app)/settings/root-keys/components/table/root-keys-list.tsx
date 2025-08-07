@@ -4,10 +4,12 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { BookBookmark, Dots, Key2 } from "@unkey/icons";
+import type { UnkeyPermission } from "@unkey/rbac";
 import { Button, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { RootKeyDialog } from "../root-key/root-key-dialog";
 import { AssignedItemsCell } from "./components/assigned-items-cell";
 import { CriticalPermissionIndicator } from "./components/critical-perm-warning";
 import { LastUpdated } from "./components/last-updated";
@@ -46,6 +48,124 @@ export const RootKeysList = () => {
   const { rootKeys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     useRootKeysListQuery();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingKey, setEditingKey] = useState<RootKey | null>(null);
+
+  const handleEditKey = useCallback((rootKey: RootKey) => {
+    setEditingKey(rootKey);
+    setEditDialogOpen(true);
+  }, []);
+
+  // Memoize the selected root key ID to prevent unnecessary re-renders
+  const selectedRootKeyId = selectedRootKey?.id;
+
+  // Memoize the row click handler
+  const handleRowClick = useCallback((rootKey: RootKey) => {
+    setSelectedRootKey(rootKey);
+  }, []);
+
+  // Memoize the row className function
+  const getRowClassNameMemoized = useCallback(
+    (rootKey: RootKey) => getRowClassName(rootKey, selectedRootKey),
+    [selectedRootKey],
+  );
+
+  // Memoize the loadMoreFooterProps to prevent unnecessary re-renders
+  const loadMoreFooterProps = useMemo(
+    () => ({
+      hide: isLoading,
+      buttonText: "Load more root keys",
+      hasMore,
+      countInfoText: (
+        <div className="flex gap-2">
+          <span>Showing</span> <span className="text-accent-12">{rootKeys.length}</span>
+          <span>of</span>
+          {totalCount}
+          <span>root keys</span>
+        </div>
+      ),
+    }),
+    [isLoading, hasMore, rootKeys.length, totalCount],
+  );
+
+  // Memoize the emptyState to prevent unnecessary re-renders
+  const emptyState = useMemo(
+    () => (
+      <div className="w-full flex justify-center items-center h-full">
+        <Empty className="w-[400px] flex items-start">
+          <Empty.Icon className="w-auto" />
+          <Empty.Title>No Root Keys Found</Empty.Title>
+          <Empty.Description className="text-left">
+            There are no root keys configured yet. Create your first role to start managing
+            permissions and access control.
+          </Empty.Description>
+          <Empty.Actions className="mt-4 justify-start">
+            <a
+              href="https://www.unkey.com/docs/security/root-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button size="md">
+                <BookBookmark />
+                Learn about Root Keys
+              </Button>
+            </a>
+          </Empty.Actions>
+        </Empty>
+      </div>
+    ),
+    [],
+  );
+
+  // Memoize the config to prevent unnecessary re-renders
+  const config = useMemo(
+    () => ({
+      rowHeight: 52,
+      layoutMode: "grid" as const,
+      rowBorders: true,
+      containerPadding: "px-0",
+    }),
+    [],
+  );
+
+  // Memoize the keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((rootKey: RootKey) => rootKey.id, []);
+
+  // Memoize the renderSkeletonRow function to prevent unnecessary re-renders
+  const renderSkeletonRow = useCallback(
+    ({ columns, rowHeight }: { columns: Column<RootKey>[]; rowHeight: number }) =>
+      columns.map((column) => (
+        <td
+          key={column.key}
+          className={cn(
+            "text-xs align-middle whitespace-nowrap",
+            column.key === "root_key" ? "py-[6px]" : "py-1",
+          )}
+          style={{ height: `${rowHeight}px` }}
+        >
+          {column.key === "root_key" && <RootKeyColumnSkeleton />}
+          {column.key === "key" && <KeyColumnSkeleton />}
+          {column.key === "created_at" && <CreatedAtColumnSkeleton />}
+          {column.key === "permissions" && <PermissionsColumnSkeleton />}
+          {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
+          {column.key === "action" && <ActionColumnSkeleton />}
+        </td>
+      )),
+    [],
+  );
+
+  // Memoize the existingKey object to prevent unnecessary re-renders
+  const existingKey = useMemo(
+    () =>
+      editingKey
+        ? {
+            id: editingKey.id,
+            name: editingKey.name,
+            permissions: editingKey.permissions.map((p) => p.name as UnkeyPermission),
+          }
+        : null,
+    [editingKey],
+  );
 
   const columns: Column<RootKey>[] = useMemo(
     () => [
@@ -55,7 +175,7 @@ export const RootKeysList = () => {
         width: "15%",
         headerClassName: "pl-[18px]",
         render: (rootKey) => {
-          const isSelected = rootKey.id === selectedRootKey?.id;
+          const isSelected = rootKey.id === selectedRootKeyId;
           const iconContainer = (
             <div
               className={cn(
@@ -103,7 +223,7 @@ export const RootKeysList = () => {
             <HiddenValueCell
               value={rootKey.start}
               title="Key"
-              selected={selectedRootKey?.id === rootKey.id}
+              selected={selectedRootKeyId === rootKey.id}
             />
           </InfoTooltip>
         ),
@@ -114,7 +234,7 @@ export const RootKeysList = () => {
         width: "15%",
         render: (rootKey) => (
           <AssignedItemsCell
-            isSelected={rootKey.id === selectedRootKey?.id}
+            isSelected={rootKey.id === selectedRootKeyId}
             permissionSummary={rootKey.permissionSummary}
           />
         ),
@@ -140,7 +260,7 @@ export const RootKeysList = () => {
           return (
             <LastUpdated
               lastUpdated={rootKey.lastUpdatedAt ?? 0}
-              isSelected={rootKey.id === selectedRootKey?.id}
+              isSelected={rootKey.id === selectedRootKeyId}
             />
           );
         },
@@ -150,86 +270,40 @@ export const RootKeysList = () => {
         header: "",
         width: "auto",
         render: (rootKey) => {
-          return <RootKeysTableActions rootKey={rootKey} />;
+          return <RootKeysTableActions rootKey={rootKey} onEditKey={handleEditKey} />;
         },
       },
     ],
-    [selectedRootKey?.id],
+    [selectedRootKeyId, handleEditKey],
   );
 
   return (
-    <VirtualTable
-      data={rootKeys}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onLoadMore={loadMore}
-      columns={columns}
-      onRowClick={setSelectedRootKey}
-      selectedItem={selectedRootKey}
-      keyExtractor={(rootKey) => rootKey.id}
-      rowClassName={(rootKey) => getRowClassName(rootKey, selectedRootKey)}
-      loadMoreFooterProps={{
-        hide: isLoading,
-        buttonText: "Load more root keys",
-        hasMore,
-        countInfoText: (
-          <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{rootKeys.length}</span>
-            <span>of</span>
-            {totalCount}
-            <span>root keys</span>
-          </div>
-        ),
-      }}
-      emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Root Keys Found</Empty.Title>
-            <Empty.Description className="text-left">
-              There are no root keys configured yet. Create your first role to start managing
-              permissions and access control.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/security/root-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Learn about Root Keys
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      }
-      config={{
-        rowHeight: 52,
-        layoutMode: "grid",
-        rowBorders: true,
-        containerPadding: "px-0",
-      }}
-      renderSkeletonRow={({ columns, rowHeight }) =>
-        columns.map((column) => (
-          <td
-            key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              column.key === "root_key" ? "py-[6px]" : "py-1",
-            )}
-            style={{ height: `${rowHeight}px` }}
-          >
-            {column.key === "root_key" && <RootKeyColumnSkeleton />}
-            {column.key === "key" && <KeyColumnSkeleton />}
-            {column.key === "created_at" && <CreatedAtColumnSkeleton />}
-            {column.key === "permissions" && <PermissionsColumnSkeleton />}
-            {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
-            {column.key === "action" && <ActionColumnSkeleton />}
-          </td>
-        ))
-      }
-    />
+    <>
+      <VirtualTable
+        data={rootKeys}
+        isLoading={isLoading}
+        isFetchingNextPage={isLoadingMore}
+        onLoadMore={loadMore}
+        columns={columns}
+        onRowClick={handleRowClick}
+        selectedItem={selectedRootKey}
+        keyExtractor={keyExtractor}
+        rowClassName={getRowClassNameMemoized}
+        loadMoreFooterProps={loadMoreFooterProps}
+        emptyState={emptyState}
+        config={config}
+        renderSkeletonRow={renderSkeletonRow}
+      />
+      {editingKey && existingKey && (
+        <RootKeyDialog
+          title="Edit root key"
+          subTitle="Update the name and permissions for this root key"
+          isOpen={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          editMode={true}
+          existingKey={existingKey}
+        />
+      )}
+    </>
   );
 };

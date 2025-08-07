@@ -1,0 +1,400 @@
+---
+title: "/v1/identities.*"
+description: "Changes and improvements to identity endpoints from v1 to v2"
+---
+
+This guide covers the changes to identity endpoints between v1 and v2. Both versions provide full identity management capabilities with different API patterns.
+
+## Overview
+
+### What Changed in v2:
+- **HTTP methods**: GET endpoints changed to POST for consistency
+- **Request format**: Query parameters moved to request body
+- **Response format**: Direct response wrapped in structured `{meta, data}` format
+- **Parameter flexibility**: Enhanced parameter handling (accepts both identityId and externalId)
+- **Error handling**: Improved error response structure
+
+### Migration Impact:
+- **v1**: Mixed GET/POST with query parameters and direct responses
+- **v2**: All POST with request bodies and structured `{meta, data}` responses
+- **Benefit**: Consistent API patterns, better error tracking, enhanced flexibility
+
+---
+
+## POST /v1/identities.createIdentity → POST /v2/identities.createIdentity
+
+**Purpose:** Create a new identity with metadata and rate limits.
+
+**Changes:** Request format unchanged, response wrapped in structured format.
+
+<Tabs>
+<Tab title="Request Comparison" icon="user-plus">
+```json title="v1 vs v2: Create Identity Request" expandable
+// v1: POST /v1/identities.createIdentity
+{
+  "externalId": "user_123",
+  "meta": {
+    "email": "user@example.com",
+    "plan": "pro"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 1000,
+      "duration": 3600000
+    }
+  ]
+}
+
+// v2: POST /v2/identities.createIdentity (same request format)
+{
+  "externalId": "user_123",
+  "meta": {
+    "email": "user@example.com",
+    "plan": "pro"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 1000,
+      "duration": 3600000
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Response Comparison" icon="database">
+```json title="v1 vs v2: Create Identity Response" expandable
+// v1: Direct response
+{
+  "identityId": "id_abc123def456"
+}
+
+// v2: Structured response with meta wrapper
+{
+  "meta": {
+    "requestId": "req_createidentity123"
+  },
+  "data": {
+    "identityId": "id_abc123def456"
+  }
+}
+```
+</Tab>
+<Tab title="cURL Examples" icon="terminal">
+```bash title="Migration Examples"
+# v1: Create identity
+curl -X POST https://api.unkey.dev/v1/identities.createIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"externalId": "user_123", "meta": {"email": "user@example.com"}, "ratelimits": [{"name": "requests", "limit": 1000, "duration": 3600000}]}'
+
+# v2: Create identity (same request, structured response)
+curl -X POST https://api.unkey.com/v2/identities.createIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"externalId": "user_123", "meta": {"email": "user@example.com"}, "ratelimits": [{"name": "requests", "limit": 1000, "duration": 3600000}]}'
+```
+</Tab>
+</Tabs>
+
+---
+
+## GET /v1/identities.getIdentity → POST /v2/identities.getIdentity
+
+**Purpose:** Retrieve identity data by ID or external ID.
+
+**Key Changes:** GET with query parameters → POST with request body, response format enhanced.
+
+<Tabs>
+<Tab title="Request Migration" icon="user">
+```bash title="v1 vs v2: Get Identity Request"
+# v1: GET with query parameters
+curl -X GET "https://api.unkey.dev/v1/identities.getIdentity?externalId=user_123" \
+  -H "Authorization: Bearer <your-root-key>"
+
+# Alternative v1: Using identityId
+curl -X GET "https://api.unkey.dev/v1/identities.getIdentity?identityId=identity_123" \
+  -H "Authorization: Bearer <your-root-key>"
+
+# v2: POST with request body (accepts both ID types)
+curl -X POST https://api.unkey.com/v2/identities.getIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"identity": "user_123"}'
+```
+</Tab>
+<Tab title="Response Comparison" icon="database">
+```json title="v1 vs v2: Get Identity Response" expandable
+// v1: Direct response
+{
+  "id": "id_abc123def456",
+  "externalId": "user_123",
+  "meta": {
+    "email": "user@example.com",
+    "plan": "pro"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 1000,
+      "duration": 3600000
+    }
+  ]
+}
+
+// v2: Structured response with meta wrapper
+{
+  "meta": {
+    "requestId": "req_getidentity456"
+  },
+  "data": {
+    "id": "id_abc123def456",
+    "externalId": "user_123",
+    "meta": {
+      "email": "user@example.com",
+      "plan": "pro"
+    },
+    "ratelimits": [
+      {
+        "id": "rl_abcdef123456",
+        "name": "requests",
+        "limit": 1000,
+        "duration": 3600000
+      }
+    ]
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## GET /v1/identities.listIdentities → POST /v2/identities.listIdentities
+
+**Purpose:** Get paginated list of all identities.
+
+**Key Changes:** GET with query parameters → POST with request body, enhanced pagination structure.
+
+<Tabs>
+<Tab title="Request Migration" icon="user-group">
+```bash title="v1 vs v2: List Identities Request"
+# v1: GET with query parameters
+curl -X GET "https://api.unkey.dev/v1/identities.listIdentities?limit=50&cursor=eyJrZXkiOiJrZXlfMTIzNCJ9" \
+  -H "Authorization: Bearer <your-root-key>"
+
+# v2: POST with request body
+curl -X POST https://api.unkey.com/v2/identities.listIdentities \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"limit": 50, "cursor": "eyJrZXkiOiJrZXlfMTIzNCJ9"}'
+```
+</Tab>
+<Tab title="Response Comparison" icon="list">
+```json title="v1 vs v2: List Identities Response" expandable
+// v1: Direct response with total count
+{
+  "identities": [
+    {
+      "id": "id_abc123",
+      "externalId": "user_123",
+      "ratelimits": [
+        {
+          "name": "requests",
+          "limit": 1000,
+          "duration": 3600000
+        }
+      ]
+    }
+  ],
+  "cursor": "eyJrZXkiOiJrZXlfMTIzNCJ9",
+  "total": 42
+}
+
+// v2: Structured response with pagination object
+{
+  "meta": {
+    "requestId": "req_listidentities789"
+  },
+  "data": [
+    {
+      "id": "id_abc123",
+      "externalId": "user_123",
+      "meta": {
+        "email": "user@example.com",
+        "plan": "pro"
+      },
+      "ratelimits": [
+        {
+          "id": "rl_abcdef123456",
+          "name": "requests",
+          "limit": 1000,
+          "duration": 3600000
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "cursor": "eyJrZXkiOiJrZXlfMTIzNCJ9"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## POST /v1/identities.updateIdentity → POST /v2/identities.updateIdentity
+
+**Purpose:** Update identity metadata and rate limits.
+
+**Changes:** Enhanced parameter flexibility, structured response format.
+
+<Tabs>
+<Tab title="Request Comparison" icon="user-edit">
+```json title="v1 vs v2: Update Identity Request" expandable
+// v1: Requires specific ID field
+{
+  "identityId": "id_abc123",  // or "externalId": "user_123"
+  "meta": {
+    "email": "user@example.com",
+    "plan": "enterprise"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 5000,
+      "duration": 3600000
+    }
+  ]
+}
+
+// v2: Flexible identity parameter
+{
+  "identity": "user_123",  // accepts both identityId or externalId
+  "meta": {
+    "email": "user@example.com",
+    "plan": "enterprise"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 5000,
+      "duration": 3600000
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Response Comparison" icon="check-circle">
+```json title="v1 vs v2: Update Identity Response" expandable
+// v1: Direct response
+{
+  "id": "id_abc123def456",
+  "externalId": "user_123",
+  "meta": {
+    "email": "user@example.com",
+    "plan": "enterprise"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 5000,
+      "duration": 3600000
+    }
+  ]
+}
+
+// v2: Structured response with meta wrapper
+{
+  "meta": {
+    "requestId": "req_updateidentity789"
+  },
+  "data": {
+    "id": "id_abc123def456",
+    "externalId": "user_123",
+    "meta": {
+      "email": "user@example.com",
+      "plan": "enterprise"
+    },
+    "ratelimits": [
+      {
+        "id": "rl_abcdef123456",
+        "name": "requests",
+        "limit": 5000,
+        "duration": 3600000
+      }
+    ]
+  }
+}
+```
+</Tab>
+<Tab title="cURL Examples" icon="terminal">
+```bash title="Migration Examples"
+# v1: Update identity
+curl -X POST https://api.unkey.dev/v1/identities.updateIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"externalId": "user_123", "meta": {"plan": "enterprise"}, "ratelimits": [{"name": "requests", "limit": 5000, "duration": 3600000}]}'
+
+# v2: Update identity (enhanced flexibility)
+curl -X POST https://api.unkey.com/v2/identities.updateIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"identity": "user_123", "meta": {"plan": "enterprise"}, "ratelimits": [{"name": "requests", "limit": 5000, "duration": 3600000}]}'
+```
+</Tab>
+</Tabs>
+
+---
+
+## POST /v1/identities.deleteIdentity → POST /v2/identities.deleteIdentity
+
+**Purpose:** Permanently delete an identity.
+
+**Changes:** Enhanced parameter flexibility (v2 accepts both ID types), structured response.
+
+<Tabs>
+<Tab title="Request Comparison" icon="user-minus">
+```json title="v1 vs v2: Delete Identity Request" expandable
+// v1: Requires identityId specifically
+{
+  "identityId": "id_abc123def456"
+}
+
+// v2: Flexible identity parameter
+{
+  "identity": "user_123"  // accepts both identityId or externalId
+}
+```
+</Tab>
+<Tab title="Response Comparison" icon="check-circle">
+```json title="v1 vs v2: Delete Identity Response" expandable
+// v1: Empty object response
+{}
+
+// v2: Structured response with meta wrapper
+{
+  "meta": {
+    "requestId": "req_deleteidentity999"
+  }
+}
+```
+</Tab>
+<Tab title="cURL Examples" icon="terminal">
+```bash title="Migration Examples"
+# v1: Delete identity (requires identityId)
+curl -X POST https://api.unkey.dev/v1/identities.deleteIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"identityId": "id_abc123def456"}'
+
+# v2: Delete identity (accepts externalId or identityId)
+curl -X POST https://api.unkey.com/v2/identities.deleteIdentity \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"identity": "user_123"}'
+```
+</Tab>
+</Tabs>

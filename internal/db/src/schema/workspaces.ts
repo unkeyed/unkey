@@ -2,6 +2,7 @@ import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { deployments } from "./deployments";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
@@ -13,7 +14,6 @@ import { permissions, roles } from "./rbac";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
-import { versions } from "./versions";
 
 export const workspaces = mysqlTable("workspaces", {
   id: varchar("id", { length: 256 }).primaryKey(),
@@ -52,6 +52,12 @@ export const workspaces = mysqlTable("workspaces", {
        * Can access /logs
        */
       logsPage?: boolean;
+
+      /**
+       * Can access /projects
+       */
+
+      deployments?: boolean;
     }>()
     .notNull(),
   features: json("features")
@@ -118,7 +124,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   partition: one(partitions),
   projects: many(projects),
   // environments: many(environments),
-  versions: many(versions),
+  deployments: many(deployments),
   // hostnames: many(hostnames),
   // certificates: many(certificates),
 }));

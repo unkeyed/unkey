@@ -62,12 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	args := db.FindKeyByIdOrHashParams{
-		ID:   sql.NullString{String: req.KeyId, Valid: true},
-		Hash: sql.NullString{String: "", Valid: false},
-	}
-
-	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -253,6 +248,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		k.Identity = &openapi.Identity{
+			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       nil,
 			Ratelimits: nil,
@@ -276,14 +272,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		identityRatelimits := make([]openapi.RatelimitResponse, 0)
 		for _, ratelimit := range ratelimits {
-			k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
+			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
 				Id:        ratelimit.ID,
 				Duration:  ratelimit.Duration,
 				Limit:     int64(ratelimit.Limit),
 				Name:      ratelimit.Name,
 				AutoApply: ratelimit.AutoApply,
 			})
+		}
+
+		if len(identityRatelimits) > 0 {
+			k.Identity.Ratelimits = ptr.P(identityRatelimits)
 		}
 	}
 
@@ -306,7 +307,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	k.Ratelimits = ptr.P(ratelimitsResponse)
+	if len(ratelimitsResponse) > 0 {
+		k.Ratelimits = ptr.P(ratelimitsResponse)
+	}
 
 	if key.Meta.Valid {
 		err = json.Unmarshal([]byte(key.Meta.String), &k.Meta)
@@ -325,7 +328,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
 	}
-	k.Permissions = ptr.P(permissionSlugs)
+	if len(permissionSlugs) > 0 {
+		k.Permissions = ptr.P(permissionSlugs)
+	}
 
 	// Get roles for the key
 	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
@@ -334,12 +339,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
 	}
 
-	roleNames := make([]string, len(roles))
-	for i, role := range roles {
-		roleNames[i] = role.Name
-	}
+	if len(roles) > 0 {
+		roleNames := make([]string, len(roles))
+		for i, role := range roles {
+			roleNames[i] = role.Name
+		}
 
-	k.Roles = ptr.P(roleNames)
+		k.Roles = ptr.P(roleNames)
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

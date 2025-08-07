@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "0496ca0b-5ec7-4087-875f-e9c4ea997929",
+  "id": "66125fd8-4e0f-4388-a524-e9afb1d90917",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -277,13 +277,7 @@
           "autoincrement": false
         }
       },
-      "indexes": {
-        "workspace_id_idx": {
-          "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "permissions_id": {
@@ -294,11 +288,11 @@
       "uniqueConstraints": {
         "unique_name_per_workspace_idx": {
           "name": "unique_name_per_workspace_idx",
-          "columns": ["name", "workspace_id"]
+          "columns": ["workspace_id", "name"]
         },
         "unique_slug_per_workspace_idx": {
           "name": "unique_slug_per_workspace_idx",
-          "columns": ["slug", "workspace_id"]
+          "columns": ["workspace_id", "slug"]
         }
       }
     },
@@ -755,6 +749,11 @@
           "columns": ["for_workspace_id"],
           "isUnique": false
         },
+        "idx_keys_on_workspace_id": {
+          "name": "idx_keys_on_workspace_id",
+          "columns": ["workspace_id"],
+          "isUnique": false
+        },
         "owner_id_idx": {
           "name": "owner_id_idx",
           "columns": ["owner_id"],
@@ -1007,7 +1006,7 @@
       "uniqueConstraints": {
         "unique_name_per_workspace_idx": {
           "name": "unique_name_per_workspace_idx",
-          "columns": ["name", "workspace_id"]
+          "columns": ["workspace_id", "name"]
         }
       }
     },
@@ -1104,7 +1103,7 @@
       "uniqueConstraints": {
         "unique_identifier_per_namespace_idx": {
           "name": "unique_identifier_per_namespace_idx",
-          "columns": ["identifier", "namespace_id"]
+          "columns": ["namespace_id", "identifier"]
         }
       }
     },
@@ -1454,23 +1453,13 @@
         },
         "unique_name_per_key_idx": {
           "name": "unique_name_per_key_idx",
-          "columns": ["name", "key_id"],
+          "columns": ["key_id", "name"],
           "isUnique": true
         },
         "unique_name_per_identity_idx": {
           "name": "unique_name_per_identity_idx",
-          "columns": ["name", "identity_id"],
+          "columns": ["identity_id", "name"],
           "isUnique": true
-        },
-        "identity_id_idx": {
-          "name": "identity_id_idx",
-          "columns": ["identity_id"],
-          "isUnique": false
-        },
-        "key_id_idx": {
-          "name": "key_id_idx",
-          "columns": ["key_id"],
-          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -2008,6 +1997,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "default_branch": {
+          "name": "default_branch",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'main'"
+        },
         "delete_protection": {
           "name": "delete_protection",
           "type": "boolean",
@@ -2052,86 +2049,6 @@
       "compositePrimaryKeys": {
         "projects_id": {
           "name": "projects_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {}
-    },
-    "branches": {
-      "name": "branches",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "is_production": {
-          "name": "is_production",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "workspace_idx": {
-          "name": "workspace_idx",
-          "columns": ["workspace_id"],
-          "isUnique": false
-        },
-        "project_idx": {
-          "name": "project_idx",
-          "columns": ["project_id"],
-          "isUnique": false
-        },
-        "project_name_idx": {
-          "name": "project_name_idx",
-          "columns": ["project_id", "name"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "branches_id": {
-          "name": "branches_id",
           "columns": ["id"]
         }
       },
@@ -2242,8 +2159,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "version_id": {
-          "name": "version_id",
+        "deployment_id": {
+          "name": "deployment_id",
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true,
@@ -2353,8 +2270,63 @@
       },
       "uniqueConstraints": {}
     },
-    "versions": {
-      "name": "versions",
+    "deployment_steps": {
+      "name": "deployment_steps",
+      "columns": {
+        "deployment_id": {
+          "name": "deployment_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_deployment_id_created_at": {
+          "name": "idx_deployment_id_created_at",
+          "columns": ["deployment_id", "created_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "deployment_steps_deployment_id_status_pk": {
+          "name": "deployment_steps_deployment_id_status_pk",
+          "columns": ["deployment_id", "status"]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "deployments": {
+      "name": "deployments",
       "columns": {
         "id": {
           "name": "id",
@@ -2377,12 +2349,13 @@
           "notNull": true,
           "autoincrement": false
         },
-        "branch_id": {
-          "name": "branch_id",
-          "type": "varchar(256)",
+        "environment": {
+          "name": "environment",
+          "type": "enum('production','preview')",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'preview'"
         },
         "build_id": {
           "name": "build_id",
@@ -2419,6 +2392,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "openapi_spec": {
+          "name": "openapi_spec",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "status": {
           "name": "status",
           "type": "enum('pending','building','deploying','active','failed','archived')",
@@ -2453,9 +2433,9 @@
           "columns": ["project_id"],
           "isUnique": false
         },
-        "branch_idx": {
-          "name": "branch_idx",
-          "columns": ["branch_id"],
+        "environment_idx": {
+          "name": "environment_idx",
+          "columns": ["environment"],
           "isUnique": false
         },
         "status_idx": {
@@ -2471,15 +2451,15 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "versions_id": {
-          "name": "versions_id",
+        "deployments_id": {
+          "name": "deployments_id",
           "columns": ["id"]
         }
       },
       "uniqueConstraints": {}
     },
-    "routes": {
-      "name": "routes",
+    "hostname_routes": {
+      "name": "hostname_routes",
       "columns": {
         "id": {
           "name": "id",
@@ -2509,8 +2489,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "version_id": {
-          "name": "version_id",
+        "deployment_id": {
+          "name": "deployment_id",
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true,
@@ -2555,23 +2535,23 @@
           "columns": ["hostname"],
           "isUnique": true
         },
-        "version_idx": {
-          "name": "version_idx",
-          "columns": ["version_id"],
+        "deployment_idx": {
+          "name": "deployment_idx",
+          "columns": ["deployment_id"],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "routes_id": {
-          "name": "routes_id",
+        "hostname_routes_id": {
+          "name": "hostname_routes_id",
           "columns": ["id"]
         }
       },
       "uniqueConstraints": {}
     },
-    "hostnames": {
-      "name": "hostnames",
+    "domains": {
+      "name": "domains",
       "columns": {
         "id": {
           "name": "id",
@@ -2689,8 +2669,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "hostnames_id": {
-          "name": "hostnames_id",
+        "domains_id": {
+          "name": "domains_id",
           "columns": ["id"]
         }
       },
