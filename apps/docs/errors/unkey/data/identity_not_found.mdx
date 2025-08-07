@@ -52,12 +52,7 @@ Verify that you're using the correct identity ID or external ID and that the ide
 2. List all identities in your workspace to find the correct ID
 3. If the identity has been deleted, you may need to recreate it
 
-Here's how to list identities in your workspace:
 
-```bash
-curl -X POST https://api.unkey.com/v2/identities.listIdentities \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY"
-```
 
 If you need to create a new identity, use the `identities.createIdentity` endpoint:
 
