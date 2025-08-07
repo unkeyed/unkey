@@ -26,7 +26,7 @@ export const ProjectCard = ({
   repository,
   actions,
 }: ProjectCardProps) => (
-  <div className="p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5 group transition-all duration-400">
+  <div className="p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5 group transition-all duration-300">
     {/*Top Section*/}
     <div className="flex gap-4 items-center">
       <div className="relative size-10 bg-gradient-to-br from-grayA-2 to-grayA-7 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">

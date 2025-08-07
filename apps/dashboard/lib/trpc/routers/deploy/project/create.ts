@@ -67,7 +67,7 @@ export const createProject = t.procedure
         await db.transaction(async (tx) => {
           await tx.insert(schema.projects).values({
             id: projectId,
-            workspaceId: ctx.workspace.id,
+            workspaceId,
             partitionId: "part_default", // Default partition for now
             name: input.name,
             slug: input.slug,

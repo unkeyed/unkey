@@ -42,7 +42,11 @@ export const ProjectsList = () => {
             managing your applications.
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
-            <a href="https://docs.example.com/projects" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://www.unkey.com/docs/introduction"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button size="md">
                 <BookBookmark />
                 Learn about Deploy

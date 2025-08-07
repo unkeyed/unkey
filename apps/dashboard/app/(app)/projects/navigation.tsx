@@ -5,15 +5,13 @@ import { CreateProjectDialog } from "./_components/create-project/create-project
 
 export function ProjectsListNavigation() {
   return (
-    <>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Cube size="md-medium" className="text-gray-12" />}>
-          <Navbar.Breadcrumbs.Link href="/projects" active className="font-medium">
-            Projects
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <CreateProjectDialog />
-      </Navbar>
-    </>
+    <Navbar>
+      <Navbar.Breadcrumbs icon={<Cube size="md-medium" className="text-gray-12" />}>
+        <Navbar.Breadcrumbs.Link href="/projects" active className="font-medium">
+          Projects
+        </Navbar.Breadcrumbs.Link>
+      </Navbar.Breadcrumbs>
+      <CreateProjectDialog />
+    </Navbar>
   );
 }

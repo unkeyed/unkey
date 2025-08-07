@@ -1,5 +1,5 @@
 import { projectsQueryPayload as projectsInputSchema } from "@/app/(app)/projects/_components/list/projects-list.schema";
-import { and, count, db, desc, eq, inArray, like, lt, or, schema } from "@/lib/db";
+import { and, count, db, desc, eq, exists, inArray, like, lt, or, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -72,22 +72,21 @@ export const queryProjects = t.procedure
         // Search in project branch (defaultBranch)
         queryConditions.push(like(schema.projects.defaultBranch, searchValue));
 
-        // Search in hostnames - get project IDs that have matching hostnames
-        const projectIdsWithMatchingHostnames = await db
-          .selectDistinct({ projectId: schema.routes.projectId })
-          .from(schema.routes)
-          .where(
-            and(
-              eq(schema.routes.workspaceId, ctx.workspace.id),
-              like(schema.routes.hostname, searchValue),
-            ),
-          );
-
-        const matchingProjectIds = projectIdsWithMatchingHostnames.map((r) => r.projectId);
-
-        if (matchingProjectIds.length > 0) {
-          queryConditions.push(inArray(schema.projects.id, matchingProjectIds));
-        }
+        // Search in hostnames
+        queryConditions.push(
+          exists(
+            db
+              .select({ projectId: schema.routes.projectId })
+              .from(schema.routes)
+              .where(
+                and(
+                  eq(schema.routes.workspaceId, ctx.workspace.id),
+                  eq(schema.routes.projectId, schema.projects.id),
+                  like(schema.routes.hostname, searchValue),
+                ),
+              ),
+          ),
+        );
 
         // Combine all search conditions with OR for this specific query value
         if (queryConditions.length > 0) {
@@ -112,7 +111,7 @@ export const queryProjects = t.procedure
           .where(and(...allConditions)),
         db.query.projects.findMany({
           where: and(...allConditions),
-          orderBy: [desc(schema.projects.createdAt)],
+          orderBy: [desc(schema.projects.updatedAt)],
           limit: PROJECTS_LIMIT + 1,
           columns: {
             id: true,
@@ -142,7 +141,7 @@ export const queryProjects = t.procedure
           ? await db.query.routes.findMany({
               where: and(
                 eq(schema.routes.workspaceId, ctx.workspace.id),
-                or(...projectIds.map((id) => eq(schema.routes.projectId, id))),
+                inArray(schema.routes.projectId, projectIds),
                 like(schema.routes.hostname, "%.unkey.app"),
               ),
               columns: {
@@ -185,7 +184,7 @@ export const queryProjects = t.procedure
         projects,
         hasMore,
         total: totalResult[0]?.count ?? 0,
-        nextCursor: projects.length > 0 ? projects[projects.length - 1].createdAt : null,
+        nextCursor: projects.length > 0 ? projects[projects.length - 1].updatedAt : null,
       };
 
       return response;
