@@ -18,6 +18,8 @@ jobs:
         run: |
           go install github.com/mfridman/tparse@v0.14.0
         working-directory: go
+      - name: Set up Docker Buildx
+        uses: useblacksmith/setup-docker-builder@v1
       - name: Test
         run: make test-full
         working-directory: go

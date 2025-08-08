@@ -116,25 +116,6 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
-  chproxy:
-    container_name: chproxy
-    build:
-      context: ../apps/chproxy
-      dockerfile: Dockerfile
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1024M
-    depends_on:
-      - clickhouse
-    environment:
-      PORT: 7123
-      CLICKHOUSE_URL: http://default:password@clickhouse:8123
-      BASIC_AUTH: proxy:password
-    ports:
-      - "7123:7123"
-
   clickhouse:
     image: bitnami/clickhouse:latest
     container_name: clickhouse

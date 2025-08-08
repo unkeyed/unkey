@@ -10,6 +10,8 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: useblacksmith/setup-docker-builder@v1
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
       - name: Run containers
