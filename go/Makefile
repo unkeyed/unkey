@@ -43,7 +43,7 @@ down:
 test-full: export INTEGRATION_TEST=true
 test-full: export SIMULATION_TEST=false
 test-full: up
-	@echo "Running full tests... this can take more than 30min... run 'make test-unit' for faster tests"
+	@echo "Running full tests..."
 	@echo "Using $(PARALLEL_PROCS) parallel test processes"
 	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
 
