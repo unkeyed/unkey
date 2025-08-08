@@ -46,7 +46,7 @@ services:
 
   apiv2_lb:
     container_name: apiv2_lb
-    image: nginx:latest
+    image: nginx:1.29.0
     volumes:
       - ./nginx.apiv2.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -86,7 +86,7 @@ services:
 
   redis:
     container_name: redis
-    image: redis:latest
+    image: redis:8.2.0
     ports:
       - 6379:6379
     healthcheck:
@@ -138,7 +138,7 @@ services:
       - "7123:7123"
 
   clickhouse:
-    image: bitnami/clickhouse:latest
+    image: bitnami/clickhouse:25.7.2
     container_name: clickhouse
     environment:
       CLICKHOUSE_ADMIN_USER: default
@@ -239,7 +239,7 @@ services:
       UNKEY_METALD_ADDRESS: "http://metald-aio:8080"
 
   otel:
-    image: grafana/otel-lgtm:latest
+    image: grafana/otel-lgtm:v0.11.7
     container_name: otel
     hostname: otel
     ports:
@@ -248,7 +248,7 @@ services:
       - 4318:4318
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.5.0
     container_name: prometheus
     ports:
       - 9090:9090
