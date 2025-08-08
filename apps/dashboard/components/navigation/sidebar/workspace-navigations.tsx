@@ -89,7 +89,7 @@ export const createWorkspaceNavigation = (
 
     {
       icon: InputSearch,
-      href: "/audit",
+      href: `${basePath}/audit`,
       label: "Audit Log",
       active: segments.at(0) === "audit",
     },
