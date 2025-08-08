@@ -203,7 +203,7 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 	}
 
 	// API key is valid - log success
-	a.logger.Debug("api key verified successfully",
+	a.logger.Info("api key verified successfully",
 		"requestId", sess.RequestID(),
 		"host", req.Host,
 		"path", req.URL.Path,

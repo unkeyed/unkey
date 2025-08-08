@@ -51,6 +51,7 @@ func (w *DeployWorkflow) Name() string {
 type DeployRequest struct {
 	WorkspaceID  string `json:"workspace_id"`
 	ProjectID    string `json:"project_id"`
+	KeyspaceID   string `json:"keyspace_id"`
 	DeploymentID string `json:"deployment_id"`
 	DockerImage  string `json:"docker_image"`
 	Hostname     string `json:"hostname"`
@@ -463,17 +464,21 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			},
 		}
 
-		// Create gateway config protobuf
 		gatewayConfig := &partitionv1.GatewayConfig{
 			DeploymentId: req.DeploymentID,
 			IsEnabled:    true,
 			Vms:          vms,
-			// if we have keyspaceId set those to true `Enabled`, `RequireApiKey` and `keyspaceId`, if not just skip it
-			// Also update CLI to accept keyspaceId so we can verify it later in the gateway
-			AuthConfig: &partitionv1.AuthConfig{
-				Enabled:       true,
-				RequireApiKey: true,
-			},
+		}
+
+		// Only add AuthConfig if we have a KeyspaceID
+		if req.KeyspaceID != "" {
+			gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
+				RequireApiKey:  true,
+				RequiredScopes: []string{},
+				KeyspaceId:     req.KeyspaceID,
+				AllowAnonymous: false,
+				Enabled:        true,
+			}
 		}
 
 		// Marshal protobuf to bytes

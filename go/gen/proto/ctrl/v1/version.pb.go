@@ -146,7 +146,9 @@ type CreateVersionRequest struct {
 	// Docker image support
 	DockerImageTag string `protobuf:"bytes,8,opt,name=docker_image_tag,json=dockerImageTag,proto3" json:"docker_image_tag,omitempty"` // e.g. "ghcr.io/user/app:sha256..."
 	// Gateway hostname for routing
-	Hostname      string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Hostname string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	// Keyspace ID for authentication
+	KeyspaceId    string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -233,6 +235,13 @@ func (x *CreateVersionRequest) GetDockerImageTag() string {
 func (x *CreateVersionRequest) GetHostname() string {
 	if x != nil {
 		return x.Hostname
+	}
+	return ""
+}
+
+func (x *CreateVersionRequest) GetKeyspaceId() string {
+	if x != nil {
+		return x.KeyspaceId
 	}
 	return ""
 }
@@ -767,7 +776,7 @@ var File_proto_ctrl_v1_version_proto protoreflect.FileDescriptor
 
 const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\"\xb9\x02\n" +
+	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\"\xda\x02\n" +
 	"\x14CreateVersionRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -778,7 +787,10 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12%\n" +
 	"\x0eenvironment_id\x18\a \x01(\tR\renvironmentId\x12(\n" +
 	"\x10docker_image_tag\x18\b \x01(\tR\x0edockerImageTag\x12\x1a\n" +
-	"\bhostname\x18\t \x01(\tR\bhostname\"f\n" +
+	"\bhostname\x18\t \x01(\tR\bhostname\x12\x1f\n" +
+	"\vkeyspace_id\x18\n" +
+	" \x01(\tR\n" +
+	"keyspaceId\"f\n" +
 	"\x15CreateVersionResponse\x12\x1d\n" +
 	"\n" +
 	"version_id\x18\x01 \x01(\tR\tversionId\x12.\n" +

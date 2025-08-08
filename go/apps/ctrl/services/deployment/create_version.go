@@ -94,6 +94,7 @@ func (s *Service) CreateVersion(
 		ProjectID:    req.Msg.GetProjectId(),
 		DeploymentID: deploymentID,
 		DockerImage:  req.Msg.GetDockerImageTag(),
+		KeyspaceID:   req.Msg.GetKeyspaceId(),
 		Hostname:     req.Msg.GetHostname(),
 	}
 
