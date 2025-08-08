@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
 	"net/http/httptest"
 	"testing"
 
@@ -252,8 +251,7 @@ func TestValidatorWithRealSpec(t *testing.T) {
 
 			// Validate the request
 			ctx := context.Background()
-			res, isValid := testValidator.Validate(ctx, req)
-			log.Printf("Validation result: %v", res)
+			_, isValid := testValidator.Validate(ctx, req)
 
 			if tt.shouldPass {
 				assert.True(t, isValid, "Expected validation to pass for %s: %s", tt.name, tt.description)
@@ -483,12 +481,12 @@ paths:
 		{
 			name: "multiple_errors_with_nullable_fields_null",
 			body: map[string]interface{}{
-				"id":          "abc", // too short (min 5)
+				"id":          "abc",          // too short (min 5)
 				"email":       "not-an-email", // invalid format
-				"age":         150, // exceeds maximum
-				"nickname":    nil, // nullable - this error should be ignored
-				"preferences": nil, // nullable - this error should be ignored
-				"score":       nil, // nullable - this error should be ignored
+				"age":         150,            // exceeds maximum
+				"nickname":    nil,            // nullable - this error should be ignored
+				"preferences": nil,            // nullable - this error should be ignored
+				"score":       nil,            // nullable - this error should be ignored
 			},
 			shouldPass:            false,
 			expectedErrorContains: "age", // Should report one of the validation errors
@@ -517,8 +515,8 @@ paths:
 				"id":       "valid123",
 				"email":    "test@example.com",
 				"age":      "not-a-number", // type mismatch
-				"nickname": nil, // nullable - should be ignored
-				"score":    nil, // nullable - should be ignored
+				"nickname": nil,            // nullable - should be ignored
+				"score":    nil,            // nullable - should be ignored
 			},
 			shouldPass:            false,
 			expectedErrorContains: "age", // Should report type error
@@ -552,13 +550,13 @@ paths:
 		{
 			name: "multiple_validation_errors_no_nullable",
 			body: map[string]interface{}{
-				"id":    "ab", // too short
+				"id":    "ab",      // too short
 				"email": "invalid", // bad format
-				"age":   200, // too high
+				"age":   200,       // too high
 				// No nullable fields with null values
 			},
 			shouldPass:            false,
-			expectedErrorContains: "age", // Should report one of the errors  
+			expectedErrorContains: "age", // Should report one of the errors
 			shouldNotContain:      "nullable",
 		},
 		{
@@ -568,7 +566,7 @@ paths:
 				"email":    "test@example.com",
 				"age":      30,
 				"nickname": "ab", // too short (min 3) - even though nullable, when provided must be valid
-				"score":    150, // exceeds maximum
+				"score":    150,  // exceeds maximum
 			},
 			shouldPass:            false,
 			expectedErrorContains: "nickname", // Should report constraint violation
@@ -594,7 +592,7 @@ paths:
 				if tt.expectedErrorContains != "" {
 					errorJSON, _ := json.Marshal(response)
 					errorStr := string(errorJSON)
-					assert.Contains(t, errorStr, tt.expectedErrorContains, 
+					assert.Contains(t, errorStr, tt.expectedErrorContains,
 						"Expected error to contain '%s' but got: %s", tt.expectedErrorContains, errorStr)
 				}
 

@@ -85,16 +85,32 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	// Process validation errors and filter out nullable field errors
 	hasNonNullableErrors := false
 	var firstError *errors.ValidationError
-	
+
 	for _, err := range errs {
-		// For each ValidationError, check if it has any non-nullable schema errors
+		// If there are no SchemaValidationErrors (e.g., security errors),
+		// this is a non-schema error that should not be filtered
+		if len(err.SchemaValidationErrors) == 0 {
+			hasNonNullableErrors = true
+			if firstError == nil {
+				firstError = err
+			}
+			// Add this error to the response
+			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
+				Message:  err.Reason,
+				Location: err.ValidationType,
+				Fix:      &err.HowToFix,
+			})
+			continue
+		}
+
+		// For each ValidationError with schema errors, check if it has any non-nullable schema errors
 		hasNonNullableInThisError := false
-		
+
 		for _, schemaErr := range err.SchemaValidationErrors {
 			if !v.isSchemaErrorNullable(schemaErr) {
 				hasNonNullableInThisError = true
 				hasNonNullableErrors = true
-				
+
 				// Add this non-nullable error to the response
 				res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
 					Message:  schemaErr.Reason,
@@ -103,18 +119,18 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 				})
 			}
 		}
-		
+
 		// Keep track of the first error that has non-nullable errors
 		if hasNonNullableInThisError && firstError == nil {
 			firstError = err
 		}
 	}
-	
+
 	// If all errors were nullable, validation passes
 	if !hasNonNullableErrors {
 		return openapi.BadRequestErrorResponse{}, true
 	}
-	
+
 	// Set the error detail from the first error with non-nullable issues
 	if firstError != nil {
 		res.Error.Detail = firstError.Message
@@ -167,7 +183,7 @@ func (v *Validator) isSchemaErrorNullable(validationErr *errors.SchemaValidation
 	// Example: "/properties/credits/properties/remaining/type" -> ["", "properties", "credits", "properties", "remaining", "type"]
 	location := strings.TrimSuffix(validationErr.Location, "/type")
 	parts := strings.Split(location, "/")
-	
+
 	// We need at least ["", "properties", "fieldName"] for a valid path
 	if len(parts) < 3 || parts[1] != "properties" {
 		return false
@@ -183,33 +199,33 @@ func (v *Validator) isSchemaErrorNullable(validationErr *errors.SchemaValidation
 
 	// Navigate through the nested structure following the path
 	current := spec
-	
+
 	// Start from index 1 to skip the empty string from leading "/"
 	// Process pairs of ["properties", "fieldName"]
 	for i := 1; i < len(parts)-1; i += 2 {
 		if parts[i] != "properties" {
 			break
 		}
-		
+
 		// Get the properties at current level
 		properties, propertiesExist := current["properties"]
 		if !propertiesExist {
 			return false
 		}
-		
+
 		// Convert to map
 		propertiesMap, ok := convertToStringMap(properties)
 		if !ok {
 			return false
 		}
-		
+
 		// Get the field at this level
 		fieldName := parts[i+1]
 		fieldSpec, found := propertiesMap[fieldName]
 		if !found {
 			return false
 		}
-		
+
 		// If this is the last field in the path, check for nullable
 		if i+2 >= len(parts) {
 			// Convert fieldSpec to map[string]any
@@ -217,21 +233,21 @@ func (v *Validator) isSchemaErrorNullable(validationErr *errors.SchemaValidation
 			if !ok {
 				return false
 			}
-			
+
 			// Check if nullable exists and is true
 			nullable, exists := fieldMap["nullable"]
 			if !exists {
 				return false
 			}
-			
+
 			isNullable, ok := nullable.(bool)
 			if !ok || !isNullable {
 				return false
 			}
-			
+
 			return true
 		}
-		
+
 		// Otherwise, move deeper into the structure
 		current, ok = convertToStringMap(fieldSpec)
 		if !ok {
@@ -256,7 +272,7 @@ func (v *Validator) isNullableError(e *errors.ValidationError) bool {
 			return false
 		}
 	}
-	
+
 	// All errors were nullable errors
 	return true
 }
