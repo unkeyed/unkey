@@ -1,3 +1,5 @@
+// Package cli provides a command-line interface framework for building CLI applications.
+// It supports nested commands, various flag types, and structured error handling.
 package cli
 
 import (
@@ -28,6 +30,7 @@ type Command struct {
 	Flags       []Flag     // Available flags for this command
 	Action      Action     // Function to execute when command is run
 	Aliases     []string   // Alternative names for this command
+	commandPath string     // Full command path for MDX generation (e.g., "run api")
 
 	// Runtime state (populated during parsing)
 	args    []string        // Non-flag arguments passed to command
@@ -181,6 +184,10 @@ func (c *Command) RequireStringSlice(name string) []string {
 func (c *Command) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return ErrNoArguments
+	}
+	// Handle MDX generation first
+	if handled, err := c.handleMDXGeneration(args); handled {
+		return err
 	}
 	// Parse arguments starting from index 1 (skip program name)
 	return c.parse(ctx, args[1:])
