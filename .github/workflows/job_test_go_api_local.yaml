@@ -3,21 +3,21 @@ on:
   workflow_call:
 permissions:
   contents: read
-
 jobs:
   tests:
     name: Test
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
         with:
-          go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Install Go test tools
+        run: |
+          go install github.com/mfridman/tparse@v0.14.0
+        working-directory: go
       - name: Test
         run: make test-full
         working-directory: go

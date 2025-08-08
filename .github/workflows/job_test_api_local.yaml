@@ -3,7 +3,6 @@ on:
   workflow_call:
 permissions:
   contents: read
-
 jobs:
   test:
     name: API Test Local
@@ -11,36 +10,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
-
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up --force-recreate mysql planetscale agent s3 apiv2 api -d
-
-      - name: Install
-        uses: ./.github/actions/install
+        run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+        timeout-minutes: 8
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
-          go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...
-
+        env:
+          CI: 1
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-
+          CI: 1
       - name: Migrate ClickHouse
         run: goose up
         env:
           GOOSE_DRIVER: clickhouse
           GOOSE_DBSTRING: "tcp://default:password@127.0.0.1:9000"
           GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
-
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts --bail=1
         working-directory: apps/api
@@ -51,11 +54,10 @@ jobs:
           DATABASE_PASSWORD: password
           CLICKHOUSE_URL: http://default:password@localhost:8123
           TEST_LOCAL: true
-
+          CI: 1
       - name: Dump logs
         if: always()
         run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
-
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
