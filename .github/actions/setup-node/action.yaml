@@ -30,14 +30,6 @@ runs:
       shell: bash
       run: corepack enable
 
-    - name: Cache pnpm dependencies
-      if: inputs.install == 'true'
-      uses: actions/cache@v4
-      with:
-        path: ~/.pnpm-store
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
 
     - name: Install dependencies
       if: inputs.install == 'true'
