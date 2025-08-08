@@ -19,11 +19,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          go: true
-          ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
+        with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to image repository

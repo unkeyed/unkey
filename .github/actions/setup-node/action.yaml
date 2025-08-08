@@ -1,0 +1,30 @@
+name: Setup Node Only
+description: Lightweight Node.js setup with modern pnpm caching (2025)
+
+inputs:
+  github_token:
+    description: GitHub token for authentication
+    required: false
+
+runs:
+  using: "composite"
+  
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+        run_install: false
+
+    - name: Setup Node with pnpm cache
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --recursive
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        NPM_TOKEN: ${{ inputs.github_token }}

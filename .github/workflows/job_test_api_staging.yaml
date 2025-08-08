@@ -36,10 +36,9 @@ jobs:
       - name: Wake ClickHouse
         run: curl -X GET ${{ secrets.CLICKHOUSE_URL }}/ping
 
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: pnpm turbo run build --filter=./apps/api

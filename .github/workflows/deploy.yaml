@@ -101,5 +101,5 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  changes:
-    uses: ./.github/workflows/job_changes.yaml
+  detect_changes:
+    uses: ./.github/workflows/job_detect_changes.yaml

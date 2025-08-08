@@ -15,10 +15,9 @@ jobs:
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d mysql planetscale
 
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build

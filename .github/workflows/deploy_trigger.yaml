@@ -8,11 +8,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node (minimal for pnpx)
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: lts/*
 
       - name: Deploy Trigger.dev
         env:

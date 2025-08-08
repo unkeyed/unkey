@@ -22,10 +22,9 @@ jobs:
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
 
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
         with:
-          go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build CLI

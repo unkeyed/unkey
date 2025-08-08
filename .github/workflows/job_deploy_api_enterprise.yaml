@@ -23,10 +23,15 @@ jobs:
     name: Deploy ${{ matrix.workers.domain }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
+
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Wrangler
+        uses: ./.github/actions/setup-wrangler
+        with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
