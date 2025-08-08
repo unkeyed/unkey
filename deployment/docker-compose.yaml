@@ -239,7 +239,7 @@ services:
       UNKEY_METALD_ADDRESS: "http://metald-aio:8080"
 
   otel:
-    image: grafana/otel-lgtm:v0.11.7
+    image: grafana/otel-lgtm:0.11.7
     container_name: otel
     hostname: otel
     ports:
