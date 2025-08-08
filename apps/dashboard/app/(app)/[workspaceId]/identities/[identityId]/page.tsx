@@ -32,6 +32,7 @@ export default async function Page(props: Props) {
     with: {
       workspace: {
         columns: {
+          id: true,
           orgId: true,
         },
       },
@@ -55,7 +56,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation identityId={props.params.identityId} />
+      <Navigation identityId={props.params.identityId} workspaceId={identity.workspace.id} />
       <PageContent>
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">

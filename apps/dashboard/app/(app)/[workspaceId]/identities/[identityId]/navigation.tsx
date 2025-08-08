@@ -5,15 +5,18 @@ import { Fingerprint } from "@unkey/icons";
 
 type NavigationProps = {
   identityId: string;
+  workspaceId: string;
 };
 
-export function Navigation({ identityId }: NavigationProps) {
+export function Navigation({ identityId, workspaceId }: NavigationProps) {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Fingerprint />}>
-        <Navbar.Breadcrumbs.Link href="/identities">Identities</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/identities`}>
+          Identities
+        </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
-          href={`/identities/${identityId}`}
+          href={`/${workspaceId}/identities/${identityId}`}
           className="w-[200px] truncate"
           active
           isIdentifier

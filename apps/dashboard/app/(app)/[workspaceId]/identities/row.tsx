@@ -14,10 +14,11 @@ type Props = {
     keys: Array<{
       id: string;
     }>;
+    workspaceId: string;
   };
 };
 export const Row: React.FC<Props> = ({ identity }) => {
-  const detailsUrl = `/identities/${identity.id}`;
+  const detailsUrl = `/${identity.workspaceId}/identities/${identity.id}`;
   const router = useRouter();
   router.prefetch(detailsUrl);
   return (
