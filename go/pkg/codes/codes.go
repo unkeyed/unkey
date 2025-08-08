@@ -54,6 +54,24 @@ const (
 	// CategoryBadGateway represents errors related to upstream server unavailability.
 	CategoryBadGateway Category = "bad_gateway"
 
+	// CategoryServiceUnavailable represents backend service unavailable errors.
+	CategoryServiceUnavailable Category = "service_unavailable"
+
+	// CategoryGatewayTimeout represents upstream server timeout errors.
+	CategoryGatewayTimeout Category = "gateway_timeout"
+
+	// CategoryUnauthorized represents authentication required or failed errors.
+	CategoryUnauthorized Category = "unauthorized"
+
+	// CategoryForbidden represents authorization/permission denied errors.
+	CategoryForbidden Category = "forbidden"
+
+	// CategoryRateLimited represents rate limit exceeded errors.
+	CategoryRateLimited Category = "rate_limited"
+
+	// CategoryInternalServerError represents internal server errors.
+	CategoryInternalServerError Category = "internal_server_error"
+
 	// Unkey categories
 
 	// CategoryUnkeyData represents data-related errors in Unkey systems.

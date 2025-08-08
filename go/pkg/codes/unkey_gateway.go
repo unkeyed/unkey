@@ -10,12 +10,38 @@ type gatewayProxy struct {
 
 	// GatewayTimeout represents a 504 error - upstream server timeout
 	GatewayTimeout Code
+
+	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
+	ProxyForwardFailed Code
 }
 
 // gatewayRouting defines errors related to gateway routing functionality.
 type gatewayRouting struct {
 	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
 	ConfigNotFound Code
+
+	// VMSelectionFailed represents a 500 error - failed to select an available VM
+	VMSelectionFailed Code
+}
+
+// gatewayAuth defines errors related to gateway authentication functionality.
+type gatewayAuth struct {
+	// Unauthorized represents a 401 error - authentication required or failed
+	Unauthorized Code
+
+	// RateLimited represents a 429 error - rate limit exceeded
+	RateLimited Code
+
+	// KeyspaceViolation represents a 403 error - key belongs to different keyspace
+	KeyspaceViolation Code
+}
+
+// gatewayInternal defines errors related to internal gateway functionality.
+type gatewayInternal struct {
+	// InternalServerError represents a 500 error - internal server error
+	InternalServerError Code
+	// KeyVerificationFailed represents a 500 error - key verification service failure
+	KeyVerificationFailed Code
 }
 
 // UnkeyGatewayErrors defines all gateway-related errors in the Unkey system.
@@ -26,6 +52,12 @@ type UnkeyGatewayErrors struct {
 
 	// Routing contains errors related to gateway routing functionality.
 	Routing gatewayRouting
+
+	// Auth contains errors related to gateway authentication functionality.
+	Auth gatewayAuth
+
+	// Internal contains errors related to internal gateway functionality.
+	Internal gatewayInternal
 }
 
 // Gateway contains all predefined gateway error codes.
@@ -34,10 +66,21 @@ type UnkeyGatewayErrors struct {
 var Gateway = UnkeyGatewayErrors{
 	Proxy: gatewayProxy{
 		BadGateway:         Code{SystemUnkey, CategoryBadGateway, "bad_gateway"},
-		ServiceUnavailable: Code{SystemUnkey, CategoryBadGateway, "service_unavailable"},
-		GatewayTimeout:     Code{SystemUnkey, CategoryBadGateway, "gateway_timeout"},
+		ServiceUnavailable: Code{SystemUnkey, CategoryServiceUnavailable, "service_unavailable"},
+		GatewayTimeout:     Code{SystemUnkey, CategoryGatewayTimeout, "gateway_timeout"},
+		ProxyForwardFailed: Code{SystemUnkey, CategoryBadGateway, "proxy_forward_failed"},
 	},
 	Routing: gatewayRouting{
-		ConfigNotFound: Code{SystemUnkey, CategoryNotFound, "config_not_found"},
+		ConfigNotFound:    Code{SystemUnkey, CategoryNotFound, "config_not_found"},
+		VMSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "vm_selection_failed"},
+	},
+	Auth: gatewayAuth{
+		Unauthorized:      Code{SystemUnkey, CategoryUnauthorized, "unauthorized"},
+		RateLimited:       Code{SystemUnkey, CategoryRateLimited, "rate_limited"},
+		KeyspaceViolation: Code{SystemUnkey, CategoryForbidden, "keyspace_violation"},
+	},
+	Internal: gatewayInternal{
+		InternalServerError:   Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},
+		KeyVerificationFailed: Code{SystemUnkey, CategoryInternalServerError, "key_verification_failed"},
 	},
 }

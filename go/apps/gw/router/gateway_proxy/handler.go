@@ -3,19 +3,16 @@ package gateway_proxy
 import (
 	"context"
 	"net"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gw/server"
+	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
-	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/zen"
 )
-
-// TODO: Replace keys with keys from api, remove http.Error and replace it with fault like used to
 
 // Handler implements the main gateway proxy functionality.
 // It handles all incoming requests and forwards them to backend services.
@@ -23,7 +20,7 @@ type Handler struct {
 	Logger         logging.Logger
 	RoutingService routing.Service
 	Proxy          proxy.Proxy
-	Keys           keys.KeyService
+	Auth           auth.Authenticator
 }
 
 // Handle processes all HTTP requests for the gateway.
@@ -61,134 +58,16 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"config_lookup_latency_us", configLookupLatency.Microseconds(),
 			"error", err.Error(),
 		)
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
+			fault.Internal("failed to lookup target configuration"),
+			fault.Public("Service configuration not found"),
+		)
 	}
 
-	if config.AuthConfig != nil && config.AuthConfig.Enabled {
-		var rootKey string
-
-		if config.AuthConfig.RequireApiKey {
-			// Verify API key from Authorization header
-			authHeader := req.Header.Get("Authorization")
-			if authHeader == "" {
-				h.Logger.Warn("missing authorization header",
-					"requestId", sess.RequestID(),
-					"host", req.Host,
-					"path", req.URL.Path,
-				)
-				http.Error(sess.ResponseWriter(), "Authorization header required", http.StatusUnauthorized)
-				return nil
-			}
-
-			// Extract Bearer token
-			if !strings.HasPrefix(authHeader, "Bearer ") {
-				h.Logger.Warn("invalid authorization header format",
-					"requestId", sess.RequestID(),
-					"host", req.Host,
-					"path", req.URL.Path,
-				)
-				http.Error(sess.ResponseWriter(), "Invalid authorization header format", http.StatusUnauthorized)
-				return nil
-			}
-
-			rootKey := strings.TrimPrefix(authHeader, "Bearer ")
-			if rootKey == "" {
-				h.Logger.Warn("empty api key",
-					"requestId", sess.RequestID(),
-					"host", req.Host,
-					"path", req.URL.Path,
-				)
-				http.Error(sess.ResponseWriter(), "API key is required", http.StatusUnauthorized)
-				return nil
-			}
-		}
-
-		if rootKey != "" {
-			// Get the API key
-			keyVerifyStart := time.Now()
-			key, logKeyFunc, err := h.Keys.Get(ctx, &zen.Session{}, rootKey)
-
-			if key.Key.KeyAuthID == config.AuthConfig.KeyspaceId {
-				http.Error(sess.ResponseWriter(), "Invalid API key", http.StatusUnauthorized)
-				return nil
-			}
-
-			defer logKeyFunc()
-			keyVerifyLatency := time.Since(keyVerifyStart)
-
-			if err != nil {
-				h.Logger.Error("failed to get api key",
-					"requestId", sess.RequestID(),
-					"host", req.Host,
-					"path", req.URL.Path,
-					"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
-					"error", err.Error(),
-				)
-				http.Error(sess.ResponseWriter(), "Internal server error", http.StatusInternalServerError)
-				return nil
-			}
-
-			// Check if API is deleted
-			if key.Key.ApiDeletedAtM.Valid {
-				h.Logger.Warn("api deleted",
-					"requestId", sess.RequestID(),
-					"key_id", key.Key.ID,
-				)
-				http.Error(sess.ResponseWriter(), "Invalid API key", http.StatusUnauthorized)
-				return nil
-			}
-
-			// Verify the key with minimal options
-			opts := []keys.VerifyOption{
-				keys.WithCredits(1),      // Default cost
-				keys.WithRateLimits(nil), // Auto-applied rate limits only
-			}
-
-			err = key.Verify(ctx, opts...)
-			if err != nil {
-				h.Logger.Error("key verification failed",
-					"requestId", sess.RequestID(),
-					"key_id", key.Key.ID,
-					"error", err.Error(),
-				)
-				http.Error(sess.ResponseWriter(), "Internal server error", http.StatusInternalServerError)
-				return nil
-			}
-
-			// Check if key is valid after verification
-			if key.Status != keys.StatusValid {
-				h.Logger.Warn("invalid api key",
-					"requestId", sess.RequestID(),
-					"host", req.Host,
-					"path", req.URL.Path,
-					"key_status", key.Status,
-					"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
-				)
-
-				// Return specific error based on status
-				switch key.Status {
-				case keys.StatusRateLimited:
-					http.Error(sess.ResponseWriter(), "Rate limit exceeded", http.StatusTooManyRequests)
-
-				default:
-					http.Error(sess.ResponseWriter(), "Invalid API key", http.StatusUnauthorized)
-				}
-				return nil
-			}
-
-			// API key is valid, continue with request
-			h.Logger.Debug("api key verified successfully",
-				"requestId", sess.RequestID(),
-				"host", req.Host,
-				"path", req.URL.Path,
-				"key_id", key.Key.ID,
-				"workspace_id", key.Key.WorkspaceID,
-				"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
-			)
-
-		}
-		// Associate the workspace ID with the session for metrics/logging
-		// sess.WorkspaceID = key.Key.WorkspaceID
+	// Handle authentication if configured
+	if err := h.Auth.Authenticate(ctx, sess, config); err != nil {
+		return err
 	}
 
 	// Select an available VM for this gateway
@@ -204,10 +83,14 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
 			"error", err.Error(),
 		)
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Routing.VMSelectionFailed.URN()),
+			fault.Internal("failed to select VM"),
+			fault.Public("Service temporarily unavailable"),
+		)
 	}
 
-	// Calculate total routing overhead (including key verification)
+	// Calculate total routing overhead
 	routingLatency := time.Since(requestStart)
 
 	h.Logger.Debug("routing completed for request",
@@ -234,8 +117,11 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"proxy_latency_ms", proxyLatency.String(),
 			"error", err.Error(),
 		)
-
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.Gateway.Proxy.ProxyForwardFailed.URN()),
+			fault.Internal("failed to forward request"),
+			fault.Public("Service temporarily unavailable"),
+		)
 	}
 
 	// Log successful request completion with full timing breakdown

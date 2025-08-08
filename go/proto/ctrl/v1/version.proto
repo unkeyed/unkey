@@ -26,24 +26,22 @@ message CreateVersionRequest {
   string workspace_id = 1;
   string project_id = 2;
   string branch = 3;
-
   // Source information
   SourceType source_type = 4;
-  string git_commit_sha = 5;  // For git sources
-
+  string git_commit_sha = 5; // For git sources
   // Optional environment override (defaults based on branch)
   string environment_id = 7;
-
   // Docker image support
-  string docker_image_tag = 8;  // e.g. "ghcr.io/user/app:sha256..."
-
+  string docker_image_tag = 8; // e.g. "ghcr.io/user/app:sha256..."
   // Gateway hostname for routing
   string hostname = 9;
+  // Keyspace ID for authentication
+  string keyspace_id = 10;
 }
 
 message CreateVersionResponse {
   string version_id = 1;
-  VersionStatus status = 2;  // Will be PENDING or BUILDING
+  VersionStatus status = 2; // Will be PENDING or BUILDING
 }
 
 message GetVersionRequest {
@@ -53,7 +51,6 @@ message GetVersionRequest {
 message GetVersionResponse {
   Version version = 1;
 }
-
 
 message Version {
   string id = 1;
@@ -67,7 +64,7 @@ message Version {
 
   // Status and lifecycle
   VersionStatus status = 7;
-  string error_message = 8;  // For failed versions
+  string error_message = 8; // For failed versions
 
   // Configuration snapshot (resolved at creation time)
   map<string, string> environment_variables = 9;
@@ -105,7 +102,7 @@ message Topology {
   repeated RegionalConfig regions = 3;
 
   // Runtime settings
-  int32 idle_timeout_seconds = 4;  // 0 means no timeout
+  int32 idle_timeout_seconds = 4; // 0 means no timeout
   string health_check_path = 5;
   int32 port = 6;
 }

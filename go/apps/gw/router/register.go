@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/gw/router/gateway_proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/server"
+	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 )
 
@@ -50,12 +51,23 @@ func Register(srv *server.Server, svc *Services, region string) {
 		return
 	}
 
+	// Create proxy service with shared transport
+	authService, err := auth.New(auth.Config{
+		Logger: svc.Logger,
+		Keys:   svc.Keys,
+	})
+	if err != nil {
+		// This shouldn't happen with valid config, but handle it gracefully
+		svc.Logger.Error("failed to create proxy service", "error", err.Error())
+		return
+	}
+
 	// Create the main proxy handler that handles all gateway requests
 	proxyHandler := &gateway_proxy.Handler{
 		Logger:         svc.Logger,
 		RoutingService: svc.RoutingService,
 		Proxy:          proxyService,
-		Keys:           svc.Keys,
+		Auth:           authService,
 	}
 
 	// Create a mux for routing
