@@ -32,19 +32,6 @@ Common scenarios that trigger this error:
 - Trying to assign a permission that doesn't exist in the current workspace
 - Typos in permission names when using name-based lookups
 
-Here's an example of a request that would trigger this error:
-
-```bash
-# Attempting to assign a non-existent permission to a role
-curl -X POST https://api.unkey.com/v1/roles.addPermission \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "roleId": "role_123abc",
-    "permissionId": "perm_nonexistent"
-  }'
-```
-
 ## How To Fix
 
 Verify that you're using the correct permission ID or name and that the permission still exists in your workspace:
@@ -56,14 +43,14 @@ Verify that you're using the correct permission ID or name and that the permissi
 Here's how to list all permissions in your workspace:
 
 ```bash
-curl -X GET https://api.unkey.com/v1/permissions.listPermissions \
+curl -X POST https://api.unkey.com/v2/permissions.listPermissions \
   -H "Authorization: Bearer unkey_YOUR_API_KEY"
 ```
 
 If you need to create a new permission, use the appropriate API endpoint:
 
 ```bash
-curl -X POST https://api.unkey.com/v1/permissions.createPermission \
+curl -X POST https://api.unkey.com/v2/permissions.createPermission \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{
