@@ -3,7 +3,6 @@ on:
   workflow_call:
 permissions:
   contents: read
-
 jobs:
   tests:
     name: Test
@@ -11,17 +10,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Go
         uses: ./.github/actions/setup-go
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install Go test tools
         run: |
           go install github.com/mfridman/tparse@v0.14.0
         working-directory: go
-
       - name: Test
         run: make test-full
         working-directory: go

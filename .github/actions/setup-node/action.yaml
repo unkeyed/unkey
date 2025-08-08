@@ -31,5 +31,6 @@ runs:
       shell: bash
       run: pnpm install --recursive
       env:
+        CI: 1
         GITHUB_TOKEN: ${{ inputs.github_token }}
         NPM_TOKEN: ${{ inputs.github_token }}

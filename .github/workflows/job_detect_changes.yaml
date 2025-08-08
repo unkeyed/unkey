@@ -32,10 +32,8 @@ on:
       configs:
         description: "Whether config files have changed"
         value: ${{ jobs.build.outputs.configs }}
-
 permissions:
   contents: read
-
 jobs:
   build:
     name: Detect Changes
