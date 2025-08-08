@@ -1,6 +1,6 @@
 "use client";
 
-import { SecretKey } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/secret-key";
+import { SecretKey } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/components/secret-key";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
