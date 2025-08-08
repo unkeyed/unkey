@@ -109,6 +109,14 @@ func TestUpdateKeySuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
+
+		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, ratelimits, 1)
+		require.Equal(t, ratelimit.Name, ratelimits[0].Name)
+		require.Equal(t, ratelimit.AutoApply, ratelimits[0].AutoApply)
+		require.EqualValues(t, ratelimit.Duration, ratelimits[0].Duration)
+		require.EqualValues(t, ratelimit.Limit, ratelimits[0].Limit)
 	})
 }
 
