@@ -82,34 +82,51 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 		},
 	}
 
-	// our openapi validator errors out when having a type that is nullable: true
-	// So we are checking if the errors is that because if so we can just ignore it.
-	var nonIgnoredErrors []*errors.ValidationError
+	// Process validation errors and filter out nullable field errors
+	hasNonNullableErrors := false
+	var firstError *errors.ValidationError
+	
 	for _, err := range errs {
-		if !v.isNullableError(err) {
-			nonIgnoredErrors = append(nonIgnoredErrors, err)
+		// For each ValidationError, check if it has any non-nullable schema errors
+		hasNonNullableInThisError := false
+		
+		for _, schemaErr := range err.SchemaValidationErrors {
+			if !v.isSchemaErrorNullable(schemaErr) {
+				hasNonNullableInThisError = true
+				hasNonNullableErrors = true
+				
+				// Add this non-nullable error to the response
+				res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
+					Message:  schemaErr.Reason,
+					Location: schemaErr.Location,
+					Fix:      nil,
+				})
+			}
+		}
+		
+		// Keep track of the first error that has non-nullable errors
+		if hasNonNullableInThisError && firstError == nil {
+			firstError = err
 		}
 	}
-
-	if len(nonIgnoredErrors) == 0 {
+	
+	// If all errors were nullable, validation passes
+	if !hasNonNullableErrors {
 		return openapi.BadRequestErrorResponse{}, true
 	}
-
-	err := nonIgnoredErrors[0]
-	res.Error.Detail = err.Message
-	for _, verr := range err.SchemaValidationErrors {
-		res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
-			Message:  verr.Reason,
-			Location: verr.Location,
-			Fix:      nil,
-		})
+	
+	// Set the error detail from the first error with non-nullable issues
+	if firstError != nil {
+		res.Error.Detail = firstError.Message
 	}
 
-	if len(res.Error.Errors) == 0 {
+	// If no specific errors were added but we have non-nullable errors,
+	// add a general error (this shouldn't happen normally)
+	if len(res.Error.Errors) == 0 && firstError != nil {
 		res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
-			Message:  err.Reason,
-			Location: err.ValidationType,
-			Fix:      &err.HowToFix,
+			Message:  firstError.Reason,
+			Location: firstError.ValidationType,
+			Fix:      &firstError.HowToFix,
 		})
 	}
 
@@ -137,71 +154,109 @@ func convertToStringMap(input interface{}) (map[string]any, bool) {
 	return nil, false
 }
 
+// isSchemaErrorNullable checks if a single schema validation error is for a nullable field
+func (v *Validator) isSchemaErrorNullable(validationErr *errors.SchemaValidationFailure) bool {
+	isNullErr := strings.HasPrefix(validationErr.Reason, "got null")
+	hasType := strings.HasSuffix(validationErr.Location, "/type")
+
+	if !isNullErr || !hasType {
+		return false
+	}
+
+	// Parse the location path to navigate nested properties
+	// Example: "/properties/credits/properties/remaining/type" -> ["", "properties", "credits", "properties", "remaining", "type"]
+	location := strings.TrimSuffix(validationErr.Location, "/type")
+	parts := strings.Split(location, "/")
+	
+	// We need at least ["", "properties", "fieldName"] for a valid path
+	if len(parts) < 3 || parts[1] != "properties" {
+		return false
+	}
+
+	spec := make(map[string]any)
+
+	// This has to be a valid yaml schema as nothing works without our valid openapi spec anyways.
+	err := yaml.Unmarshal([]byte(validationErr.ReferenceSchema), spec)
+	if err != nil {
+		return false
+	}
+
+	// Navigate through the nested structure following the path
+	current := spec
+	
+	// Start from index 1 to skip the empty string from leading "/"
+	// Process pairs of ["properties", "fieldName"]
+	for i := 1; i < len(parts)-1; i += 2 {
+		if parts[i] != "properties" {
+			break
+		}
+		
+		// Get the properties at current level
+		properties, propertiesExist := current["properties"]
+		if !propertiesExist {
+			return false
+		}
+		
+		// Convert to map
+		propertiesMap, ok := convertToStringMap(properties)
+		if !ok {
+			return false
+		}
+		
+		// Get the field at this level
+		fieldName := parts[i+1]
+		fieldSpec, found := propertiesMap[fieldName]
+		if !found {
+			return false
+		}
+		
+		// If this is the last field in the path, check for nullable
+		if i+2 >= len(parts) {
+			// Convert fieldSpec to map[string]any
+			fieldMap, ok := convertToStringMap(fieldSpec)
+			if !ok {
+				return false
+			}
+			
+			// Check if nullable exists and is true
+			nullable, exists := fieldMap["nullable"]
+			if !exists {
+				return false
+			}
+			
+			isNullable, ok := nullable.(bool)
+			if !ok || !isNullable {
+				return false
+			}
+			
+			return true
+		}
+		
+		// Otherwise, move deeper into the structure
+		current, ok = convertToStringMap(fieldSpec)
+		if !ok {
+			return false
+		}
+	}
+
+	return false
+}
+
+// isNullableError checks if ALL schema validation errors in a ValidationError are nullable errors
+// Returns true only if every single schema error is a nullable error
 func (v *Validator) isNullableError(e *errors.ValidationError) bool {
 	if len(e.SchemaValidationErrors) == 0 {
 		return false
 	}
 
+	// Check if ALL schema validation errors are nullable errors
 	for _, validationErr := range e.SchemaValidationErrors {
-		isNullErr := strings.HasPrefix(validationErr.Reason, "got null")
-		hasType := strings.HasSuffix(validationErr.Location, "/type")
-
-		if !isNullErr || !hasType {
-			continue
-		}
-
-		// "/properties/name/type" -> extract "name"
-		location := strings.TrimSuffix(validationErr.Location, "/type")
-		parts := strings.Split(location, "/")
-		if len(parts) < 3 || parts[1] != "properties" {
-			continue
-		}
-		fieldName := parts[2]
-
-		spec := make(map[string]any)
-
-		// This has to be a valid yaml schema as nothing works without our valid openapi spec anyways.
-		err := yaml.Unmarshal([]byte(validationErr.ReferenceSchema), spec)
-		if err != nil {
+		if !v.isSchemaErrorNullable(validationErr) {
+			// If we find even one non-nullable error, this ValidationError should not be ignored
 			return false
 		}
-
-		properties, propertiesExist := spec["properties"]
-		if !propertiesExist {
-			return false
-		}
-
-		// Convert properties to map[string]any
-		propertiesMap, ok := convertToStringMap(properties)
-		if !ok {
-			return false
-		}
-
-		// Get the field spec directly
-		fieldSpec, found := propertiesMap[fieldName]
-		if !found {
-			return false
-		}
-
-		// Convert fieldSpec to map[string]any
-		fieldMap, ok := convertToStringMap(fieldSpec)
-		if !ok {
-			return false
-		}
-
-		// Check if nullable exists and is true
-		nullable, exists := fieldMap["nullable"]
-		if !exists {
-			return false
-		}
-
-		isNullable, ok := nullable.(bool)
-		if !ok || !isNullable {
-			return false
-		}
-
-		return true
 	}
-
-	return false
+	
+	// All errors were nullable errors
+	return true
 }
