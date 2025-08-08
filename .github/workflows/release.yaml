@@ -23,6 +23,7 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          install: 'false'
 
       - name: Setup Go
         uses: ./.github/actions/setup-go

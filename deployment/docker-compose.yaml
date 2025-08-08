@@ -89,6 +89,12 @@ services:
     image: redis:latest
     ports:
       - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      interval: 5s
 
   agent:
     container_name: agent
@@ -142,6 +148,12 @@ services:
       - "9000:9000"
     volumes:
       - clickhouse:/bitnami/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--user", "default", "--password", "password", "--query", "SELECT 1"]
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+      interval: 5s
 
   clickhouse_migrator:
     container_name: clickhouse_migrator
@@ -164,6 +176,12 @@ services:
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
       - s3:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3902/minio/health/live"]
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+      interval: 5s
 
   api:
     container_name: api
