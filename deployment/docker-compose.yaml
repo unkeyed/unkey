@@ -27,9 +27,7 @@ services:
 
   planetscale:
     container_name: planetscale
-    build:
-      context: https://github.com/mattrobenolt/ps-http-sim.git
-      target: local
+    image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
     command:
       [
         "-listen-port=3900",
@@ -149,7 +147,19 @@ services:
     volumes:
       - clickhouse:/bitnami/clickhouse
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--host", "localhost", "--user", "default", "--password", "password", "--query", "SELECT 1"]
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--host",
+          "localhost",
+          "--user",
+          "default",
+          "--password",
+          "password",
+          "--query",
+          "SELECT 1",
+        ]
       timeout: 10s
       retries: 10
       start_period: 30s
