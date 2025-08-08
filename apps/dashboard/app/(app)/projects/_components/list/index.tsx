@@ -71,6 +71,7 @@ export const ProjectsList = () => {
             const primaryHostname = project.hostnames[0]?.hostname || "No domain";
             return (
               <ProjectCard
+                projectId={project.id}
                 key={project.id}
                 name={project.name}
                 domain={primaryHostname}
