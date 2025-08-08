@@ -25,7 +25,6 @@ jobs:
     outputs:
       api: ${{ steps.changes.outputs.api }}
       clickhouse: ${{ steps.changes.outputs.clickhouse }}
-      agent: ${{ steps.changes.outputs.agent }}
       go: ${{ steps.changes.outputs.go }}
     steps:
       - uses: actions/checkout@v4
@@ -41,8 +40,5 @@ jobs:
               - 'pnpm-lock.yaml'
             clickhouse:
               - 'internal/clickhouse/**'
-            agent:
-              - 'apps/agent/**'
-              - 'go/**'
             go:
               - 'go/**'

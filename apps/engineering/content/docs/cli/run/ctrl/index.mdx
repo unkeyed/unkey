@@ -1,0 +1,128 @@
+---
+title: "Ctrl"
+description: "Run the Unkey control plane service for managing infrastructure and services"
+---
+
+## Command Syntax
+
+```bash
+unkey run ctrl [flags]
+```
+
+<Banner type="warn">
+Some flags are required for this command to work properly.
+</Banner>
+
+## Flags
+
+<Callout type="info" title="--http-port">
+HTTP port for the control plane server to listen on. Default: 8080
+
+- **Type:** integer
+- **Default:** `8080`
+- **Environment:** `UNKEY_HTTP_PORT`
+</Callout>
+
+<Callout type="info" title="--color">
+Enable colored log output. Default: true
+
+- **Type:** boolean
+- **Default:** `true`
+- **Environment:** `UNKEY_LOGS_COLOR`
+</Callout>
+
+<Callout type="info" title="--platform">
+Cloud platform identifier for this node. Used for logging and metrics.
+
+- **Type:** string
+- **Environment:** `UNKEY_PLATFORM`
+</Callout>
+
+<Callout type="info" title="--image">
+Container image identifier. Used for logging and metrics.
+
+- **Type:** string
+- **Environment:** `UNKEY_IMAGE`
+</Callout>
+
+<Callout type="info" title="--region">
+Geographic region identifier. Used for logging and routing. Default: unknown
+
+- **Type:** string
+- **Default:** `"unknown"`
+- **Environment:** `AWS_REGION`
+</Callout>
+
+<Callout type="info" title="--instance-id">
+Unique identifier for this instance. Auto-generated if not provided.
+
+- **Type:** string
+- **Default:** `"ins_26qK8q"`
+- **Environment:** `UNKEY_INSTANCE_ID`
+</Callout>
+
+<Callout type="info" title="--database-primary (required)">
+MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_PRIMARY`
+</Callout>
+
+<Callout type="info" title="--database-hydra (required)">
+MySQL connection string for hydra database. Required for all deployments. Example: user:pass@host:3306/hydra?parseTime=true
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_HYDRA`
+</Callout>
+
+<Callout type="info" title="--otel">
+Enable OpenTelemetry tracing and metrics
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_OTEL`
+</Callout>
+
+<Callout type="info" title="--otel-trace-sampling-rate">
+Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25
+
+- **Type:** float
+- **Default:** `0.25`
+- **Environment:** `UNKEY_OTEL_TRACE_SAMPLING_RATE`
+</Callout>
+
+<Callout type="info" title="--tls-cert-file">
+Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.
+
+- **Type:** string
+- **Environment:** `UNKEY_TLS_CERT_FILE`
+</Callout>
+
+<Callout type="info" title="--tls-key-file">
+Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.
+
+- **Type:** string
+- **Environment:** `UNKEY_TLS_KEY_FILE`
+</Callout>
+
+<Callout type="info" title="--auth-token">
+Authentication token for control plane API access. Required for secure deployments.
+
+- **Type:** string
+- **Environment:** `UNKEY_AUTH_TOKEN`
+</Callout>
+
+<Callout type="info" title="--metald-address (required)">
+Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080
+
+- **Type:** string
+- **Environment:** `UNKEY_METALD_ADDRESS`
+</Callout>
+
+<Callout type="info" title="--spiffe-socket-path">
+Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock
+
+- **Type:** string
+- **Default:** `"/var/lib/spire/agent/agent.sock"`
+- **Environment:** `UNKEY_SPIFFE_SOCKET_PATH`
+</Callout>

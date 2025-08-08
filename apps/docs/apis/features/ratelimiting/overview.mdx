@@ -17,7 +17,7 @@ Auto-apply ratelimits (`autoApply: true`) are checked automatically during every
 
 ```bash
 # Create a key with auto-apply ratelimit
-curl -X POST https://api.unkey.dev/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -35,11 +35,10 @@ curl -X POST https://api.unkey.dev/v1/keys.createKey \
 
 ```bash
 # Verify key - auto-apply ratelimits are checked automatically
-curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "apiId": "api_123",
     "key": "your_api_key_here"
   }'
 ```
@@ -48,7 +47,7 @@ Manual ratelimits (`autoApply: false`) must be explicitly specified in verificat
 
 ```bash
 # Create a key with manual ratelimit
-curl -X POST https://api.unkey.dev/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -65,11 +64,10 @@ curl -X POST https://api.unkey.dev/v1/keys.createKey \
 
 ```bash
 # Verify key - override cost explicitly
-curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "apiId": "api_123",
     "key": "your_api_key_here",
     "ratelimits": [
       {
@@ -85,7 +83,7 @@ curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
 Configure ratelimits on a per-key or per-identity basis through the dashboard or API. Each ratelimit requires a unique name, limit count, and duration in milliseconds.
 
 ```bash
-curl -X POST https://api.unkey.dev/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -121,7 +119,7 @@ The legacy format converts automatically:
 
 ```bash
 # Legacy format (deprecated)
-curl -X POST https://api.unkey.dev/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -133,7 +131,7 @@ curl -X POST https://api.unkey.dev/v1/keys.createKey \
   }'
 
 # Automatically becomes
-curl -X POST https://api.unkey.dev/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -156,7 +154,7 @@ Remove the automatically migrated "default" ratelimit through the key settings i
 Configure ratelimits at the identity level to share limits across multiple keys. Identity ratelimits work alongside key-level ratelimits, with key-level settings taking precedence for naming conflicts.
 
 ```bash
-curl -X POST https://api.unkey.dev/v1/identities.createIdentity \
+curl -X POST https://api.unkey.com/v2/identities.createIdentity \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
