@@ -24,7 +24,6 @@ pull:
 	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up:
-	@docker compose -f ../deployment/docker-compose.yaml up --force-recreate -d mysql planetscale redis clickhouse s3 otel
 	@docker compose -f ../deployment/docker-compose.yaml up -d mysql planetscale redis clickhouse s3 otel
 	@echo "Starting ClickHouse migrations (will retry if ClickHouse isn't ready)..."
 	@for i in {1..10}; do \
