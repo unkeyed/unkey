@@ -16,11 +16,11 @@ jobs:
         uses: ./.github/actions/setup-go
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Install Go test tools
         run: |
-          go install github.com/mfridman/tparse@latest
-        working-directory: ./go
+          go install github.com/mfridman/tparse@v0.14.0
+        working-directory: go
 
       - name: Test
         run: make test-full

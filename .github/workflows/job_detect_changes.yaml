@@ -6,7 +6,7 @@ on:
         description: "Whether API has changed"
         value: ${{ jobs.build.outputs.api }}
       dashboard:
-        description: "Whether Dashboard has changed"  
+        description: "Whether Dashboard has changed"
         value: ${{ jobs.build.outputs.dashboard }}
       agent:
         description: "Whether Agent has changed"
@@ -69,7 +69,7 @@ jobs:
               - 'internal/keys/**'
               - 'internal/validation/**'
               - 'internal/vault/**'
-              
+
             # Dashboard application and its dependencies
             dashboard:
               - 'apps/dashboard/**'
@@ -78,34 +78,34 @@ jobs:
               - 'internal/resend/**'
               - 'internal/validation/**'
               - 'internal/vercel/**'
-              
+
             # Agent application (Go-based)
             agent:
               - 'apps/agent/**'
-              
+
             # Go services (API v2, Ctrl, Deploy services)
             go:
               - 'go/**'
               - '!go/benchmarks/**'
               - '!go/demo_api/**'
-              
+
             # ClickHouse schema and related
             clickhouse:
               - 'internal/clickhouse/**'
               - 'go/internal/clickhouse/**'
-              
+
             # Documentation
             docs:
               - 'apps/docs/**'
-              - 'apps/engineering/**' 
+              - 'apps/engineering/**'
               - '*.md'
               - 'README*'
               - 'CHANGELOG*'
-              
+
             # GitHub workflows and CI/CD
             workflows:
               - '.github/**'
-              
+
             # Dependency changes
             dependencies:
               - 'pnpm-lock.yaml'
@@ -114,12 +114,12 @@ jobs:
               - '**/package.json'
               - '**/go.mod'
               - '**/go.sum'
-              
+
             # Internal packages (affect multiple apps)
             packages:
               - 'internal/**'
               - 'packages/**'
-              
+
             # Configuration files
             configs:
               - '*.json'

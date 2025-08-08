@@ -21,15 +21,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: "pnpm"
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Setup Go (for formatting)
         uses: actions/setup-go@v5
         with:
           go-version-file: ./go/go.mod
           cache-dependency-path: ./go/go.sum
-      
+
       - name: Install dependencies
         run: pnpm install --recursive
 
