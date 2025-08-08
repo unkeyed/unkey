@@ -19,7 +19,7 @@ permissions:
 on:
   schedule:
     # Run daily at 9 AM UTC
-    - cron: '0 0 1 * *'
+    - cron: '0 9 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -31,6 +31,7 @@ jobs:
     # Security: Restrict environment access
     environment:
       name: runbook-maintenance
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -155,21 +156,21 @@ jobs:
 
               const issueBody = `## Runbook needs review
 
-**File**: \`${sanitizedFile}\`
-**Last updated**: ${sanitizedDate} (${sanitizedDays} days ago)
+            **File**: \`${sanitizedFile}\`
+            **Last updated**: ${sanitizedDate} (${sanitizedDays} days ago)
 
-This runbook has not been updated in over 90 days. Please review and verify:
+            This runbook has not been updated in over 90 days. Please review and verify:
 
-- Commands and procedures are accurate
-- Links and URLs work correctly
-- Service names and configurations are current
-- Access requirements and credentials are up to date
+            - Commands and procedures are accurate
+            - Links and URLs work correctly
+            - Service names and configurations are current
+            - Access requirements and credentials are up to date
 
-After reviewing, update the runbook with any necessary changes and close this issue.
+            After reviewing, update the runbook with any necessary changes and close this issue.
 
-**Quick links:**
-- [View file](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/${sanitizedFile})
-- [Edit file](https://github.com/${context.repo.owner}/${context.repo.repo}/edit/main/${sanitizedFile})`;
+            **Quick links:**
+            - [View file](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/${sanitizedFile})
+            - [Edit file](https://github.com/${context.repo.owner}/${context.repo.repo}/edit/main/${sanitizedFile})`;
 
               // Check if issue already exists for this specific runbook
               const existingIssues = await github.rest.issues.listForRepo({
