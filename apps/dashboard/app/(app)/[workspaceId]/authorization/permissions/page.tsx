@@ -4,10 +4,10 @@ import { PermissionListControls } from "./components/controls";
 import { PermissionsList } from "./components/table/permissions-list";
 import { Navigation } from "./navigation";
 
-export default function PermissionsPage() {
+export default function PermissionsPage({ params }: { params: { workspaceId: string } }) {
   return (
     <div>
-      <Navigation />
+      <Navigation workspaceId={params.workspaceId} />
       <div className="flex flex-col">
         <PermissionListControls />
         <PermissionsListControlCloud />

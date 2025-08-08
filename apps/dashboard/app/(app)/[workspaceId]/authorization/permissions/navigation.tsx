@@ -4,29 +4,29 @@ import { Navbar } from "@/components/navigation/navbar";
 import { Plus, ShieldKey } from "@unkey/icons";
 import dynamic from "next/dynamic";
 
-const UpsertRoleDialog = dynamic(
-  () => import("./components/upsert-role").then((mod) => mod.UpsertRoleDialog),
+const UpsertPermissionDialog = dynamic(
+  () => import("./components/upsert-permission").then((mod) => mod.UpsertPermissionDialog),
   {
     ssr: false,
     loading: () => (
       <NavbarActionButton disabled>
         <Plus />
-        Create new role
+        Create new permission
       </NavbarActionButton>
     ),
   },
 );
 
-export function Navigation() {
+export function Navigation({ workspaceId }: { workspaceId: string }) {
   return (
     <Navbar className="w-full flex justify-between">
       <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
-        <Navbar.Breadcrumbs.Link href="/authorization/roles">Authorization</Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link href="/authorization/roles" active>
-          Roles
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/roles`}>Authorization</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/permissions`} active>
+          Permissions
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
-      <UpsertRoleDialog triggerButton />
+      <UpsertPermissionDialog triggerButton />
     </Navbar>
   );
 }
