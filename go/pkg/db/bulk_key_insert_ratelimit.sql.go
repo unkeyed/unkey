@@ -9,7 +9,11 @@ import (
 )
 
 // bulkInsertKeyRatelimit is the base query for bulk insert
-const bulkInsertKeyRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + ` ( id, workspace_id, key_id, name, ` + "`" + `limit` + "`" + `, duration, auto_apply, created_at ) VALUES %s`
+const bulkInsertKeyRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + ` ( id, workspace_id, key_id, name, ` + "`" + `limit` + "`" + `, duration, auto_apply, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
+` + "`" + `duration` + "`" + ` = VALUES(` + "`" + `duration` + "`" + `),
+` + "`" + `auto_apply` + "`" + ` = VALUES(` + "`" + `auto_apply` + "`" + `),
+updated_at = ?`
 
 // InsertKeyRatelimits performs bulk insert in a single query
 func (q *BulkQueries) InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error {
@@ -37,6 +41,11 @@ func (q *BulkQueries) InsertKeyRatelimits(ctx context.Context, db DBTX, args []I
 		allArgs = append(allArgs, arg.Duration)
 		allArgs = append(allArgs, arg.AutoApply)
 		allArgs = append(allArgs, arg.CreatedAt)
+	}
+
+	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
+	if len(args) > 0 {
+		allArgs = append(allArgs, args[0].UpdatedAt)
 	}
 
 	// Execute the bulk insert
