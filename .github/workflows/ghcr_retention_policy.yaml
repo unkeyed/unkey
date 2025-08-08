@@ -8,7 +8,7 @@ on:
 jobs:
   clean:
     environment: operations
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     name: Delete old test images
     steps:
       - uses: snok/container-retention-policy@v3.0.0

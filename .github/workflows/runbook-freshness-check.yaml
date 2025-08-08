@@ -17,11 +17,11 @@ permissions:
 on:
   schedule:
     # Run daily at 9 AM UTC
-    - cron: '0 9 * * *'
+    - cron: "0 9 * * *"
   workflow_dispatch: # Allow manual trigger
 jobs:
   check-runbook-freshness:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     # Security: Set timeout to prevent runaway workflows
     timeout-minutes: 10
     # Security: Restrict environment access
