@@ -69,19 +69,19 @@ export const createWorkspaceNavigation = (
     {
       icon: ShieldKey,
       label: "Authorization",
-      href: "/authorization/roles",
+      href: `${basePath}/authorization/roles`,
       active: segments.some((s) => s === "authorization"),
       items: [
         {
           icon: null,
           label: "Roles",
-          href: "/authorization/roles",
+          href: `${basePath}/authorization/roles`,
           active: segments.some((s) => s === "roles"),
         },
         {
           icon: null,
           label: "Permissions",
-          href: "/authorization/permissions",
+          href: `${basePath}/authorization/permissions`,
           active: segments.some((s) => s === "permissions"),
         },
       ],
