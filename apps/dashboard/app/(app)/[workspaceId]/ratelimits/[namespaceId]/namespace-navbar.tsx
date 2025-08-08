@@ -23,12 +23,14 @@ type NamespaceNavbarProps = {
     href: string;
     text: string;
   };
+  workspaceId: string;
 };
 
 export const NamespaceNavbar = ({
   namespaceId,
   includeOverrides = false,
   activePage,
+  workspaceId,
 }: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
 
@@ -41,7 +43,7 @@ export const NamespaceNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>Ratelimits</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -71,9 +73,9 @@ export const NamespaceNavbar = ({
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>Ratelimits</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${namespace.id}`}
+            href={`/${workspaceId}/ratelimits/${namespace.id}`}
             isIdentifier
             className="group"
             noop
@@ -82,7 +84,7 @@ export const NamespaceNavbar = ({
               items={ratelimitNamespaces.map((ns) => ({
                 id: ns.id,
                 label: ns.name,
-                href: `/ratelimits/${ns.id}`,
+                href: `/${workspaceId}/ratelimits/${ns.id}`,
               }))}
               shortcutKey="N"
             >
@@ -95,22 +97,22 @@ export const NamespaceNavbar = ({
                 {
                   id: "requests",
                   label: "Requests",
-                  href: `/ratelimits/${namespace.id}`,
+                  href: `/${workspaceId}/ratelimits/${namespace.id}`,
                 },
                 {
                   id: "logs",
                   label: "Logs",
-                  href: `/ratelimits/${namespace.id}/logs`,
+                  href: `/${workspaceId}/ratelimits/${namespace.id}/logs`,
                 },
                 {
                   id: "settings",
                   label: "Settings",
-                  href: `/ratelimits/${namespace.id}/settings`,
+                  href: `/${workspaceId}/ratelimits/${namespace.id}/settings`,
                 },
                 {
                   id: "overrides",
                   label: "Overrides",
-                  href: `/ratelimits/${namespace.id}/overrides`,
+                  href: `/${workspaceId}/ratelimits/${namespace.id}/overrides`,
                 },
               ]}
               shortcutKey="M"

@@ -52,7 +52,7 @@ export const DeleteNamespaceDialog = ({
         description: "Your namespace and all its overridden identifiers have been deleted.",
       });
       trpcUtils.ratelimit.namespace.query.invalidate();
-      router.push("/ratelimits");
+      router.push(`/${namespace.workspaceId}/ratelimits`);
       onOpenChange(false);
     },
     onError(err) {

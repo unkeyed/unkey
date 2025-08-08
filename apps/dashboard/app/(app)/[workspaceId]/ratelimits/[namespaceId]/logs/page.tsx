@@ -4,9 +4,9 @@ import { NamespaceNavbar } from "../namespace-navbar";
 import { LogsClient } from "./components/logs-client";
 
 export default function RatelimitLogsPage({
-  params: { namespaceId },
+  params: { workspaceId, namespaceId },
 }: {
-  params: { namespaceId: string };
+  params: { workspaceId: string; namespaceId: string };
 }) {
   return (
     <div>
@@ -16,6 +16,7 @@ export default function RatelimitLogsPage({
           href: `/ratelimits/${namespaceId}/logs`,
           text: "Logs",
         }}
+        workspaceId={workspaceId}
       />
       <LogsClient namespaceId={namespaceId} />
     </div>

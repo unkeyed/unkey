@@ -19,7 +19,7 @@ const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit'
       "duration": 10000
   }'`;
 
-export const RatelimitClient = () => {
+export const RatelimitClient = ({ workspaceId }: { workspaceId: string }) => {
   const {
     data: namespacesData,
     isLoading,
@@ -68,7 +68,7 @@ export const RatelimitClient = () => {
       ) : namespaces.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
           {namespaces.map((namespace) => (
-            <NamespaceCard namespace={namespace} key={namespace.id} />
+            <NamespaceCard namespace={{ ...namespace, workspaceId: workspaceId }} key={namespace.id} />
           ))}
         </div>
       ) : (

@@ -62,7 +62,7 @@ export const createWorkspaceNavigation = (
     },
     {
       icon: Gauge,
-      href: "/ratelimits",
+      href: `${basePath}/ratelimits`,
       label: "Ratelimit",
       active: segments.at(0) === "ratelimits",
     },
