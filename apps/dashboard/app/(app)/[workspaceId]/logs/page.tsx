@@ -7,7 +7,7 @@ import { LogsClient } from "./components/logs-client";
 import { Navigation } from "@/components/navigation/navigation";
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
+export default async function Page({ params }: { params: { workspaceId: string } }) {
   const { orgId } = await getAuth();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -20,7 +20,7 @@ export default async function Page() {
 
   return (
     <div>
-      <Navigation href="/logs" name="Logs" icon={<Layers3 />} />
+      <Navigation href={`/${workspace.id}/logs`} name="Logs" icon={<Layers3 />} />
       <LogsClient />
     </div>
   );
