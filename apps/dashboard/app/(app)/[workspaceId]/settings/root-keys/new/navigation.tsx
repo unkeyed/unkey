@@ -27,18 +27,20 @@ const settingsNavbar = [
   },
 ];
 
-export function Navigation() {
+export function Navigation({ workspaceId }: { workspaceId: string }) {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Gear />}>
-        <Navbar.Breadcrumbs.Link href="/settings">Settings</Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link href="/settings/root-keys" noop active>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/settings`}>
+          Settings
+        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/settings/root-keys`} noop active>
           <QuickNavPopover
             items={settingsNavbar.flatMap((setting) => [
               {
                 id: setting.href,
                 label: setting.text,
-                href: `/settings/${setting.href}`,
+                href: `/${workspaceId}/settings/${setting.href}`,
               },
             ])}
             shortcutKey="M"
@@ -49,7 +51,9 @@ export function Navigation() {
             </div>
           </QuickNavPopover>
         </Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link href="/settings/root-keys/new">New</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/settings/root-keys/new`}>
+          New
+        </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
     </Navbar>
   );

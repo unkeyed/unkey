@@ -42,7 +42,7 @@ const RootKeysTableActions = dynamic(
   },
 );
 
-export const RootKeysList = () => {
+export const RootKeysList = ({ workspaceId }: { workspaceId: string }) => {
   const { rootKeys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     useRootKeysListQuery();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
@@ -150,11 +150,11 @@ export const RootKeysList = () => {
         header: "",
         width: "auto",
         render: (rootKey) => {
-          return <RootKeysTableActions rootKey={rootKey} />;
+          return <RootKeysTableActions rootKey={rootKey} workspaceId={workspaceId} />;
         },
       },
     ],
-    [selectedRootKey?.id],
+    [selectedRootKey?.id, workspaceId],
   );
 
   return (

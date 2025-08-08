@@ -21,7 +21,7 @@ export default async function SettingTeamPage() {
         activePage={{ href: "team", text: "Team" }}
       />
       <div className="flex flex-col items-center justify-center w-full px-16 gap-4 mt-10">
-        <TeamPageClient team={team} />
+        <TeamPageClient team={team} workspaceId={workspace.id} />
       </div>
     </>
   ) : (

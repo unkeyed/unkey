@@ -34,6 +34,7 @@ type Props = {
     id: string;
     name: string;
   }[];
+  workspaceId: string;
 };
 
 type PermissionToggleProps = {
@@ -76,7 +77,7 @@ const parseAsUnkeyPermission = createParser({
 
 const UNNAMED_KEY = "Unnamed Key";
 
-export const Client: React.FC<Props> = ({ apis }) => {
+export const Client: React.FC<Props> = ({ apis, workspaceId }) => {
   const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
@@ -194,12 +195,12 @@ export const Client: React.FC<Props> = ({ apis }) => {
           break;
 
         case "go-to-details":
-          router.push("/settings/root-keys");
+          router.push(`/${workspaceId}/settings/root-keys`);
           break;
 
         default:
           // Dialog already closed, nothing more to do
-          router.push("/settings/root-keys");
+          router.push(`/${workspaceId}/settings/root-keys`);
           break;
       }
     } catch (error) {

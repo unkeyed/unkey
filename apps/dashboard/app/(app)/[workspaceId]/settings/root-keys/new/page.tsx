@@ -28,14 +28,14 @@ export default async function SettingsKeysPage(_props: {
 
   return (
     <div>
-      <Navigation />
+      <Navigation workspaceId={workspace.id} />
       <PageContent>
         <PageHeader
           title="Create a new Root Key"
           description="Select the permissions you want to grant to your new api key and click the button below to create it."
         />
 
-        <Client apis={workspace.apis} />
+        <Client apis={workspace.apis} workspaceId={workspace.id} />
       </PageContent>
     </div>
   );

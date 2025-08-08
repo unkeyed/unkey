@@ -4,7 +4,8 @@ import { RootKeysListControls } from "./components/controls";
 import { RootKeysList } from "./components/table/root-keys-list";
 import { Navigation } from "./navigation";
 
-export default function RootKeysPage() {
+export default function RootKeysPage({ params }: { params: { workspaceId: string } }) {
+  const { workspaceId } = params;
   return (
     <div>
       <Navigation
@@ -20,7 +21,7 @@ export default function RootKeysPage() {
       <div className="flex flex-col">
         <RootKeysListControls />
         <RootKeysListControlCloud />
-        <RootKeysList />
+        <RootKeysList workspaceId={workspaceId} />
       </div>
     </div>
   );

@@ -109,6 +109,7 @@ export const Client: React.FC<Props> = (props) => {
       <Shell workspace={props.workspace}>
         {props.subscription ? (
           <SusbcriptionStatus
+            workspaceId={props.workspace.id}
             status={props.subscription.status}
             trialUntil={props.subscription.trialUntil}
           />
@@ -219,7 +220,9 @@ export const Client: React.FC<Props> = (props) => {
           >
             <div className="flex justify-end w-full">
               <Button variant="primary">
-                <Link href="/settings/billing/stripe/checkout">Add payment method</Link>
+                <Link href={`/${props.workspace.id}/settings/billing/stripe/checkout`}>
+                  Add payment method
+                </Link>
               </Button>
             </div>
           </SettingCard>
@@ -233,7 +236,9 @@ export const Client: React.FC<Props> = (props) => {
             >
               <div className="flex justify-end w-full">
                 <Button variant="outline" size="lg">
-                  <Link href="/settings/billing/stripe/portal">Open Portal</Link>
+                  <Link href={`/${props.workspace.id}/settings/billing/stripe/portal`}>
+                    Open Portal
+                  </Link>
                 </Button>
               </div>
             </SettingCard>
@@ -319,6 +324,7 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
 const SusbcriptionStatus: React.FC<{
   status: Stripe.Subscription.Status;
   trialUntil?: number;
+  workspaceId: string;
 }> = (props) => {
   switch (props.status) {
     case "active":
@@ -361,7 +367,7 @@ const SusbcriptionStatus: React.FC<{
         >
           <div className="flex justify-end w-full">
             <Button variant="primary" size="lg">
-              <Link href="/settings/billing/stripe/portal">Open Portal</Link>
+              <Link href={`/${props.workspaceId}/settings/billing/stripe/portal`}>Open Portal</Link>
             </Button>
           </div>
         </SettingCard>

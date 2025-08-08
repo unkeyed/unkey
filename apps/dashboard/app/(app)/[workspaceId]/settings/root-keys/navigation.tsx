@@ -1,10 +1,8 @@
 "use client";
-
 import { QuickNavPopover } from "@/components/navbar-popover";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { ChevronExpandY, Gear } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Badge, Button, CopyButton } from "@unkey/ui";
 import Link from "next/link";
 
 const settingsNavbar = [
@@ -30,7 +28,7 @@ const settingsNavbar = [
   },
 ];
 
-export const WorkspaceNavbar = ({
+export const Navigation = ({
   workspace,
   activePage,
 }: {
@@ -47,14 +45,16 @@ export const WorkspaceNavbar = ({
     <div className="flex flex-col w-full h-full">
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings">Settings</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspace.id}/settings`}>
+            Settings
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
             <QuickNavPopover
               items={settingsNavbar.flatMap((setting) => [
                 {
                   id: setting.href,
                   label: setting.text,
-                  href: `/settings/${setting.href}`,
+                  href: `/${workspace.id}/settings/${setting.href}`,
                 },
               ])}
               shortcutKey="M"
@@ -67,9 +67,18 @@ export const WorkspaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          {activePage.href === "general" && <CopyableIDButton value={workspace.id} />}
+          {activePage.href === "general" && (
+            <Badge
+              variant="secondary"
+              className="max-w-[160px] truncate whitespace-nowrap"
+              title={workspace.id}
+            >
+              {workspace.id}
+              <CopyButton value={workspace.id} />
+            </Badge>
+          )}
           {activePage.href === "root-keys" && (
-            <Link key="create-root-key" href="/settings/root-keys/new">
+            <Link key="create-root-key" href={`/${workspace.id}/settings/root-keys/new`}>
               <Button variant="primary">Create New Root Key</Button>
             </Link>
           )}

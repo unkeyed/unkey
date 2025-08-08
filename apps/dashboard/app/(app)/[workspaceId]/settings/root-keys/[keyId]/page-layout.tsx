@@ -10,16 +10,17 @@ import { Suspense } from "react";
 type Props = {
   params: {
     keyId: string;
+    workspaceId: string;
   };
   rootKey: Key;
   children: React.ReactNode;
 };
 
-export function PageLayout({ children, rootKey: key, params: { keyId } }: Props) {
+export function PageLayout({ children, rootKey: key, params: { keyId, workspaceId } }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Link
-        href="/settings/root-keys"
+        href={`/${workspaceId}/settings/root-keys`}
         className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Root Keys listing

@@ -13,9 +13,10 @@ import type React from "react";
 
 type Props = {
   keyId: string;
+  workspaceId: string;
 };
 
-export const Selector: React.FC<Props> = ({ keyId }) => {
+export const Selector: React.FC<Props> = ({ keyId, workspaceId }) => {
   const segment = useSelectedLayoutSegment();
   return (
     <DropdownMenu>
@@ -24,10 +25,10 @@ export const Selector: React.FC<Props> = ({ keyId }) => {
         <ChevronsUpDown className="w-4 h-4 opacity-50" />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <Link href={`/settings/root-keys/${keyId}/permissions`}>
+        <Link href={`/${workspaceId}/settings/root-keys/${keyId}/permissions`}>
           <DropdownMenuItem>Permissions</DropdownMenuItem>
         </Link>
-        <Link href={`/settings/root-keys/${keyId}/history`}>
+        <Link href={`/${workspaceId}/settings/root-keys/${keyId}/history`}>
           <DropdownMenuItem>History</DropdownMenuItem>
         </Link>
       </DropdownMenuContent>

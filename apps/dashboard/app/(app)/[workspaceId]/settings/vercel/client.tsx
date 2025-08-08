@@ -332,8 +332,8 @@ const ConnectedResource: React.FC<{
                 className="flex items-center"
                 href={
                   props.binding.resourceType === "apiId"
-                    ? `/api/${props.binding.resourceId}`
-                    : `/settings/root-keys/${props.binding.resourceId}`
+                    ? `/${props.binding.workspaceId}/api/${props.binding.resourceId}`
+                    : `/${props.binding.workspaceId}/settings/root-keys/${props.binding.resourceId}`
                 }
               >
                 <ExternalLink className="w-4 h-4 mr-2" />

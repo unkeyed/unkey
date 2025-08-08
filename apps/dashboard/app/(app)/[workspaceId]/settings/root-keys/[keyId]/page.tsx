@@ -126,9 +126,9 @@ export default async function RootKeyPage(props: {
 
   return (
     <div>
-      <Navigation keyId={key.id} />
+      <Navigation keyId={key.id} workspaceId={workspace.id} />
       <PageContent>
-        <PageLayout params={{ keyId: key.id }} rootKey={key}>
+        <PageLayout params={{ keyId: key.id, workspaceId: workspace.id }} rootKey={key}>
           <div className="flex flex-col gap-4">
             {permissions.some((p) => p.name === "*") ? (
               <Legacy keyId={key.id} permissions={permissions} />

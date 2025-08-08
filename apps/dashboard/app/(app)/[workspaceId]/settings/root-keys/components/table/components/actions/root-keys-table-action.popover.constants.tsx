@@ -8,22 +8,27 @@ import { DeleteRootKey } from "./components/delete-root-key";
 
 type RootKeysTableActionsProps = {
   rootKey: RootKey;
+  workspaceId: string;
 };
 
-export const RootKeysTableActions = ({ rootKey }: RootKeysTableActionsProps) => {
+export const RootKeysTableActions = ({ rootKey, workspaceId }: RootKeysTableActionsProps) => {
   const router = useRouter();
-  const menuItems = getRootKeyTableActionItems(rootKey, router);
+  const menuItems = getRootKeyTableActionItems(rootKey, router, workspaceId);
   return <TableActionPopover items={menuItems} />;
 };
 
-const getRootKeyTableActionItems = (rootKey: RootKey, router: AppRouterInstance): MenuItem[] => {
+const getRootKeyTableActionItems = (
+  rootKey: RootKey,
+  router: AppRouterInstance,
+  workspaceId: string,
+): MenuItem[] => {
   return [
     {
       id: "edit-root-key",
       label: "Edit root key...",
       icon: <PenWriting3 size="md-regular" />,
       onClick: () => {
-        router.push(`/settings/root-keys/${rootKey.id}`);
+        router.push(`/${workspaceId}/settings/root-keys/${rootKey.id}`);
       },
       divider: true,
     },
