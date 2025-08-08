@@ -6,8 +6,8 @@ permissions:
 jobs:
   tests:
     name: Test
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    timeout-minutes: 15
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -18,6 +18,8 @@ jobs:
         run: |
           go install github.com/mfridman/tparse@v0.14.0
         working-directory: go
+      - name: Set up Docker Buildx
+        uses: useblacksmith/setup-docker-builder@v1
       - name: Test
         run: make test-full
         working-directory: go

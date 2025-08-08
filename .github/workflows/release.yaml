@@ -10,7 +10,7 @@ permissions:
 concurrency: release
 jobs:
   goreleaser:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          install: 'false'
+          install: "false"
       - name: Setup Go
         uses: ./.github/actions/setup-go
         with:

@@ -9,12 +9,16 @@ on:
         description: "Cloudflare API Token"
 jobs:
   deploy:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: Enterprise
     strategy:
       fail-fast: true
       matrix:
-        workers: [{name: "enterprise-default", domain: "enterprise.unkey.dev"}, {name: "enterprise-fireworks", domain: "fireworks.unkey.dev"}]
+        workers:
+          [
+            { name: "enterprise-default", domain: "enterprise.unkey.dev" },
+            { name: "enterprise-fireworks", domain: "fireworks.unkey.dev" },
+          ]
     name: Deploy ${{ matrix.workers.domain }}
     steps:
       - uses: actions/checkout@v4
