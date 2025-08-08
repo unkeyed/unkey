@@ -7,7 +7,7 @@ jobs:
   test:
     name: API Test Local
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - name: Delete huge unnecessary tools folder
