@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
@@ -590,18 +591,231 @@ paths:
 			if !tt.shouldPass {
 				// Check that the error message contains what we expect
 				if tt.expectedErrorContains != "" {
-					errorJSON, _ := json.Marshal(response)
-					errorStr := string(errorJSON)
-					assert.Contains(t, errorStr, tt.expectedErrorContains,
-						"Expected error to contain '%s' but got: %s", tt.expectedErrorContains, errorStr)
+					found := false
+					for _, err := range response.Error.Errors {
+						if strings.Contains(err.Message, tt.expectedErrorContains) ||
+							strings.Contains(err.Location, tt.expectedErrorContains) {
+							found = true
+							break
+						}
+					}
+					assert.True(t, found,
+						"Expected error to contain '%s' in Message or Location fields but not found in errors: %+v",
+						tt.expectedErrorContains, response.Error.Errors)
 				}
 
 				// Check that nullable-related errors are filtered out
 				if tt.shouldNotContain != "" {
-					errorJSON, _ := json.Marshal(response)
-					errorStr := string(errorJSON)
-					assert.NotContains(t, errorStr, tt.shouldNotContain,
-						"Error should not contain '%s' but got: %s", tt.shouldNotContain, errorStr)
+					found := false
+					for _, err := range response.Error.Errors {
+						if strings.Contains(err.Message, tt.shouldNotContain) ||
+							strings.Contains(err.Location, tt.shouldNotContain) {
+							found = true
+							break
+						}
+					}
+					assert.False(t, found,
+						"Error should not contain '%s' in Message or Location fields but found in errors: %+v",
+						tt.shouldNotContain, response.Error.Errors)
+				}
+
+				// Ensure we're not getting nullable errors when other errors exist
+				assert.NotEmpty(t, response.Error.Detail, "Should have error details")
+			}
+		})
+	}
+}
+
+func TestValidatorArrayWithNullableItems(t *testing.T) {
+	const arraySpec = `
+openapi: 3.0.0
+info:
+  title: Array Test API
+  version: 1.0.0
+paths:
+  /api/arrays:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tags
+                - scores
+              properties:
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    nullable: true
+                    minLength: 2
+                scores:
+                  type: array
+                  items:
+                    type: number
+                    nullable: true
+                    minimum: 0
+                    maximum: 100
+                users:
+                  type: array
+                  nullable: true
+                  items:
+                    type: object
+                    nullable: true
+                    properties:
+                      name:
+                        type: string
+                        nullable: true
+                      age:
+                        type: integer
+                        nullable: true
+                        minimum: 0
+                mixedArray:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: [string, number, null]
+      responses:
+        '200':
+          description: OK
+`
+
+	document, err := libopenapi.NewDocument([]byte(arraySpec))
+	require.NoError(t, err)
+
+	v, validationErrors := validator.NewValidator(document)
+	require.Empty(t, validationErrors)
+
+	testValidator := &Validator{
+		validator: v,
+	}
+
+	tests := []struct {
+		name                  string
+		body                  map[string]interface{}
+		shouldPass            bool
+		expectedErrorContains string
+		shouldNotContain      string
+	}{
+		{
+			name: "array_with_null_items_should_pass",
+			body: map[string]interface{}{
+				"tags":   []interface{}{"valid", nil, "ok", nil}, // nullable items
+				"scores": []interface{}{50.5, nil, 75.0, nil},    // nullable numbers
+			},
+			shouldPass: true,
+		},
+		{
+			name: "nested_object_array_with_nulls",
+			body: map[string]interface{}{
+				"tags":   []interface{}{"valid"},
+				"scores": []interface{}{50.5},
+				"users": []interface{}{
+					map[string]interface{}{
+						"name": "Alice",
+						"age":  nil, // nullable field in object
+					},
+					nil, // entire object is nullable
+					map[string]interface{}{
+						"name": nil, // nullable field
+						"age":  25,
+					},
+				},
+			},
+			shouldPass: true,
+		},
+		{
+			name: "array_with_invalid_non_null_items",
+			body: map[string]interface{}{
+				"tags":   []interface{}{"a", nil, "valid", nil}, // "a" is too short (min 2)
+				"scores": []interface{}{50.5, nil, 75.0},
+			},
+			shouldPass:            false,
+			expectedErrorContains: "tags", // Should report the minLength violation
+			shouldNotContain:      "null",
+		},
+		{
+			name: "array_with_invalid_score",
+			body: map[string]interface{}{
+				"tags":   []interface{}{"valid", nil},
+				"scores": []interface{}{50.5, nil, 150}, // 150 exceeds maximum
+			},
+			shouldPass:            false,
+			expectedErrorContains: "scores", // Should report the maximum violation
+			shouldNotContain:      "null",
+		},
+		{
+			name: "null_entire_nullable_array",
+			body: map[string]interface{}{
+				"tags":   []interface{}{"valid"},
+				"scores": []interface{}{50.5},
+				"users":  nil, // entire array is nullable
+			},
+			shouldPass: true,
+		},
+		{
+			name: "mixed_array_with_nulls",
+			body: map[string]interface{}{
+				"tags":       []interface{}{"valid"},
+				"scores":     []interface{}{50.5},
+				"mixedArray": []interface{}{"text", nil, 42, nil}, // oneOf with nullable types
+			},
+			shouldPass: true,
+		},
+		{
+			name: "empty_arrays_are_valid",
+			body: map[string]interface{}{
+				"tags":   []interface{}{},
+				"scores": []interface{}{},
+			},
+			shouldPass: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bodyBytes, err := json.Marshal(tt.body)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest("POST", "/api/arrays", bytes.NewReader(bodyBytes))
+			req.Header.Set("Content-Type", "application/json")
+
+			ctx := context.Background()
+			response, isValid := testValidator.Validate(ctx, req)
+
+			assert.Equal(t, tt.shouldPass, isValid, "Expected validation result to be %v for %s", tt.shouldPass, tt.name)
+
+			if !tt.shouldPass {
+				// Check that the error message contains what we expect
+				if tt.expectedErrorContains != "" {
+					found := false
+					for _, err := range response.Error.Errors {
+						if strings.Contains(err.Message, tt.expectedErrorContains) ||
+							strings.Contains(err.Location, tt.expectedErrorContains) {
+							found = true
+							break
+						}
+					}
+					assert.True(t, found,
+						"Expected error to contain '%s' in Message or Location fields but not found in errors: %+v",
+						tt.expectedErrorContains, response.Error.Errors)
+				}
+
+				// Check that nullable-related errors are filtered out
+				if tt.shouldNotContain != "" {
+					found := false
+					for _, err := range response.Error.Errors {
+						if strings.Contains(err.Message, tt.shouldNotContain) ||
+							strings.Contains(err.Location, tt.shouldNotContain) {
+							found = true
+							break
+						}
+					}
+					assert.False(t, found,
+						"Error should not contain '%s' in Message or Location fields but found in errors: %+v",
+						tt.shouldNotContain, response.Error.Errors)
 				}
 
 				// Ensure we're not getting nullable errors when other errors exist

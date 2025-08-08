@@ -3,6 +3,7 @@ package validation
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/pb33f/libopenapi"
@@ -180,19 +181,22 @@ func (v *Validator) isSchemaErrorNullable(validationErr *errors.SchemaValidation
 	}
 
 	// Parse the location path to navigate nested properties
-	// Example: "/properties/credits/properties/remaining/type" -> ["", "properties", "credits", "properties", "remaining", "type"]
+	// Examples: 
+	// - "/properties/credits/properties/remaining/type"
+	// - "/properties/items/items/type" (array of nullable items)
+	// - "/allOf/0/properties/field/type" (composition)
 	location := strings.TrimSuffix(validationErr.Location, "/type")
 	parts := strings.Split(location, "/")
 
-	// We need at least ["", "properties", "fieldName"] for a valid path
-	if len(parts) < 3 || parts[1] != "properties" {
+	// We need at least ["", "segment", "value"] for a valid path
+	if len(parts) < 3 {
 		return false
 	}
 
 	spec := make(map[string]any)
 
 	// This has to be a valid yaml schema as nothing works without our valid openapi spec anyways.
-	err := yaml.Unmarshal([]byte(validationErr.ReferenceSchema), spec)
+	err := yaml.Unmarshal([]byte(validationErr.ReferenceSchema), &spec)
 	if err != nil {
 		return false
 	}
@@ -201,78 +205,137 @@ func (v *Validator) isSchemaErrorNullable(validationErr *errors.SchemaValidation
 	current := spec
 
 	// Start from index 1 to skip the empty string from leading "/"
-	// Process pairs of ["properties", "fieldName"]
-	for i := 1; i < len(parts)-1; i += 2 {
-		if parts[i] != "properties" {
-			break
-		}
-
-		// Get the properties at current level
-		properties, propertiesExist := current["properties"]
-		if !propertiesExist {
-			return false
-		}
-
-		// Convert to map
-		propertiesMap, ok := convertToStringMap(properties)
-		if !ok {
-			return false
-		}
-
-		// Get the field at this level
-		fieldName := parts[i+1]
-		fieldSpec, found := propertiesMap[fieldName]
-		if !found {
-			return false
-		}
-
-		// If this is the last field in the path, check for nullable
-		if i+2 >= len(parts) {
-			// Convert fieldSpec to map[string]any
-			fieldMap, ok := convertToStringMap(fieldSpec)
-			if !ok {
+	i := 1
+	for i < len(parts) {
+		segment := parts[i]
+		
+		switch segment {
+		case "properties":
+			// Handle properties segment
+			if i+1 >= len(parts) {
 				return false
 			}
-
-			// Check if nullable exists and is true
-			nullable, exists := fieldMap["nullable"]
+			
+			properties, exists := current["properties"]
 			if !exists {
 				return false
 			}
-
-			isNullable, ok := nullable.(bool)
-			if !ok || !isNullable {
+			
+			propertiesMap, ok := convertToStringMap(properties)
+			if !ok {
 				return false
 			}
-
-			return true
-		}
-
-		// Otherwise, move deeper into the structure
-		current, ok = convertToStringMap(fieldSpec)
-		if !ok {
+			
+			fieldName := parts[i+1]
+			fieldSpec, found := propertiesMap[fieldName]
+			if !found {
+				return false
+			}
+			
+			// Check if this is the last segment (we're at the field level)
+			if i+2 >= len(parts) {
+				fieldMap, ok := convertToStringMap(fieldSpec)
+				if !ok {
+					return false
+				}
+				
+				// Check if nullable exists and is true
+				nullable, exists := fieldMap["nullable"]
+				if !exists {
+					return false
+				}
+				
+				isNullable, ok := nullable.(bool)
+				return ok && isNullable
+			}
+			
+			// Move to the field spec for next iteration
+			current, ok = convertToStringMap(fieldSpec)
+			if !ok {
+				return false
+			}
+			i += 2 // Skip both "properties" and field name
+			
+		case "items":
+			// Handle array items
+			items, exists := current["items"]
+			if !exists {
+				return false
+			}
+			
+			// items can be an object or array of schemas
+			if itemsArray, ok := items.([]interface{}); ok {
+				// If items is an array and we have an index
+				if i+1 < len(parts) {
+					// Try to parse the next part as an index
+					if idx, err := strconv.Atoi(parts[i+1]); err == nil && idx < len(itemsArray) {
+						current, ok = convertToStringMap(itemsArray[idx])
+						if !ok {
+							return false
+						}
+						i += 2 // Skip both "items" and index
+						continue
+					}
+				}
+				return false
+			}
+			
+			// items is a single schema object
+			itemsMap, ok := convertToStringMap(items)
+			if !ok {
+				return false
+			}
+			
+			// Check if this is the last segment
+			if i+1 >= len(parts) {
+				// Check if the items schema itself is nullable
+				nullable, exists := itemsMap["nullable"]
+				if !exists {
+					return false
+				}
+				
+				isNullable, ok := nullable.(bool)
+				return ok && isNullable
+			}
+			
+			current = itemsMap
+			i++ // Skip just "items"
+			
+		case "allOf", "anyOf", "oneOf":
+			// Handle composition keywords
+			if i+1 >= len(parts) {
+				return false
+			}
+			
+			composition, exists := current[segment]
+			if !exists {
+				return false
+			}
+			
+			// Composition should be an array
+			compArray, ok := composition.([]interface{})
+			if !ok {
+				return false
+			}
+			
+			// Get the index
+			idx, err := strconv.Atoi(parts[i+1])
+			if err != nil || idx >= len(compArray) {
+				return false
+			}
+			
+			// Move to the specified schema in the composition
+			current, ok = convertToStringMap(compArray[idx])
+			if !ok {
+				return false
+			}
+			i += 2 // Skip both composition keyword and index
+			
+		default:
+			// Unknown segment type, cannot continue
 			return false
 		}
 	}
 
 	return false
-}
-
-// isNullableError checks if ALL schema validation errors in a ValidationError are nullable errors
-// Returns true only if every single schema error is a nullable error
-func (v *Validator) isNullableError(e *errors.ValidationError) bool {
-	if len(e.SchemaValidationErrors) == 0 {
-		return false
-	}
-
-	// Check if ALL schema validation errors are nullable errors
-	for _, validationErr := range e.SchemaValidationErrors {
-		if !v.isSchemaErrorNullable(validationErr) {
-			// If we find even one non-nullable error, this ValidationError should not be ignored
-			return false
-		}
-	}
-
-	// All errors were nullable errors
-	return true
 }
