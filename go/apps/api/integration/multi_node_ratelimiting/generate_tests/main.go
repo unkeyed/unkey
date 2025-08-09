@@ -54,10 +54,10 @@ func (tc TestCase) BuildTag() string {
 	switch {
 	// Single nodes always run
 	case tc.NodeCount == 1:
-		return ""
+		return "//go:build integration"
 	// Anything less than 5 is an integration test
 	case tc.NodeCount <= 5:
-		return "//go:build integration"
+		return "//go:build integration_long"
 	// Assume its a stress test to ensure fast tests stay fast
 	default:
 		return "//go:build stress"

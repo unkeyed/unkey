@@ -6,14 +6,12 @@ permissions:
 jobs:
   test:
     name: API Test Local
-    timeout-minutes: 25
+    timeout-minutes: 90
     runs-on: blacksmith-8vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: useblacksmith/setup-docker-builder@v1
-      - name: Delete huge unnecessary tools folder
-        run: rm -rf /opt/hostedtoolcache
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait
         env:
@@ -60,6 +58,9 @@ jobs:
       - name: Dump logs
         if: always()
         run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
