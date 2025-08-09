@@ -1,4 +1,4 @@
-FROM  node:lts AS compile
+FROM  node:22.18.0-slim AS compile
 
 WORKDIR /app
 RUN npm install -g workerd@latest pnpm
@@ -19,7 +19,7 @@ RUN pnpm wrangler deploy --outdir=dist --dry-run
 RUN pnpm workerd compile ./worker.capnp > unkey
 
 
-FROM ubuntu:latest
+FROM ubuntu:24.04
 COPY --from=compile /app/apps/api/unkey /usr/bin/unkey
 
 EXPOSE 8787
