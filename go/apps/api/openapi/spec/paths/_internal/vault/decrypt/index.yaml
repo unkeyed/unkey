@@ -1,0 +1,37 @@
+post:
+  x-speakeasy-ignore: true
+  x-excluded: true
+  tags:
+    - _internal
+  security: []
+  operationId: internalVaultDecrypt
+  summary: Internal vault decryption endpoint
+  description: |-
+    Internal endpoint for decrypting data using the vault service. This endpoint is used internally by the API and should not be used by external clients.
+
+    This endpoint bypasses normal authentication and validation as it's intended for internal use only.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./InternalVaultDecryptRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./InternalVaultDecryptResponseBody.yaml"
+      description: Data successfully decrypted
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid request body
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal server error during decryption

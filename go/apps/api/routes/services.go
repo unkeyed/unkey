@@ -28,4 +28,5 @@ type Services struct {
 	Caches       caches.Caches
 	Vault        *vault.Service
 	ChproxyToken string
+	VaultToken   string
 }

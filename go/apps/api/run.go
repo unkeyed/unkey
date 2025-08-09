@@ -229,6 +229,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:       caches,
 		Vault:        vaultSvc,
 		ChproxyToken: cfg.ChproxyToken,
+		VaultToken:   cfg.VaultToken,
 	})
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)
