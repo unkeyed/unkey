@@ -206,6 +206,24 @@ services:
       - clickhouse
       - apiv2
 
+  gw:
+    build:
+      context: ../go
+      dockerfile: Dockerfile
+      args:
+        VERSION: "latest"
+    container_name: gw
+    command: ["run", "gw"]
+    ports:
+      - "6060:6060"
+    depends_on:
+      - mysql
+    environment:
+      UNKEY_HTTP_PORT: 6060
+      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+      UNKEY_OTEL: true
+
   ctrl:
     build:
       context: ../go
@@ -224,6 +242,7 @@ services:
       # Database configuration - use existing mysql service
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true"
+      UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
