@@ -117,7 +117,7 @@ Breadcrumbs.Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
           ref={ref}
           href={href}
           className={cn(
-            "text-sm transition-colors",
+            "text-sm transition-colors font-medium",
             active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
             dynamic && "font-mono",
             className,

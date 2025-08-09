@@ -1,7 +1,7 @@
 import type { Workspace } from "@/lib/db";
 import {
+  Cube,
   Fingerprint,
-  FolderCloud,
   Gauge,
   Gear,
   Grid,
@@ -52,12 +52,12 @@ export const createWorkspaceNavigation = (
       showSubItems: false,
     },
     {
-      icon: FolderCloud,
+      icon: Cube,
       href: "/projects",
       label: "Projects",
       active: segments.at(0) === "projects",
-      hidden: !workspace.betaFeatures.deployments,
-      tag: <Tag label="Beta" />,
+      // hidden: !workspace.betaFeatures.deployments,
+      tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
     },
     {
       icon: Gauge,
