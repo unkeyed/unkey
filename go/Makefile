@@ -44,19 +44,19 @@ test-stress: export INTEGRATION_TEST=true
 test-stress: export SIMULATION_TEST=false
 test-stress: up
 	@echo "Running stress tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=stress,integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./apps/api/integration/... | tparse -all -progress -smallscreen
+	@go test -tags=stress,integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
 
 test-integration-long: export INTEGRATION_TEST=true
 test-integration-long: export SIMULATION_TEST=false
 test-integration-long: up
 	@echo "Running integrations tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration,integration-long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./apps/api/integration/... | tparse -all -progress -smallscreen
+	@go test -tags=integration,integration-long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
 
 test-integration: export INTEGRATION_TEST=true
 test-integration: export SIMULATION_TEST=false
 test-integration: up
 	@echo "Running tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./apps/api/integration/... | tparse -all -progress -smallscreen
+	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
 
 test-unit: up
 	@echo "Running tests w/$(PARALLEL_PROCS) parallel test processes"
