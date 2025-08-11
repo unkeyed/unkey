@@ -110,3 +110,33 @@ func TestBearer_Integration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "token123", token)
 }
+
+func TestBearer_NilSession(t *testing.T) {
+	t.Parallel()
+
+	// Test with nil session - should not panic
+	token, err := Bearer(nil)
+	require.Error(t, err)
+	require.Empty(t, token)
+	require.Contains(t, err.Error(), "nil session")
+
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Auth.Authentication.Missing.URN(), code)
+}
+
+func TestBearer_NilRequest(t *testing.T) {
+	t.Parallel()
+
+	// Test with session that has nil request - should not panic
+	sess := &Session{} // r field is nil
+
+	token, err := Bearer(sess)
+	require.Error(t, err)
+	require.Empty(t, token)
+	require.Contains(t, err.Error(), "nil request")
+
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), code)
+}
