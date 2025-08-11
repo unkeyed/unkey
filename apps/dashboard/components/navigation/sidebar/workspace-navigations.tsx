@@ -56,7 +56,7 @@ export const createWorkspaceNavigation = (
       href: "/projects",
       label: "Projects",
       active: segments.at(0) === "projects",
-      // hidden: !workspace.betaFeatures.deployments,
+      hidden: !workspace.betaFeatures.deployments,
       tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
     },
     {

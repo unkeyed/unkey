@@ -29,71 +29,72 @@ export const ProjectCard = ({
   actions,
   projectId,
 }: ProjectCardProps) => {
-  const handleInteractiveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   return (
-    <Link href={`/projects/${projectId}`} className="block">
-      <div className="p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 cursor-pointer rounded-2xl w-full gap-5 group transition-all duration-300">
-        {/*Top Section*/}
-        <div className="flex gap-4 items-center">
-          <div className="relative size-10 bg-gradient-to-br from-grayA-2 to-grayA-7 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-grayA-2 to-grayA-4 rounded-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out" />
-            <Cube size="xl-medium" className="relative text-gray-11 shrink-0 size-5" />
-          </div>
-          <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
-            {/*Top Section > Project Name*/}
-            <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
-              <div className="font-medium text-sm leading-[14px] text-accent-12 truncate">
-                {name}
-              </div>
-            </InfoTooltip>
-            {/*Top Section > Domains/Hostnames*/}
-            <InfoTooltip content={domain} asChild position={{ align: "start", side: "top" }}>
-              <a
-                href={`https://${domain}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
-                onClick={handleInteractiveClick}
-              >
-                {domain}
-              </a>
-            </InfoTooltip>
-          </div>
-          {/*Top Section > Project actions*/}
-          <button type="button" onClick={handleInteractiveClick}>
-            {actions}
-          </button>
+    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+      {/* Invisible base clickable layer - covers entire card */}
+      <Link
+        href={`/projects/${projectId}`}
+        className="absolute inset-0 z-0"
+        aria-label={`View ${name} project`}
+      />
+
+      {/*Top Section*/}
+      <div className="flex gap-4 items-center">
+        <div className="size-10 bg-grayA-3 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
+          <Cube size="xl-medium" className="shrink-0 size-5" />
         </div>
-        {/*Middle Section > Last commit title*/}
-        <div className="flex flex-col gap-2">
-          <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
-            <div className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer">
-              {commitTitle}
-            </div>
+        <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
+          {/*Top Section > Project Name*/}
+          <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
+            <Link
+              href="#"
+              className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
+            >
+              {name}
+            </Link>
           </InfoTooltip>
-          <div className="flex gap-2 items-center min-w-0">
-            <span className="text-xs text-gray-11">{commitDate} on</span>
-            <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
-            <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
-              <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
-            </InfoTooltip>
-            <span className="text-xs text-gray-10">by</span>
-            <div className="border border-grayA-6 items-center justify-center rounded-full size-[18px] flex">
-              <User className="text-gray-11 shrink-0" size="sm-regular" />
-            </div>
-            <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
-              <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">
-                {author}
-              </span>
-            </InfoTooltip>
-          </div>
+          {/*Top Section > Domains/Hostnames*/}
+          <InfoTooltip content={domain} asChild position={{ align: "start", side: "top" }}>
+            <a
+              href={`https://${domain}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
+            >
+              {domain}
+            </a>
+          </InfoTooltip>
         </div>
-        {/*Bottom Section > Regions*/}
-        <RegionBadges regions={regions} repository={repository} />
+        {/*Top Section > Project actions*/}
+        <div className="relative">{actions}</div>
       </div>
-    </Link>
+      {/*Middle Section > Last commit title*/}
+      <div className="flex flex-col gap-2">
+        <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
+          <Link
+            href="#"
+            className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+          >
+            {commitTitle}
+          </Link>
+        </InfoTooltip>
+        <div className="flex gap-2 items-center min-w-0">
+          <span className="text-xs text-gray-11">{commitDate} on</span>
+          <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
+          <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
+            <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
+          </InfoTooltip>
+          <span className="text-xs text-gray-10">by</span>
+          <div className="border border-grayA-6 items-center justify-center rounded-full size-[18px] flex">
+            <User className="text-gray-11 shrink-0" size="sm-regular" />
+          </div>
+          <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
+            <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">{author}</span>
+          </InfoTooltip>
+        </div>
+      </div>
+      {/*Bottom Section > Regions*/}
+      <RegionBadges regions={regions} repository={repository} />
+    </div>
   );
 };
