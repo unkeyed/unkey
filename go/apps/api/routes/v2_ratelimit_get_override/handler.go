@@ -31,6 +31,19 @@ type Handler struct {
 	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
+// decodeOverrides safely decodes JSON bytes into override slice with proper error handling
+func decodeOverrides(data interface{}) ([]db.FindRatelimitNamespaceLimitOverride, error) {
+	overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+	if overrideBytes, ok := data.([]byte); ok && overrideBytes != nil {
+		if err := json.Unmarshal(overrideBytes, &overrides); err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Public("An unexpected error occurred while processing override data."))
+		}
+	}
+	return overrides, nil
+}
+
 // Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
@@ -76,12 +89,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
 			}
 
-			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-			if overrideBytes, ok := response.Overrides.([]byte); ok && overrideBytes != nil {
-				err = json.Unmarshal(overrideBytes, &overrides)
-				if err != nil {
-					return result, err
-				}
+			overrides, err := decodeOverrides(response.Overrides)
+			if err != nil {
+				return result, err
 			}
 
 			for _, override := range overrides {
@@ -102,7 +112,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while fetching the namespace."))
 	}
 
 	if hit == cache.Null {
