@@ -18,10 +18,9 @@ type Props = {
     name: string;
     deleteProtection: boolean | null;
   };
-  workspaceId: string;
 };
 
-export const DeleteApi: React.FC<Props> = ({ api, keys, workspaceId }) => {
+export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const { onDeleteSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -54,7 +53,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys, workspaceId }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       onDeleteSuccess(keys)();
-      router.push(`/${workspaceId}/apis`);
+      router.push(`/${api.workspaceId}/apis`);
     },
     onError,
   });
