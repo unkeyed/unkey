@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  rootKeysFilterOperatorEnum,
-  rootKeysListFilterFieldNames,
-} from "../../filters.schema";
+import { rootKeysFilterOperatorEnum, rootKeysListFilterFieldNames } from "../../filters.schema";
 
 const filterItemSchema = z.object({
   operator: rootKeysFilterOperatorEnum,
@@ -16,7 +13,7 @@ const filterFieldsSchema = rootKeysListFilterFieldNames.reduce(
     acc[fieldName] = baseFilterArraySchema;
     return acc;
   },
-  {} as Record<string, typeof baseFilterArraySchema>
+  {} as Record<string, typeof baseFilterArraySchema>,
 );
 
 const baseRootKeysSchema = z.object(filterFieldsSchema);

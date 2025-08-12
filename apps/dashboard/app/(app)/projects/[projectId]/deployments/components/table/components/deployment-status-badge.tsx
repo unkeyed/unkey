@@ -111,10 +111,7 @@ type DeploymentStatusBadgeProps = {
   className?: string;
 };
 
-export const DeploymentStatusBadge = ({
-  status,
-  className,
-}: DeploymentStatusBadgeProps) => {
+export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBadgeProps) => {
   const config = statusConfigs[status];
 
   if (!config) {
@@ -129,7 +126,7 @@ export const DeploymentStatusBadge = ({
         "items-center flex gap-2 p-1.5 rounded-md w-fit relative",
         animated && "overflow-hidden",
         bgColor,
-        className
+        className,
       )}
     >
       {animated && (
@@ -144,9 +141,7 @@ export const DeploymentStatusBadge = ({
         size={config.icon === Nut ? "md-bold" : "md-regular"}
         className={cn(iconColor, animated && "relative z-10")}
       />
-      <span className={cn(textColor, "text-xs", animated && "relative z-10")}>
-        {label}
-      </span>
+      <span className={cn(textColor, "text-xs", animated && "relative z-10")}>{label}</span>
 
       {animated && (
         <style jsx>{`

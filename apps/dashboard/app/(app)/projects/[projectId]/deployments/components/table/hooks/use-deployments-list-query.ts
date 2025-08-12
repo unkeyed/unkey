@@ -4,14 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 
 export function useDeploymentsListQuery() {
   const [totalCount, setTotalCount] = useState(0);
-  const [deploymentsMap, setDeploymentsMap] = useState(
-    () => new Map<string, Deployment>()
-  );
+  const [deploymentsMap, setDeploymentsMap] = useState(() => new Map<string, Deployment>());
 
-  const deployments = useMemo(
-    () => Array.from(deploymentsMap.values()),
-    [deploymentsMap]
-  );
+  const deployments = useMemo(() => Array.from(deploymentsMap.values()), [deploymentsMap]);
 
   const {
     data: deploymentData,
@@ -26,7 +21,7 @@ export function useDeploymentsListQuery() {
       staleTime: 30000, // 30 seconds
       refetchOnMount: false,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   useEffect(() => {

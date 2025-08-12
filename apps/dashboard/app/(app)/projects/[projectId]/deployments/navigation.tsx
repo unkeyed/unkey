@@ -1,26 +1,23 @@
 "use client";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
-import { Cube } from "@unkey/icons";
 import { trpc } from "@/lib/trpc/client";
+import { Cube } from "@unkey/icons";
 
 type DeploymentsNavigationProps = {
   projectId: string;
 };
 
-export const DeploymentsNavigation = ({
-  projectId,
-}: DeploymentsNavigationProps) => {
-  const { data: projectData, isLoading } =
-    trpc.deploy.project.list.useInfiniteQuery(
-      {}, // No filters needed
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-        staleTime: Number.POSITIVE_INFINITY,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-      }
-    );
+export const DeploymentsNavigation = ({ projectId }: DeploymentsNavigationProps) => {
+  const { data: projectData, isLoading } = trpc.deploy.project.list.useInfiniteQuery(
+    {}, // No filters needed
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const projects = projectData?.pages.flatMap((page) => page.projects) ?? [];
 
@@ -30,15 +27,8 @@ export const DeploymentsNavigation = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link href="/projects">
-            Projects
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href="#"
-            isIdentifier
-            className="group max-md:hidden"
-            noop
-          >
+          <Navbar.Breadcrumbs.Link href="/projects">Projects</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
             <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -53,9 +43,7 @@ export const DeploymentsNavigation = ({
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube />}>
-        <Navbar.Breadcrumbs.Link href="/projects">
-          Projects
-        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href="/projects">Projects</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
           href={`/projects/${activeProject.id}`}
           isIdentifier

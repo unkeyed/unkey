@@ -1,7 +1,4 @@
-import {
-  ControlsContainer,
-  ControlsLeft,
-} from "@/components/logs/controls-container";
+import { ControlsContainer, ControlsLeft } from "@/components/logs/controls-container";
 import { RootKeysFilters } from "./components/root-keys-filters";
 import { RootKeysSearch } from "./components/root-keys-search";
 

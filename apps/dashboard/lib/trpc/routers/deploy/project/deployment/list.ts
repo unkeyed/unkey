@@ -1,11 +1,5 @@
 import { deploymentsInputSchema } from "@/app/(app)/projects/[projectId]/deployments/components/table/deployments.schema";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -116,23 +110,9 @@ export const queryDeployments = t.procedure
           "failed",
         ];
 
-        const branches = [
-          "main",
-          "dev",
-          "feature/auth",
-          "hotfix/security",
-          "staging",
-        ];
+        const branches = ["main", "dev", "feature/auth", "hotfix/security", "staging"];
         const runtimes = ["58s", "12s", "43s", "22s", "38s"];
-        const sizes = [
-          "310mb",
-          "305mb",
-          "312mb",
-          "316mb",
-          "301mb",
-          "298mb",
-          "300mb",
-        ];
+        const sizes = ["310mb", "305mb", "312mb", "316mb", "301mb", "298mb", "300mb"];
         const descriptions = [
           "Add auth routes + logging",
           "Patch: revert error state",
@@ -171,18 +151,13 @@ export const queryDeployments = t.procedure
             id: `deployment_${Math.random().toString(36).substr(2, 16)}`,
             status,
             instances: Math.floor(Math.random() * 5) + 1,
-            runtime:
-              status === "completed" ? runtimes[i % runtimes.length] : null,
-            size:
-              status === "completed" || status === "failed"
-                ? sizes[i % sizes.length]
-                : null,
+            runtime: status === "completed" ? runtimes[i % runtimes.length] : null,
+            size: status === "completed" || status === "failed" ? sizes[i % sizes.length] : null,
             source: {
               branch: branches[i % branches.length],
               gitSha: Math.random().toString(36).substr(2, 7),
             },
-            createdAt:
-              baseTime - i * 1000 * 60 * Math.floor(Math.random() * 60),
+            createdAt: baseTime - i * 1000 * 60 * Math.floor(Math.random() * 60),
             author,
             description: descriptions[i % descriptions.length],
             pullRequest: {
@@ -204,7 +179,7 @@ export const queryDeployments = t.procedure
       if (input.cursor && typeof input.cursor === "number") {
         const cursor = input.cursor;
         filteredDeployments = hardcodedDeployments.filter(
-          (deployment) => deployment.createdAt < cursor
+          (deployment) => deployment.createdAt < cursor,
         );
       }
 
@@ -223,8 +198,7 @@ export const queryDeployments = t.procedure
         total: hardcodedDeployments.length,
         nextCursor:
           deploymentsWithoutExtra.length > 0
-            ? deploymentsWithoutExtra[deploymentsWithoutExtra.length - 1]
-                .createdAt
+            ? deploymentsWithoutExtra[deploymentsWithoutExtra.length - 1].createdAt
             : null,
       };
 

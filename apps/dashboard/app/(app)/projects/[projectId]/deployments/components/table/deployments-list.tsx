@@ -1,23 +1,13 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import {
-  ArrowDotAntiClockwise,
-  Ban,
-  BookBookmark,
-  CircleCheck,
-  CircleDotted,
-  CircleHalfDottedClock,
-  CircleWarning,
-  ClockRotateClockwise,
-  Cloud,
-  CloudUp,
-  HalfDottedCirclePlay,
-  Nut,
-} from "@unkey/icons";
+import { shortenId } from "@/lib/shorten-id";
+import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
+import { BookBookmark, Cloud } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
+import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import {
   ActionColumnSkeleton,
   CreatedAtColumnSkeleton,
@@ -26,11 +16,8 @@ import {
   PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
 } from "./components/skeletons";
-import { getRowClassName } from "./utils/get-row-class";
 import { useDeploymentsListQuery } from "./hooks/use-deployments-list-query";
-import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
-import { shortenId } from "@/lib/shorten-id";
-import { DeploymentStatusBadge } from "./components/deployment-status-badge";
+import { getRowClassName } from "./utils/get-row-class";
 
 // const RootKeysTableActions = dynamic(
 //   () =>
@@ -56,16 +43,9 @@ import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 // );
 
 export const DeploymentsList = () => {
-  const {
-    deployments,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    totalCount,
-    hasMore,
-  } = useDeploymentsListQuery();
-  const [selectedDeployment, setSelectedDeployment] =
-    useState<Deployment | null>(null);
+  const { deployments, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
+    useDeploymentsListQuery();
+  const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
 
   const columns: Column<Deployment>[] = useMemo(
     () => [
@@ -81,7 +61,7 @@ export const DeploymentsList = () => {
               className={cn(
                 "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5"
+                isSelected && "bg-grayA-5",
               )}
             >
               <Cloud size="sm-regular" className="text-gray-12" />
@@ -95,17 +75,12 @@ export const DeploymentsList = () => {
                   <div
                     className={cn(
                       "font-normal font-mono truncate leading-5 text-[13px]",
-                      "text-accent-12"
+                      "text-accent-12",
                     )}
                   >
                     {shortenId(deployment.id)}
                   </div>
-                  <div
-                    className={cn(
-                      "font-normal font-mono truncate text-xs mt-1",
-                      "text-gray-9"
-                    )}
-                  >
+                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
                     {deployment.pullRequest.title}
                   </div>
                 </div>
@@ -129,7 +104,7 @@ export const DeploymentsList = () => {
         },
       },
     ],
-    [selectedDeployment?.id]
+    [selectedDeployment?.id],
   );
 
   return (
@@ -142,17 +117,14 @@ export const DeploymentsList = () => {
       onRowClick={setSelectedDeployment}
       selectedItem={selectedDeployment}
       keyExtractor={(deployment) => deployment.id}
-      rowClassName={(deployment) =>
-        getRowClassName(deployment, selectedDeployment)
-      }
+      rowClassName={(deployment) => getRowClassName(deployment, selectedDeployment)}
       loadMoreFooterProps={{
         hide: isLoading,
         buttonText: "Load more deployments",
         hasMore,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-accent-12">{deployments.length}</span>
+            <span>Showing</span> <span className="text-accent-12">{deployments.length}</span>
             <span>of</span>
             {totalCount}
             <span>deployments</span>
@@ -165,8 +137,8 @@ export const DeploymentsList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or
-              trigger a manual deployment to get started.
+              There are no deployments yet. Push to your connected repository or trigger a manual
+              deployment to get started.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
@@ -195,7 +167,7 @@ export const DeploymentsList = () => {
             key={column.key}
             className={cn(
               "text-xs align-middle whitespace-nowrap",
-              column.key === "root_key" ? "py-[6px]" : "py-1"
+              column.key === "root_key" ? "py-[6px]" : "py-1",
             )}
             style={{ height: `${rowHeight}px` }}
           >

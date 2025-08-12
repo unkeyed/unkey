@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Connections: React.FC<IconProps> = ({
-  size = "xl-thin",
-  ...props
-}) => {
+export const Connections: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
@@ -26,12 +23,7 @@ export const Connections: React.FC<IconProps> = ({
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g
-        fill="currentColor"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-        strokeMiterlimit="10"
-      >
+      <g fill="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeMiterlimit="10">
         <path
           d="M9 23L23 9"
           fill="none"

@@ -36,14 +36,7 @@ export const Nut: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
           stroke="currentColor"
           strokeWidth={strokeWidth}
         />
-        <circle
-          cx="16"
-          cy="16"
-          fill="none"
-          r="6"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-        />
+        <circle cx="16" cy="16" fill="none" r="6" stroke="currentColor" strokeWidth={strokeWidth} />
       </g>
     </svg>
   );
