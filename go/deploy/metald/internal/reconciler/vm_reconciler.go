@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -253,6 +254,15 @@ func (r *VMReconciler) updateVMState(ctx context.Context, vmID string, newState 
 func (r *VMReconciler) isOrphanedRecord(ctx context.Context, vm *database.VM) bool {
 	now := time.Now()
 
+	// Defense 0: Config corruption check - immediate cleanup for corrupted VMs
+	// AIDEV-BUSINESS_RULE: VMs with corrupted configs cannot be resumed and violate resumability guarantee
+	if r.hasCorruptedConfig(ctx, vm) {
+		r.logger.WarnContext(ctx, "VM has corrupted config - marking as orphaned immediately",
+			slog.String("vm_id", vm.ID),
+		)
+		return true
+	}
+
 	// Defense 1: Age-based check - very conservative threshold
 	shutdownAge := now.Sub(vm.UpdatedAt)
 	if shutdownAge < OrphanedRecordAgeThreshold {
@@ -474,3 +484,21 @@ const (
 	// Maximum time a VM should reasonably be shutdown before cleanup consideration
 	MaxReasonableShutdownTime = 30 * 24 * time.Hour // 30 days - very conservative
 )
+
+// hasCorruptedConfig checks if a VM's configuration is corrupted and cannot be unmarshaled
+// AIDEV-BUSINESS_RULE: Corrupted configs violate the resumability guarantee for SHUTDOWN VMs
+// AIDEV-NOTE: VM configs are stored as JSON in database for consistency with port_mappings
+func (r *VMReconciler) hasCorruptedConfig(ctx context.Context, vm *database.VM) bool {
+	// Attempt to unmarshal the VM config to validate it using JSON format
+	var config metaldv1.VmConfig
+	if err := json.Unmarshal(vm.Config, &config); err != nil {
+		r.logger.WarnContext(ctx, "VM config is corrupted and cannot be unmarshaled",
+			slog.String("vm_id", vm.ID),
+			slog.String("error", err.Error()),
+		)
+		return true
+	}
+
+	// Config is valid
+	return false
+}

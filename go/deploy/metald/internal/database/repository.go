@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -10,7 +11,6 @@ import (
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/protobuf/proto"
 )
 
 // VMRepository handles VM state persistence operations
@@ -64,7 +64,8 @@ func (r *VMRepository) CreateVMWithContext(ctx context.Context, vmID, customerID
 		slog.String("customer_id", customerID),
 		slog.String("state", state.String()),
 	)
-	configBytes, err := proto.Marshal(config)
+	// AIDEV-NOTE: VM configs are serialized as JSON for consistency with port_mappings and easier debugging
+	configBytes, err := json.Marshal(config)
 	if err != nil {
 		span.RecordError(err)
 		r.logger.ErrorContext(ctx, "failed to marshal VM config",
@@ -359,7 +360,7 @@ func (r *VMRepository) ListVMsByCustomerWithContext(ctx context.Context, custome
 	for _, vm := range vms {
 		if len(vm.Config) > 0 {
 			var config metaldv1.VmConfig
-			if err := proto.Unmarshal(vm.Config, &config); err != nil {
+			if err := json.Unmarshal(vm.Config, &config); err != nil {
 				r.logger.ErrorContext(ctx, "failed to unmarshal VM config",
 					slog.String("vm_id", vm.ID),
 					slog.String("error", err.Error()),
@@ -441,7 +442,7 @@ func (r *VMRepository) DeleteVMWithContext(ctx context.Context, vmID string) err
 // GetVMConfig unmarshals and returns the VM configuration
 func (vm *VM) GetVMConfig() (*metaldv1.VmConfig, error) {
 	var config metaldv1.VmConfig
-	if err := proto.Unmarshal(vm.Config, &config); err != nil {
+	if err := json.Unmarshal(vm.Config, &config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal VM config: %w", err)
 	}
 	return &config, nil

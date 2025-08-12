@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
+	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/jailer"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
@@ -76,6 +77,7 @@ type SDKClientV4 struct {
 // VMRepository defines the interface for VM database operations needed by the backend
 type VMRepository interface {
 	UpdateVMPortMappingsWithContext(ctx context.Context, vmID string, portMappingsJSON string) error
+	ListAllVMsWithContext(ctx context.Context) ([]*database.VM, error)
 }
 
 // NewSDKClientV4 creates a new SDK-based Firecracker backend client with integrated jailer
@@ -137,13 +139,112 @@ func NewSDKClientV4(logger *slog.Logger, networkManager *network.Manager, assetC
 	}, nil
 }
 
-// Initialize initializes the SDK client
+// Initialize initializes the SDK client and restores VMs from database
 func (c *SDKClientV4) Initialize() error {
 	ctx, span := c.tracer.Start(context.Background(), "metald.firecracker.initialize")
 	defer span.End()
 
 	c.logger.InfoContext(ctx, "initializing firecracker SDK v4 client with integrated jailer")
+	
+	// AIDEV-NOTE: Restore VMs from database to backend registry on startup
+	// This ensures SHUTDOWN/PAUSED VMs can be resumed after metald restarts
+	if err := c.restoreVMsFromDatabase(ctx); err != nil {
+		c.logger.ErrorContext(ctx, "failed to restore VMs from database",
+			"error", err,
+		)
+		return fmt.Errorf("failed to restore VMs: %w", err)
+	}
+	
 	c.logger.InfoContext(ctx, "firecracker SDK v4 client initialized")
+	return nil
+}
+
+// restoreVMsFromDatabase loads existing VMs from database into vmRegistry
+// This ensures SHUTDOWN/PAUSED VMs remain resumable after metald restarts
+func (c *SDKClientV4) restoreVMsFromDatabase(ctx context.Context) error {
+	// Query all non-deleted VMs from database
+	dbVMs, err := c.vmRepo.ListAllVMsWithContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to query VMs from database: %w", err)
+	}
+
+	restoredCount := 0
+	for _, dbVM := range dbVMs {
+		// Only restore VMs that should be resumable (SHUTDOWN, PAUSED)
+		// Don't restore CREATED VMs (they have no firecracker process)
+		state := metaldv1.VmState(dbVM.State)
+		if state == metaldv1.VmState_VM_STATE_SHUTDOWN || state == metaldv1.VmState_VM_STATE_PAUSED {
+			// Restore VM config from database
+			var config metaldv1.VmConfig
+			if err := json.Unmarshal(dbVM.Config, &config); err != nil {
+				c.logger.WarnContext(ctx, "failed to unmarshal VM config during restore",
+					"vm_id", dbVM.ID,
+					"error", err,
+				)
+				continue
+			}
+
+			// Create VM entry in registry without firecracker process
+			// The socket path should still exist for resume operations
+			vm := &sdkV4VM{
+				ID:          dbVM.ID,
+				Config:      &config,
+				State:       state,
+				Machine:     nil, // Will be reconnected on resume
+				NetworkInfo: nil, // Will be restored on resume
+			}
+
+			c.vmRegistry[dbVM.ID] = vm
+			restoredCount++
+
+			c.logger.InfoContext(ctx, "restored VM to registry",
+				"vm_id", dbVM.ID,
+				"state", state.String(),
+			)
+		}
+	}
+
+	c.logger.InfoContext(ctx, "VM restoration completed",
+		"total_db_vms", len(dbVMs),
+		"restored_count", restoredCount,
+	)
+
+	return nil
+}
+
+// reconnectToFirecracker reconnects to an existing firecracker process via socket
+func (c *SDKClientV4) reconnectToFirecracker(ctx context.Context, vm *sdkV4VM) error {
+	vmDir := filepath.Join(c.baseDir, vm.ID)
+	socketPath := filepath.Join(vmDir, "firecracker.sock")
+	
+	// Check if socket file exists
+	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+		return fmt.Errorf("firecracker socket not found at %s - VM process may have been terminated", socketPath)
+	}
+	
+	c.logger.InfoContext(ctx, "connecting to existing firecracker socket",
+		"vm_id", vm.ID,
+		"socket_path", socketPath,
+	)
+	
+	// Create machine config for reconnection
+	machineConfig := sdk.Config{
+		SocketPath: socketPath,
+		// Don't specify other config items for reconnection
+	}
+	
+	// Create SDK machine instance for existing process
+	machine, err := sdk.NewMachine(ctx, machineConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create machine instance for socket %s: %w", socketPath, err)
+	}
+	
+	vm.Machine = machine
+	
+	c.logger.InfoContext(ctx, "successfully reconnected to firecracker process",
+		"vm_id", vm.ID,
+	)
+	
 	return nil
 }
 
@@ -265,8 +366,21 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 		return err
 	}
 
+	// AIDEV-NOTE: Validate VM state before boot operation
+	if vm.State != metaldv1.VmState_VM_STATE_CREATED {
+		err := fmt.Errorf("vm %s is in %s state, can only boot VMs in CREATED state", vmID, vm.State.String())
+		span.RecordError(err)
+		c.vmErrorCounter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("operation", "boot"),
+			attribute.String("error", "invalid_state_transition"),
+			attribute.String("current_state", vm.State.String()),
+		))
+		return err
+	}
+
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "booting VM with SDK v4",
 		slog.String("vm_id", vmID),
+		slog.String("current_state", vm.State.String()),
 	)
 
 	// For integrated jailer, we run firecracker in the VM directory
@@ -1264,12 +1378,20 @@ func (c *SDKClientV4) ShutdownVMWithOptions(ctx context.Context, vmID string, fo
 		return err
 	}
 
+	// AIDEV-NOTE: Validate VM state before shutdown operation
+	if vm.State != metaldv1.VmState_VM_STATE_RUNNING {
+		err := fmt.Errorf("vm %s is in %s state, can only shutdown VMs in RUNNING state", vmID, vm.State.String())
+		span.RecordError(err)
+		return err
+	}
+
 	if vm.Machine == nil {
-		return fmt.Errorf("vm %s is not running", vmID)
+		return fmt.Errorf("vm %s firecracker process not available", vmID)
 	}
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "shutting down VM",
 		slog.String("vm_id", vmID),
+		slog.String("current_state", vm.State.String()),
 		slog.Bool("force", force),
 		slog.Int("timeout_seconds", int(timeoutSeconds)),
 	)
@@ -1279,33 +1401,27 @@ func (c *SDKClientV4) ShutdownVMWithOptions(ctx context.Context, vmID string, fo
 	defer cancel()
 
 	if force { //nolint:nestif // Complex shutdown logic requires nested conditions for force vs graceful shutdown
-		// Force shutdown by stopping the VMM immediately
-		if err := vm.Machine.StopVMM(); err != nil {
+		// Force shutdown by pausing the VM to preserve the socket for resume
+		// Note: Using PauseVM instead of StopVMM to allow resume operations
+		if err := vm.Machine.PauseVM(shutdownCtx); err != nil {
 			span.RecordError(err)
-			return fmt.Errorf("failed to force stop VM: %w", err)
+			return fmt.Errorf("failed to force shutdown VM: %w", err)
 		}
 	} else {
-		// Try graceful shutdown first
-		if err := vm.Machine.Shutdown(shutdownCtx); err != nil {
-			c.logger.WarnContext(ctx, "graceful shutdown failed, attempting force stop",
+		// Try graceful shutdown first by pausing the VM
+		// Note: Using PauseVM instead of Shutdown to preserve the firecracker process and socket
+		if err := vm.Machine.PauseVM(shutdownCtx); err != nil {
+			c.logger.WarnContext(ctx, "graceful shutdown failed",
 				"vm_id", vmID,
 				"error", err,
 			)
-			// Fall back to force stop
-			if stopErr := vm.Machine.StopVMM(); stopErr != nil {
-				span.RecordError(stopErr)
-				return fmt.Errorf("failed to stop VM after graceful shutdown failed: %w", stopErr)
-			}
+			span.RecordError(err)
+			return fmt.Errorf("failed to shutdown VM: %w", err)
 		}
 	}
 
-	// Wait for the VM to actually stop
-	if err := vm.Machine.Wait(shutdownCtx); err != nil {
-		c.logger.WarnContext(ctx, "error waiting for VM to stop",
-			"vm_id", vmID,
-			"error", err,
-		)
-	}
+	// Note: Removed Wait() call since we're pausing instead of stopping the VMM
+	// The firecracker process remains running to allow resume operations
 
 	// Update state
 	vm.State = metaldv1.VmState_VM_STATE_SHUTDOWN
@@ -1343,12 +1459,20 @@ func (c *SDKClientV4) PauseVM(ctx context.Context, vmID string) error {
 		return err
 	}
 
+	// AIDEV-NOTE: Validate VM state before pause operation
+	if vm.State != metaldv1.VmState_VM_STATE_RUNNING {
+		err := fmt.Errorf("vm %s is in %s state, can only pause VMs in RUNNING state", vmID, vm.State.String())
+		span.RecordError(err)
+		return err
+	}
+
 	if vm.Machine == nil {
-		return fmt.Errorf("vm %s is not running", vmID)
+		return fmt.Errorf("vm %s firecracker process not available", vmID)
 	}
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "pausing VM",
 		slog.String("vm_id", vmID),
+		slog.String("current_state", vm.State.String()),
 	)
 
 	if err := vm.Machine.PauseVM(ctx); err != nil {
@@ -1365,7 +1489,7 @@ func (c *SDKClientV4) PauseVM(ctx context.Context, vmID string) error {
 	return nil
 }
 
-// ResumeVM resumes a paused VM
+// ResumeVM resumes a paused or shutdown VM
 func (c *SDKClientV4) ResumeVM(ctx context.Context, vmID string) error {
 	ctx, span := c.tracer.Start(ctx, "metald.firecracker.resume_vm",
 		trace.WithAttributes(attribute.String("vm_id", vmID)),
@@ -1379,12 +1503,28 @@ func (c *SDKClientV4) ResumeVM(ctx context.Context, vmID string) error {
 		return err
 	}
 
+	// AIDEV-NOTE: Validate VM state before resume operation - allow both PAUSED and SHUTDOWN
+	if vm.State != metaldv1.VmState_VM_STATE_PAUSED && vm.State != metaldv1.VmState_VM_STATE_SHUTDOWN {
+		err := fmt.Errorf("vm %s is in %s state, can only resume VMs in PAUSED or SHUTDOWN state", vmID, vm.State.String())
+		span.RecordError(err)
+		return err
+	}
+
+	// AIDEV-NOTE: Reconnect to firecracker process if machine is nil (restored from database)
 	if vm.Machine == nil {
-		return fmt.Errorf("vm %s is not running", vmID)
+		c.logger.InfoContext(ctx, "reconnecting to existing firecracker process",
+			"vm_id", vmID,
+		)
+		
+		if err := c.reconnectToFirecracker(ctx, vm); err != nil {
+			span.RecordError(err)
+			return fmt.Errorf("failed to reconnect to firecracker process: %w", err)
+		}
 	}
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "resuming VM",
 		slog.String("vm_id", vmID),
+		slog.String("current_state", vm.State.String()),
 	)
 
 	if err := vm.Machine.ResumeVM(ctx); err != nil {
