@@ -151,9 +151,5 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	}
 
 	// Wrap the transaction with tracing
-	return &TracedTx{
-		tx:   tx,
-		mode: r.mode + "_tx",
-		ctx:  ctx,
-	}, nil
+	return WrapTxWithContext(tx, r.mode+"_tx", ctx), nil
 }

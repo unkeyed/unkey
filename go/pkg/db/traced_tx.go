@@ -10,15 +10,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// WrapTx wraps a standard sql.Tx with our DBTx interface for tracing
-func WrapTx(tx *sql.Tx, mode string) DBTx {
-	return &TracedTx{
-		tx:   tx,
-		mode: mode,
-		ctx:  context.Background(),
-	}
-}
-
 // WrapTxWithContext wraps a standard sql.Tx with our DBTx interface for tracing, using the provided context
 func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
 	return &TracedTx{
@@ -83,7 +74,7 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "prepare", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "prepare", status).Inc()
 
-	return stmt, err
+	return stmt, err // nolint:sqlclosecheck
 }
 
 // QueryContext executes a SQL query within the transaction with tracing
@@ -107,7 +98,7 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...inter
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "query", status).Inc()
 
-	return rows, err
+	return rows, err // nolint:sqlclosecheck
 }
 
 // QueryRowContext executes a SQL query that returns a single row within the transaction with tracing
