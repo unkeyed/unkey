@@ -32,3 +32,11 @@ type DBTX interface {
 	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
 	QueryRowContext(context.Context, string, ...interface{}) *sql.Row
 }
+
+// DBTx represents a database transaction with commit and rollback capabilities.
+// It extends DBTX with transaction-specific methods.
+type DBTx interface {
+	DBTX
+	Commit() error
+	Rollback() error
+}
