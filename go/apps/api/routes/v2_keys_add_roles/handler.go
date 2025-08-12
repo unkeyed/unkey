@@ -248,7 +248,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		rolePermissions := make([]db.Permission, 0)
-		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
+		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+			_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
+		}
 
 		perms := make([]openapi.Permission, 0)
 		for _, permission := range rolePermissions {

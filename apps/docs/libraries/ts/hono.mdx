@@ -9,8 +9,8 @@ description: "Hono.js middleware for authenticating API keys"
 
 <Card
   icon="github"
-  title="github.com/unkeyed/unkey/tree/main/packages/hono"
-  href="https://github.com/unkeyed/unkey/tree/main/packages/hono"
+  title="github.com/unkeyed/sdks/tree/main/hono"
+  href="https://github.com/unkeyed/sdks/tree/main/hono"
 />
 
 ## Install
@@ -120,7 +120,7 @@ By default the middleware will not do anything with the verification response ot
 However you most likely would like to just return a `401` response if the key is invalid and not continue with the request.
 
 To do this you can pass a `handleInvalidKey` handler to the middleware.
-See [here](/libraries/ts/sdk/keys/verify#response) for the full `result` object.
+See [here](/api-reference/v2/keys/verify-api-key) for the full `response` object.
 
 ```ts
 app.use(
@@ -131,7 +131,7 @@ app.use(
       return c.json(
         {
           error: "unauthorized",
-          reason: result.code,
+          reason: result.data.code,
         },
         401
       );

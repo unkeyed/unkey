@@ -1,0 +1,24 @@
+name: Setup Go Only
+description: Lightweight Go setup without unnecessary tools
+
+inputs:
+  github_token:
+    description: GitHub token for authentication
+    required: false
+
+runs:
+  using: "composite"
+  
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ./go/go.mod
+        cache-dependency-path: ./go/go.sum
+
+    - name: Download Go modules
+      run: go mod download
+      shell: bash
+      working-directory: ./go
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

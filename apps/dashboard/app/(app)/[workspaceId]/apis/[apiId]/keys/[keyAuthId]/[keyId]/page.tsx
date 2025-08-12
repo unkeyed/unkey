@@ -1,7 +1,8 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
-import { redirect } from "next/navigation";
+import { Loading } from "@unkey/ui";
+import { redirect, useRouter } from "next/navigation";
 import { ApisNavbar } from "../../../api-id-navbar";
 import { KeyDetailsLogsClient } from "./logs-client";
 
@@ -10,11 +11,17 @@ export default function KeyDetailsPage(props: {
 }) {
   const { apiId, keyAuthId: keyspaceId, keyId } = props.params;
   const { workspace, isLoading, error } = useWorkspace();
+  const router = useRouter();
 
-  if (!workspace && !isLoading && error) {
+  if (isLoading) {
+    return <Loading size={18} />;
+  }
+
+  if (!workspace || error) {
     return redirect("/new");
   }
 
+  router.replace(`/${workspace?.id}/apis/${apiId}/keys/${keyspaceId}`);
   return (
     <div className="w-full">
       <ApisNavbar
