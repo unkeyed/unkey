@@ -72,11 +72,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
           </div>
           <div>
             <DeleteProtection api={api} />
-            <DeleteApi
-              api={api}
-              keys={keyAuthForComponents.sizeApprox}
-              workspaceId={api.workspaceId}
-            />
+            <DeleteApi api={api} keys={keyAuthForComponents.sizeApprox} />
           </div>
         </div>
       </div>
