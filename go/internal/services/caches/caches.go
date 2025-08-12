@@ -78,8 +78,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
-		Fresh:    30 * time.Second,
-		Stale:    24 * time.Hour,
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",

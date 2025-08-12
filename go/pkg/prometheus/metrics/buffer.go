@@ -47,4 +47,20 @@ var (
 		},
 		[]string{"name", "drop"},
 	)
+
+	// BufferErrorsTotal tracks the total number of buffer operation errors,
+	// labeled by buffer name and error type. Use this counter to monitor buffer error rates.
+	//
+	// Example usage:
+	//   metrics.BufferErrorsTotal.WithLabelValues("batch_writer", "write_failed").Inc()
+	BufferErrorsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace:   "unkey",
+			Subsystem:   "buffer",
+			Name:        "errors_total",
+			Help:        "Total number of buffer operation errors by name and state.",
+			ConstLabels: constLabels,
+		},
+		[]string{"name", "state"},
+	)
 )

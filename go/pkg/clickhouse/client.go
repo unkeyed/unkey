@@ -98,8 +98,8 @@ func New(config Config) (*clickhouse, error) {
 		requests: batch.New(batch.Config[schema.ApiRequestV1]{
 			Name:          "api_requests",
 			Drop:          true,
-			BatchSize:     10000,
-			BufferSize:    100000,
+			BatchSize:     50_000,
+			BufferSize:    200_000,
 			FlushInterval: 5 * time.Second,
 			Consumers:     2,
 			Flush: func(ctx context.Context, rows []schema.ApiRequestV1) {
@@ -117,8 +117,8 @@ func New(config Config) (*clickhouse, error) {
 			batch.Config[schema.KeyVerificationRequestV1]{
 				Name:          "key_verifications",
 				Drop:          true,
-				BatchSize:     10000,
-				BufferSize:    100000,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
 				FlushInterval: 5 * time.Second,
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
@@ -136,8 +136,8 @@ func New(config Config) (*clickhouse, error) {
 			batch.Config[schema.RatelimitRequestV1]{
 				Name:          "ratelimits",
 				Drop:          true,
-				BatchSize:     10000,
-				BufferSize:    100000,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
 				FlushInterval: 5 * time.Second,
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.RatelimitRequestV1) {

@@ -34,7 +34,7 @@ Here's an example of a request with a non-existent API key:
 
 ```bash
 # Request to Unkey API with a non-existent key
-curl -X POST https://api.unkey.com/v1/keys.listKeys \
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_NONEXISTENT_KEY"
 ```
@@ -55,7 +55,7 @@ Here's how to check and use the correct Unkey API key:
 4. Use the key in your request as shown below
 
 ```bash
-curl -X POST https://api.unkey.com/v1/keys.listKeys \
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_VALID_API_KEY"
 ```

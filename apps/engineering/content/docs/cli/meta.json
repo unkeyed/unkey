@@ -1,0 +1,6 @@
+{
+  "title": "CLI",
+  "icon": "Pencil",
+  "root": false,
+  "pages": ["deploy", "healthcheck", "quotacheck", "run", "version"]
+}
