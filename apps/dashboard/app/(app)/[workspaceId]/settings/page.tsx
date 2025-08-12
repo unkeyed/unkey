@@ -1,14 +1,25 @@
-import { redirect } from "next/navigation";
+"use client";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { Loading } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export default function SettingsPage() {
+  const { workspace, isLoading } = useWorkspace();
+  const router = useRouter();
 
-export default function SettingsPage({ params }: { params: { workspaceId: string } }) {
-  const { workspaceId } = params;
-  if (workspaceId === "new") {
-    return redirect("/new");
+  if (workspace) {
+    router.replace(`/${workspace.id}/settings/general`);
   }
-  if (workspaceId === "settings") {
-    return redirect(`/${workspaceId}/settings/general`);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-full">
+        <Loading size={18} />
+      </div>
+    );
   }
-  return redirect(`/${workspaceId}/settings/general`);
+
+  if (!workspace) {
+    router.push("/new");
+  }
 }

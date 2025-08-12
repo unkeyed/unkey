@@ -1,17 +1,24 @@
 "use client";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { redirect } from "next/navigation";
 import { RootKeysListControlCloud } from "./components/control-cloud";
 import { RootKeysListControls } from "./components/controls";
 import { RootKeysList } from "./components/table/root-keys-list";
 import { Navigation } from "./navigation";
 
-export default function RootKeysPage({ params }: { params: { workspaceId: string } }) {
-  const { workspaceId } = params;
+export default function RootKeysPage() {
+  const { workspace } = useWorkspace();
+
+  if (!workspace) {
+    redirect("/new");
+  }
+
   return (
     <div>
       <Navigation
         workspace={{
-          id: "",
-          name: "",
+          id: workspace.id,
+          name: workspace.name,
         }}
         activePage={{
           href: "root-keys",
@@ -21,7 +28,7 @@ export default function RootKeysPage({ params }: { params: { workspaceId: string
       <div className="flex flex-col">
         <RootKeysListControls />
         <RootKeysListControlCloud />
-        <RootKeysList workspaceId={workspaceId} />
+        <RootKeysList workspaceId={workspace.id} />
       </div>
     </div>
   );

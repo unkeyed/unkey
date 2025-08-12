@@ -17,7 +17,11 @@ export default function APIKeysPage(props: {
   const router = useRouter();
 
   if (isLoading) {
-    return <Loading size={18} />;
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-full">
+        <Loading size={18} />
+      </div>
+    );
   }
 
   if (!workspace || error) {
