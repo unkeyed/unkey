@@ -2,6 +2,7 @@
 
 import { DeploymentsListControlCloud } from "./deployments/components/control-cloud";
 import { DeploymentsListControls } from "./deployments/components/controls";
+import { DeploymentsList } from "./deployments/components/table/deployments-list";
 import { DeploymentsNavigation } from "./deployments/navigation";
 
 export default function Deployments({
@@ -15,7 +16,7 @@ export default function Deployments({
       <div className="flex flex-col">
         <DeploymentsListControls />
         <DeploymentsListControlCloud />
-        <div>Here</div>
+        <DeploymentsList />
       </div>
     </div>
   );

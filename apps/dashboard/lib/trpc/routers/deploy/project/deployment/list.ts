@@ -1,4 +1,4 @@
-import { deploymentsQueryPayload as deploymentsInputSchema } from "@/app/(app)/deployments/_components/list/deployments-list.schema";
+import { deploymentsInputSchema } from "@/app/(app)/projects/[projectId]/deployments/components/table/deployments.schema";
 import {
   ratelimit,
   requireUser,
@@ -11,9 +11,13 @@ import { z } from "zod";
 
 const DeploymentStatus = z.enum([
   "pending",
-  "building",
-  "deploying",
-  "active",
+  "downloading_docker_image",
+  "building_rootfs",
+  "uploading_rootfs",
+  "creating_vm",
+  "booting_vm",
+  "assigning_domains",
+  "completed",
   "failed",
 ]);
 
@@ -43,7 +47,7 @@ const DeploymentResponse = z.object({
   createdAt: z.number(),
   author: AuthorResponse,
   description: z.string().nullable(),
-  pullRequest: PullRequestResponse.nullable(),
+  pullRequest: PullRequestResponse,
 });
 
 const deploymentsOutputSchema = z.object({
@@ -56,12 +60,13 @@ const deploymentsOutputSchema = z.object({
 type DeploymentsOutputSchema = z.infer<typeof deploymentsOutputSchema>;
 export type Deployment = z.infer<typeof DeploymentResponse>;
 
-export const DEPLOYMENTS_LIMIT = 10;
+export const DEPLOYMENTS_LIMIT = 50;
 
 export const queryDeployments = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
+  .input(deploymentsInputSchema)
   .output(deploymentsOutputSchema)
   .query(async ({ input }) => {
     try {
@@ -101,11 +106,16 @@ export const queryDeployments = t.procedure
 
         const statuses: z.infer<typeof DeploymentStatus>[] = [
           "pending",
-          "building",
-          "deploying",
-          "active",
+          "downloading_docker_image",
+          "building_rootfs",
+          "uploading_rootfs",
+          "creating_vm",
+          "booting_vm",
+          "assigning_domains",
+          "completed",
           "failed",
         ];
+
         const branches = [
           "main",
           "dev",
@@ -136,23 +146,35 @@ export const queryDeployments = t.procedure
           "Failing on init timeout",
         ];
 
+        const prTitles = [
+          "Fix authentication flow and add logging",
+          "Revert error handling changes",
+          "Prepare codebase for major refactor",
+          "Add environment variables for rate limiting",
+          "Optimize application boot sequence",
+          "Initial deployment to staging environment",
+          "Remove unused module dependencies",
+          "Implement stable fallback mechanism",
+          "Update configuration settings",
+          "Fix initialization timeout issues",
+        ];
+
         const deployments: Deployment[] = [];
         const baseTime = Date.now();
 
         for (let i = 0; i < count; i++) {
           const author = authors[i % authors.length];
           const status = statuses[i % statuses.length];
-          const hasPR = Math.random() > 0.3; // 70% chance of having a PR
+          const prNumber = Math.floor(Math.random() * 1000) + 1;
 
           deployments.push({
-            id: `v_${Math.random().toString(36).substr(2, 8)}${String(
-              i
-            ).padStart(3, "0")}`,
+            id: `deployment_${Math.random().toString(36).substr(2, 16)}`,
             status,
             instances: Math.floor(Math.random() * 5) + 1,
-            runtime: status === "active" ? runtimes[i % runtimes.length] : null,
+            runtime:
+              status === "completed" ? runtimes[i % runtimes.length] : null,
             size:
-              status === "active" || status === "failed"
+              status === "completed" || status === "failed"
                 ? sizes[i % sizes.length]
                 : null,
             source: {
@@ -160,32 +182,29 @@ export const queryDeployments = t.procedure
               gitSha: Math.random().toString(36).substr(2, 7),
             },
             createdAt:
-              baseTime - i * 1000 * 60 * Math.floor(Math.random() * 60), // Random time in past
+              baseTime - i * 1000 * 60 * Math.floor(Math.random() * 60),
             author,
             description: descriptions[i % descriptions.length],
-            pullRequest: hasPR
-              ? {
-                  number: Math.floor(Math.random() * 1000) + 1,
-                  title: `Fix: ${descriptions[i % descriptions.length]}`,
-                  url: `https://github.com/unkeyed/unkey/pull/${
-                    Math.floor(Math.random() * 1000) + 1
-                  }`,
-                }
-              : null,
+            pullRequest: {
+              number: prNumber,
+              title: prTitles[i % prTitles.length],
+              url: `https://github.com/unkeyed/unkey/pull/${prNumber}`,
+            },
           });
         }
 
         return deployments.sort((a, b) => b.createdAt - a.createdAt);
       };
 
-      const hardcodedDeployments = generateDeployments(25);
+      const hardcodedDeployments = generateDeployments(100);
 
       // Apply cursor-based pagination
       let filteredDeployments = hardcodedDeployments;
 
       if (input.cursor && typeof input.cursor === "number") {
+        const cursor = input.cursor;
         filteredDeployments = hardcodedDeployments.filter(
-          (deployment) => deployment.createdAt < input.cursor
+          (deployment) => deployment.createdAt < cursor
         );
       }
 
@@ -201,7 +220,7 @@ export const queryDeployments = t.procedure
       const response: DeploymentsOutputSchema = {
         deployments: deploymentsWithoutExtra,
         hasMore,
-        total: hardcodedDeployments.length, // Total count before filtering
+        total: hardcodedDeployments.length,
         nextCursor:
           deploymentsWithoutExtra.length > 0
             ? deploymentsWithoutExtra[deploymentsWithoutExtra.length - 1]

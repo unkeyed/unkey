@@ -1,4 +1,4 @@
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
+import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
 import { cn } from "@/lib/utils";
 
 export type StatusStyle = {
@@ -17,15 +17,19 @@ export const STATUS_STYLES = {
   hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-2",
   selected: "text-accent-12 bg-grayA-2 hover:text-accent-12",
   badge: {
-    default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
+    default:
+      "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
     selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
   },
   focusRing: "focus:ring-accent-7",
 };
 
-export const getRowClassName = (log: RootKey, selectedRow: RootKey | null) => {
+export const getRowClassName = (
+  deployment: Deployment,
+  selectedRow: Deployment | null
+) => {
   const style = STATUS_STYLES;
-  const isSelected = log.id === selectedRow?.id;
+  const isSelected = deployment.id === selectedRow?.id;
 
   return cn(
     style.base,
@@ -33,6 +37,6 @@ export const getRowClassName = (log: RootKey, selectedRow: RootKey | null) => {
     "group rounded",
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
-    isSelected && style.selected,
+    isSelected && style.selected
   );
 };
