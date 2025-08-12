@@ -275,15 +275,32 @@ func handleCreate(ctx context.Context, metaldClient *client.Client, options VMCo
 		log.Fatalf("Failed to create VM: %v", err)
 	}
 
+	// Fetch VM info to get IP address
+	var ipAddress string
+	vmInfo, err := metaldClient.GetVMInfo(ctx, resp.VMID)
+	if err != nil {
+		// Don't fail on network info error, just log it
+		fmt.Fprintf(os.Stderr, "Warning: Could not fetch IP address: %v\n", err)
+	} else if vmInfo.NetworkInfo != nil {
+		ipAddress = vmInfo.NetworkInfo.IpAddress
+	}
+
 	if jsonOutput {
-		outputJSON(map[string]any{
+		result := map[string]any{
 			"vm_id": resp.VMID,
 			"state": resp.State.String(),
-		})
+		}
+		if ipAddress != "" {
+			result["ip_address"] = ipAddress
+		}
+		outputJSON(result)
 	} else {
 		fmt.Printf("VM created successfully:\n")
 		fmt.Printf("  VM ID: %s\n", resp.VMID)
 		fmt.Printf("  State: %s\n", resp.State.String())
+		if ipAddress != "" {
+			fmt.Printf("  IP Address: %s\n", ipAddress)
+		}
 	}
 }
 
@@ -577,19 +594,39 @@ func handleCreateAndBoot(ctx context.Context, metaldClient *client.Client, optio
 		log.Fatalf("Failed to boot VM: %v", err)
 	}
 
+	// Wait a moment for VM to boot and get IP address
+	time.Sleep(3 * time.Second)
+
+	// Fetch VM info to get IP address
+	var ipAddress string
+	vmInfo, err := metaldClient.GetVMInfo(ctx, createResp.VMID)
+	if err != nil {
+		// Don't fail on network info error, just log it
+		fmt.Fprintf(os.Stderr, "Warning: Could not fetch IP address: %v\n", err)
+	} else if vmInfo.NetworkInfo != nil {
+		ipAddress = vmInfo.NetworkInfo.IpAddress
+	}
+
 	if jsonOutput {
-		outputJSON(map[string]any{
+		result := map[string]any{
 			"vm_id":        createResp.VMID,
 			"create_state": createResp.State.String(),
 			"boot_success": bootResp.Success,
 			"boot_state":   bootResp.State.String(),
-		})
+		}
+		if ipAddress != "" {
+			result["ip_address"] = ipAddress
+		}
+		outputJSON(result)
 	} else {
 		fmt.Printf("VM created and booted successfully:\n")
 		fmt.Printf("  VM ID: %s\n", createResp.VMID)
 		fmt.Printf("  Create State: %s\n", createResp.State.String())
 		fmt.Printf("  Boot Success: %v\n", bootResp.Success)
 		fmt.Printf("  Boot State: %s\n", bootResp.State.String())
+		if ipAddress != "" {
+			fmt.Printf("  IP Address: %s\n", ipAddress)
+		}
 	}
 }
 

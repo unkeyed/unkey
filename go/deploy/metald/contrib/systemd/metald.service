@@ -1,8 +1,9 @@
 [Unit]
 Description=Metald VM Management Service
 Documentation=https://github.com/unkeyed/unkey/go/deploy/metald
-After=network.target
+After=network.target metald-bridge.service
 Wants=network.target
+Requires=metald-bridge.service
 
 [Service]
 Type=simple
@@ -61,6 +62,10 @@ Environment=UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
 # AIDEV-BUSINESS_RULE: mTLS is required for secure inter-service communication
 Environment=UNKEY_METALD_TLS_MODE=spiffe
 Environment=UNKEY_METALD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
+
+# Network bridge configuration
+# AIDEV-BUSINESS_RULE: Metald reads bridge count from environment to know available bridges
+Environment=UNKEY_METALD_NETWORK_BRIDGE_COUNT=8
 
 # Resource limits
 LimitNOFILE=65536

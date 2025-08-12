@@ -150,7 +150,7 @@ func (r *VMReconciler) reconcileOnce(ctx context.Context) *ReconciliationReport 
 func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, runningProcesses map[string]FirecrackerProcess) VMReconciliationReport {
 	vmReport := VMReconciliationReport{
 		VMID:          vm.ID,
-		DatabaseState: metaldv1.VmState(vm.State),
+		DatabaseState: vm.State,
 	}
 
 	// Handle nil ProcessID safely
@@ -171,13 +171,13 @@ func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, running
 	}
 
 	// Determine what action to take based on database state vs reality
-	switch metaldv1.VmState(vm.State) {
+	switch vm.State {
 	case metaldv1.VmState_VM_STATE_RUNNING, metaldv1.VmState_VM_STATE_CREATED:
 		if !isProcessRunning {
 			// VM is supposed to be running but process doesn't exist
 			r.logger.WarnContext(ctx, "VM marked as running but process not found - marking as shutdown",
 				slog.String("vm_id", vm.ID),
-				slog.String("database_state", metaldv1.VmState(vm.State).String()),
+				slog.String("database_state", vm.State.String()),
 				slog.String("process_id", processID),
 			)
 
@@ -195,11 +195,13 @@ func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, running
 		}
 
 	case metaldv1.VmState_VM_STATE_SHUTDOWN, metaldv1.VmState_VM_STATE_PAUSED:
+		// AIDEV-BUSINESS_RULE: These states support VM persistence across metald restarts
+		// SHUTDOWN/PAUSED VMs should be preservable for later resume operations
 		if isProcessRunning {
 			// VM is marked as dead but process is still running - update state
 			r.logger.InfoContext(ctx, "VM marked as shutdown but process is running - updating state",
 				slog.String("vm_id", vm.ID),
-				slog.String("database_state", metaldv1.VmState(vm.State).String()),
+				slog.String("database_state", vm.State.String()),
 				slog.String("process_id", processID),
 			)
 
@@ -241,6 +243,7 @@ func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, running
 
 // markVMDead marks a VM as dead in the database
 func (r *VMReconciler) markVMDead(ctx context.Context, vmID, reason string) error {
+	r.logger.InfoContext(ctx, "marking VM as dead", "vm_id", vmID, "reason", reason)
 	return r.vmRepo.UpdateVMStateWithContextInt(ctx, vmID, int(metaldv1.VmState_VM_STATE_SHUTDOWN))
 }
 

@@ -8,9 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -145,7 +148,7 @@ func (c *SDKClientV4) Initialize() error {
 	defer span.End()
 
 	c.logger.InfoContext(ctx, "initializing firecracker SDK v4 client with integrated jailer")
-	
+
 	// AIDEV-NOTE: Restore VMs from database to backend registry on startup
 	// This ensures SHUTDOWN/PAUSED VMs can be resumed after metald restarts
 	if err := c.restoreVMsFromDatabase(ctx); err != nil {
@@ -154,7 +157,7 @@ func (c *SDKClientV4) Initialize() error {
 		)
 		return fmt.Errorf("failed to restore VMs: %w", err)
 	}
-	
+
 	c.logger.InfoContext(ctx, "firecracker SDK v4 client initialized")
 	return nil
 }
@@ -169,44 +172,68 @@ func (c *SDKClientV4) restoreVMsFromDatabase(ctx context.Context) error {
 	}
 
 	restoredCount := 0
+	reconnectedCount := 0
+
 	for _, dbVM := range dbVMs {
-		// Only restore VMs that should be resumable (SHUTDOWN, PAUSED)
-		// Don't restore CREATED VMs (they have no firecracker process)
-		state := metaldv1.VmState(dbVM.State)
-		if state == metaldv1.VmState_VM_STATE_SHUTDOWN || state == metaldv1.VmState_VM_STATE_PAUSED {
-			// Restore VM config from database
-			var config metaldv1.VmConfig
-			if err := json.Unmarshal(dbVM.Config, &config); err != nil {
-				c.logger.WarnContext(ctx, "failed to unmarshal VM config during restore",
+		// AIDEV-BUSINESS_RULE: Restore ALL VMs regardless of state (like VMware/VirtualBox)
+		// Skip only CREATED VMs that have no firecracker process yet
+		state := dbVM.State
+		if state == metaldv1.VmState_VM_STATE_CREATED {
+			c.logger.InfoContext(ctx, "skipping CREATED VM - no firecracker process exists",
+				"vm_id", dbVM.ID,
+			)
+			continue
+		}
+
+		// Restore VM config from database
+		var config metaldv1.VmConfig
+		if err := json.Unmarshal(dbVM.Config, &config); err != nil {
+			c.logger.WarnContext(ctx, "failed to unmarshal VM config during restore",
+				"vm_id", dbVM.ID,
+				"error", err,
+			)
+			continue
+		}
+
+		// Create VM entry in registry without firecracker process initially
+		vm := &sdkV4VM{
+			ID:          dbVM.ID,
+			Config:      &config,
+			State:       state,
+			Machine:     nil, // Will be reconnected if socket exists
+			NetworkInfo: nil, // Will be restored on reconnection/resume
+		}
+
+		c.vmRegistry[dbVM.ID] = vm
+		restoredCount++
+
+		// AIDEV-NOTE: For RUNNING VMs, attempt immediate reconnection to existing process
+		// This allows running VMs to continue seamlessly across metald restarts
+		if state == metaldv1.VmState_VM_STATE_RUNNING {
+			if err := c.reconnectToFirecracker(ctx, vm); err != nil {
+				c.logger.WarnContext(ctx, "failed to reconnect to running VM - will be handled by reconciler",
 					"vm_id", dbVM.ID,
 					"error", err,
 				)
-				continue
+				// Note: Don't fail restoration - reconciler will handle orphaned VMs
+			} else {
+				reconnectedCount++
+				c.logger.InfoContext(ctx, "successfully reconnected to running VM",
+					"vm_id", dbVM.ID,
+				)
 			}
-
-			// Create VM entry in registry without firecracker process
-			// The socket path should still exist for resume operations
-			vm := &sdkV4VM{
-				ID:          dbVM.ID,
-				Config:      &config,
-				State:       state,
-				Machine:     nil, // Will be reconnected on resume
-				NetworkInfo: nil, // Will be restored on resume
-			}
-
-			c.vmRegistry[dbVM.ID] = vm
-			restoredCount++
-
-			c.logger.InfoContext(ctx, "restored VM to registry",
-				"vm_id", dbVM.ID,
-				"state", state.String(),
-			)
 		}
+
+		c.logger.InfoContext(ctx, "restored VM to registry",
+			"vm_id", dbVM.ID,
+			"state", state.String(),
+		)
 	}
 
 	c.logger.InfoContext(ctx, "VM restoration completed",
 		"total_db_vms", len(dbVMs),
 		"restored_count", restoredCount,
+		"reconnected_count", reconnectedCount,
 	)
 
 	return nil
@@ -216,35 +243,99 @@ func (c *SDKClientV4) restoreVMsFromDatabase(ctx context.Context) error {
 func (c *SDKClientV4) reconnectToFirecracker(ctx context.Context, vm *sdkV4VM) error {
 	vmDir := filepath.Join(c.baseDir, vm.ID)
 	socketPath := filepath.Join(vmDir, "firecracker.sock")
-	
+
 	// Check if socket file exists
 	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
 		return fmt.Errorf("firecracker socket not found at %s - VM process may have been terminated", socketPath)
 	}
-	
+
 	c.logger.InfoContext(ctx, "connecting to existing firecracker socket",
 		"vm_id", vm.ID,
 		"socket_path", socketPath,
 	)
-	
+
 	// Create machine config for reconnection
 	machineConfig := sdk.Config{
 		SocketPath: socketPath,
 		// Don't specify other config items for reconnection
 	}
-	
+
 	// Create SDK machine instance for existing process
 	machine, err := sdk.NewMachine(ctx, machineConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create machine instance for socket %s: %w", socketPath, err)
 	}
-	
+
 	vm.Machine = machine
-	
+
 	c.logger.InfoContext(ctx, "successfully reconnected to firecracker process",
 		"vm_id", vm.ID,
 	)
-	
+
+	return nil
+}
+
+// recreateVMForResume recreates a VM from its stored configuration when the original process is gone
+// AIDEV-BUSINESS_RULE: Enable resume after service restarts by recreating firecracker processes
+func (c *SDKClientV4) recreateVMForResume(ctx context.Context, vm *sdkV4VM) error {
+	c.logger.InfoContext(ctx, "recreating VM for resume operation",
+		"vm_id", vm.ID,
+		"state", vm.State.String(),
+	)
+
+	// Get assets needed for the VM
+	assetMapping, assetPaths, err := c.prepareVMAssets(ctx, vm.ID, vm.Config)
+	if err != nil {
+		return fmt.Errorf("failed to prepare VM assets for recreation: %w", err)
+	}
+
+	// Set up VM directory
+	vmDir := filepath.Join(c.baseDir, vm.ID)
+	if mkdirErr := os.MkdirAll(vmDir, 0755); mkdirErr != nil {
+		return fmt.Errorf("failed to create VM directory: %w", mkdirErr)
+	}
+
+	// Set up networking for the recreated VM
+	networkInfo, err := c.networkManager.CreateVMNetwork(ctx, vm.ID)
+	if err != nil {
+		return fmt.Errorf("failed to create network for recreated VM: %w", err)
+	}
+	vm.NetworkInfo = networkInfo
+
+	// Create machine configuration
+	socketPath := filepath.Join(vmDir, "firecracker.sock")
+	fcConfig := c.buildFirecrackerConfig(ctx, vm.ID, vm.Config, networkInfo, assetPaths)
+	fcConfig.SocketPath = socketPath
+
+	// Create new firecracker machine instance
+	machine, err := sdk.NewMachine(ctx, fcConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create new machine instance: %w", err)
+	}
+
+	// Start the VM (this creates the firecracker process)
+	if err := machine.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start recreated VM: %w", err)
+	}
+
+	// Pause the VM immediately since we're recreating it in SHUTDOWN/PAUSED state
+	// The user will call resume to actually start it running
+	if err := machine.PauseVM(ctx); err != nil {
+		c.logger.WarnContext(ctx, "failed to pause recreated VM - continuing anyway",
+			"vm_id", vm.ID,
+			"error", err,
+		)
+	}
+
+	// Update the VM in registry
+	vm.Machine = machine
+	vm.AssetMapping = assetMapping
+	vm.AssetPaths = assetPaths
+
+	c.logger.InfoContext(ctx, "VM successfully recreated for resume",
+		"vm_id", vm.ID,
+	)
+
 	return nil
 }
 
@@ -405,9 +496,9 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 			jailerRoot := filepath.Join(c.jailerConfig.ChrootBaseDir, "firecracker", vmID, "root")
 			chrootRootfsPath := filepath.Join(jailerRoot, "rootfs.ext4")
 
-			if m, err := c.loadContainerMetadata(ctx, chrootRootfsPath); err != nil {
+			if m, metadataErr := c.loadContainerMetadata(ctx, chrootRootfsPath); metadataErr != nil {
 				c.logger.WarnContext(ctx, "failed to load container metadata",
-					"error", err,
+					"error", metadataErr,
 					"chroot_rootfs_path", chrootRootfsPath,
 				)
 			} else if m != nil {
@@ -415,17 +506,17 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 
 				// AIDEV-NOTE: Create /container.cmd file for metald-init
 				// Combine entrypoint and command into a single JSON array
-				if err := c.createContainerCmdFile(ctx, vmID, metadata); err != nil {
+				if cmdFileErr := c.createContainerCmdFile(ctx, vmID, metadata); cmdFileErr != nil {
 					c.logger.WarnContext(ctx, "failed to create container.cmd file",
-						"error", err,
+						"error", cmdFileErr,
 						"vm_id", vmID,
 					)
 				}
 
-				if mappings, err := c.parseExposedPorts(ctx, vmID, metadata); err != nil {
+				if mappings, portErr := c.parseExposedPorts(ctx, vmID, metadata); portErr != nil {
 					c.logger.ErrorContext(ctx, "failed to parse exposed ports",
 						slog.String("vm_id", vmID),
-						slog.String("error", err.Error()),
+						slog.String("error", portErr.Error()),
 					)
 					// Continue without port mappings rather than failing the boot
 				} else {
@@ -521,13 +612,13 @@ func (c *SDKClientV4) BootVM(ctx context.Context, vmID string) error {
 
 		leaseIDs := []string{}
 		for _, assetID := range vm.AssetMapping.AssetIDs() {
-			ctx, acquireSpan := c.tracer.Start(ctx, "metald.firecracker.acquire_asset",
+			acquireCtx, acquireSpan := c.tracer.Start(ctx, "metald.firecracker.acquire_asset",
 				trace.WithAttributes(
 					attribute.String("vm.id", vmID),
 					attribute.String("asset.id", assetID),
 				),
 			)
-			leaseID, err := c.assetClient.AcquireAsset(ctx, assetID, vmID)
+			leaseID, err := c.assetClient.AcquireAsset(acquireCtx, assetID, vmID)
 			if err != nil {
 				acquireSpan.RecordError(err)
 				acquireSpan.SetStatus(codes.Error, err.Error())
@@ -597,7 +688,7 @@ func (c *SDKClientV4) buildFirecrackerConfig(ctx context.Context, vmID string, c
 
 	// Determine kernel path - use prepared path if available, otherwise fallback to default
 	kernelPath := filepath.Join(jailerRoot, "vmlinux")
-	if preparedPaths != nil && len(preparedPaths) > 0 {
+	if len(preparedPaths) > 0 {
 		// AIDEV-NOTE: In a more sophisticated implementation, we'd track which asset ID
 		// corresponds to which component (kernel vs rootfs). For now, we rely on the
 		// assetmanager preparing files with standard names in the target directory.
@@ -618,13 +709,13 @@ func (c *SDKClientV4) buildFirecrackerConfig(ctx context.Context, vmID string, c
 
 	// Create the metrics FIFO in the host filesystem
 	if err := unix.Mkfifo(hostMetricsPath, 0644); err != nil && !os.IsExist(err) {
-		c.logger.Error("failed to create metrics FIFO",
+		c.logger.ErrorContext(ctx, "failed to create metrics FIFO",
 			slog.String("vm_id", vmID),
 			slog.String("path", hostMetricsPath),
 			slog.String("error", err.Error()),
 		)
 	} else {
-		c.logger.Info("created metrics FIFO for billaged",
+		c.logger.InfoContext(ctx, "created metrics FIFO for billaged",
 			slog.String("vm_id", vmID),
 			slog.String("host_path", hostMetricsPath),
 			slog.String("chroot_path", metricsPath),
@@ -759,21 +850,21 @@ func (c *SDKClientV4) buildAssetRequirements(config *metaldv1.VmConfig) []assetR
 
 	// DEBUG: Log VM config for docker image troubleshooting
 	c.logger.Info("DEBUG: analyzing VM config for assets",
-		"storage_count", len(config.Storage),
-		"metadata", config.Metadata,
+		"storage_count", len(config.GetStorage()),
+		"metadata", config.GetMetadata(),
 	)
-	for i, disk := range config.Storage {
+	for i, disk := range config.GetStorage() {
 		c.logger.Info("DEBUG: storage device",
 			"index", i,
-			"id", disk.Id,
-			"path", disk.Path,
-			"is_root", disk.IsRootDevice,
-			"options", disk.Options,
+			"id", disk.GetId(),
+			"path", disk.GetPath(),
+			"is_root", disk.GetIsRootDevice(),
+			"options", disk.GetOptions(),
 		)
 	}
 
 	// Kernel requirement
-	if config.Boot != nil && config.Boot.KernelPath != "" {
+	if config.GetBoot() != nil && config.GetBoot().GetKernelPath() != "" {
 		reqs = append(reqs, assetRequirement{
 			Type:     assetv1.AssetType_ASSET_TYPE_KERNEL,
 			Required: true,
@@ -781,13 +872,13 @@ func (c *SDKClientV4) buildAssetRequirements(config *metaldv1.VmConfig) []assetR
 	}
 
 	// Rootfs requirements from storage devices
-	for _, disk := range config.Storage {
-		if disk.IsRootDevice {
+	for _, disk := range config.GetStorage() {
+		if disk.GetIsRootDevice() {
 			labels := make(map[string]string)
 			// Check for docker image in disk options first, then config metadata
-			if dockerImage, ok := disk.Options["docker_image"]; ok {
+			if dockerImage, ok := disk.GetOptions()["docker_image"]; ok {
 				labels["docker_image"] = dockerImage
-			} else if dockerImage, ok := config.Metadata["docker_image"]; ok {
+			} else if dockerImage, ok := config.GetMetadata()["docker_image"]; ok {
 				labels["docker_image"] = dockerImage
 			}
 
@@ -802,7 +893,7 @@ func (c *SDKClientV4) buildAssetRequirements(config *metaldv1.VmConfig) []assetR
 	}
 
 	// Initrd requirement (optional)
-	if config.Boot != nil && config.Boot.InitrdPath != "" {
+	if config.GetBoot() != nil && config.GetBoot().GetInitrdPath() != "" {
 		reqs = append(reqs, assetRequirement{
 			Type:     assetv1.AssetType_ASSET_TYPE_INITRD,
 			Required: false,
@@ -825,14 +916,14 @@ func (c *SDKClientV4) matchAssets(reqs []assetRequirement, availableAssets []*as
 
 		// Find best matching asset
 		for _, asset := range availableAssets {
-			if asset.Type != req.Type {
+			if asset.GetType() != req.Type {
 				continue
 			}
 
 			// Check if all required labels match
 			labelMatch := true
 			for k, v := range req.Labels {
-				if assetLabel, ok := asset.Labels[k]; !ok || assetLabel != v {
+				if assetLabel, ok := asset.GetLabels()[k]; !ok || assetLabel != v {
 					labelMatch = false
 					break
 				}
@@ -859,7 +950,7 @@ func (c *SDKClientV4) matchAssets(reqs []assetRequirement, availableAssets []*as
 
 		if matched != nil {
 			mapping.assets[fmt.Sprintf("%d", i)] = matched
-			mapping.assetIDs = append(mapping.assetIDs, matched.Id)
+			mapping.assetIDs = append(mapping.assetIDs, matched.GetId())
 		}
 	}
 
@@ -906,8 +997,8 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 		)
 		// AIDEV-NOTE: Fallback to old behavior when assetmanager is disabled
 		// This ensures backward compatibility
-		if err := c.prepareVMAssetsStatic(ctx, vmID, config, jailerRoot); err != nil {
-			return nil, nil, err
+		if staticErr := c.prepareVMAssetsStatic(ctx, vmID, config, jailerRoot); staticErr != nil {
+			return nil, nil, staticErr
 		}
 		return nil, nil, nil
 	}
@@ -925,7 +1016,7 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 
 	// Extract tenant_id from VM metadata if available, with fallback to default
 	tenantID := "cli-tenant" // AIDEV-NOTE: Default tenant for CLI operations
-	if tid, ok := config.Metadata["tenant_id"]; ok {
+	if tid, ok := config.GetMetadata()["tenant_id"]; ok {
 		tenantID = tid
 	}
 
@@ -977,7 +1068,7 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 		}
 
 		// Check for force_rebuild in VM config metadata (separate from asset labels)
-		if forceRebuild, ok := config.Metadata["force_rebuild"]; ok && forceRebuild == "true" {
+		if forceRebuild, ok := config.GetMetadata()["force_rebuild"]; ok && forceRebuild == "true" {
 			buildLabels["force_rebuild"] = "true"
 		}
 
@@ -1004,17 +1095,17 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 					return labelPairs
 				}()),
 				attribute.String("tenant.id", tenantID),
-				attribute.Bool("auto_build.enabled", buildOptions.EnableAutoBuild),
-				attribute.Int("build.timeout_seconds", int(buildOptions.BuildTimeoutSeconds)),
+				attribute.Bool("auto_build.enabled", buildOptions.GetEnableAutoBuild()),
+				attribute.Int("build.timeout_seconds", int(buildOptions.GetBuildTimeoutSeconds())),
 			),
 		)
 		initSpan.End() // End immediately - this just marks the initiation
 
 		// Make the actual call without wrapping in a span (it has its own internal spans)
-		resp, err := c.assetClient.QueryAssets(ctx, key.assetType, labels, buildOptions)
-		if err != nil {
+		resp, queryErr := c.assetClient.QueryAssets(ctx, key.assetType, labels, buildOptions)
+		if queryErr != nil {
 			return nil, nil, fmt.Errorf("failed to query assets of type %s with labels %v: %w",
-				key.assetType.String(), labels, err)
+				key.assetType.String(), labels, queryErr)
 		}
 
 		// Create a quick span to record the results
@@ -1057,9 +1148,9 @@ func (c *SDKClientV4) prepareVMAssets(ctx context.Context, vmID string, config *
 	// Log asset details for debugging
 	for _, asset := range allAssets {
 		c.logger.LogAttrs(ctx, slog.LevelInfo, "available asset",
-			slog.String("asset_id", asset.Id),
-			slog.String("asset_type", asset.Type.String()),
-			slog.Any("labels", asset.Labels),
+			slog.String("asset_id", asset.GetId()),
+			slog.String("asset_type", asset.GetType().String()),
+			slog.Any("labels", asset.GetLabels()),
 		)
 	}
 
@@ -1174,8 +1265,8 @@ func (c *SDKClientV4) prepareVMAssetsStatic(ctx context.Context, vmID string, co
 						if err == nil && metadata != nil {
 							// Build the command array
 							var fullCmd []string
-							fullCmd = append(fullCmd, metadata.Entrypoint...)
-							fullCmd = append(fullCmd, metadata.Command...)
+							fullCmd = append(fullCmd, metadata.GetEntrypoint()...)
+							fullCmd = append(fullCmd, metadata.GetCommand()...)
 
 							if len(fullCmd) > 0 {
 								// Mount the rootfs temporarily to write the command file
@@ -1192,7 +1283,7 @@ func (c *SDKClientV4) prepareVMAssetsStatic(ctx context.Context, vmID string, co
 										// Write the command file
 										cmdFile := filepath.Join(mountDir, "container.cmd")
 										cmdData, _ := json.Marshal(fullCmd)
-										if err := os.WriteFile(cmdFile, cmdData, 0644); err != nil {
+										if err := os.WriteFile(cmdFile, cmdData, 0600); err != nil {
 											c.logger.WarnContext(ctx, "failed to write command file",
 												"path", cmdFile,
 												"error", err,
@@ -1317,13 +1408,13 @@ func (c *SDKClientV4) DeleteVM(ctx context.Context, vmID string) error {
 		)
 
 		for _, leaseID := range leaseIDs {
-			ctx, releaseSpan := c.tracer.Start(ctx, "metald.firecracker.release_asset",
+			releaseCtx, releaseSpan := c.tracer.Start(ctx, "metald.firecracker.release_asset",
 				trace.WithAttributes(
 					attribute.String("vm.id", vmID),
 					attribute.String("lease.id", leaseID),
 				),
 			)
-			err := c.assetClient.ReleaseAsset(ctx, leaseID)
+			err := c.assetClient.ReleaseAsset(releaseCtx, leaseID)
 			if err != nil {
 				releaseSpan.RecordError(err)
 				releaseSpan.SetStatus(codes.Error, err.Error())
@@ -1515,10 +1606,19 @@ func (c *SDKClientV4) ResumeVM(ctx context.Context, vmID string) error {
 		c.logger.InfoContext(ctx, "reconnecting to existing firecracker process",
 			"vm_id", vmID,
 		)
-		
+
 		if err := c.reconnectToFirecracker(ctx, vm); err != nil {
-			span.RecordError(err)
-			return fmt.Errorf("failed to reconnect to firecracker process: %w", err)
+			// AIDEV-BUSINESS_RULE: If reconnection fails (e.g., service restart killed processes),
+			// recreate the VM from scratch to enable resume functionality
+			c.logger.WarnContext(ctx, "failed to reconnect to firecracker process, recreating VM",
+				"vm_id", vmID,
+				"error", err,
+			)
+
+			if err := c.recreateVMForResume(ctx, vm); err != nil {
+				span.RecordError(err)
+				return fmt.Errorf("failed to recreate VM for resume: %w", err)
+			}
 		}
 	}
 
@@ -1847,26 +1947,25 @@ func (c *SDKClientV4) Shutdown(ctx context.Context) error {
 
 	c.logger.InfoContext(ctx, "shutting down SDK v4 backend")
 
-	// Shutdown all running VMs with full cleanup
+	// AIDEV-BUSINESS_RULE: Preserve ALL VMs across metald restarts
+	// VMs should persist like any other virtualization platform (VMware, VirtualBox, etc.)
 	vmCount := len(c.vmRegistry)
-	c.logger.InfoContext(ctx, "shutting down VMs during backend shutdown",
+	c.logger.InfoContext(ctx, "preserving all VMs during backend shutdown",
 		"vm_count", vmCount,
 	)
 
-	for vmID := range c.vmRegistry {
-		c.logger.InfoContext(ctx, "deleting VM during backend shutdown",
+	for vmID, vm := range c.vmRegistry {
+		c.logger.InfoContext(ctx, "preserving VM during backend shutdown",
 			"vm_id", vmID,
+			"state", vm.State.String(),
 		)
-		// Use DeleteVM for full cleanup (stops VM + cleans network resources)
-		if err := c.DeleteVM(ctx, vmID); err != nil {
-			c.logger.ErrorContext(ctx, "failed to delete VM during shutdown",
-				"vm_id", vmID,
-				"error", err,
-			)
-		}
+		// TODO: Ensure VM state is properly persisted to database
+		// The restoration logic will handle reconnecting to these VMs on startup
 	}
 
-	c.logger.InfoContext(ctx, "SDK v4 backend shutdown complete")
+	c.logger.InfoContext(ctx, "SDK v4 backend shutdown complete - all VMs preserved",
+		"preserved_vm_count", vmCount,
+	)
 	return nil
 }
 
@@ -1958,11 +2057,11 @@ func (c *SDKClientV4) loadContainerMetadata(ctx context.Context, rootfsPath stri
 	}
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "loaded container metadata",
-		slog.String("image", metadata.OriginalImage),
-		slog.Int("entrypoint_len", len(metadata.Entrypoint)),
-		slog.Int("cmd_len", len(metadata.Command)),
-		slog.Int("env_vars", len(metadata.Env)),
-		slog.Int("exposed_ports", len(metadata.ExposedPorts)),
+		slog.String("image", metadata.GetOriginalImage()),
+		slog.Int("entrypoint_len", len(metadata.GetEntrypoint())),
+		slog.Int("cmd_len", len(metadata.GetCommand())),
+		slog.Int("env_vars", len(metadata.GetEnv())),
+		slog.Int("exposed_ports", len(metadata.GetExposedPorts())),
 	)
 
 	return &metadata, nil
@@ -2038,7 +2137,7 @@ func (c *SDKClientV4) buildKernelArgsWithMetadata(ctx context.Context, baseArgs 
 	if metadata != nil && !hasInit {
 		// Add environment variables as kernel parameters
 		// Format: env.KEY=VALUE
-		for key, value := range metadata.Env {
+		for key, value := range metadata.GetEnv() {
 			// Skip potentially problematic env vars
 			if key == "PATH" || strings.Contains(key, " ") || strings.Contains(value, " ") {
 				continue
@@ -2047,8 +2146,8 @@ func (c *SDKClientV4) buildKernelArgsWithMetadata(ctx context.Context, baseArgs 
 		}
 
 		// Add working directory if specified
-		if metadata.WorkingDir != "" {
-			kernelParams = append(kernelParams, fmt.Sprintf("workdir=%s", metadata.WorkingDir))
+		if metadata.GetWorkingDir() != "" {
+			kernelParams = append(kernelParams, fmt.Sprintf("workdir=%s", metadata.GetWorkingDir()))
 		}
 
 		// Use metald-init as the init process wrapper
@@ -2074,12 +2173,12 @@ func (c *SDKClientV4) buildKernelArgsWithMetadata(ctx context.Context, baseArgs 
 // parseExposedPorts parses exposed ports from container metadata and allocates host ports
 func (c *SDKClientV4) parseExposedPorts(ctx context.Context, vmID string, metadata *builderv1.ImageMetadata) ([]network.PortMapping, error) {
 	// AIDEV-NOTE: Parse exposed ports and allocate host ports using network manager
-	if metadata == nil || len(metadata.ExposedPorts) == 0 {
+	if metadata == nil || len(metadata.GetExposedPorts()) == 0 {
 		return nil, nil
 	}
 
 	// Use network manager to allocate ports
-	mappings, err := c.networkManager.AllocatePortsForVM(vmID, metadata.ExposedPorts)
+	mappings, err := c.networkManager.AllocatePortsForVM(vmID, metadata.GetExposedPorts())
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to allocate ports for VM",
 			slog.String("vm_id", vmID),
@@ -2096,9 +2195,62 @@ func (c *SDKClientV4) parseExposedPorts(ctx context.Context, vmID string, metada
 	return mappings, nil
 }
 
+// validateIPAddress validates an IP address to prevent command injection
+func validateIPAddress(ip string) error {
+	if net.ParseIP(ip) == nil {
+		return fmt.Errorf("invalid IP address: %s", ip)
+	}
+	return nil
+}
+
+// validatePortNumber validates a port number to prevent command injection
+func validatePortNumber(port int) error {
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("invalid port number: %d, must be between 1-65535", port)
+	}
+	return nil
+}
+
+// validateProtocol validates network protocol to prevent command injection
+func validateProtocol(protocol string) error {
+	// Only allow tcp, udp, icmp protocols commonly used
+	validProtocols := map[string]bool{
+		"tcp":  true,
+		"udp":  true,
+		"icmp": true,
+	}
+	if !validProtocols[protocol] {
+		return fmt.Errorf("invalid protocol: %s, must be tcp, udp, or icmp", protocol)
+	}
+	return nil
+}
+
+// validateVMID validates VM ID to prevent command injection
+func validateVMID(vmID string) error {
+	// VM IDs should only contain alphanumeric characters, hyphens, and underscores
+	if len(vmID) == 0 || len(vmID) > 64 {
+		return fmt.Errorf("invalid VM ID length: %s", vmID)
+	}
+
+	// Match only safe characters
+	validPattern := regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
+	if !validPattern.MatchString(vmID) {
+		return fmt.Errorf("invalid VM ID format: %s, only alphanumeric, hyphens, and underscores allowed", vmID)
+	}
+	return nil
+}
+
 // configurePortForwarding sets up iptables rules for port forwarding
 func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []network.PortMapping) error {
 	// AIDEV-NOTE: Configure iptables rules for port forwarding
+
+	// Validate inputs to prevent command injection
+	if err := validateVMID(vmID); err != nil {
+		return fmt.Errorf("invalid VM ID: %w", err)
+	}
+	if err := validateIPAddress(vmIP); err != nil {
+		return fmt.Errorf("invalid VM IP: %w", err)
+	}
 
 	if len(mappings) == 0 {
 		return nil
@@ -2111,8 +2263,20 @@ func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, 
 	)
 
 	for _, mapping := range mappings {
-		// Add DNAT rule to forward host port to VM port
+		// Validate port mapping parameters to prevent command injection
+		if err := validateProtocol(mapping.Protocol); err != nil {
+			return fmt.Errorf("invalid protocol in mapping: %w", err)
+		}
+		if err := validatePortNumber(mapping.HostPort); err != nil {
+			return fmt.Errorf("invalid host port in mapping: %w", err)
+		}
+		if err := validatePortNumber(mapping.ContainerPort); err != nil {
+			return fmt.Errorf("invalid container port in mapping: %w", err)
+		}
+
+		// Add DNAT rule to forward host port to VM port (inputs validated above)
 		// iptables -t nat -A PREROUTING -p tcp --dport HOST_PORT -j DNAT --to-destination VM_IP:CONTAINER_PORT
+		// #nosec G204 -- All parameters validated above to prevent command injection
 		dnatCmd := exec.Command("iptables",
 			"-t", "nat",
 			"-A", "PREROUTING",
@@ -2132,8 +2296,9 @@ func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, 
 			return fmt.Errorf("failed to add DNAT rule: %w", err)
 		}
 
-		// Add FORWARD rule to allow traffic
+		// Add FORWARD rule to allow traffic (inputs validated above)
 		// iptables -A FORWARD -p tcp -d VM_IP --dport CONTAINER_PORT -j ACCEPT
+		// #nosec G204 -- All parameters validated above to prevent command injection
 		forwardCmd := exec.Command("iptables",
 			"-A", "FORWARD",
 			"-p", mapping.Protocol,
@@ -2166,8 +2331,32 @@ func (c *SDKClientV4) configurePortForwarding(ctx context.Context, vmID string, 
 func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmIP string, mappings []network.PortMapping) error {
 	// AIDEV-NOTE: Remove iptables rules when VM is deleted
 
+	// Validate inputs to prevent command injection
+	if err := validateVMID(vmID); err != nil {
+		return fmt.Errorf("invalid VM ID: %w", err)
+	}
+	if err := validateIPAddress(vmIP); err != nil {
+		return fmt.Errorf("invalid VM IP: %w", err)
+	}
+
+	var errors []error
+
 	for _, mapping := range mappings {
-		// Remove DNAT rule
+		// Validate port mapping parameters to prevent command injection
+		if err := validateProtocol(mapping.Protocol); err != nil {
+			errors = append(errors, fmt.Errorf("invalid protocol in mapping: %w", err))
+			continue
+		}
+		if err := validatePortNumber(mapping.HostPort); err != nil {
+			errors = append(errors, fmt.Errorf("invalid host port in mapping: %w", err))
+			continue
+		}
+		if err := validatePortNumber(mapping.ContainerPort); err != nil {
+			errors = append(errors, fmt.Errorf("invalid container port in mapping: %w", err))
+			continue
+		}
+		// Remove DNAT rule (inputs validated above)
+		// #nosec G204 -- All parameters validated above to prevent command injection
 		dnatCmd := exec.Command("iptables",
 			"-t", "nat",
 			"-D", "PREROUTING",
@@ -2178,14 +2367,16 @@ func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmI
 		)
 
 		if output, err := dnatCmd.CombinedOutput(); err != nil {
-			// Log but don't fail - rule might already be gone
 			c.logger.WarnContext(ctx, "failed to remove DNAT rule",
+				"vm_id", vmID,
 				"error", err.Error(),
 				"output", string(output),
 			)
+			errors = append(errors, fmt.Errorf("failed to remove DNAT rule for port %d: %w", mapping.HostPort, err))
 		}
 
-		// Remove FORWARD rule
+		// Remove FORWARD rule (inputs validated above)
+		// #nosec G204 -- All parameters validated above to prevent command injection
 		forwardCmd := exec.Command("iptables",
 			"-D", "FORWARD",
 			"-p", mapping.Protocol,
@@ -2196,18 +2387,26 @@ func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmI
 
 		if output, err := forwardCmd.CombinedOutput(); err != nil {
 			c.logger.WarnContext(ctx, "failed to remove FORWARD rule",
+				"vm_id", vmID,
 				"error", err.Error(),
 				"output", string(output),
 			)
+			errors = append(errors, fmt.Errorf("failed to remove FORWARD rule for port %d: %w", mapping.ContainerPort, err))
 		}
 	}
 
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to remove %d port forwarding rules: %v", len(errors), errors)
+	}
 	return nil
 }
 
 // shutdownVMNetworkInterfaces brings down VM network interfaces during shutdown
 // This makes the VM non-pingable while keeping resources allocated for potential restart
 func (c *SDKClientV4) shutdownVMNetworkInterfaces(ctx context.Context, vmID string, networkInfo *network.VMNetwork) error {
+	// AIDEV-NOTE: CRITICAL FIX - Lock OS thread for namespace operations
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "shutting down VM network interfaces",
 		slog.String("vm_id", vmID),
 		slog.String("namespace", networkInfo.Namespace),
@@ -2216,10 +2415,10 @@ func (c *SDKClientV4) shutdownVMNetworkInterfaces(ctx context.Context, vmID stri
 
 	// Bring down TAP device in host namespace
 	if link, err := netlink.LinkByName(networkInfo.TapDevice); err == nil {
-		if err := netlink.LinkSetDown(link); err != nil {
+		if linkDownErr := netlink.LinkSetDown(link); linkDownErr != nil {
 			c.logger.WarnContext(ctx, "failed to bring down TAP device",
 				"device", networkInfo.TapDevice,
-				"error", err,
+				"error", linkDownErr,
 			)
 		} else {
 			c.logger.InfoContext(ctx, "brought down TAP device",
@@ -2237,20 +2436,20 @@ func (c *SDKClientV4) shutdownVMNetworkInterfaces(ctx context.Context, vmID stri
 	defer nsHandle.Close()
 
 	// Switch to VM namespace
-	originalNS, err := netns.Get()
-	if err != nil {
-		return fmt.Errorf("failed to get original namespace: %w", err)
+	originalNS, originalErr := netns.Get()
+	if originalErr != nil {
+		return fmt.Errorf("failed to get original namespace: %w", originalErr)
 	}
 	defer originalNS.Close()
 
-	if err := netns.Set(nsHandle); err != nil {
-		return fmt.Errorf("failed to switch to namespace %s: %w", networkInfo.Namespace, err)
+	if setErr := netns.Set(nsHandle); setErr != nil {
+		return fmt.Errorf("failed to switch to namespace %s: %w", networkInfo.Namespace, setErr)
 	}
 	defer func() {
 		// Always switch back to original namespace
-		if err := netns.Set(originalNS); err != nil {
+		if restoreErr := netns.Set(originalNS); restoreErr != nil {
 			c.logger.ErrorContext(ctx, "failed to switch back to original namespace",
-				"error", err,
+				"error", restoreErr,
 			)
 		}
 	}()
@@ -2290,6 +2489,9 @@ func (c *SDKClientV4) shutdownVMNetworkInterfaces(ctx context.Context, vmID stri
 // startupVMNetworkInterfaces brings up VM network interfaces during resume/restart
 // This re-enables network connectivity for the VM after shutdown
 func (c *SDKClientV4) startupVMNetworkInterfaces(ctx context.Context, vmID string, networkInfo *network.VMNetwork) error {
+	// AIDEV-NOTE: CRITICAL FIX - Lock OS thread for namespace operations
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "bringing up VM network interfaces",
 		slog.String("vm_id", vmID),
 		slog.String("namespace", networkInfo.Namespace),
@@ -2318,20 +2520,20 @@ func (c *SDKClientV4) startupVMNetworkInterfaces(ctx context.Context, vmID strin
 	defer nsHandle.Close()
 
 	// Switch to VM namespace
-	originalNS, err := netns.Get()
-	if err != nil {
-		return fmt.Errorf("failed to get original namespace: %w", err)
+	originalNS, originalErr := netns.Get()
+	if originalErr != nil {
+		return fmt.Errorf("failed to get original namespace: %w", originalErr)
 	}
 	defer originalNS.Close()
 
-	if err := netns.Set(nsHandle); err != nil {
-		return fmt.Errorf("failed to switch to namespace %s: %w", networkInfo.Namespace, err)
+	if setErr := netns.Set(nsHandle); setErr != nil {
+		return fmt.Errorf("failed to switch to namespace %s: %w", networkInfo.Namespace, setErr)
 	}
 	defer func() {
 		// Always switch back to original namespace
-		if err := netns.Set(originalNS); err != nil {
+		if restoreErr := netns.Set(originalNS); restoreErr != nil {
 			c.logger.ErrorContext(ctx, "failed to switch back to original namespace",
-				"error", err,
+				"error", restoreErr,
 			)
 		}
 	}()
@@ -2445,8 +2647,8 @@ func (c *SDKClientV4) createContainerCmdFile(ctx context.Context, vmID string, m
 
 	// Build full command array: entrypoint + command
 	var fullCmd []string
-	fullCmd = append(fullCmd, metadata.Entrypoint...)
-	fullCmd = append(fullCmd, metadata.Command...)
+	fullCmd = append(fullCmd, metadata.GetEntrypoint()...)
+	fullCmd = append(fullCmd, metadata.GetCommand()...)
 
 	if len(fullCmd) == 0 {
 		return fmt.Errorf("no entrypoint or command found in metadata")
@@ -2482,7 +2684,7 @@ func (c *SDKClientV4) createContainerCmdFile(ctx context.Context, vmID string, m
 
 	// Write container.cmd into the mounted filesystem
 	containerCmdPath := filepath.Join(tmpMount, "container.cmd")
-	if err := os.WriteFile(containerCmdPath, cmdJSON, 0644); err != nil {
+	if err := os.WriteFile(containerCmdPath, cmdJSON, 0600); err != nil {
 		return fmt.Errorf("failed to write container.cmd to rootfs: %w", err)
 	}
 

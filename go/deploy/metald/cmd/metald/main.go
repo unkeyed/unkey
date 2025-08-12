@@ -71,24 +71,28 @@ func getVersion() string {
 	return version
 }
 
-// initializeBridgeInfrastructure creates bridge infrastructure during startup
-// This prevents network interface priority issues during VM operations
-func initializeBridgeInfrastructure(logger *slog.Logger, cfg *config.Config) error {
-	logger.Info("initializing bridge infrastructure at startup")
+// verifyBridgeInfrastructure verifies bridge infrastructure exists and is configured
+// Bridge is managed by metald-bridge.service, not created by metald
+func verifyBridgeInfrastructure(logger *slog.Logger, cfg *config.Config) error {
+	logger.Info("verifying multi-bridge infrastructure",
+		slog.Int("bridge_count", cfg.Network.BridgeCount))
 
-	networkConfig := &network.Config{
-		BridgeName:      cfg.Network.BridgeName,   // Default: "br-vms"
-		BridgeIP:        cfg.Network.BridgeIPv4,   // Default: "172.31.0.1/19"
-		VMSubnet:        cfg.Network.VMSubnetIPv4, // Default: "172.31.0.0/19"
-		DNSServers:      cfg.Network.DNSServersIPv4,
-		EnableRateLimit: cfg.Network.EnableRateLimit,
-		RateLimitMbps:   cfg.Network.RateLimitMbps,
-		PortRangeMin:    32768,
-		PortRangeMax:    65535,
+	// AIDEV-NOTE: Multi-bridge only - supports 8 or 32 bridges (no single bridge support)
+	mbm := network.NewMultiBridgeManager(cfg.Network.BridgeCount, "br-tenant", logger)
+
+	// Verify all bridges exist and are properly configured
+	for i := 0; i < cfg.Network.BridgeCount; i++ {
+		bridgeName := fmt.Sprintf("br-tenant-%d", i)
+		expectedIP := fmt.Sprintf("172.16.%d.1/24", i)
+
+		if err := mbm.VerifyBridge(bridgeName, expectedIP); err != nil {
+			return fmt.Errorf("bridge verification failed for %s: %w", bridgeName, err)
+		}
 	}
 
-	// Create bridge infrastructure early in startup
-	return network.InitializeBridge(logger, networkConfig, &cfg.Network)
+	logger.Info("multi-bridge infrastructure verified successfully",
+		slog.Int("bridge_count", cfg.Network.BridgeCount))
+	return nil
 }
 
 func main() {
@@ -224,11 +228,13 @@ func main() {
 		slog.String("data_dir", cfg.Database.DataDir),
 	)
 
-	// Initialize bridge infrastructure FIRST, before any VM services
-	// This prevents network interface priority issues during VM operations
-	if err := initializeBridgeInfrastructure(logger, cfg); err != nil {
-		logger.Error("failed to initialize bridge infrastructure",
-			slog.String("error", err.Error()))
+	// Verify bridge infrastructure FIRST, before any VM services
+	// Bridge is managed by metald-bridge.service, not created by metald
+	if err := verifyBridgeInfrastructure(logger, cfg); err != nil {
+		logger.Error("failed to verify bridge infrastructure",
+			slog.String("error", err.Error()),
+			slog.String("bridge", cfg.Network.BridgeName),
+			slog.String("solution", "ensure metald-bridge.service is running and enabled"))
 		os.Exit(1)
 	}
 
@@ -241,11 +247,16 @@ func main() {
 		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
 		// AIDEV-NOTE: SDK manages firecracker process, integrated jailer, and networking
 
-		// Convert main config to network config
+		// AIDEV-NOTE: Multi-bridge network manager - use first bridge for compatibility
+		// TODO: Refactor network manager to natively support multi-bridge
+		logger.Info("creating network manager for multi-bridge setup",
+			slog.Int("bridge_count", cfg.Network.BridgeCount),
+			slog.String("primary_bridge", "br-tenant-0"))
+
 		networkConfig := &network.Config{
-			BridgeName:      cfg.Network.BridgeName,
-			BridgeIP:        cfg.Network.BridgeIPv4,
-			VMSubnet:        cfg.Network.VMSubnetIPv4,
+			BridgeName:      "br-tenant-0",
+			BridgeIP:        "172.16.0.1/24",
+			VMSubnet:        "172.16.0.0/24",
 			EnableIPv6:      cfg.Network.EnableIPv6,
 			DNSServers:      cfg.Network.DNSServersIPv4,
 			EnableRateLimit: cfg.Network.EnableRateLimit,
@@ -257,7 +268,7 @@ func main() {
 		var err error
 		networkManager, err = network.NewManager(logger, networkConfig, &cfg.Network)
 		if err != nil {
-			logger.Error("failed to create network manager",
+			logger.Error("failed to create multi-bridge network manager",
 				slog.String("error", err.Error()),
 			)
 			os.Exit(1)

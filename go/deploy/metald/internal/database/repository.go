@@ -627,5 +627,18 @@ func (r *VMRepository) ListAllVMsWithContext(ctx context.Context) ([]*VM, error)
 
 // UpdateVMStateWithContextInt updates VM state with an integer state parameter (used by reconciler)
 func (r *VMRepository) UpdateVMStateWithContextInt(ctx context.Context, vmID string, state int) error {
-	return r.UpdateVMStateWithContext(ctx, vmID, metaldv1.VmState(state), nil)
+	// Safely convert int to VmState enum (int32) to prevent overflow
+	const maxVmState = 2147483647  // max int32
+	const minVmState = -2147483648 // min int32
+
+	safeState := state
+	if state > maxVmState {
+		safeState = maxVmState
+	} else if state < minVmState {
+		safeState = minVmState
+	}
+
+	// Safe conversion: safeState is already clamped to int32 bounds above
+	// #nosec G115 -- safeState is guaranteed to be within int32 range after validation above
+	return r.UpdateVMStateWithContext(ctx, vmID, metaldv1.VmState(int32(safeState)), nil)
 }

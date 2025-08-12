@@ -22,7 +22,6 @@ type mockAssetClient struct {
 
 	// Track calls
 	queryCalls []queryCall
-	lastQuery  *assetv1.QueryAssetsRequest
 }
 
 type queryCall struct {
@@ -70,7 +69,7 @@ func (m *mockAssetClient) QueryAssets(ctx context.Context, assetType assetv1.Ass
 	}
 
 	// If build is triggered and enabled for rootfs
-	if m.triggerBuild && buildOptions != nil && buildOptions.EnableAutoBuild && assetType == assetv1.AssetType_ASSET_TYPE_ROOTFS {
+	if m.triggerBuild && buildOptions != nil && buildOptions.GetEnableAutoBuild() && assetType == assetv1.AssetType_ASSET_TYPE_ROOTFS {
 		dockerImage := labels["docker_image"]
 
 		// Create build info
@@ -81,7 +80,7 @@ func (m *mockAssetClient) QueryAssets(ctx context.Context, assetType assetv1.Ass
 		}
 
 		// Simulate build delay
-		if m.buildDelay > 0 && buildOptions.WaitForCompletion {
+		if m.buildDelay > 0 && buildOptions.GetWaitForCompletion() {
 			select {
 			case <-time.After(m.buildDelay):
 				// Build completed
@@ -257,16 +256,16 @@ func TestAutomaticAssetBuilding(t *testing.T) {
 				t.Fatal("build options were not provided")
 			}
 
-			if !lastCall.buildOpts.EnableAutoBuild {
+			if !lastCall.buildOpts.GetEnableAutoBuild() {
 				t.Error("expected EnableAutoBuild to be true")
 			}
 
-			if !lastCall.buildOpts.WaitForCompletion {
+			if !lastCall.buildOpts.GetWaitForCompletion() {
 				t.Error("expected WaitForCompletion to be true")
 			}
 
-			if lastCall.buildOpts.TenantId != tt.tenantID {
-				t.Errorf("expected tenant_id=%s, got %s", tt.tenantID, lastCall.buildOpts.TenantId)
+			if lastCall.buildOpts.GetTenantId() != tt.tenantID {
+				t.Errorf("expected tenant_id=%s, got %s", tt.tenantID, lastCall.buildOpts.GetTenantId())
 			}
 
 			// If successful, verify asset mapping

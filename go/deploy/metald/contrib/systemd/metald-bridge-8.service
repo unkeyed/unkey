@@ -1,0 +1,21 @@
+# Metald Bridge Infrastructure Service (8 bridges)
+# AIDEV-BUSINESS_RULE: Minimal service to ensure systemd-networkd creates bridges at boot
+# Metald is completely separate and handles its own error cases
+
+[Unit]
+Description=Metald Bridge Infrastructure (8 bridges)
+After=systemd-networkd.service
+Wants=systemd-networkd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# Just ensure systemd-networkd processes the bridge configs
+ExecStart=/bin/systemctl reload systemd-networkd
+
+# Give systemd-networkd time to create bridges and assign IPs
+ExecStart=/bin/sleep 5
+
+[Install]
+WantedBy=multi-user.target

@@ -152,24 +152,24 @@ func TestConfigSerializationConsistency(t *testing.T) {
 	}
 
 	// Verify round-trip consistency
-	if unmarshaled.Cpu.VcpuCount != config.Cpu.VcpuCount {
-		t.Errorf("VcpuCount mismatch: got %d, want %d", unmarshaled.Cpu.VcpuCount, config.Cpu.VcpuCount)
+	if unmarshaled.GetCpu().GetVcpuCount() != config.GetCpu().GetVcpuCount() {
+		t.Errorf("VcpuCount mismatch: got %d, want %d", unmarshaled.GetCpu().GetVcpuCount(), config.GetCpu().GetVcpuCount())
 	}
-	if unmarshaled.Memory.SizeBytes != config.Memory.SizeBytes {
-		t.Errorf("Memory SizeBytes mismatch: got %d, want %d", unmarshaled.Memory.SizeBytes, config.Memory.SizeBytes)
+	if unmarshaled.GetMemory().GetSizeBytes() != config.GetMemory().GetSizeBytes() {
+		t.Errorf("Memory SizeBytes mismatch: got %d, want %d", unmarshaled.GetMemory().GetSizeBytes(), config.GetMemory().GetSizeBytes())
 	}
-	if unmarshaled.Boot.KernelPath != config.Boot.KernelPath {
-		t.Errorf("KernelPath mismatch: got %s, want %s", unmarshaled.Boot.KernelPath, config.Boot.KernelPath)
+	if unmarshaled.GetBoot().GetKernelPath() != config.GetBoot().GetKernelPath() {
+		t.Errorf("KernelPath mismatch: got %s, want %s", unmarshaled.GetBoot().GetKernelPath(), config.GetBoot().GetKernelPath())
 	}
-	if len(unmarshaled.Storage) != len(config.Storage) {
-		t.Errorf("Storage length mismatch: got %d, want %d", len(unmarshaled.Storage), len(config.Storage))
-	} else if len(unmarshaled.Storage) > 0 {
-		if unmarshaled.Storage[0].Path != config.Storage[0].Path {
-			t.Errorf("Storage Path mismatch: got %s, want %s", unmarshaled.Storage[0].Path, config.Storage[0].Path)
+	if len(unmarshaled.GetStorage()) != len(config.GetStorage()) {
+		t.Errorf("Storage length mismatch: got %d, want %d", len(unmarshaled.GetStorage()), len(config.GetStorage()))
+	} else if len(unmarshaled.GetStorage()) > 0 {
+		if unmarshaled.GetStorage()[0].GetPath() != config.GetStorage()[0].GetPath() {
+			t.Errorf("Storage Path mismatch: got %s, want %s", unmarshaled.GetStorage()[0].GetPath(), config.GetStorage()[0].GetPath())
 		}
 	}
-	if unmarshaled.Boot.KernelArgs != config.Boot.KernelArgs {
-		t.Errorf("KernelArgs mismatch: got %s, want %s", unmarshaled.Boot.KernelArgs, config.Boot.KernelArgs)
+	if unmarshaled.GetBoot().GetKernelArgs() != config.GetBoot().GetKernelArgs() {
+		t.Errorf("KernelArgs mismatch: got %s, want %s", unmarshaled.GetBoot().GetKernelArgs(), config.GetBoot().GetKernelArgs())
 	}
 }
 
@@ -207,7 +207,7 @@ func TestJSONConsistencyWithPortMappings(t *testing.T) {
 	}
 
 	// Both should be valid JSON and consistent in format
-	if configTest.Cpu.VcpuCount != 1 {
+	if configTest.GetCpu().GetVcpuCount() != 1 {
 		t.Errorf("config deserialization failed")
 	}
 	if len(portMappingsTest) != 1 {

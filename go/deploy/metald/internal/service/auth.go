@@ -176,7 +176,8 @@ func validateTenantAccess(ctx context.Context, customerCtx *CustomerContext, req
 
 	// In development mode, allow any authenticated user to access any tenant
 	// TODO: In production, implement proper tenant-user relationship checks
-	// This should query a tenant membership service or database
+	// This should query a tenant membership service or database using ctx for timeouts/tracing
+	_ = ctx // Will be used for database queries in production implementation
 
 	// For now, basic validation that tenant ID is not empty
 	if requestedTenantID == "" {

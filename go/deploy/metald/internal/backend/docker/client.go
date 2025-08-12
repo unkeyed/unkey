@@ -2,11 +2,12 @@ package docker
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
-	"math/rand"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,6 +24,28 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// safeUint64ToInt64 safely converts uint64 to int64, clamping to max int64 on overflow
+func safeUint64ToInt64(val uint64) int64 {
+	const maxInt64 = int64(^uint64(0) >> 1) // 2^63 - 1
+	if val > uint64(maxInt64) {
+		return maxInt64 // Clamp to max int64 instead of overflowing
+	}
+	return int64(val)
+}
+
+// safeIntToInt32 safely converts int to int32, clamping to int32 bounds on overflow
+func safeIntToInt32(val int) int32 {
+	const maxInt32 = 2147483647  // 2^31 - 1
+	const minInt32 = -2147483648 // -2^31
+	if val > maxInt32 {
+		return maxInt32
+	}
+	if val < minInt32 {
+		return minInt32
+	}
+	return int32(val)
+}
 
 // DockerBackend implements the Backend interface using Docker containers
 type DockerBackend struct {
@@ -67,8 +90,8 @@ func NewDockerBackend(logger *slog.Logger, config *DockerBackendConfig) (*Docker
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if _, err := dockerClient.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("failed to connect to Docker daemon: %w", err)
+	if _, pingErr := dockerClient.Ping(ctx); pingErr != nil {
+		return nil, fmt.Errorf("failed to connect to Docker daemon: %w", pingErr)
 	}
 
 	// Set up telemetry
@@ -236,13 +259,13 @@ func (d *DockerBackend) BootVM(ctx context.Context, vmID string) error {
 	}
 
 	// Start container
-	if err := d.dockerClient.ContainerStart(ctx, vm.ContainerID, container.StartOptions{}); err != nil {
-		span.RecordError(err)
+	if startErr := d.dockerClient.ContainerStart(ctx, vm.ContainerID, container.StartOptions{}); startErr != nil {
+		span.RecordError(startErr)
 		d.vmErrorCounter.Add(ctx, 1, metric.WithAttributes(
 			attribute.String("operation", "boot"),
 			attribute.String("error", "container_start"),
 		))
-		return fmt.Errorf("failed to start container: %w", err)
+		return fmt.Errorf("failed to start container: %w", startErr)
 	}
 
 	// Update VM state and network info
@@ -560,8 +583,8 @@ func (d *DockerBackend) GetVMMetrics(ctx context.Context, vmID string) (*backend
 	// Convert to VM metrics
 	metrics := &backendtypes.VMMetrics{
 		Timestamp:        time.Now(),
-		CpuTimeNanos:     int64(dockerStats.CPUStats.CPUUsage.TotalUsage),
-		MemoryUsageBytes: int64(dockerStats.MemoryStats.Usage),
+		CpuTimeNanos:     safeUint64ToInt64(dockerStats.CPUStats.CPUUsage.TotalUsage),
+		MemoryUsageBytes: safeUint64ToInt64(dockerStats.MemoryStats.Usage),
 		DiskReadBytes:    0, // TODO: Calculate from BlkioStats
 		DiskWriteBytes:   0, // TODO: Calculate from BlkioStats
 		NetworkRxBytes:   0, // TODO: Calculate from NetworkStats
@@ -571,17 +594,17 @@ func (d *DockerBackend) GetVMMetrics(ctx context.Context, vmID string) (*backend
 	// Calculate disk I/O
 	for _, blkio := range dockerStats.BlkioStats.IoServiceBytesRecursive {
 		if blkio.Op == "Read" {
-			metrics.DiskReadBytes += int64(blkio.Value)
+			metrics.DiskReadBytes += safeUint64ToInt64(blkio.Value)
 		} else if blkio.Op == "Write" {
-			metrics.DiskWriteBytes += int64(blkio.Value)
+			metrics.DiskWriteBytes += safeUint64ToInt64(blkio.Value)
 		}
 	}
 
 	// Calculate network I/O
 	if dockerStats.Networks != nil {
 		for _, netStats := range dockerStats.Networks {
-			metrics.NetworkRxBytes += int64(netStats.RxBytes)
-			metrics.NetworkTxBytes += int64(netStats.TxBytes)
+			metrics.NetworkRxBytes += safeUint64ToInt64(netStats.RxBytes)
+			metrics.NetworkTxBytes += safeUint64ToInt64(netStats.TxBytes)
 		}
 	}
 
@@ -613,6 +636,8 @@ func (d *DockerBackend) generateVMID() string {
 
 // vmConfigToContainerSpec converts VM configuration to container specification
 func (d *DockerBackend) vmConfigToContainerSpec(ctx context.Context, vmID string, config *metaldv1.VmConfig) (*ContainerSpec, error) {
+	d.logger.DebugContext(ctx, "converting VM config to container spec", "vm_id", vmID)
+
 	spec := &ContainerSpec{
 		Labels: map[string]string{
 			"unkey.vm.id":         vmID,
@@ -623,14 +648,14 @@ func (d *DockerBackend) vmConfigToContainerSpec(ctx context.Context, vmID string
 	}
 
 	// Docker image must be specified in metadata
-	dockerImage, ok := config.Metadata["docker_image"]
+	dockerImage, ok := config.GetMetadata()["docker_image"]
 	if !ok || dockerImage == "" {
 		return nil, fmt.Errorf("docker_image must be specified in VM config metadata")
 	}
 	spec.Image = dockerImage
 
 	// Extract exposed ports from metadata
-	if exposedPorts, ok := config.Metadata["exposed_ports"]; ok {
+	if exposedPorts, ok := config.GetMetadata()["exposed_ports"]; ok {
 		ports := strings.Split(exposedPorts, ",")
 		for _, port := range ports {
 			if port = strings.TrimSpace(port); port != "" {
@@ -640,7 +665,7 @@ func (d *DockerBackend) vmConfigToContainerSpec(ctx context.Context, vmID string
 	}
 
 	// Extract environment variables from metadata
-	if envVars, ok := config.Metadata["env_vars"]; ok {
+	if envVars, ok := config.GetMetadata()["env_vars"]; ok {
 		vars := strings.Split(envVars, ",")
 		for _, envVar := range vars {
 			if envVar = strings.TrimSpace(envVar); envVar != "" {
@@ -679,10 +704,10 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 	)
 	defer span.End()
 
-	d.logger.Info("checking if image exists locally", "image", spec.Image)
+	d.logger.InfoContext(ctx, "checking if image exists locally", "image", spec.Image)
 	_, err := d.dockerClient.ImageInspect(ctx, spec.Image)
 	if err != nil {
-		d.logger.Info("image not found locally, pulling image", "image", spec.Image, "error", err.Error())
+		d.logger.InfoContext(ctx, "image not found locally, pulling image", "image", spec.Image, "error", err.Error())
 		pullResponse, err := d.dockerClient.ImagePull(ctx, spec.Image, image.PullOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to pull image %s: %w", spec.Image, err)
@@ -695,9 +720,9 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 			return "", fmt.Errorf("failed to read pull response for image %s: %w", spec.Image, err)
 		}
 
-		d.logger.Info("image pulled successfully", "image", spec.Image)
+		d.logger.InfoContext(ctx, "image pulled successfully", "image", spec.Image)
 	} else {
-		d.logger.Info("image found locally, skipping pull", "image", spec.Image)
+		d.logger.InfoContext(ctx, "image found locally, skipping pull", "image", spec.Image)
 	}
 
 	// Build container configuration
@@ -711,7 +736,7 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 	}
 
 	// Log the container command for debugging
-	d.logger.Info("container configuration", "image", spec.Image, "cmd", config.Cmd, "env", config.Env)
+	d.logger.InfoContext(ctx, "container configuration", "image", spec.Image, "cmd", config.Cmd, "env", config.Env)
 
 	// Set up exposed ports
 	for _, mapping := range spec.PortMappings {
@@ -778,7 +803,7 @@ func (d *DockerBackend) createContainer(ctx context.Context, spec *ContainerSpec
 				for _, port := range allocatedPorts {
 					d.portAllocator.releasePort(port, spec.Labels["unkey.vm.id"])
 				}
-				d.logger.Warn("port binding failed, retrying with new ports", "error", err, "retry", retry+1)
+				d.logger.WarnContext(ctx, "port binding failed, retrying with new ports", "error", err, "retry", retry+1)
 				continue
 			}
 			// Other errors are not retryable
@@ -850,8 +875,8 @@ func (d *DockerBackend) getContainerNetworkInfo(ctx context.Context, containerID
 					}
 
 					portMappings = append(portMappings, &metaldv1.PortMapping{
-						ContainerPort: int32(containerPortNum),
-						HostPort:      int32(hostPortNum),
+						ContainerPort: safeIntToInt32(containerPortNum),
+						HostPort:      safeIntToInt32(hostPortNum),
 						Protocol:      protocol,
 					})
 				}
@@ -875,10 +900,24 @@ func (pa *portAllocator) allocatePort(vmID string) (int, error) {
 	pa.mutex.Lock()
 	defer pa.mutex.Unlock()
 
-	// Try random ports to avoid conflicts
+	// Try random ports to avoid conflicts using crypto/rand for security
 	maxAttempts := 100
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		port := rand.Intn(pa.maxPort-pa.minPort+1) + pa.minPort
+		// Generate cryptographically secure random number
+		portRange := int64(pa.maxPort - pa.minPort + 1)
+		randomOffset, err := rand.Int(rand.Reader, big.NewInt(portRange))
+		if err != nil {
+			// Fallback to sequential allocation if crypto/rand fails
+			for port := pa.minPort; port <= pa.maxPort; port++ {
+				if _, exists := pa.allocated[port]; !exists {
+					pa.allocated[port] = vmID
+					return port, nil
+				}
+			}
+			return 0, fmt.Errorf("failed to generate random port and no sequential ports available: %w", err)
+		}
+
+		port := int(randomOffset.Int64()) + pa.minPort
 		if _, exists := pa.allocated[port]; !exists {
 			pa.allocated[port] = vmID
 			return port, nil
