@@ -95,9 +95,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-			err = json.Unmarshal(response.Overrides.([]byte), &overrides)
-			if err != nil {
-				return result, err
+			if overrideBytes, ok := response.Overrides.([]byte); ok && overrideBytes != nil {
+				err = json.Unmarshal(overrideBytes, &overrides)
+				if err != nil {
+					return result, err
+				}
 			}
 
 			for _, override := range overrides {
