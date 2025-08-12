@@ -146,7 +146,7 @@ func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Conte
 	return t, nil
 }
 
-// Tx executes fn within a database transaction without returning a result.
+// TxWithoutResult executes fn within a database transaction without returning a result.
 // It is a convenience wrapper around [TxWithResult] for operations that
 // only need error handling.
 //
@@ -193,9 +193,14 @@ func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Conte
 //
 // See [TxWithResult] for detailed transaction behavior and [DBTX] for
 // available database operations.
-func Tx(ctx context.Context, db *Replica, fn func(context.Context, DBTX) error) error {
+func TxWithoutResult(ctx context.Context, db *Replica, fn func(context.Context, DBTX) error) error {
 	_, err := TxWithResult(ctx, db, func(inner context.Context, tx DBTX) (any, error) {
 		return nil, fn(inner, tx)
 	})
 	return err
+}
+
+// Tx is an alias for TxWithoutResult for backward compatibility
+func Tx(ctx context.Context, db *Replica, fn func(context.Context, DBTX) error) error {
+	return TxWithoutResult(ctx, db, fn)
 }
