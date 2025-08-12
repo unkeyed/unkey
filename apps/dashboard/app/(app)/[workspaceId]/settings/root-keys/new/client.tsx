@@ -16,14 +16,10 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
-  Code,
-  CopyButton,
-  InfoTooltip,
   Input,
-  VisibleButton,
   toast,
 } from "@unkey/ui";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
@@ -75,13 +71,10 @@ const parseAsUnkeyPermission = createParser({
   serialize: String,
 });
 
-const UNNAMED_KEY = "Unnamed Key";
-
 export const Client: React.FC<Props> = ({ apis, workspaceId }) => {
   const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "close" | "create-another" | "go-to-details" | null
@@ -106,22 +99,6 @@ export const Client: React.FC<Props> = ({ apis, workspaceId }) => {
       toast.error(err.message);
     },
   });
-
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.createKey' \\
-    -H 'Authorization: Bearer ${key.data?.key}' \\
-    -H 'Content-Type: application/json' \\
-    -d '{
-      "prefix": "hello",
-      "apiId": "<API_ID>"
-    }'`;
-
-  const split = key.data?.key?.split("_") ?? [];
-  const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
 
   const handleSetChecked = (permission: UnkeyPermission, checked: boolean) => {
     setSelectedPermissions((prevPermissions) => {
@@ -412,39 +389,9 @@ export const Client: React.FC<Props> = ({ apis, workspaceId }) => {
               <div className="p-1 w-full my-8">
                 <div className="h-[1px] bg-grayA-3 w-full" />
               </div>
+
               <div className="flex flex-col gap-2 items-start w-full">
-                <div className="text-gray-12 text-sm font-semibold">Key Details</div>
-                <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
-                  <div className="flex gap-6 items-center">
-                    <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
-                      <Key2 size="sm-regular" />
-                    </div>
-                    <div className="flex flex-col gap-1 py-6">
-                      <div className="text-accent-12 text-xs font-mono">{key.data?.keyId}</div>
-                      <InfoTooltip
-                        content={name ?? UNNAMED_KEY}
-                        position={{ side: "bottom", align: "center" }}
-                        asChild
-                        disabled={!name}
-                        variant="inverted"
-                      >
-                        <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                          {name ?? UNNAMED_KEY}
-                        </div>
-                      </InfoTooltip>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="ml-auto font-medium text-[13px] text-gray-12"
-                      onClick={() => handleCloseAttempt("go-to-details")}
-                    >
-                      See key details <ArrowRight size="sm-regular" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 items-start w-full mt-6">
-                <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
+                <div className="text-gray-12 text-sm font-semibold">Root Key</div>
                 <SecretKey
                   value={key.data?.key ?? ""}
                   title="API Key"
@@ -453,7 +400,7 @@ export const Client: React.FC<Props> = ({ apis, workspaceId }) => {
                 <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                   <CircleInfo className="text-accent-9" size="sm-regular" />
                   <span>
-                    Copy and save this key secret as it won't be shown again.{" "}
+                    Copy and save this secret as it won't be shown again.{" "}
                     <a
                       href="https://www.unkey.com/docs/security/recovering-keys"
                       target="_blank"
@@ -465,23 +412,9 @@ export const Client: React.FC<Props> = ({ apis, workspaceId }) => {
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 items-start w-full mt-8">
-                <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
-                <Code
-                  visibleButton={
-                    <VisibleButton
-                      isVisible={showKeyInSnippet}
-                      setIsVisible={setShowKeyInSnippet}
-                    />
-                  }
-                  copyButton={<CopyButton value={snippet} />}
-                >
-                  {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
-                </Code>
-              </div>
               <div className="mt-6">
                 <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                  All set! You can now create another key or explore the docs to learn more
+                  All set! You can now create another root key or explore the docs to learn more
                 </div>
               </div>
             </div>

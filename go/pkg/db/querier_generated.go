@@ -868,7 +868,11 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?
-	//  )
+	//  ) ON DUPLICATE KEY UPDATE
+	//  `limit` = VALUES(`limit`),
+	//  duration = VALUES(duration),
+	//  auto_apply = VALUES(auto_apply),
+	//  updated_at = ?
 	InsertKeyRatelimit(ctx context.Context, db DBTX, arg InsertKeyRatelimitParams) error
 	//InsertKeyRole
 	//
