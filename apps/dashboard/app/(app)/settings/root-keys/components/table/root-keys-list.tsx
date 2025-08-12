@@ -9,7 +9,6 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { AssignedItemsCell } from "./components/assigned-items-cell";
-import { CriticalPermissionIndicator } from "./components/critical-perm-warning";
 import { LastUpdated } from "./components/last-updated";
 import {
   ActionColumnSkeleton,
@@ -81,7 +80,6 @@ export const RootKeysList = () => {
                     {rootKey.name ?? "Unnamed Root Key"}
                   </div>
                 </div>
-                <CriticalPermissionIndicator rootKey={rootKey} isSelected={isSelected} />
               </div>
             </div>
           );

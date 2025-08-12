@@ -59,7 +59,7 @@ When creating a key, you can set the `recoverable` field to `true`. This will st
 
 ```shell
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.createKey \
+  --url https://api.unkey.com/v2/keys.createKey \
   --header 'Authorization: Bearer {ROOT_KEY}' \
   --header 'Content-Type: application/json' \
   -d '{
@@ -80,9 +80,14 @@ Both the [getKey](/api-reference/keys/get) and [listKeys](/api-reference/apis/li
 </Warning>
 
 ```shell
-curl --request GET \
-  --url https://api.unkey.dev/v1/keys.getKey?keyId={KEY_ID}&decrypt=true \
-  --header 'Authorization: Bearer {ROOT_KEY}'
+curl --request POST \
+  --url https://api.unkey.com/v2/keys.getKey \
+  --header 'Authorization: Bearer {ROOT_KEY}' \
+  --header 'Content-Type: application/json' \
+  -d '{
+    "keyId": "{KEY_ID}",
+    "decrypt": true
+  }'
 ```
 
 ```json
