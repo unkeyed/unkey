@@ -185,10 +185,10 @@ func (mc *MetricsCollector) CalculateCPUPercent(current, previous *container.Sta
 
 	// Calculate CPU delta
 	cpuDelta := float64(current.CPUStats.CPUUsage.TotalUsage - previous.CPUStats.CPUUsage.TotalUsage)
-	
+
 	// Calculate system CPU delta
 	systemDelta := float64(current.CPUStats.SystemUsage - previous.CPUStats.SystemUsage)
-	
+
 	// Calculate number of CPUs
 	onlineCPUs := float64(current.CPUStats.OnlineCPUs)
 	if onlineCPUs == 0 {

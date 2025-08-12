@@ -71,6 +71,26 @@ func getVersion() string {
 	return version
 }
 
+// initializeBridgeInfrastructure creates bridge infrastructure during startup
+// This prevents network interface priority issues during VM operations
+func initializeBridgeInfrastructure(logger *slog.Logger, cfg *config.Config) error {
+	logger.Info("initializing bridge infrastructure at startup")
+
+	networkConfig := &network.Config{
+		BridgeName:      cfg.Network.BridgeName,   // Default: "br-vms"
+		BridgeIP:        cfg.Network.BridgeIPv4,   // Default: "172.31.0.1/19"
+		VMSubnet:        cfg.Network.VMSubnetIPv4, // Default: "172.31.0.0/19"
+		DNSServers:      cfg.Network.DNSServersIPv4,
+		EnableRateLimit: cfg.Network.EnableRateLimit,
+		RateLimitMbps:   cfg.Network.RateLimitMbps,
+		PortRangeMin:    32768,
+		PortRangeMax:    65535,
+	}
+
+	// Create bridge infrastructure early in startup
+	return network.InitializeBridge(logger, networkConfig, &cfg.Network)
+}
+
 func main() {
 	// Track application start time for uptime calculations
 	startTime := time.Now()
@@ -204,8 +224,18 @@ func main() {
 		slog.String("data_dir", cfg.Database.DataDir),
 	)
 
+	// Initialize bridge infrastructure FIRST, before any VM services
+	// This prevents network interface priority issues during VM operations
+	if err := initializeBridgeInfrastructure(logger, cfg); err != nil {
+		logger.Error("failed to initialize bridge infrastructure",
+			slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	// Initialize backend based on configuration
 	var backend types.Backend
+	var networkManager *network.Manager // Declare at function scope for graceful shutdown
+
 	switch cfg.Backend.Type {
 	case types.BackendTypeFirecracker:
 		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
@@ -224,7 +254,8 @@ func main() {
 			PortRangeMax:    65535, // Default
 		}
 
-		networkManager, err := network.NewManager(logger, networkConfig, &cfg.Network)
+		var err error
+		networkManager, err = network.NewManager(logger, networkConfig, &cfg.Network)
 		if err != nil {
 			logger.Error("failed to create network manager",
 				slog.String("error", err.Error()),
@@ -284,7 +315,7 @@ func main() {
 	case types.BackendTypeDocker:
 		// AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
 		logger.Info("initializing Docker backend for development")
-		
+
 		dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
 		if err != nil {
 			logger.Error("failed to create Docker backend",
@@ -292,7 +323,7 @@ func main() {
 			)
 			os.Exit(1)
 		}
-		
+
 		backend = dockerClient
 		logger.Info("Docker backend initialized successfully")
 	case types.BackendTypeCloudHypervisor:
@@ -523,8 +554,31 @@ func main() {
 	logger.Info("shutting down server")
 
 	// Graceful shutdown with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Shutdown backend and cleanup VMs first
+	logger.Info("shutting down backend and cleaning up VMs")
+	if backend != nil {
+		if shutdownBackend, ok := backend.(interface{ Shutdown(context.Context) error }); ok {
+			if err := shutdownBackend.Shutdown(ctx); err != nil {
+				logger.Error("failed to shutdown backend gracefully",
+					slog.String("error", err.Error()))
+			} else {
+				logger.Info("backend shutdown complete")
+			}
+		}
+	}
+
+	// Shutdown network manager
+	if networkManager != nil {
+		if err := networkManager.Shutdown(ctx); err != nil {
+			logger.Error("failed to shutdown network manager",
+				slog.String("error", err.Error()))
+		} else {
+			logger.Info("network manager shutdown complete")
+		}
+	}
 
 	// Shutdown all servers
 	var shutdownErrors []error

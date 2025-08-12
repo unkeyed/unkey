@@ -18,6 +18,257 @@ import (
 	"github.com/vishvananda/netns"
 )
 
+// InitializeBridge creates bridge infrastructure during startup
+// This is separate from VM network operations to avoid race conditions
+func InitializeBridge(logger *slog.Logger, netConfig *Config, mainConfig *config.NetworkConfig) error {
+	logger = logger.With("component", "bridge-init")
+
+	logger.Info("creating bridge infrastructure",
+		slog.String("bridge_name", netConfig.BridgeName),
+		slog.String("bridge_ip", netConfig.BridgeIP),
+	)
+
+	// Enable IP forwarding
+	if err := enableIPForwarding(logger); err != nil {
+		return fmt.Errorf("failed to enable IP forwarding: %w", err)
+	}
+
+	// Create bridge
+	if err := createBridge(logger, netConfig); err != nil {
+		return fmt.Errorf("failed to create bridge: %w", err)
+	}
+
+	// Setup NAT rules
+	if err := setupNAT(logger, netConfig); err != nil {
+		logger.Warn("NAT setup failed, may already be configured",
+			slog.String("error", err.Error()))
+		// Continue - NAT might already exist
+	}
+
+	logger.Info("bridge infrastructure initialized successfully")
+	return nil
+}
+
+// createBridge creates the bridge if it doesn't exist
+func createBridge(logger *slog.Logger, config *Config) error {
+	// Check if bridge exists
+	if link, err := netlink.LinkByName(config.BridgeName); err == nil {
+		logger.Info("bridge already exists",
+			slog.String("bridge", config.BridgeName),
+			slog.String("type", link.Type()),
+			slog.String("state", link.Attrs().OperState.String()),
+		)
+		return nil // Bridge already exists
+	} else {
+		logger.Info("bridge does not exist, will create",
+			slog.String("bridge", config.BridgeName),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	// Create bridge
+	logger.Info("creating new bridge",
+		slog.String("bridge", config.BridgeName),
+	)
+
+	bridge := &netlink.Bridge{ //nolint:exhaustruct // Only setting Name field, other bridge fields use appropriate defaults
+		LinkAttrs: netlink.LinkAttrs{ //nolint:exhaustruct // Only setting Name field, other link attributes use appropriate defaults
+			Name: config.BridgeName,
+		},
+	}
+
+	logger.Info("CRITICAL: About to create bridge - network may be affected",
+		slog.String("bridge", config.BridgeName),
+	)
+
+	if err := netlink.LinkAdd(bridge); err != nil {
+		logger.Error("failed to create bridge",
+			slog.String("bridge", config.BridgeName),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to create bridge: %w", err)
+	}
+	logger.Info("bridge created successfully - checking network state",
+		slog.String("bridge", config.BridgeName),
+	)
+
+	// Get the created bridge
+	br, err := netlink.LinkByName(config.BridgeName)
+	if err != nil {
+		return fmt.Errorf("failed to get bridge: %w", err)
+	}
+
+	// Add IP address to bridge
+	logger.Info("parsing bridge IP address",
+		slog.String("ip", config.BridgeIP),
+	)
+	addr, err := netlink.ParseAddr(config.BridgeIP)
+	if err != nil {
+		return fmt.Errorf("failed to parse bridge IP: %w", err)
+	}
+
+	logger.Info("adding IP address to bridge",
+		slog.String("bridge", config.BridgeName),
+		slog.String("ip", config.BridgeIP),
+	)
+	if err := netlink.AddrAdd(br, addr); err != nil {
+		logger.Error("failed to add IP to bridge",
+			slog.String("bridge", config.BridgeName),
+			slog.String("ip", config.BridgeIP),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to add IP to bridge: %w", err)
+	}
+	logger.Info("IP address added to bridge successfully")
+
+	// Bring bridge up
+	logger.Info("bringing bridge up",
+		slog.String("bridge", config.BridgeName),
+	)
+	if err := netlink.LinkSetUp(br); err != nil {
+		logger.Error("failed to bring bridge up",
+			slog.String("bridge", config.BridgeName),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to bring bridge up: %w", err)
+	}
+	logger.Info("bridge is now up",
+		slog.String("bridge", config.BridgeName),
+	)
+
+	// Allow bridge to stabilize before returning
+	time.Sleep(200 * time.Millisecond)
+
+	return nil
+}
+
+// enableIPForwarding enables IP forwarding for VM networking
+func enableIPForwarding(logger *slog.Logger) error {
+	logger.Info("enabling IP forwarding")
+	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		logger.Error("failed to enable IP forwarding",
+			slog.String("error", err.Error()),
+			slog.String("output", string(output)),
+		)
+		return fmt.Errorf("failed to enable IP forwarding: %w", err)
+	}
+
+	// Make it persistent across reboots
+	// AIDEV-NOTE: Creates sysctl config to persist IP forwarding
+	sysctlConfig := []byte("# Enable IP forwarding for metald VM networking\nnet.ipv4.ip_forward = 1\n")
+	sysctlPath := "/etc/sysctl.d/99-metald.conf"
+
+	if err := os.WriteFile(sysctlPath, sysctlConfig, 0600); err != nil {
+		logger.Warn("failed to create persistent sysctl config",
+			slog.String("path", sysctlPath),
+			slog.String("error", err.Error()),
+		)
+		// Not fatal - IP forwarding is enabled for this session
+	}
+
+	logger.Info("IP forwarding enabled successfully")
+	return nil
+}
+
+// setupNAT configures iptables NAT rules
+func setupNAT(logger *slog.Logger, config *Config) error {
+	logger.Info("setting up NAT rules")
+
+	// Get the default route interface
+	logger.Info("listing routes to find default interface")
+	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
+	if err != nil {
+		logger.Error("failed to list routes",
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to list routes: %w", err)
+	}
+	logger.Info("found routes",
+		slog.Int("count", len(routes)),
+	)
+
+	var defaultIface string
+	for i, route := range routes {
+		logger.Debug("examining route",
+			slog.Int("route_index", i),
+			slog.String("dst", func() string {
+				if route.Dst == nil {
+					return "default"
+				}
+				return route.Dst.String()
+			}()),
+			slog.Int("link_index", route.LinkIndex),
+		)
+
+		if route.Dst == nil { // Default route
+			logger.Info("found default route",
+				slog.Int("link_index", route.LinkIndex),
+			)
+			link, err := netlink.LinkByIndex(route.LinkIndex)
+			if err == nil {
+				defaultIface = link.Attrs().Name
+				logger.Info("identified default interface",
+					slog.String("interface", defaultIface),
+					slog.String("type", link.Type()),
+					slog.String("state", link.Attrs().OperState.String()),
+				)
+				break
+			} else {
+				logger.Warn("failed to get link for default route",
+					slog.Int("link_index", route.LinkIndex),
+					slog.String("error", err.Error()),
+				)
+			}
+		}
+	}
+
+	if defaultIface == "" {
+		logger.Error("could not find default route interface",
+			slog.Int("routes_checked", len(routes)),
+		)
+		return fmt.Errorf("could not find default route interface")
+	}
+
+	// Setup NAT rules
+	rules := [][]string{
+		// Enable NAT for VM subnet
+		{"-t", "nat", "-A", "POSTROUTING", "-s", config.VMSubnet, "-o", defaultIface, "-j", "MASQUERADE"},
+
+		// Allow forwarding from bridge to external
+		{"-A", "FORWARD", "-i", config.BridgeName, "-o", defaultIface, "-j", "ACCEPT"},
+
+		// Allow established connections back
+		{"-A", "FORWARD", "-i", defaultIface, "-o", config.BridgeName, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"},
+
+		// Allow VM to VM communication
+		{"-A", "FORWARD", "-i", config.BridgeName, "-o", config.BridgeName, "-j", "ACCEPT"},
+	}
+
+	for i, rule := range rules {
+		ruleStr := strings.Join(rule, " ")
+		logger.Info("adding iptables rule",
+			slog.Int("rule_number", i+1),
+			slog.String("rule", ruleStr),
+		)
+
+		cmd := exec.Command("iptables", rule...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			logger.Error("failed to add iptables rule",
+				slog.String("rule", ruleStr),
+				slog.String("error", err.Error()),
+				slog.String("output", string(output)),
+			)
+			return fmt.Errorf("failed to add iptables rule %v: %w", rule, err)
+		}
+		logger.Info("iptables rule added successfully",
+			slog.String("rule", ruleStr),
+		)
+	}
+
+	return nil
+}
+
 // Config holds network configuration
 type Config struct {
 	BridgeName      string // Default: "br-vms"
@@ -103,16 +354,16 @@ func NewManager(logger *slog.Logger, netConfig *Config, mainConfig *config.Netwo
 	// Set bridge max VMs based on configuration
 	m.metrics.SetBridgeMaxVMs(netConfig.BridgeName, int64(mainConfig.MaxVMsPerBridge))
 
-	// Log current network state before initialization
-	m.logNetworkState("before initialization")
+	// Log current network state before verification
+	m.logNetworkState("before bridge verification")
 
-	// Initialize host networking
-	if err := m.initializeHost(); err != nil {
-		m.logger.Error("failed to initialize host networking",
+	// Verify bridge infrastructure is ready (should be pre-initialized at startup)
+	if err := m.verifyBridgeReady(); err != nil {
+		m.logger.Error("bridge infrastructure not ready",
 			slog.String("error", err.Error()),
 		)
-		m.logNetworkState("after failed initialization")
-		return nil, fmt.Errorf("failed to initialize host networking: %w", err)
+		m.logNetworkState("after failed bridge verification")
+		return nil, fmt.Errorf("bridge infrastructure not ready: %w", err)
 	}
 
 	// Start host protection system
@@ -124,10 +375,60 @@ func NewManager(logger *slog.Logger, netConfig *Config, mainConfig *config.Netwo
 		// Don't fail completely - host protection is optional
 	}
 
-	// Log network state after initialization
-	m.logNetworkState("after successful initialization")
+	// Log network state after verification
+	m.logNetworkState("after successful bridge verification")
 
 	return m, nil
+}
+
+// verifyBridgeReady checks that bridge infrastructure is ready for VM operations
+func (m *Manager) verifyBridgeReady() error {
+	// Allow some time for bridge state to stabilize after creation
+	maxRetries := 5
+	retryDelay := 100 * time.Millisecond
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		link, err := netlink.LinkByName(m.config.BridgeName)
+		if err != nil {
+			return fmt.Errorf("bridge %s not found - bridge initialization may have failed", m.config.BridgeName)
+		}
+
+		// Check if bridge is UP or has the correct flags (UP flag set)
+		// For bridges, OperState might be "unknown" but flags will show if it's actually up
+		isUp := link.Attrs().OperState == netlink.OperUp ||
+			(link.Attrs().Flags&net.FlagUp) != 0
+
+		if isUp {
+			m.bridgeCreated = true
+			m.logger.Info("verified bridge is ready for VM operations",
+				slog.String("bridge", m.config.BridgeName),
+				slog.String("state", link.Attrs().OperState.String()),
+				slog.String("flags", link.Attrs().Flags.String()),
+				slog.Int("attempt", attempt),
+			)
+			return nil
+		}
+
+		if attempt < maxRetries {
+			m.logger.Debug("bridge not yet ready, retrying",
+				slog.String("bridge", m.config.BridgeName),
+				slog.String("state", link.Attrs().OperState.String()),
+				slog.String("flags", link.Attrs().Flags.String()),
+				slog.Int("attempt", attempt),
+				slog.Int("max_retries", maxRetries),
+			)
+			time.Sleep(retryDelay)
+		}
+	}
+
+	// Final attempt - get current state for error message
+	link, err := netlink.LinkByName(m.config.BridgeName)
+	if err != nil {
+		return fmt.Errorf("bridge %s not found after %d attempts", m.config.BridgeName, maxRetries)
+	}
+
+	return fmt.Errorf("bridge %s is not ready after %d attempts (current state: %s, flags: %s)",
+		m.config.BridgeName, maxRetries, link.Attrs().OperState.String(), link.Attrs().Flags.String())
 }
 
 // initializeHost sets up the host networking infrastructure
@@ -1194,8 +1495,22 @@ func (m *Manager) createNamespace(name string) error {
 }
 
 func (m *Manager) deleteNamespace(name string) {
+	m.logger.Info("deleting network namespace", "namespace", name)
 	if err := netns.DeleteNamed(name); err != nil {
-		m.logger.Warn("Failed to delete namespace", "namespace", name, "error", err)
+		m.logger.Error("Failed to delete namespace - manual cleanup may be required",
+			"namespace", name, "error", err,
+			"cleanup_command", fmt.Sprintf("sudo ip netns delete %s", name))
+
+		// Record namespace deletion failure metric
+		if m.metrics != nil {
+			m.metrics.RecordNamespaceDeletionFailure(context.Background(), name, err.Error())
+		}
+
+		// AIDEV-NOTE: Network namespace deletion can fail if interfaces are busy
+		// This leaves orphaned namespaces that can cause IP conflicts
+		// Operators should monitor for this error and clean up manually if needed
+	} else {
+		m.logger.Info("successfully deleted network namespace", "namespace", name)
 	}
 }
 

@@ -66,7 +66,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	}
 
 	config := req.Msg.GetConfig()
-	
+
 	// DEBUG: Log full request config for debugging
 	if config != nil {
 		configJSON, _ := json.Marshal(config)

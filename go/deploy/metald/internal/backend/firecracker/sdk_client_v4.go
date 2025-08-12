@@ -17,14 +17,16 @@ import (
 
 	sdk "github.com/firecracker-microvm/firecracker-go-sdk"
 	"github.com/firecracker-microvm/firecracker-go-sdk/client/models"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/jailer"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -1308,6 +1310,18 @@ func (c *SDKClientV4) ShutdownVMWithOptions(ctx context.Context, vmID string, fo
 	// Update state
 	vm.State = metaldv1.VmState_VM_STATE_SHUTDOWN
 
+	// Bring down network interfaces (but don't delete them)
+	// This prevents the VM's interfaces from being pingable after shutdown
+	if vm.NetworkInfo != nil {
+		if err := c.shutdownVMNetworkInterfaces(ctx, vmID, vm.NetworkInfo); err != nil {
+			c.logger.WarnContext(ctx, "failed to shutdown network interfaces",
+				"vm_id", vmID,
+				"error", err,
+			)
+			// Don't fail the shutdown for network interface issues
+		}
+	}
+
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "VM shutdown successfully",
 		slog.String("vm_id", vmID),
 	)
@@ -1379,6 +1393,17 @@ func (c *SDKClientV4) ResumeVM(ctx context.Context, vmID string) error {
 	}
 
 	vm.State = metaldv1.VmState_VM_STATE_RUNNING
+
+	// Bring network interfaces back up during resume
+	if vm.NetworkInfo != nil {
+		if err := c.startupVMNetworkInterfaces(ctx, vmID, vm.NetworkInfo); err != nil {
+			c.logger.WarnContext(ctx, "failed to bring up network interfaces",
+				"vm_id", vmID,
+				"error", err,
+			)
+			// Don't fail the resume for network interface issues
+		}
+	}
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "VM resumed successfully",
 		slog.String("vm_id", vmID),
@@ -1682,21 +1707,22 @@ func (c *SDKClientV4) Shutdown(ctx context.Context) error {
 
 	c.logger.InfoContext(ctx, "shutting down SDK v4 backend")
 
-	// Shutdown all running VMs
-	for vmID, vm := range c.vmRegistry {
-		c.logger.InfoContext(ctx, "shutting down VM during backend shutdown",
+	// Shutdown all running VMs with full cleanup
+	vmCount := len(c.vmRegistry)
+	c.logger.InfoContext(ctx, "shutting down VMs during backend shutdown",
+		"vm_count", vmCount,
+	)
+
+	for vmID := range c.vmRegistry {
+		c.logger.InfoContext(ctx, "deleting VM during backend shutdown",
 			"vm_id", vmID,
 		)
-		if vm.Machine != nil {
-			if err := vm.Machine.StopVMM(); err != nil {
-				c.logger.ErrorContext(ctx, "failed to stop VM during shutdown",
-					"vm_id", vmID,
-					"error", err,
-				)
-			}
-			if vm.CancelFunc != nil {
-				vm.CancelFunc()
-			}
+		// Use DeleteVM for full cleanup (stops VM + cleans network resources)
+		if err := c.DeleteVM(ctx, vmID); err != nil {
+			c.logger.ErrorContext(ctx, "failed to delete VM during shutdown",
+				"vm_id", vmID,
+				"error", err,
+			)
 		}
 	}
 
@@ -2036,6 +2062,169 @@ func (c *SDKClientV4) removePortForwarding(ctx context.Context, vmID string, vmI
 		}
 	}
 
+	return nil
+}
+
+// shutdownVMNetworkInterfaces brings down VM network interfaces during shutdown
+// This makes the VM non-pingable while keeping resources allocated for potential restart
+func (c *SDKClientV4) shutdownVMNetworkInterfaces(ctx context.Context, vmID string, networkInfo *network.VMNetwork) error {
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "shutting down VM network interfaces",
+		slog.String("vm_id", vmID),
+		slog.String("namespace", networkInfo.Namespace),
+		slog.String("tap_device", networkInfo.TapDevice),
+	)
+
+	// Bring down TAP device in host namespace
+	if link, err := netlink.LinkByName(networkInfo.TapDevice); err == nil {
+		if err := netlink.LinkSetDown(link); err != nil {
+			c.logger.WarnContext(ctx, "failed to bring down TAP device",
+				"device", networkInfo.TapDevice,
+				"error", err,
+			)
+		} else {
+			c.logger.InfoContext(ctx, "brought down TAP device",
+				"device", networkInfo.TapDevice,
+			)
+		}
+	}
+
+	// Bring down veth interfaces in namespace
+	// This requires switching to the VM's network namespace
+	nsHandle, err := netns.GetFromName(networkInfo.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get namespace %s: %w", networkInfo.Namespace, err)
+	}
+	defer nsHandle.Close()
+
+	// Switch to VM namespace
+	originalNS, err := netns.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get original namespace: %w", err)
+	}
+	defer originalNS.Close()
+
+	if err := netns.Set(nsHandle); err != nil {
+		return fmt.Errorf("failed to switch to namespace %s: %w", networkInfo.Namespace, err)
+	}
+	defer func() {
+		// Always switch back to original namespace
+		if err := netns.Set(originalNS); err != nil {
+			c.logger.ErrorContext(ctx, "failed to switch back to original namespace",
+				"error", err,
+			)
+		}
+	}()
+
+	// Bring down all interfaces in the VM namespace except loopback
+	links, err := netlink.LinkList()
+	if err != nil {
+		return fmt.Errorf("failed to list links in namespace: %w", err)
+	}
+
+	for _, link := range links {
+		// Skip loopback interface
+		if link.Type() == "loopback" {
+			continue
+		}
+
+		if err := netlink.LinkSetDown(link); err != nil {
+			c.logger.WarnContext(ctx, "failed to bring down interface in namespace",
+				"device", link.Attrs().Name,
+				"namespace", networkInfo.Namespace,
+				"error", err,
+			)
+		} else {
+			c.logger.InfoContext(ctx, "brought down interface in namespace",
+				"device", link.Attrs().Name,
+				"namespace", networkInfo.Namespace,
+			)
+		}
+	}
+
+	c.logger.InfoContext(ctx, "VM network interfaces shut down successfully",
+		"vm_id", vmID,
+	)
+	return nil
+}
+
+// startupVMNetworkInterfaces brings up VM network interfaces during resume/restart
+// This re-enables network connectivity for the VM after shutdown
+func (c *SDKClientV4) startupVMNetworkInterfaces(ctx context.Context, vmID string, networkInfo *network.VMNetwork) error {
+	c.logger.LogAttrs(ctx, slog.LevelInfo, "bringing up VM network interfaces",
+		slog.String("vm_id", vmID),
+		slog.String("namespace", networkInfo.Namespace),
+		slog.String("tap_device", networkInfo.TapDevice),
+	)
+
+	// Bring up TAP device in host namespace
+	if link, err := netlink.LinkByName(networkInfo.TapDevice); err == nil {
+		if err := netlink.LinkSetUp(link); err != nil {
+			c.logger.WarnContext(ctx, "failed to bring up TAP device",
+				"device", networkInfo.TapDevice,
+				"error", err,
+			)
+		} else {
+			c.logger.InfoContext(ctx, "brought up TAP device",
+				"device", networkInfo.TapDevice,
+			)
+		}
+	}
+
+	// Bring up veth interfaces in namespace
+	nsHandle, err := netns.GetFromName(networkInfo.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get namespace %s: %w", networkInfo.Namespace, err)
+	}
+	defer nsHandle.Close()
+
+	// Switch to VM namespace
+	originalNS, err := netns.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get original namespace: %w", err)
+	}
+	defer originalNS.Close()
+
+	if err := netns.Set(nsHandle); err != nil {
+		return fmt.Errorf("failed to switch to namespace %s: %w", networkInfo.Namespace, err)
+	}
+	defer func() {
+		// Always switch back to original namespace
+		if err := netns.Set(originalNS); err != nil {
+			c.logger.ErrorContext(ctx, "failed to switch back to original namespace",
+				"error", err,
+			)
+		}
+	}()
+
+	// Bring up all interfaces in the VM namespace except loopback (which should already be up)
+	links, err := netlink.LinkList()
+	if err != nil {
+		return fmt.Errorf("failed to list links in namespace: %w", err)
+	}
+
+	for _, link := range links {
+		// Skip loopback interface
+		if link.Type() == "loopback" {
+			continue
+		}
+
+		if err := netlink.LinkSetUp(link); err != nil {
+			c.logger.WarnContext(ctx, "failed to bring up interface in namespace",
+				"device", link.Attrs().Name,
+				"namespace", networkInfo.Namespace,
+				"error", err,
+			)
+		} else {
+			c.logger.InfoContext(ctx, "brought up interface in namespace",
+				"device", link.Attrs().Name,
+				"namespace", networkInfo.Namespace,
+			)
+		}
+	}
+
+	c.logger.InfoContext(ctx, "VM network interfaces started up successfully",
+		"vm_id", vmID,
+	)
 	return nil
 }
 

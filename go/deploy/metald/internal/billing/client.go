@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1/billagedv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
+	billingv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/billaged/v1/billagedv1connect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
