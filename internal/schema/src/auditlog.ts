@@ -52,6 +52,7 @@ export const unkeyAuditLogEvents = z.enum([
   "ratelimit.read_override",
   "ratelimit.delete_override",
   "auditLogBucket.create",
+  "project.create",
 ]);
 
 export const auditLogSchemaV1 = z.object({
