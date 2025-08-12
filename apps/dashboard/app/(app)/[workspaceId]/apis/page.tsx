@@ -1,29 +1,39 @@
 "use client";
 
 import { Navbar } from "@/components/navigation/navbar";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Nodes } from "@unkey/icons";
 import { useSearchParams } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
 import { CreateApiButton } from "./_components/create-api-button";
 
-export default function ApisOverviewPage({ params }: { params: { workspaceId: string } }) {
+export default function ApisOverviewPage() {
+  const { workspace, isLoading } = useWorkspace();
+
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
-  const workspaceId = searchParams?.get("workspace") ?? params.workspaceId;
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/apis`} active>
+          <Navbar.Breadcrumbs.Link href={`/${workspace?.id}/apis`} active>
             APIs
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <CreateApiButton key="createApi" defaultOpen={isNewApi} workspaceId={workspaceId} />
+          <CreateApiButton
+            key="createApi"
+            defaultOpen={isNewApi}
+            workspaceId={workspace?.id ?? ""}
+          />
         </Navbar.Actions>
       </Navbar>
-      <ApiListClient workspaceId={workspaceId} />
+      <ApiListClient workspaceId={workspace?.id ?? ""} />
     </div>
   );
 }
