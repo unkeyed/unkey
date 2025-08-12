@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/services/caches"
 	"github.com/unkeyed/unkey/go/apps/gw/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
+	"github.com/unkeyed/unkey/go/apps/gw/services/validation"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -193,6 +194,15 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultCertDomain:   cfg.DefaultCertDomain,
 	})
 
+	// Create validation service
+	validationService, err := validation.New(validation.Config{
+		Logger:           logger,
+		OpenAPISpecCache: caches.OpenAPISpec,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create validation service: %w", err)
+	}
+
 	// Create gateway server
 	srv, err := server.New(server.Config{
 		Logger:      logger,
@@ -209,6 +219,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:         logger,
 		CertManager:    certManager,
 		RoutingService: routingService,
+		Validation:     validationService,
 		ClickHouse:     ch,
 		Keys:           keySvc,
 		Ratelimit:      nil,

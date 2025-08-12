@@ -36,6 +36,15 @@ type gatewayAuth struct {
 	KeyspaceViolation Code
 }
 
+// gatewayValidation defines errors related to gateway validation functionality.
+type gatewayValidation struct {
+	// RequestInvalid represents a 400 error - request validation failed
+	RequestInvalid Code
+
+	// ResponseInvalid represents a 502 error - response validation failed
+	ResponseInvalid Code
+}
+
 // gatewayInternal defines errors related to internal gateway functionality.
 type gatewayInternal struct {
 	// InternalServerError represents a 500 error - internal server error
@@ -55,6 +64,9 @@ type UnkeyGatewayErrors struct {
 
 	// Auth contains errors related to gateway authentication functionality.
 	Auth gatewayAuth
+
+	// Validation contains errors related to request/response validation functionality.
+	Validation gatewayValidation
 
 	// Internal contains errors related to internal gateway functionality.
 	Internal gatewayInternal
@@ -78,6 +90,10 @@ var Gateway = UnkeyGatewayErrors{
 		Unauthorized:      Code{SystemUnkey, CategoryUnauthorized, "unauthorized"},
 		RateLimited:       Code{SystemUnkey, CategoryRateLimited, "rate_limited"},
 		KeyspaceViolation: Code{SystemUnkey, CategoryForbidden, "keyspace_violation"},
+	},
+	Validation: gatewayValidation{
+		RequestInvalid:  Code{SystemUnkey, CategoryUserBadRequest, "request_invalid"},
+		ResponseInvalid: Code{SystemUnkey, CategoryUserBadRequest, "response_invalid"},
 	},
 	Internal: gatewayInternal{
 		InternalServerError:   Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},

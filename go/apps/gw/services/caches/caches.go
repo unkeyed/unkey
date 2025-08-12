@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	validator "github.com/pb33f/libopenapi-validator"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/cache/middleware"
@@ -20,10 +21,15 @@ type Caches struct {
 	// HostName -> Config
 	GatewayConfig cache.Cache[string, *partitionv1.GatewayConfig]
 
+	// DeploymentID -> OpenAPI Spec Validator
+	OpenAPISpec cache.Cache[string, validator.Validator]
+
 	// VmID -> VM Info
 	VM cache.Cache[string, partitiondb.Vm]
+
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
+
 	// KeyHash -> Key verification data (for keys service)
 	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
 }
@@ -114,10 +120,23 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	openapiSpec, err := cache.New(cache.Config[string, validator.Validator]{
+		Fresh:    30 * time.Minute,
+		Stale:    2 * time.Hour,
+		Logger:   config.Logger,
+		MaxSize:  1_000,
+		Resource: "openapi_spec_validator",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, fmt.Errorf("failed to create OpenAPI spec cache: %w", err)
+	}
+
 	return Caches{
 		GatewayConfig:         middleware.WithTracing(gatewayConfig),
 		VM:                    middleware.WithTracing(vmCache),
 		TLSCertificate:        middleware.WithTracing(tlsCertificate),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		OpenAPISpec:           middleware.WithTracing(openapiSpec),
 	}, nil
 }

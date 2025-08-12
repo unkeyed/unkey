@@ -20,6 +20,7 @@ type Authenticator interface {
 type Config struct {
 	// Logger for debugging and monitoring
 	Logger logging.Logger
+
 	// Keys service for API key validation
 	Keys keys.KeyService
 }

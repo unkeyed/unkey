@@ -68,6 +68,7 @@ func Register(srv *server.Server, svc *Services, region string) {
 		RoutingService: svc.RoutingService,
 		Proxy:          proxyService,
 		Auth:           authService,
+		Validator:      svc.Validation,
 	}
 
 	// Create a mux for routing

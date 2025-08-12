@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
+	"github.com/unkeyed/unkey/go/apps/gw/services/validation"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -21,6 +22,7 @@ type Handler struct {
 	RoutingService routing.Service
 	Proxy          proxy.Proxy
 	Auth           auth.Authenticator
+	Validator      validation.Validator
 }
 
 // Handle processes all HTTP requests for the gateway.
@@ -58,6 +60,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"config_lookup_latency_us", configLookupLatency.Microseconds(),
 			"error", err.Error(),
 		)
+
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
 			fault.Internal("failed to lookup target configuration"),
@@ -65,8 +68,17 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		)
 	}
 
+	// Handle request validation if configured
+	if h.Validator != nil {
+		err = h.Validator.Validate(ctx, sess, config)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Handle authentication if configured
-	if err := h.Auth.Authenticate(ctx, sess, config); err != nil {
+	err = h.Auth.Authenticate(ctx, sess, config)
+	if err != nil {
 		return err
 	}
 
@@ -83,6 +95,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"vm_selection_latency_ms", vmSelectionLatency.Milliseconds(),
 			"error", err.Error(),
 		)
+
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.VMSelectionFailed.URN()),
 			fault.Internal("failed to select VM"),
@@ -117,6 +130,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			"proxy_latency_ms", proxyLatency.String(),
 			"error", err.Error(),
 		)
+
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Proxy.ProxyForwardFailed.URN()),
 			fault.Internal("failed to forward request"),

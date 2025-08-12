@@ -776,7 +776,70 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 24: Store OpenAPI spec in database
+	// Step 24: Update gateway config with OpenAPI spec
+	err = hydra.StepVoid(ctx, "update-gateway-config-openapi", func(stepCtx context.Context) error {
+		// Only update if we have both hostname and OpenAPI spec
+		if req.Hostname == "" || openapiSpec == "" {
+			w.logger.Info("skipping gateway config OpenAPI update",
+				"has_hostname", req.Hostname != "",
+				"has_openapi_spec", openapiSpec != "",
+				"deployment_id", req.DeploymentID)
+			return nil
+		}
+
+		w.logger.Info("updating gateway config with OpenAPI spec", "hostname", req.Hostname, "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
+
+		// Fetch existing gateway config
+		existingConfig, err := partitiondb.Query.FindGatewayByHostname(stepCtx, w.partitionDB.RO(), req.Hostname)
+		if err != nil {
+			w.logger.Error("failed to fetch existing gateway config", "error", err, "hostname", req.Hostname)
+			return fmt.Errorf("failed to fetch existing gateway config: %w", err)
+		}
+
+		// Unmarshal existing config
+		var gatewayConfig partitionv1.GatewayConfig
+		if err := proto.Unmarshal(existingConfig.Config, &gatewayConfig); err != nil {
+			w.logger.Error("failed to unmarshal existing gateway config", "error", err, "hostname", req.Hostname)
+			return fmt.Errorf("failed to unmarshal existing gateway config: %w", err)
+		}
+
+		// Add or update ValidationConfig with OpenAPI spec
+		if gatewayConfig.ValidationConfig == nil {
+			gatewayConfig.ValidationConfig = &partitionv1.ValidationConfig{}
+		}
+		gatewayConfig.ValidationConfig.OpenapiSpec = openapiSpec
+		gatewayConfig.ValidationConfig.Enabled = true
+		gatewayConfig.ValidationConfig.ValidateRequest = true
+		gatewayConfig.ValidationConfig.ValidateResponse = false // Set to false by default
+		gatewayConfig.ValidationConfig.StrictMode = false       // Set to false by default
+
+		// Marshal updated config
+		configBytes, err := proto.Marshal(&gatewayConfig)
+		if err != nil {
+			w.logger.Error("failed to marshal updated gateway config", "error", err)
+			return fmt.Errorf("failed to marshal updated gateway config: %w", err)
+		}
+
+		// Update gateway config in partition database
+		params := partitiondb.UpsertGatewayParams{
+			Hostname: req.Hostname,
+			Config:   configBytes,
+		}
+
+		if err := partitiondb.Query.UpsertGateway(stepCtx, w.partitionDB.RW(), params); err != nil {
+			w.logger.Error("failed to update gateway config with OpenAPI spec", "error", err, "hostname", req.Hostname)
+			return fmt.Errorf("failed to update gateway config with OpenAPI spec: %w", err)
+		}
+
+		w.logger.Info("gateway config updated with OpenAPI spec successfully", "hostname", req.Hostname, "deployment_id", req.DeploymentID)
+		return nil
+	})
+	if err != nil {
+		w.logger.Error("failed to update gateway config with OpenAPI spec", "error", err, "deployment_id", req.DeploymentID)
+		// Don't fail the deployment for this
+	}
+
+	// Step 25: Store OpenAPI spec in database
 	err = hydra.StepVoid(ctx, "store-openapi-spec", func(stepCtx context.Context) error {
 		if openapiSpec == "" {
 			w.logger.Info("no OpenAPI spec to store", "deployment_id", req.DeploymentID)
@@ -802,7 +865,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 25: Log completed
+	// Step 26: Log completed
 	err = hydra.StepVoid(ctx, "log-completed", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,

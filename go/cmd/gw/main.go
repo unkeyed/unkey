@@ -27,10 +27,10 @@ var Cmd = &cli.Command{
 			cli.Default(uid.New(uid.GatewayPrefix, 4)), cli.EnvVar("UNKEY_GATEWAY_ID")),
 		cli.Bool("tls-enabled", "Enable TLS termination for the gateway. Default: false",
 			cli.Default(false), cli.EnvVar("UNKEY_TLS_ENABLED")),
-		
+
 		cli.String("default-cert-domain", "Domain to use for fallback TLS certificate when a domain has no cert configured",
 			cli.EnvVar("UNKEY_DEFAULT_CERT_DOMAIN")),
-		
+
 		cli.String("main-domain", "Main gateway domain for internal endpoints (e.g., gateway.unkey.com)",
 			cli.EnvVar("UNKEY_MAIN_DOMAIN")),
 
