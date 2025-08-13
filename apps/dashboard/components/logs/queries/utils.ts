@@ -33,7 +33,7 @@ import type {
   LogsFilterField,
   QuerySearchParams,
 } from "@/app/(app)/[workspaceId]/logs/filters.schema";
-import type { RatelimitFilterField } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
+import type { RatelimitFilterField } from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/logs/filters.schema";
 import type { IconProps } from "@unkey/icons/src/props";
 import type { FC } from "react";
 

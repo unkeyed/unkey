@@ -43,7 +43,9 @@ export const NamespaceNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -73,7 +75,9 @@ export const NamespaceNavbar = ({
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/${workspaceId}/ratelimits/${namespace.id}`}
             isIdentifier

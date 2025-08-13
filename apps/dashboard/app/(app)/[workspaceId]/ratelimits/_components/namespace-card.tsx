@@ -71,7 +71,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
                   ? `${ms(Date.now() - lastRatelimit.originalTimestamp, {
                       long: true,
                     })} ago`
-                  : "No data"}  
+                  : "No data"}
               </div>
             </div>
           </>

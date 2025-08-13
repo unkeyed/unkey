@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspace } from "@/providers/workspace-provider";
+import { redirect, useRouter } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { NamespaceNavbar } from "./namespace-navbar";
 
@@ -9,8 +11,17 @@ export default function RatelimitNamespacePage(props: {
     identifier?: string;
   };
 }) {
-  const { workspaceId } = props.params;
-  const namespaceId = props.params.namespaceId;
+  const { workspaceId, namespaceId } = props.params;
+  const router = useRouter();
+  const { workspace } = useWorkspace();
+
+  if (!workspace) {
+    return redirect("/new");
+  }
+
+  if (workspaceId !== workspace.id) {
+    router.replace(`/${workspace.id}/ratelimits/${namespaceId}`);
+  }
   return (
     <div>
       <NamespaceNavbar
@@ -19,7 +30,7 @@ export default function RatelimitNamespacePage(props: {
           text: "Requests",
         }}
         namespaceId={namespaceId}
-        workspaceId={workspaceId} 
+        workspaceId={workspaceId}
       />
       <LogsClient namespaceId={namespaceId} />
     </div>
