@@ -8,12 +8,14 @@ type HighlightedTextProps = {
 };
 
 export function HighlightedText({ text, searchValue }: HighlightedTextProps): React.ReactNode {
-  if (!searchValue || searchValue.trim() === "") {
+  const query = searchValue?.trim() ?? "";
+  if (query === "") {
     return text;
   }
 
-  const escapedSearchValue = searchValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${escapedSearchValue})`, "gi");
+  const escapedSearchValue = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Add 'u' for better Unicode handling (e.g., case-insensitive matching across locales)
+  const regex = new RegExp(`(${escapedSearchValue})`, "giu");
   const nonGlobalRegex = new RegExp(regex.source, regex.flags.replace("g", ""));
   const parts = text.split(regex);
 

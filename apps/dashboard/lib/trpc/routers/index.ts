@@ -151,14 +151,12 @@ export const router = t.router({
     connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
   rootKey: t.router({
-    rootKey: t.router({
-      create: createRootKey,
-      update: t.router({
-        name: updateRootKeyName,
-        // NOTE: permissions: intended to <replace|patch> the full permission set for a root key.
-        // Ensure clients send the authoritative list to avoid lost updates.
-        permissions: updateRootKeyPermissions,
-      }),
+    create: createRootKey,
+    update: t.router({
+      name: updateRootKeyName,
+      // NOTE: permissions: intended to <replace|patch> the full permission set for a root key.
+      // Ensure clients send the authoritative list to avoid lost updates.
+      permissions: updateRootKeyPermissions,
     }),
   }),
   settings: t.router({

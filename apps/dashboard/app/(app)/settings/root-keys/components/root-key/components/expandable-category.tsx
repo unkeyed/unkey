@@ -34,6 +34,7 @@ export const ExpandableCategory = ({
         {...props}
         className={cn(
           "flex items-center justify-evenly gap-3 transition-all pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-180 w-full",
+          props.className,
         )}
       >
         <div className="flex flex-col text-left min-w-48 w-full">

@@ -15,7 +15,7 @@ type Props = {
   removePermission: (permission: string) => void;
 };
 
-type InfoType = { permission: UnkeyPermission; category: string; action: string }[];
+type PermissionInfo = { permission: UnkeyPermission; category: string; action: string }[];
 
 const PermissionBadgeList = ({
   apiId,
@@ -70,7 +70,7 @@ const PermissionBadgeList = ({
 const ListBadges = ({
   info,
   removePermission,
-}: { info: InfoType; removePermission: (permission: string) => void }) => {
+}: { info: PermissionInfo; removePermission: (permission: string) => void }) => {
   const handleRemovePermission = (e: React.MouseEvent<HTMLButtonElement>, permission: string) => {
     e.stopPropagation();
     removePermission(permission);
@@ -105,7 +105,7 @@ const ListBadges = ({
 };
 
 type CollapsibleListProps = {
-  info: InfoType;
+  info: PermissionInfo;
   title: string;
   expandCount: number;
   removePermission: (permission: string) => void;
@@ -162,9 +162,9 @@ const ListTitle = ({
 };
 
 const findPermission = (
-  allPermissions: InfoType,
+  allPermissions: PermissionInfo,
   selectedPermissions: UnkeyPermission[],
-): InfoType => {
+): PermissionInfo => {
   if (!selectedPermissions || !Array.isArray(selectedPermissions)) {
     return [];
   }

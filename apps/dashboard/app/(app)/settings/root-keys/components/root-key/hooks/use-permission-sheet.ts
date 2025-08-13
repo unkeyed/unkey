@@ -1,5 +1,6 @@
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useMemo, useState } from "react";
+import type { ChangeEvent } from "react";
 import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
 import { hasPermissionResults } from "../utils/permissions";
 
@@ -18,8 +19,7 @@ export function usePermissionSheet({
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsProcessing(true);
+  const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.value === "") {
       setSearchValue(undefined);
     } else {
@@ -47,7 +47,9 @@ export function usePermissionSheet({
       // Get other APIs' permissions (exclude current API)
       const otherApisPermsSet = new Set<UnkeyPermission>();
       for (const api of apis) {
-        if (api.id === apiId) continue;
+        if (api.id === apiId) {
+          continue;
+        }
         for (const perm of Object.values(apiPermissions(api.id)).flatMap((category) =>
           Object.values(category).map((item) => item.permission),
         )) {
