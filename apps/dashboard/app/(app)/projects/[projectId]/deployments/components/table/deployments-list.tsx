@@ -12,11 +12,13 @@ import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
   ActionColumnSkeleton,
+  AuthorColumnSkeleton,
   CreatedAtColumnSkeleton,
-  KeyColumnSkeleton,
-  LastUpdatedColumnSkeleton,
-  PermissionsColumnSkeleton,
-  RootKeyColumnSkeleton,
+  DeploymentIdColumnSkeleton,
+  EnvColumnSkeleton,
+  InstancesColumnSkeleton,
+  SourceColumnSkeleton,
+  StatusColumnSkeleton,
 } from "./components/skeletons";
 import { useDeploymentsListQuery } from "./hooks/use-deployments-list-query";
 import { getRowClassName } from "./utils/get-row-class";
@@ -194,7 +196,7 @@ export const DeploymentsList = () => {
       {
         key: "author",
         header: "Author",
-        width: "15%",
+        width: "10%",
         render: (deployment) => {
           return (
             <div className="flex items-center gap-2">
@@ -219,7 +221,7 @@ export const DeploymentsList = () => {
   return (
     <VirtualTable
       data={deployments}
-      isLoading={isLoading}
+      isLoading
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
       columns={columns}
@@ -274,17 +276,18 @@ export const DeploymentsList = () => {
         columns.map((column) => (
           <td
             key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              column.key === "root_key" ? "py-[6px]" : "py-1",
-            )}
+            className="text-xs align-middle whitespace-nowrap"
             style={{ height: `${rowHeight}px` }}
           >
-            {column.key === "root_key" && <RootKeyColumnSkeleton />}
-            {column.key === "key" && <KeyColumnSkeleton />}
+            {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}
+            {column.key === "env" && <EnvColumnSkeleton />}
+            {column.key === "status" && <StatusColumnSkeleton />}
+            {column.key === "instances" && <InstancesColumnSkeleton />}
+            {column.key === "runtime" && <EnvColumnSkeleton />}
+            {column.key === "size" && <EnvColumnSkeleton />}
+            {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
-            {column.key === "permissions" && <PermissionsColumnSkeleton />}
-            {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
+            {column.key === "author" && <AuthorColumnSkeleton />}
             {column.key === "action" && <ActionColumnSkeleton />}
           </td>
         ))

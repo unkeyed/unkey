@@ -1,13 +1,49 @@
 import { cn } from "@/lib/utils";
-import { ChartActivity2, Dots, Key2, Page2 } from "@unkey/icons";
+import { Cloud, CodeBranch, CodeCommit, Cube, Dots } from "@unkey/icons";
 
-export const RootKeyColumnSkeleton = () => (
-  <div className="flex flex-col items-start px-[18px] py-[6px]">
-    <div className="flex gap-4 items-center">
+export const DeploymentIdColumnSkeleton = () => (
+  <div className="flex flex-col items-start px-[18px] py-[12px]">
+    <div className="flex gap-5 items-center w-full">
       <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
-        <Key2 size="sm-regular" className="text-gray-12 opacity-50" />
+        <Cloud size="sm-regular" className="text-gray-12 opacity-50" />
       </div>
-      <div className="h-4 w-24 bg-grayA-3 rounded animate-pulse" />
+      <div className="w-[200px]">
+        <div className="h-4 w-32 bg-grayA-3 rounded animate-pulse mb-1" />
+        <div className="h-3 w-24 bg-grayA-3 rounded animate-pulse" />
+      </div>
+    </div>
+  </div>
+);
+
+export const EnvColumnSkeleton = () => (
+  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit animate-pulse">
+    <div className="h-3 w-16 bg-grayA-4 rounded" />
+  </div>
+);
+
+export const StatusColumnSkeleton = () => (
+  <div className="bg-grayA-3 items-center flex gap-2 p-1.5 rounded-md w-fit relative animate-pulse">
+    <div className="size-4 bg-grayA-4 rounded-full" />
+    <div className="h-3 w-12 bg-grayA-4 rounded" />
+  </div>
+);
+
+export const InstancesColumnSkeleton = () => (
+  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit animate-pulse">
+    <Cube className="text-gray-12 opacity-50" size="sm-regular" />
+    <div className="h-3 w-8 bg-grayA-4 rounded" />
+  </div>
+);
+
+export const SourceColumnSkeleton = () => (
+  <div className="flex items-center gap-1">
+    <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit animate-pulse">
+      <CodeBranch className="text-gray-12 opacity-50" size="sm-regular" />
+      <div className="h-3 w-12 bg-grayA-4 rounded" />
+    </div>
+    <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit shrink-0 animate-pulse">
+      <CodeCommit className="text-gray-12 opacity-50 rotate-90 shrink-0" size="md-bold" />
+      <div className="h-3 w-16 bg-grayA-4 rounded" />
     </div>
   </div>
 );
@@ -17,26 +53,13 @@ export const CreatedAtColumnSkeleton = () => (
     <div className="h-4 w-24 bg-grayA-3 rounded animate-pulse" />
   </div>
 );
-export const KeyColumnSkeleton = () => (
-  <div className="rounded-lg border bg-grayA-2 border-grayA-3 text-transparent w-[160px] px-2 py-1 flex gap-2 items-center h-[28px] animate-pulse">
-    <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
-    <div className="h-2 w-full bg-grayA-3 rounded animate-pulse" />
-  </div>
-);
 
-export const PermissionsColumnSkeleton = () => (
-  <div className="flex flex-col gap-1 py-2 max-w-[200px]">
-    <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
-      <Page2 className="size-3 opacity-50" size="md-regular" />
-      <div className="h-2 w-20 bg-grayA-3 rounded animate-pulse" />
+export const AuthorColumnSkeleton = () => (
+  <div className="flex items-center gap-2 animate-pulse">
+    <div className="rounded-full size-5 bg-grayA-3 flex items-center justify-center">
+      <div className="rounded-full size-3 bg-grayA-4" />
     </div>
-  </div>
-);
-
-export const LastUpdatedColumnSkeleton = () => (
-  <div className="px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] bg-grayA-3 border-none animate-pulse">
-    <ChartActivity2 size="sm-regular" className="opacity-50" />
-    <div className="h-2 w-16 bg-grayA-3 rounded animate-pulse" />
+    <div className="h-3 w-20 bg-grayA-3 rounded" />
   </div>
 );
 
@@ -48,6 +71,6 @@ export const ActionColumnSkeleton = () => (
       "border border-gray-6",
     )}
   >
-    <Dots className="text-gray-11" size="sm-regular" />
+    <Dots className="text-gray-11 opacity-50" size="sm-regular" />
   </button>
 );
