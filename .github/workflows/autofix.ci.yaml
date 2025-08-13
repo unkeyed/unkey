@@ -5,35 +5,41 @@ on:
     branches: ["main"]
 permissions:
   contents: read
-
 jobs:
   autofix:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - name: Setup Node with pnpm cache
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "pnpm"
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Go (for formatting)
+        uses: actions/setup-go@v5
         with:
-          ts: true
-          go: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
+          go-version-file: ./go/go.mod
+          cache-dependency-path: ./go/go.sum
+      - name: Install dependencies
+        run: pnpm install --recursive
+        env:
+          CI: 1
       - run: pnpm biome format . --write && pnpm biome check . --write
-
+        env:
+          CI: 1
       - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c
   lint_docs:
     name: Docs
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Lint main docs
         run: npx mintlify@latest broken-links
         working-directory: apps/docs

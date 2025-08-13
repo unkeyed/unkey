@@ -34,7 +34,7 @@ Here's an example of a request with incorrectly formatted credentials:
 
 ```bash
 # Missing the "Bearer" prefix
-curl -X POST https://api.unkey.com/v1/keys.listKeys \
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
   -H "Content-Type: application/json" \
   -H "Authorization: unkey_YOUR_API_KEY"
 ```
@@ -50,7 +50,7 @@ To fix this error, ensure your Authorization header follows the correct format:
 Here's the correctly formatted request:
 
 ```bash
-curl -X POST https://api.unkey.com/v1/keys.listKeys \
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY"
 ```

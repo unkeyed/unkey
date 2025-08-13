@@ -4,7 +4,6 @@ on:
     secrets:
       CLOUDFLARE_API_TOKEN:
         required: true
-
 jobs:
   deploy:
     permissions:
@@ -14,16 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Setup Wrangler
+        uses: ./.github/actions/setup-wrangler
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: pnpm turbo run build --filter='./apps/logdrain'
-
+        env:
+          CI: 1
       - name: Deploy
         run: wrangler deploy
         working-directory: apps/logdrain

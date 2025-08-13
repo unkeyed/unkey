@@ -1,14 +1,11 @@
 name: Build and Publish Agent
-
 on:
   push:
     tags:
       - "agent/v*"
-
 permissions:
   contents: read
   packages: write
-
 jobs:
   build:
     name: Build Agent

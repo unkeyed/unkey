@@ -18,9 +18,19 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:        "quotacheck",
-	Usage:       "Check for exceeded quotas",
-	Description: "Check for exceeded quotas and optionally send Slack notifications",
+	Name:  "quotacheck",
+	Usage: "Check for exceeded quotas",
+	Description: `Check for exceeded quotas and optionally send Slack notifications.
+
+This command monitors quota usage by querying ClickHouse for current usage metrics and comparing them against configured limits in the primary database. When quotas are exceeded, it can automatically send notifications via Slack webhook.
+
+CONFIGURATION:
+The command requires ClickHouse and database connections to function. Slack notifications are optional but recommended for production monitoring.
+
+EXAMPLES:
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db  # Check quotas without notifications
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db --slack-webhook-url https://hooks.slack.com/services/...  # Check quotas with Slack notifications
+CLICKHOUSE_URL=... DATABASE_DSN=... SLACK_WEBHOOK_URL=... unkey quotacheck  # Using environment variables`,
 	Flags: []cli.Flag{
 		cli.String("clickhouse-url", "URL for the ClickHouse database", cli.EnvVar("CLICKHOUSE_URL"), cli.Required()),
 		cli.String("database-dsn", "DSN for the primary database", cli.EnvVar("DATABASE_DSN"), cli.Required()),

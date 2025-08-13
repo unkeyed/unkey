@@ -37,6 +37,7 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { createProject } from "./deploy/project/create";
 import { queryProjects } from "./deploy/project/list";
 import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";
@@ -75,7 +76,6 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { projectRouter } from "./project";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
@@ -114,6 +114,7 @@ import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
+import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -190,6 +191,7 @@ export const router = t.router({
   }),
   workspace: t.router({
     create: createWorkspace,
+    getCurrent: getCurrentWorkspace,
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
@@ -307,10 +309,10 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
-  project: projectRouter,
   deploy: t.router({
     project: t.router({
       list: queryProjects,
+      create: createProject,
     }),
   }),
   deployment: deploymentRouter,

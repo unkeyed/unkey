@@ -1,20 +1,16 @@
 name: "Apply issue labels to PR"
-
 on:
   pull_request_target:
     types:
       - opened
-
 jobs:
   label_on_pr:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-
     permissions:
       contents: none
       issues: read
       pull-requests: write
-
     steps:
       - name: Apply labels from linked issue to PR
         uses: actions/github-script@v7

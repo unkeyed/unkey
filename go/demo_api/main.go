@@ -43,7 +43,7 @@ func main() {
 
 	// OpenAPI spec endpoint - VERSION 2 (Breaking Changes)
 	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		spec := `openapi: 3.0.3
+		spec := `openapi: 3.1.0
 info:
   title: Demo API
   description: A simple demo API for testing deployments with breaking changes
@@ -290,8 +290,7 @@ paths:
                     items:
                       type: string
                   inherited_from:
-                    type: string
-                    nullable: true
+                    type: [string, null]
                 required:
                   - permissions
 components:

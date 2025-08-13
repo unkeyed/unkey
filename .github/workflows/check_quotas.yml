@@ -1,38 +1,29 @@
 name: Quota Check
-
 permissions:
   contents: read
-
 on:
   schedule:
     - cron: "0 15 * * *"
   # Allow manual triggering for testing
   workflow_dispatch:
-
 jobs:
   quota-check:
     environment: operations
     name: Check quota usage
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
-
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
         with:
-          go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build CLI
         working-directory: ./go
         run: |
           go build -o unkey .
-
       - name: Run quota check
         working-directory: ./go
         env:
@@ -41,6 +32,5 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           ./unkey quotacheck
-
       - name: Send Heartbeat
         run: curl ${{ secrets.QUOTA_CHECK_HEARTBEAT_URL }}

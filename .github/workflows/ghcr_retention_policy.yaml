@@ -1,13 +1,10 @@
 name: Prune old images
-
 permissions:
   contents: read
-
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * *" # every day
-
 jobs:
   clean:
     environment: operations

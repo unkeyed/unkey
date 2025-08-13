@@ -36,7 +36,7 @@ Here's an example of a request that would trigger this error:
 
 ```bash
 # Attempting to get a non-existent audit log entry
-curl -X GET https://api.unkey.com/v1/audit.getLog \
+curl -X POST https://api.unkey.com/v2/audit.getLog \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{
     "logId": "log_nonexistent"
@@ -55,7 +55,7 @@ Verify that you're using the correct audit log ID and that the log entry still e
 Here's how to list recent audit logs in your workspace:
 
 ```bash
-curl -X GET https://api.unkey.com/v1/audit.listLogs \
+curl -X POST https://api.unkey.com/v2/audit.listLogs \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{
     "limit": 10

@@ -1,19 +1,15 @@
 name: Deploy Trigger
 on:
   workflow_call:
-
 jobs:
   deploy_trigger:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node (minimal for pnpx)
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
+          node-version: lts/*
       - name: Deploy Trigger.dev
         env:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}

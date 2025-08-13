@@ -1,4 +1,4 @@
-FROM node:lts
+FROM node:22.18.0
 
 WORKDIR /unkey
 

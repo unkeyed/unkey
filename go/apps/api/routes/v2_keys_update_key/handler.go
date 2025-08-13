@@ -334,20 +334,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Insert or update ratelimits
 			ratelimitsToInsert := []db.InsertKeyRatelimitParams{}
+			now := time.Now().UnixMilli()
 			for name, newRL := range newRatelimitMap {
 				_, exists := existingRatelimitMap[name]
+
+				var rlID string
 				if exists {
-					continue
+					rlID = existingRatelimitMap[name].ID
+				} else {
+					rlID = uid.New(uid.RatelimitPrefix)
 				}
 
 				ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
-					ID:          uid.New(uid.RatelimitPrefix),
+					ID:          rlID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: key.ID, Valid: true},
 					Name:        newRL.Name,
 					Limit:       int32(newRL.Limit), // nolint:gosec
 					Duration:    newRL.Duration,
-					CreatedAt:   time.Now().UnixMilli(),
+					CreatedAt:   now,
+					UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 					AutoApply:   newRL.AutoApply,
 				})
 			}

@@ -1,5 +1,5 @@
 "use client";
-import { HiddenValueCell } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
+import { HiddenValueCell } from "@/app/(app)/[workspaceId]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
@@ -9,7 +9,6 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { AssignedItemsCell } from "./components/assigned-items-cell";
-import { CriticalPermissionIndicator } from "./components/critical-perm-warning";
 import { LastUpdated } from "./components/last-updated";
 import {
   ActionColumnSkeleton,
@@ -81,7 +80,6 @@ export const RootKeysList = () => {
                     {rootKey.name ?? "Unnamed Root Key"}
                   </div>
                 </div>
-                <CriticalPermissionIndicator rootKey={rootKey} isSelected={isSelected} />
               </div>
             </div>
           );

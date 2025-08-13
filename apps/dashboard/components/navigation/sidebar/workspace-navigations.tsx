@@ -1,7 +1,7 @@
 import type { Workspace } from "@/lib/db";
 import {
+  Cube,
   Fingerprint,
-  FolderCloud,
   Gauge,
   Gear,
   Grid,
@@ -40,24 +40,25 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures">,
+  workspace: Pick<Workspace, "features" | "betaFeatures" | "id">,
   segments: string[],
 ) => {
+  const basePath = `/${workspace.id}`;
   return [
     {
       icon: Nodes,
-      href: "/apis",
+      href: `${basePath}/apis`,
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
     },
     {
-      icon: FolderCloud,
+      icon: Cube,
       href: "/projects",
       label: "Projects",
       active: segments.at(0) === "projects",
       hidden: !workspace.betaFeatures.deployments,
-      tag: <Tag label="Beta" />,
+      tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
     },
     {
       icon: Gauge,

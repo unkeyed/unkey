@@ -5,44 +5,137 @@ on:
       api:
         description: "Whether API has changed"
         value: ${{ jobs.build.outputs.api }}
-      clickhouse:
-        description: "Whether ClickHouse has changed"
-        value: ${{ jobs.build.outputs.clickhouse }}
+      dashboard:
+        description: "Whether Dashboard has changed"
+        value: ${{ jobs.build.outputs.dashboard }}
       agent:
         description: "Whether Agent has changed"
         value: ${{ jobs.build.outputs.agent }}
+      logdrain:
+        description: "Whether Logdrain has changed"
+        value: ${{ jobs.build.outputs.logdrain }}
       go:
-        description: "Whether go has changed"
+        description: "Whether Go services have changed"
         value: ${{ jobs.build.outputs.go }}
-
+      clickhouse:
+        description: "Whether ClickHouse schema has changed"
+        value: ${{ jobs.build.outputs.clickhouse }}
+      docs:
+        description: "Whether docs have changed"
+        value: ${{ jobs.build.outputs.docs }}
+      workflows:
+        description: "Whether workflows have changed"
+        value: ${{ jobs.build.outputs.workflows }}
+      dependencies:
+        description: "Whether dependencies have changed"
+        value: ${{ jobs.build.outputs.dependencies }}
+      packages:
+        description: "Whether internal packages have changed"
+        value: ${{ jobs.build.outputs.packages }}
+      configs:
+        description: "Whether config files have changed"
+        value: ${{ jobs.build.outputs.configs }}
 permissions:
   contents: read
-
 jobs:
   build:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.changes.outputs.api }}
-      clickhouse: ${{ steps.changes.outputs.clickhouse }}
+      dashboard: ${{ steps.changes.outputs.dashboard }}
       agent: ${{ steps.changes.outputs.agent }}
+      logdrain: ${{ steps.changes.outputs.logdrain }}
       go: ${{ steps.changes.outputs.go }}
+      clickhouse: ${{ steps.changes.outputs.clickhouse }}
+      docs: ${{ steps.changes.outputs.docs }}
+      workflows: ${{ steps.changes.outputs.workflows }}
+      dependencies: ${{ steps.changes.outputs.dependencies }}
+      packages: ${{ steps.changes.outputs.packages }}
+      configs: ${{ steps.changes.outputs.configs }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
+            # API application and its direct dependencies
             api:
               - 'apps/api/**'
-              - 'internal/**'
-              - 'packages/**'
               - 'go/**'
-              - 'pnpm-lock.yaml'
-            clickhouse:
-              - 'internal/clickhouse/**'
+              - 'internal/db/**'
+              - 'internal/encoding/**'
+              - 'internal/encryption/**'
+              - 'internal/hash/**'
+              - 'internal/id/**'
+              - 'internal/keys/**'
+              - 'internal/validation/**'
+              - 'internal/vault/**'
+
+            # Dashboard application and its dependencies
+            dashboard:
+              - 'apps/dashboard/**'
+              - 'internal/ui/**'
+              - 'internal/icons/**'
+              - 'internal/resend/**'
+              - 'internal/validation/**'
+              - 'internal/vercel/**'
+
+            # Agent application (Go-based)
             agent:
               - 'apps/agent/**'
-              - 'go/**'
+
+            # Logdrain application
+            logdrain:
+              - 'apps/logdrain/**'
+
+            # Go services (API v2, Ctrl, Deploy services)
             go:
               - 'go/**'
+              - '!go/benchmarks/**'
+              - '!go/demo_api/**'
+
+            # ClickHouse schema and related
+            clickhouse:
+              - 'internal/clickhouse/**'
+              - 'go/internal/clickhouse/**'
+
+            # Documentation
+            docs:
+              - 'apps/docs/**'
+              - 'apps/engineering/**'
+              - '*.md'
+              - 'README*'
+              - 'CHANGELOG*'
+
+            # GitHub workflows and CI/CD
+            workflows:
+              - '.github/**'
+
+            # Dependency changes
+            dependencies:
+              - 'pnpm-lock.yaml'
+              - 'go.sum'
+              - 'go.mod'
+              - '**/package.json'
+              - '**/go.mod'
+              - '**/go.sum'
+
+            # Internal packages (affect multiple apps)
+            packages:
+              - 'internal/**'
+              - 'packages/**'
+
+            # Configuration files
+            configs:
+              - '*.json'
+              - '*.yaml'
+              - '*.yml'
+              - '*.toml'
+              - '*.config.*'
+              - 'Dockerfile*'
+              - 'docker-compose*'
+              - 'deployment/**'
+              - 'biome.json'
+              - 'turbo.json'
+              - 'vitest.workspace.json'

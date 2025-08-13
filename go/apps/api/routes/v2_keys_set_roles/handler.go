@@ -280,7 +280,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		rolePermissions := make([]db.Permission, 0)
-		json.Unmarshal(role.Permissions.([]byte), &rolePermissions)
+		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+			// AIDEV-SAFETY: On JSON parse failure, we default to empty permissions list
+			// to maintain least-privilege security posture rather than failing open
+			if err := json.Unmarshal(permBytes, &rolePermissions); err != nil {
+				h.Logger.Debug("failed to parse role permissions JSON, defaulting to empty list",
+					"roleId", role.ID,
+					"rawBytes", string(permBytes),
+					"error", err.Error())
+			}
+		}
 
 		perms := make([]openapi.Permission, 0)
 		for _, permission := range rolePermissions {

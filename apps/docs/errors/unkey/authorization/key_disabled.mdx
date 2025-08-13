@@ -28,7 +28,7 @@ Here's an example of a request that would trigger this error:
 
 ```bash
 # Request to Unkey API with a disabled key
-curl -X POST https://api.unkey.com/v1/keys.listKeys \
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_DISABLED_KEY"
 ```
@@ -58,7 +58,7 @@ To re-enable your Unkey root key:
 Then update your API calls to use the re-enabled key:
 
 ```bash
-curl -X POST https://api.unkey.com/v1/keys.listKeys \
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_REACTIVATED_KEY"
 ```

@@ -1,0 +1,64 @@
+---
+title: "Quotacheck"
+description: "Check for exceeded quotas"
+---
+Check for exceeded quotas and optionally send Slack notifications.
+
+This command monitors quota usage by querying ClickHouse for current usage metrics and comparing them against configured limits in the primary database. When quotas are exceeded, it can automatically send notifications via Slack webhook.
+
+## Configuration
+
+The command requires ClickHouse and database connections to function. Slack notifications are optional but recommended for production monitoring.
+
+## Command Syntax
+
+```bash
+unkey quotacheck [flags]
+```
+
+## Examples
+
+### Check quotas without notifications
+
+```bash
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db
+```
+
+### Check quotas with Slack notifications
+
+```bash
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db --slack-webhook-url https://hooks.slack.com/services/...
+```
+
+### Using environment variables
+
+```bash
+CLICKHOUSE_URL=... DATABASE_DSN=... SLACK_WEBHOOK_URL=... unkey quotacheck
+```
+
+<Banner type="warn">
+Some flags are required for this command to work properly.
+</Banner>
+
+## Flags
+
+<Callout type="info" title="--clickhouse-url (required)">
+URL for the ClickHouse database
+
+- **Type:** string
+- **Environment:** `CLICKHOUSE_URL`
+</Callout>
+
+<Callout type="info" title="--database-dsn (required)">
+DSN for the primary database
+
+- **Type:** string
+- **Environment:** `DATABASE_DSN`
+</Callout>
+
+<Callout type="info" title="--slack-webhook-url">
+Slack webhook URL to send notifications
+
+- **Type:** string
+- **Environment:** `SLACK_WEBHOOK_URL`
+</Callout>

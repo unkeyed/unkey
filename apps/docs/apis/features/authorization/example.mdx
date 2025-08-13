@@ -76,13 +76,13 @@ Now that we have permissions and roles in place, we can connect them to keys.
 <Tab title="Dashboard">
 
 1. In the sidebar, click on one of your APIs
-2. In the breakcrumb navigation on the top click Reqests and then keys 
+2. In the breakcrumb navigation on the top click Reqests and then keys
     <Frame>
       <img src="/apis/features/authorization/api-keys-navigation.png" alt="Breadcrumb Navigation"/>
     </Frame>
-  
+
 3. Select one of your existing keys by clicking on it
-4. Scroll down to the `Roles` section if not visible 
+4. Scroll down to the `Roles` section if not visible.
 
 You should now be on `/app/keys/key_auth_???/key_???`
 
@@ -113,7 +113,7 @@ You can attach roles to a key when creating it by providing the role names as an
 
 ```bash
 curl -XPOST \
-  --url https://api.unkey.dev/v1/keys.createKey \
+  --url https://api.unkey.com/v2/keys.createKey \
   -H "Authorization: Bearer ${ROOT_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -123,7 +123,7 @@ curl -XPOST \
     ]
   }'
 ```
-See [here](/api-reference/keys/create) for details.
+See [here](/api-reference/v2/keys/create-api-key) for details.
 
 
 </Tab>
