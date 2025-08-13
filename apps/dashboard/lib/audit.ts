@@ -84,6 +84,7 @@ export type UnkeyAuditLog = {
       | "webhook"
       | "reporter"
       | "secret"
+      | "project"
       | "identity"
       | "auditLogBucket";
 
