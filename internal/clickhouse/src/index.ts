@@ -65,6 +65,7 @@ import {
   getMinutelyVerificationTimeseries,
   getMonthlyVerificationTimeseries,
   getSixHourlyVerificationTimeseries,
+  getSpentCreditsTotal,
   getThirtyMinutelyVerificationTimeseries,
   getThreeDayVerificationTimeseries,
   getTwelveHourlyVerificationTimeseries,
@@ -111,6 +112,7 @@ export class ClickHouse {
     return {
       insert: insertVerification(this.inserter),
       latest: getLatestVerifications(this.querier),
+      spentCreditsTotal: getSpentCreditsTotal(this.querier),
       timeseries: {
         // Minute-based granularity
         perMinute: getMinutelyVerificationTimeseries(this.querier),

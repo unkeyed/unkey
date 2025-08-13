@@ -2,10 +2,8 @@ import { OverviewAreaChart } from "@/components/logs/overview-charts/overview-ar
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
-import { useViewMode } from "../../hooks/use-view-mode";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
-import { createChartLabels, createOutcomeChartConfig } from "./bar-chart/utils";
-import { ChartHeader } from "./chart-header";
+import { createOutcomeChartConfig } from "./bar-chart/utils";
 import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
 export const KeysOverviewLogsCharts = ({
@@ -16,7 +14,6 @@ export const KeysOverviewLogsCharts = ({
   onMount: (distanceToTop: number) => void;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const { viewMode, setViewMode } = useViewMode();
 
   const {
     timeseries: verificationTimeseries,
@@ -84,31 +81,26 @@ export const KeysOverviewLogsCharts = ({
     reverse: true,
   };
 
-  const chartLabels = createChartLabels(viewMode);
-  const chartConfig = createOutcomeChartConfig(undefined, viewMode);
-
-  const tooltipItems =
-    viewMode === "credits"
-      ? [{ label: "Credits Spent", dataKey: "spent_credits" }]
-      : [{ label: "Invalid", dataKey: "error" }];
-
   return (
     <div className="flex flex-col md:flex-row w-full md:h-[320px]">
-      <div className="w-full md:w-1/2 border-r border-gray-4 max-md:h-72 flex flex-col">
-        <ChartHeader title={chartLabels.title} viewMode={viewMode} onViewModeChange={setViewMode} />
-        <div className="flex-1">
-          <OverviewBarChart
-            data={verificationTimeseries}
-            isLoading={verificationIsLoading}
-            isError={verificationIsError}
-            enableSelection
-            onMount={onMount}
-            onSelectionChange={handleSelectionChange}
-            config={chartConfig}
-            labels={chartLabels}
-            tooltipItems={tooltipItems}
-          />
-        </div>
+      <div className="w-full md:w-1/2 border-r border-gray-4 max-md:h-72">
+        <OverviewBarChart
+          data={verificationTimeseries}
+          isLoading={verificationIsLoading}
+          isError={verificationIsError}
+          enableSelection
+          onMount={onMount}
+          onSelectionChange={handleSelectionChange}
+          config={createOutcomeChartConfig()}
+          labels={{
+            title: "REQUESTS",
+            primaryLabel: "VALID",
+            primaryKey: "success",
+            secondaryLabel: "INVALID",
+            secondaryKey: "error",
+          }}
+          tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
+        />
       </div>
       <div className="w-full md:w-1/2 max-md:h-72">
         <OverviewAreaChart

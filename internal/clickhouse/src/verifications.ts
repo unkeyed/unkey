@@ -608,6 +608,118 @@ function mergeVerificationTimeseriesResults(
   return Array.from(mergedMap.values()).sort((a, b) => a.x - b.x);
 }
 
+// Schema for spent credits total query
+const spentCreditsParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+  keyId: z.string().optional(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+  tags: z
+    .object({
+      operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+      value: z.string(),
+    })
+    .nullable(),
+});
+
+const spentCreditsResult = z.object({
+  spent_credits: z.number().int().default(0),
+});
+
+export type SpentCreditsParams = z.infer<typeof spentCreditsParams>;
+export type SpentCreditsResult = z.infer<typeof spentCreditsResult>;
+
+/**
+ * Get total spent credits for a key within a time range
+ */
+function createSpentCreditsQuerier() {
+  return (ch: Querier) => async (args: SpentCreditsParams) => {
+    const conditions = [
+      "workspace_id = {workspaceId: String}",
+      "key_space_id = {keyspaceId: String}",
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ];
+
+    let paramSchemaExtension = {};
+
+    // Add key filter if specified
+    if (args.keyId) {
+      conditions.push("key_id = {keyId: String}");
+    }
+
+    // Add outcome filters
+    if (args.outcomes && args.outcomes.length > 0) {
+      const outcomeConditions = args.outcomes.map(
+        (_, index) => `outcome = {outcomeValue_${index}: String}`,
+      );
+      conditions.push(`(${outcomeConditions.join(" OR ")})`);
+
+      paramSchemaExtension = {
+        ...paramSchemaExtension,
+        ...args.outcomes.reduce(
+          (acc, _filter, index) => {
+            acc[`outcomeValue_${index}`] = z.string();
+            return acc;
+          },
+          {} as Record<string, z.ZodString>,
+        ),
+      };
+    }
+
+    // Add tag filters
+    if (args.tags) {
+      const tagCondition =
+        args.tags.operator === "is"
+          ? "has(tags, {tagValue: String})"
+          : "arrayExists(tag -> tag LIKE {tagValue: String}, tags)";
+      conditions.push(tagCondition);
+
+      paramSchemaExtension = {
+        ...paramSchemaExtension,
+        tagValue: z.string(),
+      };
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+
+    const query = `
+      SELECT SUM(spent_credits) as spent_credits
+      FROM verifications.raw_key_verifications_v1
+      ${whereClause}
+    `;
+
+    const parameters = {
+      ...args,
+      ...(args.outcomes?.reduce(
+        (acc, filter, index) => {
+          acc[`outcomeValue_${index}`] = filter.value;
+          return acc;
+        },
+        {} as Record<string, string>,
+      ) ?? {}),
+      ...(args.tags ? { tagValue: args.tags.value } : {}),
+    };
+
+    return ch.query({
+      query,
+      params: spentCreditsParams.extend(paramSchemaExtension),
+      schema: spentCreditsResult,
+    })(parameters);
+  };
+}
+
+export const getSpentCreditsTotal = createSpentCreditsQuerier();
+
 // Minute-based timeseries
 export const getMinutelyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>

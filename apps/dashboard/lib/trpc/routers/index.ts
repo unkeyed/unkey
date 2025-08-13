@@ -9,6 +9,7 @@ import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
 import { keyLastVerificationTime } from "./api/keys/query-latest-verification";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
+import { queryApiSpentCredits } from "./api/keys/query-spent-credits";
 import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
@@ -48,6 +49,7 @@ import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
+import { queryKeySpentCredits } from "./key/query-spent-credits";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
 import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
@@ -126,6 +128,7 @@ export const router = t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
+    spentCredits: queryKeySpentCredits,
     update: t.router({
       enabled: updateKeysEnabled,
       expiration: updateKeyExpiration,
@@ -181,6 +184,7 @@ export const router = t.router({
       enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
       latestVerification: keyLastVerificationTime,
+      spentCredits: queryApiSpentCredits,
     }),
     overview: t.router({
       timeseries: queryVerificationTimeseries,
