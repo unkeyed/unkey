@@ -31,7 +31,8 @@ const PullRequestResponse = z.object({
   url: z.string(),
 });
 
-const DeploymentResponse = z.object({
+// Base deployment fields
+const BaseDeploymentResponse = z.object({
   id: z.string(),
   status: DeploymentStatus,
   instances: z.number(),
@@ -43,6 +44,21 @@ const DeploymentResponse = z.object({
   description: z.string().nullable(),
   pullRequest: PullRequestResponse,
 });
+
+// Discriminated union for environment-specific deployments
+const ProductionDeploymentResponse = BaseDeploymentResponse.extend({
+  environment: z.literal("production"),
+  active: z.boolean(), // Only one production deployment can be active
+});
+
+const PreviewDeploymentResponse = BaseDeploymentResponse.extend({
+  environment: z.literal("preview"),
+});
+
+const DeploymentResponse = z.discriminatedUnion("environment", [
+  ProductionDeploymentResponse,
+  PreviewDeploymentResponse,
+]);
 
 const deploymentsOutputSchema = z.object({
   deployments: z.array(DeploymentResponse),
@@ -110,6 +126,7 @@ export const queryDeployments = t.procedure
           "failed",
         ];
 
+        const environments: Array<"production" | "preview"> = ["production", "preview"];
         const branches = ["main", "dev", "feature/auth", "hotfix/security", "staging"];
         const runtimes = ["58", "12", "43", "22", "38", "200", "400", "1000", "35", "362"];
         const sizes = ["512", "1024", "256", "2048", "4096", "8192"];
@@ -141,13 +158,15 @@ export const queryDeployments = t.procedure
 
         const deployments: Deployment[] = [];
         const baseTime = Date.now();
+        let hasActiveProduction = false;
 
         for (let i = 0; i < count; i++) {
           const author = authors[i % authors.length];
           const status = statuses[i % statuses.length];
+          const environment = environments[i % environments.length];
           const prNumber = Math.floor(Math.random() * 1000) + 1;
 
-          deployments.push({
+          const baseDeployment = {
             id: `deployment_${Math.random().toString(36).substr(2, 16)}`,
             status,
             instances: Math.floor(Math.random() * 5) + 1,
@@ -165,7 +184,27 @@ export const queryDeployments = t.procedure
               title: prTitles[i % prTitles.length],
               url: `https://github.com/unkeyed/unkey/pull/${prNumber}`,
             },
-          });
+          };
+
+          if (environment === "production") {
+            // Only the first (most recent) production deployment is active
+            const isActive = !hasActiveProduction;
+            if (isActive) {
+              hasActiveProduction = true;
+            }
+
+            deployments.push({
+              ...baseDeployment,
+              environment: "production" as const,
+              active: isActive,
+              status: "completed",
+            });
+          } else {
+            deployments.push({
+              ...baseDeployment,
+              environment: "preview" as const,
+            });
+          }
         }
 
         return deployments.sort((a, b) => b.createdAt - a.createdAt);

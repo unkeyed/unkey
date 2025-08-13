@@ -9,6 +9,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
+import { EnvStatusBadge } from "./components/env-status-badge";
 import {
   ActionColumnSkeleton,
   CreatedAtColumnSkeleton,
@@ -50,7 +51,7 @@ export const DeploymentsList = () => {
       {
         key: "deployment_id",
         header: "Deployment ID",
-        width: "10%",
+        width: "15%",
         headerClassName: "pl-[18px]",
         render: (deployment) => {
           const isSelected = deployment.id === selectedDeployment?.id;
@@ -69,20 +70,37 @@ export const DeploymentsList = () => {
             <div className="flex flex-col items-start px-[18px] py-[12px]">
               <div className="flex gap-5 items-center w-full">
                 {iconContainer}
-                <div className="w-[150px]">
-                  <div
-                    className={cn(
-                      "font-normal font-mono truncate leading-5 text-[13px]",
-                      "text-accent-12",
+                <div className="w-[200px]">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "font-normal font-mono truncate leading-5 text-[13px]",
+                        "text-accent-12",
+                      )}
+                    >
+                      {shortenId(deployment.id)}
+                    </div>
+                    {deployment.environment === "production" && deployment.active && (
+                      <EnvStatusBadge variant="locked" text="Current" />
                     )}
-                  >
-                    {shortenId(deployment.id)}
                   </div>
                   <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
                     {deployment.pullRequest.title}
                   </div>
                 </div>
               </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: "env",
+        header: "Environment",
+        width: "10%",
+        render: (deployment) => {
+          return (
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit capitalize">
+              {deployment.environment}
             </div>
           );
         },
@@ -148,13 +166,13 @@ export const DeploymentsList = () => {
         render: (deployment) => {
           return (
             <div className="flex items-center gap-1">
-              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit">
                 <CodeBranch className="text-gray-12" size="sm-regular" />
-                <span className="text-grayA-11 tabular-nums">{deployment.source.branch}</span>
+                <span className="tabular-nums">{deployment.source.branch}</span>
               </div>
-              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit shrink-0">
+              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit shrink-0">
                 <CodeCommit className="text-gray-12 rotate-90 shrink-0" size="md-bold" />
-                <span className="text-grayA-11 tabular-nums">{deployment.source.gitSha}</span>
+                <span className="tabular-nums">{deployment.source.gitSha}</span>
               </div>
             </div>
           );
@@ -168,7 +186,7 @@ export const DeploymentsList = () => {
           return (
             <TimestampInfo
               value={deployment.createdAt}
-              className={cn("font-mono group-hover:underline decoration-dotted")}
+              className="font-mono group-hover:underline decoration-dotted"
             />
           );
         },
