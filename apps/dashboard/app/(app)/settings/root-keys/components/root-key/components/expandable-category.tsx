@@ -38,7 +38,7 @@ export const ExpandableCategory = ({
       >
         <div className="flex flex-col text-left min-w-48 w-full">
           <p className="text-sm w-full">{category}</p>
-          <p className="text-xs text-gray-10 w-full truncate no-wrap">{description}</p>
+          <p className="text-xs text-gray-10 w-full truncate">{description}</p>
         </div>
         <ChevronDown className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-8" />
       </CollapsibleTrigger>

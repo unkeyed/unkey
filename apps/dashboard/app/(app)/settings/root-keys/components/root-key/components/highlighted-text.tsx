@@ -14,10 +14,11 @@ export function HighlightedText({ text, searchValue }: HighlightedTextProps): Re
 
   const escapedSearchValue = searchValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regex = new RegExp(`(${escapedSearchValue})`, "gi");
+  const nonGlobalRegex = new RegExp(regex.source, regex.flags.replace("g", ""));
   const parts = text.split(regex);
 
   return parts.map((part, index) =>
-    regex.test(part) ? (
+    nonGlobalRegex.test(part) ? (
       <span key={index + part} className="bg-grayA-4 rounded-[4px] py-0.5">
         {part}
       </span>

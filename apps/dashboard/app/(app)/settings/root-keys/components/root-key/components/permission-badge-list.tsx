@@ -52,7 +52,7 @@ const PermissionBadgeList = ({
   return info.length > expandCount ? (
     <div className="flex flex-col gap-2">
       <CollapsibleList
-        info={info as InfoType}
+        info={info}
         title={title}
         expandCount={expandCount}
         removePermission={removePermission}
@@ -62,7 +62,7 @@ const PermissionBadgeList = ({
   ) : (
     <div className="flex flex-col gap-2">
       <ListTitle title={title} count={info.length} category={name} />
-      <ListBadges info={info as InfoType} removePermission={removePermission} />
+      <ListBadges info={info} removePermission={removePermission} />
     </div>
   );
 };
@@ -161,7 +161,10 @@ const ListTitle = ({
   );
 };
 
-const findPermission = (allPermissions: InfoType, selectedPermissions: UnkeyPermission[]) => {
+const findPermission = (
+  allPermissions: InfoType,
+  selectedPermissions: UnkeyPermission[],
+): InfoType => {
   if (!selectedPermissions || !Array.isArray(selectedPermissions)) {
     return [];
   }
@@ -169,7 +172,9 @@ const findPermission = (allPermissions: InfoType, selectedPermissions: UnkeyPerm
     .map((permission) => {
       return allPermissions.find((p) => p.permission === permission);
     })
-    .filter(Boolean);
+    .filter((item): item is { permission: UnkeyPermission; category: string; action: string } =>
+      Boolean(item),
+    );
 };
 
 export { PermissionBadgeList };

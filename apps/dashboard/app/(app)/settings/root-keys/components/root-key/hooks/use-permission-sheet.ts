@@ -34,39 +34,34 @@ export function usePermissionSheet({
         return;
       }
 
-      // Get workspace permissions
-      const workspacePerms = selectedPermissions.filter((permission) => {
-        const workspacePermsList = Object.values(workspacePermissions).flatMap((category) =>
+      // Precompute lookup sets
+      const workspacePermsSet = new Set<UnkeyPermission>(
+        Object.values(workspacePermissions).flatMap((category) =>
           Object.values(category).map((item) => item.permission),
-        );
-        return workspacePermsList.includes(permission);
-      });
+        ),
+      );
+      const workspacePerms = selectedPermissions.filter((permission) =>
+        workspacePermsSet.has(permission),
+      );
 
-      // Get other API permissions
-      const otherApiPerms = selectedPermissions.filter((permission) => {
-        const workspacePermsList = Object.values(workspacePermissions).flatMap((category) =>
+      // Get other APIs' permissions (exclude current API)
+      const otherApisPermsSet = new Set<UnkeyPermission>();
+      for (const api of apis) {
+        if (api.id === apiId) continue;
+        for (const perm of Object.values(apiPermissions(api.id)).flatMap((category) =>
           Object.values(category).map((item) => item.permission),
-        );
-        if (workspacePermsList.includes(permission)) {
-          return false;
+        )) {
+          otherApisPermsSet.add(perm);
         }
+      }
+      const otherApiPerms = selectedPermissions.filter(
+        (permission) => !workspacePermsSet.has(permission) && otherApisPermsSet.has(permission),
+      );
 
-        for (const api of apis) {
-          if (api.id === apiId) {
-            continue;
-          }
-          const apiPermsList = Object.values(apiPermissions(api.id)).flatMap((category) =>
-            Object.values(category).map((item) => item.permission),
-          );
-          if (apiPermsList.includes(permission)) {
-            return true;
-          }
-        }
-        return false;
-      });
-
-      // Combine all permissions
-      const allPermissions = [...workspacePerms, ...otherApiPerms, ...permissions];
+      // Combine all permissions (de-duplicated)
+      const allPermissions = Array.from(
+        new Set<UnkeyPermission>([...workspacePerms, ...otherApiPerms, ...permissions]),
+      );
       onChange(allPermissions);
     },
     [selectedPermissions, apis, onChange],
@@ -79,15 +74,17 @@ export function usePermissionSheet({
       }
 
       // Get all current API permissions
-      const apiPerms = selectedPermissions.filter((permission) => {
-        const workspacePermsList = Object.values(workspacePermissions).flatMap((category) =>
+      const workspacePermsSet = new Set<UnkeyPermission>(
+        Object.values(workspacePermissions).flatMap((category) =>
           Object.values(category).map((item) => item.permission),
-        );
-        return !workspacePermsList.includes(permission);
-      });
+        ),
+      );
+      const apiPerms = selectedPermissions.filter(
+        (permission) => !workspacePermsSet.has(permission),
+      );
 
-      // Combine workspace and API permissions
-      const allPermissions = [...permissions, ...apiPerms];
+      // Combine workspace and API permissions (de-duplicated)
+      const allPermissions = Array.from(new Set<UnkeyPermission>([...permissions, ...apiPerms]));
       onChange(allPermissions);
     },
     [selectedPermissions, onChange],
