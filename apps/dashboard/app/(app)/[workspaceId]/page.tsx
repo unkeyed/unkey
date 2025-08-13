@@ -1,28 +1,22 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Loading } from "@unkey/ui";
 
 export default function WorkspacePage() {
   const router = useRouter();
   const { workspace } = useWorkspace();
-  useEffect(() => {
-    if (workspace) {
-      router.replace(`/${workspace.id}/apis`);
-    } else {
-      router.replace("/new");
-    }
-  }, [workspace, router]);
 
-  // Show loading state while redirecting
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="flex items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
-        <Loading size={18} />
+  router.replace(`/${workspace?.id}/apis`);
+ 
+
+    // Show loading state while redirecting
+    return (
+      <div className="min-h-screen flex flex-col w-full h-full items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loading size={24} />
+        </div>
       </div>
-    </div>
-  );
+    );
 }
