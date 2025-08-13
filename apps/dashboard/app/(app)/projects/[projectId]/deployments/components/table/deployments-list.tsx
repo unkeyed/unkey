@@ -221,7 +221,7 @@ export const DeploymentsList = () => {
   return (
     <VirtualTable
       data={deployments}
-      isLoading
+      isLoading={isLoading}
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
       columns={columns}
