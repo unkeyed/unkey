@@ -1,22 +1,21 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
-import { useRouter } from "next/navigation";
 import { Loading } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 
 export default function WorkspacePage() {
   const router = useRouter();
   const { workspace } = useWorkspace();
 
   router.replace(`/${workspace?.id}/apis`);
- 
 
-    // Show loading state while redirecting
-    return (
-      <div className="min-h-screen flex flex-col w-full h-full items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Loading size={24} />
-        </div>
+  // Show loading state while redirecting
+  return (
+    <div className="min-h-screen flex flex-col w-full h-full items-center justify-center">
+      <div className="flex items-center gap-3">
+        <Loading size={24} />
       </div>
-    );
+    </div>
+  );
 }

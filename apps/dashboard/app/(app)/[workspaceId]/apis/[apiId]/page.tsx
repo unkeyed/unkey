@@ -9,7 +9,6 @@ export default function ApiPage(props: { params: { apiId: string } }) {
   const { workspace, error } = useWorkspace();
   const router = useRouter();
 
-
   if (!workspace || error) {
     return redirect("/new");
   }

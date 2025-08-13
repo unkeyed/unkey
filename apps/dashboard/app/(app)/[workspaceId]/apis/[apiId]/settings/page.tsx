@@ -1,7 +1,6 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Loading } from "@unkey/ui";
 import { redirect, useRouter } from "next/navigation";
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
