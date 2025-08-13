@@ -12,9 +12,10 @@ properties:
     example: key_2cGKbMxRyIzhCxo1Idjz8q
     minLength: 3
   value:
-    type: integer
+    type:
+      - integer
+      - "null"
     format: int64
-    nullable: true
     minimum: 0
     maximum: 9223372036854775807
     description: |
