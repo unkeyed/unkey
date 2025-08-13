@@ -1,6 +1,6 @@
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useMemo } from "react";
-import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
+import { apiPermissions, workspacePermissions } from "../permissions";
 import {
   computeCheckedStates,
   filterPermissionList,

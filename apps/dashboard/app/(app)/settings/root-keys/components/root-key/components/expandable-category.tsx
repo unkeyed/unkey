@@ -10,7 +10,7 @@ type ExpandableCategoryProps = {
   category: string;
   description: string;
   checked: CheckedState | undefined;
-  setChecked: () => void;
+  setChecked: (checked: CheckedState) => void;
   count: number;
 } & React.ComponentProps<typeof CollapsibleTrigger>;
 
@@ -28,7 +28,12 @@ export const ExpandableCategory = ({
   return (
     <div className="flex flex-row items-center justify-evenly gap-3 transition-all pl-3 pr-2 h-full my-2">
       <div className="flex items-center justify-center">
-        <Checkbox checked={checked} onCheckedChange={() => setChecked()} size="lg" />
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(next) => setChecked(next)}
+          size="lg"
+          aria-label={`Toggle ${category} permissions`}
+        />
       </div>
       <CollapsibleTrigger
         {...props}

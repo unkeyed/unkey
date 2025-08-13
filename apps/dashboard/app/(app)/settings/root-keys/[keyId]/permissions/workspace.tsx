@@ -1,8 +1,8 @@
 "use client";
 
 import type { Permission } from "@unkey/db";
+import { workspacePermissions } from "../../components/root-key/permissions";
 import { PermissionManagerCard } from "./permission-manager-card";
-import { workspacePermissions } from "./permissions";
 
 type Props = {
   permissions: Permission[];

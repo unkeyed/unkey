@@ -1,7 +1,7 @@
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
+import { apiPermissions, workspacePermissions } from "../permissions";
 import { hasPermissionResults } from "../utils/permissions";
 
 type UsePermissionSheetProps = {
@@ -19,6 +19,17 @@ export function usePermissionSheet({
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Memoize workspace permissions Set to avoid duplication and GC churn
+  const workspacePermsSet = useMemo(
+    () =>
+      new Set<UnkeyPermission>(
+        Object.values(workspacePermissions).flatMap((category) =>
+          Object.values(category).map((item) => item.permission),
+        ),
+      ),
+    [],
+  );
+
   const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setIsProcessing(true);
     if (e.target.value === "") {
@@ -35,12 +46,6 @@ export function usePermissionSheet({
         return;
       }
 
-      // Precompute lookup sets
-      const workspacePermsSet = new Set<UnkeyPermission>(
-        Object.values(workspacePermissions).flatMap((category) =>
-          Object.values(category).map((item) => item.permission),
-        ),
-      );
       const workspacePerms = selectedPermissions.filter((permission) =>
         workspacePermsSet.has(permission),
       );
@@ -67,7 +72,7 @@ export function usePermissionSheet({
       );
       onChange(allPermissions);
     },
-    [selectedPermissions, apis, onChange],
+    [selectedPermissions, apis, onChange, workspacePermsSet],
   );
 
   const handleWorkspacePermissionChange = useCallback(
@@ -76,12 +81,6 @@ export function usePermissionSheet({
         return;
       }
 
-      // Get all current API permissions
-      const workspacePermsSet = new Set<UnkeyPermission>(
-        Object.values(workspacePermissions).flatMap((category) =>
-          Object.values(category).map((item) => item.permission),
-        ),
-      );
       const apiPerms = selectedPermissions.filter(
         (permission) => !workspacePermsSet.has(permission),
       );
@@ -90,7 +89,7 @@ export function usePermissionSheet({
       const allPermissions = Array.from(new Set<UnkeyPermission>([...permissions, ...apiPerms]));
       onChange(allPermissions);
     },
-    [selectedPermissions, onChange],
+    [selectedPermissions, onChange, workspacePermsSet],
   );
 
   // Check if all permission lists are empty after filtering
@@ -104,7 +103,7 @@ export function usePermissionSheet({
       return hasPermissionResults(apiPerms, searchValue);
     });
 
-    return !workspaceHasResults && (apis.length === 0 || !anyApiHasResults);
+    return !workspaceHasResults && !anyApiHasResults;
   }, [searchValue, apis]);
 
   return {

@@ -9,6 +9,10 @@ import { requireUser, requireWorkspace, t } from "../../trpc";
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
+/**
+ * Replaces the full permission set for the root key — clients must submit the complete,
+ * authoritative permission list to avoid lost updates
+ */
 export const updateRootKeyPermissions = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
