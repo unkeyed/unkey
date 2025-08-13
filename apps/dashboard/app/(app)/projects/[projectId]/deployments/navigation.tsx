@@ -60,9 +60,7 @@ export const DeploymentsNavigation = ({ projectId }: DeploymentsNavigationProps)
             }))}
             shortcutKey="N"
           >
-            <div className="text-accent-10 group-hover:text-accent-12 truncate max-w-[120px] h-full">
-              {activeProject.name}
-            </div>
+            <div className="truncate max-w-[120px] h-full">{activeProject.name}</div>
           </QuickNavPopover>
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>

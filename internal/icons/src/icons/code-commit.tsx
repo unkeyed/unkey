@@ -20,7 +20,7 @@ export const CodeCommit: React.FC<IconProps> = ({ size = "xl-thin", ...props }) 
       height={pixelSize}
       width={pixelSize}
       {...props}
-      viewBox="0 0 18 18"
+      viewBox="0 0 32 32"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeMiterlimit="10">

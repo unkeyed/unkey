@@ -68,32 +68,32 @@ export const queryDeployments = t.procedure
       const generateDeployments = (count: number): Deployment[] => {
         const authors = [
           {
-            name: "Ian",
+            name: "imeyer",
             image: "https://avatars.githubusercontent.com/u/78000?v=4",
           },
           {
-            name: "Flo",
+            name: "Flo4604",
             image: "https://avatars.githubusercontent.com/u/53355483?v=4",
           },
           {
-            name: "Oz",
+            name: "ogzhanolguncu",
             image:
               "https://avatars.githubusercontent.com/u/21091016?s=400&u=788774b6cbffaa93e2b8eadcd10ef32e1c6ecf58&v=4",
           },
           {
-            name: "James",
+            name: "perkinsjr",
             image: "https://avatars.githubusercontent.com/u/45409975?v=4",
           },
           {
-            name: "Meg",
+            name: "mcstepp",
             image: "https://avatars.githubusercontent.com/u/7390124?v=4",
           },
           {
-            name: "Chronark",
+            name: "chronark",
             image: "https://avatars.githubusercontent.com/u/18246773?v=4",
           },
           {
-            name: "Mike",
+            name: "MichaelUnkey",
             image: "https://avatars.githubusercontent.com/u/148160799?v=4",
           },
         ];
@@ -111,8 +111,8 @@ export const queryDeployments = t.procedure
         ];
 
         const branches = ["main", "dev", "feature/auth", "hotfix/security", "staging"];
-        const runtimes = ["58s", "12s", "43s", "22s", "38s"];
-        const sizes = ["310mb", "305mb", "312mb", "316mb", "301mb", "298mb", "300mb"];
+        const runtimes = ["58", "12", "43", "22", "38", "200", "400", "1000", "35", "362"];
+        const sizes = ["512", "1024", "256", "2048", "4096", "8192"];
         const descriptions = [
           "Add auth routes + logging",
           "Patch: revert error state",
@@ -152,7 +152,7 @@ export const queryDeployments = t.procedure
             status,
             instances: Math.floor(Math.random() * 5) + 1,
             runtime: status === "completed" ? runtimes[i % runtimes.length] : null,
-            size: status === "completed" || status === "failed" ? sizes[i % sizes.length] : null,
+            size: sizes[i % sizes.length],
             source: {
               branch: branches[i % branches.length],
               gitSha: Math.random().toString(36).substr(2, 7),

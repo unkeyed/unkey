@@ -3,9 +3,10 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
-import { BookBookmark, Cloud } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { BookBookmark, Cloud, CodeBranch, CodeCommit, Cube, Dots } from "@unkey/icons";
+import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import {
@@ -19,28 +20,25 @@ import {
 import { useDeploymentsListQuery } from "./hooks/use-deployments-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
-// const RootKeysTableActions = dynamic(
-//   () =>
-//     import(
-//       "./components/actions/root-keys-table-action.popover.constants"
-//     ).then((mod) => mod.RootKeysTableActions),
-//   {
-//     loading: () => (
-//       <button
-//         type="button"
-//         className={cn(
-//           "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
-//           "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7"
-//         )}
-//       >
-//         <Dots
-//           className="group-hover:text-gray-12 text-gray-11"
-//           size="sm-regular"
-//         />
-//       </button>
-//     ),
-//   }
-// );
+const DeploymentListTableActions = dynamic(
+  () =>
+    import("./components/actions/deployment-list-table-action.popover.constants").then(
+      (mod) => mod.DeploymentListTableActions,
+    ),
+  {
+    loading: () => (
+      <button
+        type="button"
+        className={cn(
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+        )}
+      >
+        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      </button>
+    ),
+  },
+);
 
 export const DeploymentsList = () => {
   const { deployments, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
@@ -52,7 +50,7 @@ export const DeploymentsList = () => {
       {
         key: "deployment_id",
         header: "Deployment ID",
-        width: "15%",
+        width: "10%",
         headerClassName: "pl-[18px]",
         render: (deployment) => {
           const isSelected = deployment.id === selectedDeployment?.id;
@@ -89,18 +87,111 @@ export const DeploymentsList = () => {
           );
         },
       },
-
       {
         key: "status",
         header: "Status",
-        width: "15%",
-        headerClassName: "pl-[18px]",
+        width: "10%",
+        render: (deployment) => {
+          return <DeploymentStatusBadge status={deployment.status} />;
+        },
+      },
+      {
+        key: "instances",
+        header: "Instances",
+        width: "10%",
         render: (deployment) => {
           return (
-            <div className="px-[18px] py-[12px]">
-              <DeploymentStatusBadge status={deployment.status} />
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <Cube className="text-gray-12" size="sm-regular" />
+              <div>
+                <span className="font-semibold text-grayA-12 tabular-nums">
+                  {deployment.instances}
+                </span>
+                <span>VM</span>
+              </div>
             </div>
           );
+        },
+      },
+      {
+        key: "runtime",
+        header: "Runtime",
+        width: "10%",
+        render: (deployment) => {
+          return deployment.runtime ? (
+            <div>
+              <span className="font-semibold text-grayA-12 tabular-nums">{deployment.runtime}</span>
+              <span>s</span>
+            </div>
+          ) : (
+            "-"
+          );
+        },
+      },
+      {
+        key: "size",
+        header: "Size",
+        width: "10%",
+        render: (deployment) => {
+          return (
+            <div>
+              <span className="font-semibold text-grayA-12 tabular-nums">{deployment.size}</span>
+              <span>mb</span>
+            </div>
+          );
+        },
+      },
+      {
+        key: "source",
+        header: "Source",
+        width: "10%",
+        render: (deployment) => {
+          return (
+            <div className="flex items-center gap-1">
+              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                <CodeBranch className="text-gray-12" size="sm-regular" />
+                <span className="text-grayA-11 tabular-nums">{deployment.source.branch}</span>
+              </div>
+              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit shrink-0">
+                <CodeCommit className="text-gray-12 rotate-90 shrink-0" size="md-bold" />
+                <span className="text-grayA-11 tabular-nums">{deployment.source.gitSha}</span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: "created_at",
+        header: "Created at",
+        width: "10%",
+        render: (deployment) => {
+          return (
+            <TimestampInfo
+              value={deployment.createdAt}
+              className={cn("font-mono group-hover:underline decoration-dotted")}
+            />
+          );
+        },
+      },
+      {
+        key: "author",
+        header: "Author",
+        width: "15%",
+        render: (deployment) => {
+          return (
+            <div className="flex items-center gap-2">
+              <img src={deployment.author.image} alt="Author" className="rounded-full size-5" />
+              <span className="font-medium text-grayA-12 text-xs">{deployment.author.name}</span>
+            </div>
+          );
+        },
+      },
+      {
+        key: "action",
+        header: "",
+        width: "auto",
+        render: (deployment) => {
+          return <DeploymentListTableActions deployment={deployment} />;
         },
       },
     ],
