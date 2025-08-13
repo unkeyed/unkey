@@ -20,6 +20,7 @@ export function usePermissionSheet({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setIsProcessing(true);
     if (e.target.value === "") {
       setSearchValue(undefined);
     } else {
