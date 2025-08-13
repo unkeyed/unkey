@@ -21,7 +21,9 @@ export function Navigation({ workspaceId }: { workspaceId: string }) {
   return (
     <Navbar className="w-full flex justify-between">
       <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
-        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/roles`}>Authorization</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/roles`}>
+          Authorization
+        </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/permissions`} active>
           Permissions
         </Navbar.Breadcrumbs.Link>
