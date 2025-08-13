@@ -127,7 +127,7 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...int
 
 // Begin starts a transaction and returns it.
 // This method provides a way to use the Replica in transaction-based operations.
-func (r *Replica) Begin(ctx context.Context) (*sql.Tx, error) {
+func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	ctx, span := tracing.Start(ctx, "Begin")
 	defer span.End()
 	span.SetAttributes(attribute.String("mode", r.mode))
@@ -146,5 +146,10 @@ func (r *Replica) Begin(ctx context.Context) (*sql.Tx, error) {
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "begin", status).Inc()
 
-	return tx, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap the transaction with tracing
+	return WrapTxWithContext(tx, r.mode+"_tx", ctx), nil
 }
