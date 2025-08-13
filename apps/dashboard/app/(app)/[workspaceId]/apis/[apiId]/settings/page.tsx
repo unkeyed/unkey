@@ -13,14 +13,10 @@ type Props = {
 
 export default function SettingsPage(props: Props) {
   const { apiId } = props.params;
-  const { workspace, isLoading, error } = useWorkspace();
+  const { workspace, error } = useWorkspace();
   const router = useRouter();
 
-  if (isLoading) {
-    return <Loading size={18} />;
-  }
-
-  if ((!workspace && !isLoading) || error) {
+  if (!workspace || error) {
     return redirect("/new");
   }
 

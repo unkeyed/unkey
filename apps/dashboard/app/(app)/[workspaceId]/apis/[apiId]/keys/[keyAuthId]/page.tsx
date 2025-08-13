@@ -1,6 +1,5 @@
 "use client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Loading } from "@unkey/ui";
 import { redirect, useRouter } from "next/navigation";
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
@@ -12,13 +11,9 @@ export default function APIKeysPage(props: {
   };
 }) {
   const apiId = props.params.apiId;
-  const { workspace, isLoading, error } = useWorkspace();
+  const { workspace, error } = useWorkspace();
   const keyspaceId = props.params.keyAuthId;
   const router = useRouter();
-
-  if (isLoading) {
-    return <Loading size={18} />;
-  }
 
   if (!workspace || error) {
     return redirect("/new");
