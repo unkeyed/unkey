@@ -88,6 +88,9 @@ type KeyVerificationRequestV1 struct {
 	// IdentityID links the key to a specific identity, if applicable
 	IdentityID string `ch:"identity_id" json:"identity_id"`
 
+	// SpentCredits is the number of credits that were actually deducted during this verification
+	SpentCredits int64 `ch:"spent_credits" json:"spent_credits"`
+
 	Tags []string `ch:"tags" json:"tags"`
 }
 

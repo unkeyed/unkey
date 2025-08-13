@@ -41,7 +41,7 @@ export const keyDetailsLogsParams = z.object({
       z.object({
         value: z.string(),
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
-      }),
+      })
     )
     .nullable(),
   outcomes: z
@@ -49,7 +49,7 @@ export const keyDetailsLogsParams = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      }),
+      })
     )
     .nullable(),
   cursorTime: z.number().int().nullable(),
@@ -130,7 +130,8 @@ export function getKeyDetailsLogs(ch: Querier) {
       `;
     }
 
-    const extendedParamsSchema = keyDetailsLogsParams.extend(paramSchemaExtension);
+    const extendedParamsSchema =
+      keyDetailsLogsParams.extend(paramSchemaExtension);
 
     const baseConditions = `
       workspace_id = {workspaceId: String}
@@ -197,7 +198,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   identities: z
@@ -205,7 +206,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   keyIds: z
@@ -213,7 +214,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   tags: z
@@ -221,7 +222,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      }),
+      })
     )
     .nullable(),
   outcomes: z
@@ -229,7 +230,7 @@ export const verificationTimeseriesParams = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      }),
+      })
     )
     .nullable(),
 });
@@ -246,11 +247,16 @@ export const verificationTimeseriesDataPoint = z.object({
     disabled_count: z.number().int().default(0),
     expired_count: z.number().int().default(0),
     usage_exceeded_count: z.number().int().default(0),
+    spent_credits: z.number().int().default(0),
   }),
 });
 
-export type VerificationTimeseriesDataPoint = z.infer<typeof verificationTimeseriesDataPoint>;
-export type VerificationTimeseriesParams = z.infer<typeof verificationTimeseriesParams>;
+export type VerificationTimeseriesDataPoint = z.infer<
+  typeof verificationTimeseriesDataPoint
+>;
+export type VerificationTimeseriesParams = z.infer<
+  typeof verificationTimeseriesParams
+>;
 
 type TimeInterval = {
   table: string;
@@ -261,81 +267,84 @@ type TimeInterval = {
 const INTERVALS: Record<string, TimeInterval> = {
   // Minute-based intervals
   minute: {
-    table: "verifications.key_verifications_per_minute_v1",
+    table: "verifications.key_verifications_per_minute_v2",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "verifications.key_verifications_per_minute_v1",
+    table: "verifications.key_verifications_per_minute_v2",
     step: "MINUTE",
     stepSize: 5,
   },
   thirtyMinutes: {
-    table: "verifications.key_verifications_per_minute_v1",
+    table: "verifications.key_verifications_per_minute_v2",
     step: "MINUTE",
     stepSize: 30,
   },
   // Hour-based intervals
   hour: {
-    table: "verifications.key_verifications_per_hour_v3",
+    table: "verifications.key_verifications_per_hour_v4",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "verifications.key_verifications_per_hour_v3",
+    table: "verifications.key_verifications_per_hour_v4",
     step: "HOUR",
     stepSize: 2,
   },
   fourHours: {
-    table: "verifications.key_verifications_per_hour_v3",
+    table: "verifications.key_verifications_per_hour_v4",
     step: "HOUR",
     stepSize: 4,
   },
   sixHours: {
-    table: "verifications.key_verifications_per_hour_v3",
+    table: "verifications.key_verifications_per_hour_v4",
     step: "HOUR",
     stepSize: 6,
   },
   twelveHours: {
-    table: "verifications.key_verifications_per_hour_v3",
+    table: "verifications.key_verifications_per_hour_v4",
     step: "HOUR",
     stepSize: 12,
   },
   // Day-based intervals
   day: {
-    table: "verifications.key_verifications_per_day_v3",
+    table: "verifications.key_verifications_per_day_v4",
     step: "DAY",
     stepSize: 1,
   },
   threeDays: {
-    table: "verifications.key_verifications_per_day_v3",
+    table: "verifications.key_verifications_per_day_v4",
     step: "DAY",
     stepSize: 3,
   },
   week: {
-    table: "verifications.key_verifications_per_day_v3",
+    table: "verifications.key_verifications_per_day_v4",
     step: "DAY",
     stepSize: 7,
   },
   twoWeeks: {
-    table: "verifications.key_verifications_per_day_v3",
+    table: "verifications.key_verifications_per_day_v4",
     step: "DAY",
     stepSize: 14,
   },
   // Monthly-based intervals
   month: {
-    table: "verifications.key_verifications_per_month_v3",
+    table: "verifications.key_verifications_per_month_v4",
     step: "MONTH",
     stepSize: 1,
   },
   quarter: {
-    table: "verifications.key_verifications_per_month_v3",
+    table: "verifications.key_verifications_per_month_v4",
     step: "MONTH",
     stepSize: 3,
   },
 } as const;
 
-function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+function createVerificationTimeseriesQuery(
+  interval: TimeInterval,
+  whereClause: string
+) {
   const intervalUnit = {
     MINUTE: "minute",
     HOUR: "hour",
@@ -353,7 +362,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
 
   if (!msPerUnit) {
     throw new Error(
-      `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`,
+      `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`
     );
   }
 
@@ -370,7 +379,8 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
       'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
       'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
       'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
-      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
+      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0)),
+      'spent_credits', SUM(spent_credits)
       ) as y
     FROM ${interval.table}
     ${whereClause}
@@ -384,7 +394,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
 
 function getVerificationTimeseriesWhereClause(
   params: VerificationTimeseriesParams,
-  additionalConditions: string[] = [],
+  additionalConditions: string[] = []
 ): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -470,17 +480,21 @@ function getVerificationTimeseriesWhereClause(
   }
 
   return {
-    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause:
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: verificationTimeseriesParams.extend(paramSchemaExtension),
   };
 }
 
 function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
-    const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(args, [
-      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
-    ]);
+    const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(
+      args,
+      [
+        "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+        "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+      ]
+    );
 
     // Create parameters object with filter values
 
@@ -492,7 +506,7 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`keyIdValue_${index}`]: filter.value,
         }),
-        {},
+        {}
       ) ?? {}),
       ...(args.tags?.reduce(
         (acc, filter, index) => ({
@@ -500,7 +514,7 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`tagValue_${index}`]: filter.value,
         }),
-        {},
+        {}
       ) ?? {}),
       ...(args.outcomes?.reduce(
         (acc, filter, index) => ({
@@ -508,7 +522,7 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`outcomeValue_${index}`]: filter.value,
         }),
-        {},
+        {}
       ) ?? {}),
     };
 
@@ -524,9 +538,13 @@ async function batchVerificationTimeseries(
   ch: Querier,
   interval: TimeInterval,
   args: VerificationTimeseriesParams,
-  maxBatchSize = 15,
+  maxBatchSize = 15
 ) {
-  if (!args.keyIds || args.keyIds.length === 0 || args.keyIds.length <= maxBatchSize) {
+  if (
+    !args.keyIds ||
+    args.keyIds.length === 0 ||
+    args.keyIds.length <= maxBatchSize
+  ) {
     return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
   }
 
@@ -542,7 +560,9 @@ async function batchVerificationTimeseries(
         keyIds: batchKeyIds,
       };
       try {
-        const res = await createVerificationTimeseriesQuerier(interval)(ch)(batchArgs);
+        const res = await createVerificationTimeseriesQuerier(interval)(ch)(
+          batchArgs
+        );
         if (res?.val) {
           return res.val;
         }
@@ -551,19 +571,23 @@ async function batchVerificationTimeseries(
         console.error(`Batch ${batchIndex} query failed:`, error);
         return [];
       }
-    }),
+    })
   );
 
   const successfulResults = batchResults
     .filter((result) => result.status === "fulfilled")
-    .map((result) => (result as PromiseFulfilledResult<VerificationTimeseriesDataPoint[]>).value)
+    .map(
+      (result) =>
+        (result as PromiseFulfilledResult<VerificationTimeseriesDataPoint[]>)
+          .value
+    )
     .filter((value) => Array.isArray(value));
 
   return mergeVerificationTimeseriesResults(successfulResults);
 }
 
 function mergeVerificationTimeseriesResults(
-  results: VerificationTimeseriesDataPoint[][],
+  results: VerificationTimeseriesDataPoint[][]
 ): VerificationTimeseriesDataPoint[] {
   const mergedMap = new Map<number, VerificationTimeseriesDataPoint>();
 
@@ -580,19 +604,30 @@ function mergeVerificationTimeseriesResults(
           y: {
             total: (existingPoint.y.total ?? 0) + (dataPoint.y.total ?? 0),
             valid: (existingPoint.y.valid ?? 0) + (dataPoint.y.valid ?? 0),
-            valid_count: (existingPoint.y.valid_count ?? 0) + (dataPoint.y.valid_count ?? 0),
+            valid_count:
+              (existingPoint.y.valid_count ?? 0) +
+              (dataPoint.y.valid_count ?? 0),
             rate_limited_count:
-              (existingPoint.y.rate_limited_count ?? 0) + (dataPoint.y.rate_limited_count ?? 0),
+              (existingPoint.y.rate_limited_count ?? 0) +
+              (dataPoint.y.rate_limited_count ?? 0),
             insufficient_permissions_count:
               (existingPoint.y.insufficient_permissions_count ?? 0) +
               (dataPoint.y.insufficient_permissions_count ?? 0),
             forbidden_count:
-              (existingPoint.y.forbidden_count ?? 0) + (dataPoint.y.forbidden_count ?? 0),
+              (existingPoint.y.forbidden_count ?? 0) +
+              (dataPoint.y.forbidden_count ?? 0),
             disabled_count:
-              (existingPoint.y.disabled_count ?? 0) + (dataPoint.y.disabled_count ?? 0),
-            expired_count: (existingPoint.y.expired_count ?? 0) + (dataPoint.y.expired_count ?? 0),
+              (existingPoint.y.disabled_count ?? 0) +
+              (dataPoint.y.disabled_count ?? 0),
+            expired_count:
+              (existingPoint.y.expired_count ?? 0) +
+              (dataPoint.y.expired_count ?? 0),
             usage_exceeded_count:
-              (existingPoint.y.usage_exceeded_count ?? 0) + (dataPoint.y.usage_exceeded_count ?? 0),
+              (existingPoint.y.usage_exceeded_count ?? 0) +
+              (dataPoint.y.usage_exceeded_count ?? 0),
+            spent_credits:
+              (existingPoint.y.spent_credits ?? 0) +
+              (dataPoint.y.spent_credits ?? 0),
           },
         });
       } else {
