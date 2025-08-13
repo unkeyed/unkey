@@ -1,15 +1,29 @@
 "use client";
 import { LogsClient } from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/logs-client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { redirect } from "next/navigation";
+import { Loading } from "@unkey/ui";
+import { redirect, useRouter } from "next/navigation";
 import { ApisNavbar } from "./api-id-navbar";
 
 export default function ApiPage(props: { params: { apiId: string } }) {
   const apiId = props.params.apiId;
   const { workspace, isLoading, error } = useWorkspace();
-  if (!workspace && !isLoading && error) {
+  const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-full">
+        <Loading size={18} />
+      </div>
+    );
+  }
+
+  if ((!workspace && !isLoading) || error) {
     return redirect("/new");
   }
+
+  router.replace(`/${workspace?.id}/apis/${apiId}`);
+
   return (
     <div className="min-h-screen">
       <ApisNavbar

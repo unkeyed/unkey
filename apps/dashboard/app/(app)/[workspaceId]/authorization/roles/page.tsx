@@ -1,13 +1,22 @@
 "use client";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { useRouter } from "next/navigation";
 import { RolesListControlCloud } from "./components/control-cloud";
 import { RoleListControls } from "./components/controls";
 import { RolesList } from "./components/table/roles-list";
 import { Navigation } from "./navigation";
 
-export default function RolesPage({ params }: { params: { workspaceId: string } }) {
+export default function RolesPage() {
+  const router = useRouter();
+  const { workspace } = useWorkspace();
+
+  if (!workspace) {
+    router.push("/new");
+  }
+
   return (
     <div>
-      <Navigation workspaceId={params.workspaceId} />
+      <Navigation workspaceId={workspace?.id ?? ""} />
       <div className="flex flex-col">
         <RoleListControls />
         <RolesListControlCloud />

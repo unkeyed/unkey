@@ -34,7 +34,7 @@ Possible causes of this error:
 Here's an example of a request that might receive this error during a service disruption:
 
 ```bash
-curl -X POST https://api.unkey.com/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{
@@ -62,7 +62,7 @@ backoff_time=1
 
 while [ $attempt -lt $max_attempts ]; do
   response=$(curl -s -w "\n%{http_code}" \
-    -X POST https://api.unkey.com/v1/keys.createKey \
+    -X POST https://api.unkey.com/v2/keys.createKey \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer unkey_YOUR_API_KEY" \
     -d '{

@@ -32,18 +32,6 @@ Common scenarios that trigger this error:
 - Attempting to update authentication settings for a non-existent record
 - Typos in identifiers
 
-Here's an example of a request that might trigger this error:
-
-```bash
-# Attempting to update a non-existent key authentication record
-curl -X POST https://api.unkey.com/v1/keys.updateKeyAuth \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "keyAuthId": "kauth_nonexistent",
-    "enabled": true
-  }'
-```
 
 ## How To Fix
 
@@ -56,7 +44,7 @@ Verify that you're using the correct key authentication ID and that the record s
 Here's how to get information about a key's authentication settings:
 
 ```bash
-curl -X POST https://api.unkey.com/v1/keys.getKey \
+curl -X POST https://api.unkey.com/v2/keys.getKey \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{

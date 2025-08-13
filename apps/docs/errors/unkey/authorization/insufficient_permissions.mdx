@@ -34,7 +34,7 @@ Here's an example of a request using a key with insufficient permissions:
 
 ```bash
 # Using a read-only key to create a new API key
-curl -X POST https://api.unkey.com/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_READ_ONLY_KEY" \
   -d '{
@@ -54,7 +54,7 @@ You need to use an API key with the appropriate permissions for the operation yo
 Here's an example using a key with the appropriate permissions:
 
 ```bash
-curl -X POST https://api.unkey.com/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_ADMIN_KEY" \
   -d '{
