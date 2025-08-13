@@ -23,20 +23,6 @@ var _ Authenticator = (*authenticator)(nil)
 
 // New creates a new authenticator with the given configuration.
 func New(config Config) (Authenticator, error) {
-	if config.Logger == nil {
-		return nil, fault.New("logger is required",
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
-			fault.Public("Internal server error"),
-		)
-	}
-
-	if config.Keys == nil {
-		return nil, fault.New("keys service is required",
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
-			fault.Public("Internal server error"),
-		)
-	}
-
 	return &authenticator{
 		logger: config.Logger,
 		keys:   config.Keys,
@@ -67,11 +53,6 @@ func (a *authenticator) extractAPIKey(sess *server.Session) (string, error) {
 	// Check for Authorization header
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
-		a.logger.Warn("missing authorization header",
-			"requestId", sess.RequestID(),
-			"host", req.Host,
-			"path", req.URL.Path,
-		)
 		return "", fault.New("missing authorization header",
 			fault.Code(codes.Gateway.Auth.Unauthorized.URN()),
 			fault.Public("Authorization header required"),
@@ -80,11 +61,6 @@ func (a *authenticator) extractAPIKey(sess *server.Session) (string, error) {
 
 	// Validate Bearer token format
 	if !strings.HasPrefix(authHeader, "Bearer ") {
-		a.logger.Warn("invalid authorization header format",
-			"requestId", sess.RequestID(),
-			"host", req.Host,
-			"path", req.URL.Path,
-		)
 		return "", fault.New("invalid authorization header format",
 			fault.Code(codes.Gateway.Auth.Unauthorized.URN()),
 			fault.Public("Invalid authorization header format"),
@@ -94,11 +70,6 @@ func (a *authenticator) extractAPIKey(sess *server.Session) (string, error) {
 	// Extract API key
 	apiKey := strings.TrimPrefix(authHeader, "Bearer ")
 	if apiKey == "" {
-		a.logger.Warn("empty api key",
-			"requestId", sess.RequestID(),
-			"host", req.Host,
-			"path", req.URL.Path,
-		)
 		return "", fault.New("empty api key",
 			fault.Code(codes.Gateway.Auth.Unauthorized.URN()),
 			fault.Public("API key is required"),
@@ -116,12 +87,6 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 	// Get the API key from the key service
 	key, logKeyFunc, err := a.keys.Get(ctx, &zen.Session{}, apiKey)
 	if err != nil {
-		a.logger.Error("failed to get api key",
-			"requestId", sess.RequestID(),
-			"host", req.Host,
-			"path", req.URL.Path,
-			"error", err.Error(),
-		)
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Internal.KeyVerificationFailed.URN()),
 			fault.Internal("failed to retrieve api key"),
@@ -140,18 +105,15 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 			"expected_keyspace", config.AuthConfig.KeyspaceId,
 			"actual_keyspace", key.Key.KeyAuthID,
 		)
+
 		return fault.New("key belongs to different keyspace",
-			fault.Code(codes.Gateway.Auth.KeyspaceViolation.URN()),
+			fault.Code(codes.Gateway.Auth.Unauthorized.URN()),
 			fault.Public("Invalid API key"),
 		)
 	}
 
 	// Check if API is deleted
 	if key.Key.ApiDeletedAtM.Valid {
-		a.logger.Warn("api deleted",
-			"requestId", sess.RequestID(),
-			"key_id", key.Key.ID,
-		)
 		return fault.New("api key belongs to deleted api",
 			fault.Code(codes.Gateway.Auth.Unauthorized.URN()),
 			fault.Public("Invalid API key"),
@@ -171,6 +133,7 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 			"key_id", key.Key.ID,
 			"error", err.Error(),
 		)
+
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Internal.KeyVerificationFailed.URN()),
 			fault.Public("Internal server error"),
@@ -187,7 +150,6 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 			"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
 		)
 
-		// Return specific error based on status
 		switch key.Status {
 		case keys.StatusRateLimited:
 			return fault.New("api key rate limited",

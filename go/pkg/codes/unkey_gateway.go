@@ -31,9 +31,6 @@ type gatewayAuth struct {
 
 	// RateLimited represents a 429 error - rate limit exceeded
 	RateLimited Code
-
-	// KeyspaceViolation represents a 403 error - key belongs to different keyspace
-	KeyspaceViolation Code
 }
 
 // gatewayValidation defines errors related to gateway validation functionality.
@@ -87,9 +84,8 @@ var Gateway = UnkeyGatewayErrors{
 		VMSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "vm_selection_failed"},
 	},
 	Auth: gatewayAuth{
-		Unauthorized:      Code{SystemUnkey, CategoryUnauthorized, "unauthorized"},
-		RateLimited:       Code{SystemUnkey, CategoryRateLimited, "rate_limited"},
-		KeyspaceViolation: Code{SystemUnkey, CategoryForbidden, "keyspace_violation"},
+		Unauthorized: Code{SystemUnkey, CategoryUnauthorized, "unauthorized"},
+		RateLimited:  Code{SystemUnkey, CategoryRateLimited, "rate_limited"},
 	},
 	Validation: gatewayValidation{
 		RequestInvalid:  Code{SystemUnkey, CategoryUserBadRequest, "request_invalid"},

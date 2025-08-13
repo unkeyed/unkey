@@ -54,6 +54,16 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			status := http.StatusInternalServerError
 
 			switch urn {
+			case codes.UnkeyGatewayErrorsInternalInternalServerError,
+				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed:
+				status = http.StatusInternalServerError
+			case codes.UnkeyGatewayErrorsValidationRequestInvalid,
+				codes.UnkeyGatewayErrorsValidationResponseInvalid:
+				status = http.StatusBadRequest
+			case codes.UnkeyGatewayErrorsAuthUnauthorized:
+				status = http.StatusUnauthorized
+			case codes.UnkeyGatewayErrorsAuthRateLimited:
+				status = http.StatusTooManyRequests
 			// Gateway errors - 404, 502, 503, 504
 			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
 				status = http.StatusNotFound
@@ -91,7 +101,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 </body>
 </html>`))
 
-			case codes.UnkeyGatewayErrorsProxyBadGateway:
+			case codes.UnkeyGatewayErrorsProxyBadGateway,
+				codes.UnkeyGatewayErrorsProxyProxyForwardFailed:
 				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
 <html lang="en">
 <head>

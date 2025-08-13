@@ -104,9 +104,6 @@ func (s *Session) JSON(status int, body any) error {
 		return fault.Wrap(err, fault.Internal("json marshal failed"))
 	}
 
-	// Calculate and set latency header before writing response
-	latency := time.Since(s.startTime)
-	s.w.Header().Set("X-Unkey-Latency", latency.String())
 	s.w.Header().Set("Content-Type", "application/json")
 
 	return s.send(status, b)
@@ -114,9 +111,6 @@ func (s *Session) JSON(status int, body any) error {
 
 // HTML sends an HTML response with the given status code.
 func (s *Session) HTML(status int, body []byte) error {
-	// Calculate and set latency header before writing response
-	latency := time.Since(s.startTime)
-	s.w.Header().Set("X-Unkey-Latency", latency.String())
 	s.w.Header().Set("Content-Type", "text/html")
 
 	return s.send(status, body)

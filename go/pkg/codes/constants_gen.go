@@ -156,8 +156,6 @@ const (
 	UnkeyGatewayErrorsAuthUnauthorized URN = "err:unkey:unauthorized:unauthorized"
 	// RateLimited represents a 429 error - rate limit exceeded
 	UnkeyGatewayErrorsAuthRateLimited URN = "err:unkey:rate_limited:rate_limited"
-	// KeyspaceViolation represents a 403 error - key belongs to different keyspace
-	UnkeyGatewayErrorsAuthKeyspaceViolation URN = "err:unkey:forbidden:keyspace_violation"
 
 	// Validation
 
