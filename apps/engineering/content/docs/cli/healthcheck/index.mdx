@@ -1,0 +1,35 @@
+---
+title: "Healthcheck"
+description: "Perform an HTTP healthcheck against a given URL"
+---
+This command sends an HTTP GET request to the specified URL and validates the response. It exits with code 0 if the server returns a 200 status code, otherwise exits with code 1.
+
+## Use Cases
+
+This is useful for health monitoring in CI/CD pipelines, service availability checks, load balancer health probes, and infrastructure monitoring scripts.
+
+## Command Syntax
+
+```bash
+unkey healthcheck
+```
+
+## Examples
+
+### Check if a service is healthy
+
+```bash
+unkey healthcheck https://api.unkey.dev/health
+```
+
+### Check local service
+
+```bash
+unkey healthcheck http://localhost:8080/health
+```
+
+### Use in monitoring script
+
+```bash
+unkey healthcheck https://example.com/api/status || echo 'Service is down!'
+```

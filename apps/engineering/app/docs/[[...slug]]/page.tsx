@@ -1,8 +1,9 @@
 import { source } from "@/app/source";
+import { Banner } from "fumadocs-ui/components/banner";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
-
 import { notFound } from "next/navigation";
 
 export default async function Page(props: {
@@ -32,7 +33,14 @@ export default async function Page(props: {
       <DocsDescription>{page.data.description}</DocsDescription>
 
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <MDX
+          components={{
+            ...defaultMdxComponents,
+            Tabs,
+            Tab,
+            Banner,
+          }}
+        />
       </DocsBody>
     </DocsPage>
   );

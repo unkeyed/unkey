@@ -1,14 +1,16 @@
-import { redirect } from "next/navigation";
+"use client";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { useRouter } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export default function SettingsPage() {
+  const { workspace } = useWorkspace();
+  const router = useRouter();
 
-export default function SettingsPage({ params }: { params: { workspaceId: string } }) {
-  const { workspaceId } = params;
-  if (workspaceId === "new") {
-    return redirect("/new");
+  if (workspace) {
+    router.replace(`/${workspace.id}/settings/general`);
   }
-  if (workspaceId === "settings") {
-    return redirect(`/${workspaceId}/settings/general`);
+
+  if (!workspace) {
+    router.push("/new");
   }
-  return redirect(`/${workspaceId}/settings/general`);
 }

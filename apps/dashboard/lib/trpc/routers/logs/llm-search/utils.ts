@@ -1,5 +1,8 @@
 import { METHODS } from "@/app/(app)/[workspaceId]/logs/constants";
-import { filterOutputSchema, logsFilterFieldConfig } from "@/app/(app)/[workspaceId]/logs/filters.schema";
+import {
+  filterOutputSchema,
+  logsFilterFieldConfig,
+} from "@/app/(app)/[workspaceId]/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";

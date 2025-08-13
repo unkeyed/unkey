@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
+import { Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -20,7 +21,7 @@ export default function WorkspacePage() {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex items-center gap-3">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
-        <span className="text-content-subtle">Redirecting...</span>
+        <Loading size={18} />
       </div>
     </div>
   );
