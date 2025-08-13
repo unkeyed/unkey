@@ -154,8 +154,8 @@ export const router = t.router({
     create: createRootKey,
     update: t.router({
       name: updateRootKeyName,
-      // NOTE: permissions: intended to <replace|patch> the full permission set for a root key.
-      // Ensure clients send the authoritative list to avoid lost updates.
+      // NOTE: permissions replaces the full permission set for a root key.
+      // Clients must send the authoritative list to avoid lost updates.
       permissions: updateRootKeyPermissions,
     }),
   }),
