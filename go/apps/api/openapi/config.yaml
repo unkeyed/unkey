@@ -6,3 +6,5 @@ generate:
 
 output-options:
   nullable-type: true
+  overlay:
+    path: overlay.yaml

@@ -13,10 +13,10 @@ This will return valid if the key has the permission: `admin`
 ```bash Single Permission
 
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --url https://api.unkey.com/v2/keys.verifyKey \
+  --header 'Authorization: Bearer unkey_1234' \
   --header 'Content-Type: application/json' \
   --data '{
-    "apiId": "api_1234",
     "key": "sk_1234",
     "authorization": {
       "permissions": "admin"
@@ -28,10 +28,10 @@ curl --request POST \
  This will return valid if the key has either `admin` or both `dns.record.read` and `dns.record.update` permissions.
 ```bash Nested Query
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --url https://api.unkey.com/v2/keys.verifyKey \
+  --header 'Authorization: Bearer unkey_1234' \
   --header 'Content-Type: application/json' \
   --data '{
-    "apiId": "api_1234",
     "key": "sk_1234",
     "authorization": {
       "permissions": {
@@ -59,7 +59,7 @@ Sometimes you just don't know what permissions are required before loading resou
 In these cases you can manually check permissions as well.
 
 <Steps>
- 
+
 <Step title="Verify">
 Verify the key and all permissions that you already know before needing to query your database.
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
-import { redirect } from "next/navigation";
+import { Loading } from "@unkey/ui";
+import { redirect, useRouter } from "next/navigation";
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
 type Props = {
@@ -13,9 +14,22 @@ type Props = {
 export default function SettingsPage(props: Props) {
   const { apiId } = props.params;
   const { workspace, isLoading, error } = useWorkspace();
-  if (!workspace && !isLoading && error) {
+  const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-full">
+        <Loading size={18} />
+      </div>
+    );
+  }
+
+  if ((!workspace && !isLoading) || error) {
     return redirect("/new");
   }
+
+  router.replace(`/${workspace?.id}/apis/${apiId}/settings`);
+
   return (
     <div>
       <ApisNavbar
