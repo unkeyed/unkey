@@ -13,18 +13,32 @@ export function cssVarToChartColor(cssVar: string): string {
   return `hsl(var(--${cleanVar}))`;
 }
 
+export type ViewMode = "verifications" | "credits";
+
 /**
  * Create chart configuration for all outcomes or a subset
  * @param includedOutcomes Specific outcomes to include (defaults to all)
+ * @param viewMode Whether to show verification counts or credits spent
  * @returns Configuration object for charts
  */
-export function createOutcomeChartConfig(includedOutcomes?: string[]) {
+export function createOutcomeChartConfig(
+  includedOutcomes?: string[],
+  viewMode: ViewMode = "verifications",
+) {
   const config: Record<string, { label: string; color: string }> = {
     success: {
       label: formatOutcomeName("VALID"),
       color: cssVarToChartColor("accent-4"),
     },
   };
+
+  // Add credits configuration when in credits mode
+  if (viewMode === "credits") {
+    config.spent_credits = {
+      label: "Credits Spent",
+      color: cssVarToChartColor("accent-9"),
+    };
+  }
 
   // Default to all non-valid outcomes if none specified
   const outcomesToInclude =
@@ -58,4 +72,29 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
 export function getOutcomeChartColor(outcome: string): string {
   const colorClass = OUTCOME_BACKGROUND_COLORS[outcome] || "bg-accent-9";
   return cssVarToChartColor(colorClass);
+}
+
+/**
+ * Create chart labels based on view mode
+ * @param viewMode Whether to show verification counts or credits spent
+ * @returns Chart labels configuration
+ */
+export function createChartLabels(viewMode: ViewMode) {
+  if (viewMode === "credits") {
+    return {
+      title: "CREDITS SPENT",
+      primaryLabel: "CREDITS",
+      primaryKey: "spent_credits",
+      secondaryLabel: "FAILED",
+      secondaryKey: "error",
+    };
+  }
+
+  return {
+    title: "REQUESTS",
+    primaryLabel: "VALID",
+    primaryKey: "success",
+    secondaryLabel: "INVALID",
+    secondaryKey: "error",
+  };
 }
