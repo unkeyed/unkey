@@ -18,12 +18,17 @@ post:
     - If prefix extraction fails, the default API prefix is used
     - Key length follows the API's default byte configuration (or 16 bytes if not specified)
 
-    The original key remains active unless explicitly revoked. Common use cases include:
+    **Original Key Handling:**
+    - The original key will be revoked after the duration specified in `remaining`
+    - Set `remaining` to 0 to revoke immediately
+    - This allows for graceful key rotation with an overlap period
+
+    Common use cases include:
     - Rotating keys for security compliance
     - Issuing replacement keys for compromised credentials
     - Creating backup keys with identical permissions
 
-    **Important:** Analytics and usage metrics are tracked at the identity level, not per individual key. If the original key has an identity, the new key will inherit it and share the same usage tracking. Keys without identities will have their analytics tracked separately.
+    **Important:** Analytics and usage metrics are tracked at both the key level AND identity level. If the original key has an identity, the new key will inherit it, allowing you to track usage across both individual keys and the overall identity.
   operationId: rerollKey
   x-speakeasy-name-override: rerollKey
   security:

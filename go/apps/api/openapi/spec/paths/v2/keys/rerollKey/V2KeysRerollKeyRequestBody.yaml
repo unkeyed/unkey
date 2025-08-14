@@ -23,15 +23,17 @@ properties:
     minimum: 0
     maximum: 4102444800000
     description: |
-      Duration in milliseconds until the new key expires, starting from creation time.
+      Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
+      
+      This parameter controls the overlap period for key rotation:
+      - Set to `0` to revoke the original key immediately
+      - Positive values keep the original key active for the specified duration
+      - Allows graceful migration by giving users time to update their credentials
 
-      - Set to `0` for an immediately expired key (useful for testing)
-      - Positive values create a key that expires after the specified duration
-      - Maximum value: ~130 years (4102444800000 ms)
-
-      Common values:
-      - 1 hour: 3600000
-      - 24 hours: 86400000
-      - 30 days: 2592000000
-      - 1 year: 31536000000
+      Common overlap periods:
+      - Immediate revocation: 0
+      - 1 hour grace period: 3600000
+      - 24 hours grace period: 86400000
+      - 7 days grace period: 604800000
+      - 30 days grace period: 2592000000
     example: 86400000
