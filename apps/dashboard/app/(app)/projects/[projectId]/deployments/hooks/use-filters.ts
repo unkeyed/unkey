@@ -1,27 +1,34 @@
-import { useQueryStates } from "nuqs";
+import {
+  parseAsFilterValueArray,
+  parseAsRelativeTime,
+} from "@/components/logs/validation/utils/nuqs-parsers";
+import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
   type DeploymentListFilterField,
+  type DeploymentListFilterOperator,
   type DeploymentListFilterUrlValue,
   type DeploymentListFilterValue,
+  type DeploymentListQuerySearchParams,
   deploymentListFilterFieldConfig,
-  deploymentListFilterFieldNames,
-  parseAsAllOperatorsFilterArray,
 } from "../filters.schema";
 
-// Only include fields that use filter arrays (exclude time fields)
-const arrayFilterFields = deploymentListFilterFieldNames.filter(
-  (field) => !["startTime", "endTime", "since"].includes(field),
-) as Exclude<DeploymentListFilterField, "startTime" | "endTime" | "since">[];
+const parseAsFilterValArray = parseAsFilterValueArray<DeploymentListFilterOperator>([
+  "is",
+  "contains",
+]);
 
-export const queryParamsPayload = Object.fromEntries(
-  arrayFilterFields.map((field) => [field, parseAsAllOperatorsFilterArray]),
-) as {
-  [K in Exclude<
-    DeploymentListFilterField,
-    "startTime" | "endTime" | "since"
-  >]: typeof parseAsAllOperatorsFilterArray;
-};
+export const queryParamsPayload = {
+  status: parseAsFilterValArray,
+  environment: parseAsFilterValArray,
+  branch: parseAsFilterValArray,
+  startTime: parseAsInteger,
+  endTime: parseAsInteger,
+  since: parseAsRelativeTime,
+} as const;
+
+const arrayFields = ["status", "environment", "branch"] as const;
+const timeFields = ["startTime", "endTime", "since"] as const;
 
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
@@ -31,65 +38,72 @@ export const useFilters = () => {
   const filters = useMemo(() => {
     const activeFilters: DeploymentListFilterValue[] = [];
 
-    for (const field of arrayFilterFields) {
-      const value = searchParams[field];
-      if (!Array.isArray(value)) {
-        continue;
+    // Handle array filters
+    arrayFields.forEach((field) => {
+      searchParams[field]?.forEach((item) => {
+        activeFilters.push({
+          id: crypto.randomUUID(),
+          field,
+          operator: item.operator,
+          value: item.value,
+          metadata: deploymentListFilterFieldConfig[field].getColorClass
+            ? {
+                colorClass: deploymentListFilterFieldConfig[field].getColorClass(
+                  item.value as string,
+                ),
+              }
+            : undefined,
+        });
+      });
+    });
+
+    // Handle time filters
+    ["startTime", "endTime", "since"].forEach((field) => {
+      const value = searchParams[field as keyof DeploymentListQuerySearchParams];
+      if (value !== null && value !== undefined) {
+        activeFilters.push({
+          id: crypto.randomUUID(),
+          field: field as DeploymentListFilterField,
+          operator: "is",
+          value: value as string | number,
+        });
       }
-      for (const filterItem of value) {
-        if (filterItem && typeof filterItem.value === "string" && filterItem.operator) {
-          const baseFilter: DeploymentListFilterValue = {
-            id: crypto.randomUUID(),
-            field: field,
-            operator: filterItem.operator,
-            value: filterItem.value,
-          };
-          activeFilters.push(baseFilter);
-        }
-      }
-    }
+    });
+
     return activeFilters;
   }, [searchParams]);
 
   const updateFilters = useCallback(
     (newFilters: DeploymentListFilterValue[]) => {
-      const newParams: Record<string, DeploymentListFilterUrlValue[] | null> = Object.fromEntries(
-        arrayFilterFields.map((field) => [field, null]),
+      const newParams: Partial<DeploymentListQuerySearchParams> = Object.fromEntries([
+        ...arrayFields.map((field) => [field, null]),
+        ...timeFields.map((field) => [field, null]),
+      ]);
+
+      const filterGroups = arrayFields.reduce(
+        (acc, field) => {
+          acc[field] = [];
+          return acc;
+        },
+        {} as Record<(typeof arrayFields)[number], DeploymentListFilterUrlValue[]>,
       );
 
-      const filtersByField = new Map<DeploymentListFilterField, DeploymentListFilterUrlValue[]>();
-      deploymentListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
-
       newFilters.forEach((filter) => {
-        if (!deploymentListFilterFieldNames.includes(filter.field)) {
-          throw new Error(`Invalid filter field: ${filter.field}`);
+        if (arrayFields.includes(filter.field as (typeof arrayFields)[number])) {
+          filterGroups[filter.field as (typeof arrayFields)[number]].push({
+            value: filter.value as string,
+            operator: filter.operator,
+          });
+        } else if (filter.field === "startTime" || filter.field === "endTime") {
+          newParams[filter.field] = filter.value as number;
+        } else if (filter.field === "since") {
+          newParams.since = filter.value as string;
         }
-
-        const fieldConfig = deploymentListFilterFieldConfig[filter.field];
-        if (!fieldConfig.operators.includes(filter.operator)) {
-          throw new Error(`Invalid operator '${filter.operator}' for field '${filter.field}'`);
-        }
-
-        if (typeof filter.value !== "string") {
-          throw new Error(`Filter value must be a string for field '${filter.field}'`);
-        }
-
-        const fieldFilters = filtersByField.get(filter.field);
-        if (!fieldFilters) {
-          throw new Error(`Failed to get filters for field '${filter.field}'`);
-        }
-
-        fieldFilters.push({
-          value: filter.value,
-          operator: filter.operator,
-        });
       });
 
-      // Set non-empty filter arrays in params
-      filtersByField.forEach((fieldFilters, field) => {
-        if (fieldFilters.length > 0) {
-          newParams[field] = fieldFilters;
-        }
+      // Set array filters
+      arrayFields.forEach((field) => {
+        newParams[field] = filterGroups[field].length > 0 ? filterGroups[field] : null;
       });
 
       setSearchParams(newParams);

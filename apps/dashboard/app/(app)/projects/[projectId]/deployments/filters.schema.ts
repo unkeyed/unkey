@@ -19,9 +19,18 @@ const DEPLOYMENT_STATUSES = [
   "failed",
 ] as const;
 
+// Define grouped statuses for client filtering
+const GROUPED_DEPLOYMENT_STATUSES = [
+  "pending",
+  "building", // represents all building states
+  "completed",
+  "failed",
+] as const;
+
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
 
 export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];
+export type GroupedDeploymentStatus = (typeof GROUPED_DEPLOYMENT_STATUSES)[number];
 export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
 
 const allOperators = ["is", "contains"] as const;
@@ -42,7 +51,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
   status: {
     type: "string",
     operators: ["is"],
-    validValues: DEPLOYMENT_STATUSES,
+    validValues: GROUPED_DEPLOYMENT_STATUSES,
     getColorClass: (value) => {
       if (value === "completed") {
         return "bg-success-9";
@@ -53,19 +62,13 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
       if (value === "pending") {
         return "bg-gray-9";
       }
-      return "bg-info-9";
+      return "bg-info-9"; // building
     },
   },
   environment: {
     type: "string",
     operators: ["is"],
     validValues: DEPLOYMENT_ENVIRONMENTS,
-    getColorClass: (value) => {
-      if (value === "production") {
-        return "bg-warning-9";
-      }
-      return "bg-info-9";
-    },
   },
   branch: {
     type: "string",
@@ -85,6 +88,29 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
   },
 };
 
+// Mapping function to expand grouped statuses to actual statuses
+export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): DeploymentStatus[] => {
+  switch (groupedStatus) {
+    case "pending":
+      return ["pending"];
+    case "building":
+      return [
+        "downloading_docker_image",
+        "building_rootfs",
+        "uploading_rootfs",
+        "creating_vm",
+        "booting_vm",
+        "assigning_domains",
+      ];
+    case "completed":
+      return ["completed"];
+    case "failed":
+      return ["failed"];
+    default:
+      throw new Error(`Unknown grouped status: ${groupedStatus}`);
+  }
+};
+
 const allFilterFieldNames = Object.keys(
   deploymentListFilterFieldConfig,
 ) as (keyof FilterFieldConfigs)[];
@@ -96,6 +122,7 @@ if (allFilterFieldNames.length === 0) {
 const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
 
 export const deploymentListFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
+
 export const deploymentListFilterFieldNames = allFilterFieldNames;
 export type DeploymentListFilterField = z.infer<typeof deploymentListFilterFieldEnum>;
 
@@ -105,10 +132,10 @@ export const filterOutputSchema = createFilterOutputSchema(
   deploymentListFilterFieldConfig,
 );
 
-export type DeploymentListFilterUrlValue = Pick<
-  FilterValue<DeploymentListFilterField, DeploymentListFilterOperator>,
-  "value" | "operator"
->;
+export type DeploymentListFilterUrlValue = {
+  value: string;
+  operator: DeploymentListFilterOperator;
+};
 
 export type DeploymentListFilterValue = FilterValue<
   DeploymentListFilterField,
@@ -119,9 +146,9 @@ export type DeploymentListQuerySearchParams = {
   status: DeploymentListFilterUrlValue[] | null;
   environment: DeploymentListFilterUrlValue[] | null;
   branch: DeploymentListFilterUrlValue[] | null;
-  startTime?: number | null;
-  endTime?: number | null;
-  since?: string | null;
+  startTime: number | null;
+  endTime: number | null;
+  since: string | null;
 };
 
 export const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<DeploymentListFilterOperator>(

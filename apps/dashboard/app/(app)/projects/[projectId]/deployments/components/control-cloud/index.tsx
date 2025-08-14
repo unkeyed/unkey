@@ -1,20 +1,26 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
-import type { RootKeysFilterField } from "../../filters.schema";
+import type { DeploymentListFilterField } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
 
-const FIELD_DISPLAY_NAMES: Record<RootKeysFilterField, string> = {
-  name: "Name",
-  start: "Key",
-  permission: "Permission",
+const FIELD_DISPLAY_NAMES: Record<DeploymentListFilterField, string> = {
+  status: "Status",
+  environment: "Environment",
+  branch: "Branch",
+  startTime: "Start Time",
+  endTime: "End Time",
+  since: "Since",
 } as const;
 
 const formatFieldName = (field: string): string => {
   if (field in FIELD_DISPLAY_NAMES) {
-    return FIELD_DISPLAY_NAMES[field as RootKeysFilterField];
+    return FIELD_DISPLAY_NAMES[field as DeploymentListFilterField];
   }
-
-  return field.charAt(0).toUpperCase() + field.slice(1);
+  // Fallback for any missing fields
+  return field
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim();
 };
 
 export const DeploymentsListControlCloud = () => {

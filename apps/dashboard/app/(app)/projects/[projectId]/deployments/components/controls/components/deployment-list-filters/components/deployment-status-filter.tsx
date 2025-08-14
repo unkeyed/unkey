@@ -1,10 +1,10 @@
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import type { DeploymentStatus } from "../../../../../filters.schema";
+import type { GroupedDeploymentStatus } from "../../../../../filters.schema";
 
 type StatusOption = {
   id: number;
-  status: DeploymentStatus;
+  status: GroupedDeploymentStatus;
   display: string;
   label: string;
   color: string;
@@ -22,7 +22,7 @@ const options: StatusOption[] = [
   },
   {
     id: 2,
-    status: "downloading_docker_image",
+    status: "building",
     display: "Building",
     label: "In Progress",
     color: "bg-info-9",
