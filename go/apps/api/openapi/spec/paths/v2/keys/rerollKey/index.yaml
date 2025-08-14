@@ -3,21 +3,27 @@ post:
     - keys
   summary: Reroll Key
   description: |
-    Reroll a key using the database identifier returned from `keys.createKey`.
+    Generate a new API key while preserving the configuration from an existing key.
 
-    This will copy over
-    - permissions
-    - roles
-    - metadata
-    - ratelimits
-    - identity
-    - credits
-    - recoverable status
+    This operation creates a fresh key with a new token while maintaining all settings from the original key:
+    - Permissions and roles
+    - Custom metadata
+    - Rate limit configurations
+    - Identity associations
+    - Remaining credits
+    - Recovery settings
 
-    into a new key and return it.
+    **Key Generation:**
+    - The system attempts to extract the prefix from the original key
+    - If prefix extraction fails, the default API prefix is used
+    - Key length follows the API's default byte configuration (or 16 bytes if not specified)
 
-    Analytics on the old key will NOT be copied over.
-    Please set a identity on the key in order to track usage for a customer.
+    The original key remains active unless explicitly revoked. Common use cases include:
+    - Rotating keys for security compliance
+    - Issuing replacement keys for compromised credentials
+    - Creating backup keys with identical permissions
+
+    **Important:** Analytics and usage metrics are tracked at the identity level, not per individual key. If the original key has an identity, the new key will inherit it and share the same usage tracking. Keys without identities will have their analytics tracked separately.
   operationId: rerollKey
   x-speakeasy-name-override: rerollKey
   security:

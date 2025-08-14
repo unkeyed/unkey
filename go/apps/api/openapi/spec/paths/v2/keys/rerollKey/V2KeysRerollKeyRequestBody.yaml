@@ -9,18 +9,29 @@ properties:
     maxLength: 255
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      Specifies which key to reroll using the database identifier returned from `keys.createKey`.
-      Do not confuse this with the actual API key string that users include in requests.
-      Find this ID in creation responses, key listings, dashboard, or verification responses.
-    example: api_1234abcd
+      The database identifier of the key to reroll.
+
+      This is the unique ID returned when creating or listing keys, NOT the actual API key token.
+      You can find this ID in:
+      - The response from `keys.createKey`
+      - Key verification responses
+      - The Unkey dashboard
+      - API key listing endpoints
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
   remaining:
     type: integer
     minimum: 0
     maximum: 4102444800000
     description: |
-      Sets when the given key expires in milliseconds relative to the current time.
+      Duration in milliseconds until the new key expires, starting from creation time.
 
-      Important: If set to 0, the key will expire immediately.
+      - Set to `0` for an immediately expired key (useful for testing)
+      - Positive values create a key that expires after the specified duration
+      - Maximum value: ~130 years (4102444800000 ms)
 
-      When set to a positive value, the key will expire at the current time + the specified duration.
-    example: 3600000
+      Common values:
+      - 1 hour: 3600000
+      - 24 hours: 86400000
+      - 30 days: 2592000000
+      - 1 year: 31536000000
+    example: 86400000
