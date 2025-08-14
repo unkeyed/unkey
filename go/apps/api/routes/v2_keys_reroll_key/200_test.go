@@ -67,6 +67,7 @@ func TestRerollKeySuccess(t *testing.T) {
 	}
 
 	t.Run("successfully rerolled key with all options", func(t *testing.T) {
+		t.Parallel()
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			Disabled:     false,
@@ -215,6 +216,8 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 
 	t.Run("reroll sets TTL on original key when expiration is provided", func(t *testing.T) {
+		t.Parallel()
+
 		ttlMs := int64(60000) // 60 seconds
 
 		key := h.CreateKey(seed.CreateKeyRequest{
