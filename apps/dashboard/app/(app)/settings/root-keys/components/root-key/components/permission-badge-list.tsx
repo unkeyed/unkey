@@ -94,7 +94,7 @@ const ListBadges = ({
               variant="ghost"
               size="icon"
               className="w-4 h-4"
-              onClick={(e) => handleRemovePermission(e, permission.permission)}
+              onClick={(e) => handleRemovePermissionClick(e, permission.permission)}
             >
               <XMark className="w-4 h-4" />
             </Button>
