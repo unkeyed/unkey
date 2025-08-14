@@ -13,7 +13,7 @@ type KeyData struct {
 	Api       Api
 	KeyAuth   KeyAuth
 	Workspace Workspace
-	Identity  *Identity
+	Identity  *Identity // Is optional
 
 	EncryptedKey    sql.NullString
 	EncryptionKeyID sql.NullString
@@ -78,27 +78,21 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 	}
 
 	// It's fine to fail here
-	_ = json.Unmarshal(toJSON(r.Roles), &kd.Roles)
-	_ = json.Unmarshal(toJSON(r.Permissions), &kd.Permissions)
-	_ = json.Unmarshal(toJSON(r.RolePermissions), &kd.RolePermissions)
-	_ = json.Unmarshal(toJSON(r.Ratelimits), &kd.Ratelimits)
+	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
+		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
+	}
+
+	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
+		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
+	}
+
+	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
+		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
+	}
+
+	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
+		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
+	}
 
 	return kd
-}
-
-func toJSON(v interface{}) []byte {
-	if v == nil {
-		return []byte("[]")
-	}
-
-	if b, ok := v.([]byte); ok {
-		return b
-	}
-
-	if s, ok := v.(string); ok {
-		return []byte(s)
-	}
-
-	b, _ := json.Marshal(v)
-	return b
 }

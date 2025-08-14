@@ -141,7 +141,6 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.Equal(t, createdKeyRow.Name.String, rolledKeyRow.Name.String)
 	require.Equal(t, createdKeyRow.IdentityID.String, rolledKeyRow.IdentityID.String)
 	require.Equal(t, createdKeyRow.Meta, rolledKeyRow.Meta)
-	// require.Equal(t, createdKeyRow.Meta, rolledKeyRow.Meta) expires
 	require.Equal(t, createdKeyRow.RefillDay.Int16, rolledKeyRow.RefillDay.Int16)
 	require.Equal(t, createdKeyRow.RefillAmount.Int32, rolledKeyRow.RefillAmount.Int32)
 	require.Equal(t, createdKeyRow.RemainingRequests.Int32, rolledKeyRow.RemainingRequests.Int32)
