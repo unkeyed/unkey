@@ -27,9 +27,6 @@ type PermissionSheetProps = {
   editMode?: boolean;
 };
 
-const SHEET_BOTTOM_PADDING = 40;
-const SHEET_BOTTOM_PADDING_WITH_BUTTON = 80;
-
 export const PermissionSheet = ({
   children,
   apis,
@@ -61,11 +58,11 @@ export const PermissionSheet = ({
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         disableClose={true}
-        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px]"
+        className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black"
         side="right"
         overlay="transparent"
       >
-        <SheetHeader className="flex flex-row w-full border-b border-gray-4 gap-2">
+        <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 ">
           <SearchPermissions
             isProcessing={isProcessing}
             search={searchValue}
@@ -77,9 +74,7 @@ export const PermissionSheet = ({
           <div className="flex flex-col h-full">
             <div
               className={`flex flex-col ${
-                hasNextPage
-                  ? `max-h-[calc(100%-${SHEET_BOTTOM_PADDING_WITH_BUTTON}px)]`
-                  : `max-h-[calc(100%-${SHEET_BOTTOM_PADDING}px)]`
+                hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
               }`}
             >
               <ScrollArea className="flex flex-col h-full pt-2">

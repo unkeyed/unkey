@@ -109,7 +109,7 @@ export const RootKeyDialog = ({
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mr-0">
             <Label className="text-[13px] font-regular text-gray-10">
               {ROOT_KEY_MESSAGES.DESCRIPTIONS.PERMISSIONS}
             </Label>

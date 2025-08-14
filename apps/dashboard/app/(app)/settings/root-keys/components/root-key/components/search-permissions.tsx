@@ -13,7 +13,7 @@ type Props = {
 };
 const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) => {
   return (
-    <div className="flex items-center gap-2 w-full md:w-[calc(100%-16px)] pl-4 py-1 rounded-lg mr-12">
+    <div className="flex flex-row items-center gap-2 w-full md:w-[calc(100%-16px)] pl-4 py-1 rounded-lg">
       <div className="flex-shrink-0">
         <SearchIcon isProcessing={isProcessing} />
       </div>
@@ -31,7 +31,7 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
           inputRef={inputRef}
         />
       </div>
-      <div className="ml-auto pr-2 flex-shrink-0">
+      <div className="justify-end flex-shrink-0">
         <InfoTooltip content={ROOT_KEY_MESSAGES.UI.CLEAR_SEARCH}>
           <Button
             variant="ghost"
