@@ -25,7 +25,7 @@ func TestGetRootKey_ErrorHandling_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, key)
 	require.NotNil(t, log)
-	
+
 	// Verify specific error code for missing auth when session is nil
 	code, ok := fault.GetCode(err)
 	require.True(t, ok)

@@ -7,13 +7,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_key"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_reroll_key"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestUpdateKeyUnauthorized(t *testing.T) {
+func TestRerollKeyUnauthorized(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
@@ -22,7 +22,7 @@ func TestUpdateKeyUnauthorized(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
+		Vault:     h.Vault,
 	}
 
 	h.Register(route)
@@ -30,7 +30,7 @@ func TestUpdateKeyUnauthorized(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		IpWhitelist:   "",
-		EncryptedKeys: false,
+		EncryptedKeys: true,
 		Name:          nil,
 		CreatedAt:     nil,
 		DefaultPrefix: nil,
@@ -38,11 +38,16 @@ func TestUpdateKeyUnauthorized(t *testing.T) {
 	})
 
 	key := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: api.WorkspaceID,
+		Disabled:    false,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
 	})
 
-	req := handler.Request{KeyId: key.KeyID}
+	// Basic request body
+	req := handler.Request{
+		KeyId:      key.KeyID,
+		Expiration: 0,
+	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {
 		headers := http.Header{
