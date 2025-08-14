@@ -321,15 +321,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				{
 					Type:        auditlog.KeyResourceType,
 					ID:          keyID,
-					DisplayName: keyID,
-					Name:        keyID,
+					DisplayName: key.Name.String,
+					Name:        key.Name.String,
 					Meta:        map[string]any{},
 				},
 				{
 					Type:        auditlog.KeyResourceType,
 					ID:          req.KeyId,
-					DisplayName: req.KeyId,
-					Name:        req.KeyId,
+					DisplayName: key.Name.String,
+					Name:        key.Name.String,
 					Meta:        map[string]any{},
 				},
 				{
