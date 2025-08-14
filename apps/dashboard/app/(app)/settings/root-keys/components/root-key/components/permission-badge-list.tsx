@@ -72,7 +72,10 @@ const ListBadges = ({
   removePermission,
 }: { info: PermissionInfo; removePermission: (permission: string) => void }) => {
   // Stop propagation to prevent triggering parent collapsible when removing permissions
-  const handleRemovePermissionClick = (e: React.MouseEvent<HTMLButtonElement>, permission: string) => {
+  const handleRemovePermissionClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    permission: string,
+  ) => {
     e.stopPropagation();
     removePermission(permission);
   };
