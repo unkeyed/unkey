@@ -4,8 +4,8 @@ import (
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
-// Those types are basically a copy of the types in the database but with support for JSON serialization and deserialization.
-// So we can use them when getting them from the database in e.g array form.
+// These types mirror the database models and support JSON serialization and deserialization.
+// They are used to unmarshal aggregated results (e.g., JSON arrays) returned by database queries.
 
 type RoleInfo struct {
 	ID          string            `json:"id"`
