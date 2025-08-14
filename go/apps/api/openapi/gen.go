@@ -1041,16 +1041,29 @@ type V2KeysRemoveRolesResponseData = []Role
 
 // V2KeysRerollKeyRequestBody defines model for V2KeysRerollKeyRequestBody.
 type V2KeysRerollKeyRequestBody struct {
-	// KeyId Specifies which key to reroll using the database identifier returned from `keys.createKey`.
-	// Do not confuse this with the actual API key string that users include in requests.
-	// Find this ID in creation responses, key listings, dashboard, or verification responses.
+	// KeyId The database identifier of the key to reroll.
+	//
+	// This is the unique ID returned when creating or listing keys, NOT the actual API key token.
+	// You can find this ID in:
+	// - The response from `keys.createKey`
+	// - Key verification responses
+	// - The Unkey dashboard
+	// - API key listing endpoints
 	KeyId string `json:"keyId"`
 
-	// Remaining Sets when the given key expires in milliseconds relative to the current time.
+	// Remaining Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
 	//
-	// Important: If set to 0, the key will expire immediately.
+	// This parameter controls the overlap period for key rotation:
+	// - Set to `0` to revoke the original key immediately
+	// - Positive values keep the original key active for the specified duration
+	// - Allows graceful migration by giving users time to update their credentials
 	//
-	// When set to a positive value, the key will expire at the current time + the specified duration.
+	// Common overlap periods:
+	// - Immediate revocation: 0
+	// - 1 hour grace period: 3600000
+	// - 24 hours grace period: 86400000
+	// - 7 days grace period: 604800000
+	// - 30 days grace period: 2592000000
 	Remaining int `json:"remaining"`
 }
 
@@ -1064,11 +1077,29 @@ type V2KeysRerollKeyResponseBody struct {
 
 // V2KeysRerollKeyResponseData defines model for V2KeysRerollKeyResponseData.
 type V2KeysRerollKeyResponseData struct {
-	// Key The full generated API key that should be securely provided to your user.
-	// SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
+	// Key The newly generated API key token.
+	//
+	// **SECURITY CRITICAL:**
+	// - This is the only time you'll receive the complete key
+	// - Unkey stores only a hashed version (unless the original key was created with `recoverable=true`)
+	// - Never log, store, or expose this value in your systems
+	// - Transmit directly to the end user via secure channels only
+	// - If lost and not recoverable, you must reroll or create a new key
+	//
+	// The key format follows: `[prefix]_[random_bytes]`
+	// - Prefix is extracted from the original key or uses API default
+	// - Random bytes follow API configuration (default: 16 bytes)
 	Key string `json:"key"`
 
-	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+	// KeyId The unique identifier for the newly created key.
+	//
+	// This is NOT the actual API key token, but a reference ID for management operations.
+	// Store this ID to:
+	// - Update or revoke the key later
+	// - Track the key in your database
+	// - Display in admin dashboards (safe to log)
+	//
+	// Note: This is a new ID - the original key retains its own ID.
 	KeyId string `json:"keyId"`
 }
 
