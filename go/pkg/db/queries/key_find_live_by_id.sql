@@ -86,4 +86,5 @@ LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.id = sqlc.arg(id)
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
-    AND ka.deleted_at_m IS NULL;
+    AND ka.deleted_at_m IS NULL
+    AND ws.deleted_at_m IS NULL;

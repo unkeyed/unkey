@@ -412,6 +412,7 @@ type Querier interface {
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
+	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error)
 	//FindLiveKeyByID
 	//
@@ -503,6 +504,7 @@ type Querier interface {
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
+	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
 	//FindManyRolesByIdOrNameWithPerms
 	//

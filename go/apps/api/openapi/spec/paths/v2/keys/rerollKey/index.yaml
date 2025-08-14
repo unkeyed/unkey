@@ -29,6 +29,13 @@ post:
     - Creating backup keys with identical permissions
 
     **Important:** Analytics and usage metrics are tracked at both the key level AND identity level. If the original key has an identity, the new key will inherit it, allowing you to track usage across both individual keys and the overall identity.
+
+    **Required Permissions**
+
+     Your root key must have:
+     - `api.*.create_key` or `api.<api_id>.create_key`
+     - `api.*.update_key` or `api.<api_id>.update_key`
+     - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
   operationId: rerollKey
   x-speakeasy-name-override: rerollKey
   security:

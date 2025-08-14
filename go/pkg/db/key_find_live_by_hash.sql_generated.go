@@ -98,6 +98,7 @@ WHERE k.hash = ?
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
     AND ka.deleted_at_m IS NULL
+    AND ws.deleted_at_m IS NULL
 `
 
 type FindLiveKeyByHashRow struct {
@@ -227,6 +228,7 @@ type FindLiveKeyByHashRow struct {
 //	    AND k.deleted_at_m IS NULL
 //	    AND a.deleted_at_m IS NULL
 //	    AND ka.deleted_at_m IS NULL
+//	    AND ws.deleted_at_m IS NULL
 func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error) {
 	row := db.QueryRowContext(ctx, findLiveKeyByHash, hash)
 	var i FindLiveKeyByHashRow

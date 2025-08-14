@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyBadRequest(t *testing.T) {
+func TestRerollKeyBadRequest(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
@@ -33,9 +33,9 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("missing apiId", func(t *testing.T) {
+	t.Run("missing keyId", func(t *testing.T) {
 		req := handler.Request{
-			// Missing ApiId
+			// Missing keyId
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -63,10 +63,10 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("negative expires timestamp", func(t *testing.T) {
+	t.Run("negative expiration", func(t *testing.T) {
 		req := handler.Request{
-			KeyId:     uid.New(uid.KeyPrefix),
-			Remaining: -1,
+			KeyId:      uid.New(uid.KeyPrefix),
+			Expiration: -1,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func TestCreateKeyForbidden(t *testing.T) {
+func TestRerollKeyForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -52,8 +52,8 @@ func TestCreateKeyForbidden(t *testing.T) {
 	})
 
 	req := handler.Request{
-		KeyId:     key.KeyID,
-		Remaining: 0,
+		KeyId:      key.KeyID,
+		Expiration: 0,
 	}
 
 	t.Run("no permissions", func(t *testing.T) {
@@ -116,12 +116,13 @@ func TestCreateKeyForbidden(t *testing.T) {
 		Ratelimits:   nil,
 	})
 
-	t.Run("create recoverable key without perms", func(t *testing.T) {
+	t.Run("reroll recoverable key without perms", func(t *testing.T) {
 		// Create root key with permission that partially matches but isn't sufficient because no encryption permission
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
 
 		req := handler.Request{
-			KeyId: encryptedKey.KeyID,
+			KeyId:      encryptedKey.KeyID,
+			Expiration: 0,
 		}
 
 		headers := http.Header{

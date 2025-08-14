@@ -16,7 +16,7 @@ properties:
   key:
     type: string
     description: |
-      The newly generated API key token.
+      The newly generated API key token (the actual secret that authenticates requests).
 
       **SECURITY CRITICAL:**
       - This is the only time you'll receive the complete key
@@ -28,7 +28,9 @@ properties:
       The key format follows: `[prefix]_[random_bytes]`
       - Prefix is extracted from the original key or uses API default
       - Random bytes follow API configuration (default: 16 bytes)
-    example: key_2cGKbMxRyIzhCxo1Idjz8q
+      
+      This is NOT the keyId - it's the actual secret token used for authentication.
+    example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
 required:
   - keyId
   - key

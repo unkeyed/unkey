@@ -930,7 +930,7 @@ components:
             type: object
             required:
                 - keyId
-                - remaining
+                - expiration
             properties:
                 keyId:
                     type: string
@@ -947,8 +947,9 @@ components:
                         - The Unkey dashboard
                         - API key listing endpoints
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
-                remaining:
+                expiration:
                     type: integer
+                    format: int64
                     minimum: 0
                     maximum: 4102444800000
                     description: |
@@ -2545,7 +2546,7 @@ components:
                 key:
                     type: string
                     description: |
-                        The newly generated API key token.
+                        The newly generated API key token (the actual secret that authenticates requests).
 
                         **SECURITY CRITICAL:**
                         - This is the only time you'll receive the complete key
@@ -2557,7 +2558,9 @@ components:
                         The key format follows: `[prefix]_[random_bytes]`
                         - Prefix is extracted from the original key or uses API default
                         - Random bytes follow API configuration (default: 16 bytes)
-                    example: key_2cGKbMxRyIzhCxo1Idjz8q
+
+                        This is NOT the keyId - it's the actual secret token used for authentication.
+                    example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
             required:
                 - keyId
                 - key
@@ -4437,6 +4440,13 @@ paths:
                 - Creating backup keys with identical permissions
 
                 **Important:** Analytics and usage metrics are tracked at both the key level AND identity level. If the original key has an identity, the new key will inherit it, allowing you to track usage across both individual keys and the overall identity.
+
+                **Required Permissions**
+
+                 Your root key must have:
+                 - `api.*.create_key` or `api.<api_id>.create_key`
+                 - `api.*.update_key` or `api.<api_id>.update_key`
+                 - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
             operationId: rerollKey
             requestBody:
                 content:

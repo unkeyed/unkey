@@ -99,6 +99,7 @@ WHERE k.id = ?
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
     AND ka.deleted_at_m IS NULL
+    AND ws.deleted_at_m IS NULL
 `
 
 type FindLiveKeyByIDRow struct {
@@ -229,6 +230,7 @@ type FindLiveKeyByIDRow struct {
 //	    AND k.deleted_at_m IS NULL
 //	    AND a.deleted_at_m IS NULL
 //	    AND ka.deleted_at_m IS NULL
+//	    AND ws.deleted_at_m IS NULL
 func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error) {
 	row := db.QueryRowContext(ctx, findLiveKeyByID, id)
 	var i FindLiveKeyByIDRow

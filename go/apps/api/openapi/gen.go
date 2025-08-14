@@ -1041,17 +1041,7 @@ type V2KeysRemoveRolesResponseData = []Role
 
 // V2KeysRerollKeyRequestBody defines model for V2KeysRerollKeyRequestBody.
 type V2KeysRerollKeyRequestBody struct {
-	// KeyId The database identifier of the key to reroll.
-	//
-	// This is the unique ID returned when creating or listing keys, NOT the actual API key token.
-	// You can find this ID in:
-	// - The response from `keys.createKey`
-	// - Key verification responses
-	// - The Unkey dashboard
-	// - API key listing endpoints
-	KeyId string `json:"keyId"`
-
-	// Remaining Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
+	// Expiration Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
 	//
 	// This parameter controls the overlap period for key rotation:
 	// - Set to `0` to revoke the original key immediately
@@ -1064,7 +1054,17 @@ type V2KeysRerollKeyRequestBody struct {
 	// - 24 hours grace period: 86400000
 	// - 7 days grace period: 604800000
 	// - 30 days grace period: 2592000000
-	Remaining int `json:"remaining"`
+	Expiration int64 `json:"expiration"`
+
+	// KeyId The database identifier of the key to reroll.
+	//
+	// This is the unique ID returned when creating or listing keys, NOT the actual API key token.
+	// You can find this ID in:
+	// - The response from `keys.createKey`
+	// - Key verification responses
+	// - The Unkey dashboard
+	// - API key listing endpoints
+	KeyId string `json:"keyId"`
 }
 
 // V2KeysRerollKeyResponseBody defines model for V2KeysRerollKeyResponseBody.
@@ -1077,7 +1077,7 @@ type V2KeysRerollKeyResponseBody struct {
 
 // V2KeysRerollKeyResponseData defines model for V2KeysRerollKeyResponseData.
 type V2KeysRerollKeyResponseData struct {
-	// Key The newly generated API key token.
+	// Key The newly generated API key token (the actual secret that authenticates requests).
 	//
 	// **SECURITY CRITICAL:**
 	// - This is the only time you'll receive the complete key
@@ -1089,6 +1089,8 @@ type V2KeysRerollKeyResponseData struct {
 	// The key format follows: `[prefix]_[random_bytes]`
 	// - Prefix is extracted from the original key or uses API default
 	// - Random bytes follow API configuration (default: 16 bytes)
+	//
+	// This is NOT the keyId - it's the actual secret token used for authentication.
 	Key string `json:"key"`
 
 	// KeyId The unique identifier for the newly created key.

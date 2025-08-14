@@ -1,7 +1,7 @@
 type: object
 required:
   - keyId
-  - remaining
+  - expiration
 properties:
   keyId:
     type: string
@@ -18,13 +18,14 @@ properties:
       - The Unkey dashboard
       - API key listing endpoints
     example: key_2cGKbMxRyIzhCxo1Idjz8q
-  remaining:
+  expiration:
     type: integer
+    format: int64
     minimum: 0
     maximum: 4102444800000
     description: |
       Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
-      
+
       This parameter controls the overlap period for key rotation:
       - Set to `0` to revoke the original key immediately
       - Positive values keep the original key active for the specified duration

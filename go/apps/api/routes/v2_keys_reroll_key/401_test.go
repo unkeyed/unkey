@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyUnauthorized(t *testing.T) {
+func TestRerollKeyUnauthorized(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
@@ -45,8 +45,8 @@ func TestCreateKeyUnauthorized(t *testing.T) {
 
 	// Basic request body
 	req := handler.Request{
-		KeyId:     key.KeyID,
-		Remaining: 0,
+		KeyId:      key.KeyID,
+		Expiration: 0,
 	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {
@@ -61,7 +61,7 @@ func TestCreateKeyUnauthorized(t *testing.T) {
 	})
 
 	t.Run("nonexistent key", func(t *testing.T) {
-		nonexistentKey := uid.New("test_nonexistent")
+		nonexistentKey := uid.New(uid.KeyPrefix)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", nonexistentKey)},

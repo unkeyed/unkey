@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"unsafe"
 )
 
 // KeyData represents the complete data for a key including all relationships
@@ -31,42 +30,62 @@ type KeyRow interface {
 
 // ToKeyData converts either query result into KeyData using generics
 func ToKeyData[T KeyRow](row T) *KeyData {
-	return toKeyDataInternal(&row)
+	switch r := any(row).(type) {
+	case FindLiveKeyByHashRow:
+		return buildKeyData(&r)
+	case *FindLiveKeyByHashRow:
+		return buildKeyData(r)
+	case FindLiveKeyByIDRow:
+		return buildKeyDataFromID(&r)
+	case *FindLiveKeyByIDRow:
+		return buildKeyDataFromID(r)
+	default:
+		return nil
+	}
 }
 
-func toKeyDataInternal[T KeyRow](r *T) *KeyData {
-	// Since both structs have identical fields, we can use any to access them
-	v := any(r)
-
-	// Type assertion to access fields - safe because of generic constraint
-	var kd *KeyData
-	switch row := v.(type) {
-	case *FindLiveKeyByHashRow:
-		kd = buildKeyData(row)
-	case *FindLiveKeyByIDRow:
-		// Cast is safe because structs have identical fields
-		kd = buildKeyData((*FindLiveKeyByHashRow)(unsafe.Pointer(row)))
-	}
-
-	return kd
+func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
+	hr := FindLiveKeyByHashRow(*r) // safe value copy
+	return buildKeyData(&hr)
 }
 
 func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 	kd := &KeyData{
 		Key: Key{
-			ID: r.ID, KeyAuthID: r.KeyAuthID, Hash: r.Hash, Start: r.Start,
-			WorkspaceID: r.WorkspaceID, ForWorkspaceID: r.ForWorkspaceID,
-			Name: r.Name, OwnerID: r.OwnerID, IdentityID: r.IdentityID,
-			Meta: r.Meta, Expires: r.Expires, CreatedAtM: r.CreatedAtM,
-			UpdatedAtM: r.UpdatedAtM, DeletedAtM: r.DeletedAtM, RefillDay: r.RefillDay,
-			RefillAmount: r.RefillAmount, LastRefillAt: r.LastRefillAt, Enabled: r.Enabled,
-			RemainingRequests: r.RemainingRequests, RatelimitAsync: r.RatelimitAsync,
-			RatelimitLimit: r.RatelimitLimit, RatelimitDuration: r.RatelimitDuration,
-			Environment: r.Environment,
+			ID:                r.ID,
+			KeyAuthID:         r.KeyAuthID,
+			Hash:              r.Hash,
+			Start:             r.Start,
+			WorkspaceID:       r.WorkspaceID,
+			ForWorkspaceID:    r.ForWorkspaceID,
+			Name:              r.Name,
+			OwnerID:           r.OwnerID,
+			IdentityID:        r.IdentityID,
+			Meta:              r.Meta,
+			Expires:           r.Expires,
+			CreatedAtM:        r.CreatedAtM,
+			UpdatedAtM:        r.UpdatedAtM,
+			DeletedAtM:        r.DeletedAtM,
+			RefillDay:         r.RefillDay,
+			RefillAmount:      r.RefillAmount,
+			LastRefillAt:      r.LastRefillAt,
+			Enabled:           r.Enabled,
+			RemainingRequests: r.RemainingRequests,
+			RatelimitAsync:    r.RatelimitAsync,
+			RatelimitLimit:    r.RatelimitLimit,
+			RatelimitDuration: r.RatelimitDuration,
+			Environment:       r.Environment,
 		},
-		Api: r.Api, KeyAuth: r.KeyAuth, Workspace: r.Workspace,
-		EncryptedKey: r.EncryptedKey, EncryptionKeyID: r.EncryptionKeyID,
-	}
+		Api:             r.Api,
+		KeyAuth:         r.KeyAuth,
+		Workspace:       r.Workspace,
+		EncryptedKey:    r.EncryptedKey,
+		EncryptionKeyID: r.EncryptionKeyID,
+		Roles:           nil,
+		Permissions:     nil,
+		RolePermissions: nil,
+		Ratelimits:      nil,
+	} //nolint:exhaustruct
 
 	if r.IdentityTableID.Valid {
 		kd.Identity = &Identity{

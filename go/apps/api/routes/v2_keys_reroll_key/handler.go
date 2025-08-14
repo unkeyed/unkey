@@ -159,7 +159,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		encryption, err = h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: s.AuthorizedWorkspaceID(),
+			Keyring: key.WorkspaceID,
 			Data:    keyResult.Key,
 		})
 
@@ -180,7 +180,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Hash:              keyResult.Hash,
 			Start:             keyResult.Start,
 			WorkspaceID:       auth.AuthorizedWorkspaceID,
-			ForWorkspaceID:    sql.NullString{String: "", Valid: false},
+			ForWorkspaceID:    key.ForWorkspaceID,
 			CreatedAtM:        now,
 			Enabled:           key.Enabled,
 			RemainingRequests: key.RemainingRequests,
@@ -288,13 +288,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
+		// Calculate the desired expiry time (rounded up to next minute)
+		desiredExpiry := time.Now().Add(time.Millisecond * time.Duration(req.Expiration))
+		// Round up to next minute (ceil)
+		if desiredExpiry.Truncate(time.Minute) != desiredExpiry {
+			desiredExpiry = desiredExpiry.Truncate(time.Minute).Add(time.Minute)
+		}
+
+		// Use the earlier of current expiry or desired expiry (don't extend)
+		finalExpiry := desiredExpiry
+		if key.Expires.Valid && key.Expires.Time.Before(desiredExpiry) {
+			finalExpiry = key.Expires.Time
+		}
+
 		err = db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
 			ID:               req.KeyId,
 			ExpiresSpecified: 1,
 			Expires: sql.NullTime{
-				Time: time.Now().
-					Add(time.Millisecond * time.Duration(req.Remaining)).
-					Truncate(time.Minute),
+				Time:  finalExpiry,
 				Valid: true,
 			},
 		})
