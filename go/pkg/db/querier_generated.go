@@ -394,7 +394,7 @@ type Querier interface {
 	//                  'identity_id', rl.identity_id,
 	//                  'limit', rl.`limit`,
 	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply
+	//                  'auto_apply', rl.auto_apply = 1
 	//              )
 	//          )
 	//          FROM ratelimits rl
@@ -484,7 +484,7 @@ type Querier interface {
 	//                  'identity_id', rl.identity_id,
 	//                  'limit', rl.`limit`,
 	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply
+	//                  'auto_apply', rl.auto_apply = 1
 	//              )
 	//          )
 	//          FROM ratelimits rl

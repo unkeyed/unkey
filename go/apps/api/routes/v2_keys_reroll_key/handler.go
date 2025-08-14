@@ -309,7 +309,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		var auditLogs []auditlog.AuditLog
 		auditLogs = append(auditLogs, auditlog.AuditLog{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.KeyCreateEvent,
+			Event:       auditlog.KeyRerollEvent,
 			ActorType:   auditlog.RootKeyActor,
 			ActorID:     auth.Key.ID,
 			ActorName:   "root key",
