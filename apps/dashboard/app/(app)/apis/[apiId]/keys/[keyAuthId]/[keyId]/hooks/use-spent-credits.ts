@@ -1,5 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { getTimestampFromRelative } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
@@ -11,11 +12,15 @@ export const useSpentCredits = (keyId: string, keyspaceId: string) => {
   const { queryTime: timestamp } = useQueryTime();
 
   const queryParams = useMemo(() => {
+    let startTime = timestamp - HISTORICAL_DATA_WINDOW;
+    let endTime = timestamp;
+    let hasSinceFilter = false;
+
     const params = {
       keyId,
       keyspaceId,
-      startTime: timestamp - HISTORICAL_DATA_WINDOW,
-      endTime: timestamp,
+      startTime,
+      endTime,
       outcomes: [] as Array<{
         value:
           | "VALID"
@@ -85,11 +90,25 @@ export const useSpentCredits = (keyId: string, keyspaceId: string) => {
           }
           break;
         }
+
+        case "since":
+          if (typeof filter.value === "string") {
+            try {
+              startTime = getTimestampFromRelative(filter.value);
+              endTime = Date.now();
+              hasSinceFilter = true;
+            } catch {
+              // Invalid since format, ignore
+            }
+          }
+          break;
       }
     });
 
     return {
       ...params,
+      startTime: hasSinceFilter ? startTime : params.startTime,
+      endTime: hasSinceFilter ? endTime : params.endTime,
       outcomes: params.outcomes.length > 0 ? params.outcomes : null,
     };
   }, [filters, timestamp, keyId, keyspaceId]);

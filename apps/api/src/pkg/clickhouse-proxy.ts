@@ -25,6 +25,7 @@ export class ClickHouseProxyClient {
       outcome: string;
       identity_id?: string;
       tags?: string[];
+      spent_credits?: number;
     }>,
   ): Promise<void> {
     await this.sendEvents("/_internal/chproxy/verifications", events);

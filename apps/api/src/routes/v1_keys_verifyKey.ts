@@ -2,6 +2,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { DisabledWorkspaceError, MissingRatelimitError } from "@/pkg/keys/service";
 import { createRoute, z } from "@hono/zod-openapi";
+
 import { SchemaError } from "@unkey/error";
 import { permissionQuerySchema } from "@unkey/rbac";
 
@@ -331,7 +332,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
     const { keyService, analytics, logger } = c.get("services");
-
     const { val, err } = await keyService.verifyKey(c, {
       key: req.key,
       apiId: req.apiId,
@@ -340,7 +340,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       ratelimits: req.ratelimits,
       remaining: req.remaining,
     });
-
     if (err) {
       switch (true) {
         case err instanceof SchemaError || err instanceof MissingRatelimitError:
@@ -409,6 +408,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
           outcome: val.code,
           identity_id: val.identity?.id,
           tags: req.tags ?? [],
+          spent_credits: val.spentCredits ?? 0,
         })
         .then(({ err }) => {
           if (!err) {
@@ -419,6 +419,5 @@ export const registerV1KeysVerifyKey = (app: App) =>
           });
         }),
     );
-
     return c.json(responseBody);
   });

@@ -72,6 +72,7 @@ export class Analytics {
         outcome: string;
         identity_id?: string;
         tags?: string[];
+        spent_credits?: number;
       }) => {
         return await wrap(
           // biome-ignore lint/style/noNonNullAssertion: proxyClient existence verified above

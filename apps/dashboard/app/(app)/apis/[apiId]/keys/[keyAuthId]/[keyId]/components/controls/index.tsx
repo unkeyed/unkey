@@ -36,11 +36,13 @@ export function KeysDetailsLogsControls({
     isError: spentCreditsError,
   } = useSpentCredits(keyId, keyspaceId);
 
-  // Safe access to remaining credit with fallback
   const hasRemainingCredit =
     data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
 
-  const hasSpentCreditsData = !spentCreditsLoading && !spentCreditsError;
+  const hasSpentCreditsData = !spentCreditsLoading && !spentCreditsError && spentCredits !== 0;
+
+  // Show credit spent when spent credits data is available (regardless of amount or remaining credits)
+  const shouldShowSpentCredits = hasSpentCreditsData && (hasRemainingCredit || spentCredits > 0);
 
   return (
     <ControlsContainer>
@@ -121,7 +123,7 @@ export function KeysDetailsLogsControls({
           ) : null}
         </AnimatePresence>
         <AnimatePresence>
-          {hasSpentCreditsData ? (
+          {shouldShowSpentCredits ? (
             <motion.div
               className="flex items-center"
               initial={{ opacity: 0, x: -5 }}
@@ -145,26 +147,49 @@ export function KeysDetailsLogsControls({
                 >
                   Credits Spent:
                 </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{
-                    delay: 0.1,
-                    duration: 0.2,
-                    scale: {
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 25,
-                    },
-                  }}
-                >
-                  <StatusBadge
-                    className="text-xs"
-                    variant={spentCredits > 0 ? "enabled" : "disabled"}
-                    text={formatNumber(spentCredits)}
-                    icon={<ChartUsage size="sm-thin" />}
-                  />
-                </motion.div>
+                {spentCredits > 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      delay: 0.1,
+                      duration: 0.2,
+                      scale: {
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 25,
+                      },
+                    }}
+                  >
+                    <StatusBadge
+                      className="text-xs"
+                      variant="enabled"
+                      text={formatNumber(spentCredits)}
+                      icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      delay: 0.1,
+                      duration: 0.2,
+                      scale: {
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 25,
+                      },
+                    }}
+                  >
+                    <StatusBadge
+                      className="text-xs"
+                      variant="disabled"
+                      text="0"
+                      icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
+                    />
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           ) : null}
