@@ -926,6 +926,43 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2KeysRemoveRolesResponseData"
+        V2KeysRerollKeyRequestBody:
+            type: object
+            required:
+                - keyId
+                - remaining
+            properties:
+                keyId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        Specifies which key to reroll using the database identifier returned from `keys.createKey`.
+                        Do not confuse this with the actual API key string that users include in requests.
+                        Find this ID in creation responses, key listings, dashboard, or verification responses.
+                    example: api_1234abcd
+                remaining:
+                    type: integer
+                    minimum: 0
+                    maximum: 4102444800000
+                    description: |
+                        Sets when the given key expires in milliseconds relative to the current time.
+
+                        Important: If set to 0, the key will expire immediately.
+
+                        When set to a positive value, the key will expire at the current time + the specified duration.
+                    example: 3600000
+        V2KeysRerollKeyResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2KeysRerollKeyResponseData"
         V2KeysSetPermissionsRequestBody:
             type: object
             required:
@@ -2476,6 +2513,20 @@ components:
                 - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
             items:
                 "$ref": "#/components/schemas/Role"
+        V2KeysRerollKeyResponseData:
+            type: object
+            properties:
+                keyId:
+                    type: string
+                    description: The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+                    example: key_2cGKbMxRyIzhCxo1Idjz8q
+                key:
+                    type: string
+                    description: "The full generated API key that should be securely provided to your user.\nSECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`)."
+                    example: prefix_1234567890abcdef
+            required:
+                - keyId
+                - key
         V2KeysSetPermissionsResponseData:
             type: array
             description: |-
@@ -4323,6 +4374,74 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: removeRoles
+    /v2/keys.rerollKey:
+        post:
+            description: |
+                Reroll a key using the database identifier returned from `keys.createKey`.
+
+                This will copy over
+                - permissions
+                - roles
+                - metadata
+                - ratelimits
+                - identity
+                - credits
+                - recoverable status
+
+                into a new key and return it.
+
+                Analytics on the old key will NOT be copied over.
+                Please set a identity on the key in order to track usage for a customer.
+            operationId: rerollKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2KeysRerollKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2KeysRerollKeyResponseBody'
+                    description: Key rerolled successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Reroll Key
+            tags:
+                - keys
+            x-speakeasy-name-override: rerollKey
     /v2/keys.setPermissions:
         post:
             description: |

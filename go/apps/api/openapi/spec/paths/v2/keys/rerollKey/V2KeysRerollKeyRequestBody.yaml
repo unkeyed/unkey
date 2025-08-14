@@ -1,0 +1,26 @@
+type: object
+required:
+  - keyId
+  - remaining
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key to reroll using the database identifier returned from `keys.createKey`.
+      Do not confuse this with the actual API key string that users include in requests.
+      Find this ID in creation responses, key listings, dashboard, or verification responses.
+    example: api_1234abcd
+  remaining:
+    type: integer
+    minimum: 0
+    maximum: 4102444800000
+    description: |
+      Sets when the given key expires in milliseconds relative to the current time.
+
+      Important: If set to 0, the key will expire immediately.
+
+      When set to a positive value, the key will expire at the current time + the specified duration.
+    example: 3600000

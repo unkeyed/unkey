@@ -1039,6 +1039,39 @@ type V2KeysRemoveRolesResponseBody struct {
 // - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
 type V2KeysRemoveRolesResponseData = []Role
 
+// V2KeysRerollKeyRequestBody defines model for V2KeysRerollKeyRequestBody.
+type V2KeysRerollKeyRequestBody struct {
+	// KeyId Specifies which key to reroll using the database identifier returned from `keys.createKey`.
+	// Do not confuse this with the actual API key string that users include in requests.
+	// Find this ID in creation responses, key listings, dashboard, or verification responses.
+	KeyId string `json:"keyId"`
+
+	// Remaining Sets when the given key expires in milliseconds relative to the current time.
+	//
+	// Important: If set to 0, the key will expire immediately.
+	//
+	// When set to a positive value, the key will expire at the current time + the specified duration.
+	Remaining int `json:"remaining"`
+}
+
+// V2KeysRerollKeyResponseBody defines model for V2KeysRerollKeyResponseBody.
+type V2KeysRerollKeyResponseBody struct {
+	Data V2KeysRerollKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2KeysRerollKeyResponseData defines model for V2KeysRerollKeyResponseData.
+type V2KeysRerollKeyResponseData struct {
+	// Key The full generated API key that should be securely provided to your user.
+	// SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
+	Key string `json:"key"`
+
+	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+	KeyId string `json:"keyId"`
+}
+
 // V2KeysSetPermissionsRequestBody defines model for V2KeysSetPermissionsRequestBody.
 type V2KeysSetPermissionsRequestBody struct {
 	// KeyId Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
@@ -1951,6 +1984,9 @@ type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
 
 // RemoveRolesJSONRequestBody defines body for RemoveRoles for application/json ContentType.
 type RemoveRolesJSONRequestBody = V2KeysRemoveRolesRequestBody
+
+// RerollKeyJSONRequestBody defines body for RerollKey for application/json ContentType.
+type RerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
 
 // SetPermissionsJSONRequestBody defines body for SetPermissions for application/json ContentType.
 type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
