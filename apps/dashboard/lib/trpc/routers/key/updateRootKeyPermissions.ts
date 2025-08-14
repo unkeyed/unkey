@@ -105,7 +105,8 @@ export const updateRootKeyPermissions = t.procedure
             .delete(schema.keysPermissions)
             .where(
               eq(schema.keysPermissions.keyId, input.keyId) &&
-                inArray(schema.keysPermissions.permissionId, permissionIdsToRemove),
+                inArray(schema.keysPermissions.permissionId, permissionIdsToRemove) &&
+                eq(schema.keysPermissions.workspaceId, ctx.workspace.id),
             )
             .catch((_err) => {
               throw new TRPCError({

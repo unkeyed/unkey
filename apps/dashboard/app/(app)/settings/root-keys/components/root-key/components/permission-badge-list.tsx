@@ -25,21 +25,17 @@ const PermissionBadgeList = ({
   expandCount,
   removePermission,
 }: Props) => {
-  const workspace = workspacePermissions;
-  const allPermissions = apiId === "workspace" ? workspace : apiPermissions(apiId);
-
   // Flatten allPermissions into an array of {permission, action} objects
-  const allPermissionsArray = useMemo(
-    () =>
-      Object.entries(allPermissions).flatMap(([category, permissions]) =>
-        Object.entries(permissions).map(([action, permissionData]) => ({
-          permission: permissionData.permission,
-          category,
-          action,
-        })),
-      ),
-    [allPermissions],
-  );
+  const allPermissionsArray = useMemo(() => {
+    const allPermissions = apiId === "workspace" ? workspacePermissions : apiPermissions(apiId);
+    return Object.entries(allPermissions).flatMap(([category, permissions]) =>
+      Object.entries(permissions).map(([action, permissionData]) => ({
+        permission: permissionData.permission,
+        category,
+        action,
+      })),
+    );
+  }, [apiId]);
 
   const info = useMemo(
     () => findPermission(allPermissionsArray, selectedPermissions),
@@ -70,37 +66,34 @@ const PermissionBadgeList = ({
 const ListBadges = ({
   info,
   removePermission,
-}: { info: PermissionInfo; removePermission: (permission: string) => void }) => {
+}: { info: PermissionInfo; removePermission: (permission: UnkeyPermission) => void }) => {
   // Stop propagation to prevent triggering parent collapsible when removing permissions
-  const handleRemovePermissionClick = (e: React.MouseEvent<HTMLButtonElement>, permission: string) => {
+  const handleRemovePermissionClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    permission: UnkeyPermission,
+  ) => {
     e.stopPropagation();
     removePermission(permission);
   };
   return (
     <div className="flex flex-wrap gap-2 pt-2">
-      {info?.map((permission) => {
-        if (!permission) {
-          return null;
-        }
-
-        return (
-          <Badge
-            key={permission.permission}
-            variant="primary"
-            className="flex items-center h-[22px] p-[6px] px-2 text-xs font-normal text-grayA-11 hover:bg-grayA-2 hover:text-grayA-12 gap-2"
+      {info.map((permission) => (
+        <Badge
+          key={permission.permission}
+          variant="primary"
+          className="flex items-center h-[22px] p-[6px] px-2 text-xs font-normal text-grayA-11 hover:bg-grayA-2 hover:text-grayA-12 gap-2"
+        >
+          <span>{permission.action}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-4 h-4"
+            onClick={(e) => handleRemovePermissionClick(e, permission.permission)}
           >
-            <span>{permission.action}</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-4 h-4"
-              onClick={(e) => handleRemovePermissionClick(e, permission.permission)}
-            >
-              <XMark className="w-4 h-4" />
-            </Button>
-          </Badge>
-        );
-      })}
+            <XMark className="w-4 h-4" />
+          </Button>
+        </Badge>
+      ))}
     </div>
   );
 };
@@ -109,9 +102,8 @@ type CollapsibleListProps = {
   info: PermissionInfo;
   title: string;
   expandCount: number;
-  removePermission: (permission: string) => void;
+  removePermission: (permission: UnkeyPermission) => void;
   name: string;
-  className?: string;
 } & React.ComponentProps<typeof CollapsibleTrigger>;
 
 const CollapsibleList = ({

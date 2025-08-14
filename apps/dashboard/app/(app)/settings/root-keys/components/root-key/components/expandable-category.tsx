@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import { ChevronDown } from "@unkey/icons";
 import { Checkbox } from "@unkey/ui";
+import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
 
 type ExpandableCategoryProps = {
   category: string;
@@ -12,21 +13,17 @@ type ExpandableCategoryProps = {
   checked: CheckedState | undefined;
   setChecked: (checked: CheckedState) => void;
   count: number;
-} & React.ComponentProps<typeof CollapsibleTrigger>;
+} & ComponentPropsWithoutRef<typeof CollapsibleTrigger>;
 
-export const ExpandableCategory = ({
-  category,
-  description,
-  checked,
-  setChecked,
-  count,
-  ...props
-}: ExpandableCategoryProps) => {
+const ExpandableCategory = forwardRef<
+  ElementRef<typeof CollapsibleTrigger>,
+  ExpandableCategoryProps
+>(({ category, description, checked, setChecked, count, ...props }, ref) => {
   if (count === 0) {
     return null;
   }
   return (
-    <div className="flex flex-row items-center justify-evenly gap-3 transition-all pl-3 pr-2 h-full my-2">
+    <div className="flex flex-row items-center justify-start gap-3 transition-all pl-3 pr-2 h-full my-2">
       <div className="flex items-center justify-center">
         <Checkbox
           checked={checked}
@@ -36,9 +33,10 @@ export const ExpandableCategory = ({
         />
       </div>
       <CollapsibleTrigger
+        ref={ref}
         {...props}
         className={cn(
-          "flex items-center justify-evenly gap-3 transition-all pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-180 w-full",
+          "flex items-center justify-start gap-3 transition-all pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-180 w-full",
           props.className,
         )}
       >
@@ -46,8 +44,15 @@ export const ExpandableCategory = ({
           <p className="text-sm w-full">{category}</p>
           <p className="text-xs text-gray-10 w-full truncate">{description}</p>
         </div>
-        <ChevronDown className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-8" />
+        <ChevronDown
+          className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-8"
+          aria-hidden="true"
+        />
       </CollapsibleTrigger>
     </div>
   );
-};
+});
+
+ExpandableCategory.displayName = "ExpandableCategory";
+
+export { ExpandableCategory };
