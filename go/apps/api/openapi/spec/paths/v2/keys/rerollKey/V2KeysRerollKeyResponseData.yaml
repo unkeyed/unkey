@@ -1,0 +1,36 @@
+type: object
+properties:
+  keyId:
+    type: string
+    description: |
+      The unique identifier for the newly created key.
+
+      This is NOT the actual API key token, but a reference ID for management operations.
+      Store this ID to:
+      - Update or revoke the key later
+      - Track the key in your database
+      - Display in admin dashboards (safe to log)
+
+      Note: This is a new ID - the original key retains its own ID.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  key:
+    type: string
+    description: |
+      The newly generated API key token (the actual secret that authenticates requests).
+
+      **SECURITY CRITICAL:**
+      - This is the only time you'll receive the complete key
+      - Unkey stores only a hashed version (unless the original key was created with `recoverable=true`)
+      - Never log, store, or expose this value in your systems
+      - Transmit directly to the end user via secure channels only
+      - If lost and not recoverable, you must reroll or create a new key
+
+      The key format follows: `[prefix]_[random_bytes]`
+      - Prefix is extracted from the original key or uses API default
+      - Random bytes follow API configuration (default: 16 bytes)
+      
+      This is NOT the keyId - it's the actual secret token used for authentication.
+    example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
+required:
+  - keyId
+  - key
