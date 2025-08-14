@@ -179,7 +179,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			KeyringID:         key.KeyAuthID,
 			Hash:              keyResult.Hash,
 			Start:             keyResult.Start,
-			WorkspaceID:       auth.AuthorizedWorkspaceID,
+			WorkspaceID:       key.WorkspaceID,
 			ForWorkspaceID:    key.ForWorkspaceID,
 			CreatedAtM:        now,
 			Enabled:           key.Enabled,
@@ -289,23 +289,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Calculate the desired expiry time (rounded up to next minute)
-		desiredExpiry := time.Now().Add(time.Millisecond * time.Duration(req.Expiration))
+		expiration := time.Now().Add(time.Millisecond * time.Duration(req.Expiration))
 		// Round up to next minute (ceil)
-		if desiredExpiry.Truncate(time.Minute) != desiredExpiry {
-			desiredExpiry = desiredExpiry.Truncate(time.Minute).Add(time.Minute)
+		if expiration.Truncate(time.Minute) != expiration {
+			expiration = expiration.Truncate(time.Minute).Add(time.Minute)
 		}
 
-		// Use the earlier of current expiry or desired expiry (don't extend)
-		finalExpiry := desiredExpiry
-		if key.Expires.Valid && key.Expires.Time.Before(desiredExpiry) {
-			finalExpiry = key.Expires.Time
+		if req.Expiration == 0 {
+			expiration = time.Now()
 		}
 
 		err = db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
 			ID:               req.KeyId,
 			ExpiresSpecified: 1,
 			Expires: sql.NullTime{
-				Time:  finalExpiry,
+				Time:  expiration,
 				Valid: true,
 			},
 		})

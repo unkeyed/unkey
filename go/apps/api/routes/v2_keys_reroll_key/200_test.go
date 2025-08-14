@@ -214,7 +214,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.Equal(t, createdRatelimitMap, rolledRatelimitMap, "ratelimit maps should be equal")
 	})
 
-	t.Run("reroll sets TTL on original key when Remaining provided", func(t *testing.T) {
+	t.Run("reroll sets TTL on original key when expiration is provided", func(t *testing.T) {
 		ttlMs := int64(60000) // 60 seconds
 
 		key := h.CreateKey(seed.CreateKeyRequest{
@@ -241,7 +241,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.True(t, createdKeyRow.Expires.Valid, "original key should have expiration set")
 
 		expMs := createdKeyRow.Expires.Time.UnixMilli()
-		// Account for rounding up to next minute (can add up to 60 seconds)
+		// Account for minute alignment in the handler (tolerate up to 60 seconds)
 		require.True(t, expMs >= now && expMs <= now+int64(ttlMs)+60000,
 			"original key expiration should be between now and now+TTL+1min for rounding (got %d, expected between %d and %d)",
 			expMs, now, now+int64(ttlMs)+60000)

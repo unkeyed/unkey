@@ -4430,8 +4430,8 @@ paths:
                 - Key length follows the API's default byte configuration (or 16 bytes if not specified)
 
                 **Original Key Handling:**
-                - The original key will be revoked after the duration specified in `remaining`
-                - Set `remaining` to 0 to revoke immediately
+                - The original key will be revoked after the duration specified in `expiration`
+                - Set `expiration` to 0 to revoke immediately
                 - This allows for graceful key rotation with an overlap period
 
                 Common use cases include:
@@ -4445,7 +4445,6 @@ paths:
 
                  Your root key must have:
                  - `api.*.create_key` or `api.<api_id>.create_key`
-                 - `api.*.update_key` or `api.<api_id>.update_key`
                  - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
             operationId: rerollKey
             requestBody:
