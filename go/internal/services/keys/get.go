@@ -35,7 +35,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	if err != nil {
 		return nil, log, err
 	}
-	
+
 	if key.Key.ForWorkspaceID.Valid {
 		key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	}
@@ -117,7 +117,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	// The DB returns this in array format and an empty array if not found
 	var roles, permissions []string
 	var ratelimitArr []db.KeyFindForVerificationRatelimit
-	
+
 	// Safely handle roles field
 	rolesBytes, ok := key.Roles.([]byte)
 	if !ok || rolesBytes == nil {
@@ -128,7 +128,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal roles"))
 		}
 	}
-	
+
 	// Safely handle permissions field
 	permissionsBytes, ok := key.Permissions.([]byte)
 	if !ok || permissionsBytes == nil {
@@ -139,7 +139,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
 		}
 	}
-	
+
 	// Safely handle ratelimits field
 	ratelimitsBytes, ok := key.Ratelimits.([]byte)
 	if !ok || ratelimitsBytes == nil {
