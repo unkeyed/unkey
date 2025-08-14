@@ -55,6 +55,7 @@ export const RootKeyDialog = ({
     handlePermissionChange,
     handleCreateKey,
     handleClose,
+    hasChanges,
   } = useRootKeyDialog({
     editMode,
     existingKey,
@@ -76,7 +77,7 @@ export const RootKeyDialog = ({
               variant="primary"
               size="xlg"
               className="w-full rounded-lg"
-              disabled={selectedPermissions.length === 0}
+              disabled={!hasChanges}
               onClick={handleCreateKey}
               loading={key.isLoading || updateName.isLoading || updatePermissions.isLoading}
             >

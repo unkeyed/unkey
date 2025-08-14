@@ -38,6 +38,11 @@ export function usePermissions({
     return filterPermissionList(permissionList, searchValue);
   }, [permissionList, searchValue]);
 
+  // Get filtered permissions for this type
+  const filteredPermissionsForType = useMemo(() => {
+    return getAllPermissionNames(filteredPermissionList);
+  }, [filteredPermissionList]);
+
   // Compute current state based on selected permissions
   const currentSelected = useMemo(() => {
     return getAllPermissionNames(permissionList).filter((permission) =>
@@ -51,26 +56,58 @@ export function usePermissions({
 
   // Event handlers
   const handleRootToggle = useCallback(() => {
-    const allPermissionNames = getAllPermissionNames(filteredPermissionList);
-    const allSelected = currentSelected.length === allPermissionNames.length;
-    const newSelected = allSelected ? [] : allPermissionNames;
+    // Get permissions that are NOT in the current filtered view
+    const permissionsNotInFilteredView = selected.filter(
+      (permission) => !filteredPermissionsForType.includes(permission),
+    );
+
+    // Check if all filtered permissions are currently selected
+    const allFilteredSelected = filteredPermissionsForType.every((permission) =>
+      selected.includes(permission),
+    );
+
+    // If all filtered permissions are selected, remove them. Otherwise, add all filtered permissions
+    const newFilteredPermissions = allFilteredSelected ? [] : filteredPermissionsForType;
+
+    // Combine non-filtered permissions with the new filtered permissions
+    const newSelected = [...permissionsNotInFilteredView, ...newFilteredPermissions];
+
     onPermissionChange(newSelected);
-  }, [filteredPermissionList, currentSelected, onPermissionChange]);
+  }, [filteredPermissionsForType, selected, onPermissionChange]);
 
   const handleCategoryToggle = useCallback(
     (category: string) => {
+      // Get permissions that are NOT in the current filtered view
+      const permissionsNotInFilteredView = selected.filter(
+        (permission) => !filteredPermissionsForType.includes(permission),
+      );
+
+      // Get permissions for this specific category in the filtered view
       const categoryPermissions = Object.values(filteredPermissionList[category] || {}).map(
         ({ permission }) => permission,
       );
-      const allSelected = categoryPermissions.every((p) => currentSelected.includes(p));
 
-      const newSelected = allSelected
-        ? currentSelected.filter((p) => !categoryPermissions.includes(p))
-        : Array.from(new Set([...currentSelected, ...categoryPermissions]));
+      // Check if all category permissions are currently selected
+      const allCategorySelected = categoryPermissions.every((p) => selected.includes(p));
+
+      // Get permissions from other categories in the filtered view
+      const otherFilteredPermissions = filteredPermissionsForType.filter(
+        (permission) => !categoryPermissions.includes(permission) && selected.includes(permission),
+      );
+
+      // If all category permissions are selected, remove them. Otherwise, add all category permissions
+      const newCategoryPermissions = allCategorySelected ? [] : categoryPermissions;
+
+      // Combine all permissions
+      const newSelected = [
+        ...permissionsNotInFilteredView,
+        ...otherFilteredPermissions,
+        ...newCategoryPermissions,
+      ];
 
       onPermissionChange(newSelected);
     },
-    [filteredPermissionList, currentSelected, onPermissionChange],
+    [filteredPermissionList, filteredPermissionsForType, selected, onPermissionChange],
   );
 
   const handlePermissionToggle = useCallback(

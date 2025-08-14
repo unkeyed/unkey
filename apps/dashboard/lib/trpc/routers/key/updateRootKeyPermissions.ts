@@ -31,7 +31,7 @@ export const updateRootKeyPermissions = t.procedure
         where: (table, { and, eq, isNull }) =>
           and(
             eq(table.id, input.keyId),
-            eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
+            eq(table.forWorkspaceId, ctx.workspace.id),
             isNull(table.deletedAtM),
           ),
       })
@@ -44,14 +44,6 @@ export const updateRootKeyPermissions = t.procedure
       });
 
     if (!key) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Root key not found",
-      });
-    }
-
-    // Verify the key belongs to the current workspace
-    if (key.forWorkspaceId !== ctx.workspace.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Root key not found",
@@ -105,8 +97,7 @@ export const updateRootKeyPermissions = t.procedure
             .delete(schema.keysPermissions)
             .where(
               eq(schema.keysPermissions.keyId, input.keyId) &&
-                inArray(schema.keysPermissions.permissionId, permissionIdsToRemove) &&
-                eq(schema.keysPermissions.workspaceId, ctx.workspace.id),
+                inArray(schema.keysPermissions.permissionId, permissionIdsToRemove),
             )
             .catch((_err) => {
               throw new TRPCError({

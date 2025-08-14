@@ -4,6 +4,42 @@ import { toast } from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "../constants";
 
+// Utility function for robust permission array comparison
+function arePermissionArraysEqual(
+  permissions1: UnkeyPermission[],
+  permissions2: UnkeyPermission[],
+): boolean {
+  // Handle edge cases
+  if (permissions1 === permissions2) {
+    return true;
+  }
+  if (permissions1.length !== permissions2.length) {
+    return false;
+  }
+  if (permissions1.length === 0) {
+    return true;
+  }
+
+  // Normalize permissions by sorting and creating a canonical representation
+  const normalizePermissions = (perms: UnkeyPermission[]): string[] => {
+    return perms
+      .map((p) => String(p)) // Ensure all permissions are strings
+      .sort(); // Sort for consistent comparison
+  };
+
+  const normalized1 = normalizePermissions(permissions1);
+  const normalized2 = normalizePermissions(permissions2);
+
+  // Compare each permission
+  for (let i = 0; i < normalized1.length; i++) {
+    if (normalized1[i] !== normalized2[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 type UseRootKeyDialogProps = {
   editMode?: boolean;
   existingKey?: {
@@ -154,6 +190,23 @@ export function useRootKeyDialog({
     }
   }, [existingKey]);
 
+  // Check if there are any changes to enable/disable the update button
+  const hasChanges = useMemo(() => {
+    if (!editMode || !existingKey) {
+      // For create mode, button should be enabled if there are permissions
+      return selectedPermissions.length > 0;
+    }
+
+    // For edit mode, check if name or permissions have changed
+    const nameChanged = name !== existingKey.name;
+    const permissionsChanged = !arePermissionArraysEqual(
+      selectedPermissions,
+      existingKey.permissions,
+    );
+
+    return nameChanged || permissionsChanged;
+  }, [editMode, existingKey, name, selectedPermissions]);
+
   return {
     name,
     setName,
@@ -169,5 +222,6 @@ export function useRootKeyDialog({
     handlePermissionChange,
     handleCreateKey,
     handleClose,
+    hasChanges,
   };
 }

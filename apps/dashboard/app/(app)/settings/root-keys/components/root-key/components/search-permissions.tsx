@@ -31,7 +31,7 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
           inputRef={inputRef}
         />
       </div>
-      <div className="absolute right-2">
+      <div className="ml-auto pr-2 flex-shrink-0">
         <InfoTooltip content={ROOT_KEY_MESSAGES.UI.CLEAR_SEARCH}>
           <Button
             variant="ghost"

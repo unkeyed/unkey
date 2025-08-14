@@ -13,7 +13,7 @@ type ExpandableCategoryProps = {
   checked: CheckedState | undefined;
   setChecked: (checked: CheckedState) => void;
   count: number;
-} & ComponentPropsWithoutRef<typeof CollapsibleTrigger>;
+} & Omit<ComponentPropsWithoutRef<typeof CollapsibleTrigger>, "children" | "asChild">;
 
 const ExpandableCategory = forwardRef<
   ElementRef<typeof CollapsibleTrigger>,

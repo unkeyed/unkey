@@ -140,7 +140,7 @@ const ListTitle = ({
   category,
 }: { title: string; count: number; category: string }) => {
   return (
-    <p className="text-sm w-full text-grayA-10 justify-start text-left">
+    <span className="text-sm flex-1 text-grayA-10 text-left">
       {title}
       <span className="font-bold text-gray-11 ml-2">{category}</span>
       <Badge
@@ -150,7 +150,7 @@ const ListTitle = ({
       >
         {count}
       </Badge>
-    </p>
+    </span>
   );
 };
 
