@@ -1,63 +1,129 @@
-import type { FilterValue, StringConfig } from "@/components/logs/validation/filter.types";
+import type {
+  FilterValue,
+  NumberConfig,
+  StringConfig,
+} from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
-const commonStringOperators = ["is", "contains"] as const;
+const DEPLOYMENT_STATUSES = [
+  "pending",
+  "downloading_docker_image",
+  "building_rootfs",
+  "uploading_rootfs",
+  "creating_vm",
+  "booting_vm",
+  "assigning_domains",
+  "completed",
+  "failed",
+] as const;
 
-export const rootKeysFilterOperatorEnum = z.enum(commonStringOperators);
-export type RootKeysFilterOperator = z.infer<typeof rootKeysFilterOperatorEnum>;
+const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
+
+export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];
+export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
+
+const allOperators = ["is", "contains"] as const;
+
+export const deploymentListFilterOperatorEnum = z.enum(allOperators);
+export type DeploymentListFilterOperator = z.infer<typeof deploymentListFilterOperatorEnum>;
 
 export type FilterFieldConfigs = {
-  name: StringConfig<RootKeysFilterOperator>;
-  start: StringConfig<RootKeysFilterOperator>;
-  permission: StringConfig<RootKeysFilterOperator>;
+  status: StringConfig<DeploymentListFilterOperator>;
+  environment: StringConfig<DeploymentListFilterOperator>;
+  branch: StringConfig<DeploymentListFilterOperator>;
+  startTime: NumberConfig<DeploymentListFilterOperator>;
+  endTime: NumberConfig<DeploymentListFilterOperator>;
+  since: StringConfig<DeploymentListFilterOperator>;
 };
 
-export const rootKeysFilterFieldConfig: FilterFieldConfigs = {
-  name: {
+export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
+  status: {
     type: "string",
-    operators: [...commonStringOperators],
+    operators: ["is"],
+    validValues: DEPLOYMENT_STATUSES,
+    getColorClass: (value) => {
+      if (value === "completed") {
+        return "bg-success-9";
+      }
+      if (value === "failed") {
+        return "bg-error-9";
+      }
+      if (value === "pending") {
+        return "bg-gray-9";
+      }
+      return "bg-info-9";
+    },
   },
-  start: {
+  environment: {
     type: "string",
-    operators: [...commonStringOperators],
+    operators: ["is"],
+    validValues: DEPLOYMENT_ENVIRONMENTS,
+    getColorClass: (value) => {
+      if (value === "production") {
+        return "bg-warning-9";
+      }
+      return "bg-info-9";
+    },
   },
-  permission: {
+  branch: {
     type: "string",
     operators: ["contains"],
   },
+  startTime: {
+    type: "number",
+    operators: ["is"],
+  },
+  endTime: {
+    type: "number",
+    operators: ["is"],
+  },
+  since: {
+    type: "string",
+    operators: ["is"],
+  },
 };
 
-const allFilterFieldNames = Object.keys(rootKeysFilterFieldConfig) as (keyof FilterFieldConfigs)[];
+const allFilterFieldNames = Object.keys(
+  deploymentListFilterFieldConfig,
+) as (keyof FilterFieldConfigs)[];
 
 if (allFilterFieldNames.length === 0) {
-  throw new Error("rootKeysFilterFieldConfig must contain at least one field definition.");
+  throw new Error("deploymentListFilterFieldConfig must contain at least one field definition.");
 }
 
 const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
 
-export const rootKeysFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
-export const rootKeysListFilterFieldNames = allFilterFieldNames;
-export type RootKeysFilterField = z.infer<typeof rootKeysFilterFieldEnum>;
+export const deploymentListFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
+export const deploymentListFilterFieldNames = allFilterFieldNames;
+export type DeploymentListFilterField = z.infer<typeof deploymentListFilterFieldEnum>;
 
 export const filterOutputSchema = createFilterOutputSchema(
-  rootKeysFilterFieldEnum,
-  rootKeysFilterOperatorEnum,
-  rootKeysFilterFieldConfig,
+  deploymentListFilterFieldEnum,
+  deploymentListFilterOperatorEnum,
+  deploymentListFilterFieldConfig,
 );
 
-export type AllOperatorsUrlValue = {
-  value: string;
-  operator: RootKeysFilterOperator;
+export type DeploymentListFilterUrlValue = Pick<
+  FilterValue<DeploymentListFilterField, DeploymentListFilterOperator>,
+  "value" | "operator"
+>;
+
+export type DeploymentListFilterValue = FilterValue<
+  DeploymentListFilterField,
+  DeploymentListFilterOperator
+>;
+
+export type DeploymentListQuerySearchParams = {
+  status: DeploymentListFilterUrlValue[] | null;
+  environment: DeploymentListFilterUrlValue[] | null;
+  branch: DeploymentListFilterUrlValue[] | null;
+  startTime?: number | null;
+  endTime?: number | null;
+  since?: string | null;
 };
 
-export type RootKeysFilterValue = FilterValue<RootKeysFilterField, RootKeysFilterOperator>;
-
-export type RootKeysQuerySearchParams = {
-  [K in RootKeysFilterField]?: AllOperatorsUrlValue[] | null;
-};
-
-export const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<RootKeysFilterOperator>([
-  ...commonStringOperators,
-]);
+export const parseAsAllOperatorsFilterArray = parseAsFilterValueArray<DeploymentListFilterOperator>(
+  [...allOperators],
+);

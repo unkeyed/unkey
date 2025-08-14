@@ -3,32 +3,57 @@ import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-
 import {
-  type RootKeysFilterField,
-  rootKeysFilterFieldConfig,
-  rootKeysListFilterFieldNames,
+  type DeploymentListFilterField,
+  deploymentListFilterFieldConfig,
 } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
+import { DeploymentStatusFilter } from "./components/deployment-status-filter";
+import { EnvironmentFilter } from "./components/environment-filter";
 
-const FIELD_DISPLAY_CONFIG: Record<RootKeysFilterField, { label: string; shortcut: string }> = {
-  name: { label: "Name", shortcut: "n" },
-  start: { label: "Key", shortcut: "k" },
-  permission: { label: "Permission", shortcut: "p" },
+const FIELD_DISPLAY_CONFIG: Record<
+  Exclude<DeploymentListFilterField, "startTime" | "endTime" | "since">,
+  { label: string; shortcut: string }
+> = {
+  status: { label: "Status", shortcut: "s" },
+  environment: { label: "Environment", shortcut: "e" },
+  branch: { label: "Branch", shortcut: "b" },
 } as const;
 
-export const RootKeysFilters = () => {
+const displayableFields: (keyof typeof FIELD_DISPLAY_CONFIG)[] = [
+  "status",
+  "environment",
+  "branch",
+];
+
+export const DeploymentListFilters = () => {
   const { filters, updateFilters } = useFilters();
 
-  // Generate filter items dynamically from schema
-  const filterItems = rootKeysListFilterFieldNames.map((fieldName) => {
-    const fieldConfig = rootKeysFilterFieldConfig[fieldName];
+  // Generate filter items only for displayable fields
+  const filterItems = displayableFields.map((fieldName) => {
+    const fieldConfig = deploymentListFilterFieldConfig[fieldName];
     const displayConfig = FIELD_DISPLAY_CONFIG[fieldName];
 
-    if (!displayConfig) {
-      throw new Error(`Missing display configuration for field: ${fieldName}`);
+    // Use checkbox components for status and environment
+    if (fieldName === "status") {
+      return {
+        id: fieldName,
+        label: displayConfig.label,
+        shortcut: displayConfig.shortcut,
+        component: <DeploymentStatusFilter />,
+      };
     }
 
+    if (fieldName === "environment") {
+      return {
+        id: fieldName,
+        label: displayConfig.label,
+        shortcut: displayConfig.shortcut,
+        component: <EnvironmentFilter />,
+      };
+    }
+
+    // Use operator input for other fields (like branch)
     const options = fieldConfig.operators.map((op) => ({
       id: op,
       label: op,
@@ -49,7 +74,6 @@ export const RootKeysFilters = () => {
           onApply={(operator, text) => {
             // Remove existing filters for this field
             const filtersWithoutCurrent = filters.filter((f) => f.field !== fieldName);
-
             // Add new filter
             updateFilters([
               ...filtersWithoutCurrent,
@@ -75,7 +99,7 @@ export const RootKeysFilters = () => {
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filters.length > 0 ? "bg-gray-4" : "",
           )}
-          aria-label="Filter logs"
+          aria-label="Filter deployments"
           aria-haspopup="true"
           size="md"
           title="Press 'F' to toggle filters"

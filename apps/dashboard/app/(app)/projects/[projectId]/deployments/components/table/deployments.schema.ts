@@ -1,14 +1,17 @@
 import { z } from "zod";
-import { rootKeysFilterOperatorEnum, rootKeysListFilterFieldNames } from "../../filters.schema";
+import {
+  deploymentListFilterFieldNames,
+  deploymentListFilterOperatorEnum,
+} from "../../filters.schema";
 
 const filterItemSchema = z.object({
-  operator: rootKeysFilterOperatorEnum,
+  operator: deploymentListFilterOperatorEnum,
   value: z.string(),
 });
 
 const baseFilterArraySchema = z.array(filterItemSchema).nullish();
 
-const filterFieldsSchema = rootKeysListFilterFieldNames.reduce(
+const filterFieldsSchema = deploymentListFilterFieldNames.reduce(
   (acc, fieldName) => {
     acc[fieldName] = baseFilterArraySchema;
     return acc;

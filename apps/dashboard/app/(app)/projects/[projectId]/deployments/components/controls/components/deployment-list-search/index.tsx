@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import { LLMSearch, toast } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
-export const RootKeysSearch = () => {
+export const DeploymentListSearch = () => {
   const { filters, updateFilters } = useFilters();
 
   const queryLLMForStructuredOutput = trpc.settings.rootKeys.llmSearch.useMutation({

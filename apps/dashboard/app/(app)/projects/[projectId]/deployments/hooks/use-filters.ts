@@ -1,18 +1,27 @@
 import { useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
-  type AllOperatorsUrlValue,
-  type RootKeysFilterField,
-  type RootKeysFilterValue,
-  type RootKeysQuerySearchParams,
+  type DeploymentListFilterField,
+  type DeploymentListFilterUrlValue,
+  type DeploymentListFilterValue,
+  deploymentListFilterFieldConfig,
+  deploymentListFilterFieldNames,
   parseAsAllOperatorsFilterArray,
-  rootKeysFilterFieldConfig,
-  rootKeysListFilterFieldNames,
 } from "../filters.schema";
 
+// Only include fields that use filter arrays (exclude time fields)
+const arrayFilterFields = deploymentListFilterFieldNames.filter(
+  (field) => !["startTime", "endTime", "since"].includes(field),
+) as Exclude<DeploymentListFilterField, "startTime" | "endTime" | "since">[];
+
 export const queryParamsPayload = Object.fromEntries(
-  rootKeysListFilterFieldNames.map((field) => [field, parseAsAllOperatorsFilterArray]),
-) as { [K in RootKeysFilterField]: typeof parseAsAllOperatorsFilterArray };
+  arrayFilterFields.map((field) => [field, parseAsAllOperatorsFilterArray]),
+) as {
+  [K in Exclude<
+    DeploymentListFilterField,
+    "startTime" | "endTime" | "since"
+  >]: typeof parseAsAllOperatorsFilterArray;
+};
 
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
@@ -20,17 +29,16 @@ export const useFilters = () => {
   });
 
   const filters = useMemo(() => {
-    const activeFilters: RootKeysFilterValue[] = [];
+    const activeFilters: DeploymentListFilterValue[] = [];
 
-    for (const field of rootKeysListFilterFieldNames) {
+    for (const field of arrayFilterFields) {
       const value = searchParams[field];
       if (!Array.isArray(value)) {
         continue;
       }
-
       for (const filterItem of value) {
         if (filterItem && typeof filterItem.value === "string" && filterItem.operator) {
-          const baseFilter: RootKeysFilterValue = {
+          const baseFilter: DeploymentListFilterValue = {
             id: crypto.randomUUID(),
             field: field,
             operator: filterItem.operator,
@@ -40,25 +48,24 @@ export const useFilters = () => {
         }
       }
     }
-
     return activeFilters;
   }, [searchParams]);
 
   const updateFilters = useCallback(
-    (newFilters: RootKeysFilterValue[]) => {
-      const newParams: Partial<RootKeysQuerySearchParams> = Object.fromEntries(
-        rootKeysListFilterFieldNames.map((field) => [field, null]),
+    (newFilters: DeploymentListFilterValue[]) => {
+      const newParams: Record<string, DeploymentListFilterUrlValue[] | null> = Object.fromEntries(
+        arrayFilterFields.map((field) => [field, null]),
       );
 
-      const filtersByField = new Map<RootKeysFilterField, AllOperatorsUrlValue[]>();
-      rootKeysListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
+      const filtersByField = new Map<DeploymentListFilterField, DeploymentListFilterUrlValue[]>();
+      deploymentListFilterFieldNames.forEach((field) => filtersByField.set(field, []));
 
       newFilters.forEach((filter) => {
-        if (!rootKeysListFilterFieldNames.includes(filter.field)) {
+        if (!deploymentListFilterFieldNames.includes(filter.field)) {
           throw new Error(`Invalid filter field: ${filter.field}`);
         }
 
-        const fieldConfig = rootKeysFilterFieldConfig[filter.field];
+        const fieldConfig = deploymentListFilterFieldConfig[filter.field];
         if (!fieldConfig.operators.includes(filter.operator)) {
           throw new Error(`Invalid operator '${filter.operator}' for field '${filter.field}'`);
         }

@@ -13,17 +13,7 @@ import {
 import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { FC } from "react";
-
-type DeploymentStatus =
-  | "pending"
-  | "downloading_docker_image"
-  | "building_rootfs"
-  | "uploading_rootfs"
-  | "creating_vm"
-  | "booting_vm"
-  | "assigning_domains"
-  | "completed"
-  | "failed";
+import type { DeploymentStatus } from "../../../filters.schema";
 
 type StatusConfig = {
   icon: FC<IconProps>;
