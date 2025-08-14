@@ -1,6 +1,5 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
 import { db, eq, inArray, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
@@ -70,17 +69,14 @@ export const updateRootKeyPermissions = t.procedure
           });
 
         // Upsert new permissions
-        const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
-          ctx,
-          env().UNKEY_WORKSPACE_ID,
-          input.permissions,
-        );
+        const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
+          await upsertPermissions(ctx, ctx.workspace.id, input.permissions);
 
         auditLogs.push(...createPermissionLogs);
 
         // Get current permission IDs for comparison
         const currentPermissionIds = new Set(currentPermissions.map((kp) => kp.permissionId));
-        const newPermissionIds = new Set(permissions.map((p) => p.id));
+        const newPermissionIds = new Set(upsertedPermissions.map((p) => p.id));
 
         // Find permissions to remove (in current but not in new)
         const permissionsToRemove = currentPermissions.filter(
@@ -88,7 +84,7 @@ export const updateRootKeyPermissions = t.procedure
         );
 
         // Find permissions to add (in new but not in current)
-        const permissionsToAdd = permissions.filter((p) => !currentPermissionIds.has(p.id));
+        const permissionsToAdd = upsertedPermissions.filter((p) => !currentPermissionIds.has(p.id));
 
         // Remove only the permissions that are no longer needed
         if (permissionsToRemove.length > 0) {
@@ -139,7 +135,7 @@ export const updateRootKeyPermissions = t.procedure
             permissionsToAdd.map((p) => ({
               keyId: input.keyId,
               permissionId: p.id,
-              workspaceId: env().UNKEY_WORKSPACE_ID,
+              workspaceId: ctx.workspace.id,
             })),
           );
 

@@ -49,8 +49,7 @@ export function useRootKeySuccess({ keyValue, onClose }: UseRootKeySuccessProps)
           router.push("/settings/root-keys");
           break;
       }
-    } catch (error) {
-      console.error("Error executing pending action:", error);
+    } catch (_error) {
       toast.error(ROOT_KEY_MESSAGES.ERROR.ACTION_FAILED, {
         description: ROOT_KEY_MESSAGES.ERROR.ACTION_FAILED_DESCRIPTION,
       });

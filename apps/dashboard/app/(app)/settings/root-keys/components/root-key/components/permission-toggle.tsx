@@ -10,7 +10,6 @@ type PermissionToggleProps = {
   setChecked: (checked: boolean) => void;
   label: string | React.ReactNode;
   description: string;
-  collapsible?: boolean;
 };
 
 export const PermissionToggle: React.FC<PermissionToggleProps> = ({
@@ -20,8 +19,6 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
   label,
   description,
 }) => {
-  // Convert label to string for tooltip if it's a React node
-
   return (
     <div className="flex flex-row items-center justify-start gap-4 transition-all pl-3 h-full mb-1 ml-2 w-full hover:bg-grayA-3 rounded-lg">
       <Checkbox

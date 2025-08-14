@@ -2,7 +2,7 @@
 
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissions } from "../hooks/use-permissions";
 import { ExpandableCategory } from "./expandable-category";
@@ -62,6 +62,17 @@ export const PermissionContentList = ({
     return null;
   }
 
+  const handleCategoryToggleExpanded = useCallback((category: string, open: boolean) => {
+    setExpandedCategories((prev) => {
+      const newSet = new Set(prev);
+      if (open) {
+        newSet.add(category);
+      } else {
+        newSet.delete(category);
+      }
+      return newSet;
+    });
+  }, []);
   return (
     <div className="flex flex-col max-w-full grow-0">
       <Collapsible
@@ -90,17 +101,7 @@ export const PermissionContentList = ({
                   key={`${type === "workspace" ? "workspace" : api?.id}-${category}`}
                   className="w-full rounded-lg justify-center items-center pr-0.5 hover:bg-grayA-3"
                   open={expandedCategories.has(category)}
-                  onOpenChange={(open) => {
-                    setExpandedCategories((prev) => {
-                      const newSet = new Set(prev);
-                      if (open) {
-                        newSet.add(category);
-                      } else {
-                        newSet.delete(category);
-                      }
-                      return newSet;
-                    });
-                  }}
+                  onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}
                 >
                   <ExpandableCategory
                     category={category}

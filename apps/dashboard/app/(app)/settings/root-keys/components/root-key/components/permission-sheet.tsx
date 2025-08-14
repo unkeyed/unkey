@@ -27,6 +27,9 @@ type PermissionSheetProps = {
   editMode?: boolean;
 };
 
+const SHEET_BOTTOM_PADDING = 40;
+const SHEET_BOTTOM_PADDING_WITH_BUTTON = 80;
+
 export const PermissionSheet = ({
   children,
   apis,
@@ -74,7 +77,9 @@ export const PermissionSheet = ({
           <div className="flex flex-col h-full">
             <div
               className={`flex flex-col ${
-                hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
+                hasNextPage
+                  ? `max-h-[calc(100%-${SHEET_BOTTOM_PADDING_WITH_BUTTON}px)]`
+                  : `max-h-[calc(100%-${SHEET_BOTTOM_PADDING}px)]`
               }`}
             >
               <ScrollArea className="flex flex-col h-full pt-2">
@@ -116,12 +121,12 @@ export const PermissionSheet = ({
                 </div>
               </ScrollArea>
             </div>
-            <div className="absolute bottom-2 right-0 max-h-10 w-full">
+            <div className="sticky bottom-0 bg-background border-t border-gray-4 mt-auto">
               {hasNextPage ? (
-                <div className="absolute bottom-0 right-0 w-full h-fit py-4">
-                  <div className="flex flex-row justify-end items-center">
+                <div className="w-full py-4">
+                  <div className="flex flex-row justify-center items-center">
                     <Button
-                      className="mx-auto w-18 rounded-lg"
+                      className="mx-autorounded-lg"
                       size="sm"
                       onClick={loadMore}
                       disabled={!hasNextPage}

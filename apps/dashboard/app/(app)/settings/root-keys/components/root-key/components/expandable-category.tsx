@@ -23,7 +23,7 @@ const ExpandableCategory = forwardRef<
     return null;
   }
   return (
-    <div className="flex flex-row items-center justify-start gap-3 transition-all pl-3 pr-2 h-full my-2">
+    <div className="flex flex-row items-center justify-start gap-3 pl-3 pr-2 h-full my-2">
       <div className="flex items-center justify-center">
         <Checkbox
           checked={checked}
@@ -36,7 +36,7 @@ const ExpandableCategory = forwardRef<
         ref={ref}
         {...props}
         className={cn(
-          "flex items-center justify-start gap-3 transition-all pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-180 w-full",
+          "flex items-center justify-start gap-3 pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-180 w-full",
           props.className,
         )}
       >

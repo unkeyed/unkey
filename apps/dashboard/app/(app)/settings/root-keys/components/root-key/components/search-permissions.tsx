@@ -1,14 +1,15 @@
 "use client";
 import { XMark } from "@unkey/icons";
 import { Button, InfoTooltip, SearchIcon } from "@unkey/ui";
+import type { ChangeEvent, RefObject } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
-import { SearchInput } from "./search-input";
+import { SEARCH_MODES, SearchInput } from "./search-input";
 
 type Props = {
   isProcessing: boolean;
   search: string | undefined;
-  inputRef: React.RefObject<HTMLInputElement>;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  inputRef: RefObject<HTMLInputElement>;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) => {
   return (
@@ -19,15 +20,14 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
       <div className="flex w-full">
         <SearchInput
           className="focus:ring-0 focus:outline-none focus:!bg-grayA-4 w-full"
-          value={search || ""}
+          value={search ?? ""}
           placeholder={ROOT_KEY_MESSAGES.UI.SEARCH_PERMISSIONS}
           isProcessing={isProcessing}
           isLoading={false}
           loadingText="Searching..."
           clearingText="Clearing..."
-          searchMode="manual"
+          searchMode={SEARCH_MODES.MANUAL}
           onChange={onChange}
-          onKeyDown={() => {}}
           inputRef={inputRef}
         />
       </div>
@@ -36,9 +36,7 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
           <Button
             variant="ghost"
             size="icon"
-            onClick={() =>
-              onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)
-            }
+            onClick={() => onChange({ target: { value: "" } } as ChangeEvent<HTMLInputElement>)}
             className="hover:bg-grayA-3 focus:ring-0 rounded-full"
           >
             <XMark className="h-4 w-4" />

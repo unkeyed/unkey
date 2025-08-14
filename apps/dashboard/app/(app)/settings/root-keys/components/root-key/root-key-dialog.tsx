@@ -13,9 +13,13 @@ import { RootKeySuccess } from "./root-key-success";
 
 const DynamicDialogContainer = dynamic(
   () =>
-    import("@unkey/ui").then((mod) => ({
-      default: mod.DialogContainer,
-    })),
+    import("@unkey/ui")
+      .then((mod) => ({
+        default: mod.DialogContainer,
+      }))
+      .catch(() => ({
+        default: () => <div>Failed to load dialog</div>,
+      })),
   { ssr: false },
 );
 
@@ -61,6 +65,7 @@ export const RootKeyDialog = ({
     existingKey,
     onOpenChange,
   });
+  const isLoadingInitialApis = apisLoading && !editMode && selectedPermissions.length === 0;
 
   return (
     <>
@@ -122,9 +127,9 @@ export const RootKeyDialog = ({
                 variant="outline"
                 size="md"
                 className="w-fit rounded-lg pl-3"
-                disabled={apisLoading && !editMode && selectedPermissions.length === 0}
+                disabled={isLoadingInitialApis}
               >
-                {apisLoading && !editMode && selectedPermissions.length === 0
+                {isLoadingInitialApis
                   ? ROOT_KEY_MESSAGES.UI.LOADING
                   : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
               </Button>

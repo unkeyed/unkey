@@ -4,7 +4,7 @@ import { ChevronDown, XMark } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Badge, Button } from "@unkey/ui";
 import { useMemo } from "react";
-import { apiPermissions, workspacePermissions } from "../../../[keyId]/permissions/permissions";
+import { apiPermissions, workspacePermissions } from "../permissions";
 
 type Props = {
   apiId: string;

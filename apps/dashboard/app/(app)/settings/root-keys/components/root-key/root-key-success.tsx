@@ -46,12 +46,12 @@ export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: RootKeySucces
   return (
     <Dialog open={!!keyValue} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-y-auto"
+        className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
         onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-6 sm:px-12 md:px-[120px]">
             <div className="py-4 mt-[30px]">
               <div className="flex gap-4">
                 <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />

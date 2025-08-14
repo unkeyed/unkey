@@ -93,7 +93,6 @@ export function useRootKeyDialog({
       trpcUtils.settings.rootKeys.query.invalidate();
     },
     onError(err: { message: string }) {
-      console.error(err);
       toast.error(err.message);
     },
   });
@@ -103,7 +102,6 @@ export function useRootKeyDialog({
       trpcUtils.settings.rootKeys.query.invalidate();
     },
     onError(err: { message: string }) {
-      console.error(err);
       toast.error(err.message);
     },
   });
@@ -113,8 +111,6 @@ export function useRootKeyDialog({
       trpcUtils.settings.rootKeys.query.invalidate();
     },
     onError(err: { message: string }) {
-      console.error("Permission update error:", err);
-      console.error("Selected permissions:", selectedPermissions);
       toast.error(err.message);
     },
   });
@@ -127,12 +123,13 @@ export function useRootKeyDialog({
 
   const handlePermissionChange = useCallback(
     (permissions: UnkeyPermission[]) => {
-      // Only update if APIs are loaded or we're in edit mode with existing permissions
-      if (!apisLoading && (apisData?.pages || (editMode && existingKey?.permissions))) {
+      // Prevent updates while APIs are loading in create mode
+      const canUpdate = !apisLoading || editMode;
+      if (canUpdate) {
         setSelectedPermissions(permissions);
       }
     },
-    [apisLoading, apisData?.pages, editMode, existingKey?.permissions],
+    [apisLoading, editMode],
   );
 
   const handleCreateKey = useCallback(async () => {

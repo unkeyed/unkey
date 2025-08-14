@@ -95,7 +95,7 @@ export const RootKeysList = () => {
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Root Keys Found</Empty.Title>
           <Empty.Description className="text-left">
-            There are no root keys configured yet. Create your first role to start managing
+            There are no root keys configured yet. Create your first root key to start managing
             permissions and access control.
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
@@ -297,7 +297,12 @@ export const RootKeysList = () => {
           title="Edit root key"
           subTitle="Update the name and permissions for this root key"
           isOpen={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open);
+            if (!open) {
+              setEditingKey(null);
+            }
+          }}
           editMode={true}
           existingKey={existingKey}
         />
