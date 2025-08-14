@@ -24,6 +24,7 @@ export function insertVerification(ch: Inserter) {
         "INSUFFICIENT_PERMISSIONS",
       ]),
       identity_id: z.string().optional().default(""),
+      spent_credits: z.number().int().optional().default(0),
     }),
   });
 }
@@ -646,8 +647,8 @@ function createSpentCreditsQuerier() {
     const conditions = [
       "workspace_id = {workspaceId: String}",
       "key_space_id = {keyspaceId: String}",
-      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+      "time >= {startTime: Int64}",
+      "time <= {endTime: Int64}",
     ];
 
     let paramSchemaExtension = {};
@@ -693,7 +694,7 @@ function createSpentCreditsQuerier() {
     const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
     const query = `
-      SELECT SUM(spent_credits) as spent_credits
+      SELECT COALESCE(SUM(spent_credits), 0) as spent_credits
       FROM verifications.raw_key_verifications_v1
       ${whereClause}
     `;
