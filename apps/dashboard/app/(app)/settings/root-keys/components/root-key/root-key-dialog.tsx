@@ -11,6 +11,8 @@ import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
 import { RootKeySuccess } from "./root-key-success";
 
+const KEY_NAME_LABEL = "Name";
+
 const DynamicDialogContainer = dynamic(
   () =>
     import("@unkey/ui")
@@ -101,8 +103,8 @@ export const RootKeyDialog = ({
         <div className="flex flex-col p-6 gap-4">
           <div className="flex flex-col">
             <FormInput
-              name="name"
-              label="Name"
+              name={KEY_NAME_LABEL}
+              label={KEY_NAME_LABEL}
               description={ROOT_KEY_MESSAGES.DESCRIPTIONS.KEY_NAME}
               placeholder={ROOT_KEY_MESSAGES.PLACEHOLDERS.KEY_NAME}
               value={name}
