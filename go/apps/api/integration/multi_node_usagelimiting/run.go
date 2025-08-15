@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
-	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -97,10 +96,6 @@ func RunUsageLimitTest(
 
 	realStart := time.Now()
 
-	// Use simulated clock to speed up the test
-	clk := clock.NewTestClock()
-	simulatedStart := clk.Now()
-
 	// Track successful requests and remaining credits
 	successCount := 0
 	var lastRemaining int64 = totalCredits
@@ -124,24 +119,22 @@ func RunUsageLimitTest(
 			}
 		}
 
-		// Early termination if we've hit the credit limit consistently
-		if i > expectedSuccessful+10 && successCount == expectedSuccessful {
-			t.Logf("Early termination after %d requests - credit limit reached", i+1)
-			totalRequests = i + 1 // Update for accurate reporting
-			break
-		}
+		// No early termination - send all planned requests to verify proper rejection of overconsumption
 	}
 
 	// Step 5: Verify results
 	// --------------------
 
-	simulatedDuration := clk.Now().Sub(simulatedStart)
 	realDuration := time.Since(realStart)
 
-	t.Logf("Load test simulated %s in %s (%.2f%%)",
-		simulatedDuration, realDuration, float64(simulatedDuration)/float64(realDuration)*100.0)
-	t.Logf("Successful requests: %d/%d (%.2f%%), remaining credits: %d",
-		successCount, totalRequests, float64(successCount)/float64(totalRequests)*100.0, lastRemaining)
+	t.Logf("Load test completed in %s", realDuration)
+
+	// Calculate accuracy
+	accuracyPercent := float64(successCount) / float64(expectedSuccessful) * 100.0
+
+	t.Logf("Usage limiting accuracy: %d/%d credits used (%.2f%%), %d/%d requests succeeded",
+		successCount, expectedSuccessful, accuracyPercent, successCount, totalRequests)
+	t.Logf("Remaining credits: %d (expected: %d)", lastRemaining, totalCredits-int64(successCount)*costPerRequest)
 
 	// Verify all nodes received traffic
 	lbMetrics := lb.GetMetrics()
