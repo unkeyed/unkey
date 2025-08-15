@@ -72,6 +72,7 @@ export * from "./icons/layers-3";
 export * from "./icons/link-4";
 export * from "./icons/lock";
 export * from "./icons/magnifier";
+export * from "./icons/minus";
 export * from "./icons/moon-stars";
 export * from "./icons/nodes";
 export * from "./icons/number-input";
