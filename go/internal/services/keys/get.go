@@ -32,13 +32,14 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	}
 
 	key, log, err := s.Get(ctx, sess, rootKey)
+	if err != nil {
+		return nil, log, err
+	}
+
 	if key.Key.ForWorkspaceID.Valid {
 		key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	}
 	sess.WorkspaceID = key.AuthorizedWorkspaceID
-	if err != nil {
-		return nil, log, err
-	}
 
 	if key.Status != StatusValid {
 		return nil, log, fault.Wrap(
@@ -116,17 +117,38 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	// The DB returns this in array format and an empty array if not found
 	var roles, permissions []string
 	var ratelimitArr []db.KeyFindForVerificationRatelimit
-	err = json.Unmarshal(key.Roles.([]byte), &roles)
-	if err != nil {
-		return nil, emptyLog, err
+
+	// Safely handle roles field
+	rolesBytes, ok := key.Roles.([]byte)
+	if !ok || rolesBytes == nil {
+		roles = []string{} // Default to empty array if nil or wrong type
+	} else {
+		err = json.Unmarshal(rolesBytes, &roles)
+		if err != nil {
+			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal roles"))
+		}
 	}
-	err = json.Unmarshal(key.Permissions.([]byte), &permissions)
-	if err != nil {
-		return nil, emptyLog, err
+
+	// Safely handle permissions field
+	permissionsBytes, ok := key.Permissions.([]byte)
+	if !ok || permissionsBytes == nil {
+		permissions = []string{} // Default to empty array if nil or wrong type
+	} else {
+		err = json.Unmarshal(permissionsBytes, &permissions)
+		if err != nil {
+			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
+		}
 	}
-	err = json.Unmarshal(key.Ratelimits.([]byte), &ratelimitArr)
-	if err != nil {
-		return nil, emptyLog, err
+
+	// Safely handle ratelimits field
+	ratelimitsBytes, ok := key.Ratelimits.([]byte)
+	if !ok || ratelimitsBytes == nil {
+		ratelimitArr = []db.KeyFindForVerificationRatelimit{} // Default to empty array if nil or wrong type
+	} else {
+		err = json.Unmarshal(ratelimitsBytes, &ratelimitArr)
+		if err != nil {
+			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal ratelimits"))
+		}
 	}
 
 	// Convert rate limits array to map (key name -> config)

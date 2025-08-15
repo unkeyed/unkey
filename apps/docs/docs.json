@@ -100,10 +100,7 @@
                     "pages": [
                       {
                         "group": "Ratelimiting",
-                        "pages": [
-                          "apis/features/ratelimiting/overview",
-                          "apis/features/ratelimiting/modes"
-                        ]
+                        "pages": ["apis/features/ratelimiting/overview"]
                       },
                       "apis/features/temp-keys",
                       "apis/features/remaining",
@@ -219,7 +216,7 @@
         ]
       },
       {
-        "dropdown": "api.unkey.dev/v1",
+        "dropdown": "api.unkey.dev/v1 (deprecated)",
         "icon": "terminal",
         "groups": [
           {
@@ -411,7 +408,7 @@
     },
     {
       "source": "/api-reference",
-      "destination": "api-reference/v1"
+      "destination": "api-reference/v2"
     }
   ]
 }
