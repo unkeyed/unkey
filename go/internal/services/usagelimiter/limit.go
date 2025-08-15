@@ -3,10 +3,10 @@ package usagelimiter
 import (
 	"context"
 	"database/sql"
-	"math"
 
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
@@ -29,6 +29,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 
 	// Key doesn't have enough credits to cover the request cost
 	if remaining <= 0 && req.Cost != 0 || remaining-req.Cost < 0 {
+		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
@@ -41,5 +42,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 		return UsageResponse{}, err
 	}
 
-	return UsageResponse{Valid: true, Remaining: int32(math.Max(float64(0), float64(remaining-req.Cost)))}, nil
+	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
+	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
+	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
 }

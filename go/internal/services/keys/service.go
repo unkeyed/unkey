@@ -2,6 +2,7 @@ package keys
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
@@ -20,6 +21,7 @@ type Config struct {
 	RBAC        *rbac.RBAC            // Role-based access control
 	Clickhouse  clickhouse.ClickHouse // Clickhouse for telemetry
 	Region      string                // Geographic region identifier
+	RedisURL    string                // Redis URL for usage limiting
 
 	KeyCache cache.Cache[string, db.FindKeyForVerificationRow] // Cache for key lookups
 }
@@ -39,13 +41,19 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-	ulSvc, err := usagelimiter.New(usagelimiter.Config{
-		Logger: config.Logger,
-		DB:     config.DB,
+	config.Logger.Info("creating usage limiter service", "type", "redis", "redisURL", config.RedisURL, "ttl", time.Minute*10)
+	
+	ulSvc, err := usagelimiter.NewRedis(usagelimiter.RedisConfig{
+		Logger:   config.Logger,
+		DB:       config.DB,
+		RedisURL: config.RedisURL,
+		TTL:      time.Minute * 10,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
+	
+	config.Logger.Info("usage limiter service created successfully", "type", "redis")
 
 	return &service{
 		logger:       config.Logger,

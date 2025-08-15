@@ -34,6 +34,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		Cost:  cost,
 	})
 	if err != nil {
+		k.logger.Error("usage limiter error", "error", err, "keyId", k.Key.ID)
 		return err
 	}
 

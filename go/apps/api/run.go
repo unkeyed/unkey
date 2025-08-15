@@ -185,6 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
 		Region:      cfg.Region,
+		RedisURL:    cfg.RedisUrl,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
