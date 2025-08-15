@@ -30,7 +30,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	}
 
 	// Key has unlimited requests if set to NULL
-	if k.Key.RemainingRequests.Valid == false {
+	if !k.Key.RemainingRequests.Valid {
 		return nil
 	}
 
