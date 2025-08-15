@@ -135,30 +135,9 @@ func NewCounter(config CounterConfig) (Service, error) {
 
 // Limit processes a usage request and enforces credit limits using distributed Redis counters.
 //
-// ARCHITECTURE:
 // This function implements a two-phase credit limiting system:
-// 1. Fast path: Atomic decrement on existing Redis counters
-// 2. Slow path: Database load + Redis initialization for new keys
-//
-// ALGORITHM:
-// The system uses Redis DECRBY operations for atomic credit decrements, ensuring
-// perfect accuracy under high concurrency. When a key doesn't exist in Redis,
-// we load its current credit count from the database and initialize a Redis
-// counter. Race conditions during initialization are handled by using Redis
-// SETNX (SetIfNotExists) to ensure only one node initializes each key.
-//
-// CONCURRENCY SAFETY:
-// - Redis DECRBY operations are atomic, preventing race conditions
-// - SetIfNotExists prevents multiple nodes from initializing the same key
-// - Negative credit detection with automatic reversion ensures accuracy
-// - No distributed locks needed - Redis atomicity is sufficient
-//
-// PERFORMANCE CHARACTERISTICS:
-// - Fast path: Single Redis DECRBY operation (~1ms latency)
-// - Slow path: Database query + Redis initialization (~10-50ms latency)
-// - Scales linearly with request volume due to Redis atomicity
-// - Falls back to direct database operations on Redis failures
-//
+// 1. When key exists in redis: Atomic decrement on existing Redis counters
+// 2. When key does not exist in redis: Database load + Redis initialization for new keys
 // ERROR HANDLING:
 // - Redis failures trigger automatic fallback to direct DB operations
 // - Failed credit reverts are logged but don't fail the request
@@ -168,18 +147,6 @@ func NewCounter(config CounterConfig) (Service, error) {
 // - usagelimiter_decisions_total: Tracks allowed/denied decisions by backend
 // - usagelimiter_credits_processed_total: Tracks total credits consumed
 // - usagelimiter_fallback_operations_total: Tracks fallback frequency
-//
-// EXAMPLES:
-//
-//	// Successful credit deduction:
-//	req := UsageRequest{KeyId: "key_123", Cost: 5}
-//	resp, err := limiter.Limit(ctx, req)
-//	// resp.Valid = true, resp.Remaining = 45 (if started with 50)
-//
-//	// Insufficient credits:
-//	req := UsageRequest{KeyId: "key_123", Cost: 100}
-//	resp, err := limiter.Limit(ctx, req)
-//	// resp.Valid = false, resp.Remaining = 0
 func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
