@@ -324,6 +324,49 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 }
 
 func (s *counterService) Close() error {
+	return s.GracefulShutdown(context.Background())
+}
+
+// GracefulShutdown performs a graceful shutdown of the usage limiter service.
+// It allows the replay buffer to drain pending changes before closing.
+func (s *counterService) GracefulShutdown(ctx context.Context) error {
+	s.logger.Debug("beginning graceful shutdown of usage limiter")
+	
+	// Set a reasonable timeout for draining if context doesn't have one
+	if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > 30*time.Second {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+	}
+	
+	// Stop accepting new buffer writes
 	s.replayBuffer.Close()
-	return s.counter.Close()
+	
+	// Wait for the buffer to drain with periodic checks
+	drainTicker := time.NewTicker(100 * time.Millisecond)
+	defer drainTicker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			// Get remaining count for logging
+			remaining := len(s.replayBuffer.Consume())
+			if remaining > 0 {
+				s.logger.Warn("usage limiter shutdown timeout reached, some changes may be lost", 
+					"timeout", ctx.Err(), "remaining_changes", remaining)
+			} else {
+				s.logger.Debug("usage limiter shutdown completed (timeout but buffer was empty)")
+			}
+			return s.counter.Close()
+			
+		case <-drainTicker.C:
+			// Check if buffer is empty by looking at the underlying channel length
+			remaining := len(s.replayBuffer.Consume())
+			if remaining == 0 {
+				s.logger.Debug("usage limiter replay buffer drained successfully")
+				return s.counter.Close()
+			}
+			s.logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
+		}
+	}
 }

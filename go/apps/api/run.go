@@ -191,6 +191,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
+	shutdowns.Register(keySvc.Close)
+
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
 		vaultStorage, err := storage.NewS3(storage.S3Config{

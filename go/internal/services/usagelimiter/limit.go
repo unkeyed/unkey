@@ -46,3 +46,8 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
 	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
 }
+
+func (s *service) Close() error {
+	// Direct DB service has no resources to clean up
+	return nil
+}

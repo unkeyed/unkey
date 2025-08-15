@@ -62,3 +62,8 @@ func New(config Config) (*service, error) {
 		keyCache:     config.KeyCache,
 	}, nil
 }
+
+// Close gracefully shuts down the keys service and its dependencies.
+func (s *service) Close() error {
+	return s.usageLimiter.Close()
+}
