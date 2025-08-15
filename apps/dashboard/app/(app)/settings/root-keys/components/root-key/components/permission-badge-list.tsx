@@ -13,7 +13,7 @@ type Props = {
   selectedPermissions: UnkeyPermission[];
   expandCount: number;
   title: string;
-  removePermission: (permission: string) => void;
+  removePermission: (permission: UnkeyPermission) => void;
 };
 
 type PermissionInfo = { permission: UnkeyPermission; category: string; action: string }[];

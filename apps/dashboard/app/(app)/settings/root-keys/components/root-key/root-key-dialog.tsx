@@ -11,8 +11,6 @@ import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
 import { RootKeySuccess } from "./root-key-success";
 
-const KEY_NAME_LABEL = "Name";
-
 const DynamicDialogContainer = dynamic(
   () =>
     import("@unkey/ui")
@@ -67,8 +65,12 @@ export const RootKeyDialog = ({
     existingKey,
     onOpenChange,
   });
+
   const isBusy =
     key.isLoading || updateName.isLoading || updatePermissions.isLoading || apisLoading;
+
+  const removePermission = (permission: UnkeyPermission) =>
+    handlePermissionChange(selectedPermissions.filter((p) => p !== permission));
 
   return (
     <>
@@ -104,9 +106,9 @@ export const RootKeyDialog = ({
         <div className="flex flex-col p-6 gap-4">
           <div className="flex flex-col">
             <FormInput
-              name={KEY_NAME_LABEL}
-              label={KEY_NAME_LABEL}
-              description={ROOT_KEY_MESSAGES.DESCRIPTIONS.KEY_NAME}
+              name="name"
+              label={ROOT_KEY_MESSAGES.DESCRIPTIONS.KEY_NAME_LABEL}
+              description={ROOT_KEY_MESSAGES.DESCRIPTIONS.KEY_NAME_DESCRIPTION}
               placeholder={ROOT_KEY_MESSAGES.PLACEHOLDERS.KEY_NAME}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -141,13 +143,11 @@ export const RootKeyDialog = ({
           <div className="flex flex-col px-6 py-0 gap-3">
             <PermissionBadgeList
               selectedPermissions={selectedPermissions}
-              apiId={"workspace"}
+              apiId={ROOT_KEY_CONSTANTS.WORKSPACE}
               title="Selected from"
               name="Workspace"
               expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
-              removePermission={(permission) =>
-                handlePermissionChange(selectedPermissions.filter((p) => p !== permission))
-              }
+              removePermission={removePermission}
             />
             {allApis.map((api) => (
               <PermissionBadgeList
@@ -157,9 +157,7 @@ export const RootKeyDialog = ({
                 title="from"
                 name={api.name}
                 expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
-                removePermission={(permission) =>
-                  handlePermissionChange(selectedPermissions.filter((p) => p !== permission))
-                }
+                removePermission={removePermission}
               />
             ))}
           </div>

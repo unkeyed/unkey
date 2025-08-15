@@ -32,7 +32,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
       <DialogContent
         className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
-        onAttemptClose={() => handleCloseAttempt("close")}
+        onAttemptClose={handleCloseAttempt}
       >
         <>
           <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
@@ -45,7 +45,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2 size="2xl-thin" />
+                  <Key2 size="2xl-thin" aria-hidden="true" />
                   <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
                     <Check size="sm-bold" />
                   </div>
@@ -70,7 +70,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               <div className="text-gray-12 text-sm font-semibold">Root Key</div>
               <SecretKey value={keyValue} title="Root Key" className="bg-white dark:bg-black " />
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-                <CircleInfo className="text-accent-9" size="sm-regular" />
+                <CircleInfo className="text-accent-9" size="sm-regular" aria-hidden="true" />
                 <span>
                   Copy and save this secret as it won't be shown again.{" "}
                   <a

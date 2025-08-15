@@ -3,6 +3,7 @@ export const ROOT_KEY_CONSTANTS = {
   UNNAMED_KEY: "Unnamed",
   API_URL: process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev",
   EXPAND_COUNT: 3,
+  WORKSPACE: "workspace",
 } as const;
 
 export const ROOT_KEY_MESSAGES = {
@@ -46,7 +47,8 @@ export const ROOT_KEY_MESSAGES = {
     KEY_NAME: "e.g. Vercel Production",
   },
   DESCRIPTIONS: {
-    KEY_NAME: "Give your key a name, this is not customer facing.",
+    KEY_NAME_LABEL: "Key Name",
+    KEY_NAME_DESCRIPTION: "Give your key a name, this is not customer facing.",
     PERMISSIONS: "Permissions",
     WORKSPACE: "All workspace permissions",
     API: "All permissions for",
