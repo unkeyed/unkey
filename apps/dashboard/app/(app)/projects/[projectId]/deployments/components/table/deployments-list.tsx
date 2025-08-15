@@ -69,7 +69,7 @@ export const DeploymentsList = () => {
             </div>
           );
           return (
-            <div className="flex flex-col items-start px-[18px] py-[12px]">
+            <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-5 items-center w-full">
                 {iconContainer}
                 <div className="w-[200px]">
@@ -83,7 +83,7 @@ export const DeploymentsList = () => {
                       {shortenId(deployment.id)}
                     </div>
                     {deployment.environment === "production" && deployment.active && (
-                      <EnvStatusBadge variant="locked" text="Current" />
+                      <EnvStatusBadge variant="current" text="Current" />
                     )}
                   </div>
                   <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
@@ -101,7 +101,7 @@ export const DeploymentsList = () => {
         width: "10%",
         render: (deployment) => {
           return (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit capitalize">
+            <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit capitalize">
               {deployment.environment}
             </div>
           );

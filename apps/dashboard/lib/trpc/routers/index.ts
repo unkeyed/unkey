@@ -39,6 +39,7 @@ import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createProject } from "./deploy/project/create";
 import { queryDeployments } from "./deploy/project/deployment/list";
+import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
 import { queryProjects } from "./deploy/project/list";
 import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";
@@ -315,6 +316,7 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: queryDeployments,
+      search: deploymentListLlmSearch,
     }),
   }),
   deployment: deploymentRouter,

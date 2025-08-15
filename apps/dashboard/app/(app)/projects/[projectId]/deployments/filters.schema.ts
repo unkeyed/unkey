@@ -7,7 +7,7 @@ import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
-const DEPLOYMENT_STATUSES = [
+export const DEPLOYMENT_STATUSES = [
   "pending",
   "downloading_docker_image",
   "building_rootfs",
@@ -126,7 +126,7 @@ export const deploymentListFilterFieldEnum = z.enum([firstFieldName, ...restFiel
 export const deploymentListFilterFieldNames = allFilterFieldNames;
 export type DeploymentListFilterField = z.infer<typeof deploymentListFilterFieldEnum>;
 
-export const filterOutputSchema = createFilterOutputSchema(
+export const deploymentListFilterOutputSchema = createFilterOutputSchema(
   deploymentListFilterFieldEnum,
   deploymentListFilterOperatorEnum,
   deploymentListFilterFieldConfig,

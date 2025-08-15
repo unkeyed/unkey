@@ -4,17 +4,17 @@ import type { VariantProps } from "class-variance-authority";
 import type { HTMLAttributes, ReactNode } from "react";
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center rounded-md px-[7px] text-xs leading-5  gap-1",
+  "inline-flex items-center rounded-md px-2 text-xs leading-5 gap-1",
   {
     variants: {
       variant: {
         enabled: "text-success-11 bg-success-3",
         disabled: "text-warning-11 bg-warning-3",
-        locked: "text-feature-11 bg-feature-3",
+        current: "text-feature-11 bg-feature-4",
       },
     },
     defaultVariants: {
-      variant: "enabled",
+      variant: "current",
     },
   },
 );

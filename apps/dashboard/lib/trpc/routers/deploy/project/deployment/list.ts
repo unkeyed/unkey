@@ -1,20 +1,14 @@
 import { deploymentListInputSchema } from "@/app/(app)/projects/[projectId]/deployments/components/table/deployments.schema";
+import {
+  DEPLOYMENT_STATUSES,
+  type DeploymentStatus,
+} from "@/app/(app)/projects/[projectId]/deployments/filters.schema";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { getTimestampFromRelative } from "@unkey/ui/src/lib/utils";
 import { z } from "zod";
 
-const DeploymentStatus = z.enum([
-  "pending",
-  "downloading_docker_image",
-  "building_rootfs",
-  "uploading_rootfs",
-  "creating_vm",
-  "booting_vm",
-  "assigning_domains",
-  "completed",
-  "failed",
-]);
+const Status = z.enum(DEPLOYMENT_STATUSES);
 
 const AuthorResponse = z.object({
   name: z.string(),
@@ -35,7 +29,7 @@ const PullRequestResponse = z.object({
 // Base deployment fields
 const BaseDeploymentResponse = z.object({
   id: z.string(),
-  status: DeploymentStatus,
+  status: Status,
   instances: z.number(),
   runtime: z.string().nullable(),
   size: z.string().nullable(),
@@ -67,6 +61,196 @@ const deploymentsOutputSchema = z.object({
   total: z.number(),
   nextCursor: z.number().int().nullish(),
 });
+
+type DeploymentsOutputSchema = z.infer<typeof deploymentsOutputSchema>;
+export type Deployment = z.infer<typeof DeploymentResponse>;
+
+export const DEPLOYMENTS_LIMIT = 50;
+
+export const queryDeployments = t.procedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(withRatelimit(ratelimit.read))
+  .input(deploymentListInputSchema)
+  .output(deploymentsOutputSchema)
+  .query(async ({ input }) => {
+    try {
+      const hardcodedDeployments = generateDeployments(100);
+
+      // Apply filters to deployments
+      let filteredDeployments = hardcodedDeployments;
+
+      // Time range filters
+      let startTime: number | null | undefined = null;
+      let endTime: number | null | undefined = null;
+
+      if (input.since !== null && input.since !== undefined) {
+        try {
+          startTime = getTimestampFromRelative(input.since);
+          endTime = Date.now();
+        } catch {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Invalid since format: ${input.since}. Expected format like "1h", "2d", "30m", "1w".`,
+          });
+        }
+      } else {
+        startTime = input.startTime;
+        endTime = input.endTime;
+      }
+
+      // Apply time filters
+      if (startTime !== null && startTime !== undefined) {
+        filteredDeployments = filteredDeployments.filter(
+          (deployment) => deployment.createdAt >= startTime,
+        );
+      }
+
+      if (endTime !== null && endTime !== undefined) {
+        filteredDeployments = filteredDeployments.filter(
+          (deployment) => deployment.createdAt <= endTime,
+        );
+      }
+
+      // Status filter - expand grouped statuses to actual statuses
+      if (input.status && input.status.length > 0) {
+        const expandedStatusValues: DeploymentStatus[] = [];
+
+        input.status.forEach((filter) => {
+          if (filter.operator !== "is") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Unsupported status operator: ${filter.operator}`,
+            });
+          }
+
+          // Expand grouped status to actual statuses
+          switch (filter.value) {
+            case "pending":
+              expandedStatusValues.push("pending");
+              break;
+            case "building":
+              expandedStatusValues.push(
+                "downloading_docker_image",
+                "building_rootfs",
+                "uploading_rootfs",
+                "creating_vm",
+                "booting_vm",
+                "assigning_domains",
+              );
+              break;
+            case "completed":
+              expandedStatusValues.push("completed");
+              break;
+            case "failed":
+              expandedStatusValues.push("failed");
+              break;
+            default:
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Unknown grouped status: ${filter.value}`,
+              });
+          }
+        });
+
+        filteredDeployments = filteredDeployments.filter((deployment) =>
+          expandedStatusValues.includes(deployment.status),
+        );
+      }
+
+      // Environment filter
+      if (input.environment && input.environment.length > 0) {
+        const environmentValues = input.environment.map((filter) => {
+          if (filter.operator !== "is") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Unsupported environment operator: ${filter.operator}`,
+            });
+          }
+          return filter.value;
+        });
+
+        filteredDeployments = filteredDeployments.filter((deployment) =>
+          environmentValues.includes(deployment.environment),
+        );
+      }
+
+      // Branch filter
+      if (input.branch && input.branch.length > 0) {
+        filteredDeployments = filteredDeployments.filter((deployment) => {
+          return input.branch?.some((filter) => {
+            if (filter.operator === "is") {
+              return deployment.source.branch === filter.value;
+            }
+            if (filter.operator === "contains") {
+              return deployment.source.branch.toLowerCase().includes(filter.value.toLowerCase());
+            }
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Unsupported branch operator: ${filter.operator}`,
+            });
+          });
+        });
+      }
+
+      // Apply cursor-based pagination after filtering
+      if (input.cursor && typeof input.cursor === "number") {
+        const cursor = input.cursor;
+        filteredDeployments = filteredDeployments.filter(
+          (deployment) => deployment.createdAt < cursor,
+        );
+      }
+
+      //Separate active deployment before sorting/pagination
+      const activeProductionDeployment = filteredDeployments.find(
+        (deployment): deployment is z.infer<typeof ProductionDeploymentResponse> =>
+          deployment.environment === "production" && deployment.active === true,
+      );
+
+      // Remove active deployment from main list to avoid duplicates
+      const nonActiveDeployments = filteredDeployments.filter(
+        (deployment) => !(deployment.environment === "production" && deployment.active === true),
+      );
+
+      // Sort non-active deployments by createdAt descending
+      nonActiveDeployments.sort((a, b) => b.createdAt - a.createdAt);
+
+      // Get total count before pagination
+      const totalCount = filteredDeployments.length;
+
+      // Apply pagination limit, accounting for active deployment
+      const remainingSlots = activeProductionDeployment ? DEPLOYMENTS_LIMIT - 1 : DEPLOYMENTS_LIMIT;
+      const paginatedDeployments = nonActiveDeployments.slice(0, remainingSlots);
+
+      // Combine results with active deployment always first
+      const finalDeployments: Deployment[] = [];
+      if (activeProductionDeployment) {
+        finalDeployments.push(activeProductionDeployment);
+      }
+      finalDeployments.push(...paginatedDeployments);
+
+      const hasMore = nonActiveDeployments.length > remainingSlots;
+
+      const response: DeploymentsOutputSchema = {
+        deployments: finalDeployments,
+        hasMore,
+        total: totalCount,
+        nextCursor:
+          paginatedDeployments.length > 0
+            ? paginatedDeployments[paginatedDeployments.length - 1].createdAt
+            : null,
+      };
+
+      return response;
+    } catch (error) {
+      console.error("Error querying deployments:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Failed to retrieve deployments due to an error. If this issue persists, please contact support.",
+      });
+    }
+  });
 
 // Generator function for hardcoded data
 const generateDeployments = (count: number): Deployment[] => {
@@ -102,7 +286,7 @@ const generateDeployments = (count: number): Deployment[] => {
     },
   ];
 
-  const statuses: z.infer<typeof DeploymentStatus>[] = [
+  const statuses: z.infer<typeof Status>[] = [
     "pending",
     "downloading_docker_image",
     "building_rootfs",
@@ -197,172 +381,3 @@ const generateDeployments = (count: number): Deployment[] => {
 
   return deployments.sort((a, b) => b.createdAt - a.createdAt);
 };
-
-type DeploymentsOutputSchema = z.infer<typeof deploymentsOutputSchema>;
-export type Deployment = z.infer<typeof DeploymentResponse>;
-
-export const DEPLOYMENTS_LIMIT = 50;
-
-export const queryDeployments = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
-  .use(withRatelimit(ratelimit.read))
-  .input(deploymentListInputSchema)
-  .output(deploymentsOutputSchema)
-  .query(async ({ input }) => {
-    try {
-      const hardcodedDeployments = generateDeployments(100);
-
-      // Apply filters to deployments
-      let filteredDeployments = hardcodedDeployments;
-
-      // Time range filters
-      let startTime: number | null | undefined = null;
-      let endTime: number | null | undefined = null;
-
-      if (input.since !== null && input.since !== undefined) {
-        try {
-          startTime = getTimestampFromRelative(input.since);
-          endTime = Date.now();
-        } catch {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Invalid since format: ${input.since}. Expected format like "1h", "2d", "30m", "1w".`,
-          });
-        }
-      } else {
-        startTime = input.startTime;
-        endTime = input.endTime;
-      }
-
-      // Apply time filters
-      if (startTime !== null && startTime !== undefined) {
-        filteredDeployments = filteredDeployments.filter(
-          (deployment) => deployment.createdAt >= startTime,
-        );
-      }
-
-      if (endTime !== null && endTime !== undefined) {
-        filteredDeployments = filteredDeployments.filter(
-          (deployment) => deployment.createdAt <= endTime,
-        );
-      }
-
-      // Status filter - expand grouped statuses to actual statuses
-      if (input.status && input.status.length > 0) {
-        const expandedStatusValues: string[] = [];
-
-        input.status.forEach((filter) => {
-          if (filter.operator !== "is") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Unsupported status operator: ${filter.operator}`,
-            });
-          }
-
-          // Expand grouped status to actual statuses
-          switch (filter.value) {
-            case "pending":
-              expandedStatusValues.push("pending");
-              break;
-            case "building":
-              expandedStatusValues.push(
-                "downloading_docker_image",
-                "building_rootfs",
-                "uploading_rootfs",
-                "creating_vm",
-                "booting_vm",
-                "assigning_domains",
-              );
-              break;
-            case "completed":
-              expandedStatusValues.push("completed");
-              break;
-            case "failed":
-              expandedStatusValues.push("failed");
-              break;
-            default:
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: `Unknown grouped status: ${filter.value}`,
-              });
-          }
-        });
-
-        filteredDeployments = filteredDeployments.filter((deployment) =>
-          expandedStatusValues.includes(deployment.status),
-        );
-      }
-
-      // Environment filter
-      if (input.environment && input.environment.length > 0) {
-        const environmentValues = input.environment.map((filter) => {
-          if (filter.operator !== "is") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Unsupported environment operator: ${filter.operator}`,
-            });
-          }
-          return filter.value;
-        });
-
-        filteredDeployments = filteredDeployments.filter((deployment) =>
-          environmentValues.includes(deployment.environment),
-        );
-      }
-
-      // Branch filter
-      if (input.branch && input.branch.length > 0) {
-        filteredDeployments = filteredDeployments.filter((deployment) => {
-          return input.branch?.some((filter) => {
-            if (filter.operator === "is") {
-              return deployment.source.branch === filter.value;
-            }
-            if (filter.operator === "contains") {
-              return deployment.source.branch.toLowerCase().includes(filter.value.toLowerCase());
-            }
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Unsupported branch operator: ${filter.operator}`,
-            });
-          });
-        });
-      }
-
-      // Apply cursor-based pagination after filtering
-      if (input.cursor && typeof input.cursor === "number") {
-        const cursor = input.cursor;
-        filteredDeployments = filteredDeployments.filter(
-          (deployment) => deployment.createdAt < cursor,
-        );
-      }
-
-      // Sort by createdAt descending
-      filteredDeployments.sort((a, b) => b.createdAt - a.createdAt);
-
-      // Apply pagination limit
-      const hasMore = filteredDeployments.length > DEPLOYMENTS_LIMIT;
-      const deploymentsWithoutExtra = hasMore
-        ? filteredDeployments.slice(0, DEPLOYMENTS_LIMIT)
-        : filteredDeployments;
-
-      const response: DeploymentsOutputSchema = {
-        deployments: deploymentsWithoutExtra,
-        hasMore,
-        total: filteredDeployments.length,
-        nextCursor:
-          deploymentsWithoutExtra.length > 0
-            ? deploymentsWithoutExtra[deploymentsWithoutExtra.length - 1].createdAt
-            : null,
-      };
-
-      return response;
-    } catch (error) {
-      console.error("Error querying deployments:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Failed to retrieve deployments due to an error. If this issue persists, please contact support.",
-      });
-    }
-  });
