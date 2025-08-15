@@ -141,6 +141,8 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 		s.logger.Debug("counter DecrementIfExists failed, falling back to DB", "error", err, "keyId", req.KeyId)
 		return s.fallbackToDirectDB(ctx, req)
 	}
+	
+	s.logger.Info("DecrementIfExists result", "keyId", req.KeyId, "remaining", remaining, "existed", existed, "cost", req.Cost)
 
 	// Case 1: Key didn't exist - load from database with coordination
 	if !existed {
@@ -223,23 +225,29 @@ func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req Us
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
-	// We have enough credits - initialize counter with decremented value
-	newValue := limit.Int32 - req.Cost
-
-	// Atomically set the counter to the decremented value
-	// This uses the fact that if counter is 0, incrementing by newValue sets it to newValue
-	finalValue, err := s.counter.Increment(ctx, redisKey, int64(newValue), s.ttl)
+	// We have enough credits - initialize counter with DB value, then decrement
+	s.logger.Info("initializing counter with DB value", "keyId", req.KeyId, "dbCredits", limit.Int32)
+	
+	// Use SetIfNotExists to avoid race conditions - only one node can initialize the key
+	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, int64(limit.Int32), s.ttl)
 	if err != nil {
-		s.logger.Debug("failed to initialize counter with decremented value, falling back to DB", "error", err, "keyId", req.KeyId)
+		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
 		return s.fallbackToDirectDB(ctx, req)
 	}
-
-	// Check for race condition - if finalValue != newValue, another process initialized the key
-	if finalValue != int64(newValue) {
-		s.logger.Debug("race condition detected during initialization, retrying", "keyId", req.KeyId, "expected", newValue, "actual", finalValue)
+	
+	// If SetIfNotExists returned false, another node already initialized the key
+	if !wasSet {
+		s.logger.Debug("another node already initialized the key, retrying decrement", "keyId", req.KeyId)
 		// Retry the original operation now that key exists
 		time.Sleep(1 * time.Millisecond)
 		return s.Limit(ctx, req)
+	}
+	
+	// We successfully initialized the key, now decrement it
+	remaining, existed, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
+	if err != nil || !existed {
+		s.logger.Debug("failed to decrement after initialization, falling back to DB", "error", err, "existed", existed, "keyId", req.KeyId)
+		return s.fallbackToDirectDB(ctx, req)
 	}
 
 	// Success - buffer the change for async DB update
@@ -250,8 +258,8 @@ func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req Us
 
 	metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
-	s.logger.Debug("database load and counter initialization successful", "keyId", req.KeyId, "remaining", newValue)
-	return UsageResponse{Valid: true, Remaining: newValue}, nil
+	s.logger.Debug("database load and counter initialization successful", "keyId", req.KeyId, "remaining", remaining)
+	return UsageResponse{Valid: true, Remaining: int32(remaining)}, nil
 }
 
 func (s *counterService) fallbackToDirectDB(ctx context.Context, req UsageRequest) (UsageResponse, error) {

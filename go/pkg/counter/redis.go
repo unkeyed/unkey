@@ -142,6 +142,27 @@ func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value 
 	return r.IncrementIfExists(ctx, key, -value)
 }
 
+// SetIfNotExists sets a counter to a specific value only if it doesn't already exist.
+func (r *redisCounter) SetIfNotExists(ctx context.Context, key string, value int64, ttl ...time.Duration) (bool, error) {
+	ctx, span := tracing.Start(ctx, "RedisCounter.SetIfNotExists")
+	defer span.End()
+
+	var duration time.Duration
+	if len(ttl) > 0 {
+		duration = ttl[0]
+	}
+
+	// Use Redis SETNX (SET if Not eXists) with optional TTL
+	var result *redis.BoolCmd
+	if duration > 0 {
+		result = r.redis.SetNX(ctx, key, value, duration)
+	} else {
+		result = r.redis.SetNX(ctx, key, value, 0)
+	}
+
+	return result.Val(), result.Err()
+}
+
 // IncrementIfExists increments a counter only if it already exists.
 // Uses a Lua script to atomically check existence and increment.
 func (r *redisCounter) IncrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error) {

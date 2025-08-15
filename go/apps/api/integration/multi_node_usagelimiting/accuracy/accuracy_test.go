@@ -118,7 +118,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	var mu sync.Mutex
 	successCount := 0
 	failureCount := 0
-	var remainingCredits int64
+	var minRemainingCredits int64 = totalCredits // Track the minimum remaining credits seen
 
 	// Create worker goroutines
 	var wg sync.WaitGroup
@@ -155,7 +155,10 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 				if res.Body.Data.Valid {
 					successCount++
 					if res.Body.Data.Credits != nil {
-						remainingCredits = int64(*res.Body.Data.Credits)
+						currentRemaining := int64(*res.Body.Data.Credits)
+						if currentRemaining < minRemainingCredits {
+							minRemainingCredits = currentRemaining
+						}
 					}
 				} else {
 					failureCount++
@@ -174,7 +177,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 
 	t.Logf("Results: %d successful, %d failed, %d total", successCount, failureCount, totalProcessed)
 	t.Logf("Expected successful: %d, Actual successful: %d", expectedSuccessful, successCount)
-	t.Logf("Remaining credits: %d", remainingCredits)
+	t.Logf("Minimum remaining credits seen: %d", minRemainingCredits)
 
 	// Verify total requests processed
 	assert.Equal(t, totalRequests, totalProcessed, "All requests should be processed")
@@ -186,10 +189,10 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	minExpected := max(0, int(float64(expectedSuccessful)*0.99))
 	assert.GreaterOrEqual(t, successCount, minExpected, "Should not under-count by more than 1%%")
 
-	// Verify remaining credits accuracy
+	// Verify remaining credits accuracy using the minimum observed value
 	expectedRemaining := totalCredits - int64(successCount)*cost
-	assert.InDelta(t, expectedRemaining, remainingCredits, float64(cost)*2,
-		"Remaining credits should be accurate within 2 cost units")
+	assert.InDelta(t, expectedRemaining, minRemainingCredits, float64(cost)*2,
+		"Minimum remaining credits should be accurate within 2 cost units")
 
 	// Verify all nodes received traffic in multi-node tests
 	if nodeCount > 1 {

@@ -103,6 +103,20 @@ type Counter interface {
 	//   - error: Any errors that occurred during the operation
 	IncrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error)
 
+	// SetIfNotExists sets a counter to a specific value only if it doesn't already exist.
+	// This is useful for atomic initialization without race conditions.
+	//
+	// Parameters:
+	//   - ctx: Context for cancellation and tracing
+	//   - key: Unique identifier for the counter
+	//   - value: Value to set the counter to
+	//   - ttl: Optional time-to-live duration for the counter
+	//
+	// Returns:
+	//   - bool: Whether the key was set (true) or already existed (false)
+	//   - error: Any errors that occurred during the operation
+	SetIfNotExists(ctx context.Context, key string, value int64, ttl ...time.Duration) (bool, error)
+
 	// Close releases any resources held by the counter implementation.
 	// After calling Close(), the counter instance should not be used again.
 	//
