@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -26,8 +25,8 @@ type (
 	Response = openapi.V2KeysWhoamiResponseBody
 )
 
+// Handler implements zen.Route interface for the v2 keys.whoami endpoint
 type Handler struct {
-	// Services as public fields
 	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
@@ -35,12 +34,10 @@ type Handler struct {
 	Vault     *vault.Service
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/keys.whoami"
 }
@@ -135,147 +132,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		k.Expires = ptr.P(key.Expires.Time.UnixMilli())
 	}
 
-	if key.RemainingRequests.Valid {
-		k.Credits = &openapi.KeyCreditsData{
-			Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
-			Refill:    nil,
-		}
-
-		if key.RefillAmount.Valid {
-			var refillDay *int
-			interval := openapi.Daily
-			if key.RefillDay.Valid {
-				interval = openapi.Monthly
-				refillDay = ptr.P(int(key.RefillDay.Int16))
-			}
-
-			k.Credits.Refill = &openapi.KeyCreditsRefill{
-				Amount:    int64(key.RefillAmount.Int32),
-				Interval:  interval,
-				RefillDay: refillDay,
-			}
-		}
-	}
-
-	if key.IdentityID.Valid {
-		identity, idErr := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{Identity: key.IdentityID.String, WorkspaceID: auth.AuthorizedWorkspaceID, Deleted: false})
-		if idErr != nil {
-			if db.IsNotFound(idErr) {
-				return fault.New("identity not found for key",
-					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"),
-					fault.Public("The requested identity does not exist or has been deleted."),
-				)
-			}
-
-			return fault.Wrap(idErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve Identity information."),
-			)
-		}
-
-		k.Identity = &openapi.Identity{
-			Id:         identity.ID,
-			ExternalId: identity.ExternalID,
-			Meta:       nil,
-			Ratelimits: nil,
-		}
-
-		if len(identity.Meta) > 0 {
-			err = json.Unmarshal(identity.Meta, &k.Identity.Meta)
-			if err != nil {
-				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-					fault.Internal("unable to unmarshal identity meta"),
-					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
-				)
-			}
-		}
-
-		ratelimits, rlErr := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
-		if rlErr != nil && !db.IsNotFound(rlErr) {
-			return fault.Wrap(rlErr, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to retrieve identity ratelimits"),
-				fault.Public("We encountered an error while trying to retrieve the identity ratelimits."),
-			)
-		}
-
-		identityRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
-		for _, ratelimit := range ratelimits {
-			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
-				Id:        ratelimit.ID,
-				Duration:  ratelimit.Duration,
-				Limit:     int64(ratelimit.Limit),
-				Name:      ratelimit.Name,
-				AutoApply: ratelimit.AutoApply,
-			})
-		}
-
-		if len(identityRatelimits) > 0 {
-			k.Identity.Ratelimits = ptr.P(identityRatelimits)
-		}
-	}
-
-	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: key.ID, Valid: true})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to retrieve key ratelimits"),
-			fault.Public("We encountered an error while trying to retrieve the key ratelimits."),
-		)
-	}
-
-	ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
-	for idx, ratelimit := range ratelimits {
-		ratelimitsResponse[idx] = openapi.RatelimitResponse{
-			Id:        ratelimit.ID,
-			Duration:  ratelimit.Duration,
-			Limit:     int64(ratelimit.Limit),
-			Name:      ratelimit.Name,
-			AutoApply: ratelimit.AutoApply,
-		}
-	}
-
-	if len(ratelimitsResponse) > 0 {
-		k.Ratelimits = ptr.P(ratelimitsResponse)
-	}
-
-	if key.Meta.Valid {
-		err = json.Unmarshal([]byte(key.Meta.String), &k.Meta)
-		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to unmarshal key meta"),
-				fault.Public("We encountered an error while trying to unmarshal the key meta data."),
-			)
-		}
-	}
-
-	permissionSlugs, err := db.Query.ListPermissionsByKeyID(ctx, h.DB.RO(), db.ListPermissionsByKeyIDParams{
-		KeyID: k.KeyId,
-	})
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
-	}
-
-	if len(permissionSlugs) > 0 {
-		k.Permissions = ptr.P(permissionSlugs)
-	}
-
-	// Get roles for the key
-	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
-	}
-
-	if len(roles) > 0 {
-		roleNames := make([]string, len(roles))
-		for i, role := range roles {
-			roleNames[i] = role.Name
-		}
-
-		k.Roles = ptr.P(roleNames)
-	}
+	h.setCredits(&k, key)
+	h.setIdentity(&k, key)
+	h.setPermissions(&k, key)
+	h.setRoles(&k, key)
+	h.setRatelimits(&k, key)
+	h.setMeta(&k, key)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -283,4 +145,156 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: k,
 	})
+}
+
+func (h *Handler) setCredits(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	if !key.RemainingRequests.Valid {
+		return
+	}
+
+	response.Credits = &openapi.KeyCreditsData{
+		Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
+		Refill:    nil,
+	}
+
+	if key.RefillAmount.Valid {
+		var refillDay *int
+		interval := openapi.Daily
+		if key.RefillDay.Valid {
+			interval = openapi.Monthly
+			refillDay = ptr.P(int(key.RefillDay.Int16))
+		}
+
+		response.Credits.Refill = &openapi.KeyCreditsRefill{
+			Amount:    int64(key.RefillAmount.Int32),
+			Interval:  interval,
+			RefillDay: refillDay,
+		}
+	}
+}
+
+func (h *Handler) setIdentity(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	if !key.IdentityID.Valid {
+		return
+	}
+
+	response.Identity = &openapi.Identity{
+		Id:         key.IdentityTableID.String,
+		ExternalId: key.IdentityExternalID.String,
+		Meta:       nil,
+		Ratelimits: nil,
+	}
+
+	if len(key.IdentityMeta) > 0 {
+		if err := json.Unmarshal(key.IdentityMeta, &response.Identity.Meta); err != nil {
+			h.Logger.Error("failed to unmarshal identity meta", "error", err)
+		}
+	}
+}
+
+func (h *Handler) setPermissions(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	permissionSlugs := make(map[string]struct{})
+
+	// Direct permissions
+	if key.Permissions != nil {
+		var directPermissions []db.PermissionInfo
+		if err := json.Unmarshal(key.Permissions.([]byte), &directPermissions); err != nil {
+			h.Logger.Error("failed to unmarshal permissions", "error", err)
+		} else {
+			for _, p := range directPermissions {
+				permissionSlugs[p.Slug] = struct{}{}
+			}
+		}
+	}
+
+	// Role permissions
+	if key.RolePermissions != nil {
+		var rolePermissions []db.PermissionInfo
+		if err := json.Unmarshal(key.RolePermissions.([]byte), &rolePermissions); err != nil {
+			h.Logger.Error("failed to unmarshal role permissions", "error", err)
+		} else {
+			for _, p := range rolePermissions {
+				permissionSlugs[p.Slug] = struct{}{}
+			}
+		}
+	}
+
+	if len(permissionSlugs) > 0 {
+		slugs := make([]string, 0, len(permissionSlugs))
+		for slug := range permissionSlugs {
+			slugs = append(slugs, slug)
+		}
+		response.Permissions = ptr.P(slugs)
+	}
+}
+
+func (h *Handler) setRoles(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	if key.Roles == nil {
+		return
+	}
+
+	var roles []db.RoleInfo
+	if err := json.Unmarshal(key.Roles.([]byte), &roles); err != nil {
+		h.Logger.Error("failed to unmarshal roles", "error", err)
+		return
+	}
+
+	if len(roles) > 0 {
+		roleNames := make([]string, len(roles))
+		for i, role := range roles {
+			roleNames[i] = role.Name
+		}
+		response.Roles = ptr.P(roleNames)
+	}
+}
+
+func (h *Handler) setRatelimits(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	if key.Ratelimits == nil {
+		return
+	}
+
+	var ratelimits []db.RatelimitInfo
+	if err := json.Unmarshal(key.Ratelimits.([]byte), &ratelimits); err != nil {
+		h.Logger.Error("failed to unmarshal ratelimits", "error", err)
+		return
+	}
+
+	var keyRatelimits []openapi.RatelimitResponse
+	var identityRatelimits []openapi.RatelimitResponse
+
+	for _, rl := range ratelimits {
+		ratelimitResp := openapi.RatelimitResponse{
+			Id:        rl.ID,
+			Duration:  rl.Duration,
+			Limit:     int64(rl.Limit),
+			Name:      rl.Name,
+			AutoApply: rl.AutoApply,
+		}
+
+		// Add to key ratelimits if it belongs to this key
+		if rl.KeyID.Valid && rl.KeyID.String == key.ID {
+			keyRatelimits = append(keyRatelimits, ratelimitResp)
+		}
+
+		// Also add to identity ratelimits if it has an identity_id that matches
+		if rl.IdentityID.Valid && key.IdentityID.Valid && rl.IdentityID.String == key.IdentityID.String {
+			identityRatelimits = append(identityRatelimits, ratelimitResp)
+		}
+	}
+
+	if len(keyRatelimits) > 0 {
+		response.Ratelimits = ptr.P(keyRatelimits)
+	}
+
+	if len(identityRatelimits) > 0 && response.Identity != nil {
+		response.Identity.Ratelimits = ptr.P(identityRatelimits)
+	}
+}
+
+func (h *Handler) setMeta(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	if key.Meta.Valid {
+		if err := json.Unmarshal([]byte(key.Meta.String), &response.Meta); err != nil {
+			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		}
+	}
 }
