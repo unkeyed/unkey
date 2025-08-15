@@ -62,8 +62,8 @@ func TestUsageLimitAccuracy(t *testing.T) {
 			nodeCount:    3,
 			totalCredits: 1,
 			cost:         1,
-			concurrency:  100,
-			requests:     100,
+			concurrency:  1000,
+			requests:     1000,
 		},
 	}
 
@@ -109,8 +109,6 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 			Cost: int32(cost),
 		},
 	}
-
-	t.Logf("Test request: Key=%s, Cost=%d", keyStart, cost)
 
 	lb := integration.NewLoadbalancer(h)
 
@@ -189,7 +187,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	// Only allow error margin on high contention scenarios
 	if totalRequests <= expectedSuccessful {
 		// Low load - expect perfect accuracy
-		assert.Equal(t, min(totalRequests, expectedSuccessful), successCount, 
+		assert.Equal(t, min(totalRequests, expectedSuccessful), successCount,
 			"Low load should have perfect accuracy with atomic operations")
 	} else {
 		// High contention - allow small error margin for race conditions

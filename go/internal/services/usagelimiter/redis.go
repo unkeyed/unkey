@@ -189,7 +189,6 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	// Try atomic decrement only if key usage is already stored
 	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
-		s.logger.Info("counter DecrementIfExists failed, falling back to DB", "error", err, "keyId", req.KeyId)
 		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
@@ -252,19 +251,24 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
 
-	// Try to initialize with the DB value
-	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, int64(limit.Int32), s.ttl)
+	// Try to initialize with the already decremented value
+	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, int64(limit.Int32-req.Cost), s.ttl)
 	if err != nil {
 		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
 		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
-	// If SetIfNotExists returned false, another node already initialized the key
-	// In either case (we initialized or another node did), the key now exists - decrement it
-	remaining, existed, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
-	if err != nil || !existed {
-		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "existed", existed, "keyId", req.KeyId, "wasSet", wasSet)
+	if wasSet {
+		// We won the initialization race - already set the decremented value, skip extra Redis call
+		remaining := int64(limit.Int32) - int64(req.Cost)
+		return s.handleDecrementResult(ctx, req, redisKey, remaining)
+	}
+
+	// Another node already initialized the key - do atomic decrement
+	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
+	if err != nil || !exists {
+		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyId", req.KeyId, "wasSet", wasSet)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
