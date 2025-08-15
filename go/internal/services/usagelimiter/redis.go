@@ -7,36 +7,27 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
+	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
+const (
+	// UnlimitedKeyMarker is a very large positive number used to mark unlimited keys in Redis.
+	// This value is much larger than any realistic credit amount (1 billion).
+	// When a key is unlimited, we store this value in Redis to avoid database lookups.
+	// Even after decrementing costs, the value will remain >= (UnlimitedKeyMarker - max_cost).
+	UnlimitedKeyMarker = 1_000_000_000
+)
+
 type CreditChange struct {
 	KeyID  string
 	Amount int32
 }
-
-type redisService struct {
-	db     db.Database
-	logger logging.Logger
-	redis  *redis.Client
-
-	// Replay buffer for async DB updates
-	replayBuffer *buffer.Buffer[CreditChange]
-
-	// Circuit breaker for DB writes
-	dbCircuitBreaker circuitbreaker.CircuitBreaker[any]
-
-	// TTL for Redis keys
-	ttl time.Duration
-}
-
-var _ Service = (*redisService)(nil)
 
 // RedisConfig holds configuration options for the Redis usage limiter.
 type RedisConfig struct {
@@ -55,55 +46,82 @@ type RedisConfig struct {
 	TTL time.Duration
 }
 
-// NewRedis creates a new Redis-backed usage limiter implementation.
+// counterService implements usage limiting using the counter interface
+// This provides truly atomic operations via Redis INCRBY commands
+type counterService struct {
+	db      db.Database
+	logger  logging.Logger
+	counter counter.Counter
+
+	// Replay buffer for async DB updates
+	replayBuffer *buffer.Buffer[CreditChange]
+
+	// Circuit breaker for DB writes
+	dbCircuitBreaker circuitbreaker.CircuitBreaker[any]
+
+	// TTL for Redis keys
+	ttl time.Duration
+}
+
+var _ Service = (*counterService)(nil)
+
+// CounterConfig holds configuration options for the counter-based usage limiter
+type CounterConfig struct {
+	// DB is the database connection for fallback and replay operations
+	DB db.Database
+
+	// Logger is the logging implementation to use
+	Logger logging.Logger
+
+	// Counter is the distributed counter implementation to use
+	Counter counter.Counter
+
+	// Redis client for coordination operations (SETNX etc)
+	Redis *redis.Client
+
+	// TTL for Redis keys, defaults to 10 minutes if not specified
+	TTL time.Duration
+}
+
+// NewCounter creates a new counter-based usage limiter implementation.
+//
+// This implementation uses the counter interface for truly atomic operations.
+// It provides the best performance and simplicity by leveraging Redis INCRBY
+// for atomic credit decrements.
+//
+// Characteristics:
+//   - Uses Redis INCRBY for atomic decrements (single operation)
+//   - No race conditions - Redis handles atomicity
+//   - Simple, fast code with minimal complexity
+//   - Excellent performance under high contention
+//   - Falls back to direct DB on Redis failures
 //
 // Parameters:
-//   - config: Configuration options for the Redis usage limiter
+//   - config: Configuration options including counter implementation
 //
 // Returns:
-//   - Service: Redis implementation of the Service interface
-//   - error: Any errors during initialization
-func NewRedis(config RedisConfig) (Service, error) {
-	err := assert.All(
-		assert.NotEmpty(config.RedisURL, "Redis URL must not be empty"),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	opts, err := redis.ParseURL(config.RedisURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse redis url: %w", err)
-	}
-
-	rdb := redis.NewClient(opts)
-	config.Logger.Debug("pinging redis")
-
-	// Test connection
-	_, err = rdb.Ping(context.Background()).Result()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping redis: %w", err)
-	}
-
+//   - Service: Counter-based implementation of the Service interface
+//   - error: Any initialization errors
+func NewCounter(config CounterConfig) (Service, error) {
 	ttl := config.TTL
 	if ttl == 0 {
 		ttl = 10 * time.Minute
 	}
 
-	s := &redisService{
-		db:     config.DB,
-		logger: config.Logger,
-		redis:  rdb,
-		ttl:    ttl,
+	s := &counterService{
+		db:      config.DB,
+		logger:  config.Logger,
+		counter: config.Counter,
+		ttl:     ttl,
 		replayBuffer: buffer.New[CreditChange](buffer.Config{
 			Name:     "usagelimiter_replays",
 			Capacity: 10_000,
-			Drop:     false, // NEVER drop credit changes - accuracy is critical
+			Drop:     false,
 		}),
 		dbCircuitBreaker: circuitbreaker.New[any]("usagelimiter_db_writes"),
 	}
 
-	// Start replay workers like ratelimiter does
+	// Start replay workers
 	for range 8 {
 		go s.replayRequests()
 	}
@@ -111,120 +129,117 @@ func NewRedis(config RedisConfig) (Service, error) {
 	return s, nil
 }
 
-// Lua script for atomic check-and-decrement
-// Returns the new value if successful, or -1 if insufficient credits
-const checkAndDecrementScript = `
-local key = KEYS[1]
-local cost = tonumber(ARGV[1])
-local current = redis.call('GET', key)
-
-if current == false then
-	return -2  -- Key doesn't exist
-end
-
-current = tonumber(current)
-
-if current >= cost then
-	local new_value = redis.call('DECRBY', key, cost)
-	return new_value
-else
-	return -1  -- Insufficient credits
-end
-`
-
-// Enhanced atomic script with integrated locking
-// Returns: new_value (>=0), -1 (insufficient), -2 (acquired lock), -3 (wait)
-const atomicCheckDecrementWithLockScript = `
-local key = KEYS[1]
-local lock_key = KEYS[2]
-local cost = tonumber(ARGV[1])
-local lock_value = ARGV[2]
-local lock_ttl = tonumber(ARGV[3])
-
--- First try normal check-and-decrement
-local current = redis.call('GET', key)
-
-if current ~= false then
-    current = tonumber(current)
-    if current >= cost then
-        local new_value = redis.call('DECRBY', key, cost)
-        return new_value
-    else
-        return -1  -- Insufficient credits
-    end
-end
-
--- Key doesn't exist, try to acquire lock atomically
-local lock_acquired = redis.call('SET', lock_key, lock_value, 'NX', 'EX', lock_ttl)
-if lock_acquired then
-    return -2  -- Lock acquired, caller should load from DB
-else
-    return -3  -- Lock not acquired, caller should wait and retry
-end
-`
-
-func (s *redisService) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
-	ctx, span := tracing.Start(ctx, "usagelimiter.redis.Limit")
+func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
+	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
 
-	// Build Redis keys
 	redisKey := fmt.Sprintf("credits:%s", req.KeyId)
-	lockKey := fmt.Sprintf("lock:credits:%s", req.KeyId)
-	lockValue := fmt.Sprintf("%d", time.Now().UnixNano())
-	lockTTL := 5 // seconds
 
-	// Use atomic script that includes locking
-	result := s.redis.Eval(ctx, atomicCheckDecrementWithLockScript,
-		[]string{redisKey, lockKey}, req.Cost, lockValue, lockTTL)
-	if result.Err() != nil {
-		s.logger.Error("redis eval failed", "error", result.Err().Error())
+	// Try atomic decrement only if key exists - no guesswork needed!
+	remaining, existed, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
+	if err != nil {
+		s.logger.Debug("counter DecrementIfExists failed, falling back to DB", "error", err, "keyId", req.KeyId)
 		return s.fallbackToDirectDB(ctx, req)
 	}
 
-	val, err := result.Int64()
+	// Case 1: Key didn't exist - load from database with coordination
+	if !existed {
+		s.logger.Debug("key doesn't exist in Redis, loading from database", "keyId", req.KeyId)
+		return s.loadFromDatabaseWithCounter(ctx, req, redisKey)
+	}
+
+	// Case 2: Key existed - check for special cases and successful decrements
+
+	// Special case: Unlimited key marker (remains very large even after decrement)
+	// For unlimited keys, we store UnlimitedKeyMarker in Redis as a marker
+	if remaining >= UnlimitedKeyMarker-int64(req.Cost) {
+		s.logger.Debug("unlimited key detected from Redis cache", "keyId", req.KeyId, "remaining", remaining)
+		return UsageResponse{Valid: true, Remaining: -1}, nil
+	}
+
+	// Normal case: Decrement was successful (remaining >= 0)
+	if remaining >= 0 {
+		s.replayBuffer.Buffer(CreditChange{
+			KeyID:  req.KeyId,
+			Amount: req.Cost,
+		})
+		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
+		metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
+		s.logger.Debug("atomic decrement successful", "keyId", req.KeyId, "remaining", remaining)
+		return UsageResponse{Valid: true, Remaining: int32(remaining)}, nil
+	}
+
+	// Case 3: Key existed but insufficient credits (remaining < 0)
+	// Revert the decrement since we can't fulfill the request
+	originalValue := remaining + int64(req.Cost)
+	_, revertErr := s.counter.Increment(ctx, redisKey, int64(req.Cost))
+	if revertErr != nil {
+		s.logger.Error("failed to revert insufficient credit decrement", "error", revertErr, "keyId", req.KeyId)
+	}
+
+	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
+	s.logger.Debug("insufficient credits", "keyId", req.KeyId, "available", originalValue, "needed", req.Cost)
+	return UsageResponse{Valid: false, Remaining: 0}, nil
+}
+
+// loadFromDatabaseWithCounter loads credits from DB and initializes the counter
+func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req UsageRequest, redisKey string) (UsageResponse, error) {
+	ctx, span := tracing.Start(ctx, "usagelimiter.counter.loadFromDatabaseWithCounter")
+	defer span.End()
+
+	limit, err := db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
 	if err != nil {
+		// This shouldn't happen
+		if db.IsNotFound(err) {
+			return UsageResponse{Valid: false, Remaining: 0}, nil
+		}
+
 		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
 
-	if val == -2 {
-		// Lock acquired, we need to load from database
-		s.logger.Info("lock acquired in script, loading from database", "keyId", req.KeyId)
-		return s.loadFromDatabaseWithAcquiredLock(ctx, req, lockKey)
-	}
-
-	if val == -3 {
-		// Lock not acquired, wait and retry
-		s.logger.Info("lock not acquired, retrying", "keyId", req.KeyId)
-		time.Sleep(10 * time.Millisecond)
-		// Retry with simple script since someone else is loading
-		result := s.redis.Eval(ctx, checkAndDecrementScript, []string{redisKey}, req.Cost)
-		if result.Err() != nil {
-			return s.fallbackToDirectDB(ctx, req)
-		}
-		val, err := result.Int64()
+	// Unlimited key - cache it in Redis with the unlimited marker
+	if !limit.Valid {
+		// Set the unlimited marker value in Redis to prevent future database lookups
+		_, err = s.counter.Increment(ctx, redisKey, UnlimitedKeyMarker, s.ttl)
 		if err != nil {
-			return s.fallbackToDirectDB(ctx, req)
+			s.logger.Debug("failed to cache unlimited key marker, continuing anyway", "error", err, "keyId", req.KeyId)
 		}
-		if val == -2 {
-			// Still not loaded, fallback to DB
-			s.logger.Info("key still not loaded after retry, falling back to DB", "keyId", req.KeyId)
-			return s.fallbackToDirectDB(ctx, req)
-		}
-		if val == -1 {
-			metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
-			return UsageResponse{Valid: false, Remaining: 0}, nil
-		}
-		// Success after retry
-		s.replayBuffer.Buffer(CreditChange{KeyID: req.KeyId, Amount: req.Cost})
-		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
-		metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
-		return UsageResponse{Valid: true, Remaining: int32(val)}, nil
+		s.logger.Debug("unlimited key detected and cached", "keyId", req.KeyId)
+		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
 
-	if val == -1 {
-		// Insufficient credits
+	// Check if we have enough credits
+	if limit.Int32 < req.Cost {
+		// Set counter to current DB value for future requests
+		// Use positive increment from 0 to set initial value
+		_, err = s.counter.Increment(ctx, redisKey, int64(limit.Int32), s.ttl)
+		if err != nil {
+			s.logger.Debug("failed to initialize counter, falling back to DB", "error", err, "keyId", req.KeyId)
+			return s.fallbackToDirectDB(ctx, req)
+		}
+
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
+		s.logger.Debug("insufficient credits from DB", "keyId", req.KeyId, "available", limit.Int32, "needed", req.Cost)
 		return UsageResponse{Valid: false, Remaining: 0}, nil
+	}
+
+	// We have enough credits - initialize counter with decremented value
+	newValue := limit.Int32 - req.Cost
+
+	// Atomically set the counter to the decremented value
+	// This uses the fact that if counter is 0, incrementing by newValue sets it to newValue
+	finalValue, err := s.counter.Increment(ctx, redisKey, int64(newValue), s.ttl)
+	if err != nil {
+		s.logger.Debug("failed to initialize counter with decremented value, falling back to DB", "error", err, "keyId", req.KeyId)
+		return s.fallbackToDirectDB(ctx, req)
+	}
+
+	// Check for race condition - if finalValue != newValue, another process initialized the key
+	if finalValue != int64(newValue) {
+		s.logger.Debug("race condition detected during initialization, retrying", "keyId", req.KeyId, "expected", newValue, "actual", finalValue)
+		// Retry the original operation now that key exists
+		time.Sleep(1 * time.Millisecond)
+		return s.Limit(ctx, req)
 	}
 
 	// Success - buffer the change for async DB update
@@ -235,22 +250,21 @@ func (s *redisService) Limit(ctx context.Context, req UsageRequest) (UsageRespon
 
 	metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
-	return UsageResponse{Valid: true, Remaining: int32(val)}, nil
+	s.logger.Debug("database load and counter initialization successful", "keyId", req.KeyId, "remaining", newValue)
+	return UsageResponse{Valid: true, Remaining: newValue}, nil
 }
 
-func (s *redisService) fallbackToDirectDB(ctx context.Context, req UsageRequest) (UsageResponse, error) {
-	ctx, span := tracing.Start(ctx, "usagelimiter.redis.fallbackToDirectDB")
+func (s *counterService) fallbackToDirectDB(ctx context.Context, req UsageRequest) (UsageResponse, error) {
+	ctx, span := tracing.Start(ctx, "usagelimiter.counter.fallbackToDirectDB")
 	defer span.End()
 
 	metrics.UsagelimiterFallbackOperations.Inc()
 
-	// Use the original service implementation
 	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
 		}
-
 		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
 
@@ -278,66 +292,38 @@ func (s *redisService) fallbackToDirectDB(ctx context.Context, req UsageRequest)
 	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
 }
 
-// loadFromDatabaseWithAcquiredLock handles loading when we already have the lock
-func (s *redisService) loadFromDatabaseWithAcquiredLock(ctx context.Context, req UsageRequest, lockKey string) (UsageResponse, error) {
-	// We already have the lock, release it when done
-	defer func() {
-		s.redis.Del(ctx, lockKey)
-	}()
-
-	s.logger.Info("loading from database with acquired lock", "keyId", req.KeyId)
-
-	limit, err := db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			s.logger.Info("key not found in database", "keyId", req.KeyId)
-			return UsageResponse{Valid: false, Remaining: 0}, nil
+// replayRequests processes buffered credit changes and updates the database
+func (s *counterService) replayRequests() {
+	for change := range s.replayBuffer.Consume() {
+		err := s.syncWithDB(context.Background(), change)
+		if err != nil {
+			s.logger.Error("failed to replay credit change", "error", err.Error())
 		}
-		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
-
-	s.logger.Info("loaded key from database with acquired lock", "keyId", req.KeyId, "limit", limit)
-
-	// Unlimited key
-	if !limit.Valid {
-		s.logger.Info("unlimited key detected", "keyId", req.KeyId)
-		return UsageResponse{Valid: true, Remaining: -1}, nil
-	}
-
-	// Check if we have enough credits
-	if limit.Int32 < req.Cost {
-		// Not enough credits, set Redis to current DB value for future requests
-		redisKey := fmt.Sprintf("credits:%s", req.KeyId)
-		s.redis.Set(ctx, redisKey, limit.Int32, s.ttl)
-		metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
-		s.logger.Info("insufficient credits", "keyId", req.KeyId, "available", limit.Int32, "needed", req.Cost)
-		return UsageResponse{Valid: false, Remaining: 0}, nil
-	}
-
-	// We have enough credits - set Redis with decremented value atomically
-	redisKey := fmt.Sprintf("credits:%s", req.KeyId)
-	newValue := limit.Int32 - req.Cost
-
-	// Use SET to initialize Redis with the decremented value
-	err = s.redis.Set(ctx, redisKey, newValue, s.ttl).Err()
-	if err != nil {
-		s.logger.Error("failed to set redis after DB load", "error", err, "keyId", req.KeyId)
-		return s.fallbackToDirectDB(ctx, req)
-	}
-
-	// Buffer the change for async DB update
-	s.replayBuffer.Buffer(CreditChange{
-		KeyID:  req.KeyId,
-		Amount: req.Cost,
-	})
-
-	metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
-	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
-	s.logger.Info("successfully loaded and decremented with acquired lock", "keyId", req.KeyId, "remaining", newValue)
-	return UsageResponse{Valid: true, Remaining: newValue}, nil
 }
 
-func (s *redisService) Close() error {
+func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
+		return nil, db.Query.UpdateKeyCredits(ctx, s.db.RW(), db.UpdateKeyCreditsParams{
+			ID:        change.KeyID,
+			Operation: "decrement",
+			Credits:   sql.NullInt32{Int32: change.Amount, Valid: true},
+		})
+	})
+
+	if err != nil {
+		s.logger.Error("failed to sync credit change with DB", "keyId", change.KeyID, "amount", change.Amount, "error", err)
+		return err
+	}
+
+	s.logger.Debug("synced credit change with DB", "keyId", change.KeyID, "amount", change.Amount)
+	return nil
+}
+
+func (s *counterService) Close() error {
 	s.replayBuffer.Close()
-	return s.redis.Close()
+	return s.counter.Close()
 }

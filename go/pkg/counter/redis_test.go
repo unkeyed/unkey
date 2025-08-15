@@ -443,3 +443,336 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestRedisCounterDecrement(t *testing.T) {
+	ctx := context.Background()
+	redisURL := containers.Redis(t)
+
+	// Create a Redis counter
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logging.New(),
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("BasicDecrement", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Start with initial value
+		_, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+
+		// Decrement by 3 should return 7
+		val, err := ctr.Decrement(ctx, key, 3)
+		require.NoError(t, err)
+		require.Equal(t, int64(7), val)
+
+		// Decrement by 5 should return 2
+		val, err = ctr.Decrement(ctx, key, 5)
+		require.NoError(t, err)
+		require.Equal(t, int64(2), val)
+
+		// Decrement by 10 should return -8 (negative values allowed)
+		val, err = ctr.Decrement(ctx, key, 10)
+		require.NoError(t, err)
+		require.Equal(t, int64(-8), val)
+	})
+
+	t.Run("DecrementWithTTL", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+		ttl := 1 * time.Second
+
+		// First decrement creates the key with TTL
+		val, err := ctr.Decrement(ctx, key, 5, ttl)
+		require.NoError(t, err)
+		require.Equal(t, int64(-5), val) // Starting from 0, decrement by 5 = -5
+
+		// Get the value immediately
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(-5), val)
+
+		// Wait for the key to expire
+		time.Sleep(2 * time.Second)
+
+		// Key should be gone or zero
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), val)
+	})
+
+	t.Run("ConcurrentDecrements", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+		numWorkers := 10
+		decrementsPerWorker := 5
+
+		// Start with a high value
+		_, err := ctr.Increment(ctx, key, 1000)
+		require.NoError(t, err)
+
+		var wg sync.WaitGroup
+		wg.Add(numWorkers)
+
+		for i := 0; i < numWorkers; i++ {
+			go func() {
+				defer wg.Done()
+				for j := 0; j < decrementsPerWorker; j++ {
+					_, err := ctr.Decrement(ctx, key, 2)
+					if err != nil {
+						t.Errorf("decrement error: %v", err)
+						return
+					}
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		// Expected: 1000 - (10 workers * 5 decrements * 2) = 1000 - 100 = 900
+		value, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(900), value)
+	})
+}
+
+func TestRedisCounterDecrementIfExists(t *testing.T) {
+	ctx := context.Background()
+	redisURL := containers.Redis(t)
+
+	// Create a Redis counter
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logging.New(),
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("DecrementNonExistentKey", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Try to decrement a non-existent key
+		val, existed, err := ctr.DecrementIfExists(ctx, key, 5)
+		require.NoError(t, err)
+		require.False(t, existed, "Key should not exist")
+		require.Equal(t, int64(0), val, "Value should be 0 when key doesn't exist")
+
+		// Verify key still doesn't exist
+		getVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), getVal)
+	})
+
+	t.Run("DecrementExistingKey", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Create the key first
+		_, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+
+		// Now decrement if exists - should work
+		val, existed, err := ctr.DecrementIfExists(ctx, key, 3)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist")
+		require.Equal(t, int64(7), val, "Value should be 7 after decrement")
+
+		// Verify with Get
+		getVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(7), getVal)
+	})
+
+	t.Run("DecrementToNegative", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Create key with small positive value
+		_, err := ctr.Increment(ctx, key, 3)
+		require.NoError(t, err)
+
+		// Decrement by more than current value
+		val, existed, err := ctr.DecrementIfExists(ctx, key, 8)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist")
+		require.Equal(t, int64(-5), val, "Value should be -5 after decrement")
+	})
+
+	t.Run("ConcurrentDecrementIfExists", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Start with a value
+		_, err := ctr.Increment(ctx, key, 100)
+		require.NoError(t, err)
+
+		numWorkers := 20
+		var wg sync.WaitGroup
+		var successCount int64
+		var mu sync.Mutex
+
+		wg.Add(numWorkers)
+		for i := 0; i < numWorkers; i++ {
+			go func() {
+				defer wg.Done()
+				_, existed, err := ctr.DecrementIfExists(ctx, key, 1)
+				if err != nil {
+					t.Errorf("DecrementIfExists error: %v", err)
+					return
+				}
+				if existed {
+					mu.Lock()
+					successCount++
+					mu.Unlock()
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		// All should have succeeded since key existed
+		require.Equal(t, int64(numWorkers), successCount)
+
+		// Final value should be 100 - 20 = 80
+		finalVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(80), finalVal)
+	})
+}
+
+func TestRedisCounterIncrementIfExists(t *testing.T) {
+	ctx := context.Background()
+	redisURL := containers.Redis(t)
+
+	// Create a Redis counter
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logging.New(),
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("IncrementNonExistentKey", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Try to increment a non-existent key
+		val, existed, err := ctr.IncrementIfExists(ctx, key, 5)
+		require.NoError(t, err)
+		require.False(t, existed, "Key should not exist")
+		require.Equal(t, int64(0), val, "Value should be 0 when key doesn't exist")
+
+		// Verify key still doesn't exist
+		getVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), getVal)
+	})
+
+	t.Run("IncrementExistingKey", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Create the key first
+		_, err := ctr.Increment(ctx, key, 5)
+		require.NoError(t, err)
+
+		// Now increment if exists - should work
+		val, existed, err := ctr.IncrementIfExists(ctx, key, 3)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist")
+		require.Equal(t, int64(8), val, "Value should be 8 after increment")
+
+		// Verify with Get
+		getVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(8), getVal)
+	})
+
+	t.Run("IncrementWithNegativeValue", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Create key with positive value
+		_, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+
+		// Increment with negative value (effectively decrement)
+		val, existed, err := ctr.IncrementIfExists(ctx, key, -3)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist")
+		require.Equal(t, int64(7), val, "Value should be 7 after negative increment")
+	})
+
+	t.Run("UsageLimiterScenario", func(t *testing.T) {
+		// This tests the specific scenario used in the usage limiter
+		key := uid.New(uid.TestPrefix)
+
+		// Simulate a key that doesn't exist (new user/key)
+		remaining, existed, err := ctr.DecrementIfExists(ctx, key, 1)
+		require.NoError(t, err)
+		require.False(t, existed, "Key should not exist initially")
+		require.Equal(t, int64(0), remaining)
+
+		// Now create the key (simulating DB load) and set credits
+		_, err = ctr.Increment(ctx, key, 5) // User has 5 credits
+		require.NoError(t, err)
+
+		// Try decrementing again - should work now
+		remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist now")
+		require.Equal(t, int64(4), remaining, "Should have 4 credits left")
+
+		// Multiple decrements to test insufficient credits
+		for i := 0; i < 4; i++ {
+			remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
+			require.NoError(t, err)
+			require.True(t, existed)
+		}
+		require.Equal(t, int64(0), remaining, "Should have 0 credits left")
+
+		// Try one more decrement - should result in negative
+		remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should still exist")
+		require.Equal(t, int64(-1), remaining, "Should be -1 (insufficient)")
+	})
+}
+
+func TestRedisCounterMixedOperations(t *testing.T) {
+	ctx := context.Background()
+	redisURL := containers.Redis(t)
+
+	// Create a Redis counter
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logging.New(),
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("IncrementAndDecrementMixed", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Start with increment
+		val, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+		require.Equal(t, int64(10), val)
+
+		// Decrement
+		val, err = ctr.Decrement(ctx, key, 3)
+		require.NoError(t, err)
+		require.Equal(t, int64(7), val)
+
+		// IncrementIfExists
+		val, existed, err := ctr.IncrementIfExists(ctx, key, 5)
+		require.NoError(t, err)
+		require.True(t, existed)
+		require.Equal(t, int64(12), val)
+
+		// DecrementIfExists
+		val, existed, err = ctr.DecrementIfExists(ctx, key, 2)
+		require.NoError(t, err)
+		require.True(t, existed)
+		require.Equal(t, int64(10), val)
+
+		// Final verification
+		finalVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(10), finalVal)
+	})
+}

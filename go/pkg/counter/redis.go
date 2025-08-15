@@ -132,6 +132,63 @@ func (r *redisCounter) Get(ctx context.Context, key string) (int64, error) {
 	return strconv.ParseInt(res, 10, 64)
 }
 
+// Decrement decreases the counter by the given value and returns the new count.
+func (r *redisCounter) Decrement(ctx context.Context, key string, value int64, ttl ...time.Duration) (int64, error) {
+	return r.Increment(ctx, key, -value, ttl...)
+}
+
+// DecrementIfExists decrements a counter only if it already exists.
+func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error) {
+	return r.IncrementIfExists(ctx, key, -value)
+}
+
+// IncrementIfExists increments a counter only if it already exists.
+// Uses a Lua script to atomically check existence and increment.
+func (r *redisCounter) IncrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error) {
+	ctx, span := tracing.Start(ctx, "RedisCounter.IncrementIfExists")
+	defer span.End()
+
+	// Lua script to atomically check existence and increment
+	script := `
+		local key = KEYS[1]
+		local increment = tonumber(ARGV[1])
+		
+		-- Check if key exists
+		local exists = redis.call('EXISTS', key)
+		if exists == 0 then
+			return {0, 0}  -- {value, existed} where existed=0 means false
+		end
+		
+		-- Key exists, increment it
+		local newValue = redis.call('INCRBY', key, increment)
+		return {newValue, 1}  -- {value, existed} where existed=1 means true
+	`
+
+	result, err := r.redis.Eval(ctx, script, []string{key}, value).Result()
+	if err != nil {
+		return 0, false, err
+	}
+
+	// Parse the result array [newValue, existed]
+	resultSlice, ok := result.([]interface{})
+	if !ok || len(resultSlice) != 2 {
+		return 0, false, fmt.Errorf("unexpected result format from Lua script")
+	}
+
+	newValue, ok := resultSlice[0].(int64)
+	if !ok {
+		return 0, false, fmt.Errorf("invalid newValue type in result")
+	}
+
+	existedInt, ok := resultSlice[1].(int64)
+	if !ok {
+		return 0, false, fmt.Errorf("invalid existed type in result")
+	}
+
+	existed := existedInt == 1
+	return newValue, existed, nil
+}
+
 // Close releases the Redis client connection.
 //
 // Returns:

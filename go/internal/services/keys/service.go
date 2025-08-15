@@ -41,9 +41,7 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-	config.Logger.Info("creating usage limiter service", "type", "redis", "redisURL", config.RedisURL, "ttl", time.Minute*10)
-	
-	ulSvc, err := usagelimiter.NewRedis(usagelimiter.RedisConfig{
+	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		Logger:   config.Logger,
 		DB:       config.DB,
 		RedisURL: config.RedisURL,
@@ -52,8 +50,6 @@ func New(config Config) (*service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
-	
-	config.Logger.Info("usage limiter service created successfully", "type", "redis")
 
 	return &service{
 		logger:       config.Logger,
