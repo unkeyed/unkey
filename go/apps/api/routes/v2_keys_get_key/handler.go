@@ -324,11 +324,14 @@ func (h *Handler) setRatelimits(response *openapi.KeyResponseData, key db.FindLi
 			AutoApply: rl.AutoApply,
 		}
 
-		// Check identity first - if a ratelimit has an identity_id, it belongs to the identity
+		// Add to key ratelimits if it belongs to this key
+		if rl.KeyID.Valid && rl.KeyID.String == key.ID {
+			keyRatelimits = append(keyRatelimits, ratelimitResp)
+		}
+
+		// Also add to identity ratelimits if it has an identity_id that matches
 		if rl.IdentityID.Valid && key.IdentityID.Valid && rl.IdentityID.String == key.IdentityID.String {
 			identityRatelimits = append(identityRatelimits, ratelimitResp)
-		} else if rl.KeyID.Valid && rl.KeyID.String == key.ID {
-			keyRatelimits = append(keyRatelimits, ratelimitResp)
 		}
 	}
 
