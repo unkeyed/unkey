@@ -138,8 +138,34 @@ func (r *redisCounter) Decrement(ctx context.Context, key string, value int64, t
 }
 
 // DecrementIfExists decrements a counter only if it already exists.
+// Uses a dedicated Lua script to atomically check existence and decrement.
 func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error) {
-	return r.IncrementIfExists(ctx, key, -value)
+	ctx, span := tracing.Start(ctx, "RedisCounter.DecrementIfExists")
+	defer span.End()
+
+	result, err := r.redis.Eval(ctx, decrementIfExistsScript, []string{key}, value).Result()
+	if err != nil {
+		return 0, false, err
+	}
+
+	// Parse the result array [newValue, existed]
+	resultSlice, ok := result.([]interface{})
+	if !ok || len(resultSlice) != 2 {
+		return 0, false, fmt.Errorf("unexpected result format from Lua script")
+	}
+
+	newValue, ok := resultSlice[0].(int64)
+	if !ok {
+		return 0, false, fmt.Errorf("invalid newValue type in result")
+	}
+
+	existedInt, ok := resultSlice[1].(int64)
+	if !ok {
+		return 0, false, fmt.Errorf("invalid existed type in result")
+	}
+
+	existed := existedInt == 1
+	return newValue, existed, nil
 }
 
 // SetIfNotExists sets a counter to a specific value only if it doesn't already exist.
@@ -153,15 +179,40 @@ func (r *redisCounter) SetIfNotExists(ctx context.Context, key string, value int
 	}
 
 	// Use Redis SETNX (SET if Not eXists) with optional TTL
-	var result *redis.BoolCmd
-	if duration > 0 {
-		result = r.redis.SetNX(ctx, key, value, duration)
-	} else {
-		result = r.redis.SetNX(ctx, key, value, 0)
-	}
+	result := r.redis.SetNX(ctx, key, value, duration)
 
 	return result.Val(), result.Err()
 }
+
+const incrementIfExistsScript = `
+		local key = KEYS[1]
+		local increment = tonumber(ARGV[1])
+
+		-- Check if key exists
+		local exists = redis.call('EXISTS', key)
+		if exists == 0 then
+			return {0, 0}  -- {value, existed} where existed=0 means false
+		end
+
+		-- Key exists, increment it
+		local newValue = redis.call('INCRBY', key, increment)
+		return {newValue, 1}  -- {value, existed} where existed=1 means true
+	`
+
+const decrementIfExistsScript = `
+		local key = KEYS[1]
+		local decrement = tonumber(ARGV[1])
+
+		-- Check if key exists
+		local exists = redis.call('EXISTS', key)
+		if exists == 0 then
+			return {0, 0}  -- {value, existed} where existed=0 means false
+		end
+
+		-- Key exists, decrement it
+		local newValue = redis.call('DECRBY', key, decrement)
+		return {newValue, 1}  -- {value, existed} where existed=1 means true
+	`
 
 // IncrementIfExists increments a counter only if it already exists.
 // Uses a Lua script to atomically check existence and increment.
@@ -169,23 +220,7 @@ func (r *redisCounter) IncrementIfExists(ctx context.Context, key string, value 
 	ctx, span := tracing.Start(ctx, "RedisCounter.IncrementIfExists")
 	defer span.End()
 
-	// Lua script to atomically check existence and increment
-	script := `
-		local key = KEYS[1]
-		local increment = tonumber(ARGV[1])
-		
-		-- Check if key exists
-		local exists = redis.call('EXISTS', key)
-		if exists == 0 then
-			return {0, 0}  -- {value, existed} where existed=0 means false
-		end
-		
-		-- Key exists, increment it
-		local newValue = redis.call('INCRBY', key, increment)
-		return {newValue, 1}  -- {value, existed} where existed=1 means true
-	`
-
-	result, err := r.redis.Eval(ctx, script, []string{key}, value).Result()
+	result, err := r.redis.Eval(ctx, incrementIfExistsScript, []string{key}, value).Result()
 	if err != nil {
 		return 0, false, err
 	}

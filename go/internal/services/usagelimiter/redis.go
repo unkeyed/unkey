@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -14,14 +13,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
-)
-
-const (
-	// UnlimitedKeyMarker is a very large positive number used to mark unlimited keys in Redis.
-	// This value is much larger than any realistic credit amount (1 billion).
-	// When a key is unlimited, we store this value in Redis to avoid database lookups.
-	// Even after decrementing costs, the value will remain >= (UnlimitedKeyMarker - max_cost).
-	UnlimitedKeyMarker = 1_000_000_000
 )
 
 type CreditChange struct {
@@ -53,6 +44,9 @@ type counterService struct {
 	logger  logging.Logger
 	counter counter.Counter
 
+	// Fallback to direct DB implementation when Redis fails
+	dbFallback Service
+
 	// Replay buffer for async DB updates
 	replayBuffer *buffer.Buffer[CreditChange]
 
@@ -75,9 +69,6 @@ type CounterConfig struct {
 
 	// Counter is the distributed counter implementation to use
 	Counter counter.Counter
-
-	// Redis client for coordination operations (SETNX etc)
-	Redis *redis.Client
 
 	// TTL for Redis keys, defaults to 10 minutes if not specified
 	TTL time.Duration
@@ -108,11 +99,21 @@ func NewCounter(config CounterConfig) (Service, error) {
 		ttl = 10 * time.Minute
 	}
 
+	// Create the direct DB fallback service
+	dbFallback, err := New(Config{
+		DB:     config.DB,
+		Logger: config.Logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create DB fallback: %w", err)
+	}
+
 	s := &counterService{
-		db:      config.DB,
-		logger:  config.Logger,
-		counter: config.Counter,
-		ttl:     ttl,
+		db:         config.DB,
+		logger:     config.Logger,
+		counter:    config.Counter,
+		dbFallback: dbFallback,
+		ttl:        ttl,
 		replayBuffer: buffer.New[CreditChange](buffer.Config{
 			Name:     "usagelimiter_replays",
 			Capacity: 10_000,
@@ -139,25 +140,19 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	remaining, existed, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
 		s.logger.Debug("counter DecrementIfExists failed, falling back to DB", "error", err, "keyId", req.KeyId)
-		return s.fallbackToDirectDB(ctx, req)
+		metrics.UsagelimiterFallbackOperations.Inc()
+		return s.dbFallback.Limit(ctx, req)
 	}
-	
-	s.logger.Info("DecrementIfExists result", "keyId", req.KeyId, "remaining", remaining, "existed", existed, "cost", req.Cost)
 
-	// Case 1: Key didn't exist - load from database with coordination
+	s.logger.Debug("DecrementIfExists result", "keyId", req.KeyId, "remaining", remaining, "existed", existed, "cost", req.Cost)
+
+	// Key doesn't exist - load from database
 	if !existed {
 		s.logger.Debug("key doesn't exist in Redis, loading from database", "keyId", req.KeyId)
 		return s.loadFromDatabaseWithCounter(ctx, req, redisKey)
 	}
 
-	// Case 2: Key existed - check for special cases and successful decrements
-
-	// Special case: Unlimited key marker (remains very large even after decrement)
-	// For unlimited keys, we store UnlimitedKeyMarker in Redis as a marker
-	if remaining >= UnlimitedKeyMarker-int64(req.Cost) {
-		s.logger.Debug("unlimited key detected from Redis cache", "keyId", req.KeyId, "remaining", remaining)
-		return UsageResponse{Valid: true, Remaining: -1}, nil
-	}
+	// Key exists - check if decrement was successful
 
 	// Normal case: Decrement was successful (remaining >= 0)
 	if remaining >= 0 {
@@ -199,14 +194,11 @@ func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req Us
 		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
 
-	// Unlimited key - cache it in Redis with the unlimited marker
+	// This usage limiter should only be called for keys with limits
+	// Unlimited keys (limit.Valid == false) should be handled at the key validator level
 	if !limit.Valid {
-		// Set the unlimited marker value in Redis to prevent future database lookups
-		_, err = s.counter.Increment(ctx, redisKey, UnlimitedKeyMarker, s.ttl)
-		if err != nil {
-			s.logger.Debug("failed to cache unlimited key marker, continuing anyway", "error", err, "keyId", req.KeyId)
-		}
-		s.logger.Debug("unlimited key detected and cached", "keyId", req.KeyId)
+		s.logger.Error("usage limiter called for unlimited key - this should be handled at key validator level", "keyId", req.KeyId)
+		// Return valid anyway to not break existing behavior, but this is a logic error
 		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
 
@@ -217,7 +209,8 @@ func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req Us
 		_, err = s.counter.Increment(ctx, redisKey, int64(limit.Int32), s.ttl)
 		if err != nil {
 			s.logger.Debug("failed to initialize counter, falling back to DB", "error", err, "keyId", req.KeyId)
-			return s.fallbackToDirectDB(ctx, req)
+			metrics.UsagelimiterFallbackOperations.Inc()
+			return s.dbFallback.Limit(ctx, req)
 		}
 
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
@@ -226,28 +219,44 @@ func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req Us
 	}
 
 	// We have enough credits - initialize counter with DB value, then decrement
-	s.logger.Info("initializing counter with DB value", "keyId", req.KeyId, "dbCredits", limit.Int32)
-	
+	s.logger.Debug("initializing counter with DB value", "keyId", req.KeyId, "dbCredits", limit.Int32)
+
 	// Use SetIfNotExists to avoid race conditions - only one node can initialize the key
 	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, int64(limit.Int32), s.ttl)
 	if err != nil {
 		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
-		return s.fallbackToDirectDB(ctx, req)
+		metrics.UsagelimiterFallbackOperations.Inc()
+		return s.dbFallback.Limit(ctx, req)
 	}
-	
+
 	// If SetIfNotExists returned false, another node already initialized the key
 	if !wasSet {
-		s.logger.Debug("another node already initialized the key, retrying decrement", "keyId", req.KeyId)
+		s.logger.Debug("another node already initialized the key, retrying", "keyId", req.KeyId)
 		// Retry the original operation now that key exists
 		time.Sleep(1 * time.Millisecond)
 		return s.Limit(ctx, req)
 	}
-	
+
 	// We successfully initialized the key, now decrement it
 	remaining, existed, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !existed {
 		s.logger.Debug("failed to decrement after initialization, falling back to DB", "error", err, "existed", existed, "keyId", req.KeyId)
-		return s.fallbackToDirectDB(ctx, req)
+		return s.dbFallback.Limit(ctx, req)
+	}
+
+	// Check if the decrement resulted in negative credits
+	if remaining < 0 {
+		// We went negative - this means we didn't have enough credits
+		// Revert the decrement to restore the original value
+		originalValue := remaining + int64(req.Cost)
+		_, revertErr := s.counter.Increment(ctx, redisKey, int64(req.Cost))
+		if revertErr != nil {
+			s.logger.Error("failed to revert negative decrement after init", "error", revertErr, "keyId", req.KeyId)
+		}
+
+		metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
+		s.logger.Debug("init decrement denied - insufficient credits", "keyId", req.KeyId, "available", originalValue, "needed", req.Cost)
+		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
 	// Success - buffer the change for async DB update
@@ -260,44 +269,6 @@ func (s *counterService) loadFromDatabaseWithCounter(ctx context.Context, req Us
 	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
 	s.logger.Debug("database load and counter initialization successful", "keyId", req.KeyId, "remaining", remaining)
 	return UsageResponse{Valid: true, Remaining: int32(remaining)}, nil
-}
-
-func (s *counterService) fallbackToDirectDB(ctx context.Context, req UsageRequest) (UsageResponse, error) {
-	ctx, span := tracing.Start(ctx, "usagelimiter.counter.fallbackToDirectDB")
-	defer span.End()
-
-	metrics.UsagelimiterFallbackOperations.Inc()
-
-	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return UsageResponse{Valid: false, Remaining: 0}, nil
-		}
-		return UsageResponse{Valid: false, Remaining: 0}, err
-	}
-
-	if !limit.Valid {
-		return UsageResponse{Valid: true, Remaining: -1}, nil
-	}
-
-	remaining := limit.Int32
-	if remaining <= 0 && req.Cost != 0 || remaining-req.Cost < 0 {
-		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
-		return UsageResponse{Valid: false, Remaining: 0}, nil
-	}
-
-	err = db.Query.UpdateKeyCredits(ctx, s.db.RW(), db.UpdateKeyCreditsParams{
-		ID:        req.KeyId,
-		Operation: "decrement",
-		Credits:   sql.NullInt32{Int32: req.Cost, Valid: true},
-	})
-	if err != nil {
-		return UsageResponse{}, err
-	}
-
-	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
-	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
-	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
 }
 
 // replayRequests processes buffered credit changes and updates the database
@@ -328,6 +299,7 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 	}
 
 	s.logger.Debug("synced credit change with DB", "keyId", change.KeyID, "amount", change.Amount)
+
 	return nil
 }
 
@@ -339,34 +311,34 @@ func (s *counterService) Close() error {
 // It allows the replay buffer to drain pending changes before closing.
 func (s *counterService) GracefulShutdown(ctx context.Context) error {
 	s.logger.Debug("beginning graceful shutdown of usage limiter")
-	
+
 	// Set a reasonable timeout for draining if context doesn't have one
 	if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > 30*time.Second {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 	}
-	
+
 	// Stop accepting new buffer writes
 	s.replayBuffer.Close()
-	
+
 	// Wait for the buffer to drain with periodic checks
 	drainTicker := time.NewTicker(100 * time.Millisecond)
 	defer drainTicker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
 			// Get remaining count for logging
 			remaining := len(s.replayBuffer.Consume())
 			if remaining > 0 {
-				s.logger.Warn("usage limiter shutdown timeout reached, some changes may be lost", 
+				s.logger.Warn("usage limiter shutdown timeout reached, some changes may be lost",
 					"timeout", ctx.Err(), "remaining_changes", remaining)
 			} else {
 				s.logger.Debug("usage limiter shutdown completed (timeout but buffer was empty)")
 			}
 			return s.counter.Close()
-			
+
 		case <-drainTicker.C:
 			// Check if buffer is empty by looking at the underlying channel length
 			remaining := len(s.replayBuffer.Consume())

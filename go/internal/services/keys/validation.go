@@ -29,6 +29,11 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return nil
 	}
 
+	// Key has unlimited requests if set to NULL
+	if k.Key.RemainingRequests.Valid == false {
+		return nil
+	}
+
 	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
 		KeyId: k.Key.ID,
 		Cost:  cost,

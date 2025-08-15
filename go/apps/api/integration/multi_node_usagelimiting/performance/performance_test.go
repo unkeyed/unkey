@@ -83,7 +83,7 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 	// Run simple performance test with fixed number of requests
 	numRequests := 100
 	successCount := 0
-	
+
 	start := time.Now()
 	for i := 0; i < numRequests; i++ {
 		res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
@@ -91,17 +91,17 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 
 		require.NoError(t, callErr, "Request %d failed", i)
 		require.Equal(t, 200, res.Status, "Request %d got wrong status", i)
-		
+
 		if res.Body.Data.Valid {
 			successCount++
 		}
 	}
 	duration := time.Since(start)
-	
+
 	rps := float64(numRequests) / duration.Seconds()
-	t.Logf("Performance test for %d nodes: %d requests in %v (%.2f RPS), %d successful", 
+	t.Logf("Performance test for %d nodes: %d requests in %v (%.2f RPS), %d successful",
 		nodeCount, numRequests, duration, rps, successCount)
-		
+
 	// Verify reasonable performance (at least 10 RPS)
 	require.Greater(t, rps, 10.0, "Should achieve at least 10 RPS")
 }
@@ -118,10 +118,10 @@ func TestUsageLimitLatency(t *testing.T) {
 	}{
 		{"SingleNode_LowLoad", 1, 1, 100},
 		{"SingleNode_MediumLoad", 1, 10, 100},
-		{"SingleNode_HighLoad", 1, 50, 100},
+		{"SingleNode_HighLoad", 1, 200, 100},
 		{"MultiNode_LowLoad", 3, 1, 100},
 		{"MultiNode_MediumLoad", 3, 10, 100},
-		{"MultiNode_HighLoad", 3, 50, 100},
+		{"MultiNode_HighLoad", 3, 200, 100},
 	}
 
 	for _, tc := range testCases {
@@ -146,7 +146,7 @@ func runLatencyTest(t *testing.T, nodeCount, concurrency, samples int) {
 		WorkspaceID: workspace.ID,
 	})
 
-	totalCredits := int64(10000) // Enough to not run out during test
+	totalCredits := int64(100_000) // Enough to not run out during test
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
@@ -163,7 +163,7 @@ func runLatencyTest(t *testing.T, nodeCount, concurrency, samples int) {
 	req := handler.Request{
 		Key: keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
-			Cost: 1,
+			Cost: 10,
 		},
 	}
 
@@ -245,7 +245,7 @@ func runLatencyTest(t *testing.T, nodeCount, concurrency, samples int) {
 		p95Index = len(latencies) - 1
 	}
 	p95 := latencies[p95Index]
-	
+
 	p99Index := int(float64(len(latencies)) * 0.99)
 	if p99Index >= len(latencies) {
 		p99Index = len(latencies) - 1
