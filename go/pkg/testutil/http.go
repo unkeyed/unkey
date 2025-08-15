@@ -118,6 +118,8 @@ func NewHarness(t *testing.T) *Harness {
 		RateLimiter: ratelimitService,
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
+		Region:      "test",
+		RedisURL:    redisUrl,
 	})
 	require.NoError(t, err)
 

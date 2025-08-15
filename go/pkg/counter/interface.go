@@ -59,6 +59,64 @@ type Counter interface {
 	//            If a counter doesn't exist, its value in the map will be 0.
 	MultiGet(ctx context.Context, keys []string) (map[string]int64, error)
 
+	// Decrement decreases the counter by the given value and returns the new count.
+	// This is a convenience method equivalent to Increment(ctx, key, -value, ttl...).
+	//
+	// Parameters:
+	//   - ctx: Context for cancellation and tracing
+	//   - key: Unique identifier for the counter
+	//   - value: Amount to decrement the counter by (must be positive)
+	//   - ttl: Optional time-to-live duration for the counter
+	//
+	// Returns:
+	//   - int64: The new counter value after decrementing
+	//   - error: Any errors that occurred during the operation
+	Decrement(ctx context.Context, key string, value int64, ttl ...time.Duration) (int64, error)
+
+	// DecrementIfExists decrements a counter only if it already exists.
+	// This is useful for atomic operations where you need to distinguish between
+	// "key doesn't exist" and "key exists but result is negative/zero".
+	//
+	// Parameters:
+	//   - ctx: Context for cancellation and tracing
+	//   - key: Unique identifier for the counter
+	//   - value: Amount to decrement the counter by (must be positive)
+	//
+	// Returns:
+	//   - int64: The new counter value after decrementing (only valid if existed=true)
+	//   - bool: Whether the key existed before the operation
+	//   - error: Any errors that occurred during the operation
+	DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error)
+
+	// IncrementIfExists increments a counter only if it already exists.
+	// This is useful for atomic operations where you need to distinguish between
+	// "key doesn't exist" and "key exists but result is negative/zero".
+	//
+	// Parameters:
+	//   - ctx: Context for cancellation and tracing
+	//   - key: Unique identifier for the counter
+	//   - value: Amount to increment the counter by
+	//
+	// Returns:
+	//   - int64: The new counter value after incrementing (only valid if existed=true)
+	//   - bool: Whether the key existed before the operation
+	//   - error: Any errors that occurred during the operation
+	IncrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error)
+
+	// SetIfNotExists sets a counter to a specific value only if it doesn't already exist.
+	// This is useful for atomic initialization without race conditions.
+	//
+	// Parameters:
+	//   - ctx: Context for cancellation and tracing
+	//   - key: Unique identifier for the counter
+	//   - value: Value to set the counter to
+	//   - ttl: Optional time-to-live duration for the counter
+	//
+	// Returns:
+	//   - bool: Whether the key was set (true) or already existed (false)
+	//   - error: Any errors that occurred during the operation
+	SetIfNotExists(ctx context.Context, key string, value int64, ttl ...time.Duration) (bool, error)
+
 	// Close releases any resources held by the counter implementation.
 	// After calling Close(), the counter instance should not be used again.
 	//
