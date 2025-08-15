@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -149,7 +150,7 @@ func (r *VMReconciler) reconcileOnce(ctx context.Context) *ReconciliationReport 
 func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, runningProcesses map[string]FirecrackerProcess) VMReconciliationReport {
 	vmReport := VMReconciliationReport{
 		VMID:          vm.ID,
-		DatabaseState: metaldv1.VmState(vm.State),
+		DatabaseState: vm.State,
 	}
 
 	// Handle nil ProcessID safely
@@ -170,13 +171,13 @@ func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, running
 	}
 
 	// Determine what action to take based on database state vs reality
-	switch metaldv1.VmState(vm.State) {
+	switch vm.State {
 	case metaldv1.VmState_VM_STATE_RUNNING, metaldv1.VmState_VM_STATE_CREATED:
 		if !isProcessRunning {
 			// VM is supposed to be running but process doesn't exist
 			r.logger.WarnContext(ctx, "VM marked as running but process not found - marking as shutdown",
 				slog.String("vm_id", vm.ID),
-				slog.String("database_state", metaldv1.VmState(vm.State).String()),
+				slog.String("database_state", vm.State.String()),
 				slog.String("process_id", processID),
 			)
 
@@ -194,11 +195,13 @@ func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, running
 		}
 
 	case metaldv1.VmState_VM_STATE_SHUTDOWN, metaldv1.VmState_VM_STATE_PAUSED:
+		// AIDEV-BUSINESS_RULE: These states support VM persistence across metald restarts
+		// SHUTDOWN/PAUSED VMs should be preservable for later resume operations
 		if isProcessRunning {
 			// VM is marked as dead but process is still running - update state
 			r.logger.InfoContext(ctx, "VM marked as shutdown but process is running - updating state",
 				slog.String("vm_id", vm.ID),
-				slog.String("database_state", metaldv1.VmState(vm.State).String()),
+				slog.String("database_state", vm.State.String()),
 				slog.String("process_id", processID),
 			)
 
@@ -240,6 +243,7 @@ func (r *VMReconciler) reconcileVM(ctx context.Context, vm *database.VM, running
 
 // markVMDead marks a VM as dead in the database
 func (r *VMReconciler) markVMDead(ctx context.Context, vmID, reason string) error {
+	r.logger.InfoContext(ctx, "marking VM as dead", "vm_id", vmID, "reason", reason)
 	return r.vmRepo.UpdateVMStateWithContextInt(ctx, vmID, int(metaldv1.VmState_VM_STATE_SHUTDOWN))
 }
 
@@ -252,6 +256,15 @@ func (r *VMReconciler) updateVMState(ctx context.Context, vmID string, newState 
 // Uses defense-in-depth approach: age-based + validation-based + tracking-based checks
 func (r *VMReconciler) isOrphanedRecord(ctx context.Context, vm *database.VM) bool {
 	now := time.Now()
+
+	// Defense 0: Config corruption check - immediate cleanup for corrupted VMs
+	// AIDEV-BUSINESS_RULE: VMs with corrupted configs cannot be resumed and violate resumability guarantee
+	if r.hasCorruptedConfig(ctx, vm) {
+		r.logger.WarnContext(ctx, "VM has corrupted config - marking as orphaned immediately",
+			slog.String("vm_id", vm.ID),
+		)
+		return true
+	}
 
 	// Defense 1: Age-based check - very conservative threshold
 	shutdownAge := now.Sub(vm.UpdatedAt)
@@ -474,3 +487,21 @@ const (
 	// Maximum time a VM should reasonably be shutdown before cleanup consideration
 	MaxReasonableShutdownTime = 30 * 24 * time.Hour // 30 days - very conservative
 )
+
+// hasCorruptedConfig checks if a VM's configuration is corrupted and cannot be unmarshaled
+// AIDEV-BUSINESS_RULE: Corrupted configs violate the resumability guarantee for SHUTDOWN VMs
+// AIDEV-NOTE: VM configs are stored as JSON in database for consistency with port_mappings
+func (r *VMReconciler) hasCorruptedConfig(ctx context.Context, vm *database.VM) bool {
+	// Attempt to unmarshal the VM config to validate it using JSON format
+	var config metaldv1.VmConfig
+	if err := json.Unmarshal(vm.Config, &config); err != nil {
+		r.logger.WarnContext(ctx, "VM config is corrupted and cannot be unmarshaled",
+			slog.String("vm_id", vm.ID),
+			slog.String("error", err.Error()),
+		)
+		return true
+	}
+
+	// Config is valid
+	return false
+}

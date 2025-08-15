@@ -30,7 +30,7 @@ func (g *IDGenerator) GenerateNetworkID() (string, error) {
 	defer g.mu.Unlock()
 
 	// Try up to 10 times to generate a unique ID
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		// Generate 4 random bytes (8 hex characters)
 		bytes := make([]byte, 4)
 		if _, err := rand.Read(bytes); err != nil {

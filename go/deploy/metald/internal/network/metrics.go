@@ -283,6 +283,18 @@ func (m *NetworkMetrics) RecordRouteRecoveryAttempt(ctx context.Context, success
 	))
 }
 
+// RecordNamespaceDeletionFailure records a namespace deletion failure
+func (m *NetworkMetrics) RecordNamespaceDeletionFailure(ctx context.Context, namespace, errorMsg string) {
+	m.vmNetworkErrors.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("error_type", "namespace_deletion_failed"),
+		attribute.String("namespace", namespace),
+		attribute.String("error", errorMsg),
+	))
+
+	// Also increment orphaned namespaces counter since it failed to delete
+	m.orphanedNamespaces.Add(ctx, 1)
+}
+
 // SetHostProtectionStatus sets the host protection status
 func (m *NetworkMetrics) SetHostProtectionStatus(ctx context.Context, active bool) {
 	status := int64(0)

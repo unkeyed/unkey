@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
