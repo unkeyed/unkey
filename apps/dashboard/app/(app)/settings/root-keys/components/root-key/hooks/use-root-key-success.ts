@@ -1,16 +1,15 @@
 import { toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "../constants";
+import { ROOT_KEY_MESSAGES } from "../constants";
 
 type UseRootKeySuccessProps = {
   keyValue?: string;
   onClose: () => void;
 };
 
-export function useRootKeySuccess({ keyValue, onClose }: UseRootKeySuccessProps) {
+export function useRootKeySuccess({ onClose }: UseRootKeySuccessProps) {
   const router = useRouter();
-  const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "close" | "create-another" | "go-to-details" | null
@@ -64,30 +63,12 @@ export function useRootKeySuccess({ keyValue, onClose }: UseRootKeySuccessProps)
     }
   };
 
-  const snippet = `curl -XPOST '${ROOT_KEY_CONSTANTS.API_URL}/v1/keys.createKey' \\
-    -H 'Authorization: Bearer ${keyValue}' \\
-    -H 'Content-Type: application/json' \\
-    -d '{
-      "prefix": "hello",
-      "apiId": "<API_ID>"
-    }'`;
-
-  const split = keyValue?.split("_") ?? [];
-  const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
-
   return {
-    showKeyInSnippet,
-    setShowKeyInSnippet,
     isConfirmOpen,
     setIsConfirmOpen,
     dividerRef,
     handleCloseAttempt,
     handleConfirmClose,
     handleDialogOpenChange,
-    snippet,
-    maskedKey,
   };
 }

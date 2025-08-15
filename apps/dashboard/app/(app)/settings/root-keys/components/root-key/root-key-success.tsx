@@ -2,44 +2,29 @@
 
 import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import { ArrowRight, Check, CircleInfo, Key2 } from "@unkey/icons";
-import {
-  Button,
-  Code,
-  CopyButton,
-  Dialog,
-  DialogContent,
-  InfoTooltip,
-  VisibleButton,
-} from "@unkey/ui";
-import { ROOT_KEY_CONSTANTS } from "./constants";
+import { Check, CircleInfo, Key2 } from "@unkey/icons";
+import { Dialog, DialogContent } from "@unkey/ui";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
 
 type RootKeySuccessProps = {
   keyValue?: string;
-  keyId?: string;
-  name?: string;
   onClose: () => void;
 };
 
-export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: RootKeySuccessProps) => {
+export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
   const {
-    showKeyInSnippet,
-    setShowKeyInSnippet,
     isConfirmOpen,
     setIsConfirmOpen,
     dividerRef,
     handleCloseAttempt,
     handleConfirmClose,
     handleDialogOpenChange,
-    snippet,
-    maskedKey,
   } = useRootKeySuccess({
     keyValue,
     onClose,
   });
 
-  if (!keyValue || !keyId) {
+  if (!keyValue) {
     return null;
   }
 
@@ -51,7 +36,7 @@ export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: RootKeySucces
         onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-6 sm:px-12 md:px-[120px]">
+          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
             <div className="py-4 mt-[30px]">
               <div className="flex gap-4">
                 <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
@@ -81,44 +66,14 @@ export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: RootKeySucces
             <div className="p-1 w-full my-8">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
+
             <div className="flex flex-col gap-2 items-start w-full">
-              <div className="text-gray-12 text-sm font-semibold">Key Details</div>
-              <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
-                <div className="flex gap-6 items-center">
-                  <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
-                    <Key2 size="sm-regular" />
-                  </div>
-                  <div className="flex flex-col gap-1 py-6">
-                    <div className="text-accent-12 text-xs font-mono">{keyId}</div>
-                    <InfoTooltip
-                      content={name ?? ROOT_KEY_CONSTANTS.UNNAMED_KEY}
-                      position={{ side: "bottom", align: "center" }}
-                      asChild
-                      disabled={!name}
-                      variant="inverted"
-                    >
-                      <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                        {name ?? ROOT_KEY_CONSTANTS.UNNAMED_KEY}
-                      </div>
-                    </InfoTooltip>
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="ml-auto font-medium text-[13px] text-gray-12"
-                    onClick={() => handleCloseAttempt("go-to-details")}
-                  >
-                    See key details <ArrowRight size="sm-regular" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 items-start w-full mt-6">
-              <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
+              <div className="text-gray-12 text-sm font-semibold">Root Key</div>
               <SecretKey value={keyValue} title="API Key" className="bg-white dark:bg-black " />
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                 <CircleInfo className="text-accent-9" size="sm-regular" />
                 <span>
-                  Copy and save this key secret as it won't be shown again.{" "}
+                  Copy and save this secret as it won't be shown again.{" "}
                   <a
                     href="https://www.unkey.com/docs/security/recovering-keys"
                     target="_blank"
@@ -130,20 +85,9 @@ export const RootKeySuccess = ({ keyValue, keyId, name, onClose }: RootKeySucces
                 </span>
               </div>
             </div>
-            <div className="flex flex-col gap-2 items-start w-full mt-8">
-              <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
-              <Code
-                visibleButton={
-                  <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
-                }
-                copyButton={<CopyButton value={snippet} />}
-              >
-                {showKeyInSnippet ? snippet : snippet.replace(keyValue, maskedKey)}
-              </Code>
-            </div>
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                All set! You can now create another key or explore the docs to learn more
+                All set! You can now create another root key or explore the docs to learn more
               </div>
             </div>
           </div>

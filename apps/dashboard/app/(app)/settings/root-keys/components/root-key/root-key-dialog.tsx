@@ -166,12 +166,7 @@ export const RootKeyDialog = ({
           </div>
         </ScrollArea>
       </DynamicDialogContainer>
-      <RootKeySuccess
-        keyValue={key.data?.key}
-        keyId={key.data?.keyId}
-        name={name}
-        onClose={handleClose}
-      />
+      <RootKeySuccess keyValue={key.data?.key} onClose={handleClose} />
     </>
   );
 };
