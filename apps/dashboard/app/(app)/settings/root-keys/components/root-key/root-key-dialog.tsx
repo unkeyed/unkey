@@ -128,7 +128,7 @@ export const RootKeyDialog = ({
                 type="button"
                 variant="outline"
                 size="md"
-                className="w-fit rounded-lg pl-3"
+                className="rounded-lg pl-3 w-full"
                 disabled={isLoadingInitialApis}
               >
                 {isLoadingInitialApis

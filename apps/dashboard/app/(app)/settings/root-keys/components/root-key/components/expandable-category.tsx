@@ -3,7 +3,7 @@
 import { CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { CheckedState } from "@radix-ui/react-checkbox";
-import { ChevronDown } from "@unkey/icons";
+import { CaretRight } from "@unkey/icons";
 import { Checkbox } from "@unkey/ui";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
 
@@ -36,7 +36,7 @@ const ExpandableCategory = forwardRef<
         ref={ref}
         {...props}
         className={cn(
-          "flex items-center justify-start gap-3 pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-180 w-full",
+          "flex items-center justify-start gap-3 pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-90 w-full",
           props.className,
         )}
       >
@@ -44,8 +44,8 @@ const ExpandableCategory = forwardRef<
           <p className="text-sm w-full">{category}</p>
           <p className="text-xs text-gray-10 w-full truncate">{description}</p>
         </div>
-        <ChevronDown
-          className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-8"
+        <CaretRight
+          className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7"
           aria-hidden="true"
         />
       </CollapsibleTrigger>

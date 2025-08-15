@@ -1,6 +1,6 @@
 "use client";
+import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
-import { cn } from "lib/utils";
 
 export const SEARCH_MODES = {
   ALLOW_TYPE: "allowTypeDuringSearch",
@@ -23,7 +23,6 @@ type SearchInputProps = {
 };
 
 export const SearchInput = ({
-  maxLength,
   className,
   value,
   placeholder,
@@ -49,13 +48,12 @@ export const SearchInput = ({
       type="text"
       value={value}
       onChange={onChange}
-      maxLength={maxLength}
       placeholder={placeholder}
       className={cn(
-        "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:bg-grayA-6 w-full",
+        "truncate text-accent-12 font-medium text-[13px] bg-transparent focus:!bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:!bg-transparent w-full gap-4",
         className,
       )}
-      disabled={isProcessing && searchMode !== SEARCH_MODES.ALLOW_TYPE}
+      disabled={isProcessing}
       data-testid="search-input"
     />
   );

@@ -1,8 +1,9 @@
+import { SelectedItemsList } from "@/components/selected-item-list";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { ChevronDown, XMark } from "@unkey/icons";
+import { CaretRight, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { Badge, Button } from "@unkey/ui";
+import { Badge } from "@unkey/ui";
 import { useMemo } from "react";
 import { apiPermissions, workspacePermissions } from "../permissions";
 
@@ -68,33 +69,28 @@ const ListBadges = ({
   removePermission,
 }: { info: PermissionInfo; removePermission: (permission: UnkeyPermission) => void }) => {
   // Stop propagation to prevent triggering parent collapsible when removing permissions
-  const handleRemovePermissionClick = (
-    e: React.MouseEvent<HTMLButtonElement>,
-    permission: UnkeyPermission,
-  ) => {
-    e.stopPropagation();
-    removePermission(permission);
+  const handleRemovePermissionClick = (id: string) => {
+    const permission = info.find((p) => p.permission.toString() === id);
+    if (permission) {
+      removePermission(permission.permission);
+    }
   };
   return (
-    <div className="flex flex-wrap gap-2 pt-2">
-      {info.map((permission) => (
-        <Badge
-          key={permission.permission}
-          variant="primary"
-          className="flex items-center h-[22px] p-[6px] px-2 text-xs font-normal text-grayA-11 hover:bg-grayA-2 hover:text-grayA-12 gap-2"
-        >
-          <span>{permission.action}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-4 h-4"
-            onClick={(e) => handleRemovePermissionClick(e, permission.permission)}
-          >
-            <XMark className="w-4 h-4" />
-          </Button>
-        </Badge>
-      ))}
-    </div>
+    <SelectedItemsList
+      className="pt-2 overflow-hidden"
+      items={info.map((permission) => ({
+        id: permission.permission.toString(),
+        name: permission.action,
+        description: permission.category,
+      }))}
+      gridCols={2}
+      disabled={false}
+      onRemoveItem={(id) => handleRemovePermissionClick(id)}
+      renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+      enableTransitions
+      renderPrimaryText={(permission) => permission.name}
+      renderSecondaryText={(permission) => permission.id}
+    />
   );
 };
 
@@ -120,12 +116,12 @@ const CollapsibleList = ({
       <CollapsibleTrigger
         {...props}
         className={cn(
-          "flex flex-row gap-3 transition-all [&[data-state=open]>svg]:rotate-180 w-full",
+          "flex flex-row gap-3 transition-all [&[data-state=open]>svg]:rotate-90 w-full",
           className,
         )}
       >
         <ListTitle title={title} count={info.length} category={name} />
-        <ChevronDown className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-8" />
+        <CaretRight className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7" />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <ListBadges info={info} removePermission={removePermission} />
