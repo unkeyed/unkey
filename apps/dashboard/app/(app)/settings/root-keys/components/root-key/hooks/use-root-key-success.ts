@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 
 type UseRootKeySuccessProps = {
-  keyValue?: string;
   onClose: () => void;
 };
 

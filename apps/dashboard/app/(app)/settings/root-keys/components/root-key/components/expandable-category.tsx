@@ -7,7 +7,7 @@ import { CaretRight } from "@unkey/icons";
 import { Checkbox } from "@unkey/ui";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
 
-type ExpandableCategoryProps = {
+export type ExpandableCategoryProps = {
   category: string;
   description: string;
   checked: CheckedState | undefined;

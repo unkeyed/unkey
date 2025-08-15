@@ -20,7 +20,7 @@ const DynamicDialogContainer = dynamic(
         default: mod.DialogContainer,
       }))
       .catch(() => ({
-        default: () => <div>Failed to load dialog</div>,
+        default: () => <div role="alert">Failed to load dialog</div>,
       })),
   { ssr: false },
 );
@@ -67,7 +67,8 @@ export const RootKeyDialog = ({
     existingKey,
     onOpenChange,
   });
-  const isLoadingInitialApis = apisLoading && !editMode && selectedPermissions.length === 0;
+  const isBusy =
+    key.isLoading || updateName.isLoading || updatePermissions.isLoading || apisLoading;
 
   return (
     <>
@@ -84,9 +85,9 @@ export const RootKeyDialog = ({
               variant="primary"
               size="xlg"
               className="w-full rounded-lg"
-              disabled={!hasChanges}
+              disabled={!hasChanges || isBusy}
               onClick={handleCreateKey}
-              loading={key.isLoading || updateName.isLoading || updatePermissions.isLoading}
+              loading={isBusy}
             >
               {editMode
                 ? ROOT_KEY_MESSAGES.UI.UPDATE_ROOT_KEY
@@ -129,11 +130,9 @@ export const RootKeyDialog = ({
                 variant="outline"
                 size="md"
                 className="rounded-lg pl-3 w-full"
-                disabled={isLoadingInitialApis}
+                disabled={isBusy}
               >
-                {isLoadingInitialApis
-                  ? ROOT_KEY_MESSAGES.UI.LOADING
-                  : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
+                {isBusy ? ROOT_KEY_MESSAGES.UI.LOADING : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
               </Button>
             </PermissionSheet>
           </div>

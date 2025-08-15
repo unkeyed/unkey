@@ -24,12 +24,9 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
       <Checkbox
         size="lg"
         checked={checked}
-        onCheckedChange={(checked) => {
-          if (checked === "indeterminate") {
-            setChecked(false);
-          } else {
-            setChecked(!checked);
-          }
+        onCheckedChange={(next) => {
+          // Treat indeterminate as unchecked; otherwise set to the boolean next value
+          setChecked(next === true);
         }}
       />
       <div className="flex flex-col text-left min-w-48 max-w-full mr-2 gap-1">

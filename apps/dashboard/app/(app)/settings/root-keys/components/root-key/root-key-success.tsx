@@ -20,7 +20,6 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
     handleConfirmClose,
     handleDialogOpenChange,
   } = useRootKeySuccess({
-    keyValue,
     onClose,
   });
 
@@ -69,7 +68,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
 
             <div className="flex flex-col gap-2 items-start w-full">
               <div className="text-gray-12 text-sm font-semibold">Root Key</div>
-              <SecretKey value={keyValue} title="API Key" className="bg-white dark:bg-black " />
+              <SecretKey value={keyValue} title="Root Key" className="bg-white dark:bg-black " />
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                 <CircleInfo className="text-accent-9" size="sm-regular" />
                 <span>

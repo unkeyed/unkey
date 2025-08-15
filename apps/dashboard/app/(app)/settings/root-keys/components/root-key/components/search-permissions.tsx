@@ -19,7 +19,6 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
       </div>
       <div className="flex w-full">
         <SearchInput
-          className="focus:ring-0 focus:outline-none focus:!bg-grayA-4 w-full"
           value={search ?? ""}
           placeholder={ROOT_KEY_MESSAGES.UI.SEARCH_PERMISSIONS}
           isProcessing={isProcessing}

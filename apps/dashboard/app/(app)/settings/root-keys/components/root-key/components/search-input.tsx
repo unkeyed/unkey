@@ -23,6 +23,7 @@ type SearchInputProps = {
 };
 
 export const SearchInput = ({
+  maxLength,
   className,
   value,
   placeholder,
@@ -44,13 +45,15 @@ export const SearchInput = ({
 
   return (
     <Input
+      variant="ghost"
       ref={inputRef}
       type="text"
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      maxLength={maxLength}
       className={cn(
-        "truncate text-accent-12 font-medium text-[13px] bg-transparent focus:!bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-8 selection:!bg-transparent w-full gap-4",
+        "truncate w-full focus:ring-0 focus:outline-none focus:border-none selection:border-none selection:ring-0 ring-0 border-none",
         className,
       )}
       disabled={isProcessing}
