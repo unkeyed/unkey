@@ -141,6 +141,17 @@ func (b *Buffer[T]) Consume() <-chan T {
 	return b.c
 }
 
+// Size returns the current number of buffered elements without consuming them.
+// This is safe for concurrent use and won't modify the buffer state.
+//
+// Example:
+//
+//	size := b.Size()
+//	fmt.Printf("Buffer contains %d elements\n", size)
+func (b *Buffer[T]) Size() int {
+	return len(b.c)
+}
+
 // Close closes the buffer and signals that no more elements will be added.
 // This method should be called when the buffer is no longer needed.
 //

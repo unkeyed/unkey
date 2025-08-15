@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
+	"github.com/unkeyed/unkey/go/pkg/repeat"
 )
 
 type CreditChange struct {
@@ -153,14 +154,14 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 
 	redisKey := fmt.Sprintf("credits:%s", req.KeyId)
 
-	// Try atomic decrement only if key usage is already stored
+	// Try decrement only if key usage is already stored
 	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
 		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
-	// Key doesn't exist - load from db
+	// Key doesn't exist. load from db
 	if !exists {
 		return s.initializeFromDatabase(ctx, req, redisKey)
 	}
@@ -192,7 +193,6 @@ func (s *counterService) handleDecrementResult(ctx context.Context, req UsageReq
 	}
 
 	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
-	// s.logger.Info("insufficient credits", "keyId", req.KeyId, "available", originalValue, "needed", req.Cost)
 
 	return UsageResponse{Valid: false, Remaining: 0}, nil
 }
@@ -219,20 +219,21 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	}
 
 	// Try to initialize with the already decremented value
-	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, int64(limit.Int32-req.Cost), s.ttl)
+	remaining := int64(limit.Int32) - int64(req.Cost)
+	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, remaining, s.ttl)
+
 	if err != nil {
 		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
 		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
+	// We set it so its fine to pass
 	if wasSet {
-		// We won the initialization race - already set the decremented value, skip extra Redis call
-		remaining := int64(limit.Int32) - int64(req.Cost)
 		return s.handleDecrementResult(ctx, req, redisKey, remaining)
 	}
 
-	// Another node already initialized the key - do atomic decrement
+	// Another node already initialized the key, check if we have enough after decrement
 	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
 		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyId", req.KeyId, "wasSet", wasSet)
@@ -293,31 +294,46 @@ func (s *counterService) GracefulShutdown(ctx context.Context) error {
 	// Stop accepting new buffer writes
 	s.replayBuffer.Close()
 
-	// Wait for the buffer to drain with periodic checks
-	drainTicker := time.NewTicker(100 * time.Millisecond)
-	defer drainTicker.Stop()
+	// Wait for the buffer to drain with periodic checks using repeat package
+	done := make(chan struct{})
 
-	for {
-		select {
-		case <-ctx.Done():
-			// Get remaining count for logging
-			remaining := len(s.replayBuffer.Consume())
-			if remaining > 0 {
-				s.logger.Warn("usage limiter shutdown timeout reached, some changes may be lost",
-					"timeout", ctx.Err(), "remaining_changes", remaining)
-			} else {
-				s.logger.Debug("usage limiter shutdown completed (timeout but buffer was empty)")
-			}
-			return s.counter.Close()
-
-		case <-drainTicker.C:
-			// Check if buffer is empty by looking at the underlying channel length
-			remaining := len(s.replayBuffer.Consume())
-			if remaining == 0 {
-				s.logger.Debug("usage limiter replay buffer drained successfully")
-				return s.counter.Close()
-			}
-			s.logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
+	stopRepeater := repeat.Every(100*time.Millisecond, func() {
+		remaining := s.replayBuffer.Size()
+		if remaining == 0 {
+			s.logger.Debug("usage limiter replay buffer drained successfully")
+			close(done)
+			return
 		}
+		s.logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
+	})
+	defer stopRepeater()
+
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("shutdown timeout reached, actively draining remaining buffer items")
+		// Actively drain any remaining items to avoid data loss
+		for {
+			remaining := s.replayBuffer.Size()
+			if remaining == 0 {
+				s.logger.Debug("successfully drained all remaining buffer items")
+				break
+			}
+
+			// Process remaining items directly
+			select {
+			case change := <-s.replayBuffer.Consume():
+				err := s.syncWithDB(context.Background(), change)
+				if err != nil {
+					s.logger.Error("failed to sync credit change during shutdown", "error", err)
+				}
+			default:
+				// Channel is closed and empty
+			}
+		}
+		return s.counter.Close()
+
+	case <-done:
+		s.logger.Debug("usage limiter replay buffer drained successfully")
+		return s.counter.Close()
 	}
 }
