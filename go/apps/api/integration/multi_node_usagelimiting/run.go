@@ -105,20 +105,11 @@ func RunUsageLimitTest(
 	successCount := 0
 	var lastRemaining int64 = totalCredits
 
-	// Calculate interval between requests to achieve desired RPS
-	interval := time.Second / time.Duration(requestsPerSecond)
-
 	// Create a load balancer to distribute requests across nodes
 	lb := integration.NewLoadbalancer(h)
 
 	// Send requests
 	for i := 0; i < totalRequests; i++ {
-		// Advance simulated clock
-		clk.Tick(interval)
-
-		// Set test time header for consistent timing
-		headers.Set("X-Test-Time", fmt.Sprintf("%d", clk.Now().UnixMilli()))
-
 		// Send request to a random node
 		res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
 			lb, "POST", "/v2/keys.verifyKey", headers, req)

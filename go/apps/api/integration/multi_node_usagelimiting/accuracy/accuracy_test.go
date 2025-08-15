@@ -185,9 +185,17 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	// Verify credit accuracy - should not exceed the limit
 	assert.LessOrEqual(t, successCount, expectedSuccessful, "Should not exceed credit limit")
 
-	// Verify we didn't under-count too much (allow 1% error for race conditions)
-	minExpected := max(0, int(float64(expectedSuccessful)*0.99))
-	assert.GreaterOrEqual(t, successCount, minExpected, "Should not under-count by more than 1%%")
+	// With atomic Redis operations, we expect perfect accuracy on low load
+	// Only allow error margin on high contention scenarios
+	if totalRequests <= expectedSuccessful {
+		// Low load - expect perfect accuracy
+		assert.Equal(t, min(totalRequests, expectedSuccessful), successCount, 
+			"Low load should have perfect accuracy with atomic operations")
+	} else {
+		// High contention - allow small error margin for race conditions
+		minExpected := max(0, int(float64(expectedSuccessful)*0.99))
+		assert.GreaterOrEqual(t, successCount, minExpected, "Should not under-count by more than 1%% on high load")
+	}
 
 	// Verify remaining credits accuracy using the minimum observed value
 	expectedRemaining := totalCredits - int64(successCount)*cost

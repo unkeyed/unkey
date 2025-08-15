@@ -19,7 +19,7 @@ type TestCase struct {
 }
 
 var extremeEdgeCases = []TestCase{
-	{NodeCount: 9, TotalCredits: 1000, CostPerRequest: 1, LoadFactor: 3.0, TestDurationSeconds: 10},
+	{NodeCount: 9, TotalCredits: 1000, CostPerRequest: 1, LoadFactor: 3.0, TestDurationSeconds: 15},
 	{NodeCount: 9, TotalCredits: 500, CostPerRequest: 5, LoadFactor: 2.0, TestDurationSeconds: 15},
 }
 
@@ -112,7 +112,7 @@ func {{ .TestName }}(t *testing.T) {
 		t,
 		h,
 		{{ .TotalCredits }},           // total credits
-		{{ .CostPerRequest }},         // cost per request  
+		{{ .CostPerRequest }},         // cost per request
 		{{ .LoadFactor }},             // load factor
 		{{ .NodeCount }},              // node count
 		{{ .TestDurationSeconds }},    // test duration seconds

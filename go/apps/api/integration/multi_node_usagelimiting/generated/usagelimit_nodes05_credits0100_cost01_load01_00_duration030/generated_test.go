@@ -22,7 +22,7 @@ func TestIntegration_UsageLimit_Nodes05_Credits0100_Cost01_Load01_00_Duration030
 		t,
 		h,
 		100,           // total credits
-		1,         // cost per request  
+		1,         // cost per request
 		1,             // load factor
 		5,              // node count
 		30,    // test duration seconds
