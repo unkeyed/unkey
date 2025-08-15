@@ -56,7 +56,7 @@ export const SearchInput = ({
         "truncate w-full focus:ring-0 focus:outline-none focus:border-none selection:border-none selection:ring-0 ring-0 border-none",
         className,
       )}
-      disabled={isProcessing}
+      disabled={isProcessing && searchMode !== SEARCH_MODES.ALLOW_TYPE}
       data-testid="search-input"
     />
   );

@@ -9,6 +9,10 @@ jobs:
     runs-on: blacksmith-16vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+      - name: Create dashboard env file for Docker Compose
+        run: |
+          mkdir -p ./apps/dashboard
+          touch ./apps/dashboard/.env
       - name: Set up Docker Buildx
         uses: useblacksmith/setup-docker-builder@v1
       - name: Setup Go
