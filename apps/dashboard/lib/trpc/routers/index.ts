@@ -114,6 +114,7 @@ import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
+import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -190,6 +191,7 @@ export const router = t.router({
   }),
   workspace: t.router({
     create: createWorkspace,
+    getCurrent: getCurrentWorkspace,
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
