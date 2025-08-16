@@ -40,6 +40,9 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: usage.Remaining >= 0}
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
+	} else {
+		// Only track spent credits if the usage was valid (credits were actually deducted)
+		k.spentCredits = int64(cost)
 	}
 
 	return nil
