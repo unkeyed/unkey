@@ -10,14 +10,16 @@ import (
 type Service struct {
 	ctrlv1connect.UnimplementedVersionServiceHandler
 	db          db.Database
+	partitionDB db.Database
 	hydraEngine *hydra.Engine
 	logger      logging.Logger
 }
 
-func New(database db.Database, hydraEngine *hydra.Engine, logger logging.Logger) *Service {
+func New(database db.Database, partitionDB db.Database, hydraEngine *hydra.Engine, logger logging.Logger) *Service {
 	return &Service{
 		UnimplementedVersionServiceHandler: ctrlv1connect.UnimplementedVersionServiceHandler{},
 		db:                                 database,
+		partitionDB:                        partitionDB,
 		hydraEngine:                        hydraEngine,
 		logger:                             logger,
 	}
