@@ -104,7 +104,7 @@ export const useApiSpentCredits = (apiId: string | null) => {
           if (typeof filter.value === "string" && filter.value.trim()) {
             params.tags = {
               operator,
-              value: filter.value,
+              value: filter.value.trim(),
             };
           }
           break;

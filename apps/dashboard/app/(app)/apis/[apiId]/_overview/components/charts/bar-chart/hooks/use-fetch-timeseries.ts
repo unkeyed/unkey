@@ -159,7 +159,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
       return {
         ...result,
         ...outcomeFields,
-        spent_credits: ts.y.spent_credits || 0,
+        spent_credits: ts.y.spent_credits ?? 0,
       };
     });
   }, [data]);
