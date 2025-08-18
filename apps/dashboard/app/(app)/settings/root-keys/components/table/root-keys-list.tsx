@@ -60,7 +60,9 @@ export const RootKeysList = () => {
 
   // Memoize the row click handler
   const handleRowClick = useCallback((rootKey: RootKey) => {
+    setEditingKey(rootKey);
     setSelectedRootKey(rootKey);
+    setEditDialogOpen(true);
   }, []);
 
   // Memoize the row className function
