@@ -56,10 +56,10 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             </div>
             <div className="mt-5 flex flex-col gap-2 items-center">
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
-                {ROOT_KEY_MESSAGES.UI.ROOT_KEY_CREATED}
+                {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}
               </div>
               <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
-                {ROOT_KEY_MESSAGES.UI.ROOT_KEY_GENERATED}
+                {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED}
               </div>
             </div>
             <div className="p-1 w-full my-8">
@@ -67,8 +67,14 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             </div>
 
             <div className="flex flex-col gap-2 items-start w-full">
-              <div className="text-gray-12 text-sm font-semibold">Root Key</div>
-              <SecretKey value={keyValue} title="Root Key" className="bg-white dark:bg-black " />
+              <div className="text-gray-12 text-sm font-semibold">
+                {ROOT_KEY_MESSAGES.UI.ROOT_KEY}
+              </div>
+              <SecretKey
+                value={keyValue}
+                title={ROOT_KEY_MESSAGES.UI.ROOT_KEY}
+                className="bg-white dark:bg-black "
+              />
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                 <CircleInfo className="text-accent-9" size="sm-regular" aria-hidden="true" />
                 <span>
@@ -79,7 +85,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                     rel="noopener noreferrer"
                     className="text-info-11 hover:underline"
                   >
-                    Learn more
+                    {ROOT_KEY_MESSAGES.UI.LEARN_MORE}
                   </a>
                 </span>
               </div>
@@ -95,8 +101,8 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             onOpenChange={setIsConfirmOpen}
             onConfirm={handleConfirmClose}
             triggerRef={dividerRef}
-            title={ROOT_KEY_MESSAGES.UI.YOU_WONT_SEE_THIS_SECRET_KEY_AGAIN}
-            description={ROOT_KEY_MESSAGES.UI.MAKE_SURE_TO_COPY_YOUR_SECRET_KEY_BEFORE_CLOSING}
+            title={ROOT_KEY_MESSAGES.WARNING.WONT_SEE_AGAIN}
+            description={ROOT_KEY_MESSAGES.WARNING.COPY_BEFORE_CLOSING}
             confirmButtonText={ROOT_KEY_MESSAGES.UI.CLOSE_ANYWAY}
             cancelButtonText={ROOT_KEY_MESSAGES.UI.DISMISS}
             variant="warning"

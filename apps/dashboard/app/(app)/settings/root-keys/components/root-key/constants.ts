@@ -1,7 +1,7 @@
 export const ROOT_KEY_CONSTANTS = {
   DEFAULT_LIMIT: 10,
   UNNAMED_KEY: "Unnamed",
-  API_URL: process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev",
+  API_URL: "https://api.unkey.com",
   EXPAND_COUNT: 3,
   WORKSPACE: "workspace",
 } as const;
@@ -23,6 +23,7 @@ export const ROOT_KEY_MESSAGES = {
       "Make sure to copy your secret key before closing. It cannot be retrieved later.",
   },
   UI: {
+    ROOT_KEY: "Root Key",
     CLOSE_ANYWAY: "Close anyway",
     DISMISS: "Dismiss",
     LOADING: "Loading...",
@@ -42,11 +43,6 @@ export const ROOT_KEY_MESSAGES = {
     LOAD_MORE: "Load More",
     SEARCH_PERMISSIONS: "Search permissions",
     CLEAR_SEARCH: "Clear search",
-    ROOT_KEY_CREATED: "Root Key Created",
-    ROOT_KEY_GENERATED: "You've successfully generated a new Root key.",
-    YOU_WONT_SEE_THIS_SECRET_KEY_AGAIN: "You won't see this secret key again!",
-    MAKE_SURE_TO_COPY_YOUR_SECRET_KEY_BEFORE_CLOSING:
-      "Make sure to copy your secret key before closing. It cannot be retrieved later.",
   },
   PLACEHOLDERS: {
     KEY_NAME: "e.g. Vercel Production",

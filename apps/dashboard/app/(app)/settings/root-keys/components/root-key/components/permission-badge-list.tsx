@@ -70,7 +70,7 @@ const ListBadges = ({
   info,
   removePermission,
 }: { info: PermissionInfo; removePermission: (permission: UnkeyPermission) => void }) => {
-  // Stop propagation to prevent triggering parent collapsible when removing permissions
+  // Remove permission by id emitted from SelectedItemsList
   const handleRemovePermissionClick = (id: string) => {
     const permission = info.find((p) => p.permission.toString() === id);
     if (permission) {
