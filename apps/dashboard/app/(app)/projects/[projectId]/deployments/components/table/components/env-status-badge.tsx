@@ -16,7 +16,7 @@ const statusBadgeVariants = cva(
     defaultVariants: {
       variant: "current",
     },
-  }
+  },
 );
 
 interface EnvStatusBadgeProps extends HTMLAttributes<HTMLDivElement> {

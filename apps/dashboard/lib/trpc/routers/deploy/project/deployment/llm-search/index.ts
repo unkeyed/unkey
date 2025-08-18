@@ -1,10 +1,5 @@
 import { env } from "@/lib/env";
-import {
-  requireUser,
-  requireWorkspace,
-  t,
-  withLlmAccess,
-} from "@/lib/trpc/trpc";
+import { requireUser, requireWorkspace, t, withLlmAccess } from "@/lib/trpc/trpc";
 import OpenAI from "openai";
 import { z } from "zod";
 import { getStructuredSearchFromLLM } from "./utils";

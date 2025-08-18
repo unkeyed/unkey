@@ -3,13 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
-import {
-  BookBookmark,
-  Cloud,
-  CodeBranch,
-  CodeCommit,
-  Cube,
-} from "@unkey/icons";
+import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
@@ -23,6 +17,7 @@ import {
   DeploymentIdColumnSkeleton,
   EnvColumnSkeleton,
   InstancesColumnSkeleton,
+  SizeColumnSkeleton,
   SourceColumnSkeleton,
   StatusColumnSkeleton,
 } from "./components/skeletons";
@@ -31,26 +26,19 @@ import { getRowClassName } from "./utils/get-row-class";
 
 const DeploymentListTableActions = dynamic(
   () =>
-    import(
-      "./components/actions/deployment-list-table-action.popover.constants"
-    ).then((mod) => mod.DeploymentListTableActions),
+    import("./components/actions/deployment-list-table-action.popover.constants").then(
+      (mod) => mod.DeploymentListTableActions,
+    ),
   {
     loading: () => <ActionColumnSkeleton />,
     ssr: false,
-  }
+  },
 );
 
 export const DeploymentsList = () => {
-  const {
-    deployments,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    totalCount,
-    hasMore,
-  } = useDeploymentsListQuery();
-  const [selectedDeployment, setSelectedDeployment] =
-    useState<Deployment | null>(null);
+  const { deployments, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
+    useDeploymentsListQuery();
+  const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
 
   const columns: Column<Deployment>[] = useMemo(
     () => [
@@ -66,7 +54,7 @@ export const DeploymentsList = () => {
               className={cn(
                 "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5"
+                isSelected && "bg-grayA-5",
               )}
             >
               <Cloud size="sm-regular" className="text-gray-12" />
@@ -81,22 +69,16 @@ export const DeploymentsList = () => {
                     <div
                       className={cn(
                         "font-normal font-mono truncate leading-5 text-[13px]",
-                        "text-accent-12"
+                        "text-accent-12",
                       )}
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {deployment.environment === "production" &&
-                      deployment.active && (
-                        <EnvStatusBadge variant="current" text="Current" />
-                      )}
-                  </div>
-                  <div
-                    className={cn(
-                      "font-normal font-mono truncate text-xs mt-1",
-                      "text-gray-9"
+                    {deployment.environment === "production" && deployment.active && (
+                      <EnvStatusBadge variant="current" text="Current" />
                     )}
-                  >
+                  </div>
+                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
                     {deployment.pullRequest?.title ?? "—"}
                   </div>
                 </div>
@@ -133,7 +115,7 @@ export const DeploymentsList = () => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
               <Cube className="text-gray-12" size="sm-regular" />
-              <div className="flex">
+              <div className="flex gap-0.5">
                 <span className="font-semibold text-grayA-12 tabular-nums">
                   {deployment.instances}
                 </span>
@@ -144,33 +126,26 @@ export const DeploymentsList = () => {
         },
       },
       {
-        key: "runtime",
-        header: "Runtime",
-        width: "10%",
-        render: (deployment) => {
-          return deployment.runtime ? (
-            <div>
-              <span className="font-semibold text-grayA-12 tabular-nums">
-                {deployment.runtime}
-              </span>
-              <span>s</span>
-            </div>
-          ) : (
-            "-"
-          );
-        },
-      },
-      {
         key: "size",
         header: "Size",
         width: "10%",
         render: (deployment) => {
           return (
-            <div>
-              <span className="font-semibold text-grayA-12 tabular-nums">
-                {deployment.size}
-              </span>
-              <span>MB</span>
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <Cube className="text-gray-12" size="sm-regular" />
+              <div className="flex gap-1">
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12 tabular-nums">2</span>
+                  <span>CPU</span>
+                </div>
+                <span> / </span>
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12 tabular-nums">
+                    {deployment.size}
+                  </span>
+                  <span>MB</span>
+                </div>
+              </div>
             </div>
           );
         },
@@ -178,20 +153,40 @@ export const DeploymentsList = () => {
       {
         key: "source",
         header: "Source",
-        width: "10%",
+        width: "15%",
+        headerClassName: "pl-[18px]",
         render: (deployment) => {
+          const isSelected = deployment.id === selectedDeployment?.id;
+          const iconContainer = (
+            <div
+              className={cn(
+                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
+                "bg-grayA-3",
+                isSelected && "bg-grayA-5",
+              )}
+            >
+              <CodeBranch size="sm-regular" className="text-gray-12" />
+            </div>
+          );
           return (
-            <div className="flex items-center gap-1">
-              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit">
-                <CodeBranch className="text-gray-12" size="sm-regular" />
-                <span className="tabular-nums">{deployment.source.branch}</span>
-              </div>
-              <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit shrink-0">
-                <CodeCommit
-                  className="text-gray-12 rotate-90 shrink-0"
-                  size="md-bold"
-                />
-                <span className="tabular-nums">{deployment.source.gitSha}</span>
+            <div className="flex flex-col items-start px-[18px] py-1.5">
+              <div className="flex gap-5 items-center w-full">
+                {iconContainer}
+                <div className="w-[200px]">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "font-normal font-mono truncate leading-5 text-[13px]",
+                        "text-accent-12",
+                      )}
+                    >
+                      {deployment.source.branch}
+                    </div>
+                  </div>
+                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
+                    {deployment.source.gitSha}
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -217,14 +212,8 @@ export const DeploymentsList = () => {
         render: (deployment) => {
           return (
             <div className="flex items-center gap-2">
-              <img
-                src={deployment.author.image}
-                alt="Author"
-                className="rounded-full size-5"
-              />
-              <span className="font-medium text-grayA-12 text-xs">
-                {deployment.author.name}
-              </span>
+              <img src={deployment.author.image} alt="Author" className="rounded-full size-5" />
+              <span className="font-medium text-grayA-12 text-xs">{deployment.author.name}</span>
             </div>
           );
         },
@@ -238,7 +227,7 @@ export const DeploymentsList = () => {
         },
       },
     ],
-    [selectedDeployment?.id]
+    [selectedDeployment?.id],
   );
 
   return (
@@ -251,17 +240,14 @@ export const DeploymentsList = () => {
       onRowClick={setSelectedDeployment}
       selectedItem={selectedDeployment}
       keyExtractor={(deployment) => deployment.id}
-      rowClassName={(deployment) =>
-        getRowClassName(deployment, selectedDeployment)
-      }
+      rowClassName={(deployment) => getRowClassName(deployment, selectedDeployment)}
       loadMoreFooterProps={{
         hide: isLoading,
         buttonText: "Load more deployments",
         hasMore,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-accent-12">{deployments.length}</span>
+            <span>Showing</span> <span className="text-accent-12">{deployments.length}</span>
             <span>of</span>
             {totalCount}
             <span>deployments</span>
@@ -274,8 +260,8 @@ export const DeploymentsList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or
-              trigger a manual deployment to get started.
+              There are no deployments yet. Push to your connected repository or trigger a manual
+              deployment to get started.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
@@ -309,8 +295,7 @@ export const DeploymentsList = () => {
             {column.key === "env" && <EnvColumnSkeleton />}
             {column.key === "status" && <StatusColumnSkeleton />}
             {column.key === "instances" && <InstancesColumnSkeleton />}
-            {column.key === "runtime" && <EnvColumnSkeleton />}
-            {column.key === "size" && <EnvColumnSkeleton />}
+            {column.key === "size" && <SizeColumnSkeleton />}
             {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
             {column.key === "author" && <AuthorColumnSkeleton />}

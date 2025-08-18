@@ -6,10 +6,7 @@ import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
-export async function getStructuredSearchFromLLM(
-  openai: OpenAI | null,
-  userSearchMsg: string
-) {
+export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSearchMsg: string) {
   try {
     if (!openai) {
       throw new TRPCError({
@@ -36,10 +33,7 @@ export async function getStructuredSearchFromLLM(
           content: userSearchMsg,
         },
       ],
-      response_format: zodResponseFormat(
-        deploymentListFilterOutputSchema,
-        "searchQuery"
-      ),
+      response_format: zodResponseFormat(deploymentListFilterOutputSchema, "searchQuery"),
     });
 
     if (!completion.choices[0].message.parsed) {
@@ -59,8 +53,8 @@ export async function getStructuredSearchFromLLM(
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
-        userSearchMsg
-      )}\n Output ${(error as Error).message}`
+        userSearchMsg,
+      )}\n Output ${(error as Error).message}`,
     );
 
     if (error instanceof TRPCError) {
@@ -70,8 +64,7 @@ export async function getStructuredSearchFromLLM(
     if ((error as { response: { status: number } }).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message:
-          "Search rate limit exceeded. Please try again in a few minutes.",
+        message: "Search rate limit exceeded. Please try again in a few minutes.",
       });
     }
 
@@ -87,9 +80,7 @@ export const getSystemPrompt = () => {
   const operatorsByField = Object.entries(deploymentListFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
-      return `- ${field} accepts ${operators} operator${
-        config.operators.length > 1 ? "s" : ""
-      }`;
+      return `- ${field} accepts ${operators} operator${config.operators.length > 1 ? "s" : ""}`;
     })
     .join("\n");
 

@@ -53,11 +53,7 @@ export const DeploymentStatusFilter = () => {
       checkPath="status"
       renderOptionContent={(checkbox) => (
         <>
-          <div
-            className={`size-2 ${getColorClass?.(
-              checkbox.status
-            )} rounded-[2px]`}
-          />
+          <div className={`size-2 ${getColorClass?.(checkbox.status)} rounded-[2px]`} />
           <span className="text-accent-9 text-xs w-16">{checkbox.display}</span>
           <span className="text-accent-12 text-xs">{checkbox.label}</span>
         </>
