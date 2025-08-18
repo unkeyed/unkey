@@ -36,7 +36,7 @@ GOLINT := golangci-lint
 .DEFAULT_GOAL := help
 
 # Targets (alphabetically ordered)
-.PHONY: all build check clean create-user deps dev env-example fmt generate help install lint lint-proto run service-logs service-logs-tail service-restart service-start service-status service-stop setup test test-coverage uninstall version vet
+.PHONY: all build check clean deps dev env-example fmt generate help install lint lint-proto run service-logs service-logs-tail service-restart service-start service-status service-stop setup test test-coverage uninstall version vet
 
 all: clean build ## Clean, generate, and build
 
@@ -66,7 +66,7 @@ help: ## Show this help message
 	@echo 'Targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: build create-user ## Install the service (requires sudo)
+install: build ## Install the service (requires sudo)
 	@sudo systemctl stop $(SERVICE_NAME) 2>/dev/null || true
 	@sudo mkdir -p $(CONFIG_DIR)
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/
