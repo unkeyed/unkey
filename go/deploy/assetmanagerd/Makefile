@@ -71,7 +71,6 @@ install: build ## Install the service (requires sudo)
 	@sudo mkdir -p $(CONFIG_DIR)
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/
 	@sudo chmod +x $(INSTALL_DIR)/$(BINARY_NAME)
-	@sudo chown $(SERVICE_NAME):$(SERVICE_NAME) $(CONFIG_DIR)
 	@sudo cp contrib/systemd/$(SERVICE_NAME).service $(SYSTEMD_DIR)/
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable $(SERVICE_NAME) >/dev/null 2>&1
