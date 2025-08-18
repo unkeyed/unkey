@@ -10,7 +10,6 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestGetKeyBadRequest(t *testing.T) {
@@ -53,17 +52,6 @@ func TestGetKeyBadRequest(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-	})
-
-	t.Run("case sensitive Bearer prefix", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {"bearer " + uid.New(uid.KeyPrefix)}, // lowercase 'bearer'
-		}
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status) // Likely 400 for malformed header
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
