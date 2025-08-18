@@ -213,10 +213,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				AutoApply: rl.AutoApply,
 			}
 
-			// Database already filtered correctly - just categorize
-			if rl.KeyID.Valid {
+			// Add to key ratelimits if it belongs to this key
+			if rl.KeyID.Valid && rl.KeyID.String == keyData.Key.ID {
 				keyRatelimits = append(keyRatelimits, ratelimitResp)
-			} else {
+			}
+
+			// Add to identity ratelimits if it has an identity_id that matches
+			if rl.IdentityID.Valid && rl.IdentityID.String == keyData.Identity.ID {
 				identityRatelimits = append(identityRatelimits, ratelimitResp)
 			}
 		}
@@ -224,6 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(keyRatelimits) > 0 {
 			response.Ratelimits = &keyRatelimits
 		}
+
 		if len(identityRatelimits) > 0 && response.Identity != nil {
 			response.Identity.Ratelimits = &identityRatelimits
 		}
