@@ -716,7 +716,7 @@ func (m *Manager) setupVMNetworking(nsName string, deviceNames *NetworkDeviceNam
 
 	// Configure point-to-point IP on host veth
 	// AIDEV-NOTE: CRITICAL FIX - Add point-to-point peer address to host veth
-	// If VM gets x.x.x.10/30, host veth gets x.x.x.9/30
+	// If VM gets x.x.x.10/29, host veth gets x.x.x.9/29
 	hostIP := make(net.IP, len(ip))
 	copy(hostIP, ip)
 	hostIP[len(hostIP)-1] = ip[len(ip)-1] - 1 // Host peer is VM IP - 1
@@ -724,7 +724,7 @@ func (m *Manager) setupVMNetworking(nsName string, deviceNames *NetworkDeviceNam
 	hostAddr := &netlink.Addr{ //nolint:exhaustruct // Only setting IPNet field, other address fields use appropriate defaults
 		IPNet: &net.IPNet{
 			IP:   hostIP,
-			Mask: net.CIDRMask(30, 32), // Use /30 for point-to-point addressing
+			Mask: net.CIDRMask(29, 32), // Use /29 for VM networking (6 usable hosts)
 		},
 	}
 
@@ -748,13 +748,13 @@ func (m *Manager) setupVMNetworking(nsName string, deviceNames *NetworkDeviceNam
 		return fmt.Errorf("failed to bring up veth host: %w", err)
 	}
 
-	// Add host route for VM's point-to-point subnet to enable routing
+	// Add host route for VM's /29 subnet to enable routing
 	// AIDEV-NOTE: This route tells the host how to reach the VM via the veth interface
 	vmSubnet := &net.IPNet{
 		IP:   ip,
-		Mask: net.CIDRMask(30, 32),
+		Mask: net.CIDRMask(29, 32),
 	}
-	hostRoute := &netlink.Route{ //nolint:exhaustruct // Only setting required fields for point-to-point route
+	hostRoute := &netlink.Route{ //nolint:exhaustruct // Only setting required fields for /29 subnet route
 		Dst:       vmSubnet,
 		LinkIndex: vethHostLink.Attrs().Index,
 	}
@@ -767,7 +767,7 @@ func (m *Manager) setupVMNetworking(nsName string, deviceNames *NetworkDeviceNam
 		// Non-fatal - continue anyway
 	}
 
-	m.logger.Info("added host route for VM point-to-point subnet",
+	m.logger.Info("added host route for VM /29 subnet",
 		slog.String("vm_subnet", vmSubnet.String()),
 		slog.String("veth", vethHost),
 	)
@@ -914,13 +914,13 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 	}
 
 	// Add IP to veth interface using point-to-point addressing
-	// AIDEV-NOTE: CRITICAL FIX - Use /30 point-to-point subnet instead of /24 bridge subnet
+	// AIDEV-NOTE: CRITICAL FIX - Use /29 subnet instead of /24 bridge subnet
 	// This fixes L2 connectivity issues by properly configuring veth as a routed link
-	// VM gets x.x.x.10/30, host veth will get x.x.x.9/30 as the point-to-point peer
+	// VM gets x.x.x.10/29, host veth will get x.x.x.9/29 as the point-to-point peer
 	addr := &netlink.Addr{ //nolint:exhaustruct // Only setting IPNet field, other address fields use appropriate defaults
 		IPNet: &net.IPNet{
 			IP:   ip,
-			Mask: net.CIDRMask(30, 32), // Use /30 for point-to-point addressing
+			Mask: net.CIDRMask(29, 32), // Use /29 for VM networking (6 usable hosts)
 		},
 	}
 
@@ -982,7 +982,7 @@ func (m *Manager) configureNamespace(ns netns.NsHandle, vethName string, ip net.
 
 	// Add default route using point-to-point gateway
 	// AIDEV-NOTE: CRITICAL FIX - Use point-to-point peer address as gateway
-	// For point-to-point /30 subnet, if VM is x.x.x.10, peer (gateway) is x.x.x.9
+	// For point-to-point /29 subnet, if VM is x.x.x.10, peer (gateway) is x.x.x.9
 	gateway := make(net.IP, len(ip))
 	copy(gateway, ip)
 	gateway[len(gateway)-1] = ip[len(ip)-1] - 1 // Peer address is VM IP - 1
