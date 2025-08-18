@@ -76,8 +76,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	keyData := db.ToKeyData(key)
+
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -94,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
 	)))
@@ -102,252 +104,198 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	decrypt := ptr.SafeDeref(req.Decrypt, false)
+	// Handle decryption if requested
 	var plaintext *string
+	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	if decrypt {
-		if h.Vault == nil {
-			return fault.New("vault missing",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Public("Vault hasn't been set up."),
-			)
-		}
-
-		// Permission check
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   key.Api.ID,
-				Action:       rbac.DecryptKey,
-			}),
-		)))
+		plaintext, err = h.decryptKey(ctx, auth, keyData)
 		if err != nil {
 			return err
 		}
+	}
 
-		if !key.KeyAuth.StoreEncryptedKeys {
-			return fault.New("api not set up for key encryption",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for key encryption"),
-				fault.Public("The API for this key does not support key encryption."),
-			)
+	response := openapi.KeyResponseData{
+		CreatedAt: keyData.Key.CreatedAtM,
+		Enabled:   keyData.Key.Enabled,
+		KeyId:     keyData.Key.ID,
+		Start:     keyData.Key.Start,
+		Plaintext: plaintext,
+	}
+
+	// Set optional fields
+	if keyData.Key.Name.Valid {
+		response.Name = ptr.P(keyData.Key.Name.String)
+	}
+
+	if keyData.Key.UpdatedAtM.Valid {
+		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
+	}
+
+	if keyData.Key.Expires.Valid {
+		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
+	}
+
+	// Set credits
+	if keyData.Key.RemainingRequests.Valid {
+		response.Credits = &openapi.KeyCreditsData{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
-		// If the key is encrypted and the encryption key ID is valid, decrypt the key.
-		// Otherwise the key was never encrypted to begin with.
-		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-			decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Keyring:   key.WorkspaceID,
-				Encrypted: key.EncryptedKey.String,
-			})
+		if keyData.Key.RefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if keyData.Key.RefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+			}
 
-			if decryptErr != nil {
-				h.Logger.Error("failed to decrypt key",
-					"keyId", key.ID,
-					"error", decryptErr,
-				)
+			response.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:    int64(keyData.Key.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
+		}
+	}
+
+	// Set identity
+	if keyData.Identity != nil {
+		response.Identity = &openapi.Identity{
+			Id:         keyData.Identity.ID,
+			ExternalId: keyData.Identity.ExternalID,
+		}
+
+		if len(keyData.Identity.Meta) > 0 {
+			var identityMeta map[string]any
+			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+				h.Logger.Error("failed to unmarshal identity meta", "error", err)
 			} else {
-				plaintext = ptr.P(decrypted.GetPlaintext())
+				response.Identity.Meta = &identityMeta
 			}
 		}
 	}
 
-	k := openapi.KeyResponseData{
-		CreatedAt:   key.CreatedAtM,
-		Enabled:     key.Enabled,
-		KeyId:       key.ID,
-		Start:       key.Start,
-		Plaintext:   plaintext,
-		Name:        nil,
-		Meta:        nil,
-		Identity:    nil,
-		Credits:     nil,
-		Expires:     nil,
-		Permissions: nil,
-		Ratelimits:  nil,
-		Roles:       nil,
-		UpdatedAt:   nil,
-	}
-
-	if key.Name.Valid {
-		k.Name = ptr.P(key.Name.String)
-	}
-
-	if key.UpdatedAtM.Valid {
-		k.UpdatedAt = ptr.P(key.UpdatedAtM.Int64)
-	}
-
-	if key.Expires.Valid {
-		k.Expires = ptr.P(key.Expires.Time.UnixMilli())
-	}
-
-	h.setCredits(&k, key)
-	h.setIdentity(&k, key)
-	h.setPermissions(&k, key)
-	h.setRoles(&k, key)
-	h.setRatelimits(&k, key)
-	h.setMeta(&k, key)
-
-	return s.JSON(http.StatusOK, Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		Data: k,
-	})
-}
-
-func (h *Handler) setCredits(response *openapi.KeyResponseData, key db.FindLiveKeyByIDRow) {
-	if !key.RemainingRequests.Valid {
-		return
-	}
-
-	response.Credits = &openapi.KeyCreditsData{
-		Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
-		Refill:    nil,
-	}
-
-	if key.RefillAmount.Valid {
-		var refillDay *int
-		interval := openapi.Daily
-		if key.RefillDay.Valid {
-			interval = openapi.Monthly
-			refillDay = ptr.P(int(key.RefillDay.Int16))
-		}
-
-		response.Credits.Refill = &openapi.KeyCreditsRefill{
-			Amount:    int64(key.RefillAmount.Int32),
-			Interval:  interval,
-			RefillDay: refillDay,
-		}
-	}
-}
-
-func (h *Handler) setIdentity(response *openapi.KeyResponseData, key db.FindLiveKeyByIDRow) {
-	if !key.IdentityID.Valid {
-		return
-	}
-
-	response.Identity = &openapi.Identity{
-		Id:         key.IdentityTableID.String,
-		ExternalId: key.IdentityExternalID.String,
-		Meta:       nil,
-		Ratelimits: nil,
-	}
-
-	if len(key.IdentityMeta) > 0 {
-		if err := json.Unmarshal(key.IdentityMeta, &response.Identity.Meta); err != nil {
-			h.Logger.Error("failed to unmarshal identity meta", "error", err)
-		}
-	}
-}
-
-func (h *Handler) setPermissions(response *openapi.KeyResponseData, key db.FindLiveKeyByIDRow) {
+	// Set permissions, combine direct + role permissions
 	permissionSlugs := make(map[string]struct{})
-
-	// Direct permissions
-	if key.Permissions != nil {
-		var directPermissions []db.PermissionInfo
-		if err := json.Unmarshal(key.Permissions.([]byte), &directPermissions); err != nil {
-			h.Logger.Error("failed to unmarshal permissions", "error", err)
-		} else {
-			for _, p := range directPermissions {
-				permissionSlugs[p.Slug] = struct{}{}
-			}
-		}
+	for _, p := range keyData.Permissions {
+		permissionSlugs[p.Slug] = struct{}{}
 	}
-
-	// Role permissions
-	if key.RolePermissions != nil {
-		var rolePermissions []db.PermissionInfo
-		if err := json.Unmarshal(key.RolePermissions.([]byte), &rolePermissions); err != nil {
-			h.Logger.Error("failed to unmarshal role permissions", "error", err)
-		} else {
-			for _, p := range rolePermissions {
-				permissionSlugs[p.Slug] = struct{}{}
-			}
-		}
+	for _, p := range keyData.RolePermissions {
+		permissionSlugs[p.Slug] = struct{}{}
 	}
-
 	if len(permissionSlugs) > 0 {
 		slugs := make([]string, 0, len(permissionSlugs))
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
-		response.Permissions = ptr.P(slugs)
-	}
-}
-
-func (h *Handler) setRoles(response *openapi.KeyResponseData, key db.FindLiveKeyByIDRow) {
-	if key.Roles == nil {
-		return
+		response.Permissions = &slugs
 	}
 
-	var roles []db.RoleInfo
-	if err := json.Unmarshal(key.Roles.([]byte), &roles); err != nil {
-		h.Logger.Error("failed to unmarshal roles", "error", err)
-		return
-	}
-
-	if len(roles) > 0 {
-		roleNames := make([]string, len(roles))
-		for i, role := range roles {
+	// Set roles
+	if len(keyData.Roles) > 0 {
+		roleNames := make([]string, len(keyData.Roles))
+		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
-		response.Roles = ptr.P(roleNames)
-	}
-}
-
-func (h *Handler) setRatelimits(response *openapi.KeyResponseData, key db.FindLiveKeyByIDRow) {
-	if key.Ratelimits == nil {
-		return
+		response.Roles = &roleNames
 	}
 
-	var ratelimits []db.RatelimitInfo
-	if err := json.Unmarshal(key.Ratelimits.([]byte), &ratelimits); err != nil {
-		h.Logger.Error("failed to unmarshal ratelimits", "error", err)
-		return
-	}
+	// Set ratelimits
+	if len(keyData.Ratelimits) > 0 {
+		var keyRatelimits []openapi.RatelimitResponse
+		var identityRatelimits []openapi.RatelimitResponse
 
-	var keyRatelimits []openapi.RatelimitResponse
-	var identityRatelimits []openapi.RatelimitResponse
+		for _, rl := range keyData.Ratelimits {
+			ratelimitResp := openapi.RatelimitResponse{
+				Id:        rl.ID,
+				Duration:  rl.Duration,
+				Limit:     int64(rl.Limit),
+				Name:      rl.Name,
+				AutoApply: rl.AutoApply,
+			}
 
-	for _, rl := range ratelimits {
-		ratelimitResp := openapi.RatelimitResponse{
-			Id:        rl.ID,
-			Duration:  rl.Duration,
-			Limit:     int64(rl.Limit),
-			Name:      rl.Name,
-			AutoApply: rl.AutoApply,
+			// Database already filtered correctly - just categorize
+			if rl.KeyID.Valid {
+				keyRatelimits = append(keyRatelimits, ratelimitResp)
+			} else {
+				identityRatelimits = append(identityRatelimits, ratelimitResp)
+			}
 		}
 
-		// Add to key ratelimits if it belongs to this key
-		if rl.KeyID.Valid && rl.KeyID.String == key.ID {
-			keyRatelimits = append(keyRatelimits, ratelimitResp)
+		if len(keyRatelimits) > 0 {
+			response.Ratelimits = &keyRatelimits
 		}
-
-		// Also add to identity ratelimits if it has an identity_id that matches
-		if rl.IdentityID.Valid && key.IdentityID.Valid && rl.IdentityID.String == key.IdentityID.String {
-			identityRatelimits = append(identityRatelimits, ratelimitResp)
+		if len(identityRatelimits) > 0 && response.Identity != nil {
+			response.Identity.Ratelimits = &identityRatelimits
 		}
 	}
 
-	if len(keyRatelimits) > 0 {
-		response.Ratelimits = ptr.P(keyRatelimits)
-	}
-
-	if len(identityRatelimits) > 0 && response.Identity != nil {
-		response.Identity.Ratelimits = ptr.P(identityRatelimits)
-	}
-}
-
-func (h *Handler) setMeta(response *openapi.KeyResponseData, key db.FindLiveKeyByIDRow) {
-	if key.Meta.Valid {
-		if err := json.Unmarshal([]byte(key.Meta.String), &response.Meta); err != nil {
+	// Set meta
+	if keyData.Key.Meta.Valid {
+		var meta map[string]any
+		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
 			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		} else {
+			response.Meta = &meta
 		}
 	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: response,
+	})
+}
+
+func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyData *db.KeyData) (*string, error) {
+	if h.Vault == nil {
+		return nil, fault.New("vault missing",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Public("Vault hasn't been set up."),
+		)
+	}
+
+	// Permission check for decryption
+	err := auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.DecryptKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   keyData.Api.ID,
+			Action:       rbac.DecryptKey,
+		}),
+	)))
+	if err != nil {
+		return nil, err
+	}
+
+	if !keyData.KeyAuth.StoreEncryptedKeys {
+		return nil, fault.New("api not set up for key encryption",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("api not set up for key encryption"),
+			fault.Public("The API for this key does not support key encryption."),
+		)
+	}
+
+	// Only decrypt if the key is actually encrypted
+	if !keyData.EncryptedKey.Valid || !keyData.EncryptionKeyID.Valid {
+		return nil, nil
+	}
+
+	decrypted, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+		Keyring:   keyData.Key.WorkspaceID,
+		Encrypted: keyData.EncryptedKey.String,
+	})
+	if err != nil {
+		h.Logger.Error("failed to decrypt key",
+			"keyId", keyData.Key.ID,
+			"error", err,
+		)
+		return nil, nil // Return nil instead of failing the entire request
+	}
+
+	return ptr.P(decrypted.GetPlaintext()), nil
 }
