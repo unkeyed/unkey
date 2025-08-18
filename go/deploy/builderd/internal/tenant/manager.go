@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 )
 
 // Manager handles tenant isolation, quotas, and resource management

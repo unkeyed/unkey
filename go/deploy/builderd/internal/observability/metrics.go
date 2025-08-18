@@ -46,6 +46,10 @@ type BuildMetrics struct {
 	tenantBuildsTotal     metric.Int64Counter
 	tenantQuotaViolations metric.Int64Counter
 
+	// Base asset initialization metrics
+	baseAssetInitRetries  metric.Int64Counter
+	baseAssetInitFailures metric.Int64Counter
+
 	highCardinalityEnabled bool
 	logger                 *slog.Logger
 }
@@ -287,6 +291,25 @@ func NewBuildMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BuildMe
 		}
 	}
 
+	// Base asset initialization metrics
+	metrics.baseAssetInitRetries, err = meter.Int64Counter(
+		"builderd_base_asset_init_retries_total",
+		metric.WithDescription("Total number of base asset initialization retries"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics.baseAssetInitFailures, err = meter.Int64Counter(
+		"builderd_base_asset_init_failures_total",
+		metric.WithDescription("Total number of base asset initialization final failures"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	logger.Info("build metrics initialized",
 		slog.Bool("high_cardinality_enabled", highCardinalityEnabled),
 	)
@@ -455,4 +478,24 @@ func (m *BuildMetrics) RecordBuildStepComplete(ctx context.Context, stepName, so
 	if !success {
 		m.buildStepErrors.Add(ctx, 1, metric.WithAttributes(attrs...))
 	}
+}
+
+// RecordBaseAssetInitRetry records a retry attempt for base asset initialization
+func (m *BuildMetrics) RecordBaseAssetInitRetry(ctx context.Context, attempt int, reason string) {
+	attrs := []attribute.KeyValue{
+		attribute.Int("attempt", attempt),
+		attribute.String("reason", reason),
+	}
+
+	m.baseAssetInitRetries.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// RecordBaseAssetInitFailure records a final failure of base asset initialization after all retries
+func (m *BuildMetrics) RecordBaseAssetInitFailure(ctx context.Context, totalAttempts int, finalError string) {
+	attrs := []attribute.KeyValue{
+		attribute.Int("total_attempts", totalAttempts),
+		attribute.String("final_error", finalError),
+	}
+
+	m.baseAssetInitFailures.Add(ctx, 1, metric.WithAttributes(attrs...))
 }

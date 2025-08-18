@@ -113,11 +113,13 @@ func InitProviders(ctx context.Context, cfg *config.Config, version string) (*Pr
 // initTracerProvider initializes the tracer provider
 func initTracerProvider(ctx context.Context, cfg *config.Config, res *resource.Resource) (trace.TracerProvider, func(context.Context) error, error) {
 	// Create OTLP trace exporter
+	// AIDEV-NOTE: Export timeout must be less than shutdown timeout to prevent races
+	exportTimeout := 10 * time.Second // Well under the 15s shutdown timeout
 	traceExporter, err := otlptrace.New(ctx,
 		otlptracehttp.NewClient(
 			otlptracehttp.WithEndpoint(cfg.OpenTelemetry.OTLPEndpoint),
 			otlptracehttp.WithInsecure(), // For local development
-			otlptracehttp.WithTimeout(30*time.Second),
+			otlptracehttp.WithTimeout(exportTimeout),
 		),
 	)
 	if err != nil {
@@ -143,10 +145,12 @@ func initMeterProvider(ctx context.Context, cfg *config.Config, res *resource.Re
 	var readers []sdkmetric.Reader
 
 	// OTLP metric exporter
+	// AIDEV-NOTE: Export timeout must be less than shutdown timeout to prevent races
+	exportTimeout := 10 * time.Second // Well under the 15s shutdown timeout
 	metricExporter, err := otlpmetrichttp.New(ctx,
 		otlpmetrichttp.WithEndpoint(cfg.OpenTelemetry.OTLPEndpoint),
 		otlpmetrichttp.WithInsecure(), // For local development
-		otlpmetrichttp.WithTimeout(30*time.Second),
+		otlpmetrichttp.WithTimeout(exportTimeout),
 	)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create metric exporter: %w", err)

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
-	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 )
 
 // AIDEV-NOTE: Builderd client with SPIFFE/SPIRE socket integration
