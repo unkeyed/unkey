@@ -57,7 +57,7 @@ func TestGetKeyBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 	})
 
-	t.Run("case sensitive and extra spaces Bearer prefix", func(t *testing.T) {
+	t.Run("case sensitive Bearer prefix", func(t *testing.T) {
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {"bearer " + uid.New(uid.KeyPrefix)}, // lowercase 'bearer'

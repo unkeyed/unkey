@@ -7,10 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_whoami"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestInternalError(t *testing.T) {
@@ -23,6 +21,7 @@ func TestInternalError(t *testing.T) {
 		Vault:     h.Vault,
 	}
 	h.Register(route)
+
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -36,9 +35,9 @@ func TestInternalError(t *testing.T) {
 			t.Skip("Cannot close database connections")
 			return
 		}
+
 		req := handler.Request{
-			KeyId:   uid.New(uid.KeyPrefix),
-			Decrypt: ptr.P(false),
+			Key: "test_some_raw_key_string",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, req)

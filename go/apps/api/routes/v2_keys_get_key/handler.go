@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -187,6 +188,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
+		sort.Strings(slugs)
 		response.Permissions = &slugs
 	}
 
