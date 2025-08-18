@@ -38,9 +38,9 @@ GOLINT := golangci-lint
 # Targets (alphabetically ordered)
 .PHONY: all build check clean create-user deps dev env-example fmt generate help install lint lint-proto run service-logs service-logs-tail service-restart service-start service-status service-stop setup test test-coverage uninstall version vet
 
-all: clean generate build ## Clean, generate, and build
+all: clean build ## Clean, generate, and build
 
-build: generate deps ## Build the binary
+build: deps ## Build the binary
 	@mkdir -p $(BUILD_DIR)
 	@$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/$(SERVICE_NAME)
 
@@ -50,9 +50,6 @@ clean: ## Clean build artifacts
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(GEN_DIR)
 
-create-user: ## Create service user
-	@sudo useradd -r -s /bin/false -d $(DATA_DIR) -c "$(SERVICE_NAME) service user" $(SERVICE_NAME) 2>/dev/null || true
-
 deps: ## Download and tidy dependencies
 	@go mod download
 	@go mod tidy
@@ -60,16 +57,8 @@ deps: ## Download and tidy dependencies
 dev: generate ## Run in development mode
 	@go run ./cmd/$(SERVICE_NAME)
 
-env-example: ## Show example environment variables
-	@echo "Example environment variables for $(SERVICE_NAME):"
-	@cat .env.example 2>/dev/null || echo "Error: .env.example not found"
-
 fmt: ## Format code
 	@$(GOFMT) -w .
-
-generate: ## Generate protobuf code
-	@buf generate
-	@buf lint
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
