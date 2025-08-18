@@ -39,7 +39,7 @@ GOLINT := golangci-lint
 
 all: clean generate build ## Clean, generate, and build
 
-build: generate deps ## Build the binary
+build: deps ## Build the binary
 	@mkdir -p $(BUILD_DIR)
 	@$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/$(SERVICE_NAME)
 
@@ -56,12 +56,6 @@ clean: ## Clean build artifacts
 	@rm -rf $(GEN_DIR)
 	@rm -f coverage.out coverage.html
 
-clean-gen: ## Clean generated protobuf code
-	@rm -rf $(GEN_DIR)
-
-create-user: ## Create service user
-	@sudo useradd -r -s /bin/false -d /opt/builderd -c "$(SERVICE_NAME) service user" $(SERVICE_NAME) 2>/dev/null || true
-
 debug: build ## Run with debug logging
 	@UNKEY_BUILDERD_LOG_LEVEL=debug ./$(BUILD_DIR)/$(BINARY_NAME)
 
@@ -71,13 +65,6 @@ deps: ## Download and tidy dependencies
 
 dev: ## Run in development mode
 	@go run ./cmd/$(SERVICE_NAME)
-
-env-example: ## Show example environment variables
-	@echo "Example environment variables for $(SERVICE_NAME):"
-	@echo "UNKEY_BUILDERD_PORT=8082"
-	@echo "UNKEY_BUILDERD_OTEL_ENABLED=false"
-	@echo "UNKEY_BUILDERD_STORAGE_BACKEND=local"
-	@echo "UNKEY_BUILDERD_LOG_LEVEL=info"
 
 fmt: ## Format code
 	@$(GOFMT) -w .
@@ -175,4 +162,3 @@ version: ## Show version information
 
 vet: ## Run go vet
 	@$(GOVET) ./...
-
