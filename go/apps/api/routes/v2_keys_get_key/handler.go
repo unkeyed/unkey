@@ -78,6 +78,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	keyData := db.ToKeyData(key)
+	if keyData == nil {
+		return fault.New("failed to process key data",
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("key data processing failed"),
+			fault.Public("Failed to retrieve Key information."),
+		)
+	}
 
 	// Validate key belongs to authorized workspace
 	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -221,7 +228,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			// Add to identity ratelimits if it has an identity_id that matches
-			if rl.IdentityID.Valid && rl.IdentityID.String == keyData.Identity.ID {
+			if rl.IdentityID.Valid && keyData.Identity != nil && rl.IdentityID.String == keyData.Identity.ID {
 				identityRatelimits = append(identityRatelimits, ratelimitResp)
 			}
 		}
