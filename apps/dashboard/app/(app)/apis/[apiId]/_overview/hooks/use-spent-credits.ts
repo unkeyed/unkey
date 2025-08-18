@@ -1,14 +1,13 @@
-import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
-import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
-import { useFilters } from "../../../../hooks/use-filters";
-import type { KeysOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
+import type { KeysOverviewQueryTimeseriesPayload } from "../components/charts/bar-chart/query-timeseries.schema";
+import { keysOverviewFilterFieldConfig } from "../filters.schema";
+import { useFilters } from "./use-filters";
 
-export const useFetchVerificationTimeseries = (apiId: string | null) => {
+export const useApiSpentCredits = (apiId: string | null) => {
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -105,7 +104,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
           if (typeof filter.value === "string" && filter.value.trim()) {
             params.tags = {
               operator,
-              value: filter.value,
+              value: filter.value.trim(),
             };
           }
           break;
@@ -116,58 +115,14 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
     return params;
   }, [filters, timestamp, apiId]);
 
-  const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = trpc.api.keys.spentCredits.useQuery(queryParams, {
     refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
     enabled: Boolean(apiId),
   });
 
-  const timeseries = useMemo(() => {
-    if (!data?.timeseries) {
-      return [];
-    }
-
-    return data.timeseries.map((ts) => {
-      const result = {
-        displayX: formatTimestampForChart(ts.x, data.granularity),
-        originalTimestamp: ts.x,
-        valid: ts.y.valid,
-        total: ts.y.total,
-        success: ts.y.valid,
-        error: ts.y.total - ts.y.valid,
-      };
-
-      const outcomeFields: Record<string, number> = {};
-      if (ts.y.rate_limited_count !== undefined) {
-        outcomeFields.rate_limited = ts.y.rate_limited_count;
-      }
-      if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
-      }
-      if (ts.y.forbidden_count !== undefined) {
-        outcomeFields.forbidden = ts.y.forbidden_count;
-      }
-      if (ts.y.disabled_count !== undefined) {
-        outcomeFields.disabled = ts.y.disabled_count;
-      }
-      if (ts.y.expired_count !== undefined) {
-        outcomeFields.expired = ts.y.expired_count;
-      }
-      if (ts.y.usage_exceeded_count !== undefined) {
-        outcomeFields.usage_exceeded = ts.y.usage_exceeded_count;
-      }
-
-      return {
-        ...result,
-        ...outcomeFields,
-        spent_credits: ts.y.spent_credits ?? 0,
-      };
-    });
-  }, [data]);
-
   return {
-    timeseries: timeseries || [],
+    spentCredits: data?.spentCredits ?? 0,
     isLoading,
     isError,
-    granularity: data?.granularity,
   };
 };

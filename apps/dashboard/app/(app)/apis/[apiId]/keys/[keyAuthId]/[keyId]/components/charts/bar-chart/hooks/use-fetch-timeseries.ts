@@ -129,7 +129,7 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
       return {
         ...result,
         ...outcomeFields,
-        spent_credits: ts.y.spent_credits || 0,
+        spent_credits: ts.y.spent_credits ?? 0,
       };
     });
   }, [data]);
