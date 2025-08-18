@@ -184,6 +184,7 @@ export const router = t.router({
       enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
       latestVerification: keyLastVerificationTime,
+      spentCredits: queryKeySpentCredits,
     }),
     overview: t.router({
       timeseries: queryVerificationTimeseries,
