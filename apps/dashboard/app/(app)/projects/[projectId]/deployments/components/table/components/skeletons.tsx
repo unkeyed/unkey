@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { Cloud, CodeBranch, CodeCommit, Cube, Dots } from "@unkey/icons";
+import { cn } from "@unkey/ui/src/lib/utils";
 
 export const DeploymentIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[12px]">
@@ -42,7 +42,10 @@ export const SourceColumnSkeleton = () => (
       <div className="h-3 w-12 bg-grayA-4 rounded" />
     </div>
     <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit shrink-0 animate-pulse">
-      <CodeCommit className="text-gray-12 opacity-50 rotate-90 shrink-0" size="md-bold" />
+      <CodeCommit
+        className="text-gray-12 opacity-50 rotate-90 shrink-0"
+        size="md-bold"
+      />
       <div className="h-3 w-16 bg-grayA-4 rounded" />
     </div>
   </div>
@@ -68,7 +71,7 @@ export const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded m-0 items-center flex justify-center animate-pulse",
-      "border border-gray-6",
+      "border border-gray-6"
     )}
   >
     <Dots className="text-gray-11 opacity-50" size="sm-regular" />

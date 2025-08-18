@@ -73,7 +73,7 @@ export const DeploymentsNavigation = ({ projectId }: DeploymentsNavigationProps)
             className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
           />
         </div>
-      )}{" "}
+      )}
     </Navbar>
   );
 };

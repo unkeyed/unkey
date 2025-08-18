@@ -1,5 +1,10 @@
 import { env } from "@/lib/env";
-import { requireUser, requireWorkspace, t, withLlmAccess } from "@/lib/trpc/trpc";
+import {
+  requireUser,
+  requireWorkspace,
+  t,
+  withLlmAccess,
+} from "@/lib/trpc/trpc";
 import OpenAI from "openai";
 import { z } from "zod";
 import { getStructuredSearchFromLLM } from "./utils";
@@ -15,6 +20,6 @@ export const deploymentListLlmSearch = t.procedure
   .use(requireWorkspace)
   .use(withLlmAccess())
   .input(z.object({ query: z.string() }))
-  .mutation(async ({ input }) => {
-    return await getStructuredSearchFromLLM(openai, input.query);
+  .mutation(async ({ ctx }) => {
+    return await getStructuredSearchFromLLM(openai, ctx.validatedQuery);
   });

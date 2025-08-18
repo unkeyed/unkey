@@ -8,15 +8,15 @@ const statusBadgeVariants = cva(
   {
     variants: {
       variant: {
-        enabled: "text-success-11 bg-success-3",
-        disabled: "text-warning-11 bg-warning-3",
+        enabled: "text-successA-11 bg-successA-3",
+        disabled: "text-warningA-11 bg-warningA-3",
         current: "text-feature-11 bg-feature-4",
       },
     },
     defaultVariants: {
       variant: "current",
     },
-  },
+  }
 );
 
 interface EnvStatusBadgeProps extends HTMLAttributes<HTMLDivElement> {

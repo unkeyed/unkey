@@ -1,23 +1,22 @@
-import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import type { GroupedDeploymentStatus } from "../../../../../filters.schema";
+import { deploymentListFilterFieldConfig } from "../../../../../filters.schema";
+import { useFilters } from "../../../../../hooks/use-filters";
 
 type StatusOption = {
   id: number;
   status: GroupedDeploymentStatus;
   display: string;
   label: string;
-  color: string;
   checked: boolean;
 };
 
-const options: StatusOption[] = [
+const baseOptions: StatusOption[] = [
   {
     id: 1,
     status: "pending",
     display: "Pending",
     label: "Queued",
-    color: "bg-gray-9",
     checked: false,
   },
   {
@@ -25,7 +24,6 @@ const options: StatusOption[] = [
     status: "building",
     display: "Building",
     label: "In Progress",
-    color: "bg-info-9",
     checked: false,
   },
   {
@@ -33,7 +31,6 @@ const options: StatusOption[] = [
     status: "completed",
     display: "Active",
     label: "Success",
-    color: "bg-success-9",
     checked: false,
   },
   {
@@ -41,22 +38,26 @@ const options: StatusOption[] = [
     status: "failed",
     display: "Failed",
     label: "Error",
-    color: "bg-error-9",
     checked: false,
   },
 ];
 
 export const DeploymentStatusFilter = () => {
   const { filters, updateFilters } = useFilters();
+  const getColorClass = deploymentListFilterFieldConfig.status.getColorClass;
 
   return (
     <FilterCheckbox
-      options={options}
+      options={baseOptions}
       filterField="status"
       checkPath="status"
       renderOptionContent={(checkbox) => (
         <>
-          <div className={`size-2 ${checkbox.color} rounded-[2px]`} />
+          <div
+            className={`size-2 ${getColorClass?.(
+              checkbox.status
+            )} rounded-[2px]`}
+          />
           <span className="text-accent-9 text-xs w-16">{checkbox.display}</span>
           <span className="text-accent-12 text-xs">{checkbox.label}</span>
         </>
@@ -64,7 +65,7 @@ export const DeploymentStatusFilter = () => {
       createFilterValue={(option) => ({
         value: option.status,
         metadata: {
-          colorClass: option.color,
+          colorClass: getColorClass?.(option.status),
         },
       })}
       filters={filters}
