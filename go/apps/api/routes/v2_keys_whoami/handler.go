@@ -73,8 +73,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	keyData := db.ToKeyData(key)
+
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -91,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
 	)))
@@ -103,198 +105,137 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	k := openapi.KeyResponseData{
-		CreatedAt:   key.CreatedAtM,
-		Enabled:     key.Enabled,
-		KeyId:       key.ID,
-		Start:       key.Start,
-		Plaintext:   nil,
-		Name:        nil,
-		Meta:        nil,
-		Identity:    nil,
-		Credits:     nil,
-		Expires:     nil,
-		Permissions: nil,
-		Ratelimits:  nil,
-		Roles:       nil,
-		UpdatedAt:   nil,
+	response := openapi.KeyResponseData{
+		CreatedAt: keyData.Key.CreatedAtM,
+		Enabled:   keyData.Key.Enabled,
+		KeyId:     keyData.Key.ID,
+		Start:     keyData.Key.Start,
+		Plaintext: nil,
 	}
 
-	if key.Name.Valid {
-		k.Name = ptr.P(key.Name.String)
+	// Set optional fields
+	if keyData.Key.Name.Valid {
+		response.Name = ptr.P(keyData.Key.Name.String)
 	}
 
-	if key.UpdatedAtM.Valid {
-		k.UpdatedAt = ptr.P(key.UpdatedAtM.Int64)
+	if keyData.Key.UpdatedAtM.Valid {
+		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
 	}
 
-	if key.Expires.Valid {
-		k.Expires = ptr.P(key.Expires.Time.UnixMilli())
+	if keyData.Key.Expires.Valid {
+		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
 	}
 
-	h.setCredits(&k, key)
-	h.setIdentity(&k, key)
-	h.setPermissions(&k, key)
-	h.setRoles(&k, key)
-	h.setRatelimits(&k, key)
-	h.setMeta(&k, key)
-
-	return s.JSON(http.StatusOK, Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		Data: k,
-	})
-}
-
-func (h *Handler) setCredits(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
-	if !key.RemainingRequests.Valid {
-		return
-	}
-
-	response.Credits = &openapi.KeyCreditsData{
-		Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
-		Refill:    nil,
-	}
-
-	if key.RefillAmount.Valid {
-		var refillDay *int
-		interval := openapi.Daily
-		if key.RefillDay.Valid {
-			interval = openapi.Monthly
-			refillDay = ptr.P(int(key.RefillDay.Int16))
+	// Set credits
+	if keyData.Key.RemainingRequests.Valid {
+		response.Credits = &openapi.KeyCreditsData{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
-		response.Credits.Refill = &openapi.KeyCreditsRefill{
-			Amount:    int64(key.RefillAmount.Int32),
-			Interval:  interval,
-			RefillDay: refillDay,
+		if keyData.Key.RefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if keyData.Key.RefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+			}
+
+			response.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:    int64(keyData.Key.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
 		}
 	}
-}
 
-func (h *Handler) setIdentity(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
-	if !key.IdentityID.Valid {
-		return
-	}
+	// Set identity
+	if keyData.Identity != nil {
+		response.Identity = &openapi.Identity{
+			Id:         keyData.Identity.ID,
+			ExternalId: keyData.Identity.ExternalID,
+		}
 
-	response.Identity = &openapi.Identity{
-		Id:         key.IdentityTableID.String,
-		ExternalId: key.IdentityExternalID.String,
-		Meta:       nil,
-		Ratelimits: nil,
-	}
-
-	if len(key.IdentityMeta) > 0 {
-		if err := json.Unmarshal(key.IdentityMeta, &response.Identity.Meta); err != nil {
-			h.Logger.Error("failed to unmarshal identity meta", "error", err)
+		if len(keyData.Identity.Meta) > 0 {
+			var identityMeta map[string]any
+			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+			} else {
+				response.Identity.Meta = &identityMeta
+			}
 		}
 	}
-}
 
-func (h *Handler) setPermissions(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
+	// Set permissions, combine direct + role permissions
 	permissionSlugs := make(map[string]struct{})
-
-	// Direct permissions
-	if key.Permissions != nil {
-		var directPermissions []db.PermissionInfo
-		if err := json.Unmarshal(key.Permissions.([]byte), &directPermissions); err != nil {
-			h.Logger.Error("failed to unmarshal permissions", "error", err)
-		} else {
-			for _, p := range directPermissions {
-				permissionSlugs[p.Slug] = struct{}{}
-			}
-		}
+	for _, p := range keyData.Permissions {
+		permissionSlugs[p.Slug] = struct{}{}
 	}
-
-	// Role permissions
-	if key.RolePermissions != nil {
-		var rolePermissions []db.PermissionInfo
-		if err := json.Unmarshal(key.RolePermissions.([]byte), &rolePermissions); err != nil {
-			h.Logger.Error("failed to unmarshal role permissions", "error", err)
-		} else {
-			for _, p := range rolePermissions {
-				permissionSlugs[p.Slug] = struct{}{}
-			}
-		}
+	for _, p := range keyData.RolePermissions {
+		permissionSlugs[p.Slug] = struct{}{}
 	}
-
 	if len(permissionSlugs) > 0 {
 		slugs := make([]string, 0, len(permissionSlugs))
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
-		response.Permissions = ptr.P(slugs)
-	}
-}
-
-func (h *Handler) setRoles(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
-	if key.Roles == nil {
-		return
+		response.Permissions = &slugs
 	}
 
-	var roles []db.RoleInfo
-	if err := json.Unmarshal(key.Roles.([]byte), &roles); err != nil {
-		h.Logger.Error("failed to unmarshal roles", "error", err)
-		return
-	}
-
-	if len(roles) > 0 {
-		roleNames := make([]string, len(roles))
-		for i, role := range roles {
+	// Set roles
+	if len(keyData.Roles) > 0 {
+		roleNames := make([]string, len(keyData.Roles))
+		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
-		response.Roles = ptr.P(roleNames)
-	}
-}
-
-func (h *Handler) setRatelimits(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
-	if key.Ratelimits == nil {
-		return
+		response.Roles = &roleNames
 	}
 
-	var ratelimits []db.RatelimitInfo
-	if err := json.Unmarshal(key.Ratelimits.([]byte), &ratelimits); err != nil {
-		h.Logger.Error("failed to unmarshal ratelimits", "error", err)
-		return
-	}
+	// Set ratelimits
+	if len(keyData.Ratelimits) > 0 {
+		var keyRatelimits []openapi.RatelimitResponse
+		var identityRatelimits []openapi.RatelimitResponse
 
-	var keyRatelimits []openapi.RatelimitResponse
-	var identityRatelimits []openapi.RatelimitResponse
+		for _, rl := range keyData.Ratelimits {
+			ratelimitResp := openapi.RatelimitResponse{
+				Id:        rl.ID,
+				Duration:  rl.Duration,
+				Limit:     int64(rl.Limit),
+				Name:      rl.Name,
+				AutoApply: rl.AutoApply,
+			}
 
-	for _, rl := range ratelimits {
-		ratelimitResp := openapi.RatelimitResponse{
-			Id:        rl.ID,
-			Duration:  rl.Duration,
-			Limit:     int64(rl.Limit),
-			Name:      rl.Name,
-			AutoApply: rl.AutoApply,
+			// Add to key ratelimits if it belongs to this key
+			if rl.KeyID.Valid && rl.KeyID.String == keyData.Key.ID {
+				keyRatelimits = append(keyRatelimits, ratelimitResp)
+			}
+			// Add to identity ratelimits if it has an identity_id that matches
+			if rl.IdentityID.Valid && rl.IdentityID.String == keyData.Identity.ID {
+				identityRatelimits = append(identityRatelimits, ratelimitResp)
+			}
 		}
 
-		// Add to key ratelimits if it belongs to this key
-		if rl.KeyID.Valid && rl.KeyID.String == key.ID {
-			keyRatelimits = append(keyRatelimits, ratelimitResp)
+		if len(keyRatelimits) > 0 {
+			response.Ratelimits = &keyRatelimits
 		}
-
-		// Also add to identity ratelimits if it has an identity_id that matches
-		if rl.IdentityID.Valid && key.IdentityID.Valid && rl.IdentityID.String == key.IdentityID.String {
-			identityRatelimits = append(identityRatelimits, ratelimitResp)
+		if len(identityRatelimits) > 0 && response.Identity != nil {
+			response.Identity.Ratelimits = &identityRatelimits
 		}
 	}
 
-	if len(keyRatelimits) > 0 {
-		response.Ratelimits = ptr.P(keyRatelimits)
-	}
-
-	if len(identityRatelimits) > 0 && response.Identity != nil {
-		response.Identity.Ratelimits = ptr.P(identityRatelimits)
-	}
-}
-
-func (h *Handler) setMeta(response *openapi.KeyResponseData, key db.FindLiveKeyByHashRow) {
-	if key.Meta.Valid {
-		if err := json.Unmarshal([]byte(key.Meta.String), &response.Meta); err != nil {
+	// Set meta
+	if keyData.Key.Meta.Valid {
+		var meta map[string]any
+		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
 			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		} else {
+			response.Meta = &meta
 		}
 	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: response,
+	})
 }
