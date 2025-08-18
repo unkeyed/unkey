@@ -66,8 +66,8 @@ export const RootKeyDialog = ({
     onOpenChange,
   });
 
-  const isBusy =
-    key.isLoading || updateName.isLoading || updatePermissions.isLoading || apisLoading;
+  const isMutating = key.isLoading || updateName.isLoading || updatePermissions.isLoading;
+  const isBusy = isMutating || apisLoading;
 
   const removePermission = (permission: UnkeyPermission) =>
     handlePermissionChange(selectedPermissions.filter((p) => p !== permission));
@@ -87,7 +87,7 @@ export const RootKeyDialog = ({
               variant="primary"
               size="xlg"
               className="w-full rounded-lg"
-              disabled={!hasChanges || isBusy}
+              disabled={!hasChanges || isMutating}
               onClick={handleCreateKey}
               loading={isBusy}
             >

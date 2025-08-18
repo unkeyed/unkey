@@ -5,6 +5,7 @@ import { CaretRight, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Badge } from "@unkey/ui";
 import { useMemo } from "react";
+import { ROOT_KEY_CONSTANTS } from "../constants";
 import { apiPermissions, workspacePermissions } from "../permissions";
 
 type Props = {
@@ -28,7 +29,8 @@ const PermissionBadgeList = ({
 }: Props) => {
   // Flatten allPermissions into an array of {permission, action} objects
   const allPermissionsArray = useMemo(() => {
-    const allPermissions = apiId === "workspace" ? workspacePermissions : apiPermissions(apiId);
+    const allPermissions =
+      apiId === ROOT_KEY_CONSTANTS.WORKSPACE ? workspacePermissions : apiPermissions(apiId);
     return Object.entries(allPermissions).flatMap(([category, permissions]) =>
       Object.entries(permissions).map(([action, permissionData]) => ({
         permission: permissionData.permission,
@@ -84,8 +86,7 @@ const ListBadges = ({
         description: permission.category,
       }))}
       gridCols={2}
-      disabled={false}
-      onRemoveItem={(id) => handleRemovePermissionClick(id)}
+      onRemoveItem={handleRemovePermissionClick}
       renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
       enableTransitions
       renderPrimaryText={(permission) => permission.name}

@@ -42,6 +42,11 @@ export const ROOT_KEY_MESSAGES = {
     LOAD_MORE: "Load More",
     SEARCH_PERMISSIONS: "Search permissions",
     CLEAR_SEARCH: "Clear search",
+    ROOT_KEY_CREATED: "Root Key Created",
+    ROOT_KEY_GENERATED: "You've successfully generated a new Root key.",
+    YOU_WONT_SEE_THIS_SECRET_KEY_AGAIN: "You won't see this secret key again!",
+    MAKE_SURE_TO_COPY_YOUR_SECRET_KEY_BEFORE_CLOSING:
+      "Make sure to copy your secret key before closing. It cannot be retrieved later.",
   },
   PLACEHOLDERS: {
     KEY_NAME: "e.g. Vercel Production",

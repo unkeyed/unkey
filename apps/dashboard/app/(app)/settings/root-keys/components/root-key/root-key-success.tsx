@@ -4,8 +4,8 @@ import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/compo
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Check, CircleInfo, Key2 } from "@unkey/icons";
 import { Dialog, DialogContent } from "@unkey/ui";
+import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
-
 type RootKeySuccessProps = {
   keyValue?: string;
   onClose: () => void;
@@ -56,10 +56,10 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             </div>
             <div className="mt-5 flex flex-col gap-2 items-center">
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
-                Root Key Created
+                {ROOT_KEY_MESSAGES.UI.ROOT_KEY_CREATED}
               </div>
               <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
-                You've successfully generated a new Root key.
+                {ROOT_KEY_MESSAGES.UI.ROOT_KEY_GENERATED}
               </div>
             </div>
             <div className="p-1 w-full my-8">
@@ -72,7 +72,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
                 <CircleInfo className="text-accent-9" size="sm-regular" aria-hidden="true" />
                 <span>
-                  Copy and save this secret as it won't be shown again.{" "}
+                  {ROOT_KEY_MESSAGES.UI.COPY_SAVE_KEY}
                   <a
                     href="https://www.unkey.com/docs/security/recovering-keys"
                     target="_blank"
@@ -86,7 +86,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             </div>
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                All set! You can now create another root key or explore the docs to learn more
+                {ROOT_KEY_MESSAGES.UI.ALL_SET}
               </div>
             </div>
           </div>
@@ -95,10 +95,10 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             onOpenChange={setIsConfirmOpen}
             onConfirm={handleConfirmClose}
             triggerRef={dividerRef}
-            title="You won't see this secret key again!"
-            description="Make sure to copy your secret key before closing. It cannot be retrieved later."
-            confirmButtonText="Close anyway"
-            cancelButtonText="Dismiss"
+            title={ROOT_KEY_MESSAGES.UI.YOU_WONT_SEE_THIS_SECRET_KEY_AGAIN}
+            description={ROOT_KEY_MESSAGES.UI.MAKE_SURE_TO_COPY_YOUR_SECRET_KEY_BEFORE_CLOSING}
+            confirmButtonText={ROOT_KEY_MESSAGES.UI.CLOSE_ANYWAY}
+            cancelButtonText={ROOT_KEY_MESSAGES.UI.DISMISS}
             variant="warning"
             popoverProps={{
               side: "right",

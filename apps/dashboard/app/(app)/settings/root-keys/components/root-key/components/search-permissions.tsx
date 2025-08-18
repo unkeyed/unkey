@@ -22,6 +22,7 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
       onChange({
         target: { value: "" },
         currentTarget: { value: "" },
+        type: "input",
       } as ChangeEvent<HTMLInputElement>);
     }
   };
