@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -19,8 +20,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
@@ -28,6 +27,8 @@ import (
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/net/http2"
@@ -219,7 +220,7 @@ func main() {
 		baseAssetInitCtx, cancel := context.WithTimeout(rootCtx, 10*time.Minute)
 		defer cancel()
 
-		if err := initializeBaseAssets(baseAssetInitCtx, logger, cfg, assetClient); err != nil {
+		if err := retryInitializeBaseAssets(baseAssetInitCtx, logger, cfg, assetClient); err != nil {
 			logger.Error("failed to initialize base assets",
 				slog.String("error", err.Error()),
 			)
@@ -611,6 +612,53 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 	logger.Info("graceful shutdown completed successfully")
 }
 
+// retryInitializeBaseAssets wraps initializeBaseAssets with exponential backoff retry logic
+// AIDEV-NOTE: This handles startup race conditions where assetmanagerd may not be ready
+func retryInitializeBaseAssets(ctx context.Context, logger *slog.Logger, cfg *config.Config, assetClient *assetmanager.Client) error {
+	maxRetries := 6 // ~2 minutes total with exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			delay := time.Duration(1<<attempt) * time.Second // Exponential backoff
+			logger.InfoContext(ctx, "retrying base asset initialization",
+				"attempt", attempt+1,
+				"max_retries", maxRetries,
+				"delay", delay,
+			)
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(delay):
+			}
+		}
+
+		err := initializeBaseAssets(ctx, logger, cfg, assetClient)
+		if err == nil {
+			if attempt > 0 {
+				logger.InfoContext(ctx, "base asset initialization succeeded after retries",
+					"successful_attempt", attempt+1,
+				)
+			}
+			return nil // Success
+		}
+
+		// Log the error
+		logger.WarnContext(ctx, "base asset initialization attempt failed",
+			"attempt", attempt+1,
+			"max_retries", maxRetries,
+			"error", err,
+		)
+
+		// Don't retry if it's the last attempt
+		if attempt == maxRetries-1 {
+			return fmt.Errorf("failed to initialize base assets after %d attempts: %w", maxRetries, err)
+		}
+	}
+
+	return nil // Should never reach here
+}
+
 // initializeBaseAssets downloads and registers base VM assets if they don't exist
 func initializeBaseAssets(ctx context.Context, logger *slog.Logger, cfg *config.Config, assetClient *assetmanager.Client) error {
 	// AIDEV-NOTE: Inline base asset initialization to avoid import cycles
@@ -678,11 +726,19 @@ func initializeBaseAssets(ctx context.Context, logger *slog.Logger, cfg *config.
 
 		assetID, err := assetClient.RegisterBuildArtifact(ctx, "base-assets", localPath, asset.assetType, labels)
 		if err != nil {
-			// Log warning but don't fail - asset might already be registered
-			logger.WarnContext(ctx, "failed to register asset, might already exist",
-				"asset", asset.name,
-				"error", err,
-			)
+			// AIDEV-NOTE: Distinguish between "already exists" vs connection/service unavailable errors
+			// Already exists errors are fine, connection errors should cause retry
+			errStr := strings.ToLower(err.Error())
+			if strings.Contains(errStr, "already exists") || strings.Contains(errStr, "duplicate") ||
+				strings.Contains(errStr, "conflict") {
+				logger.InfoContext(ctx, "base asset already registered, skipping",
+					"asset", asset.name,
+					"error", err,
+				)
+			} else {
+				// This is likely a connection/service unavailable error - should trigger retry
+				return fmt.Errorf("failed to register base asset %s (service may not be ready): %w", asset.name, err)
+			}
 		} else {
 			logger.InfoContext(ctx, "asset registered successfully",
 				"asset", asset.name,
