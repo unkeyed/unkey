@@ -1531,7 +1531,7 @@ type Querier interface {
 	//
 	//  UPDATE `keys`
 	//  SET remaining_requests = CASE
-	//      WHEN remaining_requests - ? > 0 THEN remaining_requests - ?
+	//      WHEN remaining_requests >= ? THEN remaining_requests - ?
 	//      ELSE 0
 	//  END
 	//  WHERE id = ?
