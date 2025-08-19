@@ -166,7 +166,7 @@ service-stop: ## Stop metald service
 	@echo "✓ metald stopped"
 
 test: ## Run all tests
-	@go test ./... -v
+	@go test -json -failfast -v ./... | tparse
 
 test-coverage: ## Run tests with coverage report
 	@go test ./... -coverprofile=coverage.out
