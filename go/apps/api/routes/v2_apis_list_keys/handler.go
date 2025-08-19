@@ -225,242 +225,85 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Query ratelimits for all returned keys
-	ratelimitsMap := make(map[string][]db.ListRatelimitsByKeyIDsRow)
-	identityRatelimitsMap := make(map[string][]db.Ratelimit)
-	if len(keys) > 0 {
-		// Extract key IDs and convert to sql.NullString slice
-		keyIDs := make([]sql.NullString, len(keys))
-		for i, key := range keys {
-			keyIDs[i] = sql.NullString{Valid: true, String: key.Key.ID}
-		}
-
-		// Query ratelimits for these keys
-		ratelimits, listErr := db.Query.ListRatelimitsByKeyIDs(ctx, h.DB.RO(), keyIDs)
-		if listErr != nil {
-			return fault.Wrap(listErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to retrieve ratelimits."),
-			)
-		}
-
-		// Group ratelimits by key_id
-		for _, rl := range ratelimits {
-			if rl.KeyID.Valid {
-				ratelimitsMap[rl.KeyID.String] = append(ratelimitsMap[rl.KeyID.String], rl)
-			}
-		}
-
-		uniqIdentityIds := make(map[string]struct{})
-		for _, key := range keys {
-			if !key.IdentityID.Valid {
-				continue
-			}
-
-			uniqIdentityIds[key.IdentityID.String] = struct{}{}
-		}
-
-		identityIDs := make([]sql.NullString, 0)
-		for identityID := range uniqIdentityIds {
-			identityIDs = append(identityIDs, sql.NullString{String: identityID, Valid: true})
-		}
-
-		// Query ratelimits for these identities
-		identityRatelimits, listErr := db.Query.ListIdentityRatelimitsByIDs(ctx, h.DB.RO(), identityIDs)
-		if listErr != nil {
-			return fault.Wrap(listErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to retrieve ratelimits."),
-			)
-		}
-
-		// Group ratelimits by identity_id
-		for _, rl := range identityRatelimits {
-			if rl.IdentityID.Valid {
-				identityRatelimitsMap[rl.IdentityID.String] = append(identityRatelimitsMap[rl.IdentityID.String], rl)
-			}
-		}
-	}
-
-	// If user requested decryption, check permissions and decrypt
-	plaintextMap := map[string]string{} // nolint:staticcheck
-	if req.Decrypt != nil && *req.Decrypt {
-		// If we have permission, proceed with decryption
-		for _, key := range keys {
-			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-				decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-					Keyring:   key.Key.WorkspaceID,
-					Encrypted: key.EncryptedKey.String,
-				})
-				if decryptErr != nil {
-					h.Logger.Error("failed to decrypt key",
-						"keyId", key.Key.ID,
-						"error", decryptErr,
-					)
-					continue
-				}
-
-				plaintextMap[key.Key.ID] = decrypted.GetPlaintext()
-			}
-		}
-	}
-
-	// Determine the cursor for the next page
+	// Handle pagination
 	hasMore := len(keys) > limit
 	var nextCursor *string
 	if hasMore {
 		nextCursor = ptr.P(keys[len(keys)-1].Key.ID)
-		// Trim the results to the requested limit
 		keys = keys[:limit]
 	}
 
-	// Transform keys into the response format
+	if len(keys) == 0 {
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: []openapi.KeyResponseData{},
+			Pagination: &openapi.Pagination{
+				Cursor:  nextCursor,
+				HasMore: hasMore,
+			},
+		})
+	}
+
+	// Extract key IDs
+	keyIDs := make([]string, len(keys))
+	for i, key := range keys {
+		keyIDs[i] = key.Key.ID
+	}
+
+	// Get all live keys
+	keysWithDetails, err := db.Query.ListLiveKeysByIDs(ctx, h.DB.RO(), keyIDs)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve key details."),
+		)
+	}
+
+	keyMap := make(map[string]db.ListLiveKeysByIDsRow)
+	for _, richKey := range keysWithDetails {
+		keyMap[richKey.ID] = richKey
+	}
+
+	// Handle decryption if requested
+	plaintextMap := make(map[string]string)
+	if req.Decrypt != nil && *req.Decrypt {
+		for _, richKey := range keysWithDetails {
+			if richKey.EncryptedKey.Valid && richKey.EncryptionKeyID.Valid {
+				decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+					Keyring:   richKey.WorkspaceID,
+					Encrypted: richKey.EncryptedKey.String,
+				})
+				if decryptErr != nil {
+					h.Logger.Error("failed to decrypt key",
+						"keyId", richKey.ID,
+						"error", decryptErr,
+					)
+					continue
+				}
+				plaintextMap[richKey.ID] = decrypted.GetPlaintext()
+			}
+		}
+	}
+
+	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keys))
 	for i, key := range keys {
-		k := openapi.KeyResponseData{
-			KeyId:       key.Key.ID,
-			Start:       key.Key.Start,
-			CreatedAt:   key.Key.CreatedAtM,
-			Enabled:     key.Key.Enabled,
-			Credits:     nil,
-			Expires:     nil,
-			Identity:    nil,
-			Meta:        nil,
-			Name:        nil,
-			Plaintext:   nil,
-			UpdatedAt:   nil,
-			Ratelimits:  nil,
-			Permissions: nil,
-			Roles:       nil,
+		richKey, exists := keyMap[key.Key.ID]
+		if !exists {
+			h.Logger.Error("rich key data not found", "keyId", key.Key.ID)
+			continue
 		}
 
-		if key.Key.Name.Valid {
-			k.Name = ptr.P(key.Key.Name.String)
-		}
-
-		if key.Key.UpdatedAtM.Valid {
-			k.UpdatedAt = ptr.P(key.Key.UpdatedAtM.Int64)
-		}
-
-		if key.Key.Expires.Valid {
-			k.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
-		}
-
-		if key.Key.Meta.Valid {
-			err = json.Unmarshal([]byte(key.Key.Meta.String), &k.Meta)
-			if err != nil {
-				h.Logger.Error("unable to unmarshal key metadata",
-					"keyId", key.Key.ID,
-					"error", err,
-				)
-			}
-		}
-
-		if key.Key.RemainingRequests.Valid {
-			k.Credits = &openapi.KeyCreditsData{
-				Remaining: nullable.NewNullableWithValue(int64(key.Key.RemainingRequests.Int32)),
-				Refill:    nil,
-			}
-
-			if key.Key.RefillAmount.Valid {
-				var refillDay *int
-				interval := openapi.Daily
-				if key.Key.RefillDay.Valid {
-					interval = openapi.Monthly
-					refillDay = ptr.P(int(key.Key.RefillDay.Int16)) // nolint:gosec
-				}
-
-				k.Credits.Refill = &openapi.KeyCreditsRefill{
-					Amount:    int64(key.Key.RefillAmount.Int32),
-					Interval:  interval,
-					RefillDay: refillDay,
-				}
-			}
-		}
-
-		// Add plaintext if available
-		if plaintext, ok := plaintextMap[key.Key.ID]; ok {
-			k.Plaintext = ptr.P(plaintext)
-		}
-
-		// Add identity information if available
-		if key.IdentityID.Valid {
-			k.Identity = &openapi.Identity{
-				Id:         key.IdentityID.String,
-				ExternalId: key.ExternalID.String,
-				Meta:       nil,
-				Ratelimits: nil,
-			}
-
-			if len(key.IdentityMeta) > 0 {
-				err = json.Unmarshal(key.IdentityMeta, &k.Identity.Meta)
-				if err != nil {
-					return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-						fault.Internal("unable to unmarshal identity meta"), fault.Public("We encountered an error while trying to unmarshal the identity meta data."))
-				}
-			}
-
-			if ratelimits, ok := identityRatelimitsMap[key.IdentityID.String]; ok {
-				ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
-				for idx, rl := range ratelimits {
-					ratelimitsResponse[idx] = openapi.RatelimitResponse{
-						Id:        rl.ID,
-						Name:      rl.Name,
-						Duration:  rl.Duration,
-						AutoApply: rl.AutoApply,
-						Limit:     int64(rl.Limit),
-					}
-				}
-
-				k.Identity.Ratelimits = ptr.P(ratelimitsResponse)
-			}
-		}
-
-		// Get permissions for the key
-		permissionSlugs, err := db.Query.ListPermissionsByKeyID(ctx, h.DB.RO(), db.ListPermissionsByKeyIDParams{
-			KeyID: k.KeyId,
-		})
+		findRow := db.FindLiveKeyByIDRow(richKey)
+		keyData := db.ToKeyData(findRow)
+		response, err := h.BuildKeyResponseData(keyData, plaintextMap[key.Key.ID])
 		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
+			return err
 		}
-
-		if len(permissionSlugs) > 0 {
-			k.Permissions = ptr.P(permissionSlugs)
-		}
-
-		// Get roles for the key
-		roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
-		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
-		}
-
-		if len(roles) > 0 {
-			roleNames := make([]string, len(roles))
-			for i, role := range roles {
-				roleNames[i] = role.Name
-			}
-
-			k.Roles = ptr.P(roleNames)
-		}
-
-		// Add ratelimits for the key
-		if keyRatelimits, exists := ratelimitsMap[k.KeyId]; exists {
-			ratelimitsResponse := make([]openapi.RatelimitResponse, len(keyRatelimits))
-			for j, rl := range keyRatelimits {
-				ratelimitsResponse[j] = openapi.RatelimitResponse{
-					Id:        rl.ID,
-					Name:      rl.Name,
-					Limit:     int64(rl.Limit),
-					Duration:  rl.Duration,
-					AutoApply: rl.AutoApply,
-				}
-			}
-			k.Ratelimits = ptr.P(ratelimitsResponse)
-		}
-
-		responseData[i] = k
+		responseData[i] = response
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -473,4 +316,148 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			HasMore: hasMore,
 		},
 	})
+}
+
+// BuildKeyResponseData transforms internal key data into API response format.
+// Returns error on JSON unmarshaling failures to avoid silent data corruption.
+func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
+	response := openapi.KeyResponseData{
+		CreatedAt: keyData.Key.CreatedAtM,
+		Enabled:   keyData.Key.Enabled,
+		KeyId:     keyData.Key.ID,
+		Start:     keyData.Key.Start,
+	}
+
+	if plaintext != "" {
+		response.Plaintext = ptr.P(plaintext)
+	}
+
+	// Set optional fields
+	if keyData.Key.Name.Valid {
+		response.Name = ptr.P(keyData.Key.Name.String)
+	}
+
+	if keyData.Key.UpdatedAtM.Valid {
+		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
+	}
+
+	if keyData.Key.Expires.Valid {
+		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
+	}
+
+	// Set credits
+	if keyData.Key.RemainingRequests.Valid {
+		response.Credits = &openapi.KeyCreditsData{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
+		}
+
+		if keyData.Key.RefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if keyData.Key.RefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+			}
+
+			response.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:    int64(keyData.Key.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
+		}
+	}
+
+	// Set identity
+	if keyData.Identity != nil {
+		response.Identity = &openapi.Identity{
+			Id:         keyData.Identity.ID,
+			ExternalId: keyData.Identity.ExternalID,
+		}
+
+		if len(keyData.Identity.Meta) > 0 {
+			var identityMeta map[string]any
+			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+				return response, fault.Wrap(err,
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal("failed to unmarshal identity meta"),
+					fault.Public("Invalid identity metadata format."),
+				)
+			}
+			response.Identity.Meta = &identityMeta
+		}
+	}
+
+	// Set permissions (combine direct + role permissions)
+	permissionSlugs := make(map[string]struct{})
+	for _, p := range keyData.Permissions {
+		permissionSlugs[p.Slug] = struct{}{}
+	}
+	for _, p := range keyData.RolePermissions {
+		permissionSlugs[p.Slug] = struct{}{}
+	}
+	if len(permissionSlugs) > 0 {
+		slugs := make([]string, 0, len(permissionSlugs))
+		for slug := range permissionSlugs {
+			slugs = append(slugs, slug)
+		}
+		response.Permissions = &slugs
+	}
+
+	// Set roles
+	if len(keyData.Roles) > 0 {
+		roleNames := make([]string, len(keyData.Roles))
+		for i, role := range keyData.Roles {
+			roleNames[i] = role.Name
+		}
+		response.Roles = &roleNames
+	}
+
+	// Set ratelimits
+	if len(keyData.Ratelimits) > 0 {
+		var keyRatelimits []openapi.RatelimitResponse
+		var identityRatelimits []openapi.RatelimitResponse
+
+		for _, rl := range keyData.Ratelimits {
+			ratelimitResp := openapi.RatelimitResponse{
+				Id:        rl.ID,
+				Duration:  rl.Duration,
+				Limit:     int64(rl.Limit),
+				Name:      rl.Name,
+				AutoApply: rl.AutoApply,
+			}
+
+			// Add to key ratelimits if it belongs to this key
+			if rl.KeyID.Valid && rl.KeyID.String == keyData.Key.ID {
+				keyRatelimits = append(keyRatelimits, ratelimitResp)
+			}
+
+			// Add to identity ratelimits if it has an identity_id that matches
+			if rl.IdentityID.Valid && keyData.Identity != nil && rl.IdentityID.String == keyData.Identity.ID {
+				identityRatelimits = append(identityRatelimits, ratelimitResp)
+			}
+		}
+
+		if len(keyRatelimits) > 0 {
+			response.Ratelimits = &keyRatelimits
+		}
+
+		if len(identityRatelimits) > 0 && response.Identity != nil {
+			response.Identity.Ratelimits = &identityRatelimits
+		}
+	}
+
+	// Set meta
+	if keyData.Key.Meta.Valid {
+		var meta map[string]any
+		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
+			return response, fault.Wrap(err,
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("failed to unmarshal key meta"),
+				fault.Public("Invalid key metadata format."),
+			)
+		}
+		response.Meta = &meta
+	}
+
+	return response, nil
 }
