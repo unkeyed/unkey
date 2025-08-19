@@ -16,6 +16,7 @@ const (
 	// decrementScript is the Lua script for decrementing a counter.
 	// This script checks if the key exists and if there are sufficient credits
 	// before decrementing, avoiding negative values that would need reverting.
+	// Uses DECRBY to preserve existing TTL on the key.
 	decrementIfExistsScript = `
 		local key = KEYS[1]
 		local decrement = tonumber(ARGV[1])
@@ -32,11 +33,15 @@ const (
 			return {-1, 1}  -- {-1, existed} - insufficient credits (negative indicates denial)
 		end
 
-		-- Sufficient credits, perform the decrement
-		local newValue = current - decrement
-		redis.call('SET', key, newValue)
+		-- Sufficient credits, perform atomic decrement preserving TTL
+		local newValue = redis.call('DECRBY', key, decrement)
 		return {newValue, 1}  -- {new_value, existed} - decrement successful
 	`
+)
+
+var (
+	// decrementIfExistsScriptSHA is the cached script for atomic decrement operations
+	decrementIfExistsScriptSHA = redis.NewScript(decrementIfExistsScript)
 )
 
 // redisCounter implements the Counter interface using Redis.
@@ -199,12 +204,13 @@ func (r *redisCounter) SetIfNotExists(ctx context.Context, key string, value int
 }
 
 // DecrementIfExists decrements a counter only if it already exists.
-// Uses a dedicated Lua script to atomically check existence and decrement.
+// Uses a cached Lua script (EVALSHA) to atomically check existence and decrement.
+// Sentinel meaning: newValue == -1 with existed==true indicates insufficient credits.
 func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error) {
 	ctx, span := tracing.Start(ctx, "RedisCounter.DecrementIfExists")
 	defer span.End()
 
-	result, err := r.redis.Eval(ctx, decrementIfExistsScript, []string{key}, value).Result()
+	result, err := decrementIfExistsScriptSHA.Run(ctx, r.redis, []string{key}, value).Result()
 	if err != nil {
 		return 0, false, err
 	}
@@ -215,18 +221,47 @@ func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value 
 		return 0, false, fmt.Errorf("unexpected result format from Lua script")
 	}
 
-	newValue, ok := resultSlice[0].(int64)
-	if !ok {
-		return 0, false, fmt.Errorf("invalid newValue type in result")
+	// Defensively parse newValue from multiple numeric types
+	newValue, err := parseNumericValue(resultSlice[0])
+	if err != nil {
+		return 0, false, fmt.Errorf("invalid newValue in result: %w", err)
 	}
 
-	existedInt, ok := resultSlice[1].(int64)
-	if !ok {
-		return 0, false, fmt.Errorf("invalid existed type in result")
+	// Defensively parse existed flag from multiple numeric types
+	existedValue, err := parseNumericValue(resultSlice[1])
+	if err != nil {
+		return 0, false, fmt.Errorf("invalid existed flag in result: %w", err)
 	}
 
-	existed := existedInt == 1
+	// Treat any non-zero value as true for existed flag
+	existed := existedValue != 0
 	return newValue, existed, nil
+}
+
+// parseNumericValue safely converts various numeric types to int64
+func parseNumericValue(v interface{}) (int64, error) {
+	switch val := v.(type) {
+	case int64:
+		return val, nil
+	case float64:
+		// Safely convert float64 to int64, checking for overflow
+		if val > float64(9223372036854775807) || val < float64(-9223372036854775808) {
+			return 0, fmt.Errorf("float64 value %v overflows int64", val)
+		}
+		return int64(val), nil
+	case string:
+		parsed, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse string '%s' as int64: %w", val, err)
+		}
+		return parsed, nil
+	case int:
+		return int64(val), nil
+	case int32:
+		return int64(val), nil
+	default:
+		return 0, fmt.Errorf("unsupported type %T for numeric value", v)
+	}
 }
 
 // Delete removes a counter key from Redis.

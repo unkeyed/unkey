@@ -192,6 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	shutdowns.Register(keySvc.Close)
+	shutdowns.Register(ctr.Close)
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {

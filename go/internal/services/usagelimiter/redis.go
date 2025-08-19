@@ -21,8 +21,12 @@ const (
 	defaultReplyWorkers = 8
 )
 
+// CreditChange represents a change to a credit balance that needs to be
+// replayed to the database for eventual consistency with Redis counters.
 type CreditChange struct {
-	KeyID  string
+	// KeyID is the unique identifier of the key whose credits changed
+	KeyID string
+	// Amount is the number of credits that were deducted
 	Amount int32
 }
 
@@ -103,6 +107,14 @@ type CounterConfig struct {
 //   - Service: Counter-based implementation of the Service interface
 //   - error: Any initialization errors
 func NewCounter(config CounterConfig) (Service, error) {
+	// Validate required fields
+	if config.Counter == nil {
+		return nil, fmt.Errorf("counter cannot be nil")
+	}
+	if config.DB == nil {
+		return nil, fmt.Errorf("database cannot be nil")
+	}
+
 	ttl := config.TTL
 	if ttl == 0 {
 		ttl = defaultTTL
@@ -170,7 +182,6 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	// Try decrement only if key usage is already stored
 	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
-		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -180,11 +191,11 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	}
 
 	// Key exists, check if decrement was successful
-	return s.handleDecrementResult(ctx, req, redisKey, remaining)
+	return s.handleDecrementResult(req, redisKey, remaining)
 }
 
 // handleDecrementResult processes the result of a decrement operation
-func (s *counterService) handleDecrementResult(ctx context.Context, req UsageRequest, redisKey string, remaining int64) (UsageResponse, error) {
+func (s *counterService) handleDecrementResult(req UsageRequest, redisKey string, remaining int64) (UsageResponse, error) {
 	if remaining >= 0 {
 		// Success - buffer the credit change for async DB update
 		s.replayBuffer.Buffer(CreditChange{
@@ -205,7 +216,9 @@ func (s *counterService) handleDecrementResult(ctx context.Context, req UsageReq
 	return UsageResponse{Valid: false, Remaining: int32(remaining)}, nil
 }
 
-// initializeFromDatabase loads credits from DB and initializes the counter
+// initializeFromDatabase loads credits from DB and initializes the counter.
+// It ensures Redis is never initialized with negative values, which could skew
+// subsequent decisions from other nodes in a distributed environment.
 func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRequest, redisKey string) (UsageResponse, error) {
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
@@ -226,30 +239,45 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
 
-	// Try to initialize with the already decremented value
-	remaining := int64(limit.Int32) - int64(req.Cost)
-	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, remaining, s.ttl)
+	// Determine what value to initialize Redis with - never use negative values
+	currentCredits := int64(limit.Int32)
+	hasSufficientCredits := currentCredits >= int64(req.Cost)
 
+	// Initialize Redis with appropriate value (current credits if insufficient, decremented if sufficient)
+	var initValue int64
+	if hasSufficientCredits {
+		initValue = currentCredits - int64(req.Cost)
+	} else {
+		initValue = currentCredits // Don't initialize with negative values
+	}
+
+	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, initValue, s.ttl)
 	if err != nil {
 		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
-		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
-	// We set it so its fine to pass
+	// If we successfully initialized the key, return the appropriate response
 	if wasSet {
-		return s.handleDecrementResult(ctx, req, redisKey, remaining)
+		if hasSufficientCredits {
+			// Successful decrement - credit change already applied in initValue
+			return s.handleDecrementResult(req, redisKey, initValue)
+		} else {
+			// Insufficient credits - return denial without decrementing
+			metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
+			return UsageResponse{Valid: false, Remaining: int32(currentCredits)}, nil
+		}
 	}
 
 	// Another node already initialized the key, check if we have enough after decrement
 	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
-		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyId", req.KeyId, "wasSet", wasSet)
+		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyId", req.KeyId)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
 	// Process the decrement result
-	return s.handleDecrementResult(ctx, req, redisKey, remaining)
+	return s.handleDecrementResult(req, redisKey, remaining)
 }
 
 // replayRequests processes buffered credit changes and updates the database
@@ -258,7 +286,7 @@ func (s *counterService) replayRequests() {
 		err := s.syncWithDB(context.Background(), change)
 
 		if err != nil {
-			s.logger.Error("failed to replay credit change", "error", err.Error())
+			s.logger.Error("failed to replay credit change", "error", err)
 		}
 	}
 }

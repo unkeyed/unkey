@@ -48,6 +48,7 @@ func New(config Config) (*service, error) {
 //   - Service: Counter-based Redis implementation (recommended)
 //   - error: Any initialization errors
 func NewRedisWithCounter(config RedisConfig) (Service, error) {
+	//nolint:exhaustruct // ReplayWorkers defaults to 8 in NewCounter when unset
 	return NewCounter(CounterConfig{
 		DB:      config.DB,
 		Logger:  config.Logger,

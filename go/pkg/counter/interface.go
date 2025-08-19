@@ -79,15 +79,32 @@ type Counter interface {
 	// This is useful for atomic operations where you need to distinguish between
 	// "key doesn't exist" and "key exists".
 	//
+	// Behavior Guarantees:
+	//   - The operation will NEVER decrement a counter below zero
+	//   - If the current value is less than the decrement amount, no decrement occurs
+	//   - When decrement is refused due to insufficient credits, existed=true and newValue=-1
+	//   - The value parameter must be positive (> 0)
+	//
 	// Parameters:
 	//   - ctx: Context for cancellation and tracing
 	//   - key: Unique identifier for the counter
-	//   - value: Amount to decrement the counter by (must be positive)
+	//   - value: Amount to decrement the counter by (must be positive, > 0)
 	//
 	// Returns:
-	//   - int64: The new counter value after decrementing (only valid if existed=true)
+	//   - int64: The counter value after attempting decrement. Special sentinel values:
+	//            * When existed=false: returns 0 (key didn't exist)
+	//            * When existed=true but insufficient credits: returns -1 (insufficient credits)
+	//            * When existed=true and sufficient credits: returns new value after decrement (>= 0)
 	//   - bool: Whether the key existed before the operation
 	//   - error: Any errors that occurred during the operation
+	//
+	// Sentinel Value Semantics:
+	//   - newValue == 0 && existed == false: Key doesn't exist, no operation performed
+	//   - newValue == -1 && existed == true: Key exists but insufficient credits, no decrement performed
+	//   - newValue >= 0 && existed == true: Successful decrement, newValue is the non-negative result
+	//
+	// Implementers: Treat newValue == -1 as "insufficient credits but key existed" sentinel value.
+	// Callers: Check for -1 return value to unambiguously detect insufficient credit scenarios.
 	DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error)
 
 	// SetIfNotExists sets a counter to a specific value only if it doesn't already exist.

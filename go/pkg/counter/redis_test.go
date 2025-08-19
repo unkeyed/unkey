@@ -590,11 +590,16 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 		_, err := ctr.Increment(ctx, key, 3)
 		require.NoError(t, err)
 
-		// Decrement by more than current value
+		// Attempt to decrement by more than current value - should be refused
 		val, existed, err := ctr.DecrementIfExists(ctx, key, 8)
 		require.NoError(t, err)
 		require.True(t, existed, "Key should exist")
-		require.Equal(t, int64(-5), val, "Value should be -5 after decrement")
+		require.Equal(t, int64(-1), val, "Should return sentinel -1 for insufficient credits")
+		
+		// Verify the original value is unchanged
+		currentVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(3), currentVal, "Original value should be unchanged after refused decrement")
 	})
 
 	t.Run("ConcurrentDecrementIfExists", func(t *testing.T) {
@@ -828,12 +833,10 @@ func TestRedisCounterSmartDecrement(t *testing.T) {
 		
 		// Analyze results
 		var successCount, failureCount int
-		var successfulRemainingValues []int64
 		
 		for res := range results {
 			if res.success {
 				successCount++
-				successfulRemainingValues = append(successfulRemainingValues, res.remaining)
 				require.GreaterOrEqual(t, res.remaining, int64(0), "successful decrements should never be negative")
 			} else {
 				failureCount++

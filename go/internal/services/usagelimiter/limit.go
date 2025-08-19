@@ -13,6 +13,8 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
 	defer span.End()
 
+	metrics.UsagelimiterFallbackOperations.Inc()
+
 	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
