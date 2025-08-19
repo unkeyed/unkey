@@ -114,6 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
