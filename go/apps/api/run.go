@@ -145,7 +145,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},
-		TLS: cfg.TLSConfig,
+		TLS:                cfg.TLSConfig,
+		MaxRequestBodySize: cfg.MaxRequestBodySize,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)

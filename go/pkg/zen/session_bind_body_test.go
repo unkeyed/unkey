@@ -86,12 +86,12 @@ func TestSession_BindBody(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			// Create a session
-			sess := &Session{
-				r: req,
-			}
+			sess := &Session{}
+			err := sess.init(httptest.NewRecorder(), req, 0)
+			require.NoError(t, err)
 
 			// Call BindBody
-			err := sess.BindBody(tt.target)
+			err = sess.BindBody(tt.target)
 
 			// Check error conditions
 			if tt.wantErr {
@@ -117,16 +117,11 @@ func TestSession_BindBody_ReadError(t *testing.T) {
 	errReader := &errorReader{err: io.ErrUnexpectedEOF}
 	req := httptest.NewRequest(http.MethodPost, "/", errReader)
 
-	// Create a session
-	sess := &Session{
-		r: req,
-	}
+	// Create a session and try to init it (this should fail)
+	sess := &Session{}
+	err := sess.init(httptest.NewRecorder(), req, 0)
 
-	// Call BindBody
-	var target map[string]interface{}
-	err := sess.BindBody(&target)
-
-	// Verify error
+	// Verify the init error
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to read request body")
 }
@@ -168,9 +163,9 @@ func TestSession_BindBody_LargeBody(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	// Create a session
-	sess := &Session{
-		r: req,
-	}
+	sess := &Session{}
+	err = sess.init(httptest.NewRecorder(), req, 0)
+	require.NoError(t, err)
 
 	type LargeStruct struct {
 		Items []Item `json:"items"`
@@ -193,7 +188,7 @@ func TestSession_BindBody_Integration(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	sess := &Session{}
-	err := sess.init(w, req)
+	err := sess.init(w, req, 0)
 	require.NoError(t, err)
 
 	type TestData struct {

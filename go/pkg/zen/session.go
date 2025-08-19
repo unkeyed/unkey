@@ -1,6 +1,7 @@
 package zen
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,10 +42,31 @@ type Session struct {
 	responseBody   []byte
 }
 
-func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
+func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.w = w
 	s.r = r
+
+	// Apply body size limit if configured
+	if maxBodySize > 0 {
+		s.r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+	}
+
+	// Read and cache the request body so metrics middleware can access it even on early errors.
+	// We need to replace r.Body with a fresh reader afterwards so other middleware
+	// can still read the body if necessary.
+	var err error
+	s.requestBody, err = io.ReadAll(r.Body)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("unable to read request body"),
+			fault.Public("The request body is malformed."),
+		)
+	}
+
+	// Close the request body, so it can be re-read later by subsequent middlewares
+	_ = r.Body.Close()
+	s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
 
 	s.WorkspaceID = ""
 	return nil

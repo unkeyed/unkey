@@ -125,6 +125,33 @@ func (c *Command) RequireInt(name string) int {
 	return inf.Value()
 }
 
+// Int64 returns the value of an int64 flag by name
+// Returns 0 if flag doesn't exist or isn't an Int64Flag
+func (c *Command) Int64(name string) int64 {
+	if flag, ok := c.flagMap[name]; ok {
+		if i64f, ok := flag.(*Int64Flag); ok {
+			return i64f.Value()
+		}
+	}
+	return 0
+}
+
+// RequireInt64 returns the value of an int64 flag by name
+// Panics if flag doesn't exist or isn't an Int64Flag
+func (c *Command) RequireInt64(name string) int64 {
+	flag, ok := c.flagMap[name]
+	if !ok {
+		panic(c.newFlagNotFoundError(name))
+	}
+
+	i64f, ok := flag.(*Int64Flag)
+	if !ok {
+		panic(c.newWrongFlagTypeError(name, flag, "Int64Flag"))
+	}
+
+	return i64f.Value()
+}
+
 // Float returns the value of a float flag by name
 // Returns 0.0 if flag doesn't exist or isn't a FloatFlag
 func (c *Command) Float(name string) float64 {
@@ -220,6 +247,8 @@ func (c *Command) getFlagType(flag Flag) string {
 		return "BoolFlag"
 	case *IntFlag:
 		return "IntFlag"
+	case *Int64Flag:
+		return "Int64Flag"
 	case *FloatFlag:
 		return "FloatFlag"
 	case *StringSliceFlag:
