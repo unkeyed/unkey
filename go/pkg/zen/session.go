@@ -40,6 +40,9 @@ type Session struct {
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
+
+	// Logging control - defaults to false (log by default)
+	disableLogging bool
 }
 
 func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
@@ -78,6 +81,21 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.WorkspaceID
+}
+
+// DisableLogging prevents this request from being logged.
+// By default, all requests are logged unless explicitly disabled.
+//
+// This is useful for internal endpoints like health checks, OpenAPI specs,
+// or requests that should not appear in analytics.
+func (s *Session) DisableLogging() {
+	s.disableLogging = true
+}
+
+// ShouldLog returns whether this request should be logged.
+// Returns false if logging was explicitly disabled, otherwise defaults to true.
+func (s *Session) ShouldLog() bool {
+	return !s.disableLogging
 }
 
 func (s *Session) UserAgent() string {
@@ -384,4 +402,5 @@ func (s *Session) reset() {
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
+	s.disableLogging = false // Reset logging control
 }

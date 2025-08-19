@@ -70,7 +70,7 @@ func TestSession_BodySizeLimit(t *testing.T) {
 func TestSession_BodySizeLimitWithBindBody(t *testing.T) {
 	// Test that BindBody still works correctly with body size limits
 	bodyContent := `{"name":"test","value":42}`
-	
+
 	req := httptest.NewRequest("POST", "/", strings.NewReader(bodyContent))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
