@@ -166,7 +166,7 @@ func NewCounter(config CounterConfig) (Service, error) {
 // 2. When key does not exist in redis: Database load + Redis initialization for new keys
 // ERROR HANDLING:
 // - Redis failures trigger automatic fallback to direct DB operations
-// - Failed credit reverts are logged but don't fail the request
+// - Lua script prevents negative counters, insufficient credit attempts are denied atomically
 // - Circuit breaker protects against database overload during fallbacks
 //
 // METRICS:
@@ -182,6 +182,7 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	// Try decrement only if key usage is already stored
 	remaining, exists, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
+		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -191,11 +192,11 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	}
 
 	// Key exists, check if decrement was successful
-	return s.handleDecrementResult(req, redisKey, remaining)
+	return s.handleDecrementResult(req, remaining)
 }
 
 // handleDecrementResult processes the result of a decrement operation
-func (s *counterService) handleDecrementResult(req UsageRequest, redisKey string, remaining int64) (UsageResponse, error) {
+func (s *counterService) handleDecrementResult(req UsageRequest, remaining int64) (UsageResponse, error) {
 	if remaining >= 0 {
 		// Success - buffer the credit change for async DB update
 		s.replayBuffer.Buffer(CreditChange{
@@ -261,7 +262,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	if wasSet {
 		if hasSufficientCredits {
 			// Successful decrement - credit change already applied in initValue
-			return s.handleDecrementResult(req, redisKey, initValue)
+			return s.handleDecrementResult(req, initValue)
 		} else {
 			// Insufficient credits - return denial without decrementing
 			metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
@@ -277,7 +278,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	}
 
 	// Process the decrement result
-	return s.handleDecrementResult(req, redisKey, remaining)
+	return s.handleDecrementResult(req, remaining)
 }
 
 // replayRequests processes buffered credit changes and updates the database

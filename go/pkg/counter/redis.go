@@ -40,8 +40,8 @@ const (
 )
 
 var (
-	// decrementIfExistsScriptSHA is the cached script for atomic decrement operations
-	decrementIfExistsScriptSHA = redis.NewScript(decrementIfExistsScript)
+	// decrementIfExistsScriptCached is the cached script for atomic decrement operations
+	decrementIfExistsScriptCached = redis.NewScript(decrementIfExistsScript)
 )
 
 // redisCounter implements the Counter interface using Redis.
@@ -210,7 +210,7 @@ func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value 
 	ctx, span := tracing.Start(ctx, "RedisCounter.DecrementIfExists")
 	defer span.End()
 
-	result, err := decrementIfExistsScriptSHA.Run(ctx, r.redis, []string{key}, value).Result()
+	result, err := decrementIfExistsScriptCached.Run(ctx, r.redis, []string{key}, value).Result()
 	if err != nil {
 		return 0, false, err
 	}

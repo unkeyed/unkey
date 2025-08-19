@@ -13,8 +13,6 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
 	defer span.End()
 
-	metrics.UsagelimiterFallbackOperations.Inc()
-
 	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -27,10 +25,10 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	if !limit.Valid {
 		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
-	remaining := limit.Int32
 
+	remaining := limit.Int32
 	// Key doesn't have enough credits to cover the request cost
-	if remaining <= 0 && req.Cost != 0 || remaining-req.Cost < 0 {
+	if req.Cost > 0 && remaining < req.Cost {
 		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
