@@ -1263,7 +1263,7 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error)
-	//ListLiveKeysByIDs
+	//ListLiveKeysByApiID
 	//
 	//  SELECT
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
@@ -1275,8 +1275,7 @@ type Querier interface {
 	//      i.meta as identity_meta,
 	//      ek.encrypted as encrypted_key,
 	//      ek.encryption_key_id as encryption_key_id,
-	//
-	//      -- Roles with both IDs and names
+	//      -- Roles with both IDs and names (sorted by name)
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              JSON_OBJECT(
@@ -1287,11 +1286,11 @@ type Querier interface {
 	//          )
 	//          FROM keys_roles kr
 	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
+	//          WHERE kr.key_id = k.id
+	//          ORDER BY r.name),
 	//          JSON_ARRAY()
 	//      ) as roles,
-	//
-	//      -- Direct permissions attached to the key
+	//      -- Direct permissions attached to the key (sorted by slug)
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              JSON_OBJECT(
@@ -1303,11 +1302,11 @@ type Querier interface {
 	//          )
 	//          FROM keys_permissions kp
 	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
+	//          WHERE kp.key_id = k.id
+	//          ORDER BY p.slug),
 	//          JSON_ARRAY()
 	//      ) as permissions,
-	//
-	//      -- Permissions from roles
+	//      -- Permissions from roles (sorted by slug)
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              JSON_OBJECT(
@@ -1320,10 +1319,10 @@ type Querier interface {
 	//          FROM keys_roles kr
 	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
 	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
+	//          WHERE kr.key_id = k.id
+	//          ORDER BY p.slug),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
-	//
 	//      -- Rate limits
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1341,20 +1340,26 @@ type Querier interface {
 	//          WHERE rl.key_id = k.id OR rl.identity_id = i.id),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
-	//
 	//  FROM `keys` k
 	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
 	//  JOIN key_auth ka ON ka.id = k.key_auth_id
 	//  JOIN workspaces ws ON ws.id = k.workspace_id
 	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-	//  WHERE k.id IN (/*SLICE:key_ids*/?)
+	//  WHERE a.id = ?
+	//      AND a.workspace_id = ?
+	//      AND k.id >= ?
+	//      AND (
+	//          ? = ''
+	//          OR (i.external_id = ? OR i.id = ?)
+	//      )
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
-	//  ORDER BY k.id
-	ListLiveKeysByIDs(ctx context.Context, db DBTX, keyIds []string) ([]ListLiveKeysByIDsRow, error)
+	//  ORDER BY k.id ASC
+	//  LIMIT ?
+	ListLiveKeysByApiID(ctx context.Context, db DBTX, arg ListLiveKeysByApiIDParams) ([]ListLiveKeysByApiIDRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m

@@ -1,4 +1,4 @@
--- name: ListLiveKeysByIDs :many
+-- name: ListLiveKeysByApiID :many
 SELECT
     k.*,
     sqlc.embed(a),
@@ -16,7 +16,7 @@ SELECT
                 'id', r.id,
                 'name', r.name,
                 'description', r.description
-            ) ORDER BY r.name
+            )
         )
         FROM keys_roles kr
         JOIN roles r ON r.id = kr.role_id
@@ -32,7 +32,7 @@ SELECT
                 'name', p.name,
                 'slug', p.slug,
                 'description', p.description
-            ) ORDER BY p.slug
+            )
         )
         FROM keys_permissions kp
         JOIN permissions p ON kp.permission_id = p.id
@@ -48,7 +48,7 @@ SELECT
                 'name', p.name,
                 'slug', p.slug,
                 'description', p.description
-            ) ORDER BY p.slug
+            )
         )
         FROM keys_roles kr
         JOIN roles_permissions rp ON kr.role_id = rp.role_id
@@ -80,9 +80,16 @@ JOIN key_auth ka ON ka.id = k.key_auth_id
 JOIN workspaces ws ON ws.id = k.workspace_id
 LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-WHERE k.id IN (sqlc.slice(key_ids))
+WHERE a.id = sqlc.arg(api_id)
+    AND a.workspace_id = sqlc.arg(workspace_id)
+    AND k.id >= sqlc.arg(id_cursor)
+    AND (
+        sqlc.arg(identity) = ''
+        OR (i.external_id = sqlc.arg(identity) OR i.id = sqlc.arg(identity))
+    )
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
     AND ka.deleted_at_m IS NULL
     AND ws.deleted_at_m IS NULL
-ORDER BY k.id;
+ORDER BY k.id ASC
+LIMIT ?;
