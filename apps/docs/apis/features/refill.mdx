@@ -48,10 +48,15 @@ curl --request POST \
 
 ```json
 {
-  "valid": true,
-  "keyId": "<KEY_ID>",
-  "remaining": 99,
-  "meta": {}
+  "meta": {
+    "requestId": "req_123"
+  },
+  "data": {
+    "valid": true,
+    "keyId": "<KEY_ID>",
+    "remaining": 99,
+    "meta": {}
+  }
 }
 ```
 
