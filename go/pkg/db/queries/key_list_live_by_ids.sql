@@ -9,23 +9,22 @@ SELECT
     i.meta as identity_meta,
     ek.encrypted as encrypted_key,
     ek.encryption_key_id as encryption_key_id,
-
-    -- Roles with both IDs and names
+    -- Roles with both IDs and names (sorted by name)
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
                 'id', r.id,
                 'name', r.name,
                 'description', r.description
-            )
+            ) ORDER BY r.name
         )
         FROM keys_roles kr
         JOIN roles r ON r.id = kr.role_id
-        WHERE kr.key_id = k.id),
+        WHERE kr.key_id = k.id
+        ORDER BY r.name),
         JSON_ARRAY()
     ) as roles,
-
-    -- Direct permissions attached to the key
+    -- Direct permissions attached to the key (sorted by slug)
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -33,15 +32,15 @@ SELECT
                 'name', p.name,
                 'slug', p.slug,
                 'description', p.description
-            )
+            ) ORDER BY p.slug
         )
         FROM keys_permissions kp
         JOIN permissions p ON kp.permission_id = p.id
-        WHERE kp.key_id = k.id),
+        WHERE kp.key_id = k.id
+        ORDER BY p.slug),
         JSON_ARRAY()
     ) as permissions,
-
-    -- Permissions from roles
+    -- Permissions from roles (sorted by slug)
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -49,15 +48,15 @@ SELECT
                 'name', p.name,
                 'slug', p.slug,
                 'description', p.description
-            )
+            ) ORDER BY p.slug
         )
         FROM keys_roles kr
         JOIN roles_permissions rp ON kr.role_id = rp.role_id
         JOIN permissions p ON rp.permission_id = p.id
-        WHERE kr.key_id = k.id),
+        WHERE kr.key_id = k.id
+        ORDER BY p.slug),
         JSON_ARRAY()
     ) as role_permissions,
-
     -- Rate limits
     COALESCE(
         (SELECT JSON_ARRAYAGG(
@@ -75,7 +74,6 @@ SELECT
         WHERE rl.key_id = k.id OR rl.identity_id = i.id),
         JSON_ARRAY()
     ) as ratelimits
-
 FROM `keys` k
 JOIN apis a ON a.key_auth_id = k.key_auth_id
 JOIN key_auth ka ON ka.id = k.key_auth_id

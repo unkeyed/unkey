@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"slices"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -401,8 +400,6 @@ func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
-		// For deterministic slug order. Without this sometimes order changes.
-		slices.Sort(slugs)
 		response.Permissions = &slugs
 	}
 
@@ -412,8 +409,6 @@ func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
-		// For deterministic role order. Without this sometimes order changes.
-		slices.Sort(roleNames)
 		response.Roles = &roleNames
 	}
 
