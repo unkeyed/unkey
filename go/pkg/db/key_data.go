@@ -77,9 +77,9 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 			RatelimitDuration: r.RatelimitDuration,
 			Environment:       r.Environment,
 		},
-		Api:             Api{}, // Empty Api since not in this query
-		KeyAuth:         KeyAuth{},
-		Workspace:       Workspace{},
+		Api:             Api{},       // Empty Api since not in this query
+		KeyAuth:         KeyAuth{},   // Empty KeyAuth since not in this query
+		Workspace:       Workspace{}, // Empty Workspace since not in this query
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
 		Roles:           nil,
