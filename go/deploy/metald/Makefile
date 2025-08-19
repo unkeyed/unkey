@@ -71,8 +71,8 @@ install-bridge-8: ## Install 8-bridge multi-tenant configuration (with cleanup o
 	@echo "⚠ WARNING: This will remove any existing bridge configuration"
 	@$(MAKE) uninstall-bridge-systemd >/dev/null 2>&1 || true
 	@echo "→ Installing 8-bridge systemd-networkd configuration (separate files)"
-	@sudo cp contrib/systemd/multi-bridge-8-fixed/*.netdev /etc/systemd/network/
-	@sudo cp contrib/systemd/multi-bridge-8-fixed/*.network /etc/systemd/network/
+	@sudo cp contrib/systemd/multi-bridge-8/*.netdev /etc/systemd/network/
+	@sudo cp contrib/systemd/multi-bridge-8/*.network /etc/systemd/network/
 	@echo "→ Installing metald-bridge-8 systemd service"
 	@sudo cp contrib/systemd/metald-bridge-8.service /etc/systemd/system/metald-bridge-8.service
 	@echo "→ Applying service configuration to metald.service"
@@ -97,8 +97,8 @@ install-bridge-32: ## Install 32-bridge multi-tenant configuration (with cleanup
 	@echo "⚠ WARNING: This will remove any existing bridge configuration"
 	@$(MAKE) uninstall-bridge-systemd >/dev/null 2>&1 || true
 	@echo "→ Installing 32-bridge systemd-networkd configuration (separate files)"
-	@sudo cp contrib/systemd/multi-bridge-32-fixed/*.netdev /etc/systemd/network/
-	@sudo cp contrib/systemd/multi-bridge-32-fixed/*.network /etc/systemd/network/
+	@sudo cp contrib/systemd/multi-bridge-32/*.netdev /etc/systemd/network/
+	@sudo cp contrib/systemd/multi-bridge-32/*.network /etc/systemd/network/
 	@echo "→ Installing metald-bridge-32 systemd service"
 	@sudo cp contrib/systemd/metald-bridge-32.service /etc/systemd/system/metald-bridge-32.service
 	@echo "→ Applying service configuration to metald.service"
