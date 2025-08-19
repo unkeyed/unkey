@@ -43,8 +43,6 @@ func (h *Handler) Path() string {
 }
 
 // Handle processes the HTTP request
-// The current implementation queries the database directly without caching, which may impact performance.
-// Consider implementing cache with optional bypass via revalidateKeysCache parameter.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -88,6 +86,91 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// 4. Get API from database
+	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not found",
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	// Check if API belongs to the authorized workspace
+	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("wrong workspace",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+		)
+	}
+
+	// Check if API is deleted
+	if api.DeletedAtM.Valid {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+		)
+	}
+
+	// Check if API is set up to handle keys
+	if !api.KeyAuthID.Valid || api.KeyAuthID.String == "" {
+		return fault.New("api not set up for keys",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("api not set up for keys"), fault.Public("The requested API is not set up to handle keys."),
+		)
+	}
+
+	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not set up for keys",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if ptr.SafeDeref(req.Decrypt, false) {
+		if h.Vault == nil {
+			return fault.New("vault missing",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Public("Vault hasn't been set up."),
+			)
+		}
+
+		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.DecryptKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   api.ID,
+				Action:       rbac.DecryptKey,
+			}),
+		)))
+		if err != nil {
+			return err
+		}
+
+		if !keyAuth.StoreEncryptedKeys {
+			return fault.New("api not set up for key encryption",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
+			)
+		}
+	}
+
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
@@ -96,11 +179,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		identityFilter = *req.ExternalId
 	}
 
-	keyResults, err := db.Query.ListLiveKeysByApiID(
+	// Query keys by key_auth_id instead of api_id
+	keyResults, err := db.Query.ListLiveKeysByKeyAuthID(
 		ctx,
 		h.DB.RO(),
-		db.ListLiveKeysByApiIDParams{
-			ApiID:       req.ApiId,
+		db.ListLiveKeysByKeyAuthIDParams{
+			KeyAuthID:   api.KeyAuthID.String,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			IDCursor:    cursor,
 			Identity:    identityFilter,
@@ -136,41 +220,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Use first key result to validate API and keyring, since all keys share same API/keyring
-	firstKey := keyResults[0]
-	if ptr.SafeDeref(req.Decrypt, false) {
-		if h.Vault == nil {
-			return fault.New("vault missing",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Public("Vault hasn't been set up."),
-			)
-		}
-
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   firstKey.Api.ID,
-				Action:       rbac.DecryptKey,
-			}),
-		)))
-		if err != nil {
-			return err
-		}
-
-		if !firstKey.KeyAuth.StoreEncryptedKeys {
-			return fault.New("api not set up for key encryption",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for key encryption"),
-				fault.Public("The requested API does not support key encryption."),
-			)
-		}
-	}
-
 	// Handle decryption if requested
 	plaintextMap := make(map[string]string)
 	if req.Decrypt != nil && *req.Decrypt {
@@ -195,8 +244,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
-		keyRow := db.FindLiveKeyByIDRow(key)
-		keyData := db.ToKeyData(keyRow)
+		keyData := db.ToKeyData(key)
 		response, err := h.BuildKeyResponseData(keyData, plaintextMap[key.ID])
 		if err != nil {
 			return err
@@ -274,14 +322,10 @@ func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 
 		if len(keyData.Identity.Meta) > 0 {
 			var identityMeta map[string]any
-			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
-				return response, fault.Wrap(err,
-					fault.Code(codes.App.Internal.UnexpectedError.URN()),
-					fault.Internal("failed to unmarshal identity meta"),
-					fault.Public("Invalid identity metadata format."),
-				)
+			_ = json.Unmarshal(keyData.Identity.Meta, &identityMeta) // Ignore error, default to nil
+			if identityMeta != nil {
+				response.Identity.Meta = &identityMeta
 			}
-			response.Identity.Meta = &identityMeta
 		}
 	}
 
@@ -347,14 +391,10 @@ func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 	// Set meta
 	if keyData.Key.Meta.Valid {
 		var meta map[string]any
-		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
-			return response, fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("failed to unmarshal key meta"),
-				fault.Public("Invalid key metadata format."),
-			)
+		_ = json.Unmarshal([]byte(keyData.Key.Meta.String), &meta) // Ignore error, default to nil
+		if meta != nil {
+			response.Meta = &meta
 		}
-		response.Meta = &meta
 	}
 
 	return response, nil

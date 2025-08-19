@@ -1,7 +1,6 @@
--- name: ListLiveKeysByApiID :many
+-- name: ListLiveKeysByKeyAuthID :many
 SELECT
     k.*,
-    sqlc.embed(a),
     sqlc.embed(ka),
     sqlc.embed(ws),
     i.id as identity_table_id,
@@ -75,20 +74,18 @@ SELECT
         JSON_ARRAY()
     ) as ratelimits
 FROM `keys` k
-JOIN apis a ON a.key_auth_id = k.key_auth_id
 JOIN key_auth ka ON ka.id = k.key_auth_id
 JOIN workspaces ws ON ws.id = k.workspace_id
 LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-WHERE a.id = sqlc.arg(api_id)
-    AND a.workspace_id = sqlc.arg(workspace_id)
+WHERE k.key_auth_id = sqlc.arg(key_auth_id)
+    AND k.workspace_id = sqlc.arg(workspace_id)
     AND k.id >= sqlc.arg(id_cursor)
     AND (
         sqlc.arg(identity) = ''
         OR (i.external_id = sqlc.arg(identity) OR i.id = sqlc.arg(identity))
     )
     AND k.deleted_at_m IS NULL
-    AND a.deleted_at_m IS NULL
     AND ka.deleted_at_m IS NULL
     AND ws.deleted_at_m IS NULL
 ORDER BY k.id ASC
