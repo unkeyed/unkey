@@ -265,7 +265,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // BuildKeyResponseData transforms internal key data into API response format.
-// Returns error on JSON unmarshaling failures to avoid silent data corruption.
 func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
 	response := openapi.KeyResponseData{
 		CreatedAt: keyData.Key.CreatedAtM,
