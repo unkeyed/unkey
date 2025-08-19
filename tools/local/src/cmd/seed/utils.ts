@@ -20,7 +20,7 @@ export type DrizzleReturnType<T extends Record<string, unknown>> = ReturnType<
 >;
 
 export async function connectDatabase<
-  TSchema extends Record<string, unknown> = Record<string, unknown>
+  TSchema extends Record<string, unknown> = Record<string, unknown>,
 >(): Promise<{
   db: DrizzleReturnType<TSchema>;
   conn: mysql.Connection;
@@ -157,35 +157,25 @@ export function generateMetadata() {
         ];
         break;
       case "region":
-        metadata[field] = [
-          "us-east-1",
-          "us-west-2",
-          "eu-west-1",
-          "ap-southeast-1",
-          "sa-east-1",
-        ][Math.floor(Math.random() * 5)];
+        metadata[field] = ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1", "sa-east-1"][
+          Math.floor(Math.random() * 5)
+        ];
         break;
       case "service":
-        metadata[field] = [
-          "auth",
-          "payments",
-          "analytics",
-          "storage",
-          "compute",
-        ][Math.floor(Math.random() * 5)];
+        metadata[field] = ["auth", "payments", "analytics", "storage", "compute"][
+          Math.floor(Math.random() * 5)
+        ];
         break;
       case "version":
         metadata[field] = `v${1 + Math.floor(Math.random() * 3)}.${Math.floor(
-          Math.random() * 10
+          Math.random() * 10,
         )}.${Math.floor(Math.random() * 20)}`;
         break;
       case "tenant":
         metadata[field] = `tenant-${100 + Math.floor(Math.random() * 900)}`;
         break;
       case "plan":
-        metadata[field] = ["free", "basic", "pro", "enterprise"][
-          Math.floor(Math.random() * 4)
-        ];
+        metadata[field] = ["free", "basic", "pro", "enterprise"][Math.floor(Math.random() * 4)];
         break;
       case "features":
         metadata[field] = {
@@ -230,7 +220,7 @@ export function generateMetadata() {
               "beta",
               "alpha",
               "stable",
-            ][Math.floor(Math.random() * 10)]
+            ][Math.floor(Math.random() * 10)],
         );
         break;
       case "labels":
@@ -238,12 +228,8 @@ export function generateMetadata() {
           team: ["frontend", "backend", "devops", "platform", "data"][
             Math.floor(Math.random() * 5)
           ],
-          priority: ["low", "medium", "high", "critical"][
-            Math.floor(Math.random() * 4)
-          ],
-          status: ["active", "deprecated", "experimental"][
-            Math.floor(Math.random() * 3)
-          ],
+          priority: ["low", "medium", "high", "critical"][Math.floor(Math.random() * 4)],
+          status: ["active", "deprecated", "experimental"][Math.floor(Math.random() * 3)],
         };
         break;
       case "origin":
@@ -288,7 +274,7 @@ export function generateTimestamp() {
       businessHour,
       Math.floor(Math.random() * 60),
       Math.floor(Math.random() * 60),
-      0
+      0,
     );
 
     return Math.floor(spikeDate.getTime());
@@ -307,7 +293,7 @@ export function generateTimestamp() {
       Math.floor(Math.random() * 24),
       Math.floor(Math.random() * 60),
       Math.floor(Math.random() * 60),
-      0
+      0,
     );
 
     return Math.floor(spikeDate.getTime());
@@ -315,15 +301,14 @@ export function generateTimestamp() {
 
   // 10% chance to generate a timestamp on a special date
   if (Math.random() < 0.1 && specialDates.length > 0) {
-    const specialDate =
-      specialDates[Math.floor(Math.random() * specialDates.length)];
+    const specialDate = specialDates[Math.floor(Math.random() * specialDates.length)];
 
     // Set to business hours for special dates
     specialDate.setHours(
       9 + Math.floor(Math.random() * 8),
       Math.floor(Math.random() * 60),
       Math.floor(Math.random() * 60),
-      0
+      0,
     );
 
     return Math.floor(specialDate.getTime());
@@ -334,8 +319,7 @@ export function generateTimestamp() {
   for (let attempt = 0; attempt < 5; attempt++) {
     // Pick a random time within the 30-day range
     const timestamp = Math.floor(
-      thirtyDaysAgo.getTime() +
-        Math.random() * (now.getTime() - thirtyDaysAgo.getTime())
+      thirtyDaysAgo.getTime() + Math.random() * (now.getTime() - thirtyDaysAgo.getTime()),
     );
     const date = new Date(timestamp);
 
@@ -359,8 +343,7 @@ export function generateTimestamp() {
 
   // Fallback - just return a random timestamp within range
   const timestamp = Math.floor(
-    thirtyDaysAgo.getTime() +
-      Math.random() * (now.getTime() - thirtyDaysAgo.getTime())
+    thirtyDaysAgo.getTime() + Math.random() * (now.getTime() - thirtyDaysAgo.getTime()),
   );
   return timestamp;
 }
@@ -426,9 +409,7 @@ export function generateRandomApiRequest(workspaceId: string) {
       requestBody = {
         apiId: apiId,
         name: `Key for ${
-          ["Production", "Development", "Staging", "Testing"][
-            Math.floor(Math.random() * 4)
-          ]
+          ["Production", "Development", "Staging", "Testing"][Math.floor(Math.random() * 4)]
         }`,
         ownerId: `user_${generateRandomString(16)}`,
         expires: Math.random() < 0.3 ? Date.now() + 86400000 * 30 : undefined,
@@ -462,8 +443,8 @@ export function generateRandomApiRequest(workspaceId: string) {
           responseStatus === 401
             ? "Unauthorized"
             : responseStatus === 404
-            ? "API not found"
-            : "Internal server error";
+              ? "API not found"
+              : "Internal server error";
 
         responseBody = {
           error: {
@@ -501,8 +482,8 @@ export function generateRandomApiRequest(workspaceId: string) {
           responseStatus === 401
             ? "Invalid API key"
             : responseStatus === 404
-            ? "API not found"
-            : "Internal server error";
+              ? "API not found"
+              : "Internal server error";
 
         responseBody = {
           valid: false,
@@ -527,8 +508,8 @@ export function generateRandomApiRequest(workspaceId: string) {
           responseStatus === 401
             ? "Unauthorized"
             : responseStatus === 404
-            ? "Key not found"
-            : "Internal server error";
+              ? "Key not found"
+              : "Internal server error";
 
         responseBody = {
           error: {
@@ -543,9 +524,7 @@ export function generateRandomApiRequest(workspaceId: string) {
       requestBody = {
         keyId: keyId,
         name: `Updated key for ${
-          ["Production", "Development", "Staging", "Testing"][
-            Math.floor(Math.random() * 4)
-          ]
+          ["Production", "Development", "Staging", "Testing"][Math.floor(Math.random() * 4)]
         }`,
         expires: Math.random() < 0.3 ? Date.now() + 86400000 * 60 : undefined,
         meta: meta,
@@ -568,8 +547,8 @@ export function generateRandomApiRequest(workspaceId: string) {
           responseStatus === 401
             ? "Unauthorized"
             : responseStatus === 404
-            ? "Key not found"
-            : "Internal server error";
+              ? "Key not found"
+              : "Internal server error";
 
         responseBody = {
           error: {
@@ -595,9 +574,7 @@ export function generateRandomApiRequest(workspaceId: string) {
           apis.push({
             id: `api_${generateRandomString(24)}`,
             name: `API ${i + 1} for ${
-              ["Payments", "Auth", "Data", "Analytics", "Storage"][
-                Math.floor(Math.random() * 5)
-              ]
+              ["Payments", "Auth", "Data", "Analytics", "Storage"][Math.floor(Math.random() * 5)]
             }`,
             workspaceId: workspaceId,
             createdAt: Date.now() - Math.floor(Math.random() * 30) * 86400000,
@@ -614,8 +591,7 @@ export function generateRandomApiRequest(workspaceId: string) {
           cursor: Math.random() < 0.7 ? generateRandomString(20) : undefined,
         };
       } else {
-        error =
-          responseStatus === 401 ? "Unauthorized" : "Internal server error";
+        error = responseStatus === 401 ? "Unauthorized" : "Internal server error";
 
         responseBody = {
           error: {
@@ -669,9 +645,7 @@ export function generateRandomApiRequest(workspaceId: string) {
       "content-type: application/json",
       `authorization: Bearer test_${generateRandomString(24)}`,
       `x-client-id: ${generateRandomString(12)}`,
-      `user-agent: ${
-        userAgents[Math.floor(Math.random() * userAgents.length)]
-      }`,
+      `user-agent: ${userAgents[Math.floor(Math.random() * userAgents.length)]}`,
       "accept: application/json",
       `x-request-id: ${generateRandomString(16)}`,
     ],
@@ -691,14 +665,9 @@ export function generateRandomApiRequest(workspaceId: string) {
     ip_address: generateRealisticIp(),
     continent:
       Math.random() > 0.2
-        ? [
-            "North America",
-            "Europe",
-            "Asia",
-            "Australia",
-            "South America",
-            "Africa",
-          ][Math.floor(Math.random() * 6)]
+        ? ["North America", "Europe", "Asia", "Australia", "South America", "Africa"][
+            Math.floor(Math.random() * 6)
+          ]
         : "",
     city:
       Math.random() > 0.2
@@ -754,14 +723,12 @@ function generateRealisticIp() {
     const range = ranges[Math.floor(Math.random() * ranges.length)];
 
     return range
-      .map((segment) =>
-        segment !== null ? segment : Math.floor(Math.random() * 256)
-      )
+      .map((segment) => (segment !== null ? segment : Math.floor(Math.random() * 256)))
       .join(".");
   }
   // Completely random IP
   return `${Math.floor(Math.random() * 256)}.${Math.floor(
-    Math.random() * 256
+    Math.random() * 256,
   )}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
 }
 
@@ -786,7 +753,7 @@ export function getNormallyDistributedIndex(
   mean: number,
   stdDev: number,
   min: number,
-  max: number
+  max: number,
 ) {
   let index: number;
   do {
@@ -819,8 +786,7 @@ export function initializeIdentifierPools() {
 // Select an identifier from a pool using normal distribution
 export function selectIdentifier() {
   // First choose a prefix type (this could also be weighted if needed)
-  const prefix =
-    COMMON_PREFIXES[Math.floor(Math.random() * COMMON_PREFIXES.length)];
+  const prefix = COMMON_PREFIXES[Math.floor(Math.random() * COMMON_PREFIXES.length)];
 
   // Ensure the pool exists
   if (!identifierPools[prefix]) {

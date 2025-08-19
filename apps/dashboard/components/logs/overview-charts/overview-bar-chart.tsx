@@ -40,6 +40,8 @@ type OverviewBarChartProps = {
   labels: ChartLabels;
   tooltipItems?: ChartTooltipItem[];
   onMount?: (distanceToTop: number) => void;
+  showLabels?: boolean;
+  hideTotal?: boolean;
 };
 
 export function OverviewBarChart({
@@ -52,6 +54,8 @@ export function OverviewBarChart({
   labels,
   tooltipItems = [],
   onMount,
+  showLabels = true,
+  hideTotal = false,
 }: OverviewBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
@@ -121,8 +125,13 @@ export function OverviewBarChart({
   }
 
   // Calculate totals based on the provided keys
+  const hasSecondaryData =
+    labels.secondaryLabel && labels.secondaryKey && labels.secondaryKey !== labels.primaryKey;
   const totalCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
+    (acc, crr) =>
+      acc +
+      (crr[labels.primaryKey] as number) +
+      (hasSecondaryData ? (crr[labels.secondaryKey] as number) : 0),
     0,
   );
   const primaryCount = (data ?? []).reduce(
@@ -139,31 +148,41 @@ export function OverviewBarChart({
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
           <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
-          <div className="text-accent-12 text-[18px] font-semibold leading-7">
-            {formatNumber(totalCount)}
-          </div>
+          {!hideTotal && (
+            <div className="text-accent-12 text-[18px] font-semibold leading-7">
+              {formatNumber(totalCount)}
+            </div>
+          )}
         </div>
 
-        <div className="flex gap-10 items-center">
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-2 items-center">
-              <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
+        {showLabels && (
+          <div className="flex gap-10 items-center">
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-2 items-center">
+                <div className="bg-gray-9 rounded h-[10px] w-1" />
+                <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
+              </div>
+              <div className="text-accent-12 text-[18px] font-semibold leading-7">
+                {formatNumber(primaryCount)}
+              </div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {formatNumber(primaryCount)}
-            </div>
+            {labels.secondaryLabel &&
+              labels.secondaryKey &&
+              labels.secondaryKey !== labels.primaryKey && (
+                <div className="flex flex-col gap-1">
+                  <div className="flex gap-2 items-center">
+                    <div className="bg-orange-9 rounded h-[10px] w-1" />
+                    <div className="text-accent-10 text-[11px] leading-4">
+                      {labels.secondaryLabel}
+                    </div>
+                  </div>
+                  <div className="text-accent-12 text-[18px] font-semibold leading-7">
+                    {formatNumber(secondaryCount)}
+                  </div>
+                </div>
+              )}
           </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-2 items-center">
-              <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
-            </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {formatNumber(secondaryCount)}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
@@ -206,22 +225,24 @@ export function OverviewBarChart({
                       active={active}
                       bottomExplainer={
                         <div className="grid gap-1.5 pt-2 border-t border-gray-4 select-none">
-                          <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                            <Grid className="text-gray-6" />
-                            <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
-                              <div className="flex gap-4 items-center min-w-[80px]">
-                                <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
-                                  All
-                                </span>
-                                <span className="capitalize text-accent-12 text-xs">Total</span>
-                              </div>
-                              <div className="ml-auto">
-                                <span className="font-mono tabular-nums text-accent-12">
-                                  {formatNumber(payload[0]?.payload?.total)}
-                                </span>
+                          {!hideTotal && (
+                            <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
+                              <Grid className="text-gray-6" />
+                              <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
+                                <div className="flex gap-4 items-center min-w-[80px]">
+                                  <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                                    All
+                                  </span>
+                                  <span className="capitalize text-accent-12 text-xs">Total</span>
+                                </div>
+                                <div className="ml-auto">
+                                  <span className="font-mono tabular-nums text-accent-12">
+                                    {formatNumber(payload[0]?.payload?.total)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Dynamic tooltip items */}
                           {tooltipItems.map((item, index) => (
@@ -251,8 +272,7 @@ export function OverviewBarChart({
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
-                        //@ts-expect-error safe to ignore for now
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
+                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload as any)
                       }
                     />
                   );

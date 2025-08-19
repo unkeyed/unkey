@@ -2,7 +2,7 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 import { MAX_KEYID_COUNT } from "../charts/bar-chart/query-timeseries.schema";
 
-export const sortFields = z.enum(["time", "valid", "invalid"]);
+export const sortFields = z.enum(["time", "valid", "invalid", "spent_credits"]);
 export type SortFields = z.infer<typeof sortFields>;
 
 export const keysQueryOverviewLogsPayload = z.object({
@@ -12,6 +12,7 @@ export const keysQueryOverviewLogsPayload = z.object({
   apiId: z.string(),
   since: z.string(),
   cursor: z.number().nullable().optional().nullable(),
+  creditSpendMode: z.boolean().optional().default(false),
   outcomes: z
     .array(
       z.object({

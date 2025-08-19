@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import {
   generateMetadata,
   generateRandomApiRequest,
@@ -97,8 +97,7 @@ export function generateKeyName(): string {
     "Frontend",
     "Mobile",
   ];
-  const environment =
-    environments[Math.floor(Math.random() * environments.length)];
+  const environment = environments[Math.floor(Math.random() * environments.length)];
   const purpose = purposes[Math.floor(Math.random() * purposes.length)];
 
   if (Math.random() > 0.5) {
@@ -114,7 +113,7 @@ export function generateVerificationEvent(
   workspaceId: string,
   keyspaceId: string,
   keyId: string,
-  requestId?: string
+  requestId?: string,
 ): VerificationEvent {
   // Generate a timestamp using the same distribution logic as API requests
   const time = generateTimestamp();
@@ -169,19 +168,12 @@ export function generateVerificationEvent(
   const generatedRequestId = requestId || generateUuid();
 
   // Generate a region
-  const regions = [
-    "us-east-1",
-    "us-west-2",
-    "eu-west-1",
-    "ap-southeast-1",
-    "sa-east-1",
-  ];
+  const regions = ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1", "sa-east-1"];
 
   const region = regions[Math.floor(Math.random() * regions.length)];
 
   // Optionally include identity_id (30% of the time)
-  const identityId =
-    Math.random() < 0.3 ? `ident_${generateRandomString(24)}` : "";
+  const identityId = Math.random() < 0.3 ? `ident_${generateRandomString(24)}` : "";
 
   // Default spent_credits to 0 - will be set by biasVerificationOutcome based on key properties
   const spent_credits = 0;
@@ -231,55 +223,32 @@ export function biasVerificationOutcome(
   key: KeyInfo,
   workspaceId: string,
   keyAuthId: string,
-  requestId: string
+  requestId: string,
 ): VerificationEvent {
   let verificationEvent: VerificationEvent;
 
   // If key is disabled, higher chance of DISABLED outcome
   if (!key.enabled && Math.random() < 0.6) {
-    verificationEvent = generateVerificationEvent(
-      workspaceId,
-      keyAuthId,
-      key.id,
-      requestId
-    );
+    verificationEvent = generateVerificationEvent(workspaceId, keyAuthId, key.id, requestId);
     verificationEvent.outcome = "DISABLED";
   }
   // If key has rate limit, higher chance of RATE_LIMITED outcome
   else if (key.hasRatelimit && Math.random() < 0.3) {
-    verificationEvent = generateVerificationEvent(
-      workspaceId,
-      keyAuthId,
-      key.id,
-      requestId
-    );
+    verificationEvent = generateVerificationEvent(workspaceId, keyAuthId, key.id, requestId);
     verificationEvent.outcome = "RATE_LIMITED";
   }
   // If key has usage limit, higher chance of USAGE_EXCEEDED outcome
   else if (key.hasUsageLimit && Math.random() < 0.2) {
-    verificationEvent = generateVerificationEvent(
-      workspaceId,
-      keyAuthId,
-      key.id,
-      requestId
-    );
+    verificationEvent = generateVerificationEvent(workspaceId, keyAuthId, key.id, requestId);
     verificationEvent.outcome = "USAGE_EXCEEDED";
   }
   // Otherwise generate a regular event
   else {
-    verificationEvent = generateVerificationEvent(
-      workspaceId,
-      keyAuthId,
-      key.id,
-      requestId
-    );
+    verificationEvent = generateVerificationEvent(workspaceId, keyAuthId, key.id, requestId);
   }
 
   // Calculate and set the credit cost based on the outcome and key properties
-  verificationEvent.spent_credits = calculateCreditCost(
-    key,
-    verificationEvent.outcome
-  );
+  verificationEvent.spent_credits = calculateCreditCost(key, verificationEvent.outcome);
 
   return verificationEvent;
 }
@@ -290,7 +259,7 @@ export function biasVerificationOutcome(
 export function generateRatelimitEvent(
   workspaceId: string,
   namespaceId: string,
-  requestId?: string
+  requestId?: string,
 ): RatelimitEvent {
   // Generate a random timestamp with the same distribution as API requests
   const time = generateTimestamp();
@@ -332,7 +301,7 @@ export function generateRatelimitEvent(
 export function generateMatchingApiRequestForVerification(
   workspaceId: string,
   verificationEvent: VerificationEvent,
-  keyPrefix: string
+  keyPrefix: string,
 ): ApiRequestEvent {
   const apiRequest = generateRandomApiRequest(workspaceId);
 
@@ -364,9 +333,7 @@ export function generateMatchingApiRequestForVerification(
       case "USAGE_EXCEEDED":
       case "INSUFFICIENT_PERMISSIONS":
         apiRequest.response_status = 401; // Unauthorized
-        apiRequest.error = verificationEvent.outcome
-          .toLowerCase()
-          .replace("_", " ");
+        apiRequest.error = verificationEvent.outcome.toLowerCase().replace("_", " ");
         break;
     }
 
@@ -394,7 +361,7 @@ export function generateMatchingApiRequestForVerification(
  */
 export function generateMatchingApiRequestForRatelimit(
   workspaceId: string,
-  ratelimitEvent: RatelimitEvent
+  ratelimitEvent: RatelimitEvent,
 ): ApiRequestEvent {
   const apiRequest = generateRandomApiRequest(workspaceId);
 

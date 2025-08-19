@@ -700,7 +700,13 @@ function createSpentCreditsQuerier() {
     `;
 
     const parameters = {
-      ...args,
+      workspaceId: args.workspaceId,
+      keyspaceId: args.keyspaceId,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      outcomes: args.outcomes,
+      tags: args.tags,
+      ...(args.keyId ? { keyId: args.keyId } : {}),
       ...(args.outcomes?.reduce(
         (acc, filter, index) => {
           acc[`outcomeValue_${index}`] = filter.value;

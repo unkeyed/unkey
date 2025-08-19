@@ -1,9 +1,12 @@
 import { OverviewAreaChart } from "@/components/logs/overview-charts/overview-area-chart";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
+import { useEffect, useRef } from "react";
 import { useFilters } from "../../hooks/use-filters";
+import { useMetricType } from "../../hooks/use-metric-type";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
+import { useFetchCreditSpendTimeseries } from "./credit-spend-chart/hooks/use-fetch-timeseries";
 import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
 export const KeysOverviewLogsCharts = ({
@@ -14,12 +17,20 @@ export const KeysOverviewLogsCharts = ({
   onMount: (distanceToTop: number) => void;
 }) => {
   const { filters, updateFilters } = useFilters();
+  const { isCreditSpendMode } = useMetricType();
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const {
     timeseries: verificationTimeseries,
     isLoading: verificationIsLoading,
     isError: verificationIsError,
   } = useFetchVerificationTimeseries(apiId);
+
+  const {
+    timeseries: creditSpendTimeseries,
+    isLoading: creditSpendIsLoading,
+    isError: creditSpendIsError,
+  } = useFetchCreditSpendTimeseries(apiId);
 
   const {
     timeseries: activeKeysTimeseries,
@@ -80,6 +91,62 @@ export const KeysOverviewLogsCharts = ({
     showRightSide: false,
     reverse: true,
   };
+
+  const creditSpendChartConfig = {
+    spent_credits: {
+      label: "Credits Spent",
+      color: "hsl(var(--gray-9))",
+    },
+  };
+
+  // Call onMount for credit spend mode
+  useEffect(() => {
+    if (isCreditSpendMode && chartContainerRef.current) {
+      const rect = chartContainerRef.current.getBoundingClientRect();
+      onMount(rect.top + window.scrollY);
+    }
+  }, [isCreditSpendMode, onMount]);
+
+  if (isCreditSpendMode) {
+    return (
+      <div ref={chartContainerRef} className="flex flex-col md:flex-row w-full md:h-[320px]">
+        <div className="w-full md:w-1/2 border-r border-gray-4 max-md:h-72">
+          <OverviewBarChart
+            data={creditSpendTimeseries}
+            isLoading={creditSpendIsLoading}
+            isError={creditSpendIsError}
+            enableSelection
+            onMount={onMount}
+            onSelectionChange={handleSelectionChange}
+            config={creditSpendChartConfig}
+            labels={{
+              title: "CREDITS SPENT",
+              primaryLabel: "CREDITS SPENT",
+              primaryKey: "spent_credits",
+              secondaryLabel: "",
+              secondaryKey: "",
+            }}
+            showLabels={false}
+            hideTotal={true}
+          />
+        </div>
+        {/* Only show active keys chart if it has data in credit spend mode */}
+        {activeKeysTimeseries.length > 0 && (
+          <div className="w-full md:w-1/2 max-md:h-72">
+            <OverviewAreaChart
+              data={activeKeysTimeseries}
+              isLoading={activeKeysIsLoading}
+              isError={activeKeysIsError}
+              enableSelection
+              onSelectionChange={handleSelectionChange}
+              config={keysChartConfig}
+              labels={keysChartLabels}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col md:flex-row w-full md:h-[320px]">
