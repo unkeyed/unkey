@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"slices"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -263,27 +264,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	keyMap := make(map[string]db.ListLiveKeysByIDsRow)
-	for _, richKey := range keysWithDetails {
-		keyMap[richKey.ID] = richKey
+	for _, key := range keysWithDetails {
+		keyMap[key.ID] = key
 	}
 
 	// Handle decryption if requested
 	plaintextMap := make(map[string]string)
 	if req.Decrypt != nil && *req.Decrypt {
-		for _, richKey := range keysWithDetails {
-			if richKey.EncryptedKey.Valid && richKey.EncryptionKeyID.Valid {
+		for _, key := range keysWithDetails {
+			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
 				decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-					Keyring:   richKey.WorkspaceID,
-					Encrypted: richKey.EncryptedKey.String,
+					Keyring:   key.WorkspaceID,
+					Encrypted: key.EncryptedKey.String,
 				})
 				if decryptErr != nil {
 					h.Logger.Error("failed to decrypt key",
-						"keyId", richKey.ID,
+						"keyId", key.ID,
 						"error", decryptErr,
 					)
 					continue
 				}
-				plaintextMap[richKey.ID] = decrypted.GetPlaintext()
+				plaintextMap[key.ID] = decrypted.GetPlaintext()
 			}
 		}
 	}
@@ -291,14 +292,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keys))
 	for i, key := range keys {
-		richKey, exists := keyMap[key.Key.ID]
+		keyWithDetails, exists := keyMap[key.Key.ID]
 		if !exists {
-			h.Logger.Error("rich key data not found", "keyId", key.Key.ID)
+			h.Logger.Error("key data not found", "keyId", key.Key.ID)
 			continue
 		}
 
-		findRow := db.FindLiveKeyByIDRow(richKey)
-		keyData := db.ToKeyData(findRow)
+		keyRow := db.FindLiveKeyByIDRow(keyWithDetails)
+		keyData := db.ToKeyData(keyRow)
 		response, err := h.BuildKeyResponseData(keyData, plaintextMap[key.Key.ID])
 		if err != nil {
 			return err
@@ -400,6 +401,8 @@ func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
+		// For deterministic slug order. Without this sometimes order changes.
+		slices.Sort(slugs)
 		response.Permissions = &slugs
 	}
 
@@ -409,6 +412,8 @@ func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
+		// For deterministic role order. Without this sometimes order changes.
+		slices.Sort(roleNames)
 		response.Roles = &roleNames
 	}
 
