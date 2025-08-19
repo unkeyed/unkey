@@ -1,9 +1,9 @@
 [Unit]
 Description=Metald VM Management Service
 Documentation=https://github.com/unkeyed/unkey/go/deploy/metald
-After=network.target metald-bridge.service
+After=network.target metald-bridge.service spire-agent.service assetmanagerd.service
 Wants=network.target
-Requires=metald-bridge.service
+Requires=metald-bridge.service spire-agent.service assetmanagerd.service
 
 [Service]
 Type=simple

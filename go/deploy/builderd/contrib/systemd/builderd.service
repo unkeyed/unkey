@@ -1,8 +1,9 @@
 [Unit]
 Description=Builderd Multi-Tenant Build Service
 Documentation=https://github.com/unkeyed/unkey/go/deploy/builderd
-After=network.target
+After=network.target spire-agent.service assetmanagerd.service
 Wants=network.target
+Requires=spire-agent.service assetmanagerd.service
 
 [Service]
 Type=simple

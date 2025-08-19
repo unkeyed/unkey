@@ -1,8 +1,9 @@
 [Unit]
 Description=Billaged VM Usage Billing Service
 Documentation=https://github.com/unkeyed/unkey/go/deploy/billaged
-After=network.target
+After=network.target spire-agent.service assetmanagerd.service metald.service
 Wants=network.target
+Requires=spire-agent.service assetmanagerd.service metald.service
 
 [Service]
 Type=simple
