@@ -224,11 +224,11 @@ func TestRedisCounter(t *testing.T) {
 		wg.Add(numWorkers)
 
 		// Launch goroutines that both increment and get values
-		for i := 0; i < numWorkers; i++ {
+		for i := range numWorkers {
 			go func(id int) {
 				defer wg.Done()
 
-				for j := 0; j < operationsPerWorker; j++ {
+				for j := range operationsPerWorker {
 					// Alternate between increment and get
 					if j%2 == 0 {
 						_, err := ctr.Increment(ctx, key, 1)
@@ -803,9 +803,9 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 		var wg sync.WaitGroup
 		startBarrier := make(chan struct{})
 
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			wg.Add(1)
-			go func(id int) {
+			go func() {
 				defer wg.Done()
 
 				// Wait for all goroutines to be ready
@@ -819,7 +819,7 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 				// We don't need to check success here since this is a concurrent test
 				// The final counter value verification is what matters
 				_ = success
-			}(i)
+			}()
 		}
 
 		// Release all goroutines at once

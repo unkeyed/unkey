@@ -85,6 +85,7 @@ type RedisConfig struct {
 func NewRedis(config RedisConfig) (Counter, error) {
 	err := assert.All(
 		assert.NotEmpty(config.RedisURL, "Redis URL must not be empty"),
+		assert.NotNil(config.Logger, "Logger must not be nil"),
 	)
 	if err != nil {
 		return nil, err
