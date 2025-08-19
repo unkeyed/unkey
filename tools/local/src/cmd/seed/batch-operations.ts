@@ -23,7 +23,7 @@ export async function insertVerificationEvents(
   keys: KeyInfo[],
   count: number,
   generateMatchingApiRequests = true,
-  batchSize = 50_000,
+  batchSize = 50_000
 ) {
   const doVerificationInsert = clickhouse.verifications.insert;
   const doApiInsert = clickhouse.api.insert;
@@ -36,12 +36,22 @@ export async function insertVerificationEvents(
 
   // Track usage stats for reporting
   const keyUsageCounter = new Map();
+  const creditStats = {
+    totalCreditsSpent: 0,
+    verificationsWith0Credits: 0,
+    verificationsWith1Credit: 0,
+    verificationsWithMultipleCredits: 0,
+    keysWithUsageLimits: sortedKeys.filter((key) => key.hasUsageLimit).length,
+  };
   sortedKeys.forEach((key) => keyUsageCounter.set(key.id, 0));
 
   try {
     while (progress.insertedCount < count) {
       progress.batchNumber++;
-      const currentBatchSize = Math.min(batchSize, count - progress.insertedCount);
+      const currentBatchSize = Math.min(
+        batchSize,
+        count - progress.insertedCount
+      );
 
       // Update progress
       updateProgressWithETA(progress);
@@ -57,19 +67,35 @@ export async function insertVerificationEvents(
         keyUsageCounter.set(key.id, keyUsageCounter.get(key.id) + 1);
 
         // For some verification events, create matching API request logs
-        const createApiRequestLog = generateMatchingApiRequests && Math.random() < 0.8; // 80% chance
+        const createApiRequestLog =
+          generateMatchingApiRequests && Math.random() < 0.8; // 80% chance
         const requestId = generateUuid();
 
         // Create the verification event, biasing outcomes based on key properties
-        const verificationEvent = biasVerificationOutcome(key, workspaceId, keyAuthId, requestId);
+        const verificationEvent = biasVerificationOutcome(
+          key,
+          workspaceId,
+          keyAuthId,
+          requestId
+        );
         batchOfVerificationRecords.push(verificationEvent);
+
+        // Track credit statistics
+        creditStats.totalCreditsSpent += verificationEvent.spent_credits;
+        if (verificationEvent.spent_credits === 0) {
+          creditStats.verificationsWith0Credits++;
+        } else if (verificationEvent.spent_credits === 1) {
+          creditStats.verificationsWith1Credit++;
+        } else {
+          creditStats.verificationsWithMultipleCredits++;
+        }
 
         // If needed, create a matching API request
         if (createApiRequestLog) {
           const apiRequest = generateMatchingApiRequestForVerification(
             workspaceId,
             verificationEvent,
-            key.prefix,
+            key.prefix
           );
           batchOfApiRequestRecords.push(apiRequest);
         }
@@ -94,17 +120,24 @@ export async function insertVerificationEvents(
 
     console.info(
       `\n✅ Successfully inserted ${count.toLocaleString()} verification events with ${
-        generateMatchingApiRequests ? "matching API requests" : "no matching API requests"
-      }.`,
+        generateMatchingApiRequests
+          ? "matching API requests"
+          : "no matching API requests"
+      }.`
     );
 
-    return { keyUsageStats: Object.fromEntries(keyUsageCounter) };
+    return {
+      keyUsageStats: Object.fromEntries(keyUsageCounter),
+      creditStats,
+    };
   } catch (error: unknown) {
     // End progress with a newline
     process.stdout.write("\n");
 
     console.error(
-      `❌ Error inserting data during batch ${progress.batchNumber}: ${(error as { message: string }).message}`,
+      `❌ Error inserting data during batch ${progress.batchNumber}: ${
+        (error as { message: string }).message
+      }`
     );
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
@@ -120,7 +153,7 @@ export async function insertRatelimitEvents(
   namespaceId: string,
   count: number,
   generateMatchingApiRequests = true,
-  batchSize = 50_000,
+  batchSize = 50_000
 ) {
   const doRatelimitInsert = clickhouse.ratelimits.insert;
   const doApiInsert = clickhouse.api.insert;
@@ -131,7 +164,10 @@ export async function insertRatelimitEvents(
   try {
     while (progress.insertedCount < count) {
       progress.batchNumber++;
-      const currentBatchSize = Math.min(batchSize, count - progress.insertedCount);
+      const currentBatchSize = Math.min(
+        batchSize,
+        count - progress.insertedCount
+      );
 
       // Update progress display before processing batch
       updateProgressWithETA(progress);
@@ -142,16 +178,24 @@ export async function insertRatelimitEvents(
       // Create batch of records
       for (let i = 0; i < currentBatchSize; i++) {
         // For some ratelimit events, we want to create matching API request logs
-        const createApiRequestLog = generateMatchingApiRequests && Math.random() < 0.8; // 80% chance
+        const createApiRequestLog =
+          generateMatchingApiRequests && Math.random() < 0.8; // 80% chance
         const requestId = generateUuid();
 
         // Create the ratelimit event
-        const ratelimitEvent = generateRatelimitEvent(workspaceId, namespaceId, requestId);
+        const ratelimitEvent = generateRatelimitEvent(
+          workspaceId,
+          namespaceId,
+          requestId
+        );
         batchOfRatelimitRecords.push(ratelimitEvent);
 
         // If needed, create a matching API request
         if (createApiRequestLog) {
-          const apiRequest = generateMatchingApiRequestForRatelimit(workspaceId, ratelimitEvent);
+          const apiRequest = generateMatchingApiRequestForRatelimit(
+            workspaceId,
+            ratelimitEvent
+          );
           batchOfApiRequestRecords.push(apiRequest);
         }
       }
@@ -179,8 +223,10 @@ export async function insertRatelimitEvents(
 
     console.info(
       `✅ Successfully inserted ${count.toLocaleString()} ratelimit events with ${
-        generateMatchingApiRequests ? "matching API requests" : "no matching API requests"
-      } (avg: ${Math.round(avgRecordsPerSecond).toLocaleString()} records/sec)`,
+        generateMatchingApiRequests
+          ? "matching API requests"
+          : "no matching API requests"
+      } (avg: ${Math.round(avgRecordsPerSecond).toLocaleString()} records/sec)`
     );
 
     return { totalTimeElapsed, avgRecordsPerSecond };
@@ -189,7 +235,9 @@ export async function insertRatelimitEvents(
     process.stdout.write("\n");
 
     console.error(
-      `❌ Error inserting data during batch ${progress.batchNumber}: ${(error as { message: string }).message}`,
+      `❌ Error inserting data during batch ${progress.batchNumber}: ${
+        (error as { message: string }).message
+      }`
     );
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
