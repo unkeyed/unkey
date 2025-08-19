@@ -32,10 +32,7 @@ func TestInternalError(t *testing.T) {
 	t.Run("database connection closed during request", func(t *testing.T) {
 		// Close the database connections to simulate a database failure
 		err := h.DB.Close()
-		if err != nil {
-			t.Skip("Cannot close database connections")
-			return
-		}
+		require.NoError(t, err)
 		req := handler.Request{
 			KeyId:   uid.New(uid.KeyPrefix),
 			Decrypt: ptr.P(false),

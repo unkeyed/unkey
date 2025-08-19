@@ -20,9 +20,6 @@ import (
 //	    return err
 //	}
 //	// Validate the token
-
-const bearerPrefix = "bearer "
-
 func Bearer(s *Session) (string, error) {
 	if s == nil {
 		return "", fault.New("nil session", fault.Code(codes.Auth.Authentication.Missing.URN()),
@@ -40,12 +37,13 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	header = strings.TrimSpace(header)
-	if !strings.HasPrefix(strings.ToLower(header), bearerPrefix) {
+	if !strings.HasPrefix(header, "Bearer ") {
 		return "", fault.New("invalid format", fault.Code(codes.Auth.Authentication.Malformed.URN()),
 			fault.Internal("missing bearer prefix"), fault.Public("Your authorization header is missing the 'Bearer ' prefix."))
 	}
 
-	bearer := strings.TrimSpace(header[len(bearerPrefix):])
+	bearer := strings.TrimPrefix(header, "Bearer ")
+	bearer = strings.TrimSpace(bearer)
 	if bearer == "" {
 		return "", fault.New("invalid token", fault.Code(codes.Auth.Authentication.Malformed.URN()))
 	}
