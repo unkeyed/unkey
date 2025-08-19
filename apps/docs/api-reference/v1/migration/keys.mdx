@@ -10,13 +10,15 @@ This guide covers all key management endpoints including creation, verification,
 Key management endpoints are the core of the Unkey API, handling creation, verification, updates, permissions, and roles for API keys.
 
 ### Key Changes in v2:
+
 - **Response format**: Direct responses → `{meta, data}` envelope
 - **Owner ID**: `ownerId` field removed, use `externalId` only
-- **Credits**: `remaining` + `refill` → `credits` object
+- **Credits**: `remaining` \+ `refill` → `credits` object
 - **Rate limits**: `ratelimit` object → `ratelimits` array
 - **Permission queries**: Object syntax → string syntax
 
 ### Migration Impact:
+
 - **Existing in v1**: Full key CRUD operations with permissions, roles, and rate limiting
 - **Enhanced in v2**: Improved response format, simplified field structures, and string-based queries
 - **Maintained in v2**: All core key management functionality with backward-compatible request formats
@@ -26,133 +28,134 @@ Key management endpoints are the core of the Unkey API, handling creation, verif
 ## POST /v1/keys.createKey → POST /v2/keys.createKey
 
 **Key Changes:**
+
 - Remove `ownerId` field, use `externalId` instead
-- Restructure `remaining` + `refill` → `credits` object
+- Restructure `remaining` \+ `refill` → `credits` object
 - Change `ratelimit` object → `ratelimits` array
 - Response format: Direct response → `{meta, data}` envelope
 
 <Tabs>
-<Tab title="Request Structure Changes">
-```json title="Key Creation Request Diff" icon="key" expandable
-{
-  "apiId": "api_1234567890abcdef",
-  "prefix": "prod",
-  "name": "Production API Key",
-  "ownerId": "user_456", // [!code --]
-  "externalId": "customer_789",
-  "permissions": ["documents.read", "documents.write"],
-  "roles": ["editor"],
-  "expires": 1735689600000,
-  "remaining": 10000, // [!code --]
-  "refill": { // [!code --]
-    "interval": "monthly", // [!code --]
-    "amount": 10000 // [!code --]
-  }, // [!code --]
-  "credits": { // [!code ++]
-    "remaining": 10000, // [!code ++]
-    "refill": { // [!code ++]
-      "interval": "monthly", // [!code ++]
-      "amount": 10000, // [!code ++]
-      "refillDay": 1 // [!code ++]
-    } // [!code ++]
-  }, // [!code ++]
-  "ratelimit": { // [!code --]
-    "limit": 1000, // [!code --]
-    "duration": 3600000, // [!code --]
-    "async": true // [!code --]
-  }, // [!code --]
-  "ratelimits": [ // [!code ++]
-    { // [!code ++]
-      "name": "api_requests", // [!code ++]
-      "limit": 1000, // [!code ++]
-      "duration": 3600000, // [!code ++]
-      "autoApply": true // [!code ++]
-    } // [!code ++]
-  ], // [!code ++]
-  "enabled": true
-}
-```
-</Tab>
-<Tab title="Response Changes">
-```json title="Create Key Response Diff" icon="check-circle" expandable
-// v1 Response (direct response)
-{
-  "key": "sk_1234abcdef567890", // [!code --]
-  "keyId": "key_abc123def456" // [!code --]
-}
+  <Tab title="Request Structure Changes">
+    ```json Key Creation Request Diff expandable icon=key
+    {
+      "apiId": "api_1234567890abcdef",
+      "prefix": "prod",
+      "name": "Production API Key",
+      "ownerId": "user_456", // [!code --]
+      "externalId": "customer_789",
+      "permissions": ["documents.read", "documents.write"],
+      "roles": ["editor"],
+      "expires": 1735689600000,
+      "remaining": 10000, // [!code --]
+      "refill": { // [!code --]
+        "interval": "monthly", // [!code --]
+        "amount": 10000 // [!code --]
+      }, // [!code --]
+      "credits": { // [!code ++]
+        "remaining": 10000, // [!code ++]
+        "refill": { // [!code ++]
+          "interval": "monthly", // [!code ++]
+          "amount": 10000, // [!code ++]
+          "refillDay": 1 // [!code ++]
+        } // [!code ++]
+      }, // [!code ++]
+      "ratelimit": { // [!code --]
+        "limit": 1000, // [!code --]
+        "duration": 3600000, // [!code --]
+        "async": true // [!code --]
+      }, // [!code --]
+      "ratelimits": [ // [!code ++]
+        { // [!code ++]
+          "name": "api_requests", // [!code ++]
+          "limit": 1000, // [!code ++]
+          "duration": 3600000, // [!code ++]
+          "autoApply": true // [!code ++]
+        } // [!code ++]
+      ], // [!code ++]
+      "enabled": true
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Create Key Response Diff expandable icon=check-circle
+    // v1 Response (direct response)
+    {
+      "key": "sk_1234abcdef567890", // [!code --]
+      "keyId": "key_abc123def456" // [!code --]
+    }
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_xyz789abc123" // [!code ++]
+      }, // [!code ++]
+      "data": { // [!code ++]
+        "key": "sk_1234abcdef567890", // [!code ++]
+        "keyId": "key_abc123def456" // [!code ++]
+      } // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Commands">
+    ```bash v1 cURL expandable icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.createKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "apiId": "api_1234567890abcdef",
+        "prefix": "prod",
+        "name": "Production API Key",
+        "ownerId": "user_456",
+        "externalId": "customer_789",
+        "permissions": ["documents.read", "documents.write"],
+        "roles": ["editor"],
+        "expires": 1735689600000,
+        "remaining": 10000,
+        "refill": {
+          "interval": "monthly",
+          "amount": 10000
+        },
+        "ratelimit": {
+          "limit": 1000,
+          "duration": 3600000,
+          "async": true
+        },
+        "enabled": true
+      }'
+    ```
 
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_xyz789abc123" // [!code ++]
-  }, // [!code ++]
-  "data": { // [!code ++]
-    "key": "sk_1234abcdef567890", // [!code ++]
-    "keyId": "key_abc123def456" // [!code ++]
-  } // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Commands">
-```bash title="v1 cURL" icon="terminal" expandable
-curl -X POST https://api.unkey.dev/v1/keys.createKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiId": "api_1234567890abcdef",
-    "prefix": "prod",
-    "name": "Production API Key",
-    "ownerId": "user_456",
-    "externalId": "customer_789",
-    "permissions": ["documents.read", "documents.write"],
-    "roles": ["editor"],
-    "expires": 1735689600000,
-    "remaining": 10000,
-    "refill": {
-      "interval": "monthly",
-      "amount": 10000
-    },
-    "ratelimit": {
-      "limit": 1000,
-      "duration": 3600000,
-      "async": true
-    },
-    "enabled": true
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" expandable highlight={4,12-18,19-26}
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiId": "api_1234567890abcdef",
-    "prefix": "prod",
-    "name": "Production API Key",
-    "externalId": "customer_789",
-    "permissions": ["documents.read", "documents.write"],
-    "roles": ["editor"],
-    "expires": 1735689600000,
-    "credits": {
-      "remaining": 10000,
-      "refill": {
-        "interval": "monthly",
-        "amount": 10000,
-        "refillDay": 1
-      }
-    },
-    "ratelimits": [
-      {
-        "name": "api_requests",
-        "limit": 1000,
-        "duration": 3600000,
-        "autoApply": true
-      }
-    ],
-    "enabled": true
-  }'
-```
-</Tab>
+    ```bash v2 cURL expandable {4,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.createKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "apiId": "api_1234567890abcdef",
+        "prefix": "prod",
+        "name": "Production API Key",
+        "externalId": "customer_789",
+        "permissions": ["documents.read", "documents.write"],
+        "roles": ["editor"],
+        "expires": 1735689600000,
+        "credits": {
+          "remaining": 10000,
+          "refill": {
+            "interval": "monthly",
+            "amount": 10000,
+            "refillDay": 1
+          }
+        },
+        "ratelimits": [
+          {
+            "name": "api_requests",
+            "limit": 1000,
+            "duration": 3600000,
+            "autoApply": true
+          }
+        ],
+        "enabled": true
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -160,6 +163,7 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 ## POST /v1/keys.verifyKey → POST /v2/keys.verifyKey
 
 **Key Changes:**
+
 - **CRITICAL**: v2 requires root key authentication with `api.*.verify_key` permission
 - **CRITICAL**: `apiId` parameter is no longer accepted in v2
 - Remove `authorization` wrapper for permissions
@@ -169,204 +173,204 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 - Response format: Direct response → `{meta, data}` envelope
 
 <Note>
-**Major Authentication Change in v2**
+  **Major Authentication Change in v2**
 
-The biggest change in v2 is that key verification now requires authentication with a root key that has the `api.*.verify_key` permission. This enables fine-grained access control:
+  The biggest change in v2 is that key verification now requires authentication with a root key that has the `api.*.verify_key` permission. This enables fine-grained access control:
 
-- **Wildcard permission**: `api.*.verify_key` allows verifying keys from any API in your workspace
-- **Specific API permission**: `api.api_123.verify_key` allows verifying only keys from API `api_123`
-- **No apiId parameter**: Unlike v1, you cannot specify which API's keys to verify - this is controlled by the root key's permissions
+  - **Wildcard permission**: `api.*.verify_key` allows verifying keys from any API in your workspace
+  - **Specific API permission**: `api.api_123.verify_key` allows verifying only keys from API `api_123`
+  - **No apiId parameter**: Unlike v1, you cannot specify which API's keys to verify - this is controlled by the root key's permissions
 
-This change improves security by ensuring only authorized services can verify keys, and provides workspace owners control over which services can verify keys from which APIs.
+  This change improves security by ensuring only authorized services can verify keys, and provides workspace owners control over which services can verify keys from which APIs.
 </Note>
 
 **Simple Key Verification**
 
 <Tabs>
-<Tab title="Request Diff">
-```json title="Key Verification Request Changes" icon="code"
-{
-  "key": "sk_1234abcdef"
-}
-```
+  <Tab title="Request Diff">
+    ```json Key Verification Request Changes icon=code
+    {
+      "key": "sk_1234abcdef"
+    }
+    ```
 
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -d '{"key": "sk_1234abcdef"}'
-```
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+      -H "Content-Type: application/json" \
+      -d '{"key": "sk_1234abcdef"}'
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={2}
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Authorization: Bearer <your-root-key-with-api.*.verify_key-permission>" \
-  -H "Content-Type: application/json" \
-  -d '{"key": "sk_1234abcdef"}'
-```
-</Tab>
-<Tab title="Response Diff">
-```json title="Response Format Changes" icon="arrow-right" expandable
-// v1 Response (direct response)
-{
-  "valid": true, // [!code --]
-  "code": "VALID", // [!code --]
-  "keyId": "key_123", // [!code --]
-  "name": "Production API Key", // [!code --]
-  "ownerId": "user_456", // [!code --]
-  "meta": { // [!code --]
-    "roles": ["admin", "user"], // [!code --]
-    "stripeCustomerId": "cus_1234" // [!code --]
-  }, // [!code --]
-  "expires": null, // [!code --]
-  "remaining": 995, // [!code --]
-  "permissions": ["documents.read"], // [!code --]
-  "roles": ["editor"], // [!code --]
-  "enabled": true, // [!code --]
-  "environment": "production", // [!code --]
-  "identity": { // [!code --]
-    "id": "identity_123", // [!code --]
-    "externalId": "customer_789", // [!code --]
-    "meta": {} // [!code --]
-  }, // [!code --]
-  "requestId": "req_abc123" // [!code --]
-}
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_abc123" // [!code ++]
-  }, // [!code ++]
-  "data": { // [!code ++]
-    "valid": true, // [!code ++]
-    "code": "VALID", // [!code ++]
-    "keyId": "key_123", // [!code ++]
-    "credits": 995, // [!code ++]
-    "expires": null, // [!code ++]
-    "permissions": ["documents.read"], // [!code ++]
-    "roles": ["editor"], // [!code ++]
-    "identity": { // [!code ++]
-      "id": "id_123", // [!code ++]
-      "externalId": "customer_789", // [!code ++]
-      "meta": {}, // [!code ++]
-      "ratelimits": [] // [!code ++]
-    }, // [!code ++]
-    "ratelimits": [ // [!code ++]
-      { // [!code ++]
-        "id": "rl_123", // [!code ++]
-        "name": "api_requests", // [!code ++]
-        "limit": 1000, // [!code ++]
-        "remaining": 999, // [!code ++]
-        "reset": 1672531200000, // [!code ++]
-        "exceeded": false, // [!code ++]
-        "duration": 3600000, // [!code ++]
-        "autoApply": true // [!code ++]
+    ```bash v2 cURL {2} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+      -H "Authorization: Bearer <your-root-key-with-api.*.verify_key-permission>" \
+      -H "Content-Type: application/json" \
+      -d '{"key": "sk_1234abcdef"}'
+    ```
+  </Tab>
+  <Tab title="Response Diff">
+    ```json Response Format Changes expandable icon=arrow-right
+    // v1 Response (direct response)
+    {
+      "valid": true, // [!code --]
+      "code": "VALID", // [!code --]
+      "keyId": "key_123", // [!code --]
+      "name": "Production API Key", // [!code --]
+      "ownerId": "user_456", // [!code --]
+      "meta": { // [!code --]
+        "roles": ["admin", "user"], // [!code --]
+        "stripeCustomerId": "cus_1234" // [!code --]
+      }, // [!code --]
+      "expires": null, // [!code --]
+      "remaining": 995, // [!code --]
+      "permissions": ["documents.read"], // [!code --]
+      "roles": ["editor"], // [!code --]
+      "enabled": true, // [!code --]
+      "environment": "production", // [!code --]
+      "identity": { // [!code --]
+        "id": "identity_123", // [!code --]
+        "externalId": "customer_789", // [!code --]
+        "meta": {} // [!code --]
+      }, // [!code --]
+      "requestId": "req_abc123" // [!code --]
+    }
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_abc123" // [!code ++]
+      }, // [!code ++]
+      "data": { // [!code ++]
+        "valid": true, // [!code ++]
+        "code": "VALID", // [!code ++]
+        "keyId": "key_123", // [!code ++]
+        "credits": 995, // [!code ++]
+        "expires": null, // [!code ++]
+        "permissions": ["documents.read"], // [!code ++]
+        "roles": ["editor"], // [!code ++]
+        "identity": { // [!code ++]
+          "id": "id_123", // [!code ++]
+          "externalId": "customer_789", // [!code ++]
+          "meta": {}, // [!code ++]
+          "ratelimits": [] // [!code ++]
+        }, // [!code ++]
+        "ratelimits": [ // [!code ++]
+          { // [!code ++]
+            "id": "rl_123", // [!code ++]
+            "name": "api_requests", // [!code ++]
+            "limit": 1000, // [!code ++]
+            "remaining": 999, // [!code ++]
+            "reset": 1672531200000, // [!code ++]
+            "exceeded": false, // [!code ++]
+            "duration": 3600000, // [!code ++]
+            "autoApply": true // [!code ++]
+          } // [!code ++]
+        ] // [!code ++]
       } // [!code ++]
-    ] // [!code ++]
-  } // [!code ++]
-}
-```
-</Tab>
+    }
+    ```
+  </Tab>
 </Tabs>
 
 **Permission Verification**
 
 <Tabs>
-<Tab title="Request Changes">
-```json title="Permission Query Syntax" icon="shield"
-// v1 Request
-{
-  "key": "sk_1234abcdef",
-  "authorization": { // [!code --]
-    "permissions": { // [!code --]
-      "and": ["documents.read", "documents.write"] // [!code --]
-    } // [!code --]
-  } // [!code --]
-}
-
-// v2 Request
-{
-  "key": "sk_1234abcdef",
-  "permissions": "documents.read AND documents.write" // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Examples">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "sk_1234abcdef",
-    "authorization": {
-      "permissions": {
-        "and": ["documents.read", "documents.write"]
-      }
+  <Tab title="Request Changes">
+    ```json Permission Query Syntax icon=shield
+    // v1 Request
+    {
+      "key": "sk_1234abcdef",
+      "authorization": { // [!code --]
+        "permissions": { // [!code --]
+          "and": ["documents.read", "documents.write"] // [!code --]
+        } // [!code --]
+      } // [!code --]
     }
-  }'
-```
+    
+    // v2 Request
+    {
+      "key": "sk_1234abcdef",
+      "permissions": "documents.read AND documents.write" // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+      -H "Content-Type: application/json" \
+      -d '{
+        "key": "sk_1234abcdef",
+        "authorization": {
+          "permissions": {
+            "and": ["documents.read", "documents.write"]
+          }
+        }
+      }'
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={2,6}
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Authorization: Bearer <your-root-key-with-api.*.verify_key-permission>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "sk_1234abcdef",
-    "permissions": "documents.read AND documents.write"
-  }'
-```
-</Tab>
+    ```bash v2 cURL {2,6} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+      -H "Authorization: Bearer <your-root-key-with-api.*.verify_key-permission>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "key": "sk_1234abcdef",
+        "permissions": "documents.read AND documents.write"
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 **Credits and Rate Limits**
 
 <Tabs>
-<Tab title="Request Changes">
-```json title="Credits & Rate Limits Structure" icon="coins"
-// v1 Request
-{
-  "key": "sk_1234abcdef",
-  "remaining": { // [!code --]
-    "cost": 5 // [!code --]
-  } // [!code --]
-}
+  <Tab title="Request Changes">
+    ```json Credits & Rate Limits Structure icon=coins
+    // v1 Request
+    {
+      "key": "sk_1234abcdef",
+      "remaining": { // [!code --]
+        "cost": 5 // [!code --]
+      } // [!code --]
+    }
+    
+    // v2 Request
+    {
+      "key": "sk_1234abcdef",
+      "credits": { // [!code ++]
+        "cost": 5 // [!code ++]
+      }, // [!code ++]
+      "ratelimits": [ // [!code ++]
+        { // [!code ++]
+          "name": "heavy_operations", // [!code ++]
+          "cost": 3 // [!code ++]
+        } // [!code ++]
+      ] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
+      -H "Content-Type: application/json" \
+      -d '{
+        "key": "sk_1234abcdef",
+        "remaining": {"cost": 5}
+      }'
+    ```
 
-// v2 Request
-{
-  "key": "sk_1234abcdef",
-  "credits": { // [!code ++]
-    "cost": 5 // [!code ++]
-  }, // [!code ++]
-  "ratelimits": [ // [!code ++]
-    { // [!code ++]
-      "name": "heavy_operations", // [!code ++]
-      "cost": 3 // [!code ++]
-    } // [!code ++]
-  ] // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Examples">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "sk_1234abcdef",
-    "remaining": {"cost": 5}
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={2,6-10}
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Authorization: Bearer <your-root-key-with-api.*.verify_key-permission>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "sk_1234abcdef",
-    "credits": {"cost": 5},
-    "ratelimits": [{
-      "name": "heavy_operations",
-      "cost": 3
-    }]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {2,6,7,8,9,10} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+      -H "Authorization: Bearer <your-root-key-with-api.*.verify_key-permission>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "key": "sk_1234abcdef",
+        "credits": {"cost": 5},
+        "ratelimits": [{
+          "name": "heavy_operations",
+          "cost": 3
+        }]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -380,62 +384,62 @@ The v2 `keys.verifyKey` endpoint introduces a powerful permission system that gi
 When creating a root key for key verification, you need to grant it the appropriate `api.*.verify_key` permission:
 
 <Tabs>
-<Tab title="Wildcard Permission (All APIs)">
-```json title="Root Key with Permission to Verify Any API Key" icon="key"
-{
-  "name": "Service Authentication Key",
-  "permissions": [
+  <Tab title="Wildcard Permission (All APIs)">
+    ```json Root Key with Permission to Verify Any API Key icon=key
     {
-      "name": "api.*.verify_key",
-      "description": "Allow verification of keys from any API in the workspace"
+      "name": "Service Authentication Key",
+      "permissions": [
+        {
+          "name": "api.*.verify_key",
+          "description": "Allow verification of keys from any API in the workspace"
+        }
+      ]
     }
-  ]
-}
-```
+    ```
 
-This root key can verify keys from any API in your workspace. Use this for services that need to authenticate users across multiple APIs.
-</Tab>
-<Tab title="Specific API Permission">
-```json title="Root Key with Permission for Specific API" icon="shield"
-{
-  "name": "Production API Verification Key",
-  "permissions": [
+    This root key can verify keys from any API in your workspace. Use this for services that need to authenticate users across multiple APIs.
+  </Tab>
+  <Tab title="Specific API Permission">
+    ```json Root Key with Permission for Specific API icon=shield
     {
-      "name": "api.api_1234567890abcdef.verify_key",
-      "description": "Allow verification of keys only from the Production API"
+      "name": "Production API Verification Key",
+      "permissions": [
+        {
+          "name": "api.api_1234567890abcdef.verify_key",
+          "description": "Allow verification of keys only from the Production API"
+        }
+      ]
     }
-  ]
-}
-```
+    ```
 
-This root key can only verify keys from the specific API `api_1234567890abcdef`. Use this for services that should only authenticate users from a particular API.
-</Tab>
-<Tab title="Multiple Specific APIs">
-```json title="Root Key with Permission for Multiple APIs" icon="layers"
-{
-  "name": "Multi-Service Verification Key",
-  "permissions": [
+    This root key can only verify keys from the specific API `api_1234567890abcdef`. Use this for services that should only authenticate users from a particular API.
+  </Tab>
+  <Tab title="Multiple Specific APIs">
+    ```json Root Key with Permission for Multiple APIs icon=layers
     {
-      "name": "api.api_prod123.verify_key",
-      "description": "Verify keys from Production API"
-    },
-    {
-      "name": "api.api_staging456.verify_key", 
-      "description": "Verify keys from Staging API"
+      "name": "Multi-Service Verification Key",
+      "permissions": [
+        {
+          "name": "api.api_prod123.verify_key",
+          "description": "Verify keys from Production API"
+        },
+        {
+          "name": "api.api_staging456.verify_key", 
+          "description": "Verify keys from Staging API"
+        }
+      ]
     }
-  ]
-}
-```
+    ```
 
-This root key can verify keys from multiple specific APIs. Use this when you need to authenticate users from several APIs but not all APIs in the workspace.
-</Tab>
+    This root key can verify keys from multiple specific APIs. Use this when you need to authenticate users from several APIs but not all APIs in the workspace.
+  </Tab>
 </Tabs>
 
 ### Migration from v1 apiId Parameter
 
 In v1, you could specify which API's keys to verify using the `apiId` parameter:
 
-```json title="v1: Explicit API Selection"
+```json v1: Explicit API Selection
 {
   "key": "sk_1234abcdef",
   "apiId": "api_1234567890abcdef"  // ❌ No longer supported in v2
@@ -444,7 +448,7 @@ In v1, you could specify which API's keys to verify using the `apiId` parameter:
 
 In v2, this control is moved to the root key's permissions:
 
-```json title="v2: Permission-Based API Selection"
+```json v2: Permission-Based API Selection
 {
   "key": "sk_1234abcdef"
   // API access controlled by root key's api.*.verify_key permissions
@@ -452,6 +456,7 @@ In v2, this control is moved to the root key's permissions:
 ```
 
 **Benefits of the New System:**
+
 - **Better Security**: Only authorized services can verify keys
 - **Granular Control**: Workspace owners control which services can verify keys from which APIs
 - **Simpler Integration**: No need to manage `apiId` parameters in your application code
@@ -462,123 +467,124 @@ In v2, this control is moved to the root key's permissions:
 ## GET /v1/keys.getKey → POST /v2/keys.getKey
 
 **Key Changes:**
+
 - HTTP method: GET → POST
 - Request body format required instead of query parameters
 - Response format: Direct response → `{meta, data}` envelope
 
 <Tabs>
-<Tab title="Method & Format Changes">
-```bash title="HTTP Method Change" icon="arrow-right"
-# v1: GET with query parameters
-curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
-  -H "Authorization: Bearer <your-root-key>"
-
-# v2: POST with request body
-curl -X POST https://api.unkey.com/v2/keys.getKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{"keyId": "key_123"}'
-```
-</Tab>
-<Tab title="Response Changes">
-```json title="Get Key Response Diff" icon="database" expandable
-// v1 Response (direct response)
-{
-  "id": "key_123", // [!code --]
-  "start": "sk_5j1", // [!code --]
-  "workspaceId": "ws_1234", // [!code --]
-  "apiId": "api_abc", // [!code --]
-  "name": "Production API Key", // [!code --]
-  "ownerId": "user_456", // [!code --]
-  "meta": { // [!code --]
-    "roles": ["admin", "user"], // [!code --]
-    "stripeCustomerId": "cus_1234" // [!code --]
-  }, // [!code --]
-  "createdAt": 1705306200000, // [!code --]
-  "updatedAt": 1705306200000, // [!code --]
-  "expires": null, // [!code --]
-  "remaining": 995, // [!code --]
-  "refill": { // [!code --]
-    "interval": "monthly", // [!code --]
-    "amount": 1000, // [!code --]
-    "refillDay": 1, // [!code --]
-    "lastRefillAt": 1705306200000 // [!code --]
-  }, // [!code --]
-  "ratelimit": { // [!code --]
-    "async": true, // [!code --]
-    "type": "fast", // [!code --]
-    "limit": 100, // [!code --]
-    "duration": 60000 // [!code --]
-  }, // [!code --]
-  "roles": ["admin", "finance"], // [!code --]
-  "permissions": ["documents.read", "documents.write"], // [!code --]
-  "enabled": true, // [!code --]
-  "identity": { // [!code --]
-    "id": "identity_123", // [!code --]
-    "externalId": "customer_789", // [!code --]
-    "meta": {} // [!code --]
-  } // [!code --]
-}
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_xyz789" // [!code ++]
-  }, // [!code ++]
-  "data": { // [!code ++]
-    "id": "key_123", // [!code ++]
-    "name": "Production API Key", // [!code ++]
-    "start": "prod_1234", // [!code ++]
-    "meta": { // [!code ++]
-      "plan": "enterprise" // [!code ++]
-    }, // [!code ++]
-    "createdAt": 1754304517, // [!code ++]
-    "updatedAt": 1754304518, // [!code ++]
-    "expires": 1764841705, // [!code ++]
-    "credits": { // [!code ++]
-      "remaining": 995, // [!code ++]
-      "refill": { // [!code ++]
-        "interval": "monthly", // [!code ++]
-        "amount": 1000, // [!code ++]
-        "refillDay": 1 // [!code ++]
+  <Tab title="Method & Format Changes">
+    ```bash HTTP Method Change icon=arrow-right
+    # v1: GET with query parameters
+    curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
+      -H "Authorization: Bearer <your-root-key>"
+    
+    # v2: POST with request body
+    curl -X POST https://api.unkey.com/v2/keys.getKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{"keyId": "key_123"}'
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Get Key Response Diff expandable icon=database
+    // v1 Response (direct response)
+    {
+      "id": "key_123", // [!code --]
+      "start": "sk_5j1", // [!code --]
+      "workspaceId": "ws_1234", // [!code --]
+      "apiId": "api_abc", // [!code --]
+      "name": "Production API Key", // [!code --]
+      "ownerId": "user_456", // [!code --]
+      "meta": { // [!code --]
+        "roles": ["admin", "user"], // [!code --]
+        "stripeCustomerId": "cus_1234" // [!code --]
+      }, // [!code --]
+      "createdAt": 1705306200000, // [!code --]
+      "updatedAt": 1705306200000, // [!code --]
+      "expires": null, // [!code --]
+      "remaining": 995, // [!code --]
+      "refill": { // [!code --]
+        "interval": "monthly", // [!code --]
+        "amount": 1000, // [!code --]
+        "refillDay": 1, // [!code --]
+        "lastRefillAt": 1705306200000 // [!code --]
+      }, // [!code --]
+      "ratelimit": { // [!code --]
+        "async": true, // [!code --]
+        "type": "fast", // [!code --]
+        "limit": 100, // [!code --]
+        "duration": 60000 // [!code --]
+      }, // [!code --]
+      "roles": ["admin", "finance"], // [!code --]
+      "permissions": ["documents.read", "documents.write"], // [!code --]
+      "enabled": true, // [!code --]
+      "identity": { // [!code --]
+        "id": "identity_123", // [!code --]
+        "externalId": "customer_789", // [!code --]
+        "meta": {} // [!code --]
+      } // [!code --]
+    }
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_xyz789" // [!code ++]
+      }, // [!code ++]
+      "data": { // [!code ++]
+        "id": "key_123", // [!code ++]
+        "name": "Production API Key", // [!code ++]
+        "start": "prod_1234", // [!code ++]
+        "meta": { // [!code ++]
+          "plan": "enterprise" // [!code ++]
+        }, // [!code ++]
+        "createdAt": 1754304517, // [!code ++]
+        "updatedAt": 1754304518, // [!code ++]
+        "expires": 1764841705, // [!code ++]
+        "credits": { // [!code ++]
+          "remaining": 995, // [!code ++]
+          "refill": { // [!code ++]
+            "interval": "monthly", // [!code ++]
+            "amount": 1000, // [!code ++]
+            "refillDay": 1 // [!code ++]
+          } // [!code ++]
+        }, // [!code ++]
+        "ratelimits": [ // [!code ++]
+          { // [!code ++]
+            "name": "api_requests", // [!code ++]
+            "limit": 100, // [!code ++]
+            "duration": 60000, // [!code ++]
+            "autoApply": true // [!code ++]
+          } // [!code ++]
+        ], // [!code ++]
+        "identity": { // [!code ++]
+            "id": "id_123", // [!code ++]
+            "externalId": "customer_789", // [!code ++]
+            "meta": {}, // [!code ++]
+            "ratelimits": [] // [!code ++]
+        }, // [!code ++]
+        "enabled": true, // [!code ++]
+        "permissions": ["documents.read"], // [!code ++]
+        "roles": ["editor"] // [!code ++]
       } // [!code ++]
-    }, // [!code ++]
-    "ratelimits": [ // [!code ++]
-      { // [!code ++]
-        "name": "api_requests", // [!code ++]
-        "limit": 100, // [!code ++]
-        "duration": 60000, // [!code ++]
-        "autoApply": true // [!code ++]
-      } // [!code ++]
-    ], // [!code ++]
-    "identity": { // [!code ++]
-        "id": "id_123", // [!code ++]
-        "externalId": "customer_789", // [!code ++]
-        "meta": {}, // [!code ++]
-        "ratelimits": [] // [!code ++]
-    }, // [!code ++]
-    "enabled": true, // [!code ++]
-    "permissions": ["documents.read"], // [!code ++]
-    "roles": ["editor"] // [!code ++]
-  } // [!code ++]
-}
-```
-</Tab>
-<Tab title="Complete Examples">
-```bash title="v1 cURL" icon="terminal"
-curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
-  -H "Authorization: Bearer <your-root-key>"
-```
+    }
+    ```
+  </Tab>
+  <Tab title="Complete Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X GET "https://api.unkey.dev/v1/keys.getKey?keyId=key_123" \
+      -H "Authorization: Bearer <your-root-key>"
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={1,3}
-curl -X POST https://api.unkey.com/v2/keys.getKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123"
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1,3} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.getKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123"
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -588,59 +594,60 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \
 **Purpose:** Permanently delete an API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Added `permanent` parameter for hard deletion
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Delete Key Request" icon="trash" expandable
-// v1 Request
-{
-  "keyId": "key_123"
-}
+  <Tab title="Request Changes">
+    ```json Delete Key Request expandable icon=trash
+    // v1 Request
+    {
+      "keyId": "key_123"
+    }
+    
+    // v2 Request (enhanced)
+    {
+      "keyId": "key_123",
+      "permanent": false // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Delete Key Response Diff icon=check-circle
+    // v1 Response (direct empty response)
+    {} // [!code --]
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_deletekey789" // [!code ++]
+      }, // [!code ++]
+      "data": {} // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.deleteKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123"
+      }'
+    ```
 
-// v2 Request (enhanced)
-{
-  "keyId": "key_123",
-  "permanent": false // [!code ++]
-}
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Delete Key Response Diff" icon="check-circle"
-// v1 Response (direct empty response)
-{} // [!code --]
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_deletekey789" // [!code ++]
-  }, // [!code ++]
-  "data": {} // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.deleteKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123"
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={1,6}
-curl -X POST https://api.unkey.com/v2/keys.deleteKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permanent": false
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1,6} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.deleteKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permanent": false
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -650,82 +657,83 @@ curl -X POST https://api.unkey.com/v2/keys.deleteKey \
 **Purpose:** Update an existing API key's properties.
 
 **Key Changes:**
+
 - Same structural changes as `createKey` (credits, ratelimits, no ownerId)
 - Response format: Direct response → `{meta, data}` envelope
 - Support for partial updates
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Update Key Request Diff" icon="edit" expandable
-// v1 Request
-{
-  "keyId": "key_123",
-  "name": "Updated Production Key",
-  "ownerId": "user_456", // [!code --]
-  "remaining": 5000, // [!code --]
-  "ratelimit": { // [!code --]
-    "limit": 2000, // [!code --]
-    "duration": 3600000 // [!code --]
-  } // [!code --]
-}
+  <Tab title="Request Changes">
+    ```json Update Key Request Diff expandable icon=edit
+    // v1 Request
+    {
+      "keyId": "key_123",
+      "name": "Updated Production Key",
+      "ownerId": "user_456", // [!code --]
+      "remaining": 5000, // [!code --]
+      "ratelimit": { // [!code --]
+        "limit": 2000, // [!code --]
+        "duration": 3600000 // [!code --]
+      } // [!code --]
+    }
+    
+    // v2 Request
+    {
+      "keyId": "key_123",
+      "name": "Updated Production Key",
+      "externalId": "user_456", // [!code ++]
+      "credits": { // [!code ++]
+        "remaining": 5000 // [!code ++]
+      }, // [!code ++]
+      "ratelimits": [ // [!code ++]
+        { // [!code ++]
+          "name": "api_requests", // [!code ++]
+          "limit": 2000, // [!code ++]
+          "duration": 3600000 // [!code ++]
+        } // [!code ++]
+      ] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Update Key Response Diff icon=check-circle
+    // v1 Response (direct empty response)
+    {} // [!code --]
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_updatekey456" // [!code ++]
+      }, // [!code ++]
+      "data": {}
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.updateKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "name": "Updated Production Key",
+        "ownerId": "user_456",
+        "remaining": 5000
+      }'
+    ```
 
-// v2 Request
-{
-  "keyId": "key_123",
-  "name": "Updated Production Key",
-  "externalId": "user_456", // [!code ++]
-  "credits": { // [!code ++]
-    "remaining": 5000 // [!code ++]
-  }, // [!code ++]
-  "ratelimits": [ // [!code ++]
-    { // [!code ++]
-      "name": "api_requests", // [!code ++]
-      "limit": 2000, // [!code ++]
-      "duration": 3600000 // [!code ++]
-    } // [!code ++]
-  ] // [!code ++]
-}
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Update Key Response Diff" icon="check-circle"
-// v1 Response (direct empty response)
-{} // [!code --]
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_updatekey456" // [!code ++]
-  }, // [!code ++]
-  "data": {}
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.updateKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "name": "Updated Production Key",
-    "ownerId": "user_456",
-    "remaining": 5000
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={1,6-8}
-curl -X POST https://api.unkey.com/v2/keys.updateKey \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "name": "Updated Production Key",
-    "externalId": "user_456",
-    "credits": { "remaining": 5000 }
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1,6,7,8} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.updateKey \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "name": "Updated Production Key",
+        "externalId": "user_456",
+        "credits": { "remaining": 5000 }
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -735,70 +743,71 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 **Purpose:** Update the credit/usage count for an API key.
 
 **Key Changes:**
+
 - Endpoint name change: `updateRemaining` → `updateCredits`
 - Request changes: `op` → `operation`
 - Response format: Direct response → `{meta, data}` envelope
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Update Credits Request Diff" icon="coins" expandable
-// v1 Request
-{
-  "keyId": "key_123",
-  "op": "set", // [!code --]
-  "value": 1000
-}
+  <Tab title="Request Changes">
+    ```json Update Credits Request Diff expandable icon=coins
+    // v1 Request
+    {
+      "keyId": "key_123",
+      "op": "set", // [!code --]
+      "value": 1000
+    }
+    
+    // v2 Request
+    {
+      "keyId": "key_123",
+      "operation": "set", // [!code ++]
+      "value": 1000
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Update Credits Response Diff expandable icon=check-circle
+    // v1 Response (direct response)
+    {
+      "remaining": 1000 // [!code --]
+    }
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_updatecredits123" // [!code ++]
+      }, // [!code ++]
+      "data": { // [!code ++]
+        "credits": { // [!code ++]
+          "remaining": 1000 // [!code ++]
+        } // [!code ++]
+      } // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.updateRemaining \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "value": 1000
+      }'
+    ```
 
-// v2 Request
-{
-  "keyId": "key_123",
-  "operation": "set", // [!code ++]
-  "value": 1000
-}
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Update Credits Response Diff" icon="check-circle" expandable
-// v1 Response (direct response)
-{
-  "remaining": 1000 // [!code --]
-}
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_updatecredits123" // [!code ++]
-  }, // [!code ++]
-  "data": { // [!code ++]
-    "credits": { // [!code ++]
-      "remaining": 1000 // [!code ++]
-    } // [!code ++]
-  } // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.updateRemaining \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "value": 1000
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={1,6}
-curl -X POST https://api.unkey.com/v2/keys.updateCredits \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "operation": "set",
-    "value": 1000
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1,6} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.updateCredits \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "operation": "set",
+        "value": 1000
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -808,79 +817,107 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
 **Purpose:** Get information about the current API key being used.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Enhanced response with additional metadata, mirroring the `v2/keys.getKey` response.
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Whoami Request" icon="user"
-// v1 & v2 Request (unchanged)
-{
-  "key": "your_api_key_here"
-}
-```
-</Tab>
+  <Tab title="Request Changes">
+    ```json Whoami Request icon=user
+    // v1 & v2 Request (unchanged)
+    {
+      "key": "your_api_key_here"
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Whoami Response Diff expandable icon=database
+    // v1 Response (direct response)
+    {
+      "id": "key_123", // [!code --]
+      "name": "Production API Key", // [!code --]
+      "remaining": 1000, // [!code --]
+      "identity": { // [!code --]
+        "id": "id_123", // [!code --]
+        "externalId": "ext123" // [!code --]
+      }, // [!code --]
+      "meta": { // [!code --]
+        "role": "admin", // [!code --]
+        "plan": "premium" // [!code --]
+      }, // [!code --]
+      "createdAt": 1620000000000, // [!code --]
+      "enabled": true, // [!code --]
+      "environment": "production" // [!code --]
+    }
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_whoami789" // [!code ++]
+      }, // [!code ++]
+      "data": { // [!code ++]
+        "keyId": "key_123", // [!code ++]
+        "name": "Production API Key", // [!code ++]
+        "permissions": ["documents.read"], // [!code ++]
+        "roles": ["editor"], // [!code ++]
+        "identity": { // [!code ++]
+          "id": "id_123", // [!code ++]
+          "externalId": "customer_789", // [!code ++]
+          "meta": {}, // [!code ++]
+          "ratelimits": [] // [!code ++]
+        }, // [!code ++]
+        "createdAt": 1754304517 // [!code ++]
+      } // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.whoami \
+      -H "Authorization: Bearer <your-api-key>" \
+      -H "Content-Type: application/json" \
+      -d '{ "key": "some_api_key" }'
+    ```
 
-<Tab title="Response Changes" icon="database">
-```json title="Whoami Response Diff" icon="database" expandable
-// v1 Response (direct response)
-{
-  "id": "key_123", // [!code --]
-  "name": "Production API Key", // [!code --]
-  "remaining": 1000, // [!code --]
-  "identity": { // [!code --]
-    "id": "id_123", // [!code --]
-    "externalId": "ext123" // [!code --]
-  }, // [!code --]
-  "meta": { // [!code --]
-    "role": "admin", // [!code --]
-    "plan": "premium" // [!code --]
-  }, // [!code --]
-  "createdAt": 1620000000000, // [!code --]
-  "enabled": true, // [!code --]
-  "environment": "production" // [!code --]
-}
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_whoami789" // [!code ++]
-  }, // [!code ++]
-  "data": { // [!code ++]
-    "keyId": "key_123", // [!code ++]
-    "name": "Production API Key", // [!code ++]
-    "permissions": ["documents.read"], // [!code ++]
-    "roles": ["editor"], // [!code ++]
-    "identity": { // [!code ++]
-      "id": "id_123", // [!code ++]
-      "externalId": "customer_789", // [!code ++]
-      "meta": {}, // [!code ++]
-      "ratelimits": [] // [!code ++]
-    }, // [!code ++]
-    "createdAt": 1754304517 // [!code ++]
-  } // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.whoami \
-  -H "Authorization: Bearer <your-api-key>" \
-  -H "Content-Type: application/json" \
-  -d '{ "key": "some_api_key" }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.whoami \
-  -H "Authorization: Bearer <your-api-key>" \
-  -H "Content-Type: application/json" \
-  -d '{ "key": "some_api_key" }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.whoami \
+      -H "Authorization: Bearer <your-api-key>" \
+      -H "Content-Type: application/json" \
+      -d '{ "key": "some_api_key" }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
+
+## New: /v2/keys.rerollKey
+
+**Purpose:** Generate a new API key while preserving the configuration from an existing key.\
+With this endpoint, you no longer have to delete an old key and recreate it if a key is unrecoverable and you don't know the plaintext key anymore.
+
+**Important:** Analytics and usage metrics are tracked at both the key level AND identity level. \
+If the original key has an identity, the new key will inherit it, allowing you to track usage across both individual keys and the overall identity.\
+The new key will NOT inherit the usage from the old keyId.
+
+<Tabs>
+  <Tab title="Request">
+    ```json
+    {
+      "keyId": "key_123",
+      "expiration": 0 // This expires the key directly
+    }
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json expandable
+    {	
+      "key": "sk_1234abcdef5678",
+      "keyId": "key_456"
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Permission Management Endpoints
 
@@ -889,91 +926,90 @@ curl -X POST https://api.unkey.com/v2/keys.whoami \
 **Purpose:** Add permissions to an existing API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Will auto create permissions if they don't exist, and the root key has the `rbac.*.create_permission` permission. Otherwise it will return a permission error.
 - Only identify permission by their slugs.
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Add Permissions Request" icon="shield-plus" expandable
-// v1 request
-{
-  "keyId": "key_123",
-  "permissions": [
-    { // [!code --]
-      "id": "perm_123", // [!code --]
-      "create": true // [!code --]
-    }, // [!code --]
-    { // [!code --]
-      "name": "documents.read", // [!code --]
-    } // [!code --]
-  ]
-}
-
-// v2 request
-{
-  "keyId": "key_123",
-  "permissions": ["documents.read", "documents.write"] // [!code ++]
-}
-```
-
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Add Permissions Response Diff" icon="check-circle"
-// v1 Response (array of attached permissions)
-[
-  {
-    "id": "perm_123",
-    "name": "documents.read"
-  },
-  {
-    "id": "perm_456",
-    "name": "documents.write"
-  }
-]
-
-// v2 Response, responds with the permissions that are attached to this key
-{
-  "meta": { // [!code ++]
-    "requestId": "req_addperms123" // [!code ++]
-  }, // [!code ++]
-  "data": [{
-    "id": "perm_123",
-    "name" : "Read Documents",
-    "slug" : "documents.read", // [!code ++]
-    "description": "Read documents but don't write them", // [!code ++]
-  }] // [!code ++]
-}
-```
-</Tab>
-
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.addPermissions \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permissions": [
+  <Tab title="Request Changes">
+    ```json Add Permissions Request expandable icon=shield-plus
+    // v1 request
+    {
+      "keyId": "key_123",
+      "permissions": [
+        { // [!code --]
+          "id": "perm_123", // [!code --]
+          "create": true // [!code --]
+        }, // [!code --]
+        { // [!code --]
+          "name": "documents.read", // [!code --]
+        } // [!code --]
+      ]
+    }
+    
+    // v2 request
+    {
+      "keyId": "key_123",
+      "permissions": ["documents.read", "documents.write"] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Add Permissions Response Diff icon=check-circle
+    // v1 Response (array of attached permissions)
+    [
       {
-        "name": "documents.read",
-        "description": "Read access to documents"
+        "id": "perm_123",
+        "name": "documents.read"
+      },
+      {
+        "id": "perm_456",
+        "name": "documents.write"
       }
     ]
-  }'
-```
+    
+    // v2 Response, responds with the permissions that are attached to this key
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_addperms123" // [!code ++]
+      }, // [!code ++]
+      "data": [{
+        "id": "perm_123",
+        "name" : "Read Documents",
+        "slug" : "documents.read", // [!code ++]
+        "description": "Read documents but don't write them", // [!code ++]
+      }] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.addPermissions \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permissions": [
+          {
+            "name": "documents.read",
+            "description": "Read access to documents"
+          }
+        ]
+      }'
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.addPermissions \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permissions": ["documents.read"]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.addPermissions \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permissions": ["documents.read"]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -983,78 +1019,78 @@ curl -X POST https://api.unkey.com/v2/keys.addPermissions \
 **Purpose:** Remove permissions from an existing API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Only accepts permission slugs now
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Remove Permissions Request" icon="shield-minus"
-// v1 Request 
-{
-  "keyId": "key_123",
-  "permissions": [
-    { // [!code --]
-      "id": "perm_123" // [!code --]
-    }, // [!code --]
-    { // [!code --]
-      "slug": "description.read" // [!code --]
-    }, // [!code --]
-  ]
-}
+  <Tab title="Request Changes">
+    ```json Remove Permissions Request icon=shield-minus
+    // v1 Request 
+    {
+      "keyId": "key_123",
+      "permissions": [
+        { // [!code --]
+          "id": "perm_123" // [!code --]
+        }, // [!code --]
+        { // [!code --]
+          "slug": "description.read" // [!code --]
+        }, // [!code --]
+      ]
+    }
+    
+    // v2 Request 
+    {
+      "keyId": "key_123",
+      "permissions": ["documents.write", "documents.delete"] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Remove Permissions Response Diff icon=check-circle
+    // v1 Response (direct empty response)
+    {} // [!code --]
+    
+    // v2 Response, responds with the remaining permissions
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_removeperms456" // [!code ++]
+      }, // [!code ++]
+      "data": [ // [!code ++]
+        { // [!code ++]
+          "id": "perm_123", // [!code ++]
+          "slug": "documents.archive", // [!code ++]
+          "name": "Documents Archive", // [!code ++]
+          "description": "Allows archiving documents" // [!code ++]
+        }, // [!code ++]
+      ] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.removePermissions \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permissions": [{
+           "slug": "documents.write",
+        }]
+      }'
+    ```
 
-// v2 Request 
-{
-  "keyId": "key_123",
-  "permissions": ["documents.write", "documents.delete"] // [!code ++]
-}
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Remove Permissions Response Diff" icon="check-circle"
-// v1 Response (direct empty response)
-{} // [!code --]
-
-// v2 Response, responds with the remaining permissions
-{
-  "meta": { // [!code ++]
-    "requestId": "req_removeperms456" // [!code ++]
-  }, // [!code ++]
-  "data": [ // [!code ++]
-    { // [!code ++]
-      "id": "perm_123", // [!code ++]
-      "slug": "documents.archive", // [!code ++]
-      "name": "Documents Archive", // [!code ++]
-      "description": "Allows archiving documents" // [!code ++]
-    }, // [!code ++]
-  ] // [!code ++]
-}
-```
-</Tab>
-
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.removePermissions \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permissions": [{
-       "slug": "documents.write",
-    }]
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.removePermissions \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permissions": ["documents.write", "documents.delete"]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.removePermissions \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permissions": ["documents.write", "documents.delete"]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -1064,95 +1100,96 @@ curl -X POST https://api.unkey.com/v2/keys.removePermissions \
 **Purpose:** Atomically replace all permissions on an API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Atomic replacement of all permissions
 - Will auto create permissions if they don't exist, and the root key has the `rbac.*.create_permission` permission. Otherwise it will return a permission error.
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Set Permissions Request" icon="shield-check" expandable
-// v1 Request
-{
-  "keyId": "key_123",
-  "permissions": [
-    { // [!code --]
-      "slug": "documents.read", // [!code --]
-      "create": true, // [!code --]
-    }, // [!code --]
-    { // [!code --]
-      "id": "perm_123", // [!code --]
-    } // [!code --]
-  ]
-}
-
-// v2 Request
-{
-  "keyId": "key_123",
-  "permissions": ["documents.read", "comments.moderate"] // [!code ++]
-}
-
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Set Permissions Response Diff" icon="check-circle"
-// v1 Response (array of all permissions on key)
-[
-  {
-    "id": "perm_123", // [!code --]
-    "name": "documents.read" // [!code --]
-  },
-  {
-    "id": "perm_789", // [!code --]
-    "name": "comments.moderate" // [!code --]
-  }
-] // [!code --]
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_setperms789" // [!code ++]
-  }, // [!code ++]
-  "data": [{ // [!code ++]
-    "id": "perm_123", // [!code ++]
-    "slug": "documents.read", // [!code ++]
-    "name": "Documents Read", // [!code ++]
-    "description": "Read access to documents" // [!code ++]
-  }, // [!code ++]
-  { // [!code ++]
-    "id": "perm_789", // [!code ++]
-    "slug": "comments.moderate", // [!code ++]
-    "name": "Comments Moderate", // [!code ++]
-    "description": "Moderate comments" // [!code ++]
-  }] // [!code ++]
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.setPermissions \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permissions": [
+  <Tab title="Request Changes">
+    ```json Set Permissions Request expandable icon=shield-check
+    // v1 Request
+    {
+      "keyId": "key_123",
+      "permissions": [
+        { // [!code --]
+          "slug": "documents.read", // [!code --]
+          "create": true, // [!code --]
+        }, // [!code --]
+        { // [!code --]
+          "id": "perm_123", // [!code --]
+        } // [!code --]
+      ]
+    }
+    
+    // v2 Request
+    {
+      "keyId": "key_123",
+      "permissions": ["documents.read", "comments.moderate"] // [!code ++]
+    }
+    
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Set Permissions Response Diff icon=check-circle
+    // v1 Response (array of all permissions on key)
+    [
       {
-        "slug": "documents.read",
+        "id": "perm_123", // [!code --]
+        "name": "documents.read" // [!code --]
+      },
+      {
+        "id": "perm_789", // [!code --]
+        "name": "comments.moderate" // [!code --]
       }
-    ]
-  }'
-```
+    ] // [!code --]
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_setperms789" // [!code ++]
+      }, // [!code ++]
+      "data": [{ // [!code ++]
+        "id": "perm_123", // [!code ++]
+        "slug": "documents.read", // [!code ++]
+        "name": "Documents Read", // [!code ++]
+        "description": "Read access to documents" // [!code ++]
+      }, // [!code ++]
+      { // [!code ++]
+        "id": "perm_789", // [!code ++]
+        "slug": "comments.moderate", // [!code ++]
+        "name": "Comments Moderate", // [!code ++]
+        "description": "Moderate comments" // [!code ++]
+      }] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.setPermissions \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permissions": [
+          {
+            "slug": "documents.read",
+          }
+        ]
+      }'
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.setPermissions \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "permissions": ["documents.read"]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.setPermissions \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "permissions": ["documents.read"]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -1164,97 +1201,98 @@ curl -X POST https://api.unkey.com/v2/keys.setPermissions \
 **Purpose:** Add roles to an existing API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - No option to auto-create roles if they don't exist
 - Responds with all the roles that are attached to the key
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Add Roles Request" icon="user-plus"
-// v1 Request
-{
-  "keyId": "key_123",
-  "roles": [
-    { "name": "editor" }, // [!code --]
-    { "id": "role_123" } // [!code --]
-  ]
-}
-
-// v2 Request
-{
-  "keyId": "key_123",
-  "roles": ["editor", "moderator"] // [!code ++]
-}
-
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Add Roles Response Diff" icon="check-circle"
-// v1 Response (array of added roles)
-[
-  {
-    "id": "role_123",
-    "name": "editor"
-  },
-  {
-    "id": "role_456",
-    "name": "moderator"
-  }
-]
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_addroles123" // [!code ++]
-  }, // [!code ++]
-  "data": [
+  <Tab title="Request Changes">
+    ```json Add Roles Request icon=user-plus
+    // v1 Request
     {
-      "id": "role_123",
-      "name": "editor",
-      "permissions": [{ // [!code ++]
-        "id": "perm_123", // [!code ++]
-        "name": "document reader", // [!code ++]
-        "slug": "document.read", // [!code ++]
-        "description": "Read documents but don't edit them" // [!code ++]
-      }] // [!code ++]
-    },
-    {
-      "id": "role_456",
-      "name": "moderator"
+      "keyId": "key_123",
+      "roles": [
+        { "name": "editor" }, // [!code --]
+        { "id": "role_123" } // [!code --]
+      ]
     }
-  ]
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.addRoles \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "roles": [
+    
+    // v2 Request
+    {
+      "keyId": "key_123",
+      "roles": ["editor", "moderator"] // [!code ++]
+    }
+    
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Add Roles Response Diff icon=check-circle
+    // v1 Response (array of added roles)
+    [
       {
-        "id": "role_123"
+        "id": "role_123",
+        "name": "editor"
       },
       {
-        "name": "editor"
+        "id": "role_456",
+        "name": "moderator"
       }
     ]
-  }'
-```
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_addroles123" // [!code ++]
+      }, // [!code ++]
+      "data": [
+        {
+          "id": "role_123",
+          "name": "editor",
+          "permissions": [{ // [!code ++]
+            "id": "perm_123", // [!code ++]
+            "name": "document reader", // [!code ++]
+            "slug": "document.read", // [!code ++]
+            "description": "Read documents but don't edit them" // [!code ++]
+          }] // [!code ++]
+        },
+        {
+          "id": "role_456",
+          "name": "moderator"
+        }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.addRoles \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "roles": [
+          {
+            "id": "role_123"
+          },
+          {
+            "name": "editor"
+          }
+        ]
+      }'
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.addRoles \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "roles": ["editor", "moderator"]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.addRoles \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "roles": ["editor", "moderator"]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -1264,64 +1302,65 @@ curl -X POST https://api.unkey.com/v2/keys.addRoles \
 **Purpose:** Remove roles from an existing API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Responds with the remaining roles on the key
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Remove Roles Request" icon="user-minus"
-// v1 Request
-{
-  "keyId": "key_123",
-  "roles": [
-    { "name": "editor" }, // [!code --]
-    { "id": "role_123" } // [!code --]
-  ]
-}
+  <Tab title="Request Changes">
+    ```json Remove Roles Request icon=user-minus
+    // v1 Request
+    {
+      "keyId": "key_123",
+      "roles": [
+        { "name": "editor" }, // [!code --]
+        { "id": "role_123" } // [!code --]
+      ]
+    }
+    
+    // v2 Request
+    {
+      "keyId": "key_123",
+      "roles": ["editor", "moderator"] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Remove Roles Response Diff icon=check-circle
+    // v1 Response (direct empty response)
+    {} // [!code --]
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_removeroles456" // [!code ++]
+      }, // [!code ++]
+      "data": []
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.removeRoles \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "roles": ["moderator"]
+      }'
+    ```
 
-// v2 Request
-{
-  "keyId": "key_123",
-  "roles": ["editor", "moderator"] // [!code ++]
-}
-```
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Remove Roles Response Diff" icon="check-circle"
-// v1 Response (direct empty response)
-{} // [!code --]
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_removeroles456" // [!code ++]
-  }, // [!code ++]
-  "data": []
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.removeRoles \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "roles": ["moderator"]
-  }'
-```
-
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.removeRoles \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "roles": ["moderator"]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.removeRoles \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "roles": ["moderator"]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -1331,6 +1370,7 @@ curl -X POST https://api.unkey.com/v2/keys.removeRoles \
 **Purpose:** Atomically replace all roles on an API key.
 
 **Key Changes:**
+
 - Response format: Direct response → `{meta, data}` envelope
 - Atomic replacement of all roles
 - Responds with all the roles that are now set
@@ -1338,93 +1378,92 @@ curl -X POST https://api.unkey.com/v2/keys.removeRoles \
 - Added `meta.requestId` for debugging
 
 <Tabs>
-<Tab title="Request Changes" icon="code">
-```json title="Set Roles Request" icon="users-cog"
-// v1 Request
-{
-  "keyId": "key_123",
-  "roles": [
-    { "name": "editor" }, // [!code --]
-    { "id": "role_123" } // [!code --]
-  ]
-}
-
-// v2 Request
-{
-  "keyId": "key_123",
-  "roles": ["editor", "moderator"] // [!code ++]
-}
-```
-
-</Tab>
-<Tab title="Response Changes" icon="database">
-```json title="Set Roles Response Diff" icon="check-circle"
-// v1 Response (array of all roles on key)
-[
-  {
-    "id": "role_123",
-    "name": "editor"
-  },
-  {
-    "id": "role_789",
-    "name": "moderator"
-  }
-]
-
-// v2 Response
-{
-  "meta": { // [!code ++]
-    "requestId": "req_setroles789" // [!code ++]
-  }, // [!code ++]
-  "data": [
+  <Tab title="Request Changes">
+    ```json Set Roles Request icon=users-cog
+    // v1 Request
     {
-      "id": "role_123",
-      "name": "editor",
-      "permissions": [  // [!code ++]
-        {  // [!code ++]
-          "id": "perm_123",  // [!code ++]
-          "name": "document reader",  // [!code ++]
-          "slug": "document.read",  // [!code ++]
-          "description": "Read documents but don't edit them"  // [!code ++]
-        }
+      "keyId": "key_123",
+      "roles": [
+        { "name": "editor" }, // [!code --]
+        { "id": "role_123" } // [!code --]
       ]
-    },
-    {
-      "id": "role_456",
-      "name": "moderator"
     }
-  ]
-}
-```
-</Tab>
-<Tab title="cURL Examples" icon="terminal">
-```bash title="v1 cURL" icon="terminal"
-curl -X POST https://api.unkey.dev/v1/keys.setRoles \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "roles": [
+    
+    // v2 Request
+    {
+      "keyId": "key_123",
+      "roles": ["editor", "moderator"] // [!code ++]
+    }
+    ```
+  </Tab>
+  <Tab title="Response Changes">
+    ```json Set Roles Response Diff icon=check-circle
+    // v1 Response (array of all roles on key)
+    [
       {
+        "id": "role_123",
         "name": "editor"
       },
       {
-        "id": "role_789"
+        "id": "role_789",
+        "name": "moderator"
       }
     ]
-  }'
-```
+    
+    // v2 Response
+    {
+      "meta": { // [!code ++]
+        "requestId": "req_setroles789" // [!code ++]
+      }, // [!code ++]
+      "data": [
+        {
+          "id": "role_123",
+          "name": "editor",
+          "permissions": [  // [!code ++]
+            {  // [!code ++]
+              "id": "perm_123",  // [!code ++]
+              "name": "document reader",  // [!code ++]
+              "slug": "document.read",  // [!code ++]
+              "description": "Read documents but don't edit them"  // [!code ++]
+            }
+          ]
+        },
+        {
+          "id": "role_456",
+          "name": "moderator"
+        }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="cURL Examples">
+    ```bash v1 cURL icon=terminal
+    curl -X POST https://api.unkey.dev/v1/keys.setRoles \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "roles": [
+          {
+            "name": "editor"
+          },
+          {
+            "id": "role_789"
+          }
+        ]
+      }'
+    ```
 
-```bash title="v2 cURL" icon="terminal" highlight={1}
-curl -X POST https://api.unkey.com/v2/keys.setRoles \
-  -H "Authorization: Bearer <your-root-key>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "keyId": "key_123",
-    "roles": ["editor", "admin"]
-  }'
-```
-</Tab>
+    ```bash v2 cURL {1} icon=terminal
+    curl -X POST https://api.unkey.com/v2/keys.setRoles \
+      -H "Authorization: Bearer <your-root-key>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "keyId": "key_123",
+        "roles": ["editor", "admin"]
+      }'
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -1434,88 +1473,88 @@ curl -X POST https://api.unkey.com/v2/keys.setRoles \
 ### Response Format Migration
 
 <Tabs>
-<Tab title="Response Parsing Migration" icon="code">
-```typescript title="v1 vs v2: Response Handling"
-// v1: Access data directly
-const key = await fetch('/v1/keys.getKey', { // [!code --]
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer <root-key>',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ keyId: 'key_123' })
-});
-
-const data = await key.json(); // [!code --]
-const keyData = data; // v1 direct format // [!code --]
-console.log(keyData.keyId);
-
-// v2: Access data through data field
-const key = await fetch('/v2/keys.getKey', { // [!code ++]
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer <root-key>',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ keyId: 'key_123' })
-});
-
-const response = await key.json(); // [!code ++]
-const keyData = response.data; // v2 format // [!code ++]
-const requestId = response.meta.requestId; // for debugging // [!code ++]
-console.log(keyData.keyId);
-```
-</Tab>
+  <Tab title="Response Parsing Migration">
+    ```typescript v1 vs v2: Response Handling
+    // v1: Access data directly
+    const key = await fetch('/v1/keys.getKey', { // [!code --]
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer <root-key>',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ keyId: 'key_123' })
+    });
+    
+    const data = await key.json(); // [!code --]
+    const keyData = data; // v1 direct format // [!code --]
+    console.log(keyData.keyId);
+    
+    // v2: Access data through data field
+    const key = await fetch('/v2/keys.getKey', { // [!code ++]
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer <root-key>',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ keyId: 'key_123' })
+    });
+    
+    const response = await key.json(); // [!code ++]
+    const keyData = response.data; // v2 format // [!code ++]
+    const requestId = response.meta.requestId; // for debugging // [!code ++]
+    console.log(keyData.keyId);
+    ```
+  </Tab>
 </Tabs>
 
 ### Key Structure Migration
 
 <Tabs>
-<Tab title="Key Structure Migration" icon="key">
-```json title="v1 vs v2: Key Structure"
-// v1 Key Structure
-{
-  "apiId": "api_123",
-  "ownerId": "user_456", // [!code --]
-  "remaining": 1000, // [!code --]
-  "refill": { // [!code --]
-    "interval": "monthly", // [!code --]
-    "amount": 1000 // [!code --]
-  }, // [!code --]
-  "ratelimit": { // [!code --]
-    "limit": 100, // [!code --]
-    "duration": 60000, // [!code --]
-    "async": true // [!code --]
-  } // [!code --]
-}
-
-// v2 Key Structure
-{
-  "identity": { // [!code ++]
-    "externalId": "user_456", // [!code ++]
-    "id": "id_123", // [!code ++]
-    "ratelimits": [], // [!code ++]
-    "meta": {}, // [!code ++]
-}, // [!code ++]
-  "credits": { // [!code ++]
-    "remaining": 1000, // [!code ++]
-    "refill": { // [!code ++]
-      "interval": "monthly", // [!code ++]
-      "amount": 1000, // [!code ++]
-      "refillDay": 1 // [!code ++]
-    } // [!code ++]
-  }, // [!code ++]
-  "ratelimits": [ // [!code ++]
-    { // [!code ++]
-      "name": "api_requests", // [!code ++]
-      "limit": 100, // [!code ++]
-      "duration": 60000, // [!code ++]
-      "autoApply": true // [!code ++]
-    } // [!code ++]
-  ] // [!code ++]
-}
-```
-</Tab>
+  <Tab title="Key Structure Migration">
+    ```json v1 vs v2: Key Structure
+    // v1 Key Structure
+    {
+      "apiId": "api_123",
+      "ownerId": "user_456", // [!code --]
+      "remaining": 1000, // [!code --]
+      "refill": { // [!code --]
+        "interval": "monthly", // [!code --]
+        "amount": 1000 // [!code --]
+      }, // [!code --]
+      "ratelimit": { // [!code --]
+        "limit": 100, // [!code --]
+        "duration": 60000, // [!code --]
+        "async": true // [!code --]
+      } // [!code --]
+    }
+    
+    // v2 Key Structure
+    {
+      "identity": { // [!code ++]
+        "externalId": "user_456", // [!code ++]
+        "id": "id_123", // [!code ++]
+        "ratelimits": [], // [!code ++]
+        "meta": {}, // [!code ++]
+    }, // [!code ++]
+      "credits": { // [!code ++]
+        "remaining": 1000, // [!code ++]
+        "refill": { // [!code ++]
+          "interval": "monthly", // [!code ++]
+          "amount": 1000, // [!code ++]
+          "refillDay": 1 // [!code ++]
+        } // [!code ++]
+      }, // [!code ++]
+      "ratelimits": [ // [!code ++]
+        { // [!code ++]
+          "name": "api_requests", // [!code ++]
+          "limit": 100, // [!code ++]
+          "duration": 60000, // [!code ++]
+          "autoApply": true // [!code ++]
+        } // [!code ++]
+      ] // [!code ++]
+    }
+    ```
+  </Tab>
 </Tabs>
 
 ---
@@ -1523,36 +1562,41 @@ console.log(keyData.keyId);
 ## Migration Checklist
 
 ### Key Creation & Updates
-- [ ] Replace `ownerId` with `externalId`
-- [ ] Update `remaining` + `refill` → `credits` structure
-- [ ] Convert `ratelimit` → `ratelimits` array
-- [ ] Add `name` field to rate limits
-- [ ] Change `async` parameter to `autoApply`
-- [ ] Add `refillDay` for monthly intervals
+
+- Replace `ownerId` with `externalId`
+- Update `remaining` \+ `refill` → `credits` structure
+- Convert `ratelimit` → `ratelimits` array
+- Add `name` field to rate limits
+- Change `async` parameter to `autoApply`
+- Add `refillDay` for monthly intervals
 
 ### Key Verification
-- [ ] **CRITICAL**: Create root key with `api.*.verify_key` permission for your verification service
-- [ ] Add root key authentication header to all key verification calls
-- [ ] Remove `apiId` parameter from verification requests (controlled by root key permissions now)
-- [ ] Convert permission query objects to strings: `"perm1 AND perm2"`
-- [ ] Update `remaining` → `credits` for cost parameters
-- [ ] Handle new rate limits array structure in responses
-- [ ] Test verification with both wildcard (`api.*.verify_key`) and specific API permissions
+
+- **CRITICAL**: Create root key with `api.*.verify_key` permission for your verification service
+- Add root key authentication header to all key verification calls
+- Remove `apiId` parameter from verification requests (controlled by root key permissions now)
+- Convert permission query objects to strings: `"perm1 AND perm2"`
+- Update `remaining` → `credits` for cost parameters
+- Handle new rate limits array structure in responses
+- Test verification with both wildcard (`api.*.verify_key`) and specific API permissions
 
 ### Response Handling
-- [ ] Change `response` (direct) to `response.data` in all key operations
-- [ ] Extract and log `meta.requestId` from responses for debugging
-- [ ] Remove references to `ownerId` in response parsing
-- [ ] Update error handling for new response structure
+
+- Change `response` (direct) to `response.data` in all key operations
+- Extract and log `meta.requestId` from responses for debugging
+- Remove references to `ownerId` in response parsing
+- Update error handling for new response structure
 
 ### Endpoint Updates
-- [ ] Update `keys.updateRemaining` → `keys.updateCredits`
-- [ ] Add `operation` parameter for credit updates (set/increment/decrement)
-- [ ] Add `permanent` parameter for key deletion if needed
+
+- Update `keys.updateRemaining` → `keys.updateCredits`
+- Add `operation` parameter for credit updates (set/increment/decrement)
+- Add `permanent` parameter for key deletion if needed
 
 ### Testing
-- [ ] Test key creation with new structure
-- [ ] Test key verification with string-based permission queries
-- [ ] Test permission and role management operations
-- [ ] Verify key updates work with new credit structure
-- [ ] Confirm all responses follow new envelope format
+
+- Test key creation with new structure
+- Test key verification with string-based permission queries
+- Test permission and role management operations
+- Verify key updates work with new credit structure
+- Confirm all responses follow new envelope format
