@@ -20,8 +20,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-// TestSmartDecrementAccuracy tests the smart decrement logic through the verify key endpoint
-func TestSmartDecrementAccuracy(t *testing.T) {
+// TestDecrementAccuracy tests the decrement logic through the verify key endpoint
+func TestDecrementAccuracy(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	testCases := []struct {
@@ -33,7 +33,7 @@ func TestSmartDecrementAccuracy(t *testing.T) {
 		requests     int
 	}{
 		{
-			name:         "BasicSmartDecrement_SingleNode",
+			name:         "BasicDecrement_SingleNode",
 			nodeCount:    1,
 			totalCredits: 50,
 			cost:         1,
@@ -41,7 +41,7 @@ func TestSmartDecrementAccuracy(t *testing.T) {
 			requests:     75, // 25 more than available credits
 		},
 		{
-			name:         "HighCostSmartDecrement_MultiNode",
+			name:         "HighCostDecrement_MultiNode",
 			nodeCount:    3,
 			totalCredits: 100,
 			cost:         5,
@@ -157,16 +157,16 @@ func TestSmartDecrementAccuracy(t *testing.T) {
 			expectedFailures := totalRequests - expectedSuccessful
 			expectedRemaining := tc.totalCredits - int64(expectedSuccessful)*tc.cost
 
-			t.Logf("Smart decrement test results:")
+			t.Logf(" decrement test results:")
 			t.Logf("  Total requests: %d", totalRequests)
 			t.Logf("  Successful: %d (expected: %d)", successCount, expectedSuccessful)
 			t.Logf("  Failed: %d (expected: %d)", failureCount, expectedFailures)
 			t.Logf("  Final remaining credits: %d (expected: %d)", minRemainingCredits, expectedRemaining)
 
-			// Verify exact accuracy - smart decrement should be 100% accurate
+			// Verify exact accuracy - decrement should be 100% accurate
 			require.Equal(t, totalRequests, successCount+failureCount, "All requests should be processed")
-			require.Equal(t, expectedSuccessful, successCount, "Smart decrement must be 100%% accurate for successes")
-			require.Equal(t, expectedFailures, failureCount, "Smart decrement must be 100%% accurate for failures")
+			require.Equal(t, expectedSuccessful, successCount, " decrement must be 100%% accurate for successes")
+			require.Equal(t, expectedFailures, failureCount, " decrement must be 100%% accurate for failures")
 			require.Equal(t, expectedRemaining, minRemainingCredits, "Remaining credits must be exactly accurate")
 
 			// Verify traffic distribution in multi-node tests
@@ -203,13 +203,13 @@ func TestSmartDecrementAccuracy(t *testing.T) {
 
 			// Database must also be 100% accurate
 			require.Equal(t, expectedRemaining, dbRemaining,
-				"Database remaining credits must be 100%% accurate after smart decrement")
+				"Database remaining credits must be 100%% accurate after decrement")
 		})
 	}
 }
 
-// TestSmartDecrementEdgeCases tests edge cases for the smart decrement logic
-func TestSmartDecrementEdgeCases(t *testing.T) {
+// TestDecrementEdgeCases tests edge cases for the decrement logic
+func TestDecrementEdgeCases(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	t.Run("ZeroCreditHandling", func(t *testing.T) {

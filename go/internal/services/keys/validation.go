@@ -42,13 +42,10 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return err
 	}
 
-	// Handle insufficient credits: any negative value means insufficient credits
-	// In this case, we want to set RemainingRequests to 0 and mark as invalid
+	// Always update remaining requests with the accurate count from the usageLimiter
+	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
 	if !usage.Valid {
-		k.Key.RemainingRequests = sql.NullInt32{Int32: 0, Valid: true}
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
-	} else {
-		k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
 	}
 
 	return nil

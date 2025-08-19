@@ -13,10 +13,17 @@ import (
 )
 
 const (
-	// decrementScript is the Lua script for decrementing a counter.
+	// decrementIfExistsScript is the Lua script for atomic decrement operations.
 	// This script checks if the key exists and if there are sufficient credits
 	// before decrementing, avoiding negative values that would need reverting.
-	// Uses DECRBY to preserve existing TTL on the key.
+	//
+	// Decrement Logic:
+	// - If key doesn't exist: return {0, 0, 0} (value=0, existed=false, success=false)
+	// - If insufficient credits: return {current, 1, 0} (unchanged value, existed=true, success=false)
+	// - If sufficient credits: return {new_value, 1, 1} (decremented value, existed=true, success=true)
+	//
+	// The third return value (success flag) provides unambiguous indication of whether
+	// the decrement operation succeeded, eliminating the need to infer success from values.
 	decrementIfExistsScript = `
 		local key = KEYS[1]
 		local decrement = tonumber(ARGV[1])
@@ -24,18 +31,18 @@ const (
 		-- Check if key exists
 		local current = redis.call('GET', key)
 		if current == false then
-			return {0, 0}  -- {value, existed} where existed=0 means false
+			return {0, 0, 0}  -- {value=0, existed=false, success=false}
 		end
 
 		current = tonumber(current)
 		-- Check if we have sufficient credits before decrementing
 		if current < decrement then
-			return {-1, 1}  -- {-1, existed} - insufficient credits (negative indicates denial)
+			return {current, 1, 0}  -- {current_unchanged, existed=true, success=false}
 		end
 
 		-- Sufficient credits, perform atomic decrement preserving TTL
 		local newValue = redis.call('DECRBY', key, decrement)
-		return {newValue, 1}  -- {new_value, existed} - decrement successful
+		return {newValue, 1, 1}  -- {new_decremented_value, existed=true, success=true}
 	`
 )
 
@@ -203,39 +210,49 @@ func (r *redisCounter) SetIfNotExists(ctx context.Context, key string, value int
 	return result.Val(), result.Err()
 }
 
-// DecrementIfExists decrements a counter only if it already exists.
-// Uses a cached Lua script (EVALSHA) to atomically check existence and decrement.
-// Sentinel meaning: newValue == -1 with existed==true indicates insufficient credits.
-func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, error) {
+// DecrementIfExists performs an atomic decrement operation.
+// Uses a cached Lua script (EVALSHA) to atomically check existence, verify sufficient
+// credits, and conditionally decrement. Returns the actual current counter value and
+// explicit success/failure indication.
+//
+// The decrement logic ensures that:
+// 1. Counters never go negative (preserves data integrity)
+// 2. Returns actual current values (no sentinel values like -1)
+// 3. Provides unambiguous success indication via separate flag
+func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value int64) (int64, bool, bool, error) {
 	ctx, span := tracing.Start(ctx, "RedisCounter.DecrementIfExists")
 	defer span.End()
 
 	result, err := decrementIfExistsScriptCached.Run(ctx, r.redis, []string{key}, value).Result()
 	if err != nil {
-		return 0, false, err
+		return 0, false, false, err
 	}
 
-	// Parse the result array [newValue, existed]
+	// Parse the result array [actualValue, existedFlag, successFlag]
 	resultSlice, ok := result.([]interface{})
-	if !ok || len(resultSlice) != 2 {
-		return 0, false, fmt.Errorf("unexpected result format from Lua script")
+	if !ok || len(resultSlice) != 3 {
+		return 0, false, false, fmt.Errorf("unexpected result format from Lua script")
 	}
 
-	// Defensively parse newValue from multiple numeric types
-	newValue, err := parseNumericValue(resultSlice[0])
+	// Defensively parse actualValue from multiple numeric types
+	actualValue, err := parseNumericValue(resultSlice[0])
 	if err != nil {
-		return 0, false, fmt.Errorf("invalid newValue in result: %w", err)
+		return 0, false, false, fmt.Errorf("invalid actualValue in result: %w", err)
 	}
 
 	// Defensively parse existed flag from multiple numeric types
-	existedValue, err := parseNumericValue(resultSlice[1])
+	existedFlag, err := parseNumericValue(resultSlice[1])
 	if err != nil {
-		return 0, false, fmt.Errorf("invalid existed flag in result: %w", err)
+		return 0, false, false, fmt.Errorf("invalid existed flag in result: %w", err)
 	}
 
-	// Treat any non-zero value as true for existed flag
-	existed := existedValue != 0
-	return newValue, existed, nil
+	// Defensively parse success flag from multiple numeric types
+	successFlag, err := parseNumericValue(resultSlice[2])
+	if err != nil {
+		return 0, false, false, fmt.Errorf("invalid success flag in result: %w", err)
+	}
+
+	return actualValue, existedFlag == 1, successFlag == 1, nil
 }
 
 // parseNumericValue safely converts various numeric types to int64
