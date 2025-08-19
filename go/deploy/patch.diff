@@ -1,0 +1,104 @@
+diff --git a/go/deploy/builderd/contrib/systemd/builderd.service b/go/deploy/builderd/contrib/systemd/builderd.service
+index 4612d9319b..3f2cf6e5af 100644
+--- a/go/deploy/builderd/contrib/systemd/builderd.service
++++ b/go/deploy/builderd/contrib/systemd/builderd.service
+@@ -35,7 +35,7 @@
+ Environment=UNKEY_BUILDERD_SCRATCH_DIR=/opt/builderd/scratch
+ Environment=UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs
+ Environment=UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace
+-Environment=UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR=true
++Environment=UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR=false
+ 
+ # Storage configuration
+ Environment=UNKEY_BUILDERD_STORAGE_BACKEND=local
+diff --git a/go/deploy/metald/README.md b/go/deploy/metald/README.md
+index aed48c9b68..5e267b45e1 100644
+--- a/go/deploy/metald/README.md
++++ b/go/deploy/metald/README.md
+@@ -77,13 +77,9 @@
+ 
+ ## Security
+ 
+-Metald uses an integrated jailer approach with specific capabilities:
+-- `CAP_SYS_ADMIN` - Namespace operations
+-- `CAP_NET_ADMIN` - Network device creation  
+-- `CAP_SYS_CHROOT` - Jail creation
+-- Additional capabilities for privilege dropping
++Metald runs as root to manage network namespaces, interfaces, and iptables operations. This is acceptable as metald is designed to be the sole application on dedicated VM hosts. The integrated jailer still drops privileges to specified UID/GID for individual VM processes, ensuring proper isolation.
+ 
+-The `make install` command configures these automatically.
++The `make install` command configures the service with appropriate permissions automatically.
+ 
+ ## Contributing
+ 
+diff --git a/go/deploy/metald/cmd/metald-init/metald-init b/go/deploy/metald/cmd/metald-init/metald-init
+index f56817e2a0..dbd7fe0415 100755
+Binary files a/go/deploy/metald/cmd/metald-init/metald-init and b/go/deploy/metald/cmd/metald-init/metald-init differ
+diff --git a/go/deploy/metald/contrib/systemd/metald.service b/go/deploy/metald/contrib/systemd/metald.service
+index 8590b66ba6..33143896ca 100644
+--- a/go/deploy/metald/contrib/systemd/metald.service
++++ b/go/deploy/metald/contrib/systemd/metald.service
+@@ -71,11 +71,5 @@
+ LimitNOFILE=65536
+ LimitNPROC=4096
+ 
+-# Linux capabilities - not needed when running as root
+-# AIDEV-NOTE: Running as root provides all necessary capabilities for network management
+-# AmbientCapabilities removed - root has all capabilities
+-# CapabilityBoundingSet removed - root has all capabilities
+-# ReadWritePaths removed - no namespace protection is used
+-
+ [Install]
+ WantedBy=multi-user.target
+diff --git a/go/deploy/metald/internal/jailer/README.md b/go/deploy/metald/internal/jailer/README.md
+index e8b14c1e0d..e7f2fc3fb2 100644
+--- a/go/deploy/metald/internal/jailer/README.md
++++ b/go/deploy/metald/internal/jailer/README.md
+@@ -40,12 +40,14 @@
+ - No privilege escalation is possible
+ - Network isolation is maintained
+ 
+-## Required Capabilities
+-
+-Metald needs these capabilities (not full root):
+-- CAP_SYS_ADMIN - For namespace operations
+-- CAP_NET_ADMIN - For TAP device creation
+-- CAP_SYS_CHROOT - For chroot operation
+-- CAP_SETUID/CAP_SETGID - For dropping privileges
+-- CAP_MKNOD - For device node creation
+-- CAP_DAC_OVERRIDE - For file access during setup
+\ No newline at end of file
++## Required Permissions
++
++Metald runs as root to perform the following operations:
++- Namespace operations (network, mount, PID)
++- TAP device creation and network configuration
++- Chroot jail creation
++- Privilege dropping to unprivileged UID/GID for VM processes
++- Device node creation in jail
++- File system operations for jail setup
++
++Running as root is acceptable as metald is designed to be the sole application on dedicated VM hosts. The integrated jailer ensures that individual VM processes run with minimal privileges after the initial setup.
+\ No newline at end of file
+diff --git a/go/deploy/metald/internal/jailer/jailer_test.go b/go/deploy/metald/internal/jailer/jailer_test.go
+index 2079ea8b21..ea74a7fbb3 100644
+--- a/go/deploy/metald/internal/jailer/jailer_test.go
++++ b/go/deploy/metald/internal/jailer/jailer_test.go
+@@ -26,7 +26,7 @@
+ }
+ 
+ func TestSetupChroot(t *testing.T) {
+-	// This test requires root or CAP_MKNOD to create device nodes
++	// This test requires root privileges to create device nodes
+ 	if os.Getuid() != 0 {
+ 		t.Skip("Test requires root privileges")
+ 	}
+@@ -82,7 +82,7 @@
+ }
+ 
+ // TestJoinNetworkNamespace tests network namespace joining
+-// This test requires CAP_SYS_ADMIN to create network namespaces
++// This test requires root privileges to create network namespaces
+ func TestJoinNetworkNamespace(t *testing.T) {
+ 	if os.Getuid() != 0 {
+ 		t.Skip("Test requires root privileges")

@@ -40,12 +40,14 @@ The integrated jailer maintains the same security guarantees:
 - No privilege escalation is possible
 - Network isolation is maintained
 
-## Required Capabilities
+## Required Permissions
 
-Metald needs these capabilities (not full root):
-- CAP_SYS_ADMIN - For namespace operations
-- CAP_NET_ADMIN - For TAP device creation
-- CAP_SYS_CHROOT - For chroot operation
-- CAP_SETUID/CAP_SETGID - For dropping privileges
-- CAP_MKNOD - For device node creation
-- CAP_DAC_OVERRIDE - For file access during setup
+Metald runs as root to perform the following operations:
+- Namespace operations (network, mount, PID)
+- TAP device creation and network configuration
+- Chroot jail creation
+- Privilege dropping to unprivileged UID/GID for VM processes
+- Device node creation in jail
+- File system operations for jail setup
+
+Running as root is acceptable as metald is designed to be the sole application on dedicated VM hosts. The integrated jailer ensures that individual VM processes run with minimal privileges after the initial setup.

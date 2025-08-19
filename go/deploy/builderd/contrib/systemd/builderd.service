@@ -35,7 +35,7 @@ Environment=UNKEY_BUILDERD_BUILD_TIMEOUT=15m
 Environment=UNKEY_BUILDERD_SCRATCH_DIR=/opt/builderd/scratch
 Environment=UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs
 Environment=UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace
-Environment=UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR=true
+Environment=UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR=false
 
 # Storage configuration
 Environment=UNKEY_BUILDERD_STORAGE_BACKEND=local

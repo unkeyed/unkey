@@ -71,11 +71,5 @@ Environment=UNKEY_METALD_NETWORK_BRIDGE_COUNT=8
 LimitNOFILE=65536
 LimitNPROC=4096
 
-# Linux capabilities - not needed when running as root
-# AIDEV-NOTE: Running as root provides all necessary capabilities for network management
-# AmbientCapabilities removed - root has all capabilities
-# CapabilityBoundingSet removed - root has all capabilities
-# ReadWritePaths removed - no namespace protection is used
-
 [Install]
 WantedBy=multi-user.target
