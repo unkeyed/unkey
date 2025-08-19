@@ -304,10 +304,9 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 	}()
 
 	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-		return nil, db.Query.UpdateKeyCredits(ctx, s.db.RW(), db.UpdateKeyCreditsParams{
-			ID:        change.KeyID,
-			Operation: "decrement",
-			Credits:   sql.NullInt32{Int32: change.Amount, Valid: true},
+		return nil, db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
+			ID:      change.KeyID,
+			Credits: sql.NullInt32{Int32: change.Amount, Valid: true},
 		})
 	})
 
