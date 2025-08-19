@@ -90,7 +90,7 @@ export const DeploymentsList = () => {
       {
         key: "env",
         header: "Environment",
-        width: "10%",
+        width: "15%",
         render: (deployment) => {
           return (
             <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit capitalize">
@@ -102,7 +102,7 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "10%",
+        width: "12%",
         render: (deployment) => {
           return <DeploymentStatusBadge status={deployment.status} />;
         },

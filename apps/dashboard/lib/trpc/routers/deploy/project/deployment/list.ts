@@ -75,7 +75,7 @@ export const queryDeployments = t.procedure
   .output(deploymentsOutputSchema)
   .query(async ({ input }) => {
     try {
-      const hardcodedDeployments = generateDeployments(100);
+      const hardcodedDeployments = generateDeployments(10_000);
 
       // Apply filters to deployments
       let filteredDeployments = hardcodedDeployments;
