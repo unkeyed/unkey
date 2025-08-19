@@ -156,11 +156,30 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 		permissions := []PermissionInfo{{Slug: "read"}, {Slug: "write"}}
 		permissionsJSON, _ := json.Marshal(permissions)
 
+		ratelimits := []RatelimitInfo{
+			{
+				ID:        "rate-1",
+				Duration:  3600,
+				Limit:     100,
+				Name:      "hourly-limit",
+				AutoApply: true,
+			},
+			{
+				ID:        "rate-2",
+				Duration:  60,
+				Limit:     10,
+				Name:      "minute-limit",
+				AutoApply: false,
+			},
+		}
+		ratelimitsJSON, _ := json.Marshal(ratelimits)
+
 		row := FindLiveKeyByHashRow{
 			ID:              "key-with-json",
 			Roles:           rolesJSON,
 			Permissions:     permissionsJSON,
-			RolePermissions: permissionsJSON, // Reuse for test
+			RolePermissions: permissionsJSON,
+			Ratelimits:      ratelimitsJSON,
 		}
 
 		result := ToKeyData(row)
@@ -173,6 +192,12 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 		require.Equal(t, "read", result.Permissions[0].Slug)
 		require.Equal(t, "write", result.Permissions[1].Slug)
 		require.Len(t, result.RolePermissions, 2)
+		require.Len(t, result.Ratelimits, 2)
+		require.Equal(t, "rate-1", result.Ratelimits[0].ID)
+		require.Equal(t, int64(3600), result.Ratelimits[0].Duration)
+		require.Equal(t, int32(100), result.Ratelimits[0].Limit)
+		require.Equal(t, "hourly-limit", result.Ratelimits[0].Name)
+		require.True(t, result.Ratelimits[0].AutoApply)
 	})
 
 	t.Run("with invalid JSON - should ignore errors", func(t *testing.T) {
