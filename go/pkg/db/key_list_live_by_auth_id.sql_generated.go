@@ -13,8 +13,6 @@ import (
 const listLiveKeysByKeyAuthID = `-- name: ListLiveKeysByKeyAuthID :many
 SELECT
     k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-    ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-    ws.id, ws.org_id, ws.name, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
     i.id as identity_table_id,
     i.external_id as identity_external_id,
     i.meta as identity_meta,
@@ -136,8 +134,6 @@ type ListLiveKeysByKeyAuthIDRow struct {
 	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
 	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
 	Environment        sql.NullString `db:"environment"`
-	KeyAuth            KeyAuth        `db:"key_auth"`
-	Workspace          Workspace      `db:"workspace"`
 	IdentityTableID    sql.NullString `db:"identity_table_id"`
 	IdentityExternalID sql.NullString `db:"identity_external_id"`
 	IdentityMeta       []byte         `db:"identity_meta"`
@@ -153,8 +149,6 @@ type ListLiveKeysByKeyAuthIDRow struct {
 //
 //	SELECT
 //	    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-//	    ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-//	    ws.id, ws.org_id, ws.name, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 //	    i.id as identity_table_id,
 //	    i.external_id as identity_external_id,
 //	    i.meta as identity_meta,
@@ -283,32 +277,6 @@ func (q *Queries) ListLiveKeysByKeyAuthID(ctx context.Context, db DBTX, arg List
 			&i.RatelimitLimit,
 			&i.RatelimitDuration,
 			&i.Environment,
-			&i.KeyAuth.ID,
-			&i.KeyAuth.WorkspaceID,
-			&i.KeyAuth.CreatedAtM,
-			&i.KeyAuth.UpdatedAtM,
-			&i.KeyAuth.DeletedAtM,
-			&i.KeyAuth.StoreEncryptedKeys,
-			&i.KeyAuth.DefaultPrefix,
-			&i.KeyAuth.DefaultBytes,
-			&i.KeyAuth.SizeApprox,
-			&i.KeyAuth.SizeLastUpdatedAt,
-			&i.Workspace.ID,
-			&i.Workspace.OrgID,
-			&i.Workspace.Name,
-			&i.Workspace.PartitionID,
-			&i.Workspace.Plan,
-			&i.Workspace.Tier,
-			&i.Workspace.StripeCustomerID,
-			&i.Workspace.StripeSubscriptionID,
-			&i.Workspace.BetaFeatures,
-			&i.Workspace.Features,
-			&i.Workspace.Subscriptions,
-			&i.Workspace.Enabled,
-			&i.Workspace.DeleteProtection,
-			&i.Workspace.CreatedAtM,
-			&i.Workspace.UpdatedAtM,
-			&i.Workspace.DeletedAtM,
 			&i.IdentityTableID,
 			&i.IdentityExternalID,
 			&i.IdentityMeta,

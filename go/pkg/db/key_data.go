@@ -78,8 +78,8 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 			Environment:       r.Environment,
 		},
 		Api:             Api{}, // Empty Api since not in this query
-		KeyAuth:         r.KeyAuth,
-		Workspace:       r.Workspace,
+		KeyAuth:         KeyAuth{},
+		Workspace:       Workspace{},
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
 		Roles:           nil,
