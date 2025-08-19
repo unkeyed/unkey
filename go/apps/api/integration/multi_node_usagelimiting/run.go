@@ -104,7 +104,7 @@ func RunUsageLimitTest(
 	lb := integration.NewLoadbalancer(h)
 
 	// Send requests
-	for i := 0; i < totalRequests; i++ {
+	for range totalRequests {
 		// Send request to a random node
 		res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
 			lb, "POST", "/v2/keys.verifyKey", headers, req)
@@ -117,6 +117,9 @@ func RunUsageLimitTest(
 			if res.Body.Data.Credits != nil {
 				lastRemaining = int64(*res.Body.Data.Credits)
 			}
+		} else {
+			require.NoError(t, callErr)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "expected USAGEEXCEEDED")
 		}
 
 		// No early termination - send all planned requests to verify proper rejection of overconsumption

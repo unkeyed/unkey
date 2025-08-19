@@ -141,13 +141,14 @@ func (b *Buffer[T]) Consume() <-chan T {
 	return b.c
 }
 
-// Size returns the current number of buffered elements without consuming them.
-// This is safe for concurrent use and won't modify the buffer state.
+// Size returns a non-blocking, thread-safe snapshot of the number of buffered elements.
+// This value may change immediately due to concurrent sends/receives, so it should
+// only be used for monitoring or debugging purposes, not for control flow decisions.
 //
 // Example:
 //
 //	size := b.Size()
-//	fmt.Printf("Buffer contains %d elements\n", size)
+//	fmt.Printf("Buffer snapshot shows %d elements\n", size)
 func (b *Buffer[T]) Size() int {
 	return len(b.c)
 }

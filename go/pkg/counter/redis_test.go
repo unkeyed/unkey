@@ -2,6 +2,7 @@ package counter
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -637,142 +638,296 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 	})
 }
 
-func TestRedisCounterIncrementIfExists(t *testing.T) {
+// TestRedisCounterDelete tests the Delete operation on the Redis counter.
+func TestRedisCounterDelete(t *testing.T) {
 	ctx := context.Background()
+	logger := logging.New()
 	redisURL := containers.Redis(t)
 
-	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logging.New(),
+		Logger:   logger,
 	})
 	require.NoError(t, err)
 	defer ctr.Close()
 
-	t.Run("IncrementNonExistentKey", func(t *testing.T) {
-		key := uid.New(uid.TestPrefix)
+	t.Run("DeleteExistingKey", func(t *testing.T) {
+		key := fmt.Sprintf("test-delete-%d", time.Now().UnixNano())
 
-		// Try to increment a non-existent key
-		val, existed, err := ctr.IncrementIfExists(ctx, key, 5)
+		// Set initial value
+		val, err := ctr.Increment(ctx, key, 100)
 		require.NoError(t, err)
-		require.False(t, existed, "Key should not exist")
-		require.Equal(t, int64(0), val, "Value should be 0 when key doesn't exist")
+		require.Equal(t, int64(100), val)
 
-		// Verify key still doesn't exist
-		getVal, err := ctr.Get(ctx, key)
+		// Verify it exists
+		val, err = ctr.Get(ctx, key)
 		require.NoError(t, err)
-		require.Equal(t, int64(0), getVal)
+		require.Equal(t, int64(100), val)
+
+		// Delete the key
+		err = ctr.Delete(ctx, key)
+		require.NoError(t, err)
+
+		// Verify it's gone (should return 0)
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), val)
+
+		// DecrementIfExists should fail now
+		val, existed, err := ctr.DecrementIfExists(ctx, key, 10)
+		require.NoError(t, err)
+		require.False(t, existed)
+		require.Equal(t, int64(0), val)
 	})
 
-	t.Run("IncrementExistingKey", func(t *testing.T) {
-		key := uid.New(uid.TestPrefix)
+	t.Run("DeleteNonExistentKey", func(t *testing.T) {
+		key := fmt.Sprintf("test-delete-nonexistent-%d", time.Now().UnixNano())
 
-		// Create the key first
-		_, err := ctr.Increment(ctx, key, 5)
+		// Delete a key that doesn't exist (should not error)
+		err := ctr.Delete(ctx, key)
 		require.NoError(t, err)
 
-		// Now increment if exists - should work
-		val, existed, err := ctr.IncrementIfExists(ctx, key, 3)
+		// Verify it still doesn't exist
+		val, err := ctr.Get(ctx, key)
 		require.NoError(t, err)
-		require.True(t, existed, "Key should exist")
-		require.Equal(t, int64(8), val, "Value should be 8 after increment")
-
-		// Verify with Get
-		getVal, err := ctr.Get(ctx, key)
-		require.NoError(t, err)
-		require.Equal(t, int64(8), getVal)
+		require.Equal(t, int64(0), val)
 	})
 
-	t.Run("IncrementWithNegativeValue", func(t *testing.T) {
-		key := uid.New(uid.TestPrefix)
+	t.Run("DeleteAndReinitialize", func(t *testing.T) {
+		key := fmt.Sprintf("test-delete-reinit-%d", time.Now().UnixNano())
 
-		// Create key with positive value
-		_, err := ctr.Increment(ctx, key, 10)
+		// Set initial value
+		val, err := ctr.Increment(ctx, key, 50)
+		require.NoError(t, err)
+		require.Equal(t, int64(50), val)
+
+		// Delete the key
+		err = ctr.Delete(ctx, key)
 		require.NoError(t, err)
 
-		// Increment with negative value (effectively decrement)
-		val, existed, err := ctr.IncrementIfExists(ctx, key, -3)
+		// Reinitialize with a new value
+		val, err = ctr.Increment(ctx, key, 25)
 		require.NoError(t, err)
-		require.True(t, existed, "Key should exist")
-		require.Equal(t, int64(7), val, "Value should be 7 after negative increment")
-	})
+		require.Equal(t, int64(25), val)
 
-	t.Run("UsageLimiterScenario", func(t *testing.T) {
-		// This tests the specific scenario used in the usage limiter
-		key := uid.New(uid.TestPrefix)
-
-		// Simulate a key that doesn't exist (new user/key)
-		remaining, existed, err := ctr.DecrementIfExists(ctx, key, 1)
+		// Verify the new value
+		val, err = ctr.Get(ctx, key)
 		require.NoError(t, err)
-		require.False(t, existed, "Key should not exist initially")
-		require.Equal(t, int64(0), remaining)
-
-		// Now create the key (simulating DB load) and set credits
-		_, err = ctr.Increment(ctx, key, 5) // User has 5 credits
-		require.NoError(t, err)
-
-		// Try decrementing again - should work now
-		remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
-		require.NoError(t, err)
-		require.True(t, existed, "Key should exist now")
-		require.Equal(t, int64(4), remaining, "Should have 4 credits left")
-
-		// Multiple decrements to test insufficient credits
-		for i := 0; i < 4; i++ {
-			remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
-			require.NoError(t, err)
-			require.True(t, existed)
-		}
-		require.Equal(t, int64(0), remaining, "Should have 0 credits left")
-
-		// Try one more decrement - should result in negative
-		remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
-		require.NoError(t, err)
-		require.True(t, existed, "Key should still exist")
-		require.Equal(t, int64(-1), remaining, "Should be -1 (insufficient)")
+		require.Equal(t, int64(25), val)
 	})
 }
 
-func TestRedisCounterMixedOperations(t *testing.T) {
+// TestRedisCounterSmartDecrement tests the smart decrement logic that avoids negative values
+func TestRedisCounterSmartDecrement(t *testing.T) {
 	ctx := context.Background()
+	logger := logging.New()
 	redisURL := containers.Redis(t)
 
-	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logging.New(),
+		Logger:   logger,
 	})
 	require.NoError(t, err)
 	defer ctr.Close()
 
-	t.Run("IncrementAndDecrementMixed", func(t *testing.T) {
-		key := uid.New(uid.TestPrefix)
+	t.Run("BasicSmartDecrementLogic", func(t *testing.T) {
+		key := fmt.Sprintf("test-smart-decr-%d", time.Now().UnixNano())
 
-		// Start with increment
+		// Initialize with 10 credits
 		val, err := ctr.Increment(ctx, key, 10)
 		require.NoError(t, err)
 		require.Equal(t, int64(10), val)
 
-		// Decrement
-		val, err = ctr.Decrement(ctx, key, 3)
-		require.NoError(t, err)
-		require.Equal(t, int64(7), val)
+		// Test cases: [decrementAmount, expectedSuccess, expectedFinalValue]
+		testCases := []struct {
+			decrementAmount   int64
+			expectedSuccess   bool
+			expectedFinalValue int64
+			description       string
+		}{
+			{3, true, 7, "decrement 3 from 10 → success, 7 remaining"},
+			{5, true, 2, "decrement 5 from 7 → success, 2 remaining"},
+			{2, true, 0, "decrement 2 from 2 → success, 0 remaining"},
+			{1, false, 0, "decrement 1 from 0 → failure, 0 remaining (unchanged)"},
+			{5, false, 0, "decrement 5 from 0 → failure, 0 remaining (unchanged)"},
+		}
 
-		// IncrementIfExists
-		val, existed, err := ctr.IncrementIfExists(ctx, key, 5)
+		for _, tc := range testCases {
+			t.Logf("Testing: %s", tc.description)
+			
+			remaining, existed, err := ctr.DecrementIfExists(ctx, key, tc.decrementAmount)
+			require.NoError(t, err)
+			require.True(t, existed, "key should exist")
+
+			if tc.expectedSuccess {
+				require.Equal(t, tc.expectedFinalValue, remaining, "successful decrement should return correct remaining value")
+				require.GreaterOrEqual(t, remaining, int64(0), "successful decrement should never go negative")
+			} else {
+				require.Equal(t, int64(-1), remaining, "failed decrement should return -1")
+			}
+
+			// Verify actual counter value
+			actualVal, err := ctr.Get(ctx, key)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedFinalValue, actualVal, "counter value should match expected")
+		}
+	})
+
+	t.Run("ConcurrentSmartDecrement", func(t *testing.T) {
+		key := fmt.Sprintf("test-concurrent-smart-%d", time.Now().UnixNano())
+		
+		// Initialize with 100 credits
+		initialCredits := int64(100)
+		_, err := ctr.Increment(ctx, key, initialCredits)
+		require.NoError(t, err)
+
+		// Run 50 goroutines, each trying to decrement 3 credits
+		// Only first 33 should succeed (33 * 3 = 99), with 1 credit remaining
+		
+		const numGoroutines = 50
+		const decrementAmount = 3
+		const expectedSuccessful = 33 // floor(100/3) = 33
+		
+		type result struct {
+			remaining int64
+			success   bool
+			goroutineID int
+		}
+		
+		results := make(chan result, numGoroutines)
+		
+		// Start all goroutines simultaneously
+		var wg sync.WaitGroup
+		startBarrier := make(chan struct{})
+		
+		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
+				
+				// Wait for all goroutines to be ready
+				<-startBarrier
+				
+				remaining, existed, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
+				require.NoError(t, err)
+				require.True(t, existed)
+				
+				success := remaining >= 0
+				results <- result{
+					remaining: remaining,
+					success:   success,
+					goroutineID: id,
+				}
+			}(i)
+		}
+		
+		// Release all goroutines at once
+		close(startBarrier)
+		wg.Wait()
+		close(results)
+		
+		// Analyze results
+		var successCount, failureCount int
+		var successfulRemainingValues []int64
+		
+		for res := range results {
+			if res.success {
+				successCount++
+				successfulRemainingValues = append(successfulRemainingValues, res.remaining)
+				require.GreaterOrEqual(t, res.remaining, int64(0), "successful decrements should never be negative")
+			} else {
+				failureCount++
+				require.Equal(t, int64(-1), res.remaining, "failed decrements should return -1")
+			}
+		}
+		
+		t.Logf("Successful decrements: %d, Failed decrements: %d", successCount, failureCount)
+		
+		// Verify counts
+		require.Equal(t, expectedSuccessful, successCount, "should have exactly %d successful decrements", expectedSuccessful)
+		require.Equal(t, numGoroutines-expectedSuccessful, failureCount, "remaining goroutines should fail")
+		
+		// Verify final counter value
+		finalValue, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		expectedFinalValue := initialCredits - int64(expectedSuccessful*decrementAmount)
+		require.Equal(t, expectedFinalValue, finalValue, "final counter value should be correct")
+	})
+
+	t.Run("ExactCreditUsage", func(t *testing.T) {
+		key := fmt.Sprintf("test-exact-usage-%d", time.Now().UnixNano())
+		
+		// Initialize with exactly 15 credits
+		_, err := ctr.Increment(ctx, key, 15)
+		require.NoError(t, err)
+
+		// Decrement exactly 15 credits - should succeed and leave 0
+		remaining, existed, err := ctr.DecrementIfExists(ctx, key, 15)
 		require.NoError(t, err)
 		require.True(t, existed)
-		require.Equal(t, int64(12), val)
+		require.Equal(t, int64(0), remaining, "should be able to use exact amount of credits")
 
-		// DecrementIfExists
-		val, existed, err = ctr.DecrementIfExists(ctx, key, 2)
+		// Next decrement should fail
+		remaining, existed, err = ctr.DecrementIfExists(ctx, key, 1)
 		require.NoError(t, err)
 		require.True(t, existed)
-		require.Equal(t, int64(10), val)
+		require.Equal(t, int64(-1), remaining, "should fail when no credits left")
 
-		// Final verification
-		finalVal, err := ctr.Get(ctx, key)
+		// Verify counter is still 0
+		finalValue, err := ctr.Get(ctx, key)
 		require.NoError(t, err)
-		require.Equal(t, int64(10), finalVal)
+		require.Equal(t, int64(0), finalValue, "counter should remain at 0")
+	})
+
+	t.Run("HighConcurrencyEdgeCases", func(t *testing.T) {
+		key := fmt.Sprintf("test-edge-cases-%d", time.Now().UnixNano())
+		
+		// Test with a small number of credits and high concurrency
+		initialCredits := int64(5)
+		_, err := ctr.Increment(ctx, key, initialCredits)
+		require.NoError(t, err)
+
+		const numGoroutines = 20
+		const decrementAmount = 1
+		
+		results := make(chan bool, numGoroutines)
+		var wg sync.WaitGroup
+		startBarrier := make(chan struct{})
+		
+		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-startBarrier
+				
+				remaining, existed, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
+				require.NoError(t, err)
+				require.True(t, existed)
+				
+				results <- remaining >= 0
+			}()
+		}
+		
+		close(startBarrier)
+		wg.Wait()
+		close(results)
+		
+		// Count successes
+		var successCount int
+		for success := range results {
+			if success {
+				successCount++
+			}
+		}
+		
+		t.Logf("High concurrency test: %d successes out of %d attempts", successCount, numGoroutines)
+		
+		// Should have exactly initialCredits successes
+		require.Equal(t, int(initialCredits), successCount, "should have exactly %d successes", initialCredits)
+		
+		// Final value should be 0
+		finalValue, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), finalValue, "final value should be 0")
 	})
 }

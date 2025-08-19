@@ -16,6 +16,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/repeat"
 )
 
+const (
+	defaultTTL          = 10 * time.Minute
+	defaultReplyWorkers = 8
+)
+
 type CreditChange struct {
 	KeyID  string
 	Amount int32
@@ -30,9 +35,8 @@ type RedisConfig struct {
 	// Optional, but recommended for production use.
 	Logger logging.Logger
 
-	// RedisURL is the connection URL for Redis.
-	// Format: redis://[[username][:password]@][host][:port][/database]
-	RedisURL string
+	// Counter is the counter implementation to use.
+	Counter counter.Counter
 
 	// TTL for Redis keys, defaults to 10 minutes if not specified
 	TTL time.Duration
@@ -73,6 +77,10 @@ type CounterConfig struct {
 
 	// TTL for Redis keys, defaults to 10 minutes if not specified
 	TTL time.Duration
+
+	// ReplayWorkers is the number of goroutines processing replay requests
+	// Defaults to 8 if not specified
+	ReplayWorkers int
 }
 
 // NewCounter creates a new counter-based usage limiter implementation.
@@ -97,7 +105,7 @@ type CounterConfig struct {
 func NewCounter(config CounterConfig) (Service, error) {
 	ttl := config.TTL
 	if ttl == 0 {
-		ttl = 10 * time.Minute
+		ttl = defaultTTL
 	}
 
 	// Create the direct DB fallback service
@@ -127,7 +135,12 @@ func NewCounter(config CounterConfig) (Service, error) {
 	}
 
 	// Start replay workers
-	for range 8 {
+	replayWorkers := config.ReplayWorkers
+	if replayWorkers <= 0 {
+		replayWorkers = defaultReplyWorkers
+	}
+
+	for range replayWorkers {
 		go s.replayRequests()
 	}
 
@@ -185,16 +198,11 @@ func (s *counterService) handleDecrementResult(ctx context.Context, req UsageReq
 		return UsageResponse{Valid: true, Remaining: int32(remaining)}, nil
 	}
 
-	// Insufficient credits (remaining < 0) - revert the decrement
-	// originalValue := remaining + int64(req.Cost)
-	_, revertErr := s.counter.Increment(ctx, redisKey, int64(req.Cost))
-	if revertErr != nil {
-		s.logger.Error("failed to revert insufficient credit decrement", "error", revertErr, "keyId", req.KeyId)
-	}
-
+	// Insufficient credits - the Lua script already handled this case
+	// and returned the current value without decrementing
 	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
 
-	return UsageResponse{Valid: false, Remaining: 0}, nil
+	return UsageResponse{Valid: false, Remaining: int32(remaining)}, nil
 }
 
 // initializeFromDatabase loads credits from DB and initializes the counter
@@ -259,6 +267,11 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	start := time.Now()
+	defer func() {
+		metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
+	}()
+
 	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
 		return nil, db.Query.UpdateKeyCredits(ctx, s.db.RW(), db.UpdateKeyCreditsParams{
 			ID:        change.KeyID,
@@ -268,20 +281,19 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 	})
 
 	if err != nil {
-		s.logger.Error("failed to sync credit change with DB", "keyId", change.KeyID, "amount", change.Amount, "error", err)
+		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
 		return err
 	}
 
+	metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
 	return nil
 }
 
-func (s *counterService) Close() error {
-	return s.GracefulShutdown(context.Background())
-}
-
-// GracefulShutdown performs a graceful shutdown of the usage limiter service.
+// Close performs a graceful shutdown of the usage limiter service.
 // It allows the replay buffer to drain pending changes before closing.
-func (s *counterService) GracefulShutdown(ctx context.Context) error {
+func (s *counterService) Close() error {
+	ctx := context.Background()
+
 	s.logger.Debug("beginning graceful shutdown of usage limiter")
 
 	// Set a reasonable timeout for draining if context doesn't have one
@@ -330,10 +342,11 @@ func (s *counterService) GracefulShutdown(ctx context.Context) error {
 				// Channel is closed and empty
 			}
 		}
-		return s.counter.Close()
+		return nil
 
 	case <-done:
 		s.logger.Debug("usage limiter replay buffer drained successfully")
-		return s.counter.Close()
+		return nil
 	}
+
 }

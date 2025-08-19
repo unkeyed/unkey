@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/integration"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -20,6 +19,47 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
+
+// Constants for database consistency polling
+const (
+	defaultReplayTimeout      = 10 * time.Second
+	defaultReplayPollInterval = 200 * time.Millisecond
+)
+
+// Constants for accuracy tolerance thresholds
+const (
+	// lowLoadAccuracyTolerance is the tolerance for low load scenarios (0% - perfect accuracy expected)
+	lowLoadAccuracyTolerance = 0.0
+	
+	// highLoadAccuracyTolerance is the maximum tolerance for high contention scenarios (1% maximum)
+	highLoadAccuracyTolerance = 0.01
+)
+
+// waitForDatabaseConsistency polls the database until the remaining credits match exactly
+// the expected value or the timeout is reached using require.Eventually.
+func waitForDatabaseConsistency(t *testing.T, ctx context.Context, dbConn db.DBTX, 
+	keyID string, expectedRemaining int64, timeout time.Duration, pollInterval time.Duration) (int32, error) {
+	
+	var finalRemaining int32
+	var lastErr error
+	
+	require.Eventually(t, func() bool {
+		finalKey, err := db.Query.FindKeyByID(ctx, dbConn, keyID)
+		if err != nil {
+			lastErr = err
+			return false
+		}
+		
+		if finalKey.RemainingRequests.Valid {
+			finalRemaining = finalKey.RemainingRequests.Int32
+			return int64(finalRemaining) == expectedRemaining
+		}
+		
+		return false
+	}, timeout, pollInterval, "Database should reach exact consistency within timeout")
+	
+	return finalRemaining, lastErr
+}
 
 // TestUsageLimitAccuracy tests the accuracy of credit counting under high concurrency
 func TestUsageLimitAccuracy(t *testing.T) {
@@ -136,8 +176,11 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 
 			for reqNum := range requestChan {
 				// Add some jitter to simulate real-world timing
-				if reqNum%10 == 0 {
-					time.Sleep(time.Millisecond * time.Duration(workerID%5))
+				needSleep := (reqNum%10 == 0)
+				jitter := time.Millisecond * time.Duration(workerID%5)
+				
+				if needSleep {
+					time.Sleep(jitter)
 				}
 
 				res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
@@ -178,53 +221,53 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	t.Logf("Minimum remaining credits seen: %d", minRemainingCredits)
 
 	// Verify total requests processed
-	assert.Equal(t, totalRequests, totalProcessed, "All requests should be processed")
+	require.Equal(t, totalRequests, totalProcessed, "All requests should be processed")
 
 	// Verify credit accuracy - should not exceed the limit
-	assert.LessOrEqual(t, successCount, expectedSuccessful, "Should not exceed credit limit")
+	require.LessOrEqual(t, successCount, expectedSuccessful, "Should not exceed credit limit")
 
 	// With atomic Redis operations, we expect perfect accuracy on low load
 	// Only allow error margin on high contention scenarios
 	if totalRequests <= expectedSuccessful {
-		// Low load - expect perfect accuracy
-		assert.Equal(t, min(totalRequests, expectedSuccessful), successCount,
+		// Low load - expect perfect accuracy (0% tolerance)
+		require.Equal(t, min(totalRequests, expectedSuccessful), successCount,
 			"Low load should have perfect accuracy with atomic operations")
 	} else {
-		// High contention - allow small error margin for race conditions
-		minExpected := max(0, int(float64(expectedSuccessful)*0.99))
-		assert.GreaterOrEqual(t, successCount, minExpected, "Should not under-count by more than 1%% on high load")
+		// High contention - allow maximum 1% error margin for race conditions
+		minExpected := max(0, int(float64(expectedSuccessful)*(1.0-highLoadAccuracyTolerance)))
+		require.GreaterOrEqual(t, successCount, minExpected, 
+			"Should not under-count by more than %.0f%% on high load", highLoadAccuracyTolerance*100)
 	}
 
-	// Verify remaining credits accuracy using the minimum observed value
+	// Verify remaining credits accuracy - should be 100% accurate
 	expectedRemaining := totalCredits - int64(successCount)*cost
-	assert.InDelta(t, expectedRemaining, minRemainingCredits, float64(cost)*2,
-		"Minimum remaining credits should be accurate within 2 cost units")
+	require.Equal(t, expectedRemaining, minRemainingCredits,
+		"Remaining credits must be 100%% accurate")
 
 	// Verify all nodes received traffic in multi-node tests
 	if nodeCount > 1 {
 		lbMetrics := lb.GetMetrics()
-		assert.Equal(t, nodeCount, len(lbMetrics), "All nodes should have received traffic")
+		require.Equal(t, nodeCount, len(lbMetrics), "All nodes should have received traffic")
 
 		// Verify traffic distribution is reasonable (no node should handle more than 70% of traffic)
 		for nodeID, count := range lbMetrics {
 			percentage := float64(count) / float64(totalRequests) * 100
-			assert.LessOrEqual(t, percentage, 70.0,
+			require.LessOrEqual(t, percentage, 70.0,
 				"Node %s handled %.1f%% of traffic (should be <= 70%%)", nodeID, percentage)
 		}
 	}
 
-	// Step 4: Verify final state in database
-	time.Sleep(2 * time.Second) // Allow time for async replay to complete
-
-	finalKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
-	require.NoError(t, err)
-
-	if finalKey.RemainingRequests.Valid {
-		dbRemaining := finalKey.RemainingRequests.Int32
-		t.Logf("Database remaining credits: %d", dbRemaining)
-
-		// DB should be eventually consistent with Redis
-		assert.InDelta(t, expectedRemaining, dbRemaining, float64(cost)*5,
-			"Database remaining credits should be eventually consistent")
-	}
+	// Step 4: Verify final state in database with polling-based wait
+	t.Logf("Waiting for database consistency (timeout: %v, poll interval: %v)", 
+		defaultReplayTimeout, defaultReplayPollInterval)
+	
+	dbRemaining, err := waitForDatabaseConsistency(t, ctx, h.DB.RO(), keyResponse.KeyID, 
+		expectedRemaining, defaultReplayTimeout, defaultReplayPollInterval)
+	require.NoError(t, err, "Database query should not fail during consistency check")
+	
+	t.Logf("Database remaining credits: %d", dbRemaining)
+	
+	// Verify the final consistency - must be 100% accurate
+	require.Equal(t, expectedRemaining, int64(dbRemaining),
+		"Database remaining credits must be 100%% accurate after replay")
 }

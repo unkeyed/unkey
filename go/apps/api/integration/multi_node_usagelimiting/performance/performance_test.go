@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -230,14 +231,10 @@ func runLatencyTest(t *testing.T, nodeCount, concurrency, samples int) {
 	avg := total / time.Duration(len(latencies))
 
 	// Calculate percentiles
-	// Sort latencies
-	for i := 0; i < len(latencies)-1; i++ {
-		for j := i + 1; j < len(latencies); j++ {
-			if latencies[i] > latencies[j] {
-				latencies[i], latencies[j] = latencies[j], latencies[i]
-			}
-		}
-	}
+	// Sort latencies using standard library for better performance
+	sort.Slice(latencies, func(i, j int) bool {
+		return latencies[i] < latencies[j]
+	})
 
 	p50 := latencies[len(latencies)/2]
 	p95Index := int(float64(len(latencies)) * 0.95)

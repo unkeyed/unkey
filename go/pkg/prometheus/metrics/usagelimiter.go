@@ -78,23 +78,6 @@ var (
 		},
 	)
 
-	// UsagelimiterRedisOperations counts Redis operations by type and outcome
-	// This counter helps monitor Redis health and operation patterns.
-	//
-	// Example usage:
-	//   metrics.UsagelimiterRedisOperations.WithLabelValues("eval", "success").Inc()
-	//   metrics.UsagelimiterRedisOperations.WithLabelValues("get", "error").Inc()
-	UsagelimiterRedisOperations = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "usagelimiter",
-			Name:        "redis_operations_total",
-			Help:        "Total number of Redis operations by type and outcome.",
-			ConstLabels: constLabels,
-		},
-		[]string{"operation", "outcome"},
-	)
-
 	// UsagelimiterCreditsProcessed counts the total number of credits processed
 	// This counter helps track the overall usage and throughput of the system.
 	//

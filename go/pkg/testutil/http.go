@@ -119,7 +119,7 @@ func NewHarness(t *testing.T) *Harness {
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
 		Region:      "test",
-		RedisURL:    redisUrl,
+		Counter:     ctr,
 	})
 	require.NoError(t, err)
 

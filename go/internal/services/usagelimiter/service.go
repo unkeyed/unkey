@@ -1,9 +1,6 @@
 package usagelimiter
 
 import (
-	"fmt"
-
-	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -24,7 +21,7 @@ type Config struct {
 
 // New creates a new direct DB-based usage limiter service.
 // This implementation queries the database on every request.
-// For higher performance, use NewRedis or NewRedisWithTransactions instead.
+// For higher performance, use NewRedisWithCounter instead.
 func New(config Config) (*service, error) {
 	return &service{
 		db:     config.DB,
@@ -51,19 +48,10 @@ func New(config Config) (*service, error) {
 //   - Service: Counter-based Redis implementation (recommended)
 //   - error: Any initialization errors
 func NewRedisWithCounter(config RedisConfig) (Service, error) {
-	// Create the Redis counter
-	redisCounter, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: config.RedisURL,
-		Logger:   config.Logger,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Redis counter: %w", err)
-	}
-
 	return NewCounter(CounterConfig{
 		DB:      config.DB,
 		Logger:  config.Logger,
-		Counter: redisCounter,
+		Counter: config.Counter,
 		TTL:     config.TTL,
 	})
 }
