@@ -40,13 +40,14 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures">,
+  workspace: Pick<Workspace, "features" | "betaFeatures" | "id">,
   segments: string[],
 ) => {
+  const basePath = `/${workspace.id}`;
   return [
     {
       icon: Nodes,
-      href: "/apis",
+      href: `${basePath}/apis`,
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
@@ -61,26 +62,26 @@ export const createWorkspaceNavigation = (
     },
     {
       icon: Gauge,
-      href: "/ratelimits",
+      href: `${basePath}/ratelimits`,
       label: "Ratelimit",
       active: segments.at(0) === "ratelimits",
     },
     {
       icon: ShieldKey,
       label: "Authorization",
-      href: "/authorization/roles",
+      href: `${basePath}/authorization/roles`,
       active: segments.some((s) => s === "authorization"),
       items: [
         {
           icon: null,
           label: "Roles",
-          href: "/authorization/roles",
+          href: `${basePath}/authorization/roles`,
           active: segments.some((s) => s === "roles"),
         },
         {
           icon: null,
           label: "Permissions",
-          href: "/authorization/permissions",
+          href: `${basePath}/authorization/permissions`,
           active: segments.some((s) => s === "permissions"),
         },
       ],
@@ -88,7 +89,7 @@ export const createWorkspaceNavigation = (
 
     {
       icon: InputSearch,
-      href: "/audit",
+      href: `${basePath}/audit`,
       label: "Audit Log",
       active: segments.at(0) === "audit",
     },
@@ -101,7 +102,7 @@ export const createWorkspaceNavigation = (
     },
     {
       icon: Layers3,
-      href: "/logs",
+      href: `${basePath}/logs`,
       label: "Logs",
       active: segments.at(0) === "logs",
     },
@@ -115,38 +116,38 @@ export const createWorkspaceNavigation = (
     },
     {
       icon: Fingerprint,
-      href: "/identities",
+      href: `${basePath}/identities`,
       label: "Identities",
       active: segments.at(0) === "identities",
       hidden: !workspace.betaFeatures.identities,
     },
     {
       icon: Gear,
-      href: "/settings/general",
+      href: `${basePath}/settings/general`,
       label: "Settings",
       active: segments.at(0) === "settings",
       items: [
         {
           icon: null,
-          href: "/settings/general",
+          href: `${basePath}/settings/general`,
           label: "General",
           active: segments.some((s) => s === "general"),
         },
         {
           icon: null,
-          href: "/settings/team",
+          href: `${basePath}/settings/team`,
           label: "Team",
           active: segments.some((s) => s === "team"),
         },
         {
           icon: null,
-          href: "/settings/root-keys",
+          href: `${basePath}/settings/root-keys`,
           label: "Root Keys",
           active: segments.some((s) => s === "root-keys"),
         },
         {
           icon: null,
-          href: "/settings/billing",
+          href: `${basePath}/settings/billing`,
           label: "Billing",
           active: segments.some((s) => s === "billing"),
         },

@@ -8,9 +8,8 @@ import { useMemo } from "react";
 
 const DEFAULT_LIMIT = 10;
 
-export const useApiNavigation = (baseNavItems: NavItem[]) => {
+export const useApiNavigation = (baseNavItems: NavItem[], workspaceId: string) => {
   const segments = useSelectedLayoutSegments() ?? [];
-
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.api.overview.query.useInfiniteQuery(
       {
@@ -34,14 +33,14 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
         const settingsItem: NavItem = {
           icon: Gear,
-          href: `/apis/${api.id}/settings`,
+          href: `/${workspaceId}/apis/${api.id}/settings`,
           label: "Settings",
           active: currentApiActive && segments.at(2) === "settings",
         };
 
         const overviewItem: NavItem = {
           icon: ArrowOppositeDirectionY,
-          href: `/apis/${api.id}`,
+          href: `/${workspaceId}/apis/${api.id}`,
           label: "Requests",
           active: isExactlyApiRoot || (currentApiActive && !segments.at(2)),
         };
@@ -51,7 +50,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         if (api.keyspaceId) {
           const keysItem: NavItem = {
             icon: Key,
-            href: `/apis/${api.id}/keys/${api.keyspaceId}`,
+            href: `/${workspaceId}/apis/${api.id}/keys/${api.keyspaceId}`,
             label: "Keys",
             active: currentApiActive && segments.at(2) === "keys",
           };
@@ -65,7 +64,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         const apiNavItem: NavItem = {
           // This is critical - must provide some icon to ensure chevron renders
           icon: null,
-          href: `/apis/${api.id}`,
+          href: `/${workspaceId}/apis/${api.id}`,
           label: api.name,
           active: currentApiActive,
           // Always set showSubItems to true to ensure chevron appears
@@ -77,11 +76,11 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         return apiNavItem;
       }),
     );
-  }, [data?.pages, segments]);
+  }, [data?.pages, segments, workspaceId]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex((item) => item.href === "/apis");
+    const apisItemIndex = items.findIndex((item) => item.href === `/${workspaceId}/apis`);
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };
@@ -104,7 +103,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
     }
 
     return items;
-  }, [baseNavItems, apiNavItems, hasNextPage]);
+  }, [baseNavItems, apiNavItems, hasNextPage, workspaceId]);
 
   const loadMore = () => {
     if (!isFetchingNextPage && hasNextPage) {
