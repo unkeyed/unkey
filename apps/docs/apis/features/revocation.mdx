@@ -1,10 +1,194 @@
 ---
-title: Key Revocation
-description: 'Keys can be revoked at any time, from the API or the dashboard.'
+title: "Key Rerolling"
+description: "Rotate API keys while preserving their configuration and permissions"
 ---
 
-In the event that a key is compromised, you can revoke it at any time. Once the key is revoked, it can take up to 60 seconds for the key to be invalidated. Once invalidated, the key will no longer be able to be used to authenticate requests.
+## What is Key Rerolling?
 
+Key rerolling (or key rotation) is the process of generating a new API key token while preserving all the configuration from an existing key. This is a critical security practice that allows you to regularly rotate credentials without disrupting your application's permissions or settings.
 
+When you reroll a key in Unkey, the new key inherits:
 
+- All permissions and roles
+- Custom metadata
+- Rate limit configurations
+- Identity associations
+- Remaining credits
+- Recovery settings
 
+## Why Reroll Keys?
+
+Key rerolling serves several important purposes:
+
+- **Security Compliance**: Many security frameworks require regular credential rotation
+- **Compromise Recovery**: Quickly replace keys that may have been exposed
+- **Proactive Security**: Regularly rotate keys as a preventive measure
+- **Graceful Migration**: Overlap periods allow zero-downtime key transitions
+
+## How Key Rerolling Works
+
+### What Gets Copied
+
+When you reroll a key, the new key is an exact copy of the original in terms of configuration:
+
+✅ **Preserved Settings:**
+
+- Permissions and RBAC roles
+- Custom metadata fields
+- Rate limiting rules
+- Identity associations (for tracking usage across keys)
+- Remaining credits balance
+- Recovery/encryption settings
+- API association
+
+### What's New
+
+The rerolled key gets fresh values for:
+
+🔄 **New Values:**
+
+- Key ID (a new unique identifier)
+- API key token (the actual secret)
+- Creation timestamp
+- Expiration (if applicable)
+
+### What Happens to the Original Key
+
+The original key remains active for a configurable grace period:
+
+- You specify the `expiration` duration (in milliseconds)
+- Set to `0` for immediate revocation
+- Common grace periods: 1 hour (3600000ms), 24 hours (86400000ms), 7 days (604800000ms)
+
+## Making a Reroll Request
+
+To reroll a key, make a `POST` request to `/v2/keys.rerollKey`:
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/keys.rerollKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+    "expiration": 86400000
+  }'
+```
+
+### Request Parameters
+
+- `keyId` (required): The database identifier of the key to reroll (NOT the API key token)
+- `expiration` (required): Duration in milliseconds until the original key is revoked
+
+### Response
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123def456"
+  },
+  "data": {
+    "keyId": "key_3dHLcNyRzJaiDyo2Jekz9r",
+    "key": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
+  }
+}
+```
+
+<warning>
+  **Security Critical**: The `key` field contains the actual API key token. This is the only time you'll receive it - Unkey stores only a hashed version. Never log or expose this value. Transmit it directly to the end user via secure channels only.
+</warning>
+
+## Common Use Cases
+
+### Zero-Downtime Key Rotation
+
+For production systems that can't afford downtime:
+
+1. Reroll the key with a grace period (e.g., 24 hours)
+2. Deploy the new key to your systems
+3. Verify the new key is working
+4. The old key automatically expires after the grace period
+
+```bash
+# Give 24 hours for migration
+curl --request POST \
+  --url https://api.unkey.com/v2/keys.rerollKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+    "expiration": 86400000
+  }'
+```
+
+### Emergency Key Replacement
+
+When a key is compromised and needs immediate revocation:
+
+```bash
+# Revoke immediately
+curl --request POST \
+  --url https://api.unkey.com/v2/keys.rerollKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+    "expiration": 0
+  }'
+```
+
+### Scheduled Key Rotation
+
+Implement automated key rotation for compliance:
+
+```javascript
+// Example: Rotate keys every 90 days
+async function rotateKey(keyId) {
+  const response = await fetch('https://api.unkey.com/v2/keys.rerollKey', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      keyId: keyId,
+      expiration: 604800000 // 7 day grace period
+    })
+  });
+  
+  const result = await response.json();
+  // Securely store and distribute the new key
+  await updateKeyInVault(result.data.key);
+  
+  return result.data.keyId; // Store new keyId for next rotation
+}
+```
+
+## Analytics and Usage Tracking
+
+An important aspect of key rerolling is that analytics remain consistent:
+
+- **Key-level metrics**: Each key has its own usage statistics
+- **Identity-level metrics**: If the original key has an identity, the new key inherits it
+- This allows you to track usage across both individual keys and the overall identity
+- Historical data from the original key remains accessible
+
+## Required Permissions
+
+Your root key needs the following permissions to reroll keys:
+
+- `api.*.create_key` or `api.<api_id>.create_key`
+- `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
+
+## Best Practices
+
+1. **Use Grace Periods**: Unless dealing with a compromise, always provide an overlap period
+2. **Automate Rotation**: Set up scheduled rotations for compliance
+3. **Secure Distribution**: Use secure channels (like secrets management systems) to distribute new keys
+4. **Monitor Both Keys**: During the grace period, monitor usage of both old and new keys
+5. **Document Rotation**: Keep audit logs of when and why keys were rotated
+
+## Limitations
+
+- The new key uses the API's default configuration for prefix and byte length
+- You cannot modify permissions or settings during reroll - use the update endpoint afterward if needed
