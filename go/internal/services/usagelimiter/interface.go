@@ -7,6 +7,9 @@ import (
 type Service interface {
 	// If the given keyId has exceeded its usage limit, an error is returned.
 	Limit(ctx context.Context, req UsageRequest) (UsageResponse, error)
+
+	// Close gracefully shuts down the usage limiter service.
+	Close() error
 }
 
 type UsageRequest struct {

@@ -159,7 +159,7 @@ func New(config Config) (*service, error) {
 // It should be called when the service is no longer needed.
 func (s *service) Close() error {
 	s.replayBuffer.Close()
-	return s.counter.Close()
+	return nil
 }
 
 // calculateRateLimit evaluates if a request is within rate limits and returns the calculation results
