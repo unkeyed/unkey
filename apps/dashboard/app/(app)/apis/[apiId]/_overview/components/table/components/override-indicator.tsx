@@ -5,9 +5,12 @@ import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
-import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
+import {
+  getErrorPercentage,
+  getErrorSeverity,
+} from "../utils/calculate-blocked-percentage";
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
@@ -43,13 +46,52 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
+export const KeyIdentifierColumn = ({
+  log,
+  apiId,
+  onNavigate,
+}: KeyIdentifierColumnProps) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
   const hasErrors = severity !== "none";
 
   const [isNavigating, setIsNavigating] = useState(false);
+
+  const buildKeyDetailUrl = useCallback(() => {
+    const baseUrl = `/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`;
+    const params = new URLSearchParams();
+
+    if (searchParams) {
+      // Preserve metricType parameter
+      const metricType = searchParams.get("metricType");
+      if (metricType) {
+        params.set("metricType", metricType);
+      }
+
+      // Preserve since parameter
+      const since = searchParams.get("since");
+      if (since) {
+        params.set("since", since);
+      }
+
+      // Preserve tags parameter (compatible with key details page)
+      const tags = searchParams.get("tags");
+      if (tags) {
+        params.set("tags", tags);
+      }
+
+      // Preserve outcomes parameter (compatible with key details page)
+      const outcomes = searchParams.get("outcomes");
+      if (outcomes) {
+        params.set("outcomes", outcomes);
+      }
+    }
+
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  }, [apiId, log.key_details?.key_auth_id, log.key_id, searchParams]);
 
   const handleLinkClick = useCallback(
     (e: React.MouseEvent) => {
@@ -58,16 +100,20 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
 
       onNavigate?.();
 
-      router.push(`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`);
+      router.push(buildKeyDetailUrl());
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push],
+    [onNavigate, router.push, buildKeyDetailUrl]
   );
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
         variant="inverted"
-        content={<p className="text-xs">{getWarningMessage(severity, errorPercentage)}</p>}
+        content={
+          <p className="text-xs">
+            {getWarningMessage(severity, errorPercentage)}
+          </p>
+        }
         position={{ side: "right", align: "center" }}
       >
         {isNavigating ? (
@@ -75,7 +121,12 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
             <Loading size={18} />
           </div>
         ) : (
-          <div className={cn("transition-opacity", hasErrors ? "opacity-100" : "opacity-0")}>
+          <div
+            className={cn(
+              "transition-opacity",
+              hasErrors ? "opacity-100" : "opacity-0"
+            )}
+          >
             {getWarningIcon(severity)}
           </div>
         )}
@@ -83,7 +134,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono group-hover:underline decoration-dotted"
-        href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        href={buildKeyDetailUrl()}
         onClick={handleLinkClick}
       >
         <div className="font-mono font-medium truncate flex items-center">
