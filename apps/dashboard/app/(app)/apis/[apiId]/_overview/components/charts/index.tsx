@@ -47,7 +47,7 @@ export const KeysOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field)
+      (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
     let adjustedEnd = end;
@@ -109,10 +109,7 @@ export const KeysOverviewLogsCharts = ({
 
   if (isCreditSpendMode) {
     return (
-      <div
-        ref={chartContainerRef}
-        className="flex flex-col md:flex-row w-full md:h-[320px]"
-      >
+      <div ref={chartContainerRef} className="flex flex-col md:flex-row w-full md:h-[320px]">
         <div className="w-full md:w-1/2 border-r border-gray-4 max-md:h-72">
           <OverviewBarChart
             data={creditSpendTimeseries}

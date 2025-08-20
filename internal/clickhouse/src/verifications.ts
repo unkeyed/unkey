@@ -62,6 +62,7 @@ export const keyDetailsLog = z.object({
   region: z.string(),
   outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
   tags: z.array(z.string()),
+  spent_credits: z.number().int().default(0),
 });
 
 export type KeyDetailsLog = z.infer<typeof keyDetailsLog>;
@@ -162,7 +163,8 @@ export function getKeyDetailsLogs(ch: Querier) {
           time,
           region,
           outcome,
-          tags
+          tags,
+          spent_credits
       FROM verifications.raw_key_verifications_v1
       WHERE ${baseConditions}
           -- Handle pagination using time as cursor

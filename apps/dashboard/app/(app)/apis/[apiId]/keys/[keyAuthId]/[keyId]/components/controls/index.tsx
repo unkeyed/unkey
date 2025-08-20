@@ -38,17 +38,12 @@ export function KeysDetailsLogsControls({
   } = useSpentCredits(keyId, keyspaceId);
 
   const hasRemainingCredit =
-    data?.remainingCredit !== null &&
-    data?.remainingCredit !== undefined &&
-    !isLoading &&
-    !error;
+    data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
 
-  const hasSpentCreditsData =
-    !spentCreditsLoading && !spentCreditsError && spentCredits !== 0;
+  const hasSpentCreditsData = !spentCreditsLoading && !spentCreditsError && spentCredits !== 0;
 
   // Show credit spent when spent credits data is available (regardless of amount or remaining credits)
-  const shouldShowSpentCredits =
-    hasSpentCreditsData && (hasRemainingCredit || spentCredits > 0);
+  const shouldShowSpentCredits = hasSpentCreditsData && (hasRemainingCredit || spentCredits > 0);
 
   return (
     <ControlsContainer>
@@ -172,12 +167,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="enabled"
                       text={formatNumber(spentCredits)}
-                      icon={
-                        <ChartUsage
-                          size="sm-thin"
-                          className="h-[12px] w-[12px]"
-                        />
-                      }
+                      icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
                     />
                   </motion.div>
                 ) : (
@@ -198,12 +188,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="disabled"
                       text="0"
-                      icon={
-                        <ChartUsage
-                          size="sm-thin"
-                          className="h-[12px] w-[12px]"
-                        />
-                      }
+                      icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
                     />
                   </motion.div>
                 )}

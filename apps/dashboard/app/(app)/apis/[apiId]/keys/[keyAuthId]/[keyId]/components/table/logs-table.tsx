@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
@@ -304,7 +305,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "tags",
         header: "Tags",
-        width: "20%",
+        width: "15%",
         render: (log) => {
           return (
             <div className="flex flex-wrap gap-1 items-center">
@@ -424,6 +425,26 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
             </div>
           );
         },
+      },
+      {
+        key: "spent_credits",
+        header: "Credits Spent",
+        width: "10%",
+        render: (log) => (
+          <div className="flex items-center">
+            <Badge
+              className={cn(
+                "px-[6px] rounded-md font-mono whitespace-nowrap",
+                selectedLog?.request_id === log.request_id
+                  ? "bg-gray-4 text-gray-11 border-gray-6"
+                  : "bg-gray-3 text-gray-11 border-gray-5",
+              )}
+              title={`${log.spent_credits?.toLocaleString() || 0} credits spent`}
+            >
+              {formatNumber(log.spent_credits || 0)}
+            </Badge>
+          </div>
+        ),
       },
     ];
   };
