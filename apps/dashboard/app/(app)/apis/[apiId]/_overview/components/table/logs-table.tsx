@@ -190,7 +190,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                     )}
                     title={`${log.spent_credits?.toLocaleString() || 0} credits spent`}
                   >
-                    {formatNumber(log.spent_credits || 0)}
+                    {(log.spent_credits || 0).toLocaleString()}
                   </Badge>
                 </div>
               ),

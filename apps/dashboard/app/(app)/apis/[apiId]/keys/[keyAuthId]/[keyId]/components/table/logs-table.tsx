@@ -1,7 +1,6 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import { formatNumber } from "@/lib/fmt";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
@@ -441,7 +440,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
               )}
               title={`${log.spent_credits?.toLocaleString() || 0} credits spent`}
             >
-              {formatNumber(log.spent_credits || 0)}
+              {(log.spent_credits || 0).toLocaleString()}
             </Badge>
           </div>
         ),
