@@ -22,6 +22,7 @@ export const Check: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      focusable={props.focusable}
     >
       <g fill="currentColor">
         <polyline

@@ -6,15 +6,16 @@ import { ApisNavbar } from "./api-id-navbar";
 
 export default function ApiPage(props: { params: { apiId: string } }) {
   const apiId = props.params.apiId;
-  const { workspace, error } = useWorkspace();
+  const { workspace, error, isLoading } = useWorkspace();
   const router = useRouter();
 
+  if (workspace && !isLoading) {
+    router.replace(`/${workspace?.id}/apis/${apiId}`);
+  }
 
   if (!workspace || error) {
     return redirect("/new");
   }
-
-  router.replace(`/${workspace?.id}/apis/${apiId}`);
 
   return (
     <div className="min-h-screen">

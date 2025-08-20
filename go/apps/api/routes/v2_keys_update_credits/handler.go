@@ -129,11 +129,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
-		err = db.Query.UpdateKeyCredits(ctx, tx, db.UpdateKeyCreditsParams{
-			ID:        key.ID,
-			Operation: string(req.Operation),
-			Credits:   credits,
-		})
+		switch req.Operation {
+		case openapi.Set:
+			err = db.Query.UpdateKeyCreditsSet(ctx, tx, db.UpdateKeyCreditsSetParams{
+				ID:      key.ID,
+				Credits: credits,
+			})
+		case openapi.Increment:
+			err = db.Query.UpdateKeyCreditsIncrement(ctx, tx, db.UpdateKeyCreditsIncrementParams{
+				ID:      key.ID,
+				Credits: credits,
+			})
+		case openapi.Decrement:
+			err = db.Query.UpdateKeyCreditsDecrement(ctx, tx, db.UpdateKeyCreditsDecrementParams{
+				ID:      key.ID,
+				Credits: credits,
+			})
+		default:
+			return db.FindLiveKeyByIDRow{}, fault.New("invalid operation",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
+				fault.Public("Invalid operation specified."),
+			)
+		}
 		if err != nil {
 			return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

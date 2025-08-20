@@ -8,17 +8,17 @@ import { ApiListClient } from "./_components/api-list-client";
 import { CreateApiButton } from "./_components/create-api-button";
 
 export default function ApisOverviewPage() {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
 
-  if (workspace) {
+  if (workspace && !isLoading) {
     router.replace(`/${workspace.id}/apis`);
   }
 
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
 
-  if (!workspace) {
+  if (!workspace && !isLoading) {
     router.push("/new");
   }
 
