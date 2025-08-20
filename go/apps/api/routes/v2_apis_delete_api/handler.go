@@ -20,8 +20,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2ApisDeleteApiRequestBody
-type Response = openapi.V2ApisDeleteApiResponseBody
+type (
+	Request  = openapi.V2ApisDeleteApiRequestBody
+	Response = openapi.V2ApisDeleteApiResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 APIs delete API endpoint
 type Handler struct {
@@ -155,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Caches.ApiByID.SetNull(ctx, req.ApiId)
+	h.Caches.LiveApiByID.SetNull(ctx, req.ApiId)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

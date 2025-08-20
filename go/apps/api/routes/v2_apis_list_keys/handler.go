@@ -8,7 +8,9 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -26,10 +28,11 @@ type (
 
 // Handler implements zen.Route interface for the v2 APIs list keys endpoint
 type Handler struct {
-	Logger logging.Logger
-	DB     db.Database
-	Keys   keys.KeyService
-	Vault  *vault.Service
+	Logger   logging.Logger
+	DB       db.Database
+	Keys     keys.KeyService
+	Vault    *vault.Service
+	ApiCache cache.Cache[string, db.FindLiveApiByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -86,18 +89,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Get API from database
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	api, hit, err := h.ApiCache.SWR(ctx, req.ApiId, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
+	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
+			return fault.Wrap(
+				err,
 				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+				fault.Internal("api does not exist"),
+				fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if hit == cache.Null {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -106,36 +121,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
-	// Check if API is set up to handle keys
-	if !api.KeyAuthID.Valid || api.KeyAuthID.String == "" {
-		return fault.New("api not set up for keys",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("api not set up for keys"), fault.Public("The requested API is not set up to handle keys."),
-		)
-	}
-
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 		)
 	}
 
@@ -163,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keyAuth.StoreEncryptedKeys {
+		if !api.KeyAuth.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
@@ -245,7 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
 		keyData := db.ToKeyData(key)
-		response, err := h.BuildKeyResponseData(keyData, plaintextMap[key.ID])
+		response, err := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
 		if err != nil {
 			return err
 		}
@@ -264,8 +249,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// BuildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) BuildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
+// buildKeyResponseData transforms internal key data into API response format.
+func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
 	response := openapi.KeyResponseData{
 		CreatedAt: keyData.Key.CreatedAtM,
 		Enabled:   keyData.Key.Enabled,

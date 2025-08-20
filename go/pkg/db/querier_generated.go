@@ -323,6 +323,15 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestBuildByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (Build, error)
+	//FindLiveApiByID
+	//
+	//  SELECT apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+	//  FROM apis
+	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
+	//  WHERE apis.id = ?
+	//      AND ka.deleted_at_m IS NULL
+	//      AND apis.deleted_at_m IS NULL
+	FindLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error)
 	//FindLiveKeyByHash
 	//
 	//  SELECT
