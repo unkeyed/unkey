@@ -21,14 +21,12 @@ import (
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/database"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/network"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/observability"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/reconciler"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
-	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
+	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,10 +36,8 @@ import (
 )
 
 // version is set at build time via ldflags
-var version = "" // AIDEV-NOTE: Version injected at build time via Makefile LDFLAGS
+var version = ""
 
-// AIDEV-NOTE: Enhanced version management with debug.ReadBuildInfo fallback
-// Handles production builds (ldflags), development builds (git commit), and module builds
 // getVersion returns the version string, with fallback to debug.ReadBuildInfo
 func getVersion() string {
 	// If version was set via ldflags (production builds), use it
@@ -59,30 +55,25 @@ func getVersion() string {
 		// Try to get version from VCS info
 		for _, setting := range info.Settings {
 			if setting.Key == "vcs.revision" && len(setting.Value) >= 7 {
-				return "dev-" + setting.Value[:7] // First 7 chars of commit hash
+				return "dev-" + setting.Value[:7] // First 8 chars of commit hash
 			}
 		}
 
-		// Last resort: indicate it's a development build
 		return "dev"
 	}
 
-	// Final fallback
 	return version
 }
 
 func main() {
-	// Track application start time for uptime calculations
 	startTime := time.Now()
 
-	// Parse command-line flags
 	var (
 		showHelp    = flag.Bool("help", false, "Show help information")
 		showVersion = flag.Bool("version", false, "Show version information")
 	)
 	flag.Parse()
 
-	// Handle help and version flags
 	if *showHelp {
 		printUsage()
 		os.Exit(0)
@@ -96,17 +87,16 @@ func main() {
 	// Initialize structured logger with JSON output
 	//exhaustruct:ignore
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: slog.LevelDebug,
 	}))
 	slog.SetDefault(logger)
 
 	// Log startup
-	logger.Info("starting vmm control plane",
+	logger.Info("starting metald",
 		slog.String("version", getVersion()),
 		slog.String("go_version", runtime.Version()),
 	)
 
-	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		logger.Error("failed to load configuration",
@@ -116,7 +106,7 @@ func main() {
 	}
 
 	logger.Info("configuration loaded",
-		slog.String("backend", string(cfg.Backend.Type)),
+
 		slog.String("address", cfg.Server.Address),
 		slog.String("port", cfg.Server.Port),
 		slog.Bool("otel_enabled", cfg.OpenTelemetry.Enabled),
@@ -186,52 +176,18 @@ func main() {
 		"mode", cfg.TLS.Mode,
 		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
 
-	// Initialize database
-	db, err := database.NewWithLogger(cfg.Database.DataDir, logger)
-	if err != nil {
-		logger.Error("failed to initialize database",
-			slog.String("error", err.Error()),
-			slog.String("data_dir", cfg.Database.DataDir),
+	db, dbErr := database.NewDatabaseWithLogger(cfg.Database.DataDir, slog.Default())
+	if dbErr != nil {
+		logger.Error("failed to get DB",
+			slog.String("error", dbErr.Error()),
 		)
 		os.Exit(1)
 	}
-	defer db.Close()
-
-	// Create VM repository
-	vmRepo := database.NewVMRepository(db)
-
-	logger.Info("database initialized",
-		slog.String("data_dir", cfg.Database.DataDir),
-	)
 
 	// Initialize backend based on configuration
 	var backend types.Backend
 	switch cfg.Backend.Type {
 	case types.BackendTypeFirecracker:
-		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
-		// AIDEV-NOTE: SDK manages firecracker process, integrated jailer, and networking
-
-		// Convert main config to network config
-		networkConfig := &network.Config{
-			BridgeName:      cfg.Network.BridgeName,
-			BridgeIP:        cfg.Network.BridgeIPv4,
-			VMSubnet:        cfg.Network.VMSubnetIPv4,
-			EnableIPv6:      cfg.Network.EnableIPv6,
-			DNSServers:      cfg.Network.DNSServersIPv4,
-			EnableRateLimit: cfg.Network.EnableRateLimit,
-			RateLimitMbps:   cfg.Network.RateLimitMbps,
-			PortRangeMin:    32768, // Default
-			PortRangeMax:    65535, // Default
-		}
-
-		networkManager, err := network.NewManager(logger, networkConfig, &cfg.Network)
-		if err != nil {
-			logger.Error("failed to create network manager",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
-
 		// Base directory for VM data
 		baseDir := "/opt/metald/vms"
 
@@ -256,35 +212,26 @@ func main() {
 			logger.Info("assetmanager disabled, using noop client")
 		}
 
-		// Use SDK v4 with integrated jailer - the only supported backend
-		sdkClient, err := firecracker.NewSDKClientV4(logger, networkManager, assetClient, vmRepo, &cfg.Backend.Jailer, baseDir)
+		sdkClient, err := firecracker.NewClient(logger, assetClient, &cfg.Backend.Jailer, baseDir)
 		if err != nil {
-			logger.Error("failed to create SDK client v4 with integrated jailer",
+			logger.Error("failed to create firecracker client",
 				slog.String("error", err.Error()),
 			)
 			os.Exit(1)
 		}
 
-		logger.Info("initialized firecracker SDK v4 backend with integrated jailer",
+		logger.Info("initialized firecracker backend",
 			slog.String("firecracker_binary", "/usr/local/bin/firecracker"),
 			slog.Uint64("uid", uint64(cfg.Backend.Jailer.UID)),
 			slog.Uint64("gid", uint64(cfg.Backend.Jailer.GID)),
 			slog.String("chroot_base", cfg.Backend.Jailer.ChrootBaseDir),
 		)
 
-		if err := sdkClient.Initialize(); err != nil {
-			logger.Error("failed to initialize SDK client v4",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
 		backend = sdkClient
-
-		// Note: Network manager is initialized and managed by SDK v4
 	case types.BackendTypeDocker:
 		// AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
 		logger.Info("initializing Docker backend for development")
-		
+
 		dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
 		if err != nil {
 			logger.Error("failed to create Docker backend",
@@ -292,14 +239,9 @@ func main() {
 			)
 			os.Exit(1)
 		}
-		
+
 		backend = dockerClient
 		logger.Info("Docker backend initialized successfully")
-	case types.BackendTypeCloudHypervisor:
-		logger.Error("CloudHypervisor backend not implemented",
-			slog.String("backend", string(cfg.Backend.Type)),
-		)
-		os.Exit(1)
 	default:
 		logger.Error("unsupported backend type",
 			slog.String("backend", string(cfg.Backend.Type)),
@@ -366,20 +308,7 @@ func main() {
 	metricsCollector.StartHeartbeat()
 
 	// Create VM service
-	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics, vmRepo)
-
-	// Initialize VM reconciler to fix stale VM state issues
-	// AIDEV-NOTE: Critical fix for state inconsistency where database shows VMs but no processes exist
-	vmReconciler := reconciler.NewVMReconciler(logger, backend, vmRepo, 5*time.Minute)
-
-	// Start VM reconciler in background
-	reconcilerCtx, cancelReconciler := context.WithCancel(ctx)
-	defer cancelReconciler()
-
-	go vmReconciler.Start(reconcilerCtx)
-	logger.Info("VM reconciler started",
-		slog.Duration("interval", 5*time.Minute),
-	)
+	vmService := service.NewVMService(backend, logger, metricsCollector, vmMetrics, db.Queries)
 
 	// Create unified health handler
 	healthHandler := healthpkg.Handler("metald", getVersion(), startTime)
@@ -392,7 +321,7 @@ func main() {
 		interceptors.WithServiceName("metald"),
 		interceptors.WithLogger(logger),
 		interceptors.WithActiveRequestsMetric(true),
-		interceptors.WithRequestDurationMetric(false), // Match existing behavior
+		interceptors.WithRequestDurationMetric(true), // Match existing behavior
 		interceptors.WithErrorResampling(true),
 		interceptors.WithPanicStackTrace(true),
 		interceptors.WithTenantAuth(true,
@@ -418,7 +347,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	path, handler := vmprovisionerv1connect.NewVmServiceHandler(vmService,
+	path, handler := metaldv1connect.NewVmServiceHandler(vmService,
 		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)
@@ -440,13 +369,12 @@ func main() {
 
 	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
-		Addr:    addr,
-		Handler: h2c.NewHandler(httpHandler, &http2.Server{}), //nolint:exhaustruct
-		// AIDEV-NOTE: Security timeouts to prevent slowloris attacks
-		ReadTimeout:    30 * time.Second,  // Time to read request headers
-		WriteTimeout:   30 * time.Second,  // Time to write response
-		IdleTimeout:    120 * time.Second, // Keep-alive timeout
-		MaxHeaderBytes: 1 << 20,           // 1MB max header size
+		Addr:           addr,
+		Handler:        h2c.NewHandler(httpHandler, &http2.Server{}), //nolint:exhaustruct
+		ReadTimeout:    30 * time.Second,                             // Time to read request headers
+		WriteTimeout:   30 * time.Second,                             // Time to write response
+		IdleTimeout:    120 * time.Second,                            // Keep-alive timeout
+		MaxHeaderBytes: 1 << 20,                                      // 1MB max header size
 	}
 
 	// Apply TLS configuration if enabled

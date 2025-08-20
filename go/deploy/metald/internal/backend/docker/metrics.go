@@ -82,12 +82,12 @@ func (mc *MetricsCollector) convertDockerStatsToVMMetrics(stats *container.Stats
 
 	// CPU metrics
 	if stats.CPUStats.CPUUsage.TotalUsage > 0 {
-		metrics.CpuTimeNanos = int64(stats.CPUStats.CPUUsage.TotalUsage)
+		metrics.CpuTimeNanos = safeUint64ToInt64(stats.CPUStats.CPUUsage.TotalUsage)
 	}
 
 	// Memory metrics
 	if stats.MemoryStats.Usage > 0 {
-		metrics.MemoryUsageBytes = int64(stats.MemoryStats.Usage)
+		metrics.MemoryUsageBytes = safeUint64ToInt64(stats.MemoryStats.Usage)
 	}
 
 	// Disk I/O metrics
@@ -95,9 +95,9 @@ func (mc *MetricsCollector) convertDockerStatsToVMMetrics(stats *container.Stats
 		for _, blkio := range stats.BlkioStats.IoServiceBytesRecursive {
 			switch blkio.Op {
 			case "Read":
-				metrics.DiskReadBytes += int64(blkio.Value)
+				metrics.DiskReadBytes += safeUint64ToInt64(blkio.Value)
 			case "Write":
-				metrics.DiskWriteBytes += int64(blkio.Value)
+				metrics.DiskWriteBytes += safeUint64ToInt64(blkio.Value)
 			}
 		}
 	}
@@ -105,8 +105,8 @@ func (mc *MetricsCollector) convertDockerStatsToVMMetrics(stats *container.Stats
 	// Network I/O metrics
 	if stats.Networks != nil {
 		for _, netStats := range stats.Networks {
-			metrics.NetworkRxBytes += int64(netStats.RxBytes)
-			metrics.NetworkTxBytes += int64(netStats.TxBytes)
+			metrics.NetworkRxBytes += safeUint64ToInt64(netStats.RxBytes)
+			metrics.NetworkTxBytes += safeUint64ToInt64(netStats.TxBytes)
 		}
 	}
 
@@ -185,10 +185,10 @@ func (mc *MetricsCollector) CalculateCPUPercent(current, previous *container.Sta
 
 	// Calculate CPU delta
 	cpuDelta := float64(current.CPUStats.CPUUsage.TotalUsage - previous.CPUStats.CPUUsage.TotalUsage)
-	
+
 	// Calculate system CPU delta
 	systemDelta := float64(current.CPUStats.SystemUsage - previous.CPUStats.SystemUsage)
-	
+
 	// Calculate number of CPUs
 	onlineCPUs := float64(current.CPUStats.OnlineCPUs)
 	if onlineCPUs == 0 {

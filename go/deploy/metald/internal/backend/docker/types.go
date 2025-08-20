@@ -5,18 +5,17 @@ import (
 
 	"github.com/docker/go-connections/nat"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
-	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 )
 
 // dockerVM represents a "VM" managed as a Docker container
 type dockerVM struct {
-	ID            string
-	ContainerID   string
-	Config        *metaldv1.VmConfig
-	State         metaldv1.VmState
-	NetworkInfo   *metaldv1.VmNetworkInfo
-	PortMappings  []PortMapping
-	CreatedAt     time.Time
+	ID           string
+	ContainerID  string
+	Config       *metaldv1.VmConfig
+	State        metaldv1.VmState
+	PortMappings []PortMapping
+	CreatedAt    time.Time
 }
 
 // PortMapping represents a port mapping between container and host
@@ -43,23 +42,22 @@ type ContainerSpec struct {
 type DockerBackendConfig struct {
 	// DockerHost is the Docker daemon socket (defaults to unix:///var/run/docker.sock)
 	DockerHost string `json:"docker_host,omitempty"`
-	
+
 	// NetworkName is the Docker network to use for containers (defaults to bridge)
 	NetworkName string `json:"network_name,omitempty"`
-	
+
 	// ContainerPrefix is the prefix for container names (defaults to unkey-vm-)
 	ContainerPrefix string `json:"container_prefix,omitempty"`
-	
-	
+
 	// PortRange defines the range of host ports to allocate
 	PortRange struct {
 		Min int `json:"min"`
 		Max int `json:"max"`
 	} `json:"port_range,omitempty"`
-	
+
 	// AutoRemove determines if containers should be automatically removed on exit
 	AutoRemove bool `json:"auto_remove,omitempty"`
-	
+
 	// Privileged determines if containers run in privileged mode
 	Privileged bool `json:"privileged,omitempty"`
 }
@@ -67,7 +65,7 @@ type DockerBackendConfig struct {
 // DefaultDockerBackendConfig returns default configuration for Docker backend
 func DefaultDockerBackendConfig() *DockerBackendConfig {
 	return &DockerBackendConfig{
-		DockerHost:      "",  // Use default Docker socket
+		DockerHost:      "", // Use default Docker socket
 		NetworkName:     "bridge",
 		ContainerPrefix: "unkey-vm-",
 		PortRange: struct {

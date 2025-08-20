@@ -35,11 +35,11 @@ GOLINT := golangci-lint
 .DEFAULT_GOAL := help
 
 # Targets (alphabetically ordered)
-.PHONY: all build build-linux check ci clean clean-gen create-user debug deps dev env-example fmt generate help install install-tools lint lint-proto proto-breaking quick-build quick-test release run service-logs service-logs-tail service-restart service-start service-status service-stop setup test test-coverage uninstall version vet
+.PHONY: all build build-linux check ci clean clean-gen debug deps dev env-example fmt generate help install install-tools lint lint-proto proto-breaking quick-build quick-test release run service-logs service-logs-tail service-restart service-start service-status service-stop setup test test-coverage uninstall version vet
 
 all: clean generate build ## Clean, generate, and build
 
-build: generate deps ## Build the binary
+build: deps ## Build the binary
 	@mkdir -p $(BUILD_DIR)
 	@$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/$(SERVICE_NAME)
 
@@ -56,12 +56,6 @@ clean: ## Clean build artifacts
 	@rm -rf $(GEN_DIR)
 	@rm -f coverage.out coverage.html
 
-clean-gen: ## Clean generated protobuf code
-	@rm -rf $(GEN_DIR)
-
-create-user: ## Create service user
-	@sudo useradd -r -s /bin/false -d /opt/builderd -c "$(SERVICE_NAME) service user" $(SERVICE_NAME) 2>/dev/null || true
-
 debug: build ## Run with debug logging
 	@UNKEY_BUILDERD_LOG_LEVEL=debug ./$(BUILD_DIR)/$(BINARY_NAME)
 
@@ -71,13 +65,6 @@ deps: ## Download and tidy dependencies
 
 dev: ## Run in development mode
 	@go run ./cmd/$(SERVICE_NAME)
-
-env-example: ## Show example environment variables
-	@echo "Example environment variables for $(SERVICE_NAME):"
-	@echo "UNKEY_BUILDERD_PORT=8082"
-	@echo "UNKEY_BUILDERD_OTEL_ENABLED=false"
-	@echo "UNKEY_BUILDERD_STORAGE_BACKEND=local"
-	@echo "UNKEY_BUILDERD_LOG_LEVEL=info"
 
 fmt: ## Format code
 	@$(GOFMT) -w .
@@ -93,28 +80,16 @@ help: ## Show this help message
 	@echo 'Targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: build create-user ## Install the service (requires sudo)
+install: build ## Install the service (requires sudo)
 	@sudo systemctl stop $(SERVICE_NAME) 2>/dev/null || true
 	@sudo mkdir -p $(CONFIG_DIR)
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/
 	@sudo chmod +x $(INSTALL_DIR)/$(BINARY_NAME)
-	@sudo chown $(SERVICE_NAME):$(SERVICE_NAME) $(CONFIG_DIR)
 	@sudo cp contrib/systemd/$(SERVICE_NAME).service $(SYSTEMD_DIR)/
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable $(SERVICE_NAME) >/dev/null 2>&1
 	@sudo systemctl start $(SERVICE_NAME) 2>/dev/null || true
 	@echo "✓ $(SERVICE_NAME) installed and started"
-
-
-lint: lint-proto ## Run linter (includes protobuf linting)
-	@which $(GOLINT) >/dev/null || (echo "golangci-lint not found, install with: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.54.2" && exit 1)
-	@$(GOLINT) run --disable=godox
-
-lint-proto: ## Run protobuf linter
-	@buf lint
-
-proto-breaking: ## Check for breaking protobuf changes
-	@buf breaking --against .git#branch=main
 
 quick-build: ## Quick build without optimizations
 	@mkdir -p $(BUILD_DIR)
@@ -175,4 +150,3 @@ version: ## Show version information
 
 vet: ## Run go vet
 	@$(GOVET) ./...
-
