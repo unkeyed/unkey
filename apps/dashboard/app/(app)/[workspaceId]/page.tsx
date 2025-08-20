@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 
 export default function WorkspacePage() {
   const router = useRouter();
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading } = useWorkspace();
 
-  router.replace(`/${workspace?.id}/apis`);
+  if (workspace && !isLoading) {
+    router.replace(`/${workspace.id}/apis`);
+  }
 
   // Show loading state while redirecting
   return (
