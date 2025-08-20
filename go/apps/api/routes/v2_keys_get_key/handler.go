@@ -216,12 +216,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			// Add to key ratelimits if it belongs to this key
-			if rl.KeyID.Valid && rl.KeyID.String == keyData.Key.ID {
+			if rl.KeyID.Valid {
 				keyRatelimits = append(keyRatelimits, ratelimitResp)
 			}
 
 			// Add to identity ratelimits if it has an identity_id that matches
-			if rl.IdentityID.Valid && keyData.Identity != nil && rl.IdentityID.String == keyData.Identity.ID {
+			if rl.IdentityID.Valid {
 				identityRatelimits = append(identityRatelimits, ratelimitResp)
 			}
 		}
@@ -230,7 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			response.Ratelimits = &keyRatelimits
 		}
 
-		if len(identityRatelimits) > 0 && response.Identity != nil {
+		if len(identityRatelimits) > 0 {
 			response.Identity.Ratelimits = &identityRatelimits
 		}
 	}
