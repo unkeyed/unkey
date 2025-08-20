@@ -17,6 +17,7 @@ JOIN key_auth as ka ON ka.id = apis.key_auth_id
 WHERE apis.id = ?
     AND ka.deleted_at_m IS NULL
     AND apis.deleted_at_m IS NULL
+LIMIT 1
 `
 
 type FindLiveApiByIDRow struct {
@@ -41,6 +42,7 @@ type FindLiveApiByIDRow struct {
 //	WHERE apis.id = ?
 //	    AND ka.deleted_at_m IS NULL
 //	    AND apis.deleted_at_m IS NULL
+//	LIMIT 1
 func (q *Queries) FindLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error) {
 	row := db.QueryRowContext(ctx, findLiveApiByID, id)
 	var i FindLiveApiByIDRow

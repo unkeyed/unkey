@@ -21,8 +21,8 @@ type Caches struct {
 	// Keys are string (hash) and values are db.VerificationKey.
 	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
 
-	// LiveApiByID caches API lookups by their ID.
-	// Keys are string (ID) and values are db.Api.
+	// LiveApiByID caches live API lookups by ID.
+	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[string, db.FindLiveApiByIDRow]
 }
 
@@ -89,7 +89,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	liveApiById, err := cache.New(cache.Config[string, db.FindLiveApiByIDRow]{
+	liveApiByID, err := cache.New(cache.Config[string, db.FindLiveApiByIDRow]{
 		Fresh:    10 * time.Second,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -103,7 +103,7 @@ func New(config Config) (Caches, error) {
 
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
-		LiveApiByID:           middleware.WithTracing(liveApiById),
+		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 	}, nil
 }

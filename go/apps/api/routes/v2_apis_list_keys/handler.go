@@ -353,12 +353,12 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 			}
 
 			// Add to key ratelimits if it belongs to this key
-			if rl.KeyID.Valid && rl.KeyID.String == keyData.Key.ID {
+			if rl.KeyID.Valid {
 				keyRatelimits = append(keyRatelimits, ratelimitResp)
 			}
 
 			// Add to identity ratelimits if it has an identity_id that matches
-			if rl.IdentityID.Valid && keyData.Identity != nil && rl.IdentityID.String == keyData.Identity.ID {
+			if rl.IdentityID.Valid {
 				identityRatelimits = append(identityRatelimits, ratelimitResp)
 			}
 		}
@@ -367,7 +367,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 			response.Ratelimits = &keyRatelimits
 		}
 
-		if len(identityRatelimits) > 0 && response.Identity != nil {
+		if len(identityRatelimits) > 0 {
 			response.Identity.Ratelimits = &identityRatelimits
 		}
 	}

@@ -331,6 +331,7 @@ type Querier interface {
 	//  WHERE apis.id = ?
 	//      AND ka.deleted_at_m IS NULL
 	//      AND apis.deleted_at_m IS NULL
+	//  LIMIT 1
 	FindLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error)
 	//FindLiveKeyByHash
 	//
