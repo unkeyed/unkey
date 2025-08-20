@@ -1,6 +1,8 @@
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
+import { useEffect, useRef } from "react";
 import { useFilters } from "../../hooks/use-filters";
+import { useMetricType } from "../../hooks/use-metric-type";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 import { createOutcomeChartConfig } from "./bar-chart/utils";
 
@@ -14,6 +16,8 @@ export const KeyDetailsLogsChart = ({
   onMount: (distanceToTop: number) => void;
 }) => {
   const { filters, updateFilters } = useFilters();
+  const { isCreditSpendMode } = useMetricType();
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const {
     timeseries: verificationTimeseries,
@@ -30,7 +34,7 @@ export const KeyDetailsLogsChart = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
 
     let adjustedEnd = end;
@@ -53,6 +57,47 @@ export const KeyDetailsLogsChart = ({
       },
     ]);
   };
+
+  const creditSpendChartConfig = {
+    spent_credits: {
+      label: "Credits Spent",
+      color: "hsl(var(--success-9))",
+    },
+  };
+
+  // Call onMount for credit spend mode
+  useEffect(() => {
+    if (isCreditSpendMode && chartContainerRef.current) {
+      const rect = chartContainerRef.current.getBoundingClientRect();
+      onMount(rect.top + window.scrollY);
+    }
+  }, [isCreditSpendMode, onMount]);
+
+  if (isCreditSpendMode) {
+    return (
+      <div ref={chartContainerRef} className="w-full md:h-[320px]">
+        <OverviewBarChart
+          data={verificationTimeseries}
+          isLoading={verificationIsLoading}
+          isError={verificationIsError}
+          enableSelection
+          onMount={onMount}
+          onSelectionChange={handleSelectionChange}
+          config={creditSpendChartConfig}
+          labels={{
+            title: "CREDITS SPENT",
+            primaryLabel: "CREDITS SPENT",
+            primaryKey: "spent_credits",
+            secondaryLabel: "",
+            secondaryKey: "",
+          }}
+          showLabels={false}
+          tooltipPrefix={null}
+          hideTooltipTotal={true}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full md:h-[320px]">

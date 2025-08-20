@@ -13,6 +13,7 @@ import { useSpentCredits } from "../../hooks/use-spent-credits";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
+import { LogsMetricType } from "./components/logs-metric-type";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
@@ -37,18 +38,24 @@ export function KeysDetailsLogsControls({
   } = useSpentCredits(keyId, keyspaceId);
 
   const hasRemainingCredit =
-    data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
+    data?.remainingCredit !== null &&
+    data?.remainingCredit !== undefined &&
+    !isLoading &&
+    !error;
 
-  const hasSpentCreditsData = !spentCreditsLoading && !spentCreditsError && spentCredits !== 0;
+  const hasSpentCreditsData =
+    !spentCreditsLoading && !spentCreditsError && spentCredits !== 0;
 
   // Show credit spent when spent credits data is available (regardless of amount or remaining credits)
-  const shouldShowSpentCredits = hasSpentCreditsData && (hasRemainingCredit || spentCredits > 0);
+  const shouldShowSpentCredits =
+    hasSpentCreditsData && (hasRemainingCredit || spentCredits > 0);
 
   return (
     <ControlsContainer>
       <ControlsLeft>
         <LogsSearch apiId={apiId} />
         <LogsFilters />
+        <LogsMetricType />
         <LogsDateTime />
         <AnimatePresence>
           {hasRemainingCredit ? (
@@ -165,7 +172,12 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="enabled"
                       text={formatNumber(spentCredits)}
-                      icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
+                      icon={
+                        <ChartUsage
+                          size="sm-thin"
+                          className="h-[12px] w-[12px]"
+                        />
+                      }
                     />
                   </motion.div>
                 ) : (
@@ -186,7 +198,12 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="disabled"
                       text="0"
-                      icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
+                      icon={
+                        <ChartUsage
+                          size="sm-thin"
+                          className="h-[12px] w-[12px]"
+                        />
+                      }
                     />
                   </motion.div>
                 )}
