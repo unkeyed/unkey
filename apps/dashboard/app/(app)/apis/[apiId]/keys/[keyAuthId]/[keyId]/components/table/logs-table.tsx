@@ -19,6 +19,7 @@ import {
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
+import { useMetricType } from "../../hooks/use-metric-type";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyDetailsLogsQuery } from "./hooks/use-logs-query";
 
@@ -181,6 +182,7 @@ type Props = {
 
 export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
   const { isLive } = useKeyDetailsLogsContext();
+  const { isCreditSpendMode } = useMetricType();
   const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
     useKeyDetailsLogsQuery({
       keyId,
@@ -304,7 +306,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "tags",
         header: "Tags",
-        width: "15%",
+        width: isCreditSpendMode ? "15%" : "20%",
         render: (log) => {
           return (
             <div className="flex flex-wrap gap-1 items-center">
@@ -425,26 +427,30 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           );
         },
       },
-      {
-        key: "spent_credits",
-        header: "Credits Spent",
-        width: "10%",
-        render: (log) => (
-          <div className="flex items-center">
-            <Badge
-              className={cn(
-                "px-[6px] rounded-md font-mono whitespace-nowrap",
-                selectedLog?.request_id === log.request_id
-                  ? "bg-gray-4 text-gray-11 border-gray-6"
-                  : "bg-gray-3 text-gray-11 border-gray-5",
-              )}
-              title={`${log.spent_credits?.toLocaleString() || 0} credits spent`}
-            >
-              {(log.spent_credits || 0).toLocaleString()}
-            </Badge>
-          </div>
-        ),
-      },
+      ...(isCreditSpendMode
+        ? [
+            {
+              key: "spent_credits",
+              header: "Credits Spent",
+              width: "10%",
+              render: (log: KeyDetailsLog) => (
+                <div className="flex items-center">
+                  <Badge
+                    className={cn(
+                      "px-[6px] rounded-md font-mono whitespace-nowrap",
+                      selectedLog?.request_id === log.request_id
+                        ? "bg-gray-4 text-gray-11 border-gray-6"
+                        : "bg-gray-3 text-gray-11 border-gray-5",
+                    )}
+                    title={`${log.spent_credits?.toLocaleString() || 0} credits spent`}
+                  >
+                    {(log.spent_credits || 0).toLocaleString()}
+                  </Badge>
+                </div>
+              ),
+            },
+          ]
+        : []),
     ];
   };
 
