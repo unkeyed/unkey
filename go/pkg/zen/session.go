@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -42,14 +43,15 @@ type Session struct {
 	responseStatus int
 	responseBody   []byte
 
-	// Logging control - defaults to false (log by default)
-	disableLogging bool
+	// ClickHouse request logging control - defaults to true (log by default)
+	logRequestToClickHouse bool
 }
 
 func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.w = w
 	s.r = r
+	s.logRequestToClickHouse = true // Default to logging requests to ClickHouse
 
 	// Apply body size limit if configured
 	if maxBodySize > 0 {
@@ -69,6 +71,7 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			return fault.Wrap(err,
+				fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
 				fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
 				fault.Public(fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", maxBytesErr.Limit)),
 			)
@@ -102,19 +105,19 @@ func (s *Session) AuthorizedWorkspaceID() string {
 	return s.WorkspaceID
 }
 
-// DisableLogging prevents this request from being logged.
-// By default, all requests are logged unless explicitly disabled.
+// DisableClickHouseLogging prevents this request from being logged to ClickHouse.
+// By default, all requests are logged to ClickHouse unless explicitly disabled.
 //
 // This is useful for internal endpoints like health checks, OpenAPI specs,
 // or requests that should not appear in analytics.
-func (s *Session) DisableLogging() {
-	s.disableLogging = true
+func (s *Session) DisableClickHouseLogging() {
+	s.logRequestToClickHouse = false
 }
 
-// ShouldLog returns whether this request should be logged.
-// Returns false if logging was explicitly disabled, otherwise defaults to true.
-func (s *Session) ShouldLog() bool {
-	return !s.disableLogging
+// ShouldLogRequestToClickHouse returns whether this request should be logged to ClickHouse.
+// Returns true by default, false only if explicitly disabled.
+func (s *Session) ShouldLogRequestToClickHouse() bool {
+	return s.logRequestToClickHouse
 }
 
 func (s *Session) UserAgent() string {
@@ -173,19 +176,20 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 //	}
 //	// Use the parsed user data
 func (s *Session) BindBody(dst any) error {
-	var err error
-	s.requestBody, err = io.ReadAll(s.r.Body)
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("unable to read request body"), fault.Public("The request body is malformed."))
-	}
-	defer s.r.Body.Close()
-
-	err = json.Unmarshal(s.requestBody, dst)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("failed to unmarshal request body"), fault.Public("The request body was not valid json."),
+	if s.requestBody == nil {
+		return fault.New("empty request body",
+			fault.Public("The request body is empty."),
 		)
 	}
+
+	err := json.Unmarshal(s.requestBody, dst)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("failed to unmarshal request body"),
+			fault.Public("The request body was not valid json."),
+		)
+	}
+
 	return nil
 }
 
@@ -421,5 +425,5 @@ func (s *Session) reset() {
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
-	s.disableLogging = false // Reset logging control
+	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
 }

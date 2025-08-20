@@ -80,7 +80,7 @@ var Cmd = &cli.Command{
 
 		// Request Body Configuration
 		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
-			cli.Default(10485760), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
+			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
 	},
 
 	Action: action,

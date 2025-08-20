@@ -1,7 +1,9 @@
 package zen
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -9,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 func TestSession_BodySizeLimit(t *testing.T) {
@@ -139,11 +142,73 @@ func TestSession_MaxBytesErrorMessage(t *testing.T) {
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.wantErrMsg)
-			
+
 			// Also verify the user-facing message includes the limit
 			userMsg := fault.UserFacingMessage(err)
 			expectedUserMsg := fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", tt.maxBodySize)
 			assert.Equal(t, expectedUserMsg, userMsg)
 		})
 	}
+}
+
+func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
+	// Test that oversized request bodies return 400 status through zen server
+	logger := logging.NewNoop()
+	
+	// Create server with small body size limit
+	srv, err := New(Config{
+		Logger:             logger,
+		MaxRequestBodySize: 100, // 100 byte limit
+	})
+	require.NoError(t, err)
+
+	// Register a simple route that would process the body
+	testRoute := NewRoute("POST", "/test", func(ctx context.Context, s *Session) error {
+		// This should never be reached due to the body size limit
+		return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+	
+	srv.RegisterRoute(
+		[]Middleware{
+			WithErrorHandling(logger),
+		},
+		testRoute,
+	)
+
+	// Create request with body larger than limit (200 bytes vs 100 byte limit)
+	bodyContent := strings.Repeat("x", 200)
+	req := httptest.NewRequest("POST", "/test", strings.NewReader(bodyContent))
+	w := httptest.NewRecorder()
+
+	// Call through the zen server
+	srv.Mux().ServeHTTP(w, req)
+
+	// Check that the response is 400 Bad Request
+	assert.Equal(t, http.StatusBadRequest, w.Code, "Should return 400 Bad Request status")
+
+	// Verify the response contains the expected error structure
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+	assert.Contains(t, w.Body.String(), "Bad Request")
+	assert.Contains(t, w.Body.String(), "request body exceeds")
+}
+
+func TestSession_ClickHouseLoggingControl(t *testing.T) {
+	// Test that the new ClickHouse logging control methods work correctly
+	req := httptest.NewRequest("POST", "/", strings.NewReader("test"))
+	w := httptest.NewRecorder()
+	
+	sess := &Session{}
+	err := sess.init(w, req, 0)
+	require.NoError(t, err)
+	
+	// Should default to true (logging enabled)
+	assert.True(t, sess.ShouldLogRequestToClickHouse(), "Should default to logging enabled")
+	
+	// Disable ClickHouse logging
+	sess.DisableClickHouseLogging()
+	assert.False(t, sess.ShouldLogRequestToClickHouse(), "Should be disabled after calling DisableClickHouseLogging")
+	
+	// Reset should re-enable logging
+	sess.reset()
+	assert.True(t, sess.ShouldLogRequestToClickHouse(), "Should be enabled again after reset")
 }

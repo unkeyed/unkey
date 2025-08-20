@@ -246,6 +246,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 			if !ok {
 				panic("Unable to cast session")
 			}
+
 			defer func() {
 				sess.reset()
 				s.returnSession(sess)
@@ -253,7 +254,16 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 
 			err := sess.init(w, r, s.config.MaxRequestBodySize)
 			if err != nil {
-				s.logger.Error("failed to init session")
+				s.logger.Error("failed to init session", "error", err)
+
+				// Apply error handling middleware for session initialization errors
+				errorHandler := WithErrorHandling(s.logger)
+				handleFn := func(ctx context.Context, session *Session) error {
+					return err // Return the session init error
+				}
+				wrappedHandler := errorHandler(handleFn)
+				_ = wrappedHandler(r.Context(), sess)
+
 				return
 			}
 

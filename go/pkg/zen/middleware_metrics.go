@@ -77,8 +77,8 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 				ipAddress = ips[0]
 			}
 
-			// Check both the header-based control and session-based control
-			if s.r.Header.Get("X-Unkey-Metrics") != "disabled" && s.ShouldLog() {
+			// Only log if we should log request to ClickHouse
+			if s.ShouldLogRequestToClickHouse() {
 				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
