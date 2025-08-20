@@ -21,14 +21,14 @@ Let's create a new key, which can be used 100 times.
 ```bash
 curl --request POST \
   --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-	"apiId":"<API_ID>",
-	"credits": {
-		"remaining": 100
-	}
-}'
+    "apiId": "<API_ID>",
+    "credits": {
+      "remaining": 100
+    }
+  }'
 ```
 
 Now when you verify the new key, you will receive back the remaining verifications and after all of them are used up, the key is invalid.
@@ -39,20 +39,27 @@ curl --request POST \
   --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-      "key": "<NEW_KEY>"
-	}'
+    "key": "<KEY>"
+  }'
 ```
 
 ```json
 {
-	"valid": true,
-	"remaining": 99
+  "meta": {
+    "requestId": "req_abc123def456"
+  },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "<KEY_ID>",
+    "credits": 99
+  }
 }
 ```
 
 
 <Note>
-The returned `remaining` value represents how many verifications are remaining after the current one.
+The returned `credits` value represents how many verifications are remaining after the current one.
 A value of 3, means you can verify the key successfully 3 more times.
 </Note>
 
@@ -71,12 +78,12 @@ If a key would only have 3 remaining, the request would be rejected, as there is
 
 </Note>
 
-```bash {7-9}
+```bash {6-8}
 curl --request POST \
   --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-    "key": "<NEW_KEY>",
+    "key": "<KEY>",
     "credits": {
       "cost": 4
     }

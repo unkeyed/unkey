@@ -49,19 +49,19 @@ curl --request POST \
 ```json
 {
   "meta": {
-    "requestId": "req_123"
+    "requestId": "req_abc123def456"
   },
   "data": {
     "valid": true,
+    "code": "VALID",
     "keyId": "<KEY_ID>",
-    "remaining": 99,
-    "meta": {}
+    "credits": 99
   }
 }
 ```
 
 <Note>
-  The returned `remaining` value represents how many verifications are remaining
+  The returned `credits` value represents how many verifications are remaining
   after the current one. A value of 3, means you can verify the key successfully
   3 more times.
 </Note>

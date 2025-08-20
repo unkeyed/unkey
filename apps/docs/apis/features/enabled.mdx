@@ -17,12 +17,12 @@ Let's disable a key temperarily blocking access with that key.
 ```bash
 curl --request POST \
   --url https://api.unkey.com/v2/keys.updateKey \
-  --header 'Authorization: Bearer <token>' \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-  "enabled": false,
-  "keyId": "<keyId>"
-}'
+    "keyId": "<KEY_ID>",
+    "enabled": false
+  }'
 ```
 
 Now, when you verify the updated key it will show as invalid.
@@ -32,17 +32,22 @@ curl --request POST \
   --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-		"key": "<NEW_KEY>"
-	}'
+    "key": "<KEY>"
+  }'
 ```
 
 
 ```json
 {
-  "keyId": "<KEY_ID>",
-  "valid": false,
-  "meta": {},
-  "enabled": false
+  "meta": {
+    "requestId": "req_abc123def456"
+  },
+  "data": {
+    "valid": false,
+    "keyId": "<KEY_ID>",
+    "enabled": false,
+    "code": "DISABLED"
+  }
 }
 ```
 
