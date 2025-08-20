@@ -87,7 +87,7 @@ const ListBadges = ({
       }))}
       gridCols={2}
       onRemoveItem={handleRemovePermissionClick}
-      renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+      renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" aria-hidden="true" />}
       enableTransitions
       renderPrimaryText={(permission) => permission.name}
       renderSecondaryText={(permission) => permission.id}

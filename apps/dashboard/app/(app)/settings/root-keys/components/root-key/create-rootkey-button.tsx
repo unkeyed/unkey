@@ -28,7 +28,7 @@ const CreateRootKeyButton = ({ className, triggerRef, onClick, ...props }: Props
         variant="primary"
         type="button"
         size="sm"
-        className={cn("rounded-lg", className)}
+        className={cn("px-3 rounded-md", className)}
       >
         <Plus />
         {ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY}
