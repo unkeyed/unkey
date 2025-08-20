@@ -87,7 +87,7 @@ export const RootKeyDialog = ({
               variant="primary"
               size="xlg"
               className="w-full rounded-lg"
-              disabled={!hasChanges || isMutating}
+              disabled={!hasChanges || isMutating || !selectedPermissions.length}
               onClick={handleCreateKey}
               loading={isBusy}
             >
@@ -131,7 +131,7 @@ export const RootKeyDialog = ({
                 type="button"
                 variant="outline"
                 size="md"
-                className="rounded-lg pl-3 w-full"
+                className="border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
                 disabled={isBusy}
               >
                 {isBusy ? ROOT_KEY_MESSAGES.UI.LOADING : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}

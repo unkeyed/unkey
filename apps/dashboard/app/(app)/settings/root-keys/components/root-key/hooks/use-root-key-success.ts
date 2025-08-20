@@ -24,6 +24,5 @@ export function useRootKeySuccess({ onClose }: UseRootKeySuccessProps) {
     dividerRef,
     handleCloseAttempt,
     handleConfirmClose,
-    handleDialogOpenChange: onClose,
   };
 }

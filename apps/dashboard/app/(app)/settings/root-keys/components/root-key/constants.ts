@@ -9,8 +9,10 @@ export const ROOT_KEY_CONSTANTS = {
 export const ROOT_KEY_MESSAGES = {
   SUCCESS: {
     ROOT_KEY_CREATED: "Root Key Created",
-    ROOT_KEY_UPDATED: "Root key updated successfully!",
+    ROOT_KEY_UPDATED_NAME: "Root key name updated successfully!",
     ROOT_KEY_GENERATED: "You've successfully generated a new Root key.",
+    ROOT_KEY_UPDATED_PERMISSIONS:
+      "Root key permissions updated successfully, New permissions count:",
   },
   ERROR: {
     ACTION_FAILED: "Action Failed",

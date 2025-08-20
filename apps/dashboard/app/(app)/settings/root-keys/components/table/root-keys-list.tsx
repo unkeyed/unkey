@@ -3,13 +3,20 @@ import { HiddenValueCell } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_comp
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
+import { cn } from "@/lib/utils";
 import { BookBookmark, Dots, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { Button, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
+import { unkeyPermissionValidation } from "@unkey/rbac";
+import { Empty, InfoTooltip, TimestampInfo, buttonVariants } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../root-key/root-key-dialog";
+
+// Type guard function to check if a string is a valid UnkeyPermission
+const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermission => {
+  const result = unkeyPermissionValidation.safeParse(permissionName);
+  return result.success;
+};
 import { AssignedItemsCell } from "./components/assigned-items-cell";
 import { LastUpdated } from "./components/last-updated";
 import {
@@ -105,11 +112,12 @@ export const RootKeysList = () => {
               href="https://www.unkey.com/docs/security/root-keys"
               target="_blank"
               rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline" })}
             >
-              <Button size="md">
+              <span className="flex items-center gap-2">
                 <BookBookmark />
                 Learn about Root Keys
-              </Button>
+              </span>
             </a>
           </Empty.Actions>
         </Empty>
@@ -156,17 +164,21 @@ export const RootKeysList = () => {
   );
 
   // Memoize the existingKey object to prevent unnecessary re-renders
-  const existingKey = useMemo(
-    () =>
-      editingKey
-        ? {
-            id: editingKey.id,
-            name: editingKey.name,
-            permissions: editingKey.permissions.map((p) => p.name as UnkeyPermission),
-          }
-        : null,
-    [editingKey],
-  );
+  const existingKey = useMemo(() => {
+    if (!editingKey) {
+      return null;
+    }
+
+    // Guard against undefined permissions and use type guard function
+    const permissions = editingKey.permissions ?? [];
+    const validatedPermissions = permissions.map((p) => p.name).filter(isUnkeyPermission);
+
+    return {
+      id: editingKey.id,
+      name: editingKey.name,
+      permissions: validatedPermissions,
+    };
+  }, [editingKey]);
 
   const columns: Column<RootKey>[] = useMemo(
     () => [

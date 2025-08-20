@@ -90,6 +90,7 @@ export function useRootKeyDialog({
   // Mutations
   const key = trpc.rootKey.create.useMutation({
     onSuccess() {
+      toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED);
       trpcUtils.settings.rootKeys.query.invalidate();
     },
     onError(err: { message: string }) {
@@ -99,6 +100,7 @@ export function useRootKeyDialog({
 
   const updateName = trpc.rootKey.update.name.useMutation({
     onSuccess() {
+      toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_NAME);
       trpcUtils.settings.rootKeys.query.invalidate();
     },
     onError(err: { message: string }) {
@@ -108,6 +110,8 @@ export function useRootKeyDialog({
 
   const updatePermissions = trpc.rootKey.update.permissions.useMutation({
     onSuccess() {
+      const count = selectedPermissions.length;
+      toast.success(`${ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_PERMISSIONS} ${count}`);
       trpcUtils.settings.rootKeys.query.invalidate();
     },
     onError(err: { message: string }) {
@@ -135,21 +139,25 @@ export function useRootKeyDialog({
   const handleCreateKey = useCallback(async () => {
     if (editMode && existingKey) {
       // Update existing key name if changed
-      const nameChanged = name !== existingKey.name;
+      const nameChanged = name !== existingKey.name && name !== "" && name !== null;
+
       if (nameChanged) {
         await updateName.mutateAsync({
           keyId: existingKey.id,
           name: name && name.length > 0 ? name : null,
         });
       }
+      if (
+        selectedPermissions.length > 0 &&
+        !arePermissionArraysEqual(selectedPermissions, existingKey.permissions)
+      ) {
+        // Update permissions using the new bulk update route
+        await updatePermissions.mutateAsync({
+          keyId: existingKey.id,
+          permissions: selectedPermissions,
+        });
+      }
 
-      // Update permissions using the new bulk update route
-      await updatePermissions.mutateAsync({
-        keyId: existingKey.id,
-        permissions: selectedPermissions,
-      });
-
-      toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED);
       onOpenChange(false);
     } else {
       // Create new key

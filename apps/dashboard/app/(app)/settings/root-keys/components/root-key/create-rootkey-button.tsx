@@ -27,7 +27,7 @@ const CreateRootKeyButton = ({ className, triggerRef, onClick, ...props }: Props
         ref={triggerRef}
         variant="primary"
         type="button"
-        size="md"
+        size="sm"
         className={cn("rounded-lg", className)}
       >
         <Plus />

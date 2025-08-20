@@ -70,7 +70,7 @@ const ListBadges = ({
   info,
   removePermission,
 }: { info: PermissionInfo; removePermission: (permission: UnkeyPermission) => void }) => {
-  // Remove permission by id emitted from SelectedItemsList
+  // Stop propagation to prevent triggering parent collapsible when removing permissions
   const handleRemovePermissionClick = (id: string) => {
     const permission = info.find((p) => p.permission.toString() === id);
     if (permission) {
@@ -137,13 +137,13 @@ const ListTitle = ({
   category,
 }: { title: string; count: number; category: string }) => {
   return (
-    <span className="text-sm flex-1 text-grayA-10 text-left">
+    <span className="text-sm flex-1 text-grayA-10 text-left flex items-center">
       {title}
-      <span className="font-bold text-gray-11 ml-2">{category}</span>
+      <span className="font-bold text-gray-11 ml-1">{category}</span>
       <Badge
         variant="primary"
         size="sm"
-        className="text-[11px] font-normal text-grayA-11 rounded-full px-2 ml-4 h-[18px] min-w-[22px] border-[1px] border-grayA-3 "
+        className="text-[11px] font-normal text-grayA-11 rounded-full px-2 ml-1 py-1 h-[18px] min-w-[22px] border-[1px] border-grayA-3 "
       >
         {count}
       </Badge>

@@ -10,17 +10,17 @@ import {
 } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { useRef } from "react";
+import { type ReactElement, useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
-  children: React.ReactNode;
+  children: ReactElement;
   apis: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
-  onChange?: (permissions: UnkeyPermission[]) => void;
+  onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;

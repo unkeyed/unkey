@@ -9,7 +9,7 @@ import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "reac
 
 export type ExpandableCategoryProps = {
   category: string;
-  description: string;
+  description?: string;
   checked: CheckedState | undefined;
   setChecked: (checked: CheckedState) => void;
   count: number;
@@ -23,7 +23,7 @@ const ExpandableCategory = forwardRef<
     return null;
   }
   return (
-    <div className="flex flex-row items-center justify-start gap-3 pl-3 pr-2 h-full my-2">
+    <div className="flex flex-row items-center justify-start gap-3 pl-3 h-full my-2">
       <div className="flex items-center justify-center">
         <Checkbox
           checked={checked}

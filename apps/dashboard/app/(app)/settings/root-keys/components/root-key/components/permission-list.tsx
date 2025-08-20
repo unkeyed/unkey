@@ -74,7 +74,7 @@ export const PermissionContentList = ({
     });
   }, []);
   return (
-    <div className="flex flex-col max-w-full grow-0">
+    <div className="flex flex-col w-full grow-0 max-w-[380px] px-2">
       <Collapsible
         open={isRootExpanded}
         onOpenChange={setIsRootExpanded}
@@ -94,43 +94,45 @@ export const PermissionContentList = ({
 
         <CollapsibleContent>
           <div className="flex">
-            <div className="flex flex-col pl-5 min-h-full border-r border-grayA-5 mb-2 mr-4" />
-            <div className="flex flex-col h-full w-full">
+            <div className="flex flex-col min-h-full border-r border-grayA-5 mb-2 ml-5" />
+            <div className="flex flex-col h-full ml-2 w-full min-w-0">
               {Object.entries(filteredPermissionList).map(([category, allPermissions]) => (
                 <Collapsible
                   key={`${type === "workspace" ? "workspace" : api?.id}-${category}`}
-                  className="w-full rounded-lg justify-center items-center pr-0.5 hover:bg-grayA-3"
+                  className="rounded-lg hover:bg-grayA-3 p-0 m-0 w-full min-w-0"
                   open={expandedCategories.has(category)}
                   onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}
                 >
-                  <ExpandableCategory
-                    category={category}
-                    checked={state.categoryChecked[category]}
-                    description=""
-                    setChecked={() => handleCategoryToggle(category)}
-                    count={Object.keys(allPermissions).length}
-                  />
-                  <CollapsibleContent>
-                    <div className="flex w-full justify-start items-start overflow-clip">
-                      <div className="flex flex-col pl-5 min-h-full border-r border-grayA-5 mb-2" />
-                      <div className="flex flex-col w-full justify-start items-start">
-                        {Object.entries(allPermissions).map(
-                          ([action, { description, permission }]) => (
-                            <PermissionToggle
-                              key={action}
-                              category={
-                                <HighlightedText text={category} searchValue={searchValue} />
-                              }
-                              label={<HighlightedText text={action} searchValue={searchValue} />}
-                              description={description}
-                              checked={state.selectedPermissions.includes(permission)}
-                              setChecked={() => handlePermissionToggle(permission)}
-                            />
-                          ),
-                        )}
+                  <div className="flex-1 justify-start items-start w-full min-w-0">
+                    <ExpandableCategory
+                      category={category}
+                      checked={state.categoryChecked[category]}
+                      setChecked={() => handleCategoryToggle(category)}
+                      count={Object.keys(allPermissions).length}
+                    />
+                    <CollapsibleContent>
+                      <div className="flex w-full">
+                        <div className="flex-1 border-r border-grayA-5 max-h-full w-4 mb-2 ml-[20px]" />
+                        <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start ">
+                          {Object.entries(allPermissions).map(
+                            ([action, { description, permission }]) => (
+                              <PermissionToggle
+                                key={action}
+                                category={
+                                  <HighlightedText text={category} searchValue={searchValue} />
+                                }
+                                className="pr-2"
+                                label={<HighlightedText text={action} searchValue={searchValue} />}
+                                description={description}
+                                checked={state.selectedPermissions.includes(permission)}
+                                setChecked={() => handlePermissionToggle(permission)}
+                              />
+                            ),
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CollapsibleContent>
+                    </CollapsibleContent>
+                  </div>
                 </Collapsible>
               ))}
             </div>
