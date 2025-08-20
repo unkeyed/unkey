@@ -1,12 +1,14 @@
 package zen
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 func TestSession_BodySizeLimit(t *testing.T) {
@@ -28,7 +30,7 @@ func TestSession_BodySizeLimit(t *testing.T) {
 			bodyContent: strings.Repeat("x", 200),
 			maxBodySize: 100,
 			wantErr:     true,
-			errSubstr:   "request body too large",
+			errSubstr:   "request body exceeds size limit of 100 bytes",
 		},
 		{
 			name:        "no limit enforced when maxBodySize is 0",
@@ -89,4 +91,59 @@ func TestSession_BodySizeLimitWithBindBody(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "test", data.Name)
 	assert.Equal(t, 42, data.Value)
+}
+
+func TestSession_MaxBytesErrorMessage(t *testing.T) {
+	// Test that different size limits produce correct error messages
+	tests := []struct {
+		name        string
+		bodySize    int
+		maxBodySize int64
+		wantErrMsg  string
+	}{
+		{
+			name:        "512 byte limit",
+			bodySize:    1024,
+			maxBodySize: 512,
+			wantErrMsg:  "request body exceeds size limit of 512 bytes",
+		},
+		{
+			name:        "1KB limit",
+			bodySize:    2048,
+			maxBodySize: 1024,
+			wantErrMsg:  "request body exceeds size limit of 1024 bytes",
+		},
+		{
+			name:        "10KB limit",
+			bodySize:    20000,
+			maxBodySize: 10240,
+			wantErrMsg:  "request body exceeds size limit of 10240 bytes",
+		},
+		{
+			name:        "1MB limit",
+			bodySize:    2097152, // 2MB
+			maxBodySize: 1048576, // 1MB
+			wantErrMsg:  "request body exceeds size limit of 1048576 bytes",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a body larger than the limit
+			bodyContent := strings.Repeat("x", tt.bodySize)
+			req := httptest.NewRequest("POST", "/", strings.NewReader(bodyContent))
+			w := httptest.NewRecorder()
+
+			sess := &Session{}
+			err := sess.init(w, req, tt.maxBodySize)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErrMsg)
+			
+			// Also verify the user-facing message includes the limit
+			userMsg := fault.UserFacingMessage(err)
+			expectedUserMsg := fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", tt.maxBodySize)
+			assert.Equal(t, expectedUserMsg, userMsg)
+		})
+	}
 }

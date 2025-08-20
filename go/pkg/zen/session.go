@@ -3,6 +3,7 @@ package zen
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -52,25 +53,43 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 
 	// Apply body size limit if configured
 	if maxBodySize > 0 {
-		s.r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+		s.r.Body = http.MaxBytesReader(w, s.r.Body, maxBodySize)
 	}
 
 	// Read and cache the request body so metrics middleware can access it even on early errors.
 	// We need to replace r.Body with a fresh reader afterwards so other middleware
 	// can still read the body if necessary.
 	var err error
-	s.requestBody, err = io.ReadAll(r.Body)
+	s.requestBody, err = io.ReadAll(s.r.Body)
+	closeErr := s.r.Body.Close()
+
+	// Handle read errors (including MaxBytesError)
 	if err != nil {
+		// Check if this is a MaxBytesError from http.MaxBytesReader
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			return fault.Wrap(err,
+				fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
+				fault.Public(fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", maxBytesErr.Limit)),
+			)
+		}
+
 		return fault.Wrap(err,
 			fault.Internal("unable to read request body"),
-			fault.Public("The request body is malformed."),
+			fault.Public("The request body could not be read."),
 		)
 	}
 
-	// Close the request body, so it can be re-read later by subsequent middlewares
-	_ = r.Body.Close()
-	s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
+	// Handle close error (incase that ever happens)
+	if closeErr != nil {
+		return fault.Wrap(closeErr,
+			fault.Internal("failed to close request body"),
+			fault.Public("An error occurred processing the request."),
+		)
+	}
 
+	// Replace body with a fresh reader for subsequent middleware
+	s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
 	s.WorkspaceID = ""
 	return nil
 }
