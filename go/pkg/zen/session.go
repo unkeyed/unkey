@@ -55,7 +55,7 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 
 	// Apply body size limit if configured
 	if maxBodySize > 0 {
-		s.r.Body = http.MaxBytesReader(w, s.r.Body, maxBodySize)
+		s.r.Body = http.MaxBytesReader(s.w, s.r.Body, maxBodySize)
 	}
 
 	// Read and cache the request body so metrics middleware can access it even on early errors.
@@ -176,17 +176,11 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 //	}
 //	// Use the parsed user data
 func (s *Session) BindBody(dst any) error {
-	if s.requestBody == nil {
-		return fault.New("empty request body",
-			fault.Public("The request body is empty."),
-		)
-	}
-
 	err := json.Unmarshal(s.requestBody, dst)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Internal("failed to unmarshal request body"),
-			fault.Public("The request body was not valid json."),
+			fault.Public("The request body was not valid JSON."),
 		)
 	}
 

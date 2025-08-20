@@ -1,0 +1,87 @@
+---
+title: "request_body_too_large"
+description: "Request body exceeds the maximum allowed size limit"
+---
+
+<Danger>`err:user:bad_request:request_body_too_large`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "The request body exceeds the maximum allowed size of 100 bytes.",
+    "status": 413,
+    "title": "Request Entity Too Large",
+    "type": "https://unkey.com/docs/errors/user/bad_request/request_body_too_large",
+    "errors": []
+  }
+}
+```
+
+## What Happened?
+
+Your request was too big! We limit how much data you can send in a single API request to keep everything running smoothly.
+
+This usually happens when you're trying to send a lot of data at once - like huge metadata objects or really long strings in your request.
+
+## How to Fix It
+
+### 1. Trim Down Your Request
+
+The most common cause is putting too much data in the `meta` field or other parts of your request.
+
+<CodeGroup>
+
+```bash Too Big
+curl -X POST https://api.unkey.com/v2/keys.create \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_XXXX" \
+  -d '{
+    "apiId": "api_123",
+    "name": "My Key",
+    "meta": {
+      "userProfile": "... really long user profile data ...",
+      "settings": { /* huge nested object with tons of properties */ }
+    }
+  }'
+```
+
+```bash Just Right
+curl -X POST https://api.unkey.com/v2/keys.create \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_XXXX" \
+  -d '{
+    "apiId": "api_123",
+    "name": "My Key",
+    "meta": {
+      "userId": "user_123",
+      "tier": "premium"
+    }
+  }'
+```
+
+</CodeGroup>
+
+### 2. Store Big Data Elsewhere
+
+Instead of cramming everything into your API request:
+
+- Store large data in your own database
+- Only send IDs or references to Unkey
+- Fetch the full data when you need it
+
+## Need a Higher Limit?
+
+<Note>
+**Got a special use case?** If you have a legitimate need to send larger requests, we'd love to hear about it!
+
+[Contact our support team](mailto:support@unkey.com) and include:
+- What you're building
+- Why you need to send large requests
+- An example of the data you're trying to send
+
+We'll work with you to find a solution that works for your use case.
+</Note>
+```

@@ -60,8 +60,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			case codes.UnkeyAppErrorsValidationInvalidInput,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
-				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
-				codes.UserErrorsBadRequestRequestBodyTooLarge:
+				codes.UserErrorsBadRequestPermissionsQuerySyntaxError:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -71,6 +70,21 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Type:   code.DocsURL(),
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Request Entity Too Large errors
+			case codes.UserErrorsBadRequestRequestBodyTooLarge:
+				return s.JSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Request Entity Too Large",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusRequestEntityTooLarge,
 						Errors: []openapi.ValidationError{},
 					},
 				})

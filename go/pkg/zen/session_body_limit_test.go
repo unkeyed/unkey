@@ -183,12 +183,12 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	// Call through the zen server
 	srv.Mux().ServeHTTP(w, req)
 
-	// Check that the response is 400 Bad Request
-	assert.Equal(t, http.StatusBadRequest, w.Code, "Should return 400 Bad Request status")
+	// Check that the response is 413 Request Entity Too Large
+	assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code, "Should return 413 Request Entity Too Large status")
 
 	// Verify the response contains the expected error structure
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
-	assert.Contains(t, w.Body.String(), "Bad Request")
+	assert.Contains(t, w.Body.String(), "Request Entity Too Large")
 	assert.Contains(t, w.Body.String(), "request body exceeds")
 }
 
