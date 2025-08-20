@@ -21,7 +21,6 @@ const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
 
     return (
       <div
-        onClick={() => setChecked(!checked)}
         ref={ref}
         className={cn(
           "hover:cursor-pointer flex flex-row items-center justify-start gap-4 transition-all pl-3 h-full mb-1 ml-2 w-full hover:bg-grayA-3 rounded-lg",

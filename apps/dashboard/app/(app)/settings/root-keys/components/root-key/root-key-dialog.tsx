@@ -130,8 +130,8 @@ export const RootKeyDialog = ({
               <Button
                 type="button"
                 variant="outline"
-                size="md"
-                className="border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
+                size="lg"
+                className="rounded-lg font-light text-content-subtle text-gray-10 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
                 disabled={isBusy}
               >
                 {isBusy ? ROOT_KEY_MESSAGES.UI.LOADING : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}

@@ -4,7 +4,7 @@ import { toast } from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "../constants";
 
-// Utility function for robust permission array comparison
+// Utility function for robust permission array comparison using Set-based equality check
 function arePermissionArraysEqual(
   permissions1: UnkeyPermission[],
   permissions2: UnkeyPermission[],
@@ -20,19 +20,12 @@ function arePermissionArraysEqual(
     return true;
   }
 
-  // Normalize permissions by sorting and creating a canonical representation
-  const normalizePermissions = (perms: UnkeyPermission[]): string[] => {
-    return perms
-      .map((p) => String(p)) // Ensure all permissions are strings
-      .sort(); // Sort for consistent comparison
-  };
+  // Convert first array to Set for O(1) lookups, ensuring values are strings
+  const permissionSet = new Set(permissions1.map((p) => String(p)));
 
-  const normalized1 = normalizePermissions(permissions1);
-  const normalized2 = normalizePermissions(permissions2);
-
-  // Compare each permission
-  for (let i = 0; i < normalized1.length; i++) {
-    if (normalized1[i] !== normalized2[i]) {
+  // Check if every permission in the second array exists in the Set
+  for (const permission of permissions2) {
+    if (!permissionSet.has(String(permission))) {
       return false;
     }
   }
@@ -109,8 +102,8 @@ export function useRootKeyDialog({
   });
 
   const updatePermissions = trpc.rootKey.update.permissions.useMutation({
-    onSuccess() {
-      const count = selectedPermissions.length;
+    onSuccess(_data, variables) {
+      const count = variables?.permissions?.length ?? 0;
       toast.success(`${ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_PERMISSIONS} ${count}`);
       trpcUtils.settings.rootKeys.query.invalidate();
     },
@@ -138,19 +131,19 @@ export function useRootKeyDialog({
 
   const handleCreateKey = useCallback(async () => {
     if (editMode && existingKey) {
-      // Update existing key name if changed
-      const nameChanged = name !== existingKey.name && name !== "" && name !== null;
+      // Normalize name and update if changed (allow clearing to null)
+      const normalizedName = name.trim();
+      const nameChanged = normalizedName !== (existingKey.name ?? "");
 
       if (nameChanged) {
+        const nameToSend = normalizedName === "" ? null : normalizedName;
         await updateName.mutateAsync({
           keyId: existingKey.id,
-          name: name && name.length > 0 ? name : null,
+          name: nameToSend,
         });
       }
-      if (
-        selectedPermissions.length > 0 &&
-        !arePermissionArraysEqual(selectedPermissions, existingKey.permissions)
-      ) {
+
+      if (!arePermissionArraysEqual(selectedPermissions, existingKey.permissions)) {
         // Update permissions using the new bulk update route
         await updatePermissions.mutateAsync({
           keyId: existingKey.id,

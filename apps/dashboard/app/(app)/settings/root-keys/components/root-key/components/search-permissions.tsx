@@ -11,6 +11,8 @@ type Props = {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) => {
+  const isSearching = isProcessing && (search?.trim().length ?? 0) > 0;
+
   return (
     <div className="flex flex-row items-center gap-2 w-full md:w-[calc(100%-16px)] pl-4 py-1 rounded-lg">
       <div className="flex-shrink-0">
@@ -21,7 +23,7 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
           value={search ?? ""}
           placeholder={ROOT_KEY_MESSAGES.UI.SEARCH_PERMISSIONS}
           isProcessing={isProcessing}
-          isLoading={false}
+          isLoading={isSearching}
           loadingText="Searching..."
           clearingText="Clearing..."
           searchMode={SEARCH_MODES.MANUAL}

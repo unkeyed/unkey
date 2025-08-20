@@ -8,11 +8,11 @@ export const ROOT_KEY_CONSTANTS = {
 
 export const ROOT_KEY_MESSAGES = {
   SUCCESS: {
-    ROOT_KEY_CREATED: "Root Key Created",
-    ROOT_KEY_UPDATED_NAME: "Root key name updated successfully!",
+    ROOT_KEY_CREATED: "Root key created",
+    ROOT_KEY_UPDATED_NAME: "Root key name updated",
     ROOT_KEY_GENERATED: "You've successfully generated a new Root key.",
     ROOT_KEY_UPDATED_PERMISSIONS:
-      "Root key permissions updated successfully, New permissions count:",
+      "Root key permissions updated successfully, New permissions count: ",
   },
   ERROR: {
     ACTION_FAILED: "Action Failed",
@@ -42,6 +42,7 @@ export const ROOT_KEY_MESSAGES = {
     CREATE_ROOT_KEY: "Create root key",
     UPDATE_ROOT_KEY: "Update root key",
     NEW_ROOT_KEY: "New root key",
+    NEW_ROOT_KEY_SUBTITLE: "Define a new root key and assign permissions",
     LOAD_MORE: "Load More",
     SEARCH_PERMISSIONS: "Search permissions",
     CLEAR_SEARCH: "Clear search",

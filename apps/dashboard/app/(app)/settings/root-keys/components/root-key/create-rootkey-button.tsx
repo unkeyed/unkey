@@ -35,7 +35,7 @@ const CreateRootKeyButton = ({ className, triggerRef, onClick, ...props }: Props
       </Button>
       <RootKeyDialog
         title={ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY}
-        subTitle="Define a new root key and assign permissions"
+        subTitle={ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY_SUBTITLE}
         isOpen={isOpen}
         onOpenChange={setIsOpen}
       />
