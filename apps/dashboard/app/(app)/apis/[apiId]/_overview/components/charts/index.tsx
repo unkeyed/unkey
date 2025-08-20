@@ -47,7 +47,7 @@ export const KeysOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
 
     let adjustedEnd = end;
@@ -95,7 +95,7 @@ export const KeysOverviewLogsCharts = ({
   const creditSpendChartConfig = {
     spent_credits: {
       label: "Credits Spent",
-      color: "hsl(var(--gray-9))",
+      color: "hsl(var(--success-9))",
     },
   };
 
@@ -109,7 +109,10 @@ export const KeysOverviewLogsCharts = ({
 
   if (isCreditSpendMode) {
     return (
-      <div ref={chartContainerRef} className="flex flex-col md:flex-row w-full md:h-[320px]">
+      <div
+        ref={chartContainerRef}
+        className="flex flex-col md:flex-row w-full md:h-[320px]"
+      >
         <div className="w-full md:w-1/2 border-r border-gray-4 max-md:h-72">
           <OverviewBarChart
             data={creditSpendTimeseries}
@@ -127,7 +130,8 @@ export const KeysOverviewLogsCharts = ({
               secondaryKey: "",
             }}
             showLabels={false}
-            hideTotal={true}
+            tooltipPrefix={null}
+            hideTooltipTotal={true}
           />
         </div>
         {/* Only show active keys chart if it has data in credit spend mode */}
