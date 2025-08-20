@@ -32,4 +32,5 @@ export type IconProps = {
   title?: string;
   size?: IconSize;
   filled?: boolean;
+  focusable?: boolean;
 };
