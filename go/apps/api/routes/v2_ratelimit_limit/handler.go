@@ -3,6 +3,7 @@ package v2RatelimitLimit
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -180,7 +181,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Apply rate limit
 	limitReq := ratelimit.RatelimitRequest{
-		Identifier: req.Identifier,
+		Identifier: fmt.Sprintf("%s:%s", namespace.ID, req.Identifier),
 		Duration:   time.Duration(duration) * time.Millisecond,
 		Limit:      limit,
 		Cost:       cost,
