@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { shortenId } from "@/lib/shorten-id";
 import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
 import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
@@ -35,13 +36,16 @@ const DeploymentListTableActions = dynamic(
   },
 );
 
+const COMPACT_BREAKPOINT = 1200;
+
 export const DeploymentsList = () => {
   const { deployments, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     useDeploymentsListQuery();
   const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
+  const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
 
-  const columns: Column<Deployment>[] = useMemo(
-    () => [
+  const columns: Column<Deployment>[] = useMemo(() => {
+    return [
       {
         key: "deployment_id",
         header: "Deployment ID",
@@ -107,53 +111,57 @@ export const DeploymentsList = () => {
           return <DeploymentStatusBadge status={deployment.status} />;
         },
       },
-      {
-        key: "instances",
-        header: "Instances",
-        width: "10%",
-        render: (deployment) => {
-          return (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" size="sm-regular" />
-              <div className="flex gap-0.5">
-                <span className="font-semibold text-grayA-12 tabular-nums">
-                  {deployment.instances}
-                </span>
-                <span>{deployment.instances === 1 ? " VM" : " VMs"}</span>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: "size",
-        header: "Size",
-        width: "10%",
-        render: (deployment) => {
-          return (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" size="sm-regular" />
-              <div className="flex gap-1">
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">2</span>
-                  <span>CPU</span>
-                </div>
-                <span> / </span>
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">
-                    {deployment.size}
-                  </span>
-                  <span>MB</span>
-                </div>
-              </div>
-            </div>
-          );
-        },
-      },
+      ...(isCompactView
+        ? []
+        : [
+            {
+              key: "instances" as const,
+              header: "Instances",
+              width: "10%",
+              render: (deployment: Deployment) => {
+                return (
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                    <Cube className="text-gray-12" size="sm-regular" />
+                    <div className="flex gap-0.5">
+                      <span className="font-semibold text-grayA-12 tabular-nums">
+                        {deployment.instances}
+                      </span>
+                      <span>{deployment.instances === 1 ? " VM" : " VMs"}</span>
+                    </div>
+                  </div>
+                );
+              },
+            },
+            {
+              key: "size" as const,
+              header: "Size",
+              width: "10%",
+              render: (deployment: Deployment) => {
+                return (
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                    <Cube className="text-gray-12" size="sm-regular" />
+                    <div className="flex gap-1">
+                      <div className="flex gap-0.5">
+                        <span className="font-semibold text-grayA-12 tabular-nums">2</span>
+                        <span>CPU</span>
+                      </div>
+                      <span> / </span>
+                      <div className="flex gap-0.5">
+                        <span className="font-semibold text-grayA-12 tabular-nums">
+                          {deployment.size}
+                        </span>
+                        <span>MB</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              },
+            },
+          ]),
       {
         key: "source",
         header: "Source",
-        width: "15%",
+        width: "10%",
         headerClassName: "pl-[18px]",
         render: (deployment) => {
           const isSelected = deployment.id === selectedDeployment?.id;
@@ -192,32 +200,74 @@ export const DeploymentsList = () => {
           );
         },
       },
-      {
-        key: "created_at",
-        header: "Created at",
-        width: "10%",
-        render: (deployment) => {
-          return (
-            <TimestampInfo
-              value={deployment.createdAt}
-              className="font-mono group-hover:underline decoration-dotted"
-            />
-          );
-        },
-      },
-      {
-        key: "author",
-        header: "Author",
-        width: "10%",
-        render: (deployment) => {
-          return (
-            <div className="flex items-center gap-2">
-              <img src={deployment.author.image} alt="Author" className="rounded-full size-5" />
-              <span className="font-medium text-grayA-12 text-xs">{deployment.author.name}</span>
-            </div>
-          );
-        },
-      },
+      ...(isCompactView
+        ? [
+            {
+              key: "author_created" as const,
+              header: "Author / Created",
+              width: "20%",
+              render: (deployment: Deployment) => {
+                return (
+                  <div className="flex flex-col items-start pr-[18px] py-1.5">
+                    <div className="flex gap-5 items-center w-full">
+                      <img
+                        src={deployment.author.image}
+                        alt="Author"
+                        className="rounded-full size-5"
+                      />
+                      <div className="w-[200px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-grayA-12 text-xs">
+                            {deployment.author.name}
+                          </span>
+                        </div>
+                        <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
+                          <TimestampInfo
+                            value={deployment.createdAt}
+                            className="font-mono text-xs text-gray-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              },
+            },
+          ]
+        : [
+            {
+              key: "created_at" as const,
+              header: "Created at",
+              width: "10%",
+              render: (deployment: Deployment) => {
+                return (
+                  <TimestampInfo
+                    value={deployment.createdAt}
+                    className="font-mono group-hover:underline decoration-dotted"
+                  />
+                );
+              },
+            },
+            {
+              key: "author" as const,
+              header: "Author",
+              width: "10%",
+              render: (deployment: Deployment) => {
+                return (
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={deployment.author.image}
+                      alt="Author"
+                      className="rounded-full size-5"
+                    />
+                    <span className="font-medium text-grayA-12 text-xs">
+                      {deployment.author.name}
+                    </span>
+                  </div>
+                );
+              },
+            },
+          ]),
       {
         key: "action",
         header: "",
@@ -226,9 +276,8 @@ export const DeploymentsList = () => {
           return <DeploymentListTableActions deployment={deployment} />;
         },
       },
-    ],
-    [selectedDeployment?.id],
-  );
+    ];
+  }, [selectedDeployment?.id, isCompactView]);
 
   return (
     <VirtualTable
@@ -299,6 +348,12 @@ export const DeploymentsList = () => {
             {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
             {column.key === "author" && <AuthorColumnSkeleton />}
+            {column.key === "author_created" && (
+              <div className="flex flex-col gap-1">
+                <AuthorColumnSkeleton />
+                <CreatedAtColumnSkeleton />
+              </div>
+            )}
             {column.key === "action" && <ActionColumnSkeleton />}
           </td>
         ))

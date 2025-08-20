@@ -139,7 +139,7 @@ Result: [
   }
 ]
 
-Query: "show active deployments"
+Query: "show ready or active deployments"
 Result: [
   {
     field: "status",
@@ -149,7 +149,7 @@ Result: [
   }
 ]
 
-Query: "find active deployments"
+Query: "find ready or active deployments"
 Result: [
   {
     field: "status",
@@ -159,7 +159,7 @@ Result: [
   }
 ]
 
-Query: "active deployments only"
+Query: "ready or active deployments only"
 Result: [
   {
     field: "status",
@@ -415,14 +415,14 @@ Special handling rules:
    - Time expressions ("yesterday", "24h", "week", "today") → since field
 
 2. CRITICAL: Status disambiguation rules:
-- "active" ALWAYS means completed deployments (live/successful deployments)
+- "active" or "ready" ALWAYS means completed deployments (live/successful deployments)
 - "running" means deployments currently in the deployment process (building + pending)
 - "in progress" means deployments currently being deployed (building)
 - "live" means completed deployments
 - "successful" means completed deployments
 
 Status aliases and variations:
-   - "active", "success", "successful", "done", "live", "finished successfully" → "completed"
+   - "active", "ready", "success", "successful", "done", "live", "finished successfully" → "completed"
    - "in progress", "building", "deploying" → "building"
    - "pending", "queued", "waiting" → "pending"
    - "failed", "error", "broken" → "failed"
@@ -462,7 +462,7 @@ Output Validation:
 Additional Context:
 - Deployments have grouped statuses for filtering: pending, building, completed, failed
 - Building status represents multiple internal states: downloading_docker_image, building_rootfs, uploading_rootfs, creating_vm, booting_vm, assigning_domains
-- Users see and refer to the grouped statuses: Pending/Queued, Building/In Progress, Active/Success, Failed/Error
+- Users see and refer to the grouped statuses: Pending/Queued, Building/In Progress, Ready/Active/Success, Failed/Error
 - Backend automatically expands grouped statuses to actual internal statuses for filtering
 - Environment is either production or preview
 - Branch names can contain various patterns (feature/, hotfix/, release/, etc.)
@@ -502,7 +502,7 @@ Result: [
 ]
 
 # Status Category Searches
-Query: "show me all active deployments"
+Query: "show me all ready or active deployments"
 Result: [
   {
     field: "status",

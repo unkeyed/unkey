@@ -82,7 +82,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   },
   completed: {
     icon: CircleCheck,
-    label: "Active",
+    label: "Ready",
     bgColor: "bg-successA-3",
     textColor: "text-successA-11",
     iconColor: "text-success-11",

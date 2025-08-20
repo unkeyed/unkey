@@ -7,7 +7,6 @@ type StatusOption = {
   id: number;
   status: GroupedDeploymentStatus;
   display: string;
-  label: string;
   checked: boolean;
 };
 
@@ -16,28 +15,24 @@ const baseOptions: StatusOption[] = [
     id: 1,
     status: "pending",
     display: "Pending",
-    label: "Queued",
     checked: false,
   },
   {
     id: 2,
     status: "building",
     display: "Building",
-    label: "In Progress",
     checked: false,
   },
   {
     id: 3,
     status: "completed",
-    display: "Active",
-    label: "Success",
+    display: "Ready",
     checked: false,
   },
   {
     id: 4,
     status: "failed",
     display: "Failed",
-    label: "Error",
     checked: false,
   },
 ];
@@ -55,7 +50,6 @@ export const DeploymentStatusFilter = () => {
         <>
           <div className={`size-2 ${getColorClass?.(checkbox.status)} rounded-[2px]`} />
           <span className="text-accent-9 text-xs w-16">{checkbox.display}</span>
-          <span className="text-accent-12 text-xs">{checkbox.label}</span>
         </>
       )}
       createFilterValue={(option) => ({
