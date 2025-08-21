@@ -10,6 +10,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -46,4 +47,31 @@ func TestGetKeyNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "We could not find the requested key")
 	})
 
+	t.Run("key from different workspace", func(t *testing.T) {
+		// Create a different workspace
+		otherWorkspace := h.CreateWorkspace()
+
+		// Create API and key in the other workspace
+		apiName := "other-workspace-api"
+		otherAPI := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: otherWorkspace.ID,
+			Name:        &apiName,
+		})
+
+		otherKey := h.CreateKey(seed.CreateKeyRequest{
+			KeyAuthID:   otherAPI.KeyAuthID.String,
+			WorkspaceID: otherWorkspace.ID,
+		})
+
+		// Try to access the key from different workspace using our root key
+		req := handler.Request{
+			KeyId:   otherKey.KeyID,
+			Decrypt: ptr.P(false),
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "specified key was not found")
+	})
 }
