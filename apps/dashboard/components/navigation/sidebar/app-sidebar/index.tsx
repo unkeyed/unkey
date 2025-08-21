@@ -61,7 +61,6 @@ export function AppSidebar({
 
   const handleLoadMore = useCallback(
     (item: NavItem & { loadMoreAction?: boolean }) => {
-      // Check if this is a load more action OR if we're in the projects section
       if (item.href === "#load-more-projects") {
         loadMoreProjects();
       } else if (item.href === "#load-more-ratelimits") {
