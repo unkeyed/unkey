@@ -1,5 +1,7 @@
 "use client";
+
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
+import { LoadMoreFooter } from "@/components/virtual-table/components/loading-indicator";
 import { trpc } from "@/lib/trpc/client";
 import { Button, CopyButton, Empty } from "@unkey/ui";
 import { BookOpen } from "lucide-react";
@@ -25,6 +27,9 @@ export const RatelimitClient = () => {
     isLoading,
     error,
     isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = trpc.ratelimit.namespace.query.useInfiniteQuery(
     { limit: 10 },
     {
@@ -40,14 +45,21 @@ export const RatelimitClient = () => {
   }, [namespacesData]);
 
   const [namespaces, setNamespaces] = useState(allNamespaces);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     setNamespaces(allNamespaces);
   }, [allNamespaces]);
 
+  const totalCount = namespacesData?.pages[0]?.total || 0;
+
   return (
-    <div className="flex flex-col">
-      <RatelimitListControls setNamespaces={setNamespaces} initialNamespaces={allNamespaces} />
+    <div className="flex flex-col relative">
+      <RatelimitListControls
+        setNamespaces={setNamespaces}
+        initialNamespaces={allNamespaces}
+        onSearch={setIsSearching}
+      />
       <RatelimitListControlCloud />
 
       {isError ? (
@@ -66,36 +78,69 @@ export const RatelimitClient = () => {
           ))}
         </div>
       ) : namespaces.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
-          {namespaces.map((namespace) => (
-            <NamespaceCard namespace={namespace} key={namespace.id} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
+            {namespaces.map((namespace) => (
+              <NamespaceCard namespace={namespace} key={namespace.id} />
+            ))}
+          </div>
+
+          {!isSearching && (
+            <LoadMoreFooter
+              onLoadMore={fetchNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              totalVisible={namespaces.length}
+              totalCount={totalCount}
+              itemLabel="namespaces"
+              buttonText="Load more namespaces"
+              hasMore={hasNextPage}
+              hide={!hasNextPage && namespaces.length === totalCount}
+              countInfoText={
+                <div className="flex gap-2">
+                  <span>Viewing</span>
+                  <span className="text-accent-12">{namespaces.length}</span>
+                  <span>of</span>
+                  <span className="text-grayA-12">{totalCount}</span>
+                  <span>namespaces</span>
+                </div>
+              }
+            />
+          )}
+        </>
       ) : (
         <EmptyComponentSpacer>
           <Empty className="max-w-2xl mx-auto">
             <Empty.Icon />
             <Empty.Title>No Namespaces found</Empty.Title>
             <Empty.Description>
-              You haven't created any Namespaces yet. Create one by performing a limit request as
-              shown below.
+              {isSearching
+                ? "No namespaces match your search criteria. Try a different search term."
+                : "You haven't created any Namespaces yet. Create one by performing a limit request as shown below."}
             </Empty.Description>
-            <div className="w-full mt-8 mb-8">
-              <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
-                <pre className="flex-1 text-xs text-left overflow-x-auto">
-                  <code>{EXAMPLE_SNIPPET}</code>
-                </pre>
-                <CopyButton value={EXAMPLE_SNIPPET} />
-              </div>
-            </div>
-            <Empty.Actions>
-              <a href="/docs/ratelimiting/introduction" target="_blank" rel="noopener noreferrer">
-                <Button className="flex items-center w-full gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  Read the docs
-                </Button>
-              </a>
-            </Empty.Actions>
+            {!isSearching && (
+              <>
+                <div className="w-full mt-8 mb-8">
+                  <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
+                    <pre className="flex-1 text-xs text-left overflow-x-auto">
+                      <code>{EXAMPLE_SNIPPET}</code>
+                    </pre>
+                    <CopyButton value={EXAMPLE_SNIPPET} />
+                  </div>
+                </div>
+                <Empty.Actions>
+                  <a
+                    href="/docs/ratelimiting/introduction"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button className="flex items-center w-full gap-2">
+                      <BookOpen className="w-4 h-4" />
+                      Read the docs
+                    </Button>
+                  </a>
+                </Empty.Actions>
+              </>
+            )}
           </Empty>
         </EmptyComponentSpacer>
       )}

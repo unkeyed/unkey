@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
+import { LoadMoreFooter } from "@/components/virtual-table/components/loading-indicator";
 import { trpc } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -53,11 +54,7 @@ export const ApiListClient = () => {
     }
   }, [error, router]);
 
-  const loadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  };
+  const totalCount = apisData?.pages[0]?.total || 0;
 
   return (
     <div className="flex flex-col">
@@ -79,26 +76,27 @@ export const ApiListClient = () => {
             ))}
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
-            <div className="text-center text-sm text-accent-11">
-              Showing {apiList.length} of {apisData?.pages[0]?.total || 0} APIs
-            </div>
-
-            {!isSearching && hasNextPage && (
-              <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
-                {isFetchingNextPage ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <span>Load more</span>
-                  </div>
-                )}
-              </Button>
-            )}
-          </div>
+          {!isSearching && (
+            <LoadMoreFooter
+              onLoadMore={fetchNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              totalVisible={apiList.length}
+              totalCount={totalCount}
+              itemLabel="APIs"
+              buttonText="Load more APIs"
+              hasMore={hasNextPage}
+              hide={!hasNextPage && apiList.length === totalCount}
+              countInfoText={
+                <div className="flex gap-2">
+                  <span>Viewing</span>
+                  <span className="text-accent-12">{apiList.length}</span>
+                  <span>of</span>
+                  <span className="text-grayA-12">{totalCount}</span>
+                  <span>APIs</span>
+                </div>
+              }
+            />
+          )}
         </>
       ) : (
         <EmptyComponentSpacer>
