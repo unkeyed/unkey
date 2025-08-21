@@ -74,11 +74,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: namespaceKey},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Namespace:   namespaceKey,
-			})
 			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
+
+			response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Namespace:   namespaceKey,
+				})
+			})
 			if err != nil {
 				return result, err
 			}

@@ -13,7 +13,9 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
 	defer span.End()
 
-	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
+	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
+		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
@@ -33,13 +35,12 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
-	err = db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
-		ID:      req.KeyId,
-		Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
+	_, err = db.WithRetry(func() (any, error) {
+		return nil, db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
+			ID:      req.KeyId,
+			Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
+		})
 	})
-	if err != nil {
-		return UsageResponse{}, err
-	}
 
 	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
 	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
