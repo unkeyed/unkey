@@ -284,9 +284,10 @@ export function OverviewBarChart({
                         ) : undefined
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(_, tooltipPayload) =>
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload as any)
-                      }
+                      labelFormatter={(
+                        _,
+                        tooltipPayload: Array<{ payload: { originalTimestamp?: number } }>,
+                      ) => createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)}
                     />
                   );
                 }}

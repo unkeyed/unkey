@@ -9,11 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import {
-  METRIC_TYPE_LABELS,
-  type MetricType,
-  useMetricType,
-} from "../../../hooks/use-metric-type";
+import { METRIC_TYPE_LABELS, type MetricType, useMetricType } from "../../../hooks/use-metric-type";
 
 export const LogsMetricType = () => {
   const { metricType, setMetricType } = useMetricType();

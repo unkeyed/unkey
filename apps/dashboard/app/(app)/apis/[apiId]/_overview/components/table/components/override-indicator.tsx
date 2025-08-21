@@ -7,10 +7,7 @@ import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
-import {
-  getErrorPercentage,
-  getErrorSeverity,
-} from "../utils/calculate-blocked-percentage";
+import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
@@ -46,11 +43,7 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({
-  log,
-  apiId,
-  onNavigate,
-}: KeyIdentifierColumnProps) => {
+export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const errorPercentage = getErrorPercentage(log);
@@ -102,18 +95,14 @@ export const KeyIdentifierColumn = ({
 
       router.push(buildKeyDetailUrl());
     },
-    [onNavigate, router.push, buildKeyDetailUrl]
+    [onNavigate, router.push, buildKeyDetailUrl],
   );
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
         variant="inverted"
-        content={
-          <p className="text-xs">
-            {getWarningMessage(severity, errorPercentage)}
-          </p>
-        }
+        content={<p className="text-xs">{getWarningMessage(severity, errorPercentage)}</p>}
         position={{ side: "right", align: "center" }}
       >
         {isNavigating ? (
@@ -121,12 +110,7 @@ export const KeyIdentifierColumn = ({
             <Loading size={18} />
           </div>
         ) : (
-          <div
-            className={cn(
-              "transition-opacity",
-              hasErrors ? "opacity-100" : "opacity-0"
-            )}
-          >
+          <div className={cn("transition-opacity", hasErrors ? "opacity-100" : "opacity-0")}>
             {getWarningIcon(severity)}
           </div>
         )}
