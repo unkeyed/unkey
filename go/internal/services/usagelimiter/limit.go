@@ -41,6 +41,9 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 			Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
 		})
 	})
+	if err != nil {
+		return UsageResponse{}, err
+	}
 
 	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
 	metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
