@@ -189,6 +189,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Cost:       cost,
 		Time:       time.Time{},
 	}
+
 	if h.TestMode {
 		header := s.Request().Header.Get("X-Test-Time")
 		if header != "" {
@@ -219,6 +220,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Passed:      result.Success,
 		})
 	}
+
 	res := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
