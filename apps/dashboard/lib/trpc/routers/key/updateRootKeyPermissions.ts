@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
+import { env } from "@/lib/env";
 import { upsertPermissions } from "../rbac";
 
 /**
@@ -70,7 +71,7 @@ export const updateRootKeyPermissions = t.procedure
 
         // Upsert new permissions
         const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(ctx, ctx.workspace.id, input.permissions);
+          await upsertPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
 
         auditLogs.push(...createPermissionLogs);
 
@@ -137,7 +138,7 @@ export const updateRootKeyPermissions = t.procedure
             permissionsToAdd.map((p) => ({
               keyId: input.keyId,
               permissionId: p.id,
-              workspaceId: ctx.workspace.id,
+              workspaceId: env().UNKEY_WORKSPACE_ID,
             })),
           );
 
