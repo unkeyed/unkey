@@ -63,19 +63,25 @@ func (s *Service) CreateVersion(
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:             deploymentID,
-		WorkspaceID:    req.Msg.GetWorkspaceId(),
-		ProjectID:      req.Msg.GetProjectId(),
-		Environment:    environment,
-		BuildID:        sql.NullString{String: "", Valid: false}, // Build creation handled separately
-		RootfsImageID:  "",                                       // Image handling not implemented yet
-		GitCommitSha:   sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
-		GitBranch:      sql.NullString{String: gitBranch, Valid: true},
-		ConfigSnapshot: []byte("{}"), // Configuration snapshot placeholder
-		OpenapiSpec:    sql.NullString{String: "", Valid: false},
-		Status:         "pending",
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Int64: now, Valid: true},
+		ID:                       deploymentID,
+		WorkspaceID:              req.Msg.GetWorkspaceId(),
+		ProjectID:                req.Msg.GetProjectId(),
+		Environment:              environment,
+		BuildID:                  sql.NullString{String: "", Valid: false}, // Build creation handled separately
+		RootfsImageID:            "",                                       // Image handling not implemented yet
+		GitCommitSha:             sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
+		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:         sql.NullString{String: req.Msg.GetGitCommitMessage(), Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorName:      sql.NullString{String: req.Msg.GetGitCommitAuthorName(), Valid: req.Msg.GetGitCommitAuthorName() != ""},
+		GitCommitAuthorEmail:     sql.NullString{String: req.Msg.GetGitCommitAuthorEmail(), Valid: req.Msg.GetGitCommitAuthorEmail() != ""},
+		GitCommitAuthorUsername:  sql.NullString{String: req.Msg.GetGitCommitAuthorUsername(), Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
+		GitCommitAuthorAvatarUrl: sql.NullString{String: req.Msg.GetGitCommitAuthorAvatarUrl(), Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
+		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
+		ConfigSnapshot:           []byte("{}"), // Configuration snapshot placeholder
+		OpenapiSpec:              sql.NullString{String: "", Valid: false},
+		Status:                   "pending",
+		CreatedAt:                now,
+		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
