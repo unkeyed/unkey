@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -24,9 +23,9 @@ func TestWithRetry_Success(t *testing.T) {
 		return "success", nil
 	})
 
-	assert.NoError(t, err)
-	assert.Equal(t, "success", result)
-	assert.Equal(t, 1, callCount, "should succeed on first try")
+	require.NoError(t, err)
+	require.Equal(t, "success", result)
+	require.Equal(t, 1, callCount, "should succeed on first try")
 }
 
 func TestWithRetry_RetriesTransientErrors(t *testing.T) {
@@ -41,9 +40,9 @@ func TestWithRetry_RetriesTransientErrors(t *testing.T) {
 		return "success", nil
 	})
 
-	assert.NoError(t, err)
-	assert.Equal(t, "success", result)
-	assert.Equal(t, 3, callCount, "should retry twice then succeed")
+	require.NoError(t, err)
+	require.Equal(t, "success", result)
+	require.Equal(t, 3, callCount, "should retry twice then succeed")
 }
 
 func TestWithRetry_SkipsRetryOnNotFound(t *testing.T) {
@@ -54,10 +53,10 @@ func TestWithRetry_SkipsRetryOnNotFound(t *testing.T) {
 		return "", sql.ErrNoRows
 	})
 
-	assert.Error(t, err)
-	assert.True(t, IsNotFound(err))
-	assert.Equal(t, "", result)
-	assert.Equal(t, 1, callCount, "should not retry on not found error")
+	require.Error(t, err)
+	require.True(t, IsNotFound(err))
+	require.Equal(t, "", result)
+	require.Equal(t, 1, callCount, "should not retry on not found error")
 }
 
 func TestWithRetry_SkipsRetryOnDuplicateKey(t *testing.T) {
@@ -69,10 +68,10 @@ func TestWithRetry_SkipsRetryOnDuplicateKey(t *testing.T) {
 		return "", duplicateKeyErr
 	})
 
-	assert.Error(t, err)
-	assert.True(t, IsDuplicateKeyError(err))
-	assert.Equal(t, "", result)
-	assert.Equal(t, 1, callCount, "should not retry on duplicate key error")
+	require.Error(t, err)
+	require.True(t, IsDuplicateKeyError(err))
+	require.Equal(t, "", result)
+	require.Equal(t, 1, callCount, "should not retry on duplicate key error")
 }
 
 func TestWithRetry_ExhaustsRetries(t *testing.T) {
@@ -84,10 +83,10 @@ func TestWithRetry_ExhaustsRetries(t *testing.T) {
 		return "", transientErr
 	})
 
-	assert.Error(t, err)
-	assert.Equal(t, transientErr, err)
-	assert.Equal(t, "", result)
-	assert.Equal(t, 3, callCount, "should try 3 times then give up")
+	require.Error(t, err)
+	require.Equal(t, transientErr, err)
+	require.Equal(t, "", result)
+	require.Equal(t, 3, callCount, "should try 3 times then give up")
 }
 
 func TestWithRetry_GenericTypes(t *testing.T) {
@@ -96,8 +95,8 @@ func TestWithRetry_GenericTypes(t *testing.T) {
 			return 42, nil
 		})
 
-		assert.NoError(t, err)
-		assert.Equal(t, 42, result)
+		require.NoError(t, err)
+		require.Equal(t, 42, result)
 	})
 
 	t.Run("struct type", func(t *testing.T) {
@@ -111,8 +110,8 @@ func TestWithRetry_GenericTypes(t *testing.T) {
 			return expected, nil
 		})
 
-		assert.NoError(t, err)
-		assert.Equal(t, expected, result)
+		require.NoError(t, err)
+		require.Equal(t, expected, result)
 	})
 }
 
