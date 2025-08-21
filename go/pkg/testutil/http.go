@@ -118,6 +118,8 @@ func NewHarness(t *testing.T) *Harness {
 		RateLimiter: ratelimitService,
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
+		Region:      "test",
+		Counter:     ctr,
 	})
 	require.NoError(t, err)
 
@@ -142,7 +144,7 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	// Create seeder
-	seeder := seed.New(t, db)
+	seeder := seed.New(t, db, v)
 
 	seeder.Seed(context.Background())
 
