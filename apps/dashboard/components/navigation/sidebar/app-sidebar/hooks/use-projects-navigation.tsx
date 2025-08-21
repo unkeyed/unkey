@@ -14,7 +14,6 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       },
     );
 
-  // Convert project data to navigation items with sub-items
   const projectNavItems = useMemo(() => {
     if (!data?.pages) {
       return [];
