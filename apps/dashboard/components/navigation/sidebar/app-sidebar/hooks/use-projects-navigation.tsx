@@ -8,7 +8,7 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.deploy.project.list.useInfiniteQuery(
-      {},
+      { query: [] },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
       },
@@ -23,24 +23,6 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       page.projects.map((project) => {
         const currentProjectActive = segments.at(0) === "projects" && segments.at(1) === project.id;
 
-        // Create sub-items for project navigation
-        // const subItems: NavItem[] = [
-        //   {
-        //     icon: Cube,
-        //     href: `/projects/${project.id}`,
-        //     label: "Overview",
-        //     active:
-        //       isExactlyProjectRoot || (currentProjectActive && !segments.at(2)),
-        //   },
-        //   {
-        //     icon: Cube,
-        //     href: `/projects/${project.id}/settings`,
-        //     label: "Settings",
-        //     active: currentProjectActive && segments.at(2) === "settings",
-        //   },
-        // ];
-
-        // Create the main project nav item
         const projectNavItem: NavItem = {
           href: `/projects/${project.id}`,
           icon: null,
