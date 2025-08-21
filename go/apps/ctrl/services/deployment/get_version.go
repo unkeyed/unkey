@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
+// GetVersion loads a deployment by ID and projects it into the ctrlv1.Version proto, including git metadata, build
+// linkage, steps, and hostnames. Non-critical lookup failures (steps/hostnames/build) are logged and ignored to keep the endpoint resilient.
 func (s *Service) GetVersion(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.GetVersionRequest],
