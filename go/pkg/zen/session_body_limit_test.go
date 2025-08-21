@@ -2,13 +2,13 @@ package zen
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -61,13 +61,13 @@ func TestSession_BodySizeLimit(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errSubstr != "" {
-					assert.Contains(t, err.Error(), tt.errSubstr)
+					require.Contains(t, err.Error(), tt.errSubstr)
 				}
 				return
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, []byte(tt.bodyContent), sess.requestBody)
+			require.Equal(t, []byte(tt.bodyContent), sess.requestBody)
 		})
 	}
 }
@@ -92,8 +92,8 @@ func TestSession_BodySizeLimitWithBindBody(t *testing.T) {
 	var data TestData
 	err = sess.BindBody(&data)
 	require.NoError(t, err)
-	assert.Equal(t, "test", data.Name)
-	assert.Equal(t, 42, data.Value)
+	require.Equal(t, "test", data.Name)
+	require.Equal(t, 42, data.Value)
 }
 
 func TestSession_MaxBytesErrorMessage(t *testing.T) {
@@ -141,12 +141,12 @@ func TestSession_MaxBytesErrorMessage(t *testing.T) {
 			err := sess.init(w, req, tt.maxBodySize)
 
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErrMsg)
+			require.Contains(t, err.Error(), tt.wantErrMsg)
 
 			// Also verify the user-facing message includes the limit
 			userMsg := fault.UserFacingMessage(err)
 			expectedUserMsg := fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", tt.maxBodySize)
-			assert.Equal(t, expectedUserMsg, userMsg)
+			require.Equal(t, expectedUserMsg, userMsg)
 		})
 	}
 }
@@ -162,9 +162,13 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Flag to track if handler was invoked (should remain false)
+	handlerInvoked := false
+
 	// Register a simple route that would process the body
 	testRoute := NewRoute("POST", "/test", func(ctx context.Context, s *Session) error {
 		// This should never be reached due to the body size limit
+		handlerInvoked = true
 		return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
@@ -184,12 +188,33 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	srv.Mux().ServeHTTP(w, req)
 
 	// Check that the response is 413 Request Entity Too Large
-	assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code, "Should return 413 Request Entity Too Large status")
+	require.Equal(t, http.StatusRequestEntityTooLarge, w.Code, "Should return 413 Request Entity Too Large status")
 
-	// Verify the response contains the expected error structure
-	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
-	assert.Contains(t, w.Body.String(), "Request Entity Too Large")
-	assert.Contains(t, w.Body.String(), "request body exceeds")
+	// Parse and validate JSON response structure
+	require.Contains(t, w.Header().Get("Content-Type"), "application/json")
+
+	var response map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err, "Response should be valid JSON")
+
+	// Validate that response contains error field
+	require.Contains(t, response, "error", "Response should contain 'error' field")
+
+	errorObj, ok := response["error"].(map[string]interface{})
+	require.True(t, ok, "Error field should be an object")
+
+	// Validate required JSON fields in error object
+	require.Contains(t, errorObj, "title", "Error should contain 'title' field")
+	require.Contains(t, errorObj, "detail", "Error should contain 'detail' field")
+	require.Contains(t, errorObj, "status", "Error should contain 'status' field")
+
+	// Validate field values
+	require.Equal(t, "Request Entity Too Large", errorObj["title"])
+	require.Equal(t, float64(413), errorObj["status"]) // JSON unmarshals numbers as float64
+	require.Contains(t, errorObj["detail"], "request body exceeds")
+
+	// Ensure the handler was never invoked
+	require.False(t, handlerInvoked, "Handler should not have been invoked due to body size limit")
 }
 
 func TestSession_ClickHouseLoggingControl(t *testing.T) {
@@ -202,13 +227,16 @@ func TestSession_ClickHouseLoggingControl(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should default to true (logging enabled)
-	assert.True(t, sess.ShouldLogRequestToClickHouse(), "Should default to logging enabled")
+	require.True(t, sess.ShouldLogRequestToClickHouse(), "Should default to logging enabled")
 
 	// Disable ClickHouse logging
 	sess.DisableClickHouseLogging()
-	assert.False(t, sess.ShouldLogRequestToClickHouse(), "Should be disabled after calling DisableClickHouseLogging")
+	require.False(t, sess.ShouldLogRequestToClickHouse(), "Should be disabled after calling DisableClickHouseLogging")
 
 	// Reset should re-enable logging
 	sess.reset()
-	assert.True(t, sess.ShouldLogRequestToClickHouse(), "Should be enabled again after reset")
+	require.True(t, sess.ShouldLogRequestToClickHouse(), "Should be enabled again after reset")
+	require.Empty(t, sess.requestBody)
+	require.Equal(t, 0, sess.responseStatus)
+	require.Empty(t, sess.responseBody)
 }
