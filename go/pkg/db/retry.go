@@ -29,8 +29,16 @@ func WithRetry[T any](fn func() (T, error)) (T, error) {
 	retrier := retry.New(
 		retry.Attempts(3),
 		retry.Backoff(func(n int) time.Duration {
-			// Exponential backoff: 50ms, 100ms, 200ms
-			return time.Duration(1<<uint(n-1)) * DefaultBackoff
+			// Predefined backoff delays: 50ms, 100ms, 200ms
+			delays := []time.Duration{
+				DefaultBackoff,     // 50ms for attempt 1
+				DefaultBackoff * 2, // 100ms for attempt 2  
+				DefaultBackoff * 4, // 200ms for attempt 3
+			}
+			if n <= 0 || n > len(delays) {
+				return DefaultBackoff // fallback to base delay
+			}
+			return delays[n-1]
 		}),
 		retry.ShouldRetry(func(err error) bool {
 			// Don't retry if resource is not found - this is a valid response

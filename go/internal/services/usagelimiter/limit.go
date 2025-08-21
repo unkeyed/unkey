@@ -35,11 +35,9 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
-	_, err = db.WithRetry(func() (any, error) {
-		return nil, db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
-			ID:      req.KeyId,
-			Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
-		})
+	err = db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
+		ID:      req.KeyId,
+		Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
 	})
 	if err != nil {
 		return UsageResponse{}, err
