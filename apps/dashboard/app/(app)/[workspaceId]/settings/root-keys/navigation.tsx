@@ -4,6 +4,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Badge, Button, CopyButton } from "@unkey/ui";
 import Link from "next/link";
+import { CreateRootKeyButton } from "./components/root-key/create-rootkey-button";
 
 const settingsNavbar = [
   {
@@ -77,11 +78,7 @@ export const Navigation = ({
               <CopyButton value={workspace.id} />
             </Badge>
           )}
-          {activePage.href === "root-keys" && (
-            <Link key="create-root-key" href={`/${workspace.id}/settings/root-keys/new`}>
-              <Button variant="primary">Create New Root Key</Button>
-            </Link>
-          )}
+          {activePage.href === "root-keys" && <CreateRootKeyButton />}
           {activePage.href === "billing" && (
             <>
               <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
