@@ -105,6 +105,10 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
     duration: "5m",
     limit: 5,
     rootKey: unkeyRootKey,
+    onError: (err: Error, identifier: string) => {
+      console.error(`Error occurred while rate limiting ${identifier}: ${err.message}`);
+      return { success: true, limit: 0, remaining: 1, reset: 1 };
+    },
   });
 
   const { success } = await rl.limit(email);
