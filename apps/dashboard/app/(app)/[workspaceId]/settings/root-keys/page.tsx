@@ -28,7 +28,7 @@ export default function RootKeysPage() {
       <div className="flex flex-col">
         <RootKeysListControls />
         <RootKeysListControlCloud />
-        <RootKeysList workspaceId={workspace.id} />
+        <RootKeysList />
       </div>
     </div>
   );

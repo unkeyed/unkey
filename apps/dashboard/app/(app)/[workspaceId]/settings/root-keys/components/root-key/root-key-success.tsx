@@ -83,7 +83,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                   aria-hidden="true"
                   focusable={false}
                 />
-                <span>
+                <span className="flex items-center gap-1">
                   {ROOT_KEY_MESSAGES.UI.COPY_SAVE_KEY}
                   <a
                     href="https://www.unkey.com/docs/security/recovering-keys"
