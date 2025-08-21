@@ -180,7 +180,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Apply rate limit
 	limitReq := ratelimit.RatelimitRequest{
-		Identifier: req.Identifier,
+		Identifier: namespace.ID + ":" + req.Identifier,
 		Duration:   time.Duration(duration) * time.Millisecond,
 		Limit:      limit,
 		Cost:       cost,
