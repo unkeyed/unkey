@@ -9,25 +9,24 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React from "react";
-import { sizeMap, type IconProps } from "../props";
-export const Check: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+import type React from "react";
+import { type IconProps, sizeMap } from "../props";
+
+export const Minus: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
+      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
-      focusable={props.focusable}
     >
       <g fill="currentColor">
-        <polyline
+        <path
+          d="M3.25 9H14.75"
           fill="none"
-          points="2.75 9.25 6.75 14.25 15.25 3.75"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
