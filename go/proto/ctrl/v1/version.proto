@@ -37,6 +37,14 @@ message CreateVersionRequest {
   string hostname = 9;
   // Keyspace ID for authentication
   string keyspace_id = 10;
+  
+  // Extended git information
+  string git_commit_message = 9;
+  string git_commit_author_name = 10;
+  string git_commit_author_email = 11;
+  string git_commit_author_username = 12;
+  string git_commit_author_avatar_url = 13;
+  int64 git_commit_timestamp = 14;
 }
 
 message CreateVersionResponse {
@@ -85,6 +93,14 @@ message Version {
 
   // Deployment steps
   repeated VersionStep steps = 16;
+  
+  // Extended git information
+  string git_commit_message = 17;
+  string git_commit_author_name = 18;
+  string git_commit_author_email = 19;
+  string git_commit_author_username = 20;
+  string git_commit_author_avatar_url = 21;
+  int64 git_commit_timestamp = 22;
 }
 
 message VersionStep {

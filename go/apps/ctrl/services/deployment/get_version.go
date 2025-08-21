@@ -20,22 +20,28 @@ func (s *Service) GetVersion(
 
 	// Convert database model to proto
 	protoVersion := &ctrlv1.Version{
-		Id:                   deployment.ID,
-		WorkspaceId:          deployment.WorkspaceID,
-		ProjectId:            deployment.ProjectID,
-		EnvironmentId:        string(deployment.Environment),
-		Status:               convertDbStatusToProto(string(deployment.Status)),
-		CreatedAt:            deployment.CreatedAt,
-		GitCommitSha:         "",
-		GitBranch:            "",
-		ErrorMessage:         "",
-		EnvironmentVariables: nil,
-		Topology:             nil,
-		UpdatedAt:            0,
-		Hostnames:            nil,
-		RootfsImageId:        "",
-		BuildId:              "",
-		Steps:                nil,
+		Id:                       deployment.ID,
+		WorkspaceId:              deployment.WorkspaceID,
+		ProjectId:                deployment.ProjectID,
+		EnvironmentId:            string(deployment.Environment),
+		Status:                   convertDbStatusToProto(string(deployment.Status)),
+		CreatedAt:                deployment.CreatedAt,
+		GitCommitSha:             "",
+		GitBranch:                "",
+		GitCommitMessage:         "",
+		GitCommitAuthorName:      "",
+		GitCommitAuthorEmail:     "",
+		GitCommitAuthorUsername:  "",
+		GitCommitAuthorAvatarUrl: "",
+		GitCommitTimestamp:       0,
+		ErrorMessage:             "",
+		EnvironmentVariables:     nil,
+		Topology:                 nil,
+		UpdatedAt:                0,
+		Hostnames:                nil,
+		RootfsImageId:            "",
+		BuildId:                  "",
+		Steps:                    nil,
 	}
 
 	if deployment.GitCommitSha.Valid {
@@ -43,6 +49,24 @@ func (s *Service) GetVersion(
 	}
 	if deployment.GitBranch.Valid {
 		protoVersion.GitBranch = deployment.GitBranch.String
+	}
+	if deployment.GitCommitMessage.Valid {
+		protoVersion.GitCommitMessage = deployment.GitCommitMessage.String
+	}
+	if deployment.GitCommitAuthorName.Valid {
+		protoVersion.GitCommitAuthorName = deployment.GitCommitAuthorName.String
+	}
+	if deployment.GitCommitAuthorEmail.Valid {
+		protoVersion.GitCommitAuthorEmail = deployment.GitCommitAuthorEmail.String
+	}
+	if deployment.GitCommitAuthorUsername.Valid {
+		protoVersion.GitCommitAuthorUsername = deployment.GitCommitAuthorUsername.String
+	}
+	if deployment.GitCommitAuthorAvatarUrl.Valid {
+		protoVersion.GitCommitAuthorAvatarUrl = deployment.GitCommitAuthorAvatarUrl.String
+	}
+	if deployment.GitCommitTimestamp.Valid {
+		protoVersion.GitCommitTimestamp = deployment.GitCommitTimestamp.Int64
 	}
 	if deployment.UpdatedAt.Valid {
 		protoVersion.UpdatedAt = deployment.UpdatedAt.Int64
