@@ -1,11 +1,12 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
-import { db, eq, inArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
+import { env } from "@/lib/env";
 import { upsertPermissions } from "../rbac";
 
 /**
@@ -70,7 +71,7 @@ export const updateRootKeyPermissions = t.procedure
 
         // Upsert new permissions
         const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(ctx, ctx.workspace.id, input.permissions);
+          await upsertPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
 
         auditLogs.push(...createPermissionLogs);
 
@@ -92,8 +93,10 @@ export const updateRootKeyPermissions = t.procedure
           await tx
             .delete(schema.keysPermissions)
             .where(
-              eq(schema.keysPermissions.keyId, input.keyId) &&
+              and(
+                eq(schema.keysPermissions.keyId, input.keyId),
                 inArray(schema.keysPermissions.permissionId, permissionIdsToRemove),
+              ),
             )
             .catch((_err) => {
               throw new TRPCError({
@@ -135,7 +138,7 @@ export const updateRootKeyPermissions = t.procedure
             permissionsToAdd.map((p) => ({
               keyId: input.keyId,
               permissionId: p.id,
-              workspaceId: ctx.workspace.id,
+              workspaceId: env().UNKEY_WORKSPACE_ID,
             })),
           );
 
