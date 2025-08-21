@@ -138,7 +138,7 @@ export const updateRootKeyPermissions = t.procedure
             permissionsToAdd.map((p) => ({
               keyId: input.keyId,
               permissionId: p.id,
-              workspaceId: ctx.workspace.id,
+              workspaceId: env().UNKEY_WORKSPACE_ID,
             })),
           );
 
