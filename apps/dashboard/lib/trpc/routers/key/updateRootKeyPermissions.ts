@@ -1,5 +1,5 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
-import { db, eq, inArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
@@ -92,8 +92,10 @@ export const updateRootKeyPermissions = t.procedure
           await tx
             .delete(schema.keysPermissions)
             .where(
-              eq(schema.keysPermissions.keyId, input.keyId) &&
+              and(
+                eq(schema.keysPermissions.keyId, input.keyId),
                 inArray(schema.keysPermissions.permissionId, permissionIdsToRemove),
+              ),
             )
             .catch((_err) => {
               throw new TRPCError({
