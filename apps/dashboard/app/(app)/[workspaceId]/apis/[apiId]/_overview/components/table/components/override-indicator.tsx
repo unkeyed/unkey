@@ -63,9 +63,11 @@ export const KeyIdentifierColumn = ({
 
       onNavigate?.();
 
-      router.push(`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`);
+      router.push(
+        `/${workspaceId}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`,
+      );
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push],
+    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push, workspaceId],
   );
 
   return (

@@ -23,9 +23,10 @@ type Props = {
     defaultBytes: number | undefined | null;
   };
   apiId: string;
+  workspaceId: string;
 };
 
-export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
+export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId, workspaceId }) => {
   const { onUpdateSuccess, onError } = createMutationHandlers();
 
   const {
@@ -57,7 +58,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultBytes.mutateAsync(values);
-    revalidate(`/apis/${apiId}/settings`);
+    revalidate(`/${workspaceId}/apis/${apiId}/settings`);
   }
 
   return (

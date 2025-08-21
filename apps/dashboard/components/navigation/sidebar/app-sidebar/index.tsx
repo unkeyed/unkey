@@ -55,7 +55,7 @@ export function AppSidebar({
   );
 
   const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
-    useRatelimitNavigation(apiAddedNavItems, props.workspace.id);
+    useRatelimitNavigation(apiAddedNavItems);
 
   const handleLoadMore = useCallback(
     (item: NavItem & { loadMoreAction?: boolean }) => {

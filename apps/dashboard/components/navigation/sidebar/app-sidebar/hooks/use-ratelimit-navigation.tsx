@@ -13,7 +13,7 @@ import { useMemo } from "react";
 
 const DEFAULT_LIMIT = 10;
 
-export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: string) => {
+export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -43,25 +43,25 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: str
         const subItems: NavItem[] = [
           {
             icon: ArrowOppositeDirectionY,
-            href: `/${workspaceId}/ratelimits/${namespace.id}`,
+            href: `/ratelimits/${namespace.id}`,
             label: "Requests",
             active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
           },
           {
             icon: Layers3,
-            href: `/${workspaceId}/ratelimits/${namespace.id}/logs`,
+            href: `/ratelimits/${namespace.id}/logs`,
             label: "Logs",
             active: currentNamespaceActive && segments.at(2) === "logs",
           },
           {
             icon: Gear,
-            href: `/${workspaceId}/ratelimits/${namespace.id}/settings`,
+            href: `/ratelimits/${namespace.id}/settings`,
             label: "Settings",
             active: currentNamespaceActive && segments.at(2) === "settings",
           },
           {
             icon: ArrowDottedRotateAnticlockwise,
-            href: `/${workspaceId}/ratelimits/${namespace.id}/overrides`,
+            href: `/ratelimits/${namespace.id}/overrides`,
             label: "Overrides",
             active: currentNamespaceActive && segments.at(2) === "overrides",
           },
@@ -70,7 +70,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: str
         // Create the main namespace nav item
         const namespaceNavItem: NavItem = {
           icon: null,
-          href: `/${workspaceId}/ratelimits/${namespace.id}`,
+          href: `/ratelimits/${namespace.id}`,
           label: namespace.name,
           active: currentNamespaceActive,
           // Include sub-items
@@ -80,13 +80,11 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: str
         return namespaceNavItem;
       }),
     );
-  }, [data?.pages, segments, workspaceId]);
+  }, [data?.pages, segments]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex(
-      (item) => item.href === `/${workspaceId}/ratelimits`,
-    );
+    const ratelimitsItemIndex = items.findIndex((item) => item.href === "/ratelimits");
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
@@ -106,7 +104,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[], workspaceId: str
     }
 
     return items;
-  }, [baseNavItems, ratelimitNavItems, hasNextPage, workspaceId]);
+  }, [baseNavItems, ratelimitNavItems, hasNextPage]);
 
   const loadMore = () => {
     if (!isFetchingNextPage && hasNextPage) {
