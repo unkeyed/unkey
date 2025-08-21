@@ -45,7 +45,6 @@ export const RatelimitClient = () => {
   }, [namespacesData]);
 
   const [namespaces, setNamespaces] = useState(allNamespaces);
-  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     setNamespaces(allNamespaces);
@@ -55,11 +54,7 @@ export const RatelimitClient = () => {
 
   return (
     <div className="flex flex-col relative">
-      <RatelimitListControls
-        setNamespaces={setNamespaces}
-        initialNamespaces={allNamespaces}
-        onSearch={setIsSearching}
-      />
+      <RatelimitListControls setNamespaces={setNamespaces} initialNamespaces={allNamespaces} />
       <RatelimitListControlCloud />
 
       {isError ? (
@@ -85,27 +80,25 @@ export const RatelimitClient = () => {
             ))}
           </div>
 
-          {!isSearching && (
-            <LoadMoreFooter
-              onLoadMore={fetchNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              totalVisible={namespaces.length}
-              totalCount={totalCount}
-              itemLabel="namespaces"
-              buttonText="Load more namespaces"
-              hasMore={hasNextPage}
-              hide={!hasNextPage && namespaces.length === totalCount}
-              countInfoText={
-                <div className="flex gap-2">
-                  <span>Viewing</span>
-                  <span className="text-accent-12">{namespaces.length}</span>
-                  <span>of</span>
-                  <span className="text-grayA-12">{totalCount}</span>
-                  <span>namespaces</span>
-                </div>
-              }
-            />
-          )}
+          <LoadMoreFooter
+            onLoadMore={fetchNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            totalVisible={namespaces.length}
+            totalCount={totalCount}
+            itemLabel="namespaces"
+            buttonText="Load more namespaces"
+            hasMore={hasNextPage}
+            hide={!hasNextPage && namespaces.length === totalCount}
+            countInfoText={
+              <div className="flex gap-2">
+                <span>Viewing</span>
+                <span className="text-accent-12">{namespaces.length}</span>
+                <span>of</span>
+                <span className="text-grayA-12">{totalCount}</span>
+                <span>namespaces</span>
+              </div>
+            }
+          />
         </>
       ) : (
         <EmptyComponentSpacer>
@@ -113,34 +106,25 @@ export const RatelimitClient = () => {
             <Empty.Icon />
             <Empty.Title>No Namespaces found</Empty.Title>
             <Empty.Description>
-              {isSearching
-                ? "No namespaces match your search criteria. Try a different search term."
-                : "You haven't created any Namespaces yet. Create one by performing a limit request as shown below."}
+              You haven't created any Namespaces yet. Create one by performing a limit request as
+              shown below.
             </Empty.Description>
-            {!isSearching && (
-              <>
-                <div className="w-full mt-8 mb-8">
-                  <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
-                    <pre className="flex-1 text-xs text-left overflow-x-auto">
-                      <code>{EXAMPLE_SNIPPET}</code>
-                    </pre>
-                    <CopyButton value={EXAMPLE_SNIPPET} />
-                  </div>
-                </div>
-                <Empty.Actions>
-                  <a
-                    href="/docs/ratelimiting/introduction"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button className="flex items-center w-full gap-2">
-                      <BookOpen className="w-4 h-4" />
-                      Read the docs
-                    </Button>
-                  </a>
-                </Empty.Actions>
-              </>
-            )}
+            <div className="w-full mt-8 mb-8">
+              <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
+                <pre className="flex-1 text-xs text-left overflow-x-auto">
+                  <code>{EXAMPLE_SNIPPET}</code>
+                </pre>
+                <CopyButton value={EXAMPLE_SNIPPET} />
+              </div>
+            </div>
+            <Empty.Actions>
+              <a href="/docs/ratelimiting/introduction" target="_blank" rel="noopener noreferrer">
+                <Button className="flex items-center w-full gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  Read the docs
+                </Button>
+              </a>
+            </Empty.Actions>
           </Empty>
         </EmptyComponentSpacer>
       )}
