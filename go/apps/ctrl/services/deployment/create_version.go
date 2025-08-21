@@ -53,6 +53,23 @@ func (s *Service) CreateVersion(
 		}
 	}
 
+	// Validate git commit timestamp if provided (must be Unix epoch milliseconds)
+	if req.Msg.GetGitCommitTimestamp() != 0 {
+		timestamp := req.Msg.GetGitCommitTimestamp()
+		// Reject timestamps that are clearly in seconds format (< 1_000_000_000_000)
+		// This corresponds to January 1, 2001 in milliseconds
+		if timestamp < 1_000_000_000_000 {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
+		}
+		// Also reject future timestamps more than 1 hour ahead (likely invalid)
+		maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
+		if timestamp > maxValidTimestamp {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
+		}
+	}
+
 	// Determine environment (default to preview)
 	// TODO: Add environment field to CreateVersionRequest proto
 	environment := db.DeploymentsEnvironmentPreview

@@ -44,7 +44,7 @@ message CreateVersionRequest {
   string git_commit_author_email = 11;
   string git_commit_author_username = 12;
   string git_commit_author_avatar_url = 13;
-  int64 git_commit_timestamp = 14;
+  int64 git_commit_timestamp = 14; // Unix epoch milliseconds
 }
 
 message CreateVersionResponse {
@@ -100,7 +100,7 @@ message Version {
   string git_commit_author_email = 19;
   string git_commit_author_username = 20;
   string git_commit_author_avatar_url = 21;
-  int64 git_commit_timestamp = 22;
+  int64 git_commit_timestamp = 22; // Unix epoch milliseconds
 }
 
 message VersionStep {

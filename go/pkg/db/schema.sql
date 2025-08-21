@@ -372,7 +372,7 @@ CREATE TABLE `deployments` (
 	`git_commit_author_email` varchar(256),
 	`git_commit_author_username` varchar(256),
 	`git_commit_author_avatar_url` varchar(512),
-	`git_commit_timestamp` bigint,
+	`git_commit_timestamp` bigint, -- Unix epoch milliseconds
 	`config_snapshot` json NOT NULL,
 	`openapi_spec` text,
 	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',

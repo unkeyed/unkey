@@ -157,7 +157,7 @@ type CreateVersionRequest struct {
 	GitCommitAuthorEmail     string `protobuf:"bytes,11,opt,name=git_commit_author_email,json=gitCommitAuthorEmail,proto3" json:"git_commit_author_email,omitempty"`
 	GitCommitAuthorUsername  string `protobuf:"bytes,12,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
 	GitCommitAuthorAvatarUrl string `protobuf:"bytes,13,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
-	GitCommitTimestamp       int64  `protobuf:"varint,14,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"`
+	GitCommitTimestamp       int64  `protobuf:"varint,14,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -461,7 +461,7 @@ type Version struct {
 	GitCommitAuthorEmail     string `protobuf:"bytes,19,opt,name=git_commit_author_email,json=gitCommitAuthorEmail,proto3" json:"git_commit_author_email,omitempty"`
 	GitCommitAuthorUsername  string `protobuf:"bytes,20,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
 	GitCommitAuthorAvatarUrl string `protobuf:"bytes,21,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
-	GitCommitTimestamp       int64  `protobuf:"varint,22,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"`
+	GitCommitTimestamp       int64  `protobuf:"varint,22,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
