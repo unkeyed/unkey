@@ -20,6 +20,9 @@ const inputVariants = cva(
           "border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black",
           "focus:border focus:border-accent-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
         ],
+        ghost: [
+          "border border-transparent bg-transparent focus:border focus:border-accent-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
+        ],
         success: [
           "border border-success-9 hover:border-success-10 bg-gray-2 dark:bg-black",
           "focus:border-success-8 focus:ring focus:ring-success-4 focus-visible:outline-none",
@@ -44,6 +47,7 @@ const wrapperVariants = cva("relative flex items-center w-full", {
   variants: {
     variant: {
       default: "text-grayA-12",
+      ghost: "text-grayA-12",
       success: "text-success-11",
       warning: "text-warning-11",
       error: "text-error-11",

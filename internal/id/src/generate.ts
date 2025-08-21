@@ -28,6 +28,7 @@ const prefixes = {
   auditLogBucket: "buk",
   auditLog: "log",
   fake: "fake",
+  project: "proj",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
