@@ -28,6 +28,6 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	s.DisableClickHouseLogging()
 
-	s.AddHeader("Content-Type", "text/html")
+	s.AddHeader("Content-Type", "application/yaml")
 	return s.Send(200, openapi.Spec)
 }

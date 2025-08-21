@@ -152,9 +152,9 @@ func TestSession_MaxBytesErrorMessage(t *testing.T) {
 }
 
 func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
-	// Test that oversized request bodies return 400 status through zen server
+	// Test that oversized request bodies return 413 status through zen server
 	logger := logging.NewNoop()
-	
+
 	// Create server with small body size limit
 	srv, err := New(Config{
 		Logger:             logger,
@@ -167,7 +167,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 		// This should never be reached due to the body size limit
 		return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
-	
+
 	srv.RegisterRoute(
 		[]Middleware{
 			WithErrorHandling(logger),
@@ -196,18 +196,18 @@ func TestSession_ClickHouseLoggingControl(t *testing.T) {
 	// Test that the new ClickHouse logging control methods work correctly
 	req := httptest.NewRequest("POST", "/", strings.NewReader("test"))
 	w := httptest.NewRecorder()
-	
+
 	sess := &Session{}
 	err := sess.init(w, req, 0)
 	require.NoError(t, err)
-	
+
 	// Should default to true (logging enabled)
 	assert.True(t, sess.ShouldLogRequestToClickHouse(), "Should default to logging enabled")
-	
+
 	// Disable ClickHouse logging
 	sess.DisableClickHouseLogging()
 	assert.False(t, sess.ShouldLogRequestToClickHouse(), "Should be disabled after calling DisableClickHouseLogging")
-	
+
 	// Reset should re-enable logging
 	sess.reset()
 	assert.True(t, sess.ShouldLogRequestToClickHouse(), "Should be enabled again after reset")
