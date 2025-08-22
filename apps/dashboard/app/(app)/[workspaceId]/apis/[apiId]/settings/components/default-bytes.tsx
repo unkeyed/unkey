@@ -70,7 +70,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId, workspaceId }) =
         </div>
       }
       border="top"
-      className="border-b-1"
+      className="border-b"
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
     >
       <form

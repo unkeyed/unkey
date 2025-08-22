@@ -8,7 +8,7 @@ export const RootKeysSearch = () => {
 
   const queryLLMForStructuredOutput = trpc.settings.rootKeys.llmSearch.useMutation({
     onSuccess(data) {
-      if (data?.filters.length === 0 || !data) {
+      if (!data?.filters?.length) {
         toast.error(
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {

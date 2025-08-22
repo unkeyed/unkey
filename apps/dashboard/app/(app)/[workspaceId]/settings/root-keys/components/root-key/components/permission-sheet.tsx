@@ -1,13 +1,7 @@
 "use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { type ReactElement, useRef } from "react";
@@ -70,7 +64,7 @@ export const PermissionSheet = ({
             onChange={handleSearchChange}
           />
         </SheetHeader>
-        <SheetDescription className="w-full h-full">
+        <div className="w-full h-full">
           <div className="flex flex-col h-full">
             <div
               className={`flex flex-col ${
@@ -80,7 +74,7 @@ export const PermissionSheet = ({
               <ScrollArea className="flex flex-col h-full pt-2">
                 <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
                   {hasNoResults ? (
-                    <p className="text-sm text-gray-10 ml-6 py-auto mt-1.5">
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
                       {ROOT_KEY_MESSAGES.UI.NO_RESULTS}
                     </p>
                   ) : (
@@ -95,7 +89,7 @@ export const PermissionSheet = ({
                       />
                       {/* From APIs */}
                       {apis.length > 0 && (
-                        <p className="text-sm text-gray-10 ml-6 py-auto mb-2">
+                        <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
                           {ROOT_KEY_MESSAGES.UI.FROM_APIS}
                         </p>
                       )}
@@ -121,10 +115,10 @@ export const PermissionSheet = ({
                 <div className="w-full py-4">
                   <div className="flex flex-row justify-center items-center">
                     <Button
-                      className="mx-autorounded-lg"
+                      className="mx-auto rounded-lg"
                       size="sm"
-                      onClick={loadMore}
-                      disabled={!hasNextPage}
+                      onClick={() => loadMore?.()}
+                      disabled={!hasNextPage || !loadMore}
                       loading={isFetchingNextPage}
                     >
                       {ROOT_KEY_MESSAGES.UI.LOAD_MORE}
@@ -134,7 +128,7 @@ export const PermissionSheet = ({
               ) : undefined}
             </div>
           </div>
-        </SheetDescription>
+        </div>
       </SheetContent>
     </Sheet>
   );
