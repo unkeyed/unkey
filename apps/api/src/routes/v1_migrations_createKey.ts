@@ -422,7 +422,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
         let identityId: string | null = null;
         if (key.externalId) {
           const identity = await cache.identityByExternalId.swr(
-            key.externalId,
+            `${authorizedWorkspaceId}:${key.externalId}`,
             async (externalId) => {
               return await db.readonly.query.identities.findFirst({
                 where: (table, { eq, and }) =>

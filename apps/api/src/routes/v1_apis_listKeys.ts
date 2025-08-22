@@ -140,7 +140,7 @@ export const registerV1ApisListKeys = (app: App) =>
 
     let identity: Identity | undefined = undefined;
     if (externalId) {
-      const { val, err } = await cache.identityByExternalId.swr(externalId, async () => {
+      const { val, err } = await cache.identityByExternalId.swr(`${auth.authorizedWorkspaceId}:${externalId}`, async () => {
         return db.readonly.query.identities.findFirst({
           where: (table, { and, eq }) =>
             and(
