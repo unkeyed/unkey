@@ -358,7 +358,11 @@ STEP INTERVAL 1 MONTH`,
         async (externalId: string) => {
           return (
             (await db.readonly.query.identities.findFirst({
-              where: (table, { eq }) => eq(table.externalId, externalId),
+              where: (table, { and, eq }) =>
+                and(
+                  eq(table.workspaceId, auth.authorizedWorkspaceId),
+                  eq(table.externalId, externalId),
+                ),
             })) ?? null
           );
         },
