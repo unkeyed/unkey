@@ -88,10 +88,10 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		// Should return an error for missing namespace
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status) // API returns 200 even for rate limit errors
 		require.NotNil(t, res.Body)
-		require.False(t, res.Body.Data.Success, "Request should fail due to missing namespace")
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", req, res.Status)
 	})
 }
 
