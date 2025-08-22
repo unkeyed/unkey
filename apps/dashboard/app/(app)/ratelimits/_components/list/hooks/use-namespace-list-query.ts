@@ -5,7 +5,7 @@ import { useNamespaceFilters } from "../../hooks/use-namespace-filters";
 import {
   namespaceListFilterFieldConfig,
   namespaceListFilterFieldNames,
-} from "../../namespace-filters.schema";
+} from "../../namespace-list-filters.schema";
 import type { NamespaceListInputSchema, RatelimitNamespace } from "../namespace-list.schema";
 
 export function useNamespaceListQuery() {

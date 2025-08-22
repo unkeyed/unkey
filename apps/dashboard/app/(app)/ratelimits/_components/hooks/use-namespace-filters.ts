@@ -7,7 +7,7 @@ import {
   type NamespaceListFilterValue,
   type NamespaceListQuerySearchParams,
   parseAsAllOperatorsFilterArray,
-} from "../namespace-filters.schema";
+} from "../namespace-list-filters.schema";
 
 export const queryParamsPayload = {
   query: parseAsAllOperatorsFilterArray,

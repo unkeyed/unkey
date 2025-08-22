@@ -45,12 +45,12 @@ if (allFilterFieldNames.length === 0) {
 }
 
 const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
-export const namespaceFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
+export const namespaceListFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
 export const namespaceListFilterFieldNames = allFilterFieldNames;
-export type NamespaceListFilterField = z.infer<typeof namespaceFilterFieldEnum>;
+export type NamespaceListFilterField = z.infer<typeof namespaceListFilterFieldEnum>;
 
 export const filterOutputSchema = createFilterOutputSchema(
-  namespaceFilterFieldEnum,
+  namespaceListFilterFieldEnum,
   namespaceFilterOperatorEnum,
   namespaceListFilterFieldConfig,
 );

@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   namespaceFilterOperatorEnum,
   namespaceListFilterFieldNames,
-} from "../namespace-filters.schema";
+} from "../namespace-list-filters.schema";
 
 const filterItemSchema = z.object({
   operator: namespaceFilterOperatorEnum,
