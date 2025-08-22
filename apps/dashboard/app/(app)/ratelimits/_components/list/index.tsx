@@ -8,7 +8,7 @@ import { NamespaceCardSkeleton } from "./skeletons";
 const MAX_SKELETON_COUNT = 10;
 const MINIMUM_DISPLAY_LIMIT = 10;
 
-const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
+const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimits.limit' \\
   -H 'Content-Type: application/json' \\
   -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -d '{
