@@ -74,13 +74,8 @@ export const KeySecretSection = ({
           <AlertTitle>Root Key Required</AlertTitle>
           <AlertDescription className="text-black dark:text-white">
             To verify keys, you'll need a root key with{" "}
-            <code className="bg-gray-3 px-1 rounded text-xs">
-              api.*.verify_key
-            </code>{" "}
-            or{" "}
-            <code className="bg-gray-3 px-1 rounded text-xs">
-              api.{apiId}.verify_key
-            </code>{" "}
+            <code className="bg-gray-3 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
+            <code className="bg-gray-3 px-1 rounded text-xs">api.{apiId}.verify_key</code>{" "}
             permission.
             <br />
             <a
