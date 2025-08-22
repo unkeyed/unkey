@@ -6,7 +6,7 @@ import { Fingerprint } from "@unkey/icons";
 export function Navigation({ workspaceId }: { workspaceId: string }) {
   return (
     <Navbar>
-      <Navbar.Breadcrumbs icon={<Fingerprint />}>
+      <Navbar.Breadcrumbs icon={<Fingerprint aria-hidden="true" focusable={false} />}>
         <Navbar.Breadcrumbs.Link href={`/${encodeURIComponent(workspaceId)}/identities`} active>
           Identities
         </Navbar.Breadcrumbs.Link>

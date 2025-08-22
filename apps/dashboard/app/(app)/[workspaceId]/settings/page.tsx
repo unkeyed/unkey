@@ -3,12 +3,27 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { Loading } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { z } from "zod";
+
+const ParamsSchema = z.object({
+  workspaceId: z.string().min(1),
+});
 
 export default function SettingsPage() {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
-  const params = useParams();
-  const workspaceId = params?.workspaceId as string;
+  const rawParams = useParams<{ workspaceId: string }>();
+  
+  // Runtime validation of params
+  let workspaceId: string;
+  try {
+    const params = ParamsSchema.parse(rawParams);
+    workspaceId = params.workspaceId;
+  } catch (error) {
+    // If params are invalid, redirect to new workspace page
+    router.replace("/new");
+    return null;
+  }
 
   useEffect(() => {
     // Return early while loading
