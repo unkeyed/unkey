@@ -29,12 +29,12 @@ export const KeySecretSection = ({
       : "*".repeat(split.at(0)?.length ?? 0);
 
   const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.verifyKey' \\
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.com"
+  }/v2/keys.verifyKey' \\
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -H 'Content-Type: application/json' \\
   -d '{
-    "key": "${keyValue}",
-    "apiId": "${apiId}"
+    "key": "${keyValue}"
   }'`;
 
   return (
