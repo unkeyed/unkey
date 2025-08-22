@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import { useFilters } from "../../../hooks/use-filters";
+import { useNamespaceFilters } from "../../../hooks/use-namespace-filters";
 
-export const LogsDateTime = () => {
+export const NamespaceListDateTime = () => {
   const [title, setTitle] = useState<string | null>(null);
-  const { filters, updateFilters } = useFilters();
+  const { filters, updateFilters } = useNamespaceFilters();
 
   useEffect(() => {
     if (!title) {

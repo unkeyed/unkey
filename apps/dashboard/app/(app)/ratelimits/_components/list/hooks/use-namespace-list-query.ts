@@ -1,0 +1,83 @@
+import { trpc } from "@/lib/trpc/client";
+import { useEffect, useMemo, useState } from "react";
+
+import { useNamespaceFilters } from "../../hooks/use-namespace-filters";
+import {
+  namespaceListFilterFieldConfig,
+  namespaceListFilterFieldNames,
+} from "../../namespace-filters.schema";
+import type { NamespaceListInputSchema, RatelimitNamespace } from "../namespace-list.schema";
+
+export function useNamespaceListQuery() {
+  const [totalCount, setTotalCount] = useState(0);
+  const [namespacesMap, setNamespacesMap] = useState(() => new Map<string, RatelimitNamespace>());
+  const { filters } = useNamespaceFilters();
+
+  const projects = useMemo(() => Array.from(namespacesMap.values()), [namespacesMap]);
+
+  const queryParams = useMemo(() => {
+    const params: NamespaceListInputSchema = {
+      ...Object.fromEntries(namespaceListFilterFieldNames.map((field) => [field, []])),
+    };
+
+    filters.forEach((filter) => {
+      if (!namespaceListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
+        return;
+      }
+
+      const fieldConfig = namespaceListFilterFieldConfig[filter.field];
+      const validOperators = fieldConfig.operators;
+
+      if (!validOperators.includes(filter.operator)) {
+        throw new Error("Invalid operator");
+      }
+
+      if (typeof filter.value === "string") {
+        params[filter.field]?.push({
+          operator: filter.operator,
+          value: filter.value,
+        });
+      }
+    });
+
+    return params;
+  }, [filters]);
+
+  const {
+    data: projectData,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingInitial,
+  } = trpc.ratelimit.namespace.query.useInfiniteQuery(queryParams, {
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (projectData) {
+      const newMap = new Map<string, RatelimitNamespace>();
+      projectData.pages.forEach((page) => {
+        page.namespaceList.forEach((project) => {
+          newMap.set(project.id, project);
+        });
+      });
+
+      if (projectData.pages.length > 0) {
+        setTotalCount(projectData.pages[0].total);
+      }
+
+      setNamespacesMap(newMap);
+    }
+  }, [projectData]);
+
+  return {
+    projects,
+    isLoading: isLoadingInitial,
+    hasMore: hasNextPage,
+    loadMore: fetchNextPage,
+    isLoadingMore: isFetchingNextPage,
+    totalCount,
+  };
+}
