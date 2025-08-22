@@ -8,7 +8,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { formatNumber } from "@/lib/fmt";
+import { formatNumber, formatRawNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
@@ -147,6 +147,9 @@ export function OverviewBarChart({
     0,
   );
 
+  // Check if this is a credit-related chart
+  const isCreditChart = labels.primaryKey === "spent_credits" || labels.title.includes("CREDIT");
+
   return (
     <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
@@ -154,7 +157,7 @@ export function OverviewBarChart({
           <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
           {!hideTotal && (
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
-              {formatNumber(totalCount)}
+              {isCreditChart ? formatRawNumber(totalCount) : formatNumber(totalCount)}
             </div>
           )}
         </div>
@@ -167,7 +170,7 @@ export function OverviewBarChart({
                 <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
               </div>
               <div className="text-accent-12 text-[18px] font-semibold leading-7">
-                {formatNumber(primaryCount)}
+                {isCreditChart ? formatRawNumber(primaryCount) : formatNumber(primaryCount)}
               </div>
             </div>
             {labels.secondaryLabel &&
@@ -181,7 +184,7 @@ export function OverviewBarChart({
                     </div>
                   </div>
                   <div className="text-accent-12 text-[18px] font-semibold leading-7">
-                    {formatNumber(secondaryCount)}
+                    {isCreditChart ? formatRawNumber(secondaryCount) : formatNumber(secondaryCount)}
                   </div>
                 </div>
               )}
@@ -247,7 +250,9 @@ export function OverviewBarChart({
                                   </div>
                                   <div className="ml-auto">
                                     <span className="font-mono tabular-nums text-accent-12">
-                                      {formatNumber(payload[0]?.payload?.total)}
+                                      {isCreditChart
+                                        ? formatRawNumber(payload[0]?.payload?.total)
+                                        : formatNumber(payload[0]?.payload?.total)}
                                     </span>
                                   </div>
                                 </div>
@@ -274,7 +279,9 @@ export function OverviewBarChart({
                                   </div>
                                   <div className="ml-auto">
                                     <span className="font-mono tabular-nums text-accent-12">
-                                      {formatNumber(payload[0]?.payload?.[item.dataKey])}
+                                      {isCreditChart
+                                        ? formatRawNumber(payload[0]?.payload?.[item.dataKey])
+                                        : formatNumber(payload[0]?.payload?.[item.dataKey])}
                                     </span>
                                   </div>
                                 </div>
@@ -284,10 +291,15 @@ export function OverviewBarChart({
                         ) : undefined
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(
-                        _,
-                        tooltipPayload: Array<{ payload: { originalTimestamp?: number } }>,
-                      ) => createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)}
+                      labelFormatter={(_, tooltipPayload) =>
+                        createTimeIntervalFormatter(
+                          data,
+                          "HH:mm",
+                        )(
+                          // biome-ignore lint/suspicious/noExplicitAny: Recharts type mismatch requires any cast
+                          tooltipPayload as any,
+                        )
+                      }
                     />
                   );
                 }}

@@ -4,7 +4,7 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { formatNumber } from "@/lib/fmt";
+import { formatRawNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { ChartUsage, Coins } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
@@ -94,7 +94,7 @@ export function KeysDetailsLogsControls({
                     <StatusBadge
                       className="text-xs"
                       variant="enabled"
-                      text={formatNumber(data?.remainingCredit ?? 0)}
+                      text={formatRawNumber(data?.remainingCredit ?? 0)}
                       icon={<Coins size="sm-thin" />}
                     />
                   </motion.div>
@@ -166,7 +166,7 @@ export function KeysDetailsLogsControls({
                     <StatusBadge
                       className="text-xs"
                       variant="enabled"
-                      text={formatNumber(spentCredits)}
+                      text={formatRawNumber(spentCredits)}
                       icon={<ChartUsage size="sm-thin" className="h-[12px] w-[12px]" />}
                     />
                   </motion.div>
