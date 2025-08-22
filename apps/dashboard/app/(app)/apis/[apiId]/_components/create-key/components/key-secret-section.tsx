@@ -73,8 +73,15 @@ export const KeySecretSection = ({
           <CircleInfo size="sm-regular" />
           <AlertTitle>Root Key Permissions Required</AlertTitle>
           <AlertDescription className="text-gray-900 dark:text-white">
-            Your root key needs <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
-            <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">api.{apiId}.verify_key</code> permission to verify keys.
+            Your root key needs{" "}
+            <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">
+              api.*.verify_key
+            </code>{" "}
+            or{" "}
+            <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">
+              api.{apiId}.verify_key
+            </code>{" "}
+            permission to verify keys.
           </AlertDescription>
         </Alert>
       </div>
