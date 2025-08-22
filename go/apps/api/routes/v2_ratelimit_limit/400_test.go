@@ -69,6 +69,30 @@ func TestBadRequests(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
+
+	t.Run("missing namespace in request", func(t *testing.T) {
+		// Create a root key with wildcard permission for any namespace
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.limit")
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		// Request with empty namespace
+		req := handler.Request{
+			// namespace missing
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		// Should return an error for missing namespace
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 400, res.Status) // API returns 200 even for rate limit errors
+		require.NotNil(t, res.Body)
+		require.False(t, res.Body.Data.Success, "Request should fail due to missing namespace")
+	})
 }
 
 func TestMissingAuthorizationHeader(t *testing.T) {

@@ -261,42 +261,42 @@ func TestLimitSuccessfully(t *testing.T) {
 		testCases := []struct {
 			name          string
 			namespaceName string
-			shouldWork    bool
 		}{
 			{
 				name:          "special characters",
 				namespaceName: "!@#$%^&*()_+-=[]{}|;':\",./<>?",
-				shouldWork:    true,
 			},
 			{
 				name:          "unicode characters",
 				namespaceName: "αβγδε_测试_테스트_🚀🎉",
-				shouldWork:    true,
 			},
 			{
 				name:          "mixed alphanumeric and special",
 				namespaceName: "test-123_ABC.xyz@domain",
-				shouldWork:    true,
 			},
 			{
 				name:          "spaces and tabs",
 				namespaceName: "namespace with spaces	and	tabs",
-				shouldWork:    true,
 			},
 			{
 				name:          "control characters",
 				namespaceName: "test\nwith\rnewlines\tand\btabs",
-				shouldWork:    true,
+			},
+			{
+				name:          "colon and slash delimiters",
+				namespaceName: "api:v1:calls/outbound",
+			},
+			{
+				name:          "leading and trailing whitespace",
+				namespaceName: "  leading and trailing  ",
 			},
 			{
 				name:          "minimum length (1 char)",
 				namespaceName: "a",
-				shouldWork:    true,
 			},
 			{
 				name:          "maximum length (255 chars)",
 				namespaceName: strings.Repeat("x", 255),
-				shouldWork:    true,
 			},
 		}
 
@@ -304,7 +304,7 @@ func TestLimitSuccessfully(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Create namespace with the test name
 				namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-				err := db.Query.InsertRatelimitNamespace(context.Background(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
+				err := db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
 					ID:          namespaceID,
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Name:        tc.namespaceName,
