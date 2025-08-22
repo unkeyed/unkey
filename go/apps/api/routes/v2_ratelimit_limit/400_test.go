@@ -69,35 +69,6 @@ func TestBadRequests(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
-
-	// Uncomment and adapt these tests if needed
-	/*
-		t.Run("missing namespace", func(t *testing.T) {
-			req := openapi.V2RatelimitLimitRequestBody{
-				Identifier: "user_123",
-				Limit:      100,
-				Duration:   60000,
-			}
-
-			headers := http.Header{
-				"Content-Type":  {"application/json"},
-				"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.limit"))},
-			}
-
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestError](h, route, headers, req)
-
-			require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
-			require.NotNil(t, res.Body)
-
-			require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Type)
-			require.Equal(t, "POST request body for '/v2/ratelimit.limit' failed to validate schema", res.Body.Detail)
-			require.Equal(t, http.StatusBadRequest, res.Body.Status)
-			require.Equal(t, "Bad Request", res.Body.Title)
-			require.NotEmpty(t, res.Body.RequestId)
-			require.Greater(t, len(res.Body.Errors), 0)
-			require.Nil(t, res.Body.Instance)
-		})
-	*/
 }
 
 func TestMissingAuthorizationHeader(t *testing.T) {
