@@ -81,6 +81,11 @@ export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
   }
 });
 
+const onError = (err: Error, identifier: string) => {
+  console.error(`Error occurred while rate limiting ${identifier}: ${err.message}`);
+  return { success: true, limit: 0, remaining: 1, reset: 1 };
+};
+
 export const ratelimit = env().UNKEY_ROOT_KEY
   ? {
       create: new Ratelimit({
@@ -88,24 +93,28 @@ export const ratelimit = env().UNKEY_ROOT_KEY
         namespace: "trpc_create",
         limit: 25,
         duration: "3s",
+        onError,
       }),
       read: new Ratelimit({
         rootKey: env().UNKEY_ROOT_KEY ?? "",
         namespace: "trpc_read",
         limit: 100,
         duration: "10s",
+        onError,
       }),
       update: new Ratelimit({
         rootKey: env().UNKEY_ROOT_KEY ?? "",
         namespace: "trpc_update",
         limit: 25,
         duration: "5s",
+        onError,
       }),
       delete: new Ratelimit({
         rootKey: env().UNKEY_ROOT_KEY ?? "",
         namespace: "trpc_delete",
         limit: 25,
         duration: "5s",
+        onError,
       }),
     }
   : {};
@@ -142,6 +151,7 @@ const llmRatelimit = env().UNKEY_ROOT_KEY
       namespace: "trpc_llm",
       limit: LLM_LIMITS.RATE_LIMIT,
       duration: LLM_LIMITS.RATE_DURATION,
+      onError,
     })
   : null;
 

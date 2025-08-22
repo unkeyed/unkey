@@ -10,7 +10,7 @@ export const SettingsClientSkeleton = () => {
         <div className="flex flex-col w-full gap-6">
           {/* Namespace name card skeleton */}
           <div>
-            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b-1">
+            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b">
               <div className="flex flex-col gap-1 text-sm w-fit">
                 <div className="h-5 w-32 bg-grayA-3 rounded animate-pulse transition-all" />
                 <div className="h-4 w-64 bg-grayA-3 rounded animate-pulse transition-all mt-1" />

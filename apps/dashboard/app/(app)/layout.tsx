@@ -7,7 +7,6 @@ import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
-
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -19,9 +18,6 @@ export default async function Layout({ children }: LayoutProps) {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
-      apis: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
-      },
       quotas: true,
     },
   });
