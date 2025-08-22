@@ -12,7 +12,7 @@ export const SettingsClientSkeleton = () => {
           {/* Name and ID cards skeleton */}
           <div>
             {/* Name card skeleton - border="top" */}
-            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b-1">
+            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b">
               <div className="flex flex-col gap-1 text-sm w-fit">
                 <div className="font-medium text-accent-12 leading-5 tracking-normal">
                   <div className="h-5 w-16 bg-grayA-3 rounded animate-pulse transition-all" />
@@ -49,7 +49,7 @@ export const SettingsClientSkeleton = () => {
           {/* Default bytes and prefix cards skeleton */}
           <div>
             {/* Default bytes card skeleton - border="top" */}
-            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b-1">
+            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b">
               <div className="flex flex-col gap-1 text-sm w-fit">
                 <div className="font-medium text-accent-12 leading-5 tracking-normal">
                   <div className="h-5 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
@@ -121,7 +121,7 @@ export const SettingsClientSkeleton = () => {
           {/* Delete protection and delete API cards skeleton */}
           <div>
             {/* Delete protection card skeleton - border="top" */}
-            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b-1 h-[115px]">
+            <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b h-[115px]">
               <div className="flex flex-col gap-1 text-sm w-fit">
                 <div className="font-medium text-accent-12 leading-5 tracking-normal">
                   <div className="inline-flex gap-2">

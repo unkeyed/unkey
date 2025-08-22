@@ -27,7 +27,11 @@ export function usePermissions({
     if (type === "workspace") {
       return workspacePermissions;
     }
-    if (api) {
+    if (type === "api") {
+      if (!api) {
+        console.warn("API type selected but no API provided");
+        return {};
+      }
       return apiPermissions(api.id);
     }
     return {};
@@ -112,13 +116,13 @@ export function usePermissions({
 
   const handlePermissionToggle = useCallback(
     (permission: UnkeyPermission) => {
-      const isSelected = currentSelected.includes(permission);
+      const isSelected = selected.includes(permission);
       const newSelected = isSelected
-        ? currentSelected.filter((p) => p !== permission)
-        : [...currentSelected, permission];
+        ? selected.filter((p) => p !== permission)
+        : [...selected, permission];
       onPermissionChange(newSelected);
     },
-    [currentSelected, onPermissionChange],
+    [selected, onPermissionChange],
   );
 
   return {

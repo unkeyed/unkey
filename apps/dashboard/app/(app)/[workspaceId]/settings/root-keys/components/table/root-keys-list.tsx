@@ -50,7 +50,7 @@ const RootKeysTableActions = dynamic(
   },
 );
 
-export const RootKeysList = ({ workspaceId }: { workspaceId: string }) => {
+export const RootKeysList = () => {
   const { rootKeys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     useRootKeysListQuery();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);

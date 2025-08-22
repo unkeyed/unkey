@@ -38,7 +38,7 @@ type Props = {
   }>;
 };
 
-const Mutations = () => {
+const useBillingMutations = () => {
   const router = useRouter();
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
@@ -87,7 +87,7 @@ const Mutations = () => {
 };
 
 export const Client: React.FC<Props> = (props) => {
-  const mutations = Mutations();
+  const mutations = useBillingMutations();
   const allowUpdate =
     props.subscription && ["active", "trialing"].includes(props.subscription.status);
   const allowCancel =
@@ -106,9 +106,9 @@ export const Client: React.FC<Props> = (props) => {
         workspace={props.workspace}
         activePage={{ href: "billing", text: "Billing" }}
       />
-      <Shell workspace={props.workspace}>
+      <Shell>
         {props.subscription ? (
-          <SusbcriptionStatus
+          <SubscriptionStatus
             workspaceId={props.workspace.id}
             status={props.subscription.status}
             trialUntil={props.subscription.trialUntil}
@@ -288,7 +288,7 @@ const FreeTierAlert: React.FC = () => {
 };
 
 const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
-  const mutations = Mutations();
+  const mutations = useBillingMutations();
 
   if (!props.cancelAt) {
     return null;
@@ -321,7 +321,7 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
     </SettingCard>
   );
 };
-const SusbcriptionStatus: React.FC<{
+const SubscriptionStatus: React.FC<{
   status: Stripe.Subscription.Status;
   trialUntil?: number;
   workspaceId: string;

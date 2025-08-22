@@ -95,7 +95,7 @@ export function TeamPageClient({ team, workspaceId }: { team: boolean; workspace
   return (
     <>
       <PageHeader title="Members" description="Manage your team members" actions={actions} />
-      {isLoading ? (
+      {isLoading || !user || !organization || !userMemberships || !currentOrgMembership ? (
         <Loading />
       ) : tab === "members" ? (
         <Members organization={organization} user={user} userMembership={currentOrgMembership} />

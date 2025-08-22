@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { CaretRight, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Badge } from "@unkey/ui";
-import { useMemo } from "react";
+import { type ComponentProps, useMemo } from "react";
 import { ROOT_KEY_CONSTANTS } from "../constants";
 import { apiPermissions, workspacePermissions } from "../permissions";
 
@@ -101,7 +101,7 @@ type CollapsibleListProps = {
   expandCount: number;
   removePermission: (permission: UnkeyPermission) => void;
   name: string;
-} & React.ComponentProps<typeof CollapsibleTrigger>;
+} & ComponentProps<typeof CollapsibleTrigger>;
 
 const CollapsibleList = ({
   info,

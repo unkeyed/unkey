@@ -77,7 +77,11 @@ export const WorkspaceNavbar = ({
           )}
           {activePage.href === "billing" && (
             <>
-              <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
+              <Link
+                href="https://cal.com/james-r-perkins/sales"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button type="button" variant="outline">
                   Schedule a call
                 </Button>

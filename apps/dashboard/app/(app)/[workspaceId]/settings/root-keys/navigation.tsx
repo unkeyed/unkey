@@ -49,7 +49,11 @@ export const Navigation = ({
           <Navbar.Breadcrumbs.Link href={`/${workspace.id}/settings`}>
             Settings
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
+          <Navbar.Breadcrumbs.Link
+            href={`/${workspace.id}/settings/${activePage.href}`}
+            noop
+            active
+          >
             <QuickNavPopover
               items={settingsNavbar.flatMap((setting) => [
                 {
@@ -81,16 +85,18 @@ export const Navigation = ({
           {activePage.href === "root-keys" && <CreateRootKeyButton />}
           {activePage.href === "billing" && (
             <>
-              <Link href="https://cal.com/james-r-perkins/sales" target="_blank">
-                <Button type="button" variant="outline">
+              <Button asChild variant="outline">
+                <Link
+                  href="https://cal.com/james-r-perkins/sales"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Schedule a call
-                </Button>
-              </Link>
-              <Link href="mailto:support@unkey.dev">
-                <Button type="button" variant="primary">
-                  Contact us
-                </Button>
-              </Link>
+                </Link>
+              </Button>
+              <Button asChild variant="primary">
+                <Link href="mailto:support@unkey.dev">Contact us</Link>
+              </Button>
             </>
           )}
         </Navbar.Actions>

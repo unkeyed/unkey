@@ -64,8 +64,16 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
             <CopyApiId apiId={api.id} />
           </div>
           <div>
-            <DefaultBytes keyAuth={keyAuthForComponents} apiId={api.id} />
-            <DefaultPrefix keyAuth={keyAuthForComponents} apiId={api.id} />
+            <DefaultBytes
+              keyAuth={keyAuthForComponents}
+              apiId={api.id}
+              workspaceId={workspace.id}
+            />
+            <DefaultPrefix
+              keyAuth={keyAuthForComponents}
+              apiId={api.id}
+              workspaceId={workspace.id}
+            />
           </div>
           <div>
             <UpdateIpWhitelist api={api} workspace={workspaceForComponents} />

@@ -10,13 +10,20 @@ export const dynamic = "force-dynamic";
 export default async function StripeRedirect() {
   const { orgId } = await getAuth();
 
+  if (!orgId) {
+    return redirect("/sign-in");
+  }
+
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
+
   if (!ws) {
     return redirect("/new");
   }
+
   const e = stripeEnv();
+
   if (!e) {
     return (
       <Empty>

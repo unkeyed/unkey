@@ -3,9 +3,10 @@
 import { SecretKey } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/components/secret-key";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Check, CircleInfo, Key2 } from "@unkey/icons";
-import { Dialog, DialogContent } from "@unkey/ui";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@unkey/ui";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
+
 type RootKeySuccessProps = {
   keyValue?: string;
   onClose: () => void;
@@ -21,6 +22,9 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
     return null;
   }
 
+  const dialogTitleId = "root-key-success-title";
+  const dialogDescriptionId = "root-key-success-description";
+
   return (
     <Dialog
       open={!!keyValue}
@@ -34,6 +38,8 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
         className="drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
+        aria-labelledby={dialogTitleId}
+        aria-describedby={dialogDescriptionId}
       >
         <>
           <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
@@ -56,12 +62,19 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-2 items-center">
-              <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
+              <DialogTitle
+                id={dialogTitleId}
+                className="font-semibold text-gray-12 text-[16px] leading-[24px]"
+              >
                 {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}
-              </div>
-              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
+              </DialogTitle>
+              <DialogDescription
+                id={dialogDescriptionId}
+                className="text-gray-10 text-[13px] leading-[24px] text-center"
+                ref={dividerRef}
+              >
                 {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED}
-              </div>
+              </DialogDescription>
             </div>
             <div className="p-1 w-full my-8">
               <div className="h-[1px] bg-grayA-3 w-full" />
@@ -83,7 +96,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                   aria-hidden="true"
                   focusable={false}
                 />
-                <span>
+                <span className="flex items-center gap-1">
                   {ROOT_KEY_MESSAGES.UI.COPY_SAVE_KEY}
                   <a
                     href="https://www.unkey.com/docs/security/recovering-keys"
@@ -117,7 +130,8 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               align: "end",
               sideOffset: 5,
               alignOffset: 30,
-              onOpenAutoFocus: (e) => e.preventDefault(),
+              // Let the popover auto-focus internally to meet WCAG 2.4.3/2.1.1
+              // onOpenAutoFocus: (e) => e.preventDefault(),
             }}
           />
         </>
