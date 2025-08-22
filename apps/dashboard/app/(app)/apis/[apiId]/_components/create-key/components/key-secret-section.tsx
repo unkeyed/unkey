@@ -1,6 +1,7 @@
 "use client";
 
 import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleInfo } from "@unkey/icons";
 import { Code, CopyButton, VisibleButton } from "@unkey/ui";
 import { useState } from "react";
@@ -68,6 +69,14 @@ export const KeySecretSection = ({
         >
           {showKeyInSnippet ? snippet : snippet.replace(keyValue, maskedKey)}
         </Code>
+        <Alert variant="warn">
+          <CircleInfo size="sm-regular" />
+          <AlertTitle>Root Key Permissions Required</AlertTitle>
+          <AlertDescription className="text-white">
+            Your root key needs <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
+            <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">api.{apiId}.verify_key</code> permission to verify keys.
+          </AlertDescription>
+        </Alert>
       </div>
     </div>
   );
