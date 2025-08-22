@@ -23,22 +23,20 @@ export default function ApisOverviewPage() {
   }
 
   return (
-    <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace?.id}/apis`} active>
-            APIs
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <CreateApiButton
-            key="createApi"
-            defaultOpen={isNewApi}
-            workspaceId={workspace?.id ?? ""}
-          />
-        </Navbar.Actions>
-      </Navbar>
-      <ApiListClient workspaceId={workspace?.id ?? ""} />
-    </div>
+    workspace && (
+      <div>
+        <Navbar>
+          <Navbar.Breadcrumbs icon={<Nodes />}>
+            <Navbar.Breadcrumbs.Link href={`/${workspace?.id}/apis`} active>
+              APIs
+            </Navbar.Breadcrumbs.Link>
+          </Navbar.Breadcrumbs>
+          <Navbar.Actions>
+            <CreateApiButton key="createApi" defaultOpen={isNewApi} workspaceId={workspace.id} />
+          </Navbar.Actions>
+        </Navbar>
+        <ApiListClient workspaceId={workspace.id} />
+      </div>
+    )
   );
 }
