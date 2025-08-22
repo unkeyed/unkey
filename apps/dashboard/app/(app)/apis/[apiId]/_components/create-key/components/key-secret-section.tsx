@@ -70,10 +70,10 @@ export const KeySecretSection = ({
           {showKeyInSnippet ? snippet : snippet.replace(keyValue, maskedKey)}
         </Code>
         <Alert variant="warn">
-          <CircleInfo size="sm-regular" />
-          <AlertTitle>Root Key Permissions Required</AlertTitle>
-          <AlertDescription className="text-gray-900 dark:text-white">
-            Your root key needs{" "}
+          <CircleInfo size="sm-regular" aria-hidden="true" />
+          <AlertTitle>Root Key Required</AlertTitle>
+          <AlertDescription className="text-black dark:text-white">
+            To verify keys, you'll need a root key with{" "}
             <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">
               api.*.verify_key
             </code>{" "}
@@ -81,7 +81,16 @@ export const KeySecretSection = ({
             <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">
               api.{apiId}.verify_key
             </code>{" "}
-            permission to verify keys.
+            permission.
+            <br />
+            <a
+              href="https://www.unkey.com/docs/security/root-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-info-11 hover:underline"
+            >
+              Learn about root keys
+            </a>
           </AlertDescription>
         </Alert>
       </div>
