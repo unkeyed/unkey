@@ -3,27 +3,19 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { LogsDateTime } from "./components/logs-datetime";
-import { LogsRefresh } from "./components/logs-refresh";
-import { LogsSearch } from "./components/logs-search";
+import { NamespaceListDateTime } from "./components/namespace-list-datetime";
+import { NamespaceListRefresh } from "./components/namespace-list-refresh";
+import { NamespaceSearchInput } from "./components/namespace-list-search";
 
-type RatelimitListControlsProps = {
-  setNamespaces: (namespaces: { id: string; name: string }[]) => void;
-  initialNamespaces: { id: string; name: string }[];
-};
-
-export function RatelimitListControls({
-  setNamespaces,
-  initialNamespaces,
-}: RatelimitListControlsProps) {
+export function NamespaceListControls() {
   return (
     <ControlsContainer>
       <ControlsLeft>
-        <LogsSearch setNamespaces={setNamespaces} initialNamespaces={initialNamespaces} />
-        <LogsDateTime />
+        <NamespaceSearchInput />
+        <NamespaceListDateTime />
       </ControlsLeft>
       <ControlsRight>
-        <LogsRefresh />
+        <NamespaceListRefresh />
       </ControlsRight>
     </ControlsContainer>
   );

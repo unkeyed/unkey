@@ -1,24 +1,28 @@
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import {
+  type CursorType,
+  type NamespaceListInputSchema,
+  type NamespaceListOutputSchema,
+  namespaceListInputSchema,
+  namespaceListOutputSchema,
+} from "@/app/(app)/ratelimits/_components/list/namespace-list.schema";
+import { and, db, eq, gt, isNull, like, schema, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import {
-  type RatelimitNamespacesResponse,
-  queryRatelimitNamespacesPayload,
-  ratelimitNamespacesResponse,
-} from "./schemas";
 
+const LIMIT = 9;
 export const queryRatelimitNamespaces = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
-  .input(queryRatelimitNamespacesPayload)
-  .output(ratelimitNamespacesResponse)
+  .input(namespaceListInputSchema)
+  .output(namespaceListOutputSchema)
   .query(async ({ ctx, input }) => {
     try {
       const result = await fetchRatelimitNamespaces({
         workspaceId: ctx.workspace.id,
-        limit: input.limit,
+        limit: LIMIT,
         cursor: input.cursor,
+        nameQuery: input.query,
       });
       return result;
     } catch (error) {
@@ -36,48 +40,61 @@ export const queryRatelimitNamespaces = t.procedure
 export type RatelimitNamespaceOptions = {
   workspaceId: string;
   limit: number;
-  cursor?: { id: string } | undefined;
+  cursor?: CursorType;
+  nameQuery?: NamespaceListInputSchema["query"];
 };
 
 export async function fetchRatelimitNamespaces({
   workspaceId,
   limit,
   cursor,
-}: RatelimitNamespaceOptions): Promise<RatelimitNamespacesResponse> {
-  // Get the total count of namespaces
+  nameQuery,
+}: RatelimitNamespaceOptions): Promise<NamespaceListOutputSchema> {
+  // Build base conditions
+  const baseConditions = [
+    eq(schema.ratelimitNamespaces.workspaceId, workspaceId),
+    isNull(schema.ratelimitNamespaces.deletedAtM),
+  ];
+
+  // Add name query conditions
+  if (nameQuery?.length) {
+    const filter = nameQuery[0];
+    if (filter.operator === "contains") {
+      baseConditions.push(like(schema.ratelimitNamespaces.name, `%${filter.value}%`));
+    }
+  }
+
+  const whereClause = and(...baseConditions);
+
+  // Get total count
   const totalResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.ratelimitNamespaces)
-    .where(
-      and(
-        eq(schema.ratelimitNamespaces.workspaceId, workspaceId),
-        isNull(schema.ratelimitNamespaces.deletedAtM),
-      ),
-    );
+    .where(whereClause);
 
   const total = Number(totalResult[0]?.count || 0);
 
-  // Query for ratelimit namespaces
-  const query = db.query.ratelimitNamespaces.findMany({
-    where: (table, { and, eq, isNull, gt }) => {
-      const conditions = [eq(table.workspaceId, workspaceId), isNull(table.deletedAtM)];
-      if (cursor) {
-        conditions.push(gt(table.id, cursor.id));
-      }
-      return and(...conditions);
-    },
-    columns: {
-      id: true,
-      name: true,
-    },
-    orderBy: (table, { asc }) => [asc(table.id)],
-    limit: limit + 1, // Fetch one extra to determine if there are more
-  });
+  // Build query conditions (includes cursor)
+  const queryConditions = [...baseConditions];
 
-  const namespaces = await query;
+  if (cursor) {
+    queryConditions.push(gt(schema.ratelimitNamespaces.id, cursor.id));
+  }
+
+  const namespaces = await db
+    .select({
+      id: schema.ratelimitNamespaces.id,
+      name: schema.ratelimitNamespaces.name,
+    })
+    .from(schema.ratelimitNamespaces)
+    .where(and(...queryConditions))
+    .orderBy(schema.ratelimitNamespaces.id)
+    .limit(limit + 1);
+
   const hasMore = namespaces.length > limit;
   const namespaceItems = hasMore ? namespaces.slice(0, limit) : namespaces;
-  const nextCursor =
+
+  const nextCursor: CursorType | undefined =
     hasMore && namespaceItems.length > 0
       ? { id: namespaceItems[namespaceItems.length - 1].id }
       : undefined;

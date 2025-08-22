@@ -1,13 +1,13 @@
 "use client";
 
-import { RatelimitClient } from "./_components/ratelimit-client";
+import { NamespaceListClient } from "./_components/namespace-list-client";
 import { Navigation } from "./navigation";
 
 export default function RatelimitOverviewPage() {
   return (
     <div>
       <Navigation />
-      <RatelimitClient />
+      <NamespaceListClient />
     </div>
   );
 }

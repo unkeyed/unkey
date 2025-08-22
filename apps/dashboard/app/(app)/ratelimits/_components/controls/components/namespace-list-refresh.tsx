@@ -1,10 +1,10 @@
 import { trpc } from "@/lib/trpc/client";
 import { RefreshButton } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useFilters } from "../../hooks/use-filters";
+import { useNamespaceFilters } from "../../hooks/use-namespace-filters";
 
-export const LogsRefresh = () => {
-  const { filters } = useFilters();
+export const NamespaceListRefresh = () => {
+  const { filters } = useNamespaceFilters();
   const { ratelimit } = trpc.useUtils();
   const { refresh } = useRouter();
   const hasRelativeFilter = filters.find((f) => f.field === "since");
