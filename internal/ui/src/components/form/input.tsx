@@ -109,7 +109,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {prefix && (
           <span
             ref={prefixRef}
-            className="absolute left-3 flex items-center pointer-events-none text-[13px] leading-5 opacity-40 select-none z-10"
+            className="absolute left-2 flex items-center pointer-events-none text-[13px] leading-5 opacity-40 select-none z-10"
           >
             {prefix}
           </span>
@@ -127,11 +127,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         />
 
         {/* Right Icon */}
-        {rightIcon && (
-          <div className="absolute right-3 flex items-center pointer-events-none z-10">
-            {rightIcon}
-          </div>
-        )}
+        {rightIcon && <div className="absolute right-3 flex items-center z-10">{rightIcon}</div>}
       </div>
     );
   },

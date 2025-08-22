@@ -19,7 +19,7 @@ export const queryParamsPayload = {
 const arrayFields = ["query"] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
-export const useNamespaceFilters = () => {
+export const useNamespaceListFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
   });

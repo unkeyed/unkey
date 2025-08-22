@@ -183,7 +183,7 @@ export const queryProjects = t.procedure
         projects,
         hasMore,
         total: totalResult[0]?.count ?? 0,
-        nextCursor: projects.length > 0 ? projects[projects.length - 1].updatedAt : null,
+        nextCursor: hasMore && projects.length > 0 ? projects[projects.length - 1].updatedAt : null,
       };
 
       return response;

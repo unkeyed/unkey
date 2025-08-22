@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 
-import { useNamespaceFilters } from "../../hooks/use-namespace-filters";
+import { useNamespaceListFilters } from "../../hooks/use-namespace-list-filters";
 import {
   namespaceListFilterFieldConfig,
   namespaceListFilterFieldNames,
@@ -11,7 +11,7 @@ import type { NamespaceListInputSchema, RatelimitNamespace } from "../namespace-
 export function useNamespaceListQuery() {
   const [totalCount, setTotalCount] = useState(0);
   const [namespacesMap, setNamespacesMap] = useState(() => new Map<string, RatelimitNamespace>());
-  const { filters } = useNamespaceFilters();
+  const { filters } = useNamespaceListFilters();
 
   const projects = useMemo(() => Array.from(namespacesMap.values()), [namespacesMap]);
 

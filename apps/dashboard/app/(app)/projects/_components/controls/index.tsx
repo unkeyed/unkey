@@ -1,11 +1,12 @@
+import { ListSearchInput } from "@/components/list-search-input";
 import { ControlsContainer, ControlsLeft } from "@/components/logs/controls-container";
-import { ProjectsSearchInput } from "./components/projects-list-search";
+import { useProjectsFilters } from "../hooks/use-projects-filters";
 
 export function ProjectsListControls() {
   return (
     <ControlsContainer>
       <ControlsLeft>
-        <ProjectsSearchInput />
+        <ListSearchInput useFiltersHook={useProjectsFilters} placeholder="Search projects..." />
       </ControlsLeft>
     </ControlsContainer>
   );

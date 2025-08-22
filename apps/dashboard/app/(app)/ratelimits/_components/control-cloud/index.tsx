@@ -1,6 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
-import { useNamespaceFilters } from "../hooks/use-namespace-filters";
+import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
@@ -16,7 +16,7 @@ const formatFieldName = (field: string): string => {
 };
 
 export const NamespaceListControlCloud = () => {
-  const { filters, updateFilters, removeFilter } = useNamespaceFilters();
+  const { filters, updateFilters, removeFilter } = useNamespaceListFilters();
   return (
     <ControlCloud
       historicalWindow={HISTORICAL_DATA_WINDOW}
