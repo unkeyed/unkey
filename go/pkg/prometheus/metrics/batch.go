@@ -84,4 +84,21 @@ var (
 		},
 		[]string{"name"},
 	)
+
+	// BatchItemsProcessedErrorsTotal tracks the total number of items that resulted in errors
+	// during batch processing, labeled by batch name.
+	// Use this counter to monitor error rates in batch processing and identify problematic batches.
+	//
+	// Example usage:
+	//   metrics.BatchItemsProcessedErrorsTotal.WithLabelValues("database_writes").Add(float64(errorCount))
+	BatchItemsProcessedErrorsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace:   "unkey",
+			Subsystem:   "batch",
+			Name:        "items_processed_errors_total",
+			Help:        "Total number of items processed through batches that resulted in an error",
+			ConstLabels: constLabels,
+		},
+		[]string{"name"},
+	)
 )

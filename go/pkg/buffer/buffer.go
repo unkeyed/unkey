@@ -2,7 +2,7 @@ package buffer
 
 import (
 	"strconv"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
@@ -17,7 +17,9 @@ type Buffer[T any] struct {
 	name string // name of the buffer
 
 	stopMetrics func()
-	closed      atomic.Bool
+	closeOnce   sync.Once // Protects isClosed and stopMetrics
+	mu          sync.RWMutex
+	isClosed    bool
 }
 
 type Config struct {
@@ -30,6 +32,7 @@ type Config struct {
 // The Config.Capacity field determines the maximum number of elements the buffer can hold.
 // The Config.Drop field determines whether new elements should be dropped when the buffer is full.
 // The Config.Name field provides an identifier for metrics and logging.
+// The Config.Logger field is required for panic recovery in background goroutines.
 //
 // Example:
 //
@@ -38,6 +41,7 @@ type Config struct {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "int_buffer",
+//		Logger:   logger,
 //	})
 //
 //	// Create a buffer for strings with capacity 500 that drops when full
@@ -45,14 +49,13 @@ type Config struct {
 //		Capacity: 500,
 //		Drop:     true,
 //		Name:     "string_buffer",
+//		Logger:   logger,
 //	})
 func New[T any](config Config) *Buffer[T] {
-
 	b := &Buffer[T]{
 		c:           make(chan T, config.Capacity),
 		drop:        config.Drop,
 		name:        config.Name,
-		closed:      atomic.Bool{},
 		stopMetrics: func() {},
 	}
 
@@ -91,7 +94,10 @@ func New[T any](config Config) *Buffer[T] {
 //	})
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
 func (b *Buffer[T]) Buffer(t T) {
-	if b.closed.Load() {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	if b.isClosed {
 		metrics.BufferState.WithLabelValues(b.name, "closed").Inc()
 		return
 	}
@@ -135,6 +141,18 @@ func (b *Buffer[T]) Consume() <-chan T {
 	return b.c
 }
 
+// Size returns a non-blocking, thread-safe snapshot of the number of buffered elements.
+// This value may change immediately due to concurrent sends/receives, so it should
+// only be used for monitoring or debugging purposes, not for control flow decisions.
+//
+// Example:
+//
+//	size := b.Size()
+//	fmt.Printf("Buffer snapshot shows %d elements\n", size)
+func (b *Buffer[T]) Size() int {
+	return len(b.c)
+}
+
 // Close closes the buffer and signals that no more elements will be added.
 // This method should be called when the buffer is no longer needed.
 //
@@ -149,7 +167,12 @@ func (b *Buffer[T]) Consume() <-chan T {
 //	// Close the buffer when done
 //	b.Close()
 func (b *Buffer[T]) Close() {
-	b.closed.Store(true)
-	close(b.c)
-	b.stopMetrics()
+	b.closeOnce.Do(func() {
+		b.mu.Lock()
+		defer b.mu.Unlock()
+
+		b.isClosed = true
+		close(b.c)
+		b.stopMetrics()
+	})
 }

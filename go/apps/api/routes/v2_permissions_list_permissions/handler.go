@@ -20,7 +20,6 @@ type Response = openapi.V2PermissionsListPermissionsResponseBody
 
 // Handler implements zen.Route interface for the v2 permissions list permissions endpoint
 type Handler struct {
-	// Services as public fields
 	Logger logging.Logger
 	DB     db.Database
 	Keys   keys.KeyService
@@ -41,7 +40,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listPermissions")
 
 	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -52,11 +52,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Handle null cursor - use empty string to start from beginning
 	cursor := ptr.SafeDeref(req.Cursor, "")
+	limit := ptr.SafeDeref(req.Limit, 100)
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
@@ -67,13 +66,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Query permissions with pagination
 	permissions, err := db.Query.ListPermissions(
 		ctx,
 		h.DB.RO(),
 		db.ListPermissionsParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			IDCursor:    cursor,
+			Limit:       int32(limit) + 1,
 		},
 	)
 	if err != nil {
@@ -83,17 +82,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if we have more results by seeing if we got 101 permissions
-	hasMore := len(permissions) > 100
+	hasMore := len(permissions) > limit
 	var nextCursor *string
 
-	// If we have more than 100, truncate to 100
 	if hasMore {
-		nextCursor = ptr.P(permissions[100].ID)
-		permissions = permissions[:100]
+		nextCursor = ptr.P(permissions[limit].ID)
+		permissions = permissions[:limit]
 	}
 
-	// 5. Transform permissions into response format
 	responsePermissions := make([]openapi.Permission, 0, len(permissions))
 	for _, perm := range permissions {
 		permission := openapi.Permission{
@@ -101,7 +97,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:        perm.Name,
 			Slug:        perm.Slug,
 			Description: nil,
-			CreatedAt:   perm.CreatedAtM,
 		}
 
 		// Add description only if it's valid

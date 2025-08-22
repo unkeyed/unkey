@@ -5,51 +5,51 @@ description: "Next.js SDK for Unkey"
 
 The official Next.js SDK for Unkey. Use this within your [route handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers) as a simple, type-safe way to verify API keys.
 
-
-<Card icon="github" title="github.com/unkeyed/unkey/tree/main/packages/nextjs" href="https://github.com/unkeyed/unkey/tree/main/packages/nextjs"/>
-
+<Card
+  icon="github"
+  title="github.com/unkeyed/sdks/tree/main/nextjs"
+  href="https://github.com/unkeyed/sdks/tree/main/nextjs"
+/>
 
 ## Install
 
-<Tabs>
-  <Tab title="npm">
-  ```bash
-   npm install @unkey/nextjs
-   ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-   pnpm add @unkey/nextjs
-   ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-   yarn add @unkey/nextjs
-   ```
-  </Tab>
-  <Tab title="bun">
-    ```bash
-    bun install @unkey/nextjs
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
+
+```bash npm
+ npm install @unkey/nextjs
+```
+
+```bash pnpm
+ pnpm add @unkey/nextjs
+```
+
+```bash yarn
+ yarn add @unkey/nextjs
+```
+
+```bash bun
+ bun add @unkey/nextjs
+```
+
+</CodeGroup>
 
 Protecting API routes is as simple as wrapping them with the `withUnkey` handler:
 
 ```ts
-import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
+import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 
-export const POST = withUnkey(async (req) => {
+export const POST = withUnkey(
+  async (req: NextRequestWithUnkeyContext) => {
+    // Process the request here
+    // You have access to the verification response using `req.unkey`
+    console.log(req.unkey);
 
-  // Process the request here
-  // You have access to the verification response using `req.unkey`
-  console.log(req.unkey);
-
-  return new Response('Your API key is valid!');
-},{ apiId: process.env.UNKEY_API_ID! });
+    return new Response("Your API key is valid!");
+  },
+  { rootKey: process.env.UNKEY_ROOT_KEY! }
+);
+);
 ```
-
-That's it! Since this is just handling key verification, there's no need to specify a root key as an environment variable.
 
 If you want to customize how `withUnkey` processes incoming requests, you can do so as follows:
 
@@ -59,11 +59,14 @@ By default, withUnkey will look for a bearer token located in the `authorization
 in the configuration object:
 
 ```ts
-export const GET = withUnkey(async (req) => {
-  // ...
-}, {
-	getKey: (req) => new URL(req.url).searchParams.get("key"),
-});
+export const GET = withUnkey(
+  async (req) => {
+    // ...
+  },
+  {
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+    getKey: (req) => new URL(req.url).searchParams.get("key"),
+  }
 ```
 
 ### `onError`
@@ -71,14 +74,18 @@ export const GET = withUnkey(async (req) => {
 You can specify custom error handling. By default errors will be logged to the console, and `withUnkey` will return a NextResponse with status 500.
 
 ```ts
-export const GET = withUnkey(async (req) => {
-  // ...
-}, {
-	onError: async (req, res) => {
-      await analytics.trackEvent(`Error ${res.code}: ${res.message}`)
-      return new NextResponse("Unkey error", { status: 500 })
-    }
-});
+export const GET = withUnkey(
+  async (req) => {
+    // ...
+  },
+  {
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+    onError: async (req, res) => {
+      await analytics.trackEvent(`Error ${res.code}: ${res.message}`);
+      return new NextResponse("Unkey error", { status: 500 });
+    },
+  }
+);
 ```
 
 ### `handleInvalidKey`
@@ -86,24 +93,15 @@ export const GET = withUnkey(async (req) => {
 Specify what to do if Unkey reports that your key is invalid.
 
 ```ts
-export const GET = withUnkey(async (req) => {
-  // ...
-}, {
-	handleInvalidKey: (req, res) => {
-      return new Response("Unauthorized", { status: 401 })
-    }
-});
-```
-
-
-### Disable telemetry
-
-By default, Unkey collects anonymous telemetry data to help us understand how our SDKs are used.
-
-If you wish to disable this, you can do so by passing a boolean flag to the constructor:
-
-```ts
-export const GET = withUnkey(async (req) => {
-  // ...
-}, { disableTelemetry: true });
+export const GET = withUnkey(
+  async (req) => {
+    // ...
+  },
+  {
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+    handleInvalidKey: (req, res) => {
+      return new Response("Unauthorized", { status: 401 });
+    },
+  }
+);
 ```

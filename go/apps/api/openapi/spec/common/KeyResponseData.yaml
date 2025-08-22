@@ -51,16 +51,11 @@ properties:
     maximum: 9223372036854775807
     description: Unix timestamp in milliseconds when key expires (if set).
     example: 1735689600000
-  externalId:
-    type: string
-    maxLength: 255
-    description: External identifier linking this key to an entity in your system.
-    example: user_12345
   permissions:
     type: array
     items:
       type: string
-      description: List of permissions granted to this key.
+      description: List of permission slugs granted to this key.
     example:
       - documents.read
       - documents.write
@@ -85,7 +80,6 @@ properties:
     maxItems: 50
     items:
       "$ref": "./RatelimitResponse.yaml"
-      description: Rate limit configurations for this key.
 required:
   - keyId
   - start

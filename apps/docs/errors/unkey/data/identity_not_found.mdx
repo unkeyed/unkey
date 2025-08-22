@@ -1,7 +1,11 @@
 ---
-title: "err:unkey:data:identity_not_found"
+title: "identity_not_found"
 description: "The requested identity was not found"
 ---
+
+<Danger>
+err:unkey:data:identity_not_found
+</Danger>
 
 
 ```json Example
@@ -32,7 +36,7 @@ Here's an example of a request that would trigger this error:
 
 ```bash
 # Attempting to get a non-existent identity
-curl -X POST https://api.unkey.com/v1/identities.getIdentity \
+curl -X POST https://api.unkey.com/v2/identities.getIdentity \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{
@@ -48,12 +52,7 @@ Verify that you're using the correct identity ID or external ID and that the ide
 2. List all identities in your workspace to find the correct ID
 3. If the identity has been deleted, you may need to recreate it
 
-Here's how to list identities in your workspace:
 
-```bash
-curl -X GET https://api.unkey.com/v1/identities.listIdentities \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY"
-```
 
 If you need to create a new identity, use the `identities.createIdentity` endpoint:
 

@@ -43,8 +43,8 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...interfa
 		status = "error"
 	}
 
-	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "exec", status).Observe(duration)
-	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "exec", status).Inc()
+	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "exec", status).Observe(duration)
+	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "exec", status).Inc()
 
 	return result, err
 }
@@ -69,8 +69,8 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 		status = "error"
 	}
 
-	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
-	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "prepare", status).Inc()
+	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
+	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "prepare", status).Inc()
 
 	return stmt, err // nolint:sqlclosecheck
 }
@@ -95,8 +95,8 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...interf
 		status = "error"
 	}
 
-	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
-	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "query", status).Inc()
+	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
+	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "query", status).Inc()
 
 	return rows, err // nolint:sqlclosecheck
 }
@@ -119,15 +119,15 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...int
 	// QueryRowContext doesn't return an error, but we can still track timing
 	status := "success"
 
-	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "query_row", status).Observe(duration)
-	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "query_row", status).Inc()
+	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query_row", status).Observe(duration)
+	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "query_row", status).Inc()
 
 	return row
 }
 
 // Begin starts a transaction and returns it.
 // This method provides a way to use the Replica in transaction-based operations.
-func (r *Replica) Begin(ctx context.Context) (*sql.Tx, error) {
+func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	ctx, span := tracing.Start(ctx, "Begin")
 	defer span.End()
 	span.SetAttributes(attribute.String("mode", r.mode))
@@ -143,8 +143,13 @@ func (r *Replica) Begin(ctx context.Context) (*sql.Tx, error) {
 		status = "error"
 	}
 
-	metrics.DatabaseOperationLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)
-	metrics.DatabaseOperationTotal.WithLabelValues(r.mode, "begin", status).Inc()
+	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)
+	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "begin", status).Inc()
 
-	return tx, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap the transaction with tracing
+	return WrapTxWithContext(tx, r.mode+"_tx", ctx), nil
 }

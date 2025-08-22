@@ -1,0 +1,100 @@
+---
+title: "permission_already_exists"
+description: "A permission with this slug already exists"
+---
+
+<Danger>
+err:unkey:data:permission_already_exists
+</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A permission with slug \"admin\" already exists in this workspace",
+    "status": 409,
+    "title": "Conflict",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/permission/duplicate"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to create a permission with a name that already exists in your Unkey workspace. Permission names must be unique within a workspace to avoid confusion and maintain proper access control.
+
+Common scenarios that trigger this error:
+
+- Creating a permission with a name that's already in use
+- Re-creating a previously deleted permission with the same name
+- Migration or import processes that don't check for existing permissions
+- Duplicate API calls due to retries or network issues
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Attempting to create a permission with a name that already exists
+curl -X POST https://api.unkey.com/v2/permissions.createPermission \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "name": "admin",
+    "slug": "admin-access",
+    "description": "Administrator access"
+  }'
+```
+
+## How To Fix
+
+When you encounter this error, you have several options:
+
+1. **Use a different name**: If creating a new permission, use a unique name
+2. **Get the existing permission**: If you just need the permission information, retrieve it rather than creating it
+3. **List existing permissions**: Check what permissions already exist before creating new ones
+4. **Implement idempotent creation**: Use a get-or-create pattern in your code
+
+Here's how to list existing permissions:
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.listPermissions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{}'
+```
+
+Or implement a get-or-create pattern in your code:
+
+```javascript
+// Pseudocode for get-or-create pattern
+async function getOrCreatePermission(name, slug, description) {
+  try {
+    // Try to create the permission
+    return await createPermission(name, slug, description);
+  } catch (error) {
+    // If it already exists (409 error), get it instead
+    if (error.status === 409) {
+      // Extract the permission name from the error message and get it
+      const permissions = await listPermissions();
+      return permissions.find(
+        (p) => p.name.toLowerCase() === name.toLowerCase()
+      );
+    }
+    // Otherwise, rethrow the error
+    throw error;
+  }
+}
+```
+
+## Common Mistakes
+
+- **Not checking for existing permissions**: Failing to check if a permission already exists before creating it
+- **Case sensitivity**: Permission names are case-insensitive - "Admin" and "admin" are the same
+- **Retry loops**: Repeatedly trying to create the same permission after a failure
+- **Cross-environment duplication**: Using the same permission names across development and production without proper namespacing
+
+## Related Errors
+
+- [err:unkey:data:permission_not_found](./permission_not_found) - When the requested permission doesn't exist
+- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to manage permissions

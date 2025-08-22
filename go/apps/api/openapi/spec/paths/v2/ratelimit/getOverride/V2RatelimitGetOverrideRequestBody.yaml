@@ -9,18 +9,8 @@ description: |-
   - Retrieving override settings for modification
 additionalProperties: false
 properties:
-  namespaceId:
-    description: The unique ID of the rate limit namespace. Either `namespaceId`
-      or `namespaceName` must be provided, but not both. Using `namespaceId` is
-      more precise and less prone to naming conflicts, making it ideal for scripts
-      and automated operations.
-    type: string
-    minLength: 1
-    maxLength: 255
-  namespaceName:
-    description: The name of the rate limit namespace. Either `namespaceId` or
-      `namespaceName` must be provided, but not both. Using `namespaceName` is more
-      human-readable and easier to work with for manual operations and configurations.
+  namespace:
+    description: The id or name of the namespace containing the override.
     type: string
     minLength: 1
     maxLength: 255
@@ -38,12 +28,6 @@ properties:
     minLength: 1
     maxLength: 255
 required:
+  - namespace
   - identifier
 type: object
-oneOf:
-  - required:
-      - namespaceName
-      - identifier
-  - required:
-      - namespaceId
-      - identifier

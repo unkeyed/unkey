@@ -21,6 +21,15 @@ import (
 //	}
 //	// Validate the token
 func Bearer(s *Session) (string, error) {
+	if s == nil {
+		return "", fault.New("nil session", fault.Code(codes.Auth.Authentication.Missing.URN()),
+			fault.Internal("session is nil"), fault.Public("Invalid session."))
+	}
+
+	if s.r == nil {
+		return "", fault.New("nil request", fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Internal("session request is nil"), fault.Public("Invalid request."))
+	}
 
 	header := s.r.Header.Get("Authorization")
 	if header == "" {
@@ -40,5 +49,4 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	return bearer, nil
-
 }

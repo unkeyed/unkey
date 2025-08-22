@@ -9,4 +9,4 @@ INSERT INTO `keys_permissions` (
     sqlc.arg(permission_id),
     sqlc.arg(workspace_id),
     sqlc.arg(created_at)
-);
+) ON DUPLICATE KEY UPDATE updated_at_m = sqlc.arg(updated_at);

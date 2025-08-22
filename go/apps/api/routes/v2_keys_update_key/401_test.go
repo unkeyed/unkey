@@ -22,6 +22,7 @@ func TestUpdateKeyUnauthorized(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -55,7 +56,7 @@ func TestUpdateKeyUnauthorized(t *testing.T) {
 	})
 
 	t.Run("nonexistent key", func(t *testing.T) {
-		nonexistentKey := uid.New("test_nonexistent")
+		nonexistentKey := uid.New(uid.KeyPrefix)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", nonexistentKey)},

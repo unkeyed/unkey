@@ -1,5 +1,6 @@
 import type { Workspace } from "@/lib/db";
 import {
+  Cube,
   Fingerprint,
   Gauge,
   Gear,
@@ -49,6 +50,14 @@ export const createWorkspaceNavigation = (
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
+    },
+    {
+      icon: Cube,
+      href: "/projects",
+      label: "Projects",
+      active: segments.at(0) === "projects",
+      hidden: !workspace.betaFeatures.deployments,
+      tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
     },
     {
       icon: Gauge,

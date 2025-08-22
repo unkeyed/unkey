@@ -34,19 +34,19 @@ const (
 	HeaderSeparator = "──────────────────────────────────────────────────"
 
 	// Step messages
-	MsgPreparingDeployment        = "Preparing deployment"
-	MsgCreatingDeployment         = "Creating deployment"
-	MsgSkippingRegistryPush       = "Skipping registry push"
-	MsgUsingPreBuiltImage         = "Using pre-built Docker image"
-	MsgPushingToRegistry          = "Pushing to registry"
-	MsgImageBuiltSuccessfully     = "Image built successfully"
-	MsgImagePushedSuccessfully    = "Image pushed successfully"
-	MsgPushFailedContinuing       = "Push failed but continuing deployment"
-	MsgDockerNotFound             = "Docker not found - please install Docker"
-	MsgFailedToCreateVersion      = "Failed to create version"
-	MsgDeploymentFailed           = "Deployment failed"
-	MsgDeploymentCompleted        = "Deployment completed successfully"
-	MsgVersionDeploymentCompleted = "Version deployment completed successfully"
+	MsgPreparingDeployment      = "Preparing deployment"
+	MsgCreatingDeployment       = "Creating deployment"
+	MsgSkippingRegistryPush     = "Skipping registry push"
+	MsgUsingPreBuiltImage       = "Using pre-built Docker image"
+	MsgPushingToRegistry        = "Pushing to registry"
+	MsgImageBuiltSuccessfully   = "Image built successfully"
+	MsgImagePushedSuccessfully  = "Image pushed successfully"
+	MsgPushFailedContinuing     = "Push failed but continuing deployment"
+	MsgDockerNotFound           = "Docker not found - please install Docker"
+	MsgFailedToCreateDeployment = "Failed to create deployment"
+	MsgDeploymentFailed         = "Deployment failed"
+	MsgDeploymentCompleted      = "Deployment completed successfully"
+	MsgDeploymentStepCompleted  = "Deployment step completed successfully"
 
 	// Source info labels
 	LabelBranch  = "Branch"
@@ -55,13 +55,13 @@ const (
 	LabelImage   = "Image"
 
 	// Completion info labels
-	CompletionTitle       = "Deployment Complete"
-	CompletionVersionID   = "Version ID"
-	CompletionStatus      = "Status"
-	CompletionEnvironment = "Environment"
-	CompletionDomains     = "Domains"
-	CompletionReady       = "Ready"
-	CompletionNoHostnames = "No hostnames assigned"
+	CompletionTitle        = "Deployment Complete"
+	CompletionDeploymentID = "Deployment ID"
+	CompletionStatus       = "Status"
+	CompletionEnvironment  = "Environment"
+	CompletionDomains      = "Domains"
+	CompletionReady        = "Ready"
+	CompletionNoHostnames  = "No hostnames assigned"
 
 	// Git status
 	GitDirtyMarker = " (dirty)"
@@ -73,9 +73,9 @@ var stepSequence = map[string]string{
 	"Downloading Docker image:":          "Building rootfs from Docker image:",
 	"Building rootfs from Docker image:": "Uploading rootfs image to storage",
 	"Uploading rootfs image to storage":  "Creating VM for version:",
-	"Creating VM for version:":           "VM booted successfully:",
+	"Creating VM for deployment:":        "VM booted successfully:",
 	"VM booted successfully:":            "Assigned hostname:",
-	"Assigned hostname:":                 MsgVersionDeploymentCompleted,
+	"Assigned hostname:":                 MsgDeploymentStepCompleted,
 }
 
 // DeployOptions contains all configuration for deployment
@@ -119,55 +119,36 @@ var DeployFlags = []cli.Flag{
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
 }
 
+// WARNING: Changing the "Description" part will also affect generated MDX.
 // Cmd defines the deploy CLI command
 var Cmd = &cli.Command{
 	Name:  "deploy",
 	Usage: "Deploy a new version or initialize configuration",
 	Description: `Build and deploy a new version of your application, or initialize configuration.
 
-When used with --init, creates a configuration template file.
-Otherwise, builds a container image from the specified context and
-deploys it to the Unkey platform.
+The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
 
-The deploy command will automatically load configuration from unkey.json
-in the current directory or specified config directory.
+INITIALIZATION MODE:
+Use --init to create a configuration template file. This generates an unkey.json file with your project settings, making future deployments simpler and more consistent across environments.
+
+DEPLOYMENT PROCESS:
+1. Load configuration from unkey.json or flags
+2. Build Docker image from your application  
+3. Push image to container registry
+4. Create deployment version on Unkey platform
+5. Monitor deployment status until active
 
 EXAMPLES:
-    # Initialize configuration file
-    unkey deploy --init
-
-    # Initialize in specific directory
-    unkey deploy --init --config=./my-project
-
-    # Force overwrite existing config
-    unkey deploy --init --force
-
-    # Deploy using config file (./unkey.json)
-    unkey deploy
-
-    # Deploy with config from specific directory
-    unkey deploy --config=./test-docker
-
-    # Deploy overriding workspace from config
-    unkey deploy --workspace-id=ws_different
-
-    # Deploy with specific context (overrides config)
-    unkey deploy --context=./demo_api
-
-    # Deploy with your own registry
-    unkey deploy \
-      --workspace-id=ws_4QgQsKsKfdm3nGeC \
-      --project-id=proj_9aiaks2dzl6mcywnxjf \
-      --registry=docker.io/mycompany/myapp
-
-    # Local development (skip push)
-    unkey deploy --skip-push
-
-    # Deploy pre-built image
-    unkey deploy --docker-image=ghcr.io/user/app:v1.0.0
-
-    # Show detailed build and deployment output
-    unkey deploy --verbose`,
+unkey deploy --init                           # Initialize new project configuration
+unkey deploy --init --config=./my-project    # Initialize with custom location
+unkey deploy --init --force                  # Force overwrite existing configuration
+unkey deploy                                 # Standard deployment (uses ./unkey.json)
+unkey deploy --config=./production           # Deploy from specific config directory
+unkey deploy --workspace-id=ws_production_123 # Override workspace from config file
+unkey deploy --context=./api                 # Deploy with custom build context
+unkey deploy --skip-push                     # Local development (build only, no push)
+unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image
+unkey deploy --verbose                       # Verbose output for debugging`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
@@ -282,22 +263,22 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		ui.Print(MsgSkippingRegistryPush)
 	}
 
-	// Create deployment version
+	// Create deployment
 	ui.Print(MsgCreatingDeployment)
 	controlPlane := NewControlPlaneClient(opts)
-	versionId, err := controlPlane.CreateVersion(ctx, dockerImage)
+	deploymentId, err := controlPlane.CreateDeployment(ctx, dockerImage)
 	if err != nil {
-		ui.PrintError(MsgFailedToCreateVersion)
+		ui.PrintError(MsgFailedToCreateDeployment)
 		ui.PrintErrorDetails(err.Error())
 		return err
 	}
-	ui.PrintSuccess(fmt.Sprintf("Version created: %s", versionId))
+	ui.PrintSuccess(fmt.Sprintf("Deployment created: %s", deploymentId))
 
 	// Track final version for completion info
 	var finalVersion *ctrlv1.Version
 
-	// Handle version status changes
-	onStatusChange := func(event VersionStatusEvent) error {
+	// Handle deployment status changes
+	onStatusChange := func(event DeploymentStatusEvent) error {
 		switch event.CurrentStatus {
 		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
 			return handleVersionFailure(controlPlane, event.Version, ui)
@@ -309,12 +290,12 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Handle deployment step updates
-	onStepUpdate := func(event VersionStepEvent) error {
+	onStepUpdate := func(event DeploymentStepEvent) error {
 		return handleStepUpdate(event, ui)
 	}
 
 	// Poll for deployment completion
-	err = controlPlane.PollVersionStatus(ctx, logger, versionId, onStatusChange, onStepUpdate)
+	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentId, onStatusChange, onStepUpdate)
 	if err != nil {
 		ui.CompleteCurrentStep(MsgDeploymentFailed, false)
 		return err
@@ -322,7 +303,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	// Print final success message only after all polling is complete
 	if finalVersion != nil {
-		ui.CompleteCurrentStep(MsgVersionDeploymentCompleted, true)
+		ui.CompleteCurrentStep(MsgDeploymentStepCompleted, true)
 		ui.PrintSuccess(MsgDeploymentCompleted)
 		fmt.Printf("\n")
 		printCompletionInfo(finalVersion)
@@ -342,7 +323,7 @@ func getNextStepMessage(currentMessage string) string {
 	return ""
 }
 
-func handleStepUpdate(event VersionStepEvent, ui *UI) error {
+func handleStepUpdate(event DeploymentStepEvent, ui *UI) error {
 	step := event.Step
 
 	if step.GetErrorMessage() != "" {
@@ -405,7 +386,7 @@ func printCompletionInfo(version *ctrlv1.Version) {
 
 	fmt.Println()
 	fmt.Println(CompletionTitle)
-	fmt.Printf("  %s: %s\n", CompletionVersionID, version.GetId())
+	fmt.Printf("  %s: %s\n", CompletionDeploymentID, version.GetId())
 	fmt.Printf("  %s: %s\n", CompletionStatus, CompletionReady)
 	fmt.Printf("  %s: %s\n", CompletionEnvironment, DefaultEnvironment)
 

@@ -9,20 +9,33 @@ description: "Hono.js middleware for authenticating API keys"
 
 <Card
   icon="github"
-  title="github.com/unkeyed/unkey/tree/main/packages/hono"
-  href="https://github.com/unkeyed/unkey/tree/main/packages/hono"
+  title="github.com/unkeyed/sdks/tree/main/hono"
+  href="https://github.com/unkeyed/sdks/tree/main/hono"
 />
 
 ## Install
 
-<Tabs>
-  <Tab title="npm">```bash npm install @unkey/hono ```</Tab>
-  <Tab title="pnpm">```bash pnpm add @unkey/hono ```</Tab>
-  <Tab title="yarn">```bash yarn add @unkey/hono ```</Tab>
-  <Tab title="bun">```bash bun install @unkey/hono ```</Tab>
-</Tabs>
+<CodeGroup>
 
-Let's dive straight in. The minimal setup looks like this. All you need is your api id. Go to [/app/api](https://app.unkey.com/apis), select your API and copy the id.
+```bash npm
+ npm install @unkey/hono
+```
+
+```bash pnpm
+ pnpm add @unkey/hono
+```
+
+```bash yarn
+ yarn add @unkey/hono
+```
+
+```bash bun
+ bun install @unkey/hono
+```
+
+</CodeGroup>
+
+Let's dive straight in. The minimal setup looks like this. All you need is your root key with permission to verify keys. Go to [/app/api](https://app.unkey.com/settings/root-keys) and create a key with the `verify_key` permission.
 
 By default it tries to grab the api key from the `Authorization` header and then verifies it with unkey.
 The result of the verification will be written to the context and can be access with `c.get("unkey")`.
@@ -34,7 +47,7 @@ import { type UnkeyContext, unkey } from "@unkey/hono";
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
 app.use("*", unkey({
-  apiId: "<UNKEY_API_ID>"
+  rootKey: "<UNKEY_ROOT_KEY>"
 }));
 
 
@@ -56,6 +69,7 @@ By default the middleware tries to grab the api key from the `Authorization` hea
 app.use(
   "*",
   unkey({
+    rootKey: "<UNKEY_ROOT_KEY>",
     getKey: (c) => c.req.header("x-api-key"),
   })
 );
@@ -73,6 +87,7 @@ To customize the response in case the header is missing, just return a response 
 app.use(
   "*",
   unkey({
+    rootKey: "<UNKEY_ROOT_KEY>",
     getKey: (c) => {
       const key = c.req.header("x-api-key");
       if (!key) {
@@ -86,31 +101,11 @@ app.use(
 
 ### Handle errors
 
-If omited, the middleware will throw an `HTTPException` like hono [recommends](https://hono.dev/api/exception)
-
-To handle errors globally you can pass an `onError` handler to the middleware.
-The handler will be called with the context and the error.
-
-<Expandable title="UnkeyError">
-  <ResponseField name="code" type="string" required>
-    The machine readable error code
-  </ResponseField>
-  <ResponseField name="docs" type="string" required>
-    A link to the docs to read more about this error type.
-  </ResponseField>
-  <ResponseField name="message" type="string" required>
-    A human readable message to help debugging the error.
-  </ResponseField>
-  <ResponseField name="requestId" type="string" required>
-    A trace id useful to debug it on Unkey's side, please provide this to
-    support if you need help.
-  </ResponseField>
-</Expandable>
-
 ```ts
 app.use(
   "*",
   unkey({
+    rootKey: process.env.UNKEY_ROOT_KEY!,
     onError: (c, err) => {
       // handle error
       return c.text("unauthorized", 401);
@@ -125,33 +120,24 @@ By default the middleware will not do anything with the verification response ot
 However you most likely would like to just return a `401` response if the key is invalid and not continue with the request.
 
 To do this you can pass a `handleInvalidKey` handler to the middleware.
-See [here](/libraries/ts/sdk/keys/verify#response) for the full `result` object.
+See [here](/api-reference/v2/keys/verify-api-key) for the full `response` object.
 
 ```ts
 app.use(
   "*",
   unkey({
+    rootKey: process.env.UNKEY_ROOT_KEY!,
     handleInvalidKey: (c, result) => {
       return c.json(
         {
           error: "unauthorized",
-          reason: result.code,
+          reason: result.data.code,
         },
         401
       );
     },
   })
 );
-```
-
-### Disable telemetry
-
-By default, Unkey collects anonymous telemetry data to help us understand how our SDKs are used.
-
-If you wish to disable this, you can do so by passing a boolean flag to the constructor:
-
-```ts
-app.use("*", unkey({ disableTelemetry: true }));
 ```
 
 ### Pass verification tags
@@ -161,7 +147,7 @@ You can pass tags to the verification request to help you filter keys later.
 ```ts
 (c, next) =>
   unkey({
-    apiId: env.UNKEY_API_ID,
+    rootKey: process.env.UNKEY_ROOT_KEY!,
     tags: [`path=${c.req.path}`],
   })(c, next);
 ```

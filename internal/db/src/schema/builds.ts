@@ -8,10 +8,10 @@ import {
   text,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { rootfsImages } from "./rootfs_images";
 import { lifecycleDates } from "./util/lifecycle_dates";
-import { versions } from "./versions";
 import { workspaces } from "./workspaces";
 export const builds = mysqlTable(
   "builds",
@@ -19,7 +19,7 @@ export const builds = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
-    versionId: varchar("version_id", { length: 256 }).notNull(),
+    deploymentId: varchar("deployment_id", { length: 256 }).notNull(),
 
     // Build result
     rootfsImageId: varchar("rootfs_image_id", { length: 256 }), // Null until build completes
@@ -53,10 +53,10 @@ export const builds = mysqlTable(
   }),
 );
 
-export const versionSteps = mysqlTable(
-  "version_steps",
+export const deploymentSteps = mysqlTable(
+  "deployment_steps",
   {
-    versionId: varchar("version_id", { length: 256 }).notNull(),
+    deploymentId: varchar("deployment_id", { length: 256 }).notNull(),
     status: mysqlEnum("status", [
       "pending",
       "downloading_docker_image",
@@ -73,8 +73,11 @@ export const versionSteps = mysqlTable(
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => ({
-    pk: primaryKey({ columns: [table.versionId, table.status] }),
-    versionIdCreatedAtIdx: index("idx_version_id_created_at").on(table.versionId, table.createdAt),
+    pk: primaryKey({ columns: [table.deploymentId, table.status] }),
+    deploymentIdCreatedAtIdx: index("idx_deployment_id_created_at").on(
+      table.deploymentId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -91,12 +94,12 @@ export const buildsRelations = relations(builds, ({ one }) => ({
     fields: [builds.rootfsImageId],
     references: [rootfsImages.id],
   }),
-  version: one(versions),
+  deployment: one(deployments),
 }));
 
-export const versionStepsRelations = relations(versionSteps, ({ one }) => ({
-  version: one(versions, {
-    fields: [versionSteps.versionId],
-    references: [versions.id],
+export const deploymentStepsRelations = relations(deploymentSteps, ({ one }) => ({
+  deployment: one(deployments, {
+    fields: [deploymentSteps.deploymentId],
+    references: [deployments.id],
   }),
 }));

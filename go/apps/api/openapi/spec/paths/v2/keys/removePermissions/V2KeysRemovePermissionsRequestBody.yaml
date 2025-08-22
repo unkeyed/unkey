@@ -11,8 +11,6 @@ properties:
     description: |
       Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
       Do not confuse this with the actual API key string that users include in requests.
-      Removing permissions only affects direct assignments, not permissions inherited from roles.
-      Permission changes take effect immediately but may take up to 30 seconds to propagate across all regions.
     example: key_2cGKbMxRyIzhCxo1Idjz8q
   permissions:
     type: array
@@ -20,33 +18,13 @@ properties:
     maxItems: 1000 # Allow extensive permission sets for complex applications
     description: |
       Removes direct permissions from the key without affecting role-based permissions.
-      Operations are idempotent - removing non-existent permissions has no effect and causes no errors.
-      Use either ID for existing permissions or name for exact string matching.
+
+      You can either use a permission slug, or the permission ID.
 
       After removal, verification checks for these permissions will fail unless granted through roles.
-      Permission changes take effect immediately but cache propagation across regions may take up to 30 seconds.
-      Removing all direct permissions does not disable the key, only removes its direct permission grants.
     items:
-      type: object
-      properties:
-        id:
-          type: string
-          minLength: 3
-          maxLength: 255 # Reasonable upper bound for database identifiers
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: |
-            References the permission to remove by its database identifier.
-            Use when you know the exact permission ID and want to ensure you're removing a specific permission.
-            Takes precedence over name when both are provided in the same object.
-            Essential for automation scripts where precision prevents accidental permission removal.
-          example: perm_1n9McEIBSqy44Qy7hzWyM5
-        slug:
-          type: string
-          minLength: 1
-          maxLength: 100 # Keep permission slugs concise and readable
-          pattern: "^[a-zA-Z0-9_.]+$"
-          description: |
-            Identifies the permission by slug for removal from the key's direct assignment list.
-          example: documents.write
-      additionalProperties: false
+      type: string
+      minLength: 3
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      description: Specify the permission by its slug.
 additionalProperties: false

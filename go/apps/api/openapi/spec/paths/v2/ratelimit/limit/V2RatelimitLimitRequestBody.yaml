@@ -5,12 +5,7 @@ properties:
     minLength: 1
     maxLength: 255 # Reasonable upper bound for namespace identifiers
     pattern: "^[a-zA-Z][a-zA-Z0-9_./-]*$"
-    description: |
-      Identifies the rate limit category using hierarchical naming for organization and monitoring.
-      Namespaces must start with a letter and can contain letters, numbers, underscores, dots, slashes, or hyphens.
-      Use descriptive, hierarchical names like 'auth.login', 'api.requests', or 'media.uploads' for clear categorization.
-      Namespaces must be unique within your workspace and support segmentation of different API operations.
-      Consistent naming conventions across your application improve monitoring and debugging capabilities.
+    description: The id or name of the namespace.
     example: sms.sign_up
   cost:
     type: integer
@@ -39,7 +34,6 @@ properties:
     type: string
     minLength: 1
     maxLength: 255 # Reasonable upper bound for identifiers
-    pattern: "^[a-zA-Z0-9_.:/-]+$"
     description: |
       Defines the scope of rate limiting by identifying the entity being limited.
       Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.

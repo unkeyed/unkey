@@ -5,31 +5,27 @@ name: Deploy
 on:
   push:
     branches: [main]
-
 concurrency:
   group: deploy
   cancel-in-progress: false
-
 jobs:
-  agent_local_test:
-    uses: ./.github/workflows/test_agent_local.yaml
-
+  detect_changes:
+    uses: ./.github/workflows/job_detect_changes.yaml
   build_agent_image:
+    needs: [detect_changes]
+    if: needs.detect_changes.outputs.agent == 'true'
     uses: ./.github/workflows/job_build_agent_image.yaml
     secrets:
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-
   api_local_test:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
-
   api_preview_deployment:
     needs:
       - api_local_test
     uses: ./.github/workflows/job_deploy_api_staging.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
   api_preview_test:
     needs:
       - api_preview_deployment
@@ -41,7 +37,6 @@ jobs:
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
   api_canary_deployment:
     needs:
       - api_local_test
@@ -49,7 +44,6 @@ jobs:
     uses: ./.github/workflows/job_deploy_api_canary.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
   api_canary_test:
     needs:
       - api_canary_deployment
@@ -61,67 +55,42 @@ jobs:
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
   api_production_deployment:
     needs:
       - api_canary_test
-
     uses: ./.github/workflows/job_deploy_api_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
   mintlify_deployment:
+    runs-on: ubuntu-latest
     needs:
       - api_production_deployment
-
-    runs-on: ubuntu-latest
     name: Deploy docs
     steps:
       - uses: actions/checkout@v4
-
       - name: Redeploy
         run: |
           curl --request POST \
           --url https://api.mintlify.com/v1/project/update/648b83e0e20b94f5a3e41a70 \
           --header 'Authorization: Bearer ${{secrets.MINTLIFY_API_KEY}}'
-
   logdrain_production_deployment:
     needs:
       - api_production_deployment
+      - detect_changes
+    if: needs.detect_changes.outputs.logdrain == 'true'
     uses: ./.github/workflows/job_deploy_logdrain_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   workflows_deployment:
     needs:
       - api_local_test
+      - detect_changes
+    if: needs.detect_changes.outputs.workflows == 'true'
     uses: ./.github/workflows/job_deploy_workflows.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
   deploy-enterprise-worker:
     needs: api_production_deployment
     uses: ./.github/workflows/job_deploy_api_enterprise.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  changes:
-    uses: ./.github/workflows/job_changes.yaml
-
-  clickhouse_migration_preview:
-    if: needs.changes.outputs.clickhouse == 'true'
-    needs:
-      - changes
-      - api_local_test
-    uses: ./.github/workflows/job_clickhouse_migration_preview.yaml
-    secrets:
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-
-  clickhouse_migration_production:
-    if: needs.changes.outputs.clickhouse == 'true'
-    needs:
-      - changes
-      - api_preview_test
-      - clickhouse_migration_preview
-    uses: ./.github/workflows/job_clickhouse_migration_production.yaml
-    secrets:
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}

@@ -1,0 +1,276 @@
+---
+title: "Errors"
+---
+
+This guide covers changes to error response formats, error codes, and debugging capabilities when migrating from v1 to v2.
+
+## Overview
+
+Error handling changes affect all API endpoints, providing improved debugging capabilities and standardized error responses.
+
+### Key Changes in v2:
+- **Standardized format**: All errors use `{meta, error}` envelope with consistent structure
+- **Request IDs**: Every response includes `meta.requestId` for debugging
+- **Enhanced error structure**: Errors follow RFC 7807 Problem Details format
+- **Better debugging**: Improved error context and troubleshooting information
+
+For detailed information about specific error codes and troubleshooting, see the [Error Documentation](/errors/overview).
+
+---
+
+## Error Response Format Changes
+
+### v1 Error Format → v2 Error Format
+
+<Tabs>
+<Tab title="Basic Error Structure">
+```json title="Error Response Migration" icon="triangle-exclamation"
+// v1 Error Response
+{
+  "error": { // [!code --]
+    "code": "NOT_FOUND", // [!code --]
+    "message": "Key not found" // [!code --]
+  } // [!code --]
+}
+
+// v2 Error Response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_error123abc" // [!code ++]
+  }, // [!code ++]
+  "error": { // [!code ++]
+    "title": "Not Found", // [!code ++]
+    "detail": "The requested key was not found", // [!code ++]
+    "status": 404, // [!code ++]
+    "type": "https://unkey.com/docs/errors/unkey/data/key_not_found" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="Validation Error Structure">
+```json title="Validation Error Migration" icon="exclamation-circle" expandable
+// v1 Validation Error
+{
+  "error": { // [!code --]
+    "code": "BAD_REQUEST", // [!code --]
+    "message": "Invalid input" // [!code --]
+  } // [!code --]
+}
+
+// v2 Validation Error
+{
+  "meta": { // [!code ++]
+    "requestId": "req_validation456" // [!code ++]
+  }, // [!code ++]
+  "error": { // [!code ++]
+    "title": "Bad Request", // [!code ++]
+    "detail": "The request contains invalid parameters", // [!code ++]
+    "status": 400, // [!code ++]
+    "type": "https://unkey.com/docs/errors/unkey/application/invalid_input", // [!code ++]
+    "errors": [ // [!code ++]
+      { // [!code ++]
+        "location": "body.apiId", // [!code ++]
+        "message": "Must be at least 3 characters long", // [!code ++]
+        "fix": "Ensure the API ID is a valid identifier" // [!code ++]
+      } // [!code ++]
+    ] // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Error Code Mapping Table
+
+The following table provides a comprehensive mapping of v1 error codes to their v2 equivalents:
+
+### HTTP Status Errors
+
+| v1 Error Code | HTTP Status | v2 Error Type | v2 Category | Description |
+|--------------|-------------|---------------|-------------|-------------|
+| `BAD_REQUEST` | 400 | `https://unkey.com/docs/errors/unkey/application/invalid_input` | Application | Invalid request parameters or malformed input |
+| `UNAUTHORIZED` | 401 | `https://unkey.com/docs/errors/unkey/authentication/key_not_found` | Authentication | Missing or invalid authentication |
+| `FORBIDDEN` | 403 | `https://unkey.com/docs/errors/unkey/authorization/forbidden` | Authorization | Insufficient permissions for the requested action |
+| `NOT_FOUND` | 404 | `https://unkey.com/docs/errors/unkey/data/key_not_found` | Data | Requested resource does not exist |
+| `CONFLICT` | 409 | `https://unkey.com/docs/errors/unkey/data/conflict` | Data | Resource conflict (e.g., duplicate creation) |
+| `PRECONDITION_FAILED` | 412 | `https://unkey.com/docs/errors/unkey/application/precondition_failed` | Application | Required preconditions not met |
+| `TOO_MANY_REQUESTS` | 429 | `https://unkey.com/docs/errors/unkey/application/rate_limited` | Application | Rate limit exceeded |
+| `INTERNAL_SERVER_ERROR` | 500 | `https://unkey.com/docs/errors/unkey/application/internal_error` | Application | Unexpected server error |
+| `DELETE_PROTECTED` | 403 | `https://unkey.com/docs/errors/unkey/authorization/delete_protected` | Authorization | Resource cannot be deleted due to protection rules |
+
+### Key Verification Specific Codes
+
+| v1 Verification Code | v2 Error Type | Description | Migration Notes |
+|---------------------|---------------|-------------|-----------------|
+| `VALID` | N/A | Key is valid and verification successful | No error - successful response |
+| `NOT_FOUND` | `https://unkey.com/docs/errors/unkey/data/key_not_found` | Key does not exist or has been deleted | Same as HTTP 404 NOT_FOUND |
+| `FORBIDDEN` | `https://unkey.com/docs/errors/unkey/authorization/forbidden` | Key is not allowed to access this API | Same as HTTP 403 FORBIDDEN |
+| `USAGE_EXCEEDED` | `https://unkey.com/docs/errors/unkey/data/usage_exceeded` | Key has exceeded its usage limit | New specific error type in v2 |
+| `RATE_LIMITED` | `https://unkey.com/docs/errors/unkey/application/rate_limited` | Key has been rate limited | Same as HTTP 429 TOO_MANY_REQUESTS |
+| `UNAUTHORIZED` | `https://unkey.com/docs/errors/unkey/authentication/unauthorized` | Key authentication failed | Same as HTTP 401 UNAUTHORIZED |
+| `DISABLED` | `https://unkey.com/docs/errors/unkey/authorization/key_disabled` | Key has been disabled | New specific error type in v2 |
+| `INSUFFICIENT_PERMISSIONS` | `https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions` | Key lacks required permissions | Enhanced RBAC error in v2 |
+| `EXPIRED` | `https://unkey.com/docs/errors/unkey/data/key_expired` | Key has expired | New specific error type in v2 |
+
+### Migration Code Examples
+
+<Tabs>
+<Tab title="Basic Error Handling">
+```typescript title="v1 vs v2 Error Handling"
+// v1: Simple error code checking
+const response = await fetch('/v1/keys.verifyKey', { /* ... */ });
+const data = await response.json();
+
+if (data.error) {
+  switch (data.error.code) {
+    case 'NOT_FOUND':
+      console.log('Key not found');
+      break;
+    case 'RATE_LIMITED':
+      console.log('Rate limited');
+      break;
+    default:
+      console.log('Unknown error:', data.error.message);
+  }
+}
+
+// v2: RFC 7807 error handling
+const response = await fetch('/v2/keys.verifyKey', { /* ... */ });
+const result = await response.json();
+
+if (result.error) {
+  const { title, detail, status, type } = result.error;
+  const requestId = result.meta.requestId;
+  
+  // Log for debugging
+  console.log(`Error ${status}: ${title} - ${detail} (Request: ${requestId})`);
+  
+  // Handle by category
+  if (type.includes('/authentication/')) {
+    console.log('Authentication error');
+  } else if (type.includes('/authorization/')) {
+    console.log('Authorization error');
+  } else if (type.includes('/data/')) {
+    console.log('Data error');
+  }
+}
+```
+</Tab>
+<Tab title="Error Categorization">
+```typescript title="Error Category Helper"
+function getErrorCategory(v2ErrorType: string): string {
+  if (v2ErrorType.includes('/authentication/')) return 'authentication';
+  if (v2ErrorType.includes('/authorization/')) return 'authorization';
+  if (v2ErrorType.includes('/application/')) return 'application';
+  if (v2ErrorType.includes('/data/')) return 'data';
+  return 'unknown';
+}
+
+function isRetryableError(v2ErrorType: string): boolean {
+  // Rate limits and internal errors are retryable
+  return v2ErrorType.includes('rate_limited') || 
+         v2ErrorType.includes('internal_error');
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Error Documentation
+
+For comprehensive information about specific error codes, causes, and resolution steps, refer to the error documentation:
+
+### Common Error Categories
+
+- **[Application Errors](/errors/unkey/application/invalid_input)**: Invalid input, assertion failures, service unavailable
+- **[Authentication Errors](/errors/unkey/authentication/key_not_found)**: Missing, malformed, or invalid keys
+- **[Authorization Errors](/errors/unkey/authorization/forbidden)**: Insufficient permissions, disabled keys, workspace access
+- **[Data Errors](/errors/unkey/data/key_not_found)**: Resource not found, conflicts, data validation issues
+
+### Error Troubleshooting
+
+- **Request IDs**: Always include the `meta.requestId` when contacting support
+- **Error Types**: Use the `type` URL for detailed documentation about specific errors
+- **Validation Errors**: Check the `errors` array for field-specific validation failures
+- **Status Codes**: HTTP status codes indicate the general category of the error
+
+#### Common Error Migration Issues
+
+**Problem:** Error handling code not working after migration
+
+**Symptoms:**
+- Errors not being caught properly
+- Missing error details that were available in v1
+- Unable to determine error type or category
+
+**Solutions:**
+
+1. **Update Error Access Pattern**
+   ```typescript
+   // ❌ v1 pattern
+   if (response.error) {
+     console.log('Error:', response.error.code);
+   }
+   
+   // ✅ v2 pattern
+   if (response.error) {
+     console.log('Error:', response.error.type);
+     console.log('Request ID:', response.meta.requestId);
+   }
+   ```
+
+2. **Handle New Error Structure**
+   ```typescript
+   // v2 error handling with all fields
+   if (response.error) {
+     const { title, detail, status, type } = response.error;
+     
+     // Log complete error information
+     console.error(`${title} (${status}): ${detail}`);
+     console.error(`Error Type: ${type}`);
+     console.error(`Request ID: ${response.meta.requestId}`);
+     
+     // Handle validation errors
+     if (response.error.errors) {
+       response.error.errors.forEach(err => {
+         console.error(`Field ${err.location}: ${err.message}`);
+       });
+     }
+   }
+   ```
+
+3. **Error Categorization**
+   ```typescript
+   function categorizeError(errorType: string): string {
+     if (errorType.includes('/authentication/')) return 'auth';
+     if (errorType.includes('/authorization/')) return 'permission';
+     if (errorType.includes('/application/')) return 'client';
+     if (errorType.includes('/data/')) return 'resource';
+     return 'unknown';
+   }
+   ```
+
+4. **Retry Logic for Retryable Errors**
+   ```typescript
+   function isRetryable(errorType: string): boolean {
+     return errorType.includes('rate_limited') || 
+            errorType.includes('internal_error');
+   }
+   
+   if (response.error && isRetryable(response.error.type)) {
+     // Implement retry logic
+     setTimeout(() => retryRequest(), 1000);
+   }
+   ```
+
+### Migration Considerations
+
+When migrating error handling code:
+
+- Update error parsing to access `response.error` instead of direct error access
+- Extract `meta.requestId` for logging and support requests  
+- Handle the new RFC 7807 format with `title`, `detail`, `status`, and `type` fields
+- Process validation errors from the `errors` array for detailed field-level feedback

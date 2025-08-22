@@ -38,14 +38,17 @@ import (
 	v2KeysAddPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_roles"
 	v2KeysCreateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
+	v2KeysDeleteKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_delete_key"
 	v2KeysGetKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
 	v2KeysRemovePermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	v2KeysRemoveRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_roles"
+	v2KeysRerollKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_reroll_key"
 	v2KeysSetPermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	v2KeysSetRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
 	v2KeysUpdateCredits "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
 	v2KeysUpdateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_key"
 	v2KeysVerifyKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
+	v2KeysWhoami "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_whoami"
 
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -57,6 +60,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withMetrics := zen.WithMetrics(svc.ClickHouse)
 
 	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
 	withValidation := zen.WithValidation(svc.Validator)
 
@@ -64,6 +68,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 		withValidation,
 	}
@@ -73,38 +78,30 @@ func Register(srv *zen.Server, svc *Services) {
 	// ---------------------------------------------------------------------------
 	// chproxy (internal endpoints)
 
-	if svc.ChproxyEnabled {
-		// chproxy/verifications - internal endpoint for key verification events
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
+	if svc.ChproxyToken != "" {
+		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
 			withLogging,
+			withPanicRecovery,
 			withErrorHandling,
-		}, &chproxyVerifications.Handler{
+		}
+
+		// chproxy/verifications - internal endpoint for key verification events
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyVerifications.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/metrics - internal endpoint for API request metrics
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-		}, &chproxyMetrics.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyMetrics.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
 		})
 
 		// chproxy/ratelimits - internal endpoint for ratelimit events
-		srv.RegisterRoute([]zen.Middleware{
-			withTracing,
-			withMetrics,
-			withLogging,
-			withErrorHandling,
-		}, &chproxyRatelimits.Handler{
+		srv.RegisterRoute(chproxyMiddlewares, &chproxyRatelimits.Handler{
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
@@ -389,6 +386,30 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
+	// v2/keys.rerollKey
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysRerollKey.Handler{
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Vault:     svc.Vault,
+		},
+	)
+
+	// v2/keys.deleteKey
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysDeleteKey.Handler{
+			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
 	// v2/keys.updateKey
 	srv.RegisterRoute(
 		defaultMiddlewares,
@@ -397,6 +418,7 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:        svc.Database,
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -404,6 +426,18 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysGetKey.Handler{
+			Logger:    svc.Logger,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Vault:     svc.Vault,
+		},
+	)
+
+	// v2/keys.whoami
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysWhoami.Handler{
 			Logger:    svc.Logger,
 			DB:        svc.Database,
 			Keys:      svc.Keys,
@@ -503,6 +537,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 	}, &reference.Handler{
 		Logger: svc.Logger,
@@ -511,9 +546,9 @@ func Register(srv *zen.Server, svc *Services) {
 		withTracing,
 		withMetrics,
 		withLogging,
+		withPanicRecovery,
 		withErrorHandling,
 	}, &openapi.Handler{
 		Logger: svc.Logger,
 	})
-
 }

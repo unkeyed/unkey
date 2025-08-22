@@ -5,7 +5,6 @@ description: |-
   The response includes:
   - All roles now assigned to the key (both pre-existing and newly added)
   - Both ID and name of each role for easy reference
-  - Roles sorted alphabetically by name for consistent response format
 
   Important notes:
   - The response shows the complete current state after the addition
@@ -13,24 +12,4 @@ description: |-
   - This only shows direct role assignments, not inherited or nested roles
   - Role permissions are not expanded in this response - use keys.getKey for full details
 items:
-  type: object
-  required:
-    - id
-    - name
-  properties:
-    id:
-      type: string
-      description: The unique identifier of the role (begins with `role_`).
-        This ID can be used in other API calls to reference this specific role.
-        Role IDs are immutable and guaranteed to be unique within your Unkey
-        workspace, making them reliable reference points for integration and
-        automation systems.
-      example: role_1n9McEIBSqy44Qy7hzWyM5
-    name:
-      type: string
-      description: The name of the role. This is a human-readable identifier
-        that's unique within your workspace. Role names help identify what access
-        level or function a role provides. Common patterns include naming by
-        access level (`admin`, `editor`, `viewer`), by department (`billing_manager`,
-        `support_agent`), or by feature area (`analytics_user`, `dashboard_admin`).
-      example: admin
+  "$ref": "../../../../common/Role.yaml"

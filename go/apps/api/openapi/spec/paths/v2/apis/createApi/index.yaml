@@ -31,7 +31,6 @@ post:
             "$ref": "./V2ApisCreateApiResponseBody.yaml"
       description: |
         API namespace created successfully. The response contains the unique API ID for referencing this namespace in key operations.
-
     "400":
       description: Bad request
       content:

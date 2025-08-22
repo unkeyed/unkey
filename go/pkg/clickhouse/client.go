@@ -57,7 +57,6 @@ type Config struct {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
 //	}
 func New(config Config) (*clickhouse, error) {
-
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("parsing clickhouse DSN failed"))
@@ -97,10 +96,10 @@ func New(config Config) (*clickhouse, error) {
 		logger: config.Logger,
 
 		requests: batch.New(batch.Config[schema.ApiRequestV1]{
-			Name:          "api requests",
+			Name:          "api_requests",
 			Drop:          true,
-			BatchSize:     10000,
-			BufferSize:    100000,
+			BatchSize:     50_000,
+			BufferSize:    200_000,
 			FlushInterval: 5 * time.Second,
 			Consumers:     2,
 			Flush: func(ctx context.Context, rows []schema.ApiRequestV1) {
@@ -116,10 +115,10 @@ func New(config Config) (*clickhouse, error) {
 		}),
 		keyVerifications: batch.New[schema.KeyVerificationRequestV1](
 			batch.Config[schema.KeyVerificationRequestV1]{
-				Name:          "key verifications",
+				Name:          "key_verifications",
 				Drop:          true,
-				BatchSize:     10000,
-				BufferSize:    100000,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
 				FlushInterval: 5 * time.Second,
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
@@ -135,10 +134,10 @@ func New(config Config) (*clickhouse, error) {
 			}),
 		ratelimits: batch.New[schema.RatelimitRequestV1](
 			batch.Config[schema.RatelimitRequestV1]{
-				Name:          "rate limits",
+				Name:          "ratelimits",
 				Drop:          true,
-				BatchSize:     10000,
-				BufferSize:    100000,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
 				FlushInterval: 5 * time.Second,
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.RatelimitRequestV1) {
@@ -154,10 +153,6 @@ func New(config Config) (*clickhouse, error) {
 			}),
 	}
 
-	// err = c.conn.Ping(context.Background())
-	// if err != nil {
-	// 	return nil, fault.Wrap(err, fault.With("pinging clickhouse failed"))
-	// }
 	return c, nil
 }
 

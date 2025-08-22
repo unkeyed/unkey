@@ -7,8 +7,8 @@ post:
 
     Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
-    > **Important**  
-    > Requires `identity.*.update_identity` permission  
+    > **Important**
+    > Requires `identity.*.update_identity` permission
     > Rate limit changes propagate within 30 seconds
   operationId: v2.identities.updateIdentity
   x-speakeasy-name-override: updateIdentity
@@ -23,7 +23,7 @@ post:
           updateMetadata:
             summary: Update metadata
             value:
-              externalId: user_123
+              identity: user_123
               meta:
                 name: Alice Smith
                 email: alice@example.com

@@ -1,7 +1,9 @@
 ---
-title: "err:unkey:application:protected_resource"
+title: "protected_resource"
 description: "Attempt to modify a protected resource"
 ---
+
+<Danger>`err:unkey:application:protected_resource`</Danger>
 
 
 ```json Example
@@ -32,7 +34,7 @@ Here's an example of a request that might trigger this error:
 
 ```bash
 # Attempting to delete a protected default API
-curl -X DELETE https://api.unkey.com/v1/apis.deleteApi \
+curl -X DELETE https://api.unkey.com/v2/apis.deleteApi \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{

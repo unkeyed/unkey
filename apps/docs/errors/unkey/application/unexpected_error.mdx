@@ -1,7 +1,9 @@
 ---
-title: "err:unkey:application:unexpected_error"
+title: "unexpected_error"
 description: "An unhandled or unexpected error occurred"
 ---
+
+<Danger>`err:unkey:application:unexpected_error`</Danger>
 
 
 ```json Example
@@ -33,7 +35,7 @@ Here's an example of a request that might trigger this error if there's an inter
 
 ```bash
 # A valid request that could trigger an unexpected error if there's an internal issue
-curl -X POST https://api.unkey.com/v1/keys.createKey \
+curl -X POST https://api.unkey.com/v2/keys.createKey \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
   -d '{

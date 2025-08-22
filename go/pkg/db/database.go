@@ -3,11 +3,14 @@ package db
 import (
 	"database/sql"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
 // Config defines the parameters needed to establish database connections.
@@ -33,17 +36,41 @@ type database struct {
 	logger       logging.Logger // Logger for database operations
 }
 
+func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
+	if !strings.Contains(dsn, "parseTime=true") {
+		return nil, fault.New("DSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+	}
+
+	err = retry.New(
+		retry.Attempts(3),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n) * time.Second
+		}),
+	).Do(func() error {
+		db, err = sql.Open("mysql", dsn)
+		if err != nil {
+			logger.Info("mysql not ready yet, retrying...", "error", err.Error())
+		}
+
+		return err
+	})
+
+	return db, err
+}
+
 // New creates a new database instance with the provided configuration.
 // It establishes connections to the primary database and optionally to a read-only replica.
 // Returns an error if connections cannot be established or if DSNs are misconfigured.
 func New(config Config) (*database, error) {
-	// Validate DSN configuration
-	if !strings.Contains(config.PrimaryDSN, "parseTime=true") {
-		return nil, fault.New("PrimaryDSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+	err := assert.All(
+		assert.NotNil(config.Logger),
+		assert.NotEmpty(config.PrimaryDSN),
+	)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("invalid configuration"))
 	}
 
-	// Open primary database connection
-	write, err := sql.Open("mysql", config.PrimaryDSN)
+	write, err := open(config.PrimaryDSN, config.Logger)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))
 	}
@@ -62,14 +89,11 @@ func New(config Config) (*database, error) {
 
 	// If a separate read-only DSN is provided, establish that connection
 	if config.ReadOnlyDSN != "" {
-		if !strings.Contains(config.ReadOnlyDSN, "parseTime=true") {
-			return nil, fault.New("ReadOnlyDSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
-		}
-		read, err := sql.Open("mysql", config.ReadOnlyDSN)
+		read, err := open(config.ReadOnlyDSN, config.Logger)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("cannot open read replica"))
-
 		}
+
 		readReplica = &Replica{
 			db:   read,
 			mode: "ro",

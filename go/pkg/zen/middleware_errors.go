@@ -116,18 +116,23 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Status: http.StatusForbidden,
 					},
 				})
-			case codes.UnkeyDataErrorsIdentityDuplicate:
+
+			// Duplicate errors
+			case codes.UnkeyDataErrorsIdentityDuplicate,
+				codes.UnkeyDataErrorsRoleDuplicate,
+				codes.UnkeyDataErrorsPermissionDuplicate:
 				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:  "Duplicate Identity",
+						Title:  "Conflicting Resource",
 						Type:   code.DocsURL(),
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusConflict,
 					},
 				})
+
 			// Protected Resource
 			case codes.UnkeyAppErrorsProtectionProtectedResource:
 				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{

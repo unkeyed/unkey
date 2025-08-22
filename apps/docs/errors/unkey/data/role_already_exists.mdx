@@ -1,0 +1,97 @@
+---
+title: "role_already_exists"
+description: "A role with this name already exists"
+---
+
+<Danger>
+err:unkey:data:role_already_exists
+</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A role with name \"admin\" already exists in this workspace",
+    "status": 409,
+    "title": "Conflict",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/role/duplicate"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to create a role with a name that already exists in your Unkey workspace. Role names must be unique within a workspace to avoid confusion and maintain proper access control.
+
+Common scenarios that trigger this error:
+
+- Creating a role with a name that's already in use
+- Re-creating a previously deleted role with the same name
+- Migration or import processes that don't check for existing roles
+- Duplicate API calls due to retries or network issues
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Attempting to create a role with a name that already exists
+curl -X POST https://api.unkey.com/v2/permissions.createRole \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "name": "admin",
+    "description": "Administrator role with full access"
+  }'
+```
+
+## How To Fix
+
+When you encounter this error, you have several options:
+
+1. **Use a different name**: If creating a new role, use a unique name
+2. **Get the existing role**: If you just need the role information, retrieve it rather than creating it
+3. **List existing roles**: Check what roles already exist before creating new ones
+4. **Implement idempotent creation**: Use a get-or-create pattern in your code
+
+Here's how to list existing roles:
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.listRoles \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{}'
+```
+
+Or implement a get-or-create pattern in your code:
+
+```javascript
+// Pseudocode for get-or-create pattern
+async function getOrCreateRole(name, description) {
+  try {
+    // Try to create the role
+    return await createRole(name, description);
+  } catch (error) {
+    // If it already exists (409 error), get it instead
+    if (error.status === 409) {
+      // Extract the role name from the error message and get it
+      const roles = await listRoles();
+      return roles.find((r) => r.name.toLowerCase() === name.toLowerCase());
+    }
+    // Otherwise, rethrow the error
+    throw error;
+  }
+}
+```
+
+## Common Mistakes
+
+- **Not checking for existing roles**: Failing to check if a role already exists before creating it
+- **Case sensitivity**: Role names are case-insensitive - "Admin" and "admin" are the same
+- **Retry loops**: Repeatedly trying to create the same role after a failure
+- **Cross-environment duplication**: Using the same role names across development and production without proper namespacing
+
+## Related Errors
+
+- [err:unkey:data:role_not_found](./role_not_found) - When the requested role doesn't exist
+- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to manage roles

@@ -9,6 +9,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
 type ApisAuthType string
@@ -139,6 +141,143 @@ func (ns NullBuildsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.BuildsStatus), nil
+}
+
+type DeploymentStepsStatus string
+
+const (
+	DeploymentStepsStatusPending                DeploymentStepsStatus = "pending"
+	DeploymentStepsStatusDownloadingDockerImage DeploymentStepsStatus = "downloading_docker_image"
+	DeploymentStepsStatusBuildingRootfs         DeploymentStepsStatus = "building_rootfs"
+	DeploymentStepsStatusUploadingRootfs        DeploymentStepsStatus = "uploading_rootfs"
+	DeploymentStepsStatusCreatingVm             DeploymentStepsStatus = "creating_vm"
+	DeploymentStepsStatusBootingVm              DeploymentStepsStatus = "booting_vm"
+	DeploymentStepsStatusAssigningDomains       DeploymentStepsStatus = "assigning_domains"
+	DeploymentStepsStatusCompleted              DeploymentStepsStatus = "completed"
+	DeploymentStepsStatusFailed                 DeploymentStepsStatus = "failed"
+)
+
+func (e *DeploymentStepsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentStepsStatus(s)
+	case string:
+		*e = DeploymentStepsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentStepsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentStepsStatus struct {
+	DeploymentStepsStatus DeploymentStepsStatus
+	Valid                 bool // Valid is true if DeploymentStepsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentStepsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentStepsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentStepsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentStepsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentStepsStatus), nil
+}
+
+type DeploymentsEnvironment string
+
+const (
+	DeploymentsEnvironmentProduction DeploymentsEnvironment = "production"
+	DeploymentsEnvironmentPreview    DeploymentsEnvironment = "preview"
+)
+
+func (e *DeploymentsEnvironment) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsEnvironment(s)
+	case string:
+		*e = DeploymentsEnvironment(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsEnvironment: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsEnvironment struct {
+	DeploymentsEnvironment DeploymentsEnvironment
+	Valid                  bool // Valid is true if DeploymentsEnvironment is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsEnvironment) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsEnvironment, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsEnvironment.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsEnvironment) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsEnvironment), nil
+}
+
+type DeploymentsStatus string
+
+const (
+	DeploymentsStatusPending   DeploymentsStatus = "pending"
+	DeploymentsStatusBuilding  DeploymentsStatus = "building"
+	DeploymentsStatusDeploying DeploymentsStatus = "deploying"
+	DeploymentsStatusActive    DeploymentsStatus = "active"
+	DeploymentsStatusFailed    DeploymentsStatus = "failed"
+	DeploymentsStatusArchived  DeploymentsStatus = "archived"
+)
+
+func (e *DeploymentsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsStatus(s)
+	case string:
+		*e = DeploymentsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsStatus struct {
+	DeploymentsStatus DeploymentsStatus
+	Valid             bool // Valid is true if DeploymentsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsStatus), nil
 }
 
 type DomainsVerificationMethod string
@@ -398,101 +537,6 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
-type VersionStepsStatus string
-
-const (
-	VersionStepsStatusPending                VersionStepsStatus = "pending"
-	VersionStepsStatusDownloadingDockerImage VersionStepsStatus = "downloading_docker_image"
-	VersionStepsStatusBuildingRootfs         VersionStepsStatus = "building_rootfs"
-	VersionStepsStatusUploadingRootfs        VersionStepsStatus = "uploading_rootfs"
-	VersionStepsStatusCreatingVm             VersionStepsStatus = "creating_vm"
-	VersionStepsStatusBootingVm              VersionStepsStatus = "booting_vm"
-	VersionStepsStatusAssigningDomains       VersionStepsStatus = "assigning_domains"
-	VersionStepsStatusCompleted              VersionStepsStatus = "completed"
-	VersionStepsStatusFailed                 VersionStepsStatus = "failed"
-)
-
-func (e *VersionStepsStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VersionStepsStatus(s)
-	case string:
-		*e = VersionStepsStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VersionStepsStatus: %T", src)
-	}
-	return nil
-}
-
-type NullVersionStepsStatus struct {
-	VersionStepsStatus VersionStepsStatus
-	Valid              bool // Valid is true if VersionStepsStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVersionStepsStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.VersionStepsStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VersionStepsStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVersionStepsStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VersionStepsStatus), nil
-}
-
-type VersionsStatus string
-
-const (
-	VersionsStatusPending   VersionsStatus = "pending"
-	VersionsStatusBuilding  VersionsStatus = "building"
-	VersionsStatusDeploying VersionsStatus = "deploying"
-	VersionsStatusActive    VersionsStatus = "active"
-	VersionsStatusFailed    VersionsStatus = "failed"
-	VersionsStatusArchived  VersionsStatus = "archived"
-)
-
-func (e *VersionsStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VersionsStatus(s)
-	case string:
-		*e = VersionsStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VersionsStatus: %T", src)
-	}
-	return nil
-}
-
-type NullVersionsStatus struct {
-	VersionsStatus VersionsStatus
-	Valid          bool // Valid is true if VersionsStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVersionsStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.VersionsStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VersionsStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVersionsStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VersionsStatus), nil
-}
-
 type WorkspacesPlan string
 
 const (
@@ -591,20 +635,11 @@ type AuditLogTarget struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
-type Branch struct {
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Name        string        `db:"name"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-}
-
 type Build struct {
 	ID            string          `db:"id"`
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
-	VersionID     string          `db:"version_id"`
+	DeploymentID  string          `db:"deployment_id"`
 	RootfsImageID sql.NullString  `db:"rootfs_image_id"`
 	GitCommitSha  sql.NullString  `db:"git_commit_sha"`
 	GitBranch     sql.NullString  `db:"git_branch"`
@@ -615,6 +650,30 @@ type Build struct {
 	CompletedAt   sql.NullInt64   `db:"completed_at"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
+type Deployment struct {
+	ID             string                 `db:"id"`
+	WorkspaceID    string                 `db:"workspace_id"`
+	ProjectID      string                 `db:"project_id"`
+	Environment    DeploymentsEnvironment `db:"environment"`
+	BuildID        sql.NullString         `db:"build_id"`
+	RootfsImageID  string                 `db:"rootfs_image_id"`
+	GitCommitSha   sql.NullString         `db:"git_commit_sha"`
+	GitBranch      sql.NullString         `db:"git_branch"`
+	ConfigSnapshot json.RawMessage        `db:"config_snapshot"`
+	OpenapiSpec    sql.NullString         `db:"openapi_spec"`
+	Status         DeploymentsStatus      `db:"status"`
+	CreatedAt      int64                  `db:"created_at"`
+	UpdatedAt      sql.NullInt64          `db:"updated_at"`
+}
+
+type DeploymentStep struct {
+	DeploymentID string                `db:"deployment_id"`
+	Status       DeploymentStepsStatus `db:"status"`
+	Message      sql.NullString        `db:"message"`
+	ErrorMessage sql.NullString        `db:"error_message"`
+	CreatedAt    int64                 `db:"created_at"`
 }
 
 type Domain struct {
@@ -642,14 +701,14 @@ type EncryptedKey struct {
 }
 
 type HostnameRoute struct {
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Hostname    string        `db:"hostname"`
-	VersionID   string        `db:"version_id"`
-	IsEnabled   bool          `db:"is_enabled"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	ID           string        `db:"id"`
+	WorkspaceID  string        `db:"workspace_id"`
+	ProjectID    string        `db:"project_id"`
+	Hostname     string        `db:"hostname"`
+	DeploymentID string        `db:"deployment_id"`
+	IsEnabled    bool          `db:"is_enabled"`
+	CreatedAt    int64         `db:"created_at"`
+	UpdatedAt    sql.NullInt64 `db:"updated_at"`
 }
 
 type Identity struct {
@@ -742,13 +801,13 @@ type Partition struct {
 }
 
 type Permission struct {
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Name        string         `db:"name"`
-	Slug        string         `db:"slug"`
-	Description sql.NullString `db:"description"`
-	CreatedAtM  int64          `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
+	ID          string            `db:"id"`
+	WorkspaceID string            `db:"workspace_id"`
+	Name        string            `db:"name"`
+	Slug        string            `db:"slug"`
+	Description dbtype.NullString `db:"description"`
+	CreatedAtM  int64             `db:"created_at_m"`
+	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
 type Project struct {
@@ -859,30 +918,6 @@ type VercelIntegration struct {
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
-}
-
-type Version struct {
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	ProjectID      string          `db:"project_id"`
-	BranchID       sql.NullString  `db:"branch_id"`
-	BuildID        sql.NullString  `db:"build_id"`
-	RootfsImageID  string          `db:"rootfs_image_id"`
-	GitCommitSha   sql.NullString  `db:"git_commit_sha"`
-	GitBranch      sql.NullString  `db:"git_branch"`
-	ConfigSnapshot json.RawMessage `db:"config_snapshot"`
-	OpenapiSpec    sql.NullString  `db:"openapi_spec"`
-	Status         VersionsStatus  `db:"status"`
-	CreatedAt      int64           `db:"created_at"`
-	UpdatedAt      sql.NullInt64   `db:"updated_at"`
-}
-
-type VersionStep struct {
-	VersionID    string             `db:"version_id"`
-	Status       VersionStepsStatus `db:"status"`
-	Message      sql.NullString     `db:"message"`
-	ErrorMessage sql.NullString     `db:"error_message"`
-	CreatedAt    int64              `db:"created_at"`
 }
 
 type Workspace struct {

@@ -31,7 +31,6 @@ import (
 
 // nolint:gocognit
 func Run(ctx context.Context, cfg Config) error {
-
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
@@ -176,6 +175,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
+	shutdowns.Register(rlSvc.Close)
+
 	keySvc, err := keys.New(keys.Config{
 		Logger:      logger,
 		DB:          db,
@@ -183,10 +184,15 @@ func Run(ctx context.Context, cfg Config) error {
 		RateLimiter: rlSvc,
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
+		Region:      cfg.Region,
+		Counter:     ctr,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+
+	shutdowns.Register(keySvc.Close)
+	shutdowns.Register(ctr.Close)
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
@@ -195,7 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
 			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.SecretAccessKey,
+			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create vault storage: %w", err)
@@ -217,17 +223,16 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	routes.Register(srv, &routes.Services{
-		Logger:         logger,
-		Database:       db,
-		ClickHouse:     ch,
-		Keys:           keySvc,
-		Validator:      validator,
-		Ratelimit:      rlSvc,
-		Auditlogs:      auditlogSvc,
-		Caches:         caches,
-		Vault:          vaultSvc,
-		ChproxyEnabled: cfg.ChproxyEnabled,
-		ChproxyToken:   cfg.ChproxyToken,
+		Logger:       logger,
+		Database:     db,
+		ClickHouse:   ch,
+		Keys:         keySvc,
+		Validator:    validator,
+		Ratelimit:    rlSvc,
+		Auditlogs:    auditlogSvc,
+		Caches:       caches,
+		Vault:        vaultSvc,
+		ChproxyToken: cfg.ChproxyToken,
 	})
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)

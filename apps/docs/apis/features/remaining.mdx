@@ -20,12 +20,14 @@ Let's create a new key, which can be used 100 times.
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.createKey \
+  --url https://api.unkey.com/v2/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{
 	"apiId":"<API_ID>",
-	"remaining": 100
+	"credits": {
+		"remaining": 100
+	}
 }'
 ```
 
@@ -34,10 +36,9 @@ Now when you verify the new key, you will receive back the remaining verificatio
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-      "apiId":"<API_ID>",
       "key": "<NEW_KEY>"
 	}'
 ```
@@ -72,12 +73,11 @@ If a key would only have 3 remaining, the request would be rejected, as there is
 
 ```bash {7-9}
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-    "apiId":"<API_ID>",
     "key": "<NEW_KEY>",
-    "remaining": {
+    "credits": {
       "cost": 4
     }
   }'

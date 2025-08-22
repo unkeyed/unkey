@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -21,12 +22,14 @@ func TestUpdateKeySuccess(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
+	ctx := t.Context()
 
 	route := &handler.Handler{
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -63,6 +66,58 @@ func TestUpdateKeySuccess(t *testing.T) {
 	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
 	require.NotNil(t, res.Body)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
+
+	t.Run("upsert ratelimit", func(t *testing.T) {
+		ratelimit := openapi.RatelimitRequest{
+			AutoApply: false,
+			Duration:  (time.Minute * 5).Milliseconds(),
+			Limit:     100,
+			Name:      "test",
+		}
+
+		req := handler.Request{
+			KeyId:      keyResponse.KeyID,
+			Ratelimits: ptr.P([]openapi.RatelimitRequest{ratelimit}),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+
+		ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, ratelimits, 1)
+		require.Equal(t, ratelimit.Name, ratelimits[0].Name)
+		require.Equal(t, ratelimit.AutoApply, ratelimits[0].AutoApply)
+		require.EqualValues(t, ratelimit.Duration, ratelimits[0].Duration)
+		require.EqualValues(t, ratelimit.Limit, ratelimits[0].Limit)
+
+		ratelimit = openapi.RatelimitRequest{
+			AutoApply: true,
+			Duration:  (time.Minute * 15).Milliseconds(),
+			Limit:     100,
+			Name:      "test",
+		}
+
+		req = handler.Request{
+			KeyId:      keyResponse.KeyID,
+			Ratelimits: ptr.P([]openapi.RatelimitRequest{ratelimit}),
+		}
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+
+		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, ratelimits, 1)
+		require.Equal(t, ratelimit.Name, ratelimits[0].Name)
+		require.Equal(t, ratelimit.AutoApply, ratelimits[0].AutoApply)
+		require.EqualValues(t, ratelimit.Duration, ratelimits[0].Duration)
+		require.EqualValues(t, ratelimit.Limit, ratelimits[0].Limit)
+	})
 }
 
 func TestUpdateKeyUpdateAllFields(t *testing.T) {
@@ -76,6 +131,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Keys:      h.Keys,
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
@@ -106,7 +162,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		KeyId:      keyResponse.KeyID,
 		Name:       nullable.NewNullableWithValue("newName"),
 		ExternalId: nullable.NewNullableWithValue("newExternalId"),
-		Meta:       nullable.NewNullableWithValue(map[string]interface{}{"new": "meta"}),
+		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
 		Enabled:    ptr.P(true),
 		Credits: &openapi.KeyCreditsData{
@@ -134,8 +190,9 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	require.Equal(t, int32(50), key.RefillAmount.Int32)
 
 	// Verify identity was created with correct external ID
-	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-		ID: key.IdentityID.String,
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		Identity:    key.IdentityID.String,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, "newExternalId", identity.ExternalID)

@@ -6,7 +6,6 @@ on:
   merge_group:
     branches: [main]
   workflow_dispatch:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
   cancel-in-progress: true
@@ -16,30 +15,21 @@ jobs:
   detect_changes:
     if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request'
     uses: ./.github/workflows/job_detect_changes.yaml
-
   test_packages:
     name: Test Packages
-    if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request'
+    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && (needs.detect_changes.outputs.packages == 'true' || needs.detect_changes.outputs.dependencies == 'true')
+    needs: [detect_changes]
     uses: ./.github/workflows/job_test_unit.yaml
-
   build:
     name: Build
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.api == 'true'
+    if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request' && needs.detect_changes.result == 'success' && (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true')
     needs: [detect_changes]
     uses: ./.github/workflows/build.yaml
-
   test_api:
     name: Test API
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.api == 'true'
+    if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request' && needs.detect_changes.result == 'success' && (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true')
     needs: [detect_changes]
     uses: ./.github/workflows/job_test_api_local.yaml
-
-  test_agent_local:
-    name: Test Agent Local
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.agent == 'true'
-    needs: [detect_changes]
-    uses: ./.github/workflows/job_test_agent_local.yaml
-
   test_go_api_local:
     name: Test Go API Local
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.go == 'true'

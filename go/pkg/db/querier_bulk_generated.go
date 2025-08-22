@@ -9,10 +9,9 @@ type BulkQuerier interface {
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
-	InsertBranches(ctx context.Context, db DBTX, args []InsertBranchParams) error
-	UpsertBranch(ctx context.Context, db DBTX, args []UpsertBranchParams) error
 	InsertBuilds(ctx context.Context, db DBTX, args []InsertBuildParams) error
-	InsertVersionSteps(ctx context.Context, db DBTX, args []InsertVersionStepParams) error
+	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
+	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
@@ -28,7 +27,6 @@ type BulkQuerier interface {
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
 	InsertHostnameRoutes(ctx context.Context, db DBTX, args []InsertHostnameRouteParams) error
-	InsertVersions(ctx context.Context, db DBTX, args []InsertVersionParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 }
 
