@@ -2,6 +2,7 @@ package counter
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -223,11 +224,11 @@ func TestRedisCounter(t *testing.T) {
 		wg.Add(numWorkers)
 
 		// Launch goroutines that both increment and get values
-		for i := 0; i < numWorkers; i++ {
+		for i := range numWorkers {
 			go func(id int) {
 				defer wg.Done()
 
-				for j := 0; j < operationsPerWorker; j++ {
+				for j := range operationsPerWorker {
 					// Alternate between increment and get
 					if j%2 == 0 {
 						_, err := ctr.Increment(ctx, key, 1)
@@ -441,5 +442,476 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		}
 
 		wg.Wait()
+	})
+}
+
+func TestRedisCounterDecrement(t *testing.T) {
+	ctx := context.Background()
+	redisURL := containers.Redis(t)
+
+	// Create a Redis counter
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logging.New(),
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("BasicDecrement", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Start with initial value
+		_, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+
+		// Decrement by 3 should return 7
+		val, err := ctr.Decrement(ctx, key, 3)
+		require.NoError(t, err)
+		require.Equal(t, int64(7), val)
+
+		// Decrement by 5 should return 2
+		val, err = ctr.Decrement(ctx, key, 5)
+		require.NoError(t, err)
+		require.Equal(t, int64(2), val)
+
+		// Decrement by 10 should return -8 (negative values allowed)
+		val, err = ctr.Decrement(ctx, key, 10)
+		require.NoError(t, err)
+		require.Equal(t, int64(-8), val)
+	})
+
+	t.Run("DecrementWithTTL", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+		ttl := 1 * time.Second
+
+		// First decrement creates the key with TTL
+		val, err := ctr.Decrement(ctx, key, 5, ttl)
+		require.NoError(t, err)
+		require.Equal(t, int64(-5), val) // Starting from 0, decrement by 5 = -5
+
+		// Get the value immediately
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(-5), val)
+
+		// Wait for the key to expire
+		time.Sleep(2 * time.Second)
+
+		// Key should be gone or zero
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), val)
+	})
+
+	t.Run("ConcurrentDecrements", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+		numWorkers := 10
+		decrementsPerWorker := 5
+
+		// Start with a high value
+		_, err := ctr.Increment(ctx, key, 1000)
+		require.NoError(t, err)
+
+		var wg sync.WaitGroup
+		wg.Add(numWorkers)
+
+		for i := 0; i < numWorkers; i++ {
+			go func() {
+				defer wg.Done()
+				for j := 0; j < decrementsPerWorker; j++ {
+					_, err := ctr.Decrement(ctx, key, 2)
+					if err != nil {
+						t.Errorf("decrement error: %v", err)
+						return
+					}
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		// Expected: 1000 - (10 workers * 5 decrements * 2) = 1000 - 100 = 900
+		value, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(900), value)
+	})
+}
+
+func TestRedisCounterDecrementIfExists(t *testing.T) {
+	ctx := context.Background()
+	redisURL := containers.Redis(t)
+
+	// Create a Redis counter
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logging.New(),
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("DecrementNonExistentKey", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Try to decrement a non-existent key
+		val, existed, success, err := ctr.DecrementIfExists(ctx, key, 5)
+		require.NoError(t, err)
+		require.False(t, existed, "Key should not exist")
+		require.False(t, success, "Success should be false when key doesn't exist")
+		require.Equal(t, int64(0), val, "Value should be 0 when key doesn't exist")
+
+		// Verify key still doesn't exist
+		getVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), getVal)
+	})
+
+	t.Run("DecrementExistingKey", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Create the key first
+		_, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+
+		// Now decrement if exists - should work
+		val, existed, success, err := ctr.DecrementIfExists(ctx, key, 3)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist")
+		require.True(t, success, "Decrement should succeed")
+		require.Equal(t, int64(7), val, "Value should be 7 after decrement")
+
+		// Verify with Get
+		getVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(7), getVal)
+	})
+
+	t.Run("DecrementToNegative", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Create key with small positive value
+		_, err := ctr.Increment(ctx, key, 3)
+		require.NoError(t, err)
+
+		// Attempt to decrement by more than current value - should be refused
+		val, existed, success, err := ctr.DecrementIfExists(ctx, key, 8)
+		require.NoError(t, err)
+		require.True(t, existed, "Key should exist")
+		require.False(t, success, "Decrement should fail due to insufficient credits")
+		require.Equal(t, int64(3), val, "Should return actual current value when insufficient credits")
+
+		// Verify the original value is unchanged
+		currentVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(3), currentVal, "Original value should be unchanged after refused decrement")
+	})
+
+	t.Run("ConcurrentDecrementIfExists", func(t *testing.T) {
+		key := uid.New(uid.TestPrefix)
+
+		// Start with a value
+		_, err := ctr.Increment(ctx, key, 100)
+		require.NoError(t, err)
+
+		numWorkers := 20
+		var wg sync.WaitGroup
+		var successCount int64
+		var mu sync.Mutex
+
+		wg.Add(numWorkers)
+		for i := 0; i < numWorkers; i++ {
+			go func() {
+				defer wg.Done()
+				_, existed, success, err := ctr.DecrementIfExists(ctx, key, 1)
+				if err != nil {
+					t.Errorf("DecrementIfExists error: %v", err)
+					return
+				}
+				if existed && success {
+					mu.Lock()
+					successCount++
+					mu.Unlock()
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		// All should have succeeded since key existed
+		require.Equal(t, int64(numWorkers), successCount)
+
+		// Final value should be 100 - 20 = 80
+		finalVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(80), finalVal)
+	})
+}
+
+// TestRedisCounterDelete tests the Delete operation on the Redis counter.
+func TestRedisCounterDelete(t *testing.T) {
+	ctx := context.Background()
+	logger := logging.New()
+	redisURL := containers.Redis(t)
+
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logger,
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("DeleteExistingKey", func(t *testing.T) {
+		key := fmt.Sprintf("test-delete-%d", time.Now().UnixNano())
+
+		// Set initial value
+		val, err := ctr.Increment(ctx, key, 100)
+		require.NoError(t, err)
+		require.Equal(t, int64(100), val)
+
+		// Verify it exists
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(100), val)
+
+		// Delete the key
+		err = ctr.Delete(ctx, key)
+		require.NoError(t, err)
+
+		// Verify it's gone (should return 0)
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), val)
+
+		// DecrementIfExists should fail now
+		val, existed, success, err := ctr.DecrementIfExists(ctx, key, 10)
+		require.NoError(t, err)
+		require.False(t, existed)
+		require.False(t, success)
+		require.Equal(t, int64(0), val)
+	})
+
+	t.Run("DeleteNonExistentKey", func(t *testing.T) {
+		key := fmt.Sprintf("test-delete-nonexistent-%d", time.Now().UnixNano())
+
+		// Delete a key that doesn't exist (should not error)
+		err := ctr.Delete(ctx, key)
+		require.NoError(t, err)
+
+		// Verify it still doesn't exist
+		val, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), val)
+	})
+
+	t.Run("DeleteAndReinitialize", func(t *testing.T) {
+		key := fmt.Sprintf("test-delete-reinit-%d", time.Now().UnixNano())
+
+		// Set initial value
+		val, err := ctr.Increment(ctx, key, 50)
+		require.NoError(t, err)
+		require.Equal(t, int64(50), val)
+
+		// Delete the key
+		err = ctr.Delete(ctx, key)
+		require.NoError(t, err)
+
+		// Reinitialize with a new value
+		val, err = ctr.Increment(ctx, key, 25)
+		require.NoError(t, err)
+		require.Equal(t, int64(25), val)
+
+		// Verify the new value
+		val, err = ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(25), val)
+	})
+}
+
+// TestRedisCounterDecrementLogic tests the decrement logic that avoids negative values
+func TestRedisCounterDecrementLogic(t *testing.T) {
+	ctx := context.Background()
+	logger := logging.New()
+	redisURL := containers.Redis(t)
+
+	ctr, err := NewRedis(RedisConfig{
+		RedisURL: redisURL,
+		Logger:   logger,
+	})
+	require.NoError(t, err)
+	defer ctr.Close()
+
+	t.Run("BasicDecrementLogic", func(t *testing.T) {
+		key := fmt.Sprintf("test-decrement-%d", time.Now().UnixNano())
+
+		// Initialize with 10 credits
+		val, err := ctr.Increment(ctx, key, 10)
+		require.NoError(t, err)
+		require.Equal(t, int64(10), val)
+
+		// Test cases: [decrementAmount, expectedSuccess, expectedFinalValue]
+		testCases := []struct {
+			decrementAmount    int64
+			expectedSuccess    bool
+			expectedFinalValue int64
+			description        string
+		}{
+			{3, true, 7, "decrement 3 from 10 → success, 7 remaining"},
+			{5, true, 2, "decrement 5 from 7 → success, 2 remaining"},
+			{2, true, 0, "decrement 2 from 2 → success, 0 remaining"},
+			{1, false, 0, "decrement 1 from 0 → failure, 0 remaining (unchanged)"},
+			{5, false, 0, "decrement 5 from 0 → failure, 0 remaining (unchanged)"},
+		}
+
+		for _, tc := range testCases {
+			t.Logf("Testing: %s", tc.description)
+
+			remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, tc.decrementAmount)
+			require.NoError(t, err)
+			require.True(t, existed, "key should exist")
+
+			if tc.expectedSuccess {
+				require.True(t, success, "decrement should succeed when sufficient credits")
+				require.Equal(t, tc.expectedFinalValue, remaining, "successful decrement should return correct remaining value")
+				require.GreaterOrEqual(t, remaining, int64(0), "successful decrement should never go negative")
+			} else {
+				require.False(t, success, "decrement should fail when insufficient credits")
+				require.GreaterOrEqual(t, remaining, int64(0), "failed decrement should return actual current count")
+			}
+
+			// Verify actual counter value
+			actualVal, err := ctr.Get(ctx, key)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedFinalValue, actualVal, "counter value should match expected")
+		}
+	})
+
+	t.Run("ConcurrentDecrement", func(t *testing.T) {
+		key := fmt.Sprintf("test-concurrent-decrement-%d", time.Now().UnixNano())
+
+		// Initialize with 100 credits
+		initialCredits := int64(100)
+		_, err := ctr.Increment(ctx, key, initialCredits)
+		require.NoError(t, err)
+
+		// Run 50 goroutines, each trying to decrement 3 credits
+		// Only first 33 should succeed (33 * 3 = 99), with 1 credit remaining
+
+		const numGoroutines = 50
+		const decrementAmount = 3
+		const expectedSuccessful = 33 // floor(100/3) = 33
+
+		// Start all goroutines simultaneously
+		var wg sync.WaitGroup
+		startBarrier := make(chan struct{})
+
+		for range numGoroutines {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				// Wait for all goroutines to be ready
+				<-startBarrier
+
+				remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
+				require.NoError(t, err)
+				require.True(t, existed)
+				require.GreaterOrEqual(t, remaining, int64(0), "decrement should always return non-negative actual count")
+
+				// We don't need to check success here since this is a concurrent test
+				// The final counter value verification is what matters
+				_ = success
+			}()
+		}
+
+		// Release all goroutines at once
+		close(startBarrier)
+		wg.Wait()
+
+		// Verify final counter value - this is the real test of decrement accuracy
+		finalValue, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		expectedFinalValue := initialCredits - int64(expectedSuccessful*decrementAmount)
+		require.Equal(t, expectedFinalValue, finalValue, "decrement should result in exactly the correct final value")
+
+		t.Logf(" decrement concurrency test: final value %d (expected %d)", finalValue, expectedFinalValue)
+	})
+
+	t.Run("ExactCreditUsage", func(t *testing.T) {
+		key := fmt.Sprintf("test-exact-usage-%d", time.Now().UnixNano())
+
+		// Initialize with exactly 15 credits
+		_, err := ctr.Increment(ctx, key, 15)
+		require.NoError(t, err)
+
+		// Decrement exactly 15 credits - should succeed and leave 0
+		remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, 15)
+		require.NoError(t, err)
+		require.True(t, existed)
+		require.True(t, success, "should succeed when using exact amount of credits")
+		require.Equal(t, int64(0), remaining, "should be able to use exact amount of credits")
+
+		// Next decrement should fail
+		remaining, existed, success, err = ctr.DecrementIfExists(ctx, key, 1)
+		require.NoError(t, err)
+		require.True(t, existed)
+		require.False(t, success, "should fail when no credits left")
+		require.Equal(t, int64(0), remaining, "should return actual current count (0) when no credits left")
+
+		// Verify counter is still 0
+		finalValue, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), finalValue, "counter should remain at 0")
+	})
+
+	t.Run("HighConcurrencyEdgeCases", func(t *testing.T) {
+		key := fmt.Sprintf("test-edge-cases-%d", time.Now().UnixNano())
+
+		// Test with a small number of credits and high concurrency
+		initialCredits := int64(5)
+		_, err := ctr.Increment(ctx, key, initialCredits)
+		require.NoError(t, err)
+
+		const numGoroutines = 20
+		const decrementAmount = 1
+
+		results := make(chan bool, numGoroutines)
+		var wg sync.WaitGroup
+		startBarrier := make(chan struct{})
+
+		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-startBarrier
+
+				remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
+				require.NoError(t, err)
+				require.True(t, existed)
+				require.GreaterOrEqual(t, remaining, int64(0), "should always return non-negative actual count")
+
+				results <- success
+			}()
+		}
+
+		close(startBarrier)
+		wg.Wait()
+		close(results)
+
+		// Count successes
+		var successCount int
+		for success := range results {
+			if success {
+				successCount++
+			}
+		}
+
+		t.Logf("High concurrency test: %d successes out of %d attempts", successCount, numGoroutines)
+
+		// Should have exactly initialCredits successes
+		require.Equal(t, int(initialCredits), successCount, "should have exactly %d successes", initialCredits)
+
+		// Final value should be 0
+		finalValue, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), finalValue, "final value should be 0")
 	})
 }

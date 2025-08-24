@@ -65,6 +65,7 @@ import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
+import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
@@ -93,7 +94,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
-import { addPermissionToRootKey } from "./rbac/addPermissionToRootKey";
 import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
 import { connectRoleToKey } from "./rbac/connectRoleToKey";
 import { createPermission } from "./rbac/createPermission";
@@ -102,7 +102,6 @@ import { deletePermission } from "./rbac/deletePermission";
 import { deleteRole } from "./rbac/deleteRole";
 import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRole";
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
-import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
@@ -156,6 +155,9 @@ export const router = t.router({
     create: createRootKey,
     update: t.router({
       name: updateRootKeyName,
+      // NOTE: permissions replaces the full permission set for a root key.
+      // Clients must send the authoritative list to avoid lost updates.
+      permissions: updateRootKeyPermissions,
     }),
   }),
   settings: t.router({
@@ -234,7 +236,6 @@ export const router = t.router({
     }),
   }),
   rbac: t.router({
-    addPermissionToRootKey: addPermissionToRootKey,
     connectPermissionToRole: connectPermissionToRole,
     connectRoleToKey: connectRoleToKey,
     createPermission: createPermission,
@@ -243,7 +244,6 @@ export const router = t.router({
     deleteRole: deleteRole,
     disconnectPermissionFromRole: disconnectPermissionFromRole,
     disconnectRoleFromKey: disconnectRoleFromKey,
-    removePermissionFromRootKey: removePermissionFromRootKey,
     updatePermission: updatePermission,
     updateRole: updateRole,
   }),

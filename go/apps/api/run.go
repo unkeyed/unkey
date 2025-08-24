@@ -185,10 +185,14 @@ func Run(ctx context.Context, cfg Config) error {
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
 		Region:      cfg.Region,
+		Counter:     ctr,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+
+	shutdowns.Register(keySvc.Close)
+	shutdowns.Register(ctr.Close)
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {

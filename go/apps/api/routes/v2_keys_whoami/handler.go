@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -26,8 +26,8 @@ type (
 	Response = openapi.V2KeysWhoamiResponseBody
 )
 
+// Handler implements zen.Route interface for the v2 keys.whoami endpoint
 type Handler struct {
-	// Services as public fields
 	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
@@ -35,12 +35,10 @@ type Handler struct {
 	Vault     *vault.Service
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/keys.whoami"
 }
@@ -76,8 +74,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	keyData := db.ToKeyData(key)
+
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
 	)))
@@ -106,181 +106,138 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	k := openapi.KeyResponseData{
-		CreatedAt:   key.CreatedAtM,
-		Enabled:     key.Enabled,
-		KeyId:       key.ID,
-		Start:       key.Start,
-		Plaintext:   nil,
-		Name:        nil,
-		Meta:        nil,
-		Identity:    nil,
-		Credits:     nil,
-		Expires:     nil,
-		Permissions: nil,
-		Ratelimits:  nil,
-		Roles:       nil,
-		UpdatedAt:   nil,
+	response := openapi.KeyResponseData{
+		CreatedAt: keyData.Key.CreatedAtM,
+		Enabled:   keyData.Key.Enabled,
+		KeyId:     keyData.Key.ID,
+		Start:     keyData.Key.Start,
+		Plaintext: nil,
 	}
 
-	if key.Name.Valid {
-		k.Name = ptr.P(key.Name.String)
+	// Set optional fields
+	if keyData.Key.Name.Valid {
+		response.Name = ptr.P(keyData.Key.Name.String)
 	}
 
-	if key.UpdatedAtM.Valid {
-		k.UpdatedAt = ptr.P(key.UpdatedAtM.Int64)
+	if keyData.Key.UpdatedAtM.Valid {
+		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
 	}
 
-	if key.Expires.Valid {
-		k.Expires = ptr.P(key.Expires.Time.UnixMilli())
+	if keyData.Key.Expires.Valid {
+		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
 	}
 
-	if key.RemainingRequests.Valid {
-		k.Credits = &openapi.KeyCreditsData{
-			Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
-			Refill:    nil,
+	// Set credits
+	if keyData.Key.RemainingRequests.Valid {
+		response.Credits = &openapi.KeyCreditsData{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
-		if key.RefillAmount.Valid {
+		if keyData.Key.RefillAmount.Valid {
 			var refillDay *int
 			interval := openapi.Daily
-			if key.RefillDay.Valid {
+			if keyData.Key.RefillDay.Valid {
 				interval = openapi.Monthly
-				refillDay = ptr.P(int(key.RefillDay.Int16))
+				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
 			}
 
-			k.Credits.Refill = &openapi.KeyCreditsRefill{
-				Amount:    int64(key.RefillAmount.Int32),
+			response.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:    int64(keyData.Key.RefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
 			}
 		}
 	}
 
-	if key.IdentityID.Valid {
-		identity, idErr := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{Identity: key.IdentityID.String, WorkspaceID: auth.AuthorizedWorkspaceID, Deleted: false})
-		if idErr != nil {
-			if db.IsNotFound(idErr) {
-				return fault.New("identity not found for key",
-					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"),
-					fault.Public("The requested identity does not exist or has been deleted."),
-				)
-			}
-
-			return fault.Wrap(idErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve Identity information."),
-			)
+	// Set identity
+	if keyData.Identity != nil {
+		response.Identity = &openapi.Identity{
+			Id:         keyData.Identity.ID,
+			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		k.Identity = &openapi.Identity{
-			Id:         identity.ID,
-			ExternalId: identity.ExternalID,
-			Meta:       nil,
-			Ratelimits: nil,
-		}
-
-		if len(identity.Meta) > 0 {
-			err = json.Unmarshal(identity.Meta, &k.Identity.Meta)
-			if err != nil {
-				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-					fault.Internal("unable to unmarshal identity meta"),
-					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
-				)
+		if len(keyData.Identity.Meta) > 0 {
+			var identityMeta map[string]any
+			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+			} else {
+				response.Identity.Meta = &identityMeta
 			}
 		}
-
-		ratelimits, rlErr := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
-		if rlErr != nil && !db.IsNotFound(rlErr) {
-			return fault.Wrap(rlErr, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to retrieve identity ratelimits"),
-				fault.Public("We encountered an error while trying to retrieve the identity ratelimits."),
-			)
-		}
-
-		identityRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
-		for _, ratelimit := range ratelimits {
-			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
-				Id:        ratelimit.ID,
-				Duration:  ratelimit.Duration,
-				Limit:     int64(ratelimit.Limit),
-				Name:      ratelimit.Name,
-				AutoApply: ratelimit.AutoApply,
-			})
-		}
-
-		if len(identityRatelimits) > 0 {
-			k.Identity.Ratelimits = ptr.P(identityRatelimits)
-		}
 	}
 
-	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: key.ID, Valid: true})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to retrieve key ratelimits"),
-			fault.Public("We encountered an error while trying to retrieve the key ratelimits."),
-		)
+	// Set permissions, combine direct + role permissions
+	permissionSlugs := make(map[string]struct{})
+	for _, p := range keyData.Permissions {
+		permissionSlugs[p.Slug] = struct{}{}
 	}
-
-	ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
-	for idx, ratelimit := range ratelimits {
-		ratelimitsResponse[idx] = openapi.RatelimitResponse{
-			Id:        ratelimit.ID,
-			Duration:  ratelimit.Duration,
-			Limit:     int64(ratelimit.Limit),
-			Name:      ratelimit.Name,
-			AutoApply: ratelimit.AutoApply,
-		}
+	for _, p := range keyData.RolePermissions {
+		permissionSlugs[p.Slug] = struct{}{}
 	}
-
-	if len(ratelimitsResponse) > 0 {
-		k.Ratelimits = ptr.P(ratelimitsResponse)
-	}
-
-	if key.Meta.Valid {
-		err = json.Unmarshal([]byte(key.Meta.String), &k.Meta)
-		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to unmarshal key meta"),
-				fault.Public("We encountered an error while trying to unmarshal the key meta data."),
-			)
-		}
-	}
-
-	permissionSlugs, err := db.Query.ListPermissionsByKeyID(ctx, h.DB.RO(), db.ListPermissionsByKeyIDParams{
-		KeyID: k.KeyId,
-	})
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
-	}
-
 	if len(permissionSlugs) > 0 {
-		k.Permissions = ptr.P(permissionSlugs)
+		slugs := make([]string, 0, len(permissionSlugs))
+		for slug := range permissionSlugs {
+			slugs = append(slugs, slug)
+		}
+		sort.Strings(slugs)
+		response.Permissions = &slugs
 	}
 
-	// Get roles for the key
-	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
-	}
-
-	if len(roles) > 0 {
-		roleNames := make([]string, len(roles))
-		for i, role := range roles {
+	// Set roles
+	if len(keyData.Roles) > 0 {
+		roleNames := make([]string, len(keyData.Roles))
+		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
+		response.Roles = &roleNames
+	}
 
-		k.Roles = ptr.P(roleNames)
+	// Set ratelimits
+	if len(keyData.Ratelimits) > 0 {
+		var keyRatelimits []openapi.RatelimitResponse
+		var identityRatelimits []openapi.RatelimitResponse
+
+		for _, rl := range keyData.Ratelimits {
+			ratelimitResp := openapi.RatelimitResponse{
+				Id:        rl.ID,
+				Duration:  rl.Duration,
+				Limit:     int64(rl.Limit),
+				Name:      rl.Name,
+				AutoApply: rl.AutoApply,
+			}
+
+			// Add to key ratelimits if it belongs to this key
+			if rl.KeyID.Valid {
+				keyRatelimits = append(keyRatelimits, ratelimitResp)
+			}
+			// Add to identity ratelimits if it has an identity_id that matches
+			if rl.IdentityID.Valid {
+				identityRatelimits = append(identityRatelimits, ratelimitResp)
+			}
+		}
+
+		if len(keyRatelimits) > 0 {
+			response.Ratelimits = &keyRatelimits
+		}
+		if len(identityRatelimits) > 0 {
+			response.Identity.Ratelimits = &identityRatelimits
+		}
+	}
+
+	// Set meta
+	if keyData.Key.Meta.Valid {
+		var meta map[string]any
+		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
+			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		} else {
+			response.Meta = &meta
+		}
 	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: k,
+		Data: response,
 	})
 }
