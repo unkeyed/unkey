@@ -49,7 +49,7 @@ export function OnboardingContent() {
       {/* Spacer */}
       <div className="mt-[72px]" />
       {/* Onboarding part. This will be a step wizard*/}
-      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl ">
+      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl flex-1 min-h-0 ">
         {/* Explanation part - Fixed height to prevent layout shifts */}
         <div className="flex flex-col items-center h-[140px] justify-start">
           <div className="bg-grayA-3 rounded-full w-fit">
@@ -68,7 +68,7 @@ export function OnboardingContent() {
         </div>
         <div className="mt-10" />
         {/* Form part */}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-24">
           <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
         </div>
       </div>
