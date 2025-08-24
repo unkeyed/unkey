@@ -68,3 +68,8 @@ properties:
       Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
       Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
       Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
+  migrationId:
+    type: string
+    maxLength: 256
+    description: Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
+    example: "m_1234abcd"

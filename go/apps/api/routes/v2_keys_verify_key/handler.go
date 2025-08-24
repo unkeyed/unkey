@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -61,9 +62,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, emit, err := h.Keys.Get(ctx, s, req.Key)
+	key, emit, err := h.Keys.Get(ctx, s, hash.Sha256(req.Key))
 	if err != nil {
+
 		return err
+	}
+	if key.Status == keys.StatusNotFound && req.MigrationId != nil {
+
+		h.Logger.Warn("key not found, attempting migration", "key", req.Key, "migrationId", req.MigrationId)
+		key, emit, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Validate key belongs to authorized workspace

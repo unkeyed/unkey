@@ -5,6 +5,7 @@ import {
   datetime,
   index,
   int,
+  mysqlEnum,
   mysqlTable,
   text,
   tinyint,
@@ -81,6 +82,8 @@ export const keys = mysqlTable(
      * common settings can be configured by the user.
      */
     environment: varchar("environment", { length: 256 }),
+
+    pendingMigrationId: varchar("pending_migration_id", { length: 256 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -88,6 +91,7 @@ export const keys = mysqlTable(
       table.keyAuthId,
       table.deletedAtM,
     ),
+    pendingMigrationIdIndex: index("pending_migration_id_idx").on(table.pendingMigrationId),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
@@ -152,3 +156,11 @@ export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
     references: [workspaces.id],
   }),
 }));
+
+export const keyMigrations = mysqlTable("key_migrations", {
+  id: varchar("id", { length: 256 }).primaryKey(),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+  algorithm: mysqlEnum("algorithm", [
+    "github.com/seamapi/prefixed-api-key"
+  ])
+})

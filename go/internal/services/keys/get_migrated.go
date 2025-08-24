@@ -1,0 +1,113 @@
+package keys
+
+import (
+	"context"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/zen"
+)
+
+// Get retrieves a key from the database and performs basic validation checks.
+// It returns a KeyVerifier that can be used for further validation with specific options.
+// For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
+func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, func(), error) {
+	ctx, span := tracing.Start(ctx, "keys.Get")
+	defer span.End()
+
+	err := assert.NotEmpty(rawKey)
+	if err != nil {
+		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
+	}
+
+	migration, err := db.Query.FindKeyMigrationByID(ctx, s.db.RO(), migrationID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			// nolint:exhaustruct
+			return &KeyVerifier{
+				Status:  StatusNotFound,
+				message: "migration does not exist",
+			}, emptyLog, nil
+		}
+
+		return nil, emptyLog, fault.Wrap(
+			err,
+			fault.Internal("unable to load migration"),
+			fault.Public("We could not load the requested migration."),
+		)
+	}
+	// h is the result of whatever algorithm we should use.
+	// The section below is expected to populate this and we can use it to look up a key in the db
+	var h string
+
+	switch migration.Algorithm {
+	case db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey:
+		{
+			parts := strings.Split(rawKey, "_")
+			err = assert.Equal(len(parts), 3, "Expected prefixed api keys to have 3 segments")
+			if err != nil {
+				return nil, emptyLog, fault.Wrap(err,
+					fault.Code(codes.URN(codes.Auth.Authentication.Malformed.URN())),
+					fault.Public("Invalid key format"))
+			}
+			s.logger.Info("Loaded migration",
+
+				"rawKey", rawKey,
+				"parts", parts,
+				"algorithm", migration.Algorithm,
+			)
+
+			b := sha256.Sum256([]byte(parts[2]))
+			h = hex.EncodeToString(b[:])
+
+		}
+	default:
+		return nil, emptyLog, fault.New(
+			fmt.Sprintf("unsupported migration algorithm %s", migration.Algorithm),
+			fault.Public(fmt.Sprintf("We could not load the requested migration for algorithm %s.", migration.Algorithm)),
+		)
+	}
+
+	key, log, err := s.Get(ctx, sess, h)
+	if err != nil {
+		return nil, log, err
+	}
+
+	if key.Key.PendingMigrationID.Valid && key.Key.PendingMigrationID.String == migrationID {
+		s.logger.Info("Updating hash",
+			"rawKey", rawKey,
+			"hash", h,
+			"algorithm", migration.Algorithm,
+		)
+		// Now we need to rehash and remove the pending migration id
+
+		newHash := hash.Sha256(rawKey)
+		err = db.Query.UpdateKeyHashAndMigration(ctx, s.db.RW(), db.UpdateKeyHashAndMigrationParams{
+			ID:                 key.Key.ID,
+			Hash:               newHash,
+			PendingMigrationID: sql.NullString{Valid: false, String: ""},
+			UpdatedAtM:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if err != nil {
+			return nil, log, fault.Wrap(err,
+				fault.Code(codes.URN(codes.UnkeyAppErrorsInternalServiceUnavailable)),
+				fault.Public("We could not update the key hash and migration id"))
+		}
+
+		s.keyCache.Remove(ctx,
+			hash.Sha256(rawKey), h, newHash)
+	}
+
+	return key, log, nil
+
+}

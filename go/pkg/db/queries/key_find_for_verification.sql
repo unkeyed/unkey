@@ -12,10 +12,12 @@ select k.id,
        k.last_refill_at,
        k.enabled,
        k.remaining_requests,
+       k.pending_migration_id,
        a.ip_whitelist,
        a.workspace_id  as api_workspace_id,
        a.id            as api_id,
        a.deleted_at_m  as api_deleted_at_m,
+
 
        COALESCE(
                (SELECT JSON_ARRAYAGG(name)

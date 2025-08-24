@@ -31,7 +31,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		)
 	}
 
-	key, log, err := s.Get(ctx, sess, rootKey)
+	key, log, err := s.Get(ctx, sess, hash.Sha256(rootKey))
 	if err != nil {
 		return nil, log, err
 	}
@@ -57,18 +57,17 @@ var emptyLog = func() {}
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
 // For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
-func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*KeyVerifier, func(), error) {
+func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, func(), error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
-	err := assert.NotEmpty(rawKey)
+	err := assert.NotEmpty(sha256Hash)
 	if err != nil {
 		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
 	}
 
-	h := hash.Sha256(rawKey)
-	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
-		return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
+	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
+		return db.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {

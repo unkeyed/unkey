@@ -11,6 +11,7 @@ import (
 type KeyService interface {
 	// Get retrieves a key and returns a KeyVerifier for validation
 	Get(ctx context.Context, sess *zen.Session, hash string) (*KeyVerifier, func(), error)
+	GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, func(), error)
 
 	// GetRootKey retrieves and validates a root key from the session
 	GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifier, func(), error)
