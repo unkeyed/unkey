@@ -15,8 +15,13 @@ SELECT
     workspace_id,
     algorithm
 FROM key_migrations
-WHERE id = ?
+WHERE id = ? and workspace_id = ?
 `
+
+type FindKeyMigrationByIDParams struct {
+	ID          string `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
+}
 
 // FindKeyMigrationByID
 //
@@ -25,9 +30,9 @@ WHERE id = ?
 //	    workspace_id,
 //	    algorithm
 //	FROM key_migrations
-//	WHERE id = ?
-func (q *Queries) FindKeyMigrationByID(ctx context.Context, db DBTX, id string) (KeyMigration, error) {
-	row := db.QueryRowContext(ctx, findKeyMigrationByID, id)
+//	WHERE id = ? and workspace_id = ?
+func (q *Queries) FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (KeyMigration, error) {
+	row := db.QueryRowContext(ctx, findKeyMigrationByID, arg.ID, arg.WorkspaceID)
 	var i KeyMigration
 	err := row.Scan(&i.ID, &i.WorkspaceID, &i.Algorithm)
 	return i, err

@@ -299,8 +299,8 @@ type Querier interface {
 	//      workspace_id,
 	//      algorithm
 	//  FROM key_migrations
-	//  WHERE id = ?
-	FindKeyMigrationByID(ctx context.Context, db DBTX, id string) (KeyMigration, error)
+	//  WHERE id = ? and workspace_id = ?
+	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (KeyMigration, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
 	//  SELECT key_id, role_id, workspace_id, created_at_m, updated_at_m
@@ -1301,7 +1301,7 @@ type Querier interface {
 	//ListLiveKeysByKeyAuthID
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
