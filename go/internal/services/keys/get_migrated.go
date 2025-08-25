@@ -21,7 +21,7 @@ import (
 // GetMigrated uses a special hashing algorithm to retrieve a key from the database and
 // migrates the key to our own hashing algorithm.
 func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, func(), error) {
-	ctx, span := tracing.Start(ctx, "keys.Get")
+	ctx, span := tracing.Start(ctx, "keys.GetMigrated")
 	defer span.End()
 
 	err := assert.NotEmpty(rawKey)
