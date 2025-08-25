@@ -8,16 +8,17 @@ import (
 
 // VMNetwork contains network configuration for a VM
 type VMNetwork struct {
-	VMID       string     `json:"vm_id"`
-	NetworkID  string     `json:"network_id"` // AIDEV-NOTE: Internal 8-char ID for network device naming
-	Namespace  string     `json:"namespace"`
-	TapDevice  string     `json:"tap_device"`
-	IPAddress  net.IP     `json:"ip_address"`
-	Netmask    net.IPMask `json:"netmask"`
-	Gateway    net.IP     `json:"gateway"`
-	MacAddress string     `json:"mac_address"`
-	DNSServers []string   `json:"dns_servers"`
-	CreatedAt  time.Time  `json:"created_at"`
+	VMID        string     `json:"vm_id"`
+	NetworkID   string     `json:"network_id"`   // AIDEV-NOTE: Internal 8-char ID for network device naming
+	WorkspaceID string     `json:"workspace_id"` // AIDEV-NOTE: Track workspace for proper IP release
+	Namespace   string     `json:"namespace"`
+	TapDevice   string     `json:"tap_device"`
+	IPAddress   net.IP     `json:"ip_address"`
+	Netmask     net.IPMask `json:"netmask"`
+	Gateway     net.IP     `json:"gateway"`
+	MacAddress  string     `json:"mac_address"`
+	DNSServers  []string   `json:"dns_servers"`
+	CreatedAt   time.Time  `json:"created_at"`
 
 	// Optional fields for advanced configurations
 	VLANID      int     `json:"vlan_id,omitempty"`

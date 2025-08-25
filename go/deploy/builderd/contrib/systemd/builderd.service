@@ -1,8 +1,9 @@
 [Unit]
 Description=Builderd Multi-Tenant Build Service
 Documentation=https://github.com/unkeyed/unkey/go/deploy/builderd
-After=network.target
+After=network.target spire-agent.service assetmanagerd.service
 Wants=network.target
+Requires=spire-agent.service assetmanagerd.service
 
 [Service]
 Type=simple
@@ -34,6 +35,7 @@ Environment=UNKEY_BUILDERD_BUILD_TIMEOUT=15m
 Environment=UNKEY_BUILDERD_SCRATCH_DIR=/opt/builderd/scratch
 Environment=UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs
 Environment=UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace
+Environment=UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR=false
 
 # Storage configuration
 Environment=UNKEY_BUILDERD_STORAGE_BACKEND=local

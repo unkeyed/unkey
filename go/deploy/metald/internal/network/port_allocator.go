@@ -1,10 +1,10 @@
 package network
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sync"
-	"time"
 )
 
 // AIDEV-NOTE: Port allocator manages host port allocation for container port mapping
@@ -29,9 +29,6 @@ type PortAllocator struct {
 	vmPorts   map[string][]PortMapping // VM ID -> port mappings
 	portToVM  map[int]string           // host port -> VM ID
 
-	// Random number generator for port selection
-	rng *rand.Rand
-
 	mu sync.Mutex
 }
 
@@ -50,7 +47,6 @@ func NewPortAllocator(minPort, maxPort int) *PortAllocator {
 		allocated: make(map[int]bool),
 		vmPorts:   make(map[string][]PortMapping),
 		portToVM:  make(map[int]string),
-		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -71,9 +67,14 @@ func (p *PortAllocator) AllocatePort(vmID string, containerPort int, protocol st
 		maxAttempts = 1000 // Limit attempts to avoid long search times
 	}
 
-	// Try random ports first
+	// Try random ports first using crypto/rand for security
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		hostPort := p.minPort + p.rng.Intn(portRange)
+		randomOffset, err := rand.Int(rand.Reader, big.NewInt(int64(portRange)))
+		if err != nil {
+			// If crypto/rand fails, fall through to sequential search
+			break
+		}
+		hostPort := p.minPort + int(randomOffset.Int64())
 		if !p.allocated[hostPort] {
 			return p.doAllocatePort(vmID, hostPort, containerPort, protocol)
 		}

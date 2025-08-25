@@ -4,12 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -19,15 +17,15 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
+	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assets"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/service"
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/net/http2"
@@ -214,12 +212,15 @@ func main() {
 	// AIDEV-NOTE: This ensures builderd can create VMs without external setup scripts
 	if cfg.AssetManager.Enabled {
 		logger.Info("initializing base VM assets")
-		// Temporarily inline the base asset initialization to avoid import issues
-		// TODO: Move to assets package once imports are stable
 		baseAssetInitCtx, cancel := context.WithTimeout(rootCtx, 10*time.Minute)
 		defer cancel()
 
-		if err := initializeBaseAssets(baseAssetInitCtx, logger, cfg, assetClient); err != nil {
+		// Use proper assets package with metrics and retry logic
+		assetManager := assets.NewBaseAssetManager(logger, cfg, assetClient)
+		if buildMetrics != nil {
+			assetManager = assetManager.WithMetrics(buildMetrics)
+		}
+		if err := assetManager.InitializeBaseAssetsWithRetry(baseAssetInitCtx); err != nil {
 			logger.Error("failed to initialize base assets",
 				slog.String("error", err.Error()),
 			)
@@ -315,7 +316,7 @@ func main() {
 
 	// Start main server with proper error coordination
 	g.Go(func() error {
-		// Start server in a way that respects context cancellation
+		// AIDEV-NOTE: Start server with proper context cancellation to prevent startup goroutine deadlock
 		errCh := make(chan error, 1)
 
 		if serverTLSConfig != nil {
@@ -343,6 +344,12 @@ func main() {
 			}
 			return nil
 		case <-gCtx.Done():
+			// AIDEV-NOTE: Immediately shutdown server when context is cancelled to prevent deadlock
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := server.Shutdown(shutdownCtx); err != nil {
+				logger.Warn("server shutdown during startup failed", slog.String("error", err.Error()))
+			}
 			return gCtx.Err()
 		}
 	})
@@ -372,16 +379,37 @@ func main() {
 				slog.String("address", promAddr),
 				slog.Bool("localhost_only", localhostOnly),
 			)
-			if err := promServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				return fmt.Errorf("prometheus server failed: %w", err)
+
+			// AIDEV-NOTE: Start Prometheus server with context cancellation support
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- promServer.ListenAndServe()
+			}()
+
+			select {
+			case err := <-errCh:
+				if err != nil && err != http.ErrServerClosed {
+					return fmt.Errorf("prometheus server failed: %w", err)
+				}
+				return nil
+			case <-gCtx.Done():
+				// AIDEV-NOTE: Immediately shutdown Prometheus server when context is cancelled
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if err := promServer.Shutdown(shutdownCtx); err != nil {
+					logger.Warn("prometheus server shutdown during startup failed", slog.String("error", err.Error()))
+				}
+				return gCtx.Err()
 			}
-			return nil
 		})
 	}
 
 	// Implement proper signal handling with buffered channel
 	sigChan := make(chan os.Signal, 2) // Buffer for multiple signals
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+
+	// AIDEV-NOTE: Signal handling continues during graceful shutdown to prevent SIGABRT panics
+	shutdownSignalReceived := make(chan struct{})
 
 	// Handle shutdown coordination
 	g.Go(func() error {
@@ -390,6 +418,7 @@ func main() {
 			logger.Info("received shutdown signal",
 				slog.String("signal", sig.String()),
 			)
+			close(shutdownSignalReceived)
 			return fmt.Errorf("shutdown signal received: %s", sig)
 		case <-gCtx.Done():
 			return gCtx.Err()
@@ -402,6 +431,22 @@ func main() {
 			slog.String("reason", err.Error()),
 		)
 	}
+
+	// Continue handling signals during graceful shutdown to prevent SIGABRT panics
+	go func() {
+		for {
+			select {
+			case <-shutdownSignalReceived:
+				// Already shutting down, ignore
+				return
+			case sig := <-sigChan:
+				logger.Warn("received additional signal during shutdown, ignoring",
+					slog.String("signal", sig.String()),
+				)
+				// Continue listening for more signals
+			}
+		}
+	}()
 
 	// Coordinated shutdown with proper ordering
 	performGracefulShutdown(logger, server, promServer, providers, builderService, &shutdownStarted, &shutdownMutex, cfg.Server.ShutdownTimeout)
@@ -544,43 +589,60 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 		return
 	}
 
+	logger.Info("attempting to acquire shutdown mutex")
 	shutdownMutex.Lock()
 	defer shutdownMutex.Unlock()
 
-	logger.Info("performing graceful shutdown")
+	logger.Info("acquired shutdown mutex, performing graceful shutdown")
 
 	// Create shutdown context with configurable timeout
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	// AIDEV-NOTE: Use a shorter timeout to avoid systemd SIGABRT
+	actualTimeout := shutdownTimeout
+	if actualTimeout > 12*time.Second {
+		actualTimeout = 12 * time.Second // Leave 3s buffer before systemd timeout
+	}
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), actualTimeout)
 	defer cancel()
+
+	logger.Info("starting graceful shutdown with timeout",
+		slog.Duration("timeout", actualTimeout),
+	)
 
 	// Use errgroup for coordinated shutdown
 	g, gCtx := errgroup.WithContext(shutdownCtx)
 
 	// AIDEV-NOTE: Shutdown BuilderService first to stop new builds and wait for running ones
-	g.Go(func() error {
-		logger.Info("shutting down BuilderService")
-		if err := builderService.Shutdown(gCtx); err != nil {
-			return fmt.Errorf("BuilderService shutdown failed: %w", err)
-		}
-		logger.Info("BuilderService shutdown complete")
-		return nil
-	})
+	if builderService != nil {
+		g.Go(func() error {
+			logger.Info("starting BuilderService shutdown")
+			if err := builderService.Shutdown(gCtx); err != nil {
+				logger.Error("BuilderService shutdown failed", slog.String("error", err.Error()))
+				return fmt.Errorf("BuilderService shutdown failed: %w", err)
+			}
+			logger.Info("BuilderService shutdown complete")
+			return nil
+		})
+	}
 
 	// Shutdown HTTP server
-	g.Go(func() error {
-		logger.Info("shutting down HTTP server")
-		if err := server.Shutdown(gCtx); err != nil {
-			return fmt.Errorf("HTTP server shutdown failed: %w", err)
-		}
-		logger.Info("HTTP server shutdown complete")
-		return nil
-	})
+	if server != nil {
+		g.Go(func() error {
+			logger.Info("starting HTTP server shutdown")
+			if err := server.Shutdown(gCtx); err != nil {
+				logger.Error("HTTP server shutdown failed", slog.String("error", err.Error()))
+				return fmt.Errorf("HTTP server shutdown failed: %w", err)
+			}
+			logger.Info("HTTP server shutdown complete")
+			return nil
+		})
+	}
 
 	// Shutdown Prometheus server if running
 	if promServer != nil {
 		g.Go(func() error {
-			logger.Info("shutting down Prometheus server")
+			logger.Info("starting Prometheus server shutdown")
 			if err := promServer.Shutdown(gCtx); err != nil {
+				logger.Error("Prometheus server shutdown failed", slog.String("error", err.Error()))
 				return fmt.Errorf("prometheus server shutdown failed: %w", err)
 			}
 			logger.Info("Prometheus server shutdown complete")
@@ -591,8 +653,9 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 	// Shutdown OpenTelemetry providers
 	if providers != nil {
 		g.Go(func() error {
-			logger.Info("shutting down OpenTelemetry providers")
+			logger.Info("starting OpenTelemetry providers shutdown")
 			if err := providers.Shutdown(gCtx); err != nil {
+				logger.Error("OpenTelemetry shutdown failed", slog.String("error", err.Error()))
 				return fmt.Errorf("OpenTelemetry shutdown failed: %w", err)
 			}
 			logger.Info("OpenTelemetry shutdown complete")
@@ -609,120 +672,4 @@ func performGracefulShutdown(logger *slog.Logger, server *http.Server, promServe
 	}
 
 	logger.Info("graceful shutdown completed successfully")
-}
-
-// initializeBaseAssets downloads and registers base VM assets if they don't exist
-func initializeBaseAssets(ctx context.Context, logger *slog.Logger, cfg *config.Config, assetClient *assetmanager.Client) error {
-	// AIDEV-NOTE: Inline base asset initialization to avoid import cycles
-	// This logic should eventually be moved to the assets package
-
-	baseAssets := []struct {
-		name        string
-		url         string
-		assetType   assetv1.AssetType
-		description string
-	}{
-		{
-			name:        "vmlinux",
-			url:         "https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin",
-			assetType:   assetv1.AssetType_ASSET_TYPE_KERNEL,
-			description: "Firecracker x86_64 kernel",
-		},
-		{
-			name:        "rootfs.ext4",
-			url:         "https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/rootfs/bionic.rootfs.ext4",
-			assetType:   assetv1.AssetType_ASSET_TYPE_ROOTFS,
-			description: "Ubuntu Bionic base rootfs",
-		},
-	}
-
-	storageDir := cfg.Builder.RootfsOutputDir
-	for _, asset := range baseAssets {
-		logger.InfoContext(ctx, "ensuring base asset is available",
-			"asset", asset.name,
-			"type", asset.assetType,
-		)
-
-		// Check if asset already exists locally
-		localPath := filepath.Join(storageDir, "base", asset.name)
-		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
-			return fmt.Errorf("failed to create directory for %s: %w", asset.name, err)
-		}
-
-		// Download if not present
-		if _, err := os.Stat(localPath); os.IsNotExist(err) {
-			logger.InfoContext(ctx, "downloading base asset",
-				"asset", asset.name,
-				"url", asset.url,
-			)
-
-			if err := downloadAsset(ctx, asset.url, localPath); err != nil {
-				return fmt.Errorf("failed to download %s: %w", asset.name, err)
-			}
-
-			logger.InfoContext(ctx, "asset downloaded successfully",
-				"asset", asset.name,
-				"path", localPath,
-			)
-		}
-
-		// Register with assetmanagerd
-		labels := map[string]string{
-			"created_by":   "builderd",
-			"customer_id":  "system",
-			"tenant_id":    "system",
-			"source":       "firecracker-quickstart",
-			"asset_type":   asset.name,
-			"architecture": "x86_64",
-		}
-
-		assetID, err := assetClient.RegisterBuildArtifact(ctx, "base-assets", localPath, asset.assetType, labels)
-		if err != nil {
-			// Log warning but don't fail - asset might already be registered
-			logger.WarnContext(ctx, "failed to register asset, might already exist",
-				"asset", asset.name,
-				"error", err,
-			)
-		} else {
-			logger.InfoContext(ctx, "asset registered successfully",
-				"asset", asset.name,
-				"asset_id", assetID,
-			)
-		}
-	}
-
-	return nil
-}
-
-// downloadAsset downloads a file from URL to local path
-func downloadAsset(ctx context.Context, url, localPath string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to download: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
-	tmpPath := localPath + ".tmp"
-	tmpFile, err := os.Create(tmpPath)
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer os.Remove(tmpPath)
-
-	_, err = io.Copy(tmpFile, resp.Body)
-	tmpFile.Close()
-	if err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
-	}
-
-	return os.Rename(tmpPath, localPath)
 }
