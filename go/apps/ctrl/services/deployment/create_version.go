@@ -23,6 +23,11 @@ func limitString(s string, maxRunes int) string {
 	return s
 }
 
+// CreateVersion creates a new deployment version record and kicks off the deployment workflow.
+// It validates workspace/project, normalizes git metadata (branch fallback, commit fields),
+// and persists the deployment in "pending" state. Workflow failures are logged but do not
+// fail creation to allow retries.
+
 func (s *Service) CreateVersion(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateVersionRequest],
