@@ -7,7 +7,7 @@ export const NamespaceListRefresh = () => {
   const { filters } = useNamespaceListFilters();
   const { ratelimit } = trpc.useUtils();
   const { refresh } = useRouter();
-  const hasRelativeFilter = filters.find((f) => f.field === "since");
+  const hasRelativeFilter = filters.some((f) => f.field === "since");
 
   const handleRefresh = () => {
     ratelimit.logs.queryRatelimitTimeseries.invalidate();
