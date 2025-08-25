@@ -18,9 +18,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// Get retrieves a key from the database and performs basic validation checks.
-// It returns a KeyVerifier that can be used for further validation with specific options.
-// For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
+// GetMigrated uses a special hashing algorithm to retrieve a key from the database and
+// migrates the key to our own hashing algorithm.
 func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, func(), error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
