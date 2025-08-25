@@ -106,8 +106,11 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 				fault.Public("We could not update the key hash and migration id"))
 		}
 
-		s.keyCache.Remove(ctx,
-			hash.Sha256(rawKey), h, newHash)
+		s.keyCache.Remove(
+			ctx,
+			h,
+			newHash,
+		)
 	}
 
 	return key, log, nil
