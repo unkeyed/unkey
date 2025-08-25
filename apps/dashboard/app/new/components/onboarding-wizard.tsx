@@ -1,8 +1,7 @@
 "use client";
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
-import { Button, Separator } from "@unkey/ui";
+import { Button, CircleProgress, Separator } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
-import { CircleProgress } from "./circle-progress";
 
 export type OnboardingStep = {
   /** Display name of the step shown in the navigation */
@@ -46,9 +45,6 @@ export type OnboardingWizardProps = {
   /** Callback fired whenever the current step changes */
   onStepChange?: (stepIndex: number) => void;
 };
-
-const CIRCLE_PROGRESS_SIZE = 12;
-const CIRCLE_PROGRESS_STROKE_WIDTH = 1.5;
 
 export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -168,8 +164,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 <CircleProgress
                   value={currentStep.validFieldCount}
                   total={currentStep.requiredFieldCount}
-                  size={CIRCLE_PROGRESS_SIZE}
-                  strokeWidth={CIRCLE_PROGRESS_STROKE_WIDTH}
+                  size="sm-medium"
                 />
               </div>
             </div>
