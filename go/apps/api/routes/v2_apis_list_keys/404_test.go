@@ -22,10 +22,11 @@ func TestNotFoundErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger: h.Logger,
-		DB:     h.DB,
-		Keys:   h.Keys,
-		Vault:  h.Vault,
+		Logger:   h.Logger,
+		DB:       h.DB,
+		Keys:     h.Keys,
+		Vault:    h.Vault,
+		ApiCache: h.Caches.LiveApiByID,
 	}
 
 	h.Register(route)
@@ -168,14 +169,14 @@ func TestNotFoundErrors(t *testing.T) {
 			ApiId: noKeyAuthApiID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 412, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
