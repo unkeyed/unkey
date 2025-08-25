@@ -2,7 +2,7 @@
 
 import { TableCell, TableRow } from "@/components/ui/table";
 import Link from "next/link";
-import { useCallback, useRef, useMemo, memo } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 
 type Props = {
   identity: {
@@ -21,19 +21,21 @@ type Props = {
 
 function RowComponent(props: Props) {
   const { identity } = props;
-  
+
   const detailsUrl = useMemo(() => {
     const encodedWorkspaceId = encodeURIComponent(identity.workspaceId);
     const encodedId = encodeURIComponent(identity.id);
     return `/${encodedWorkspaceId}/identities/${encodedId}`;
   }, [identity.workspaceId, identity.id]);
-  
+
   const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasPrefetchedRef = useRef(false);
 
   const handlePrefetch = useCallback(() => {
-    if (hasPrefetchedRef.current) return;
-    
+    if (hasPrefetchedRef.current) {
+      return;
+    }
+
     if (prefetchTimeoutRef.current) {
       clearTimeout(prefetchTimeoutRef.current);
     }
@@ -64,9 +66,13 @@ function RowComponent(props: Props) {
           </pre>
         </TableCell>
 
-        <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">{identity.keys.length}</TableCell>
+        <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">
+          {identity.keys.length}
+        </TableCell>
 
-        <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">{identity.ratelimits.length}</TableCell>
+        <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">
+          {identity.ratelimits.length}
+        </TableCell>
       </Link>
     </TableRow>
   );

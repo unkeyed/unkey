@@ -13,13 +13,13 @@ export default function SettingsPage() {
   const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
   const rawParams = useParams<{ workspaceId: string }>();
-  
+
   // Runtime validation of params
   let workspaceId: string;
   try {
     const params = ParamsSchema.parse(rawParams);
     workspaceId = params.workspaceId;
-  } catch (error) {
+  } catch (_error) {
     // If params are invalid, redirect to new workspace page
     router.replace("/new");
     return null;

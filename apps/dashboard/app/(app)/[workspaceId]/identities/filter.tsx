@@ -34,7 +34,7 @@ export function SearchField(): JSX.Element {
   }, [draft, search, setSearch]);
 
   return (
-    <div role="search" className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+    <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
       <Search className="h-4 w-4" aria-hidden="true" />
       <input
         type="search"
