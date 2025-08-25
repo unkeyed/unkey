@@ -25,7 +25,7 @@ const circleProgressVariants = cva("inline-flex items-center justify-center", {
   },
 });
 
-type CircleProgressProps = {
+type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
   /** Current progress value (e.g., 3 completed items out of 5 total) */
   value: number;
   /** Total/maximum value that represents 100% completion */
@@ -36,8 +36,6 @@ type CircleProgressProps = {
    * @example "sm-thin", "lg-bold", "xl-medium"
    */
   size?: IconSize;
-  /** Additional CSS classes to apply to the root container */
-  className?: string;
 } & VariantProps<typeof circleProgressVariants>;
 
 /**
