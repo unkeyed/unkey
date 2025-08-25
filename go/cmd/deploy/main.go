@@ -22,6 +22,7 @@ const (
 
 	// Environment variables
 	EnvWorkspaceID = "UNKEY_WORKSPACE_ID"
+	EnvKeyspaceID  = "UNKEY_KEYSPACE_ID"
 	EnvRegistry    = "UNKEY_REGISTRY"
 
 	// URL prefixes
@@ -82,6 +83,7 @@ var stepSequence = map[string]string{
 type DeployOptions struct {
 	WorkspaceID     string
 	ProjectID       string
+	KeyspaceID      string
 	Context         string
 	Branch          string
 	DockerImage     string
@@ -92,6 +94,7 @@ type DeployOptions struct {
 	Verbose         bool
 	ControlPlaneURL string
 	AuthToken       string
+	Hostname        string
 }
 
 var DeployFlags = []cli.Flag{
@@ -103,6 +106,7 @@ var DeployFlags = []cli.Flag{
 	// Required flags (can be provided via config file)
 	cli.String("workspace-id", "Workspace ID", cli.EnvVar(EnvWorkspaceID)),
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
+	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar(EnvKeyspaceID)),
 	// Optional flags with defaults
 	cli.String("context", "Build context path"),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
@@ -117,6 +121,7 @@ var DeployFlags = []cli.Flag{
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
+	cli.String("hostname", "Gateway hostname for routing (e.g., api.unkey.com)"),
 }
 
 // WARNING: Changing the "Description" part will also affect generated MDX.
@@ -133,7 +138,7 @@ Use --init to create a configuration template file. This generates an unkey.json
 
 DEPLOYMENT PROCESS:
 1. Load configuration from unkey.json or flags
-2. Build Docker image from your application  
+2. Build Docker image from your application
 3. Push image to container registry
 4. Create deployment version on Unkey platform
 5. Monitor deployment status until active
@@ -175,6 +180,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	finalConfig := cfg.mergeWithFlags(
 		cmd.String("workspace-id"),
 		cmd.String("project-id"),
+		cmd.String("keyspace-id"),
 		cmd.String("context"),
 	)
 
@@ -185,6 +191,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 	opts := DeployOptions{
 		WorkspaceID:     finalConfig.WorkspaceID,
+		KeyspaceID:      finalConfig.KeyspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
@@ -196,6 +203,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Verbose:         cmd.Bool("verbose"),
 		ControlPlaneURL: cmd.String("control-plane-url"),
 		AuthToken:       cmd.String("auth-token"),
+		Hostname:        cmd.String("hostname"),
 	}
 
 	return executeDeploy(ctx, opts)

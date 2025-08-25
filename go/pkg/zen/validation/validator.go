@@ -49,6 +49,7 @@ func New() (*Validator, error) {
 
 		return nil, fault.New("openapi document is invalid", messages...)
 	}
+
 	return &Validator{
 		validator: v,
 	}, nil

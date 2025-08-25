@@ -16,7 +16,8 @@ export * from "./projects";
 export * from "./rootfs_images";
 export * from "./builds";
 export * from "./deployments";
+export * from "./acme_users";
 
 // Routing and traffic management
 export * from "./routes";
-export * from "./hostnames";
+export * from "./domains";

@@ -3,12 +3,12 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"log/slog"
-
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -89,6 +89,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to initialize hydra engine: %w", err)
 	}
 
+	partitionDB, err := db.New(db.Config{
+		PrimaryDSN:  cfg.DatabasePartition,
+		ReadOnlyDSN: "",
+		Logger:      logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create partition db: %w", err)
+	}
+	shutdowns.Register(partitionDB.Close)
+
 	// Create Hydra worker
 	hydraWorker, err := hydra.NewWorker(hydraEngine, hydra.WorkerConfig{
 		WorkerID:          cfg.InstanceID,
@@ -149,7 +159,7 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("metald client configured", "address", cfg.MetaldAddress, "auth_mode", authMode)
 
 	// Register deployment workflow with Hydra worker
-	deployWorkflow := deployment.NewDeployWorkflow(database, logger, metaldClient)
+	deployWorkflow := deployment.NewDeployWorkflow(database, partitionDB, logger, metaldClient)
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
@@ -160,8 +170,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the service handlers with interceptors
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, hydraEngine, logger)))
+	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
+		PartitionDB: partitionDB,
+		DB:          database,
+		HydraEngine: hydraEngine,
+		Logger:      logger,
+	})))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

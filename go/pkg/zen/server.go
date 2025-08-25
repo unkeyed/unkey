@@ -239,6 +239,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 		"method", route.Method(),
 		"path", route.Path(),
 	)
+
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {
