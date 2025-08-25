@@ -77,6 +77,10 @@ var Cmd = &cli.Command{
 			"Authentication token for ClickHouse proxy endpoints. Required when proxy is enabled.",
 			cli.EnvVar("UNKEY_CHPROXY_AUTH_TOKEN"),
 		),
+
+		// Request Body Configuration
+		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
+			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
 	},
 
 	Action: action,
@@ -146,6 +150,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// ClickHouse proxy configuration
 		ChproxyToken: cmd.String("chproxy-auth-token"),
+
+		// Request body configuration
+		MaxRequestBodySize: cmd.Int64("max-request-body-size"),
 	}
 
 	err := config.Validate()
