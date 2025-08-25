@@ -26,7 +26,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_author_email,
     git_commit_author_username,
     git_commit_author_avatar_url,
-    git_commit_timestamp,
+    git_commit_timestamp, -- Unix epoch milliseconds
     config_snapshot,
     openapi_spec,
     status,
@@ -94,7 +94,7 @@ type InsertDeploymentParams struct {
 //	    git_commit_author_email,
 //	    git_commit_author_username,
 //	    git_commit_author_avatar_url,
-//	    git_commit_timestamp,
+//	    git_commit_timestamp, -- Unix epoch milliseconds
 //	    config_snapshot,
 //	    openapi_spec,
 //	    status,

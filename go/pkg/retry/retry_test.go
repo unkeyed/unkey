@@ -136,7 +136,7 @@ func failNTimes(n int) func() error {
 func TestShouldRetry(t *testing.T) {
 	nonRetryableError := errors.New("non-retryable")
 	retryableError := errors.New("retryable")
-	
+
 	tests := []struct {
 		name          string
 		shouldRetry   func(error) bool
@@ -146,8 +146,8 @@ func TestShouldRetry(t *testing.T) {
 		expectedSleep time.Duration
 	}{
 		{
-			name: "should retry all errors by default",
-			shouldRetry: nil, // default behavior
+			name:          "should retry all errors by default",
+			shouldRetry:   nil, // default behavior
 			errorSequence: []error{retryableError, retryableError, nil},
 			expectedCalls: 3,
 			expectedError: nil,
@@ -184,7 +184,7 @@ func TestShouldRetry(t *testing.T) {
 			expectedSleep: 300 * time.Millisecond, // 100ms + 200ms
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var retrier *retry
@@ -193,12 +193,12 @@ func TestShouldRetry(t *testing.T) {
 			} else {
 				retrier = New()
 			}
-			
+
 			totalSleep := time.Duration(0)
 			retrier.sleep = func(d time.Duration) {
 				totalSleep += d
 			}
-			
+
 			calls := 0
 			err := retrier.Do(func() error {
 				if calls < len(tt.errorSequence) {
@@ -209,10 +209,10 @@ func TestShouldRetry(t *testing.T) {
 				calls++
 				return nil
 			})
-			
+
 			require.Equal(t, tt.expectedCalls, calls, "unexpected number of calls")
 			require.Equal(t, tt.expectedSleep, totalSleep, "unexpected sleep duration")
-			
+
 			if tt.expectedError != nil {
 				require.Error(t, err)
 				require.Equal(t, tt.expectedError, err)
