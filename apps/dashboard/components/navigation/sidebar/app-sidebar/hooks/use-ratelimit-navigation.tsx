@@ -11,16 +11,12 @@ import {
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
-const DEFAULT_LIMIT = 10;
-
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.ratelimit.namespace.query.useInfiniteQuery(
-      {
-        limit: DEFAULT_LIMIT,
-      },
+      { query: [] },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
       },
