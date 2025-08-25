@@ -28,12 +28,13 @@ your user from accidentally using keys interchangably and modifying resources un
 ```bash Test
 curl --request POST \
   --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer unkey_xxxxxxxx' \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
+    "apiId": "<API_ID>",
     "prefix": "sk_test",
     "meta": {
-      "environment": "test",
+      "environment": "test"
     }
   }'
 ```
@@ -41,12 +42,13 @@ curl --request POST \
 ```bash Live
 curl --request POST \
   --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer unkey_xxxxxxxx' \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
+    "apiId": "<API_ID>",
     "prefix": "sk_live",
     "meta": {
-      "environment": "production",
+      "environment": "production"
     }
   }'
 ```
@@ -73,11 +75,17 @@ curl --request POST \
 The response would look something like this:
 ```json
 {
-  "valid": true,
-  "meta" : {
-    "environment": "production"
+  "meta": {
+    "requestId": "req_abc123def456"
   },
-  // ... omited
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "<KEY_ID>",
+    "meta": {
+      "environment": "production"
+    }
+    // ... other fields omitted
+  }
 }
-
 ```

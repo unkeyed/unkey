@@ -5,6 +5,35 @@ description: 'Keys can be revoked at any time, from the API or the dashboard.'
 
 In the event that a key is compromised, you can revoke it at any time. Once the key is revoked, it can take up to 60 seconds for the key to be invalidated. Once invalidated, the key will no longer be able to be used to authenticate requests.
 
+## Delete a Key
 
+To permanently delete a key, use the `/v2/keys.deleteKey` endpoint:
 
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/keys.deleteKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "keyId": "<KEY_ID>"
+  }'
+```
 
+This will immediately invalidate the key and remove it from your account.
+
+## Disable a Key Temporarily
+
+If you want to temporarily disable a key without deleting it, use the `/v2/keys.updateKey` endpoint:
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/keys.updateKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "keyId": "<KEY_ID>",
+    "enabled": false
+  }'
+```
+
+This keeps the key in your system but prevents it from being used for authentication. You can re-enable it later by setting `enabled: true`.
