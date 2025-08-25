@@ -12,7 +12,12 @@ export const createWorkspace = t.procedure
   .use(requireUser)
   .input(
     z.object({
-      name: z.string().min(1).max(50),
+      name: z.string().min(3).max(50),
+      slug: z
+        .string()
+        .min(3)
+        .max(64)
+        .regex(/^[a-zA-Z0-9-_]+$/),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -50,6 +55,7 @@ export const createWorkspace = t.procedure
       id: newId("workspace"),
       orgId: orgId,
       name: input.name,
+      slug: input.slug,
       plan: "free",
       tier: "Free",
       stripeCustomerId: null,
