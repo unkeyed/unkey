@@ -1,7 +1,8 @@
 import { CodeBranch, Cube, User } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useCallback, useState } from "react";
 import { RegionBadges } from "./region-badges";
 
 type ProjectCardProps = {
@@ -29,6 +30,12 @@ export const ProjectCard = ({
   actions,
   projectId,
 }: ProjectCardProps) => {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleLinkClick = useCallback(() => {
+    setIsNavigating(true);
+  }, []);
+
   return (
     <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
@@ -36,12 +43,16 @@ export const ProjectCard = ({
         href={`/projects/${projectId}`}
         className="absolute inset-0 z-0"
         aria-label={`View ${name} project`}
+        onClick={handleLinkClick}
       />
-
       {/*Top Section*/}
       <div className="flex gap-4 items-center">
         <div className="size-10 bg-grayA-3 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
-          <Cube size="xl-medium" className="shrink-0 size-5" />
+          {isNavigating ? (
+            <Loading size={20} className="text-grayA-11" />
+          ) : (
+            <Cube size="xl-medium" className="shrink-0 size-5" />
+          )}
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
           {/*Top Section > Project Name*/}
