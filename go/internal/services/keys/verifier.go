@@ -41,8 +41,9 @@ type KeyVerifier struct {
 
 	isRootKey bool // Whether this is a root key (special handling)
 
-	message string   // Internal message for validation failures
-	tags    []string // Tags associated with this verification
+	message      string   // Internal message for validation failures
+	tags         []string // Tags associated with this verification
+	spentCredits int64    // The number of credits that were actually spent during verification
 
 	session *zen.Session // The current request session
 	region  string       // Geographic region identifier
@@ -122,15 +123,16 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 func (k *KeyVerifier) log() {
 	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
-		RequestID:   k.session.RequestID(),
-		WorkspaceID: k.Key.WorkspaceID,
-		Time:        time.Now().UnixMilli(),
-		Outcome:     string(k.Status),
-		KeySpaceID:  k.Key.KeyAuthID,
-		KeyID:       k.Key.ID,
-		IdentityID:  k.Key.IdentityID.String,
-		Tags:        k.tags,
-		Region:      k.region,
+		RequestID:    k.session.RequestID(),
+		WorkspaceID:  k.Key.WorkspaceID,
+		Time:         time.Now().UnixMilli(),
+		Outcome:      string(k.Status),
+		KeySpaceID:   k.Key.KeyAuthID,
+		KeyID:        k.Key.ID,
+		IdentityID:   k.Key.IdentityID.String,
+		SpentCredits: k.spentCredits,
+		Tags:         k.tags,
+		Region:       k.region,
 	})
 
 	keyType := "key"

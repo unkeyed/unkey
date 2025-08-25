@@ -1,4 +1,5 @@
-CREATE TABLE IF NOT EXISTS verifications.key_verifications_per_month_v3
+-- +goose up
+CREATE TABLE IF NOT EXISTS verifications.key_verifications_per_minute_v2
 (
   time          DateTime,
   workspace_id  String,
@@ -7,8 +8,12 @@ CREATE TABLE IF NOT EXISTS verifications.key_verifications_per_month_v3
   key_id        String,
   outcome       LowCardinality(String),
   tags          Array(String),
-  count         Int64
+  count         Int64,
+  spent_credits Int64
 )
 ENGINE = SummingMergeTree()
 ORDER BY (workspace_id, key_space_id, identity_id, key_id, time, tags, outcome)
 ;
+
+-- +goose down
+DROP TABLE IF EXISTS verifications.key_verifications_per_minute_v2;

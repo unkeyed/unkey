@@ -6,6 +6,7 @@ import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhou
 import { useEffect, useMemo, useState } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
+import { useMetricType } from "../../../hooks/use-metric-type";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
 
 type UseLogsQueryParams = {
@@ -20,6 +21,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
 
   const { filters } = useFilters();
   const { sorts } = useSort<SortFields>();
+  const { isCreditSpendMode } = useMetricType();
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
@@ -38,6 +40,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       apiId,
       since: "",
       sorts: sorts.length > 0 ? sorts : null,
+      creditSpendMode: isCreditSpendMode,
     };
 
     filters.forEach((filter) => {
@@ -119,7 +122,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, timestamp, apiId, sorts]);
+  }, [filters, limit, timestamp, apiId, sorts, isCreditSpendMode]);
 
   // Main query for historical data
   const {
@@ -139,6 +142,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   useEffect(() => {
     if (initialData) {
       const newMap = new Map<string, KeysOverviewLog>();
+
       initialData.pages.forEach((page) => {
         page.keysOverviewLogs.forEach((log) => {
           // Use request_id as the unique key since key_id might not be unique across different requests
