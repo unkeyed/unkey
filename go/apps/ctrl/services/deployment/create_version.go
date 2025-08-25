@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -12,6 +13,15 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
+
+// limitString truncates a string to the specified maximum number of runes
+func limitString(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) > maxRunes {
+		return string(runes[:maxRunes])
+	}
+	return s
+}
 
 func (s *Service) CreateVersion(
 	ctx context.Context,
@@ -88,15 +98,15 @@ func (s *Service) CreateVersion(
 		RootfsImageID:            "",                                       // Image handling not implemented yet
 		GitCommitSha:             sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
 		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
-		GitCommitMessage:         sql.NullString{String: req.Msg.GetGitCommitMessage(), Valid: req.Msg.GetGitCommitMessage() != ""},
-		GitCommitAuthorName:      sql.NullString{String: req.Msg.GetGitCommitAuthorName(), Valid: req.Msg.GetGitCommitAuthorName() != ""},
-		GitCommitAuthorEmail:     sql.NullString{String: req.Msg.GetGitCommitAuthorEmail(), Valid: req.Msg.GetGitCommitAuthorEmail() != ""},
-		GitCommitAuthorUsername:  sql.NullString{String: req.Msg.GetGitCommitAuthorUsername(), Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
-		GitCommitAuthorAvatarUrl: sql.NullString{String: req.Msg.GetGitCommitAuthorAvatarUrl(), Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
+		GitCommitMessage:         sql.NullString{String: limitString(req.Msg.GetGitCommitMessage(), 10240), Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorName:      sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256), Valid: req.Msg.GetGitCommitAuthorName() != ""},
+		GitCommitAuthorEmail:     sql.NullString{String: limitString(strings.TrimSpace(strings.ToLower(req.Msg.GetGitCommitAuthorEmail())), 256), Valid: req.Msg.GetGitCommitAuthorEmail() != ""},
+		GitCommitAuthorUsername:  sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorUsername()), 256), Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
+		GitCommitAuthorAvatarUrl: sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512), Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
 		ConfigSnapshot:           []byte("{}"), // Configuration snapshot placeholder
 		OpenapiSpec:              sql.NullString{String: "", Valid: false},
-		Status:                   "pending",
+		Status:                   db.DeploymentsStatusPending,
 		CreatedAt:                now,
 		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
 	})
