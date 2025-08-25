@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	connectrpc.com/connect v1.18.1
-	github.com/docker/docker v28.2.2+incompatible
+	github.com/docker/docker v28.3.3+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/firecracker-microvm/firecracker-go-sdk v1.0.0
 	github.com/mattn/go-sqlite3 v1.14.28
