@@ -19,13 +19,14 @@ export type NavItem = {
   icon: React.ElementType | null;
   href: string;
   external?: boolean;
-  label: string;
+  label: string | React.ReactNode;
   active?: boolean;
   tag?: React.ReactNode;
   hidden?: boolean;
   items?: NavItem[];
   loadMoreAction?: boolean;
   showSubItems?: boolean;
+  soloActiveItems?: boolean;
 };
 
 const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
