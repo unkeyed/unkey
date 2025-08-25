@@ -8,10 +8,12 @@ export type NavProps = {
     loadMoreAction?: boolean;
   };
   onLoadMore?: (item: NavItem) => void;
+  onToggleCollapse?: (item: NavItem, isOpen: boolean) => void;
 };
-export const NavItems = ({ item, onLoadMore }: NavProps) => {
+
+export const NavItems = ({ item, onLoadMore, onToggleCollapse }: NavProps) => {
   if (!item.items || item.items.length === 0) {
     return <FlatNavItem item={item} onLoadMore={onLoadMore} />;
   }
-  return <NestedNavItem item={item} onLoadMore={onLoadMore} />;
+  return <NestedNavItem item={item} onLoadMore={onLoadMore} onToggleCollapse={onToggleCollapse} />;
 };
