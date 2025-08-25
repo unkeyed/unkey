@@ -1,0 +1,12 @@
+[NetDev]
+Name=br-tenant-12
+Kind=bridge
+Description=Metald VM Bridge 12
+
+[Bridge]
+DefaultPVID=none
+VLANFiltering=true
+STP=false
+ForwardDelaySec=0
+HelloTimeSec=2
+MaxAgeSec=6

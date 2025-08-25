@@ -71,6 +71,30 @@ func getVersion() string {
 	return version
 }
 
+// verifyBridgeInfrastructure verifies bridge infrastructure exists and is configured
+// Bridge is managed by metald-bridge.service, not created by metald
+func verifyBridgeInfrastructure(logger *slog.Logger, cfg *config.Config) error {
+	logger.Info("verifying multi-bridge infrastructure",
+		slog.Int("bridge_count", cfg.Network.BridgeCount))
+
+	// AIDEV-NOTE: Multi-bridge only - supports 8 or 32 bridges (no single bridge support)
+	mbm := network.NewMultiBridgeManager(cfg.Network.BridgeCount, "br-tenant", logger)
+
+	// Verify all bridges exist and are properly configured
+	for i := 0; i < cfg.Network.BridgeCount; i++ {
+		bridgeName := fmt.Sprintf("br-tenant-%d", i)
+		expectedIP := fmt.Sprintf("172.16.%d.1/24", i)
+
+		if err := mbm.VerifyBridge(bridgeName, expectedIP); err != nil {
+			return fmt.Errorf("bridge verification failed for %s: %w", bridgeName, err)
+		}
+	}
+
+	logger.Info("multi-bridge infrastructure verified successfully",
+		slog.Int("bridge_count", cfg.Network.BridgeCount))
+	return nil
+}
+
 func main() {
 	// Track application start time for uptime calculations
 	startTime := time.Now()
@@ -204,6 +228,16 @@ func main() {
 		slog.String("data_dir", cfg.Database.DataDir),
 	)
 
+	// Verify bridge infrastructure FIRST, before any VM services
+	// Bridge is managed by metald-bridge.service, not created by metald
+	if err := verifyBridgeInfrastructure(logger, cfg); err != nil {
+		logger.Error("failed to verify bridge infrastructure",
+			slog.String("error", err.Error()),
+			slog.String("bridge", cfg.Network.BridgeName),
+			slog.String("solution", "ensure metald-bridge.service is running and enabled"))
+		os.Exit(1)
+	}
+
 	// Initialize backend based on configuration
 	var backend types.Backend
 	switch cfg.Backend.Type {
@@ -211,11 +245,18 @@ func main() {
 		// Use SDK client v4 with integrated jailer - let SDK handle complete lifecycle
 		// AIDEV-NOTE: SDK manages firecracker process, integrated jailer, and networking
 
-		// Convert main config to network config
+		// AIDEV-NOTE: Multi-bridge network manager - use first bridge for compatibility
+		// TODO: Refactor network manager to natively support multi-bridge
+		logger.Info("creating network manager for multi-bridge setup",
+			slog.Int("bridge_count", cfg.Network.BridgeCount),
+			slog.String("primary_bridge", "br-tenant-0"))
+
+		// Multi-bridge architecture: br-tenant-0 uses 172.16.0.x/24
+		// All bridge IPs calculated dynamically by MultiBridgeManager
 		networkConfig := &network.Config{
-			BridgeName:      cfg.Network.BridgeName,
-			BridgeIP:        cfg.Network.BridgeIPv4,
-			VMSubnet:        cfg.Network.VMSubnetIPv4,
+			BridgeName:      "br-tenant-0",
+			BridgeIP:        "172.16.0.1/24", // First bridge
+			VMSubnet:        "172.16.0.0/24", // First bridge subnet
 			EnableIPv6:      cfg.Network.EnableIPv6,
 			DNSServers:      cfg.Network.DNSServersIPv4,
 			EnableRateLimit: cfg.Network.EnableRateLimit,
@@ -226,7 +267,7 @@ func main() {
 
 		networkManager, err := network.NewManager(logger, networkConfig, &cfg.Network)
 		if err != nil {
-			logger.Error("failed to create network manager",
+			logger.Error("failed to create multi-bridge network manager",
 				slog.String("error", err.Error()),
 			)
 			os.Exit(1)
@@ -257,7 +298,9 @@ func main() {
 		}
 
 		// Use SDK v4 with integrated jailer - the only supported backend
-		sdkClient, err := firecracker.NewSDKClientV4(logger, networkManager, assetClient, vmRepo, &cfg.Backend.Jailer, baseDir)
+		// AIDEV-NOTE: Re-enable with conservative approach (DNS only, no IP conflicts)
+		enableKernelNetworkConfig := true
+		sdkClient, err := firecracker.NewSDKClientV4(logger, networkManager, assetClient, vmRepo, &cfg.Backend.Jailer, baseDir, enableKernelNetworkConfig)
 		if err != nil {
 			logger.Error("failed to create SDK client v4 with integrated jailer",
 				slog.String("error", err.Error()),
@@ -284,7 +327,7 @@ func main() {
 	case types.BackendTypeDocker:
 		// AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
 		logger.Info("initializing Docker backend for development")
-		
+
 		dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
 		if err != nil {
 			logger.Error("failed to create Docker backend",
@@ -292,7 +335,7 @@ func main() {
 			)
 			os.Exit(1)
 		}
-		
+
 		backend = dockerClient
 		logger.Info("Docker backend initialized successfully")
 	case types.BackendTypeCloudHypervisor:

@@ -85,3 +85,7 @@ storage/
 scratch/
 rootfs/
 workspace/
+
+# generated systemd files
+contrib/systemd/multi-bridge-*/*.network
+contrib/systemd/multi-bridge-*/*.netdev

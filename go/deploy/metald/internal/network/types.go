@@ -8,16 +8,17 @@ import (
 
 // VMNetwork contains network configuration for a VM
 type VMNetwork struct {
-	VMID       string     `json:"vm_id"`
-	NetworkID  string     `json:"network_id"` // AIDEV-NOTE: Internal 8-char ID for network device naming
-	Namespace  string     `json:"namespace"`
-	TapDevice  string     `json:"tap_device"`
-	IPAddress  net.IP     `json:"ip_address"`
-	Netmask    net.IPMask `json:"netmask"`
-	Gateway    net.IP     `json:"gateway"`
-	MacAddress string     `json:"mac_address"`
-	DNSServers []string   `json:"dns_servers"`
-	CreatedAt  time.Time  `json:"created_at"`
+	VMID        string     `json:"vm_id"`
+	NetworkID   string     `json:"network_id"`   // AIDEV-NOTE: Internal 8-char ID for network device naming
+	WorkspaceID string     `json:"workspace_id"` // AIDEV-NOTE: Track workspace for proper IP release
+	Namespace   string     `json:"namespace"`
+	TapDevice   string     `json:"tap_device"`
+	IPAddress   net.IP     `json:"ip_address"`
+	Netmask     net.IPMask `json:"netmask"`
+	Gateway     net.IP     `json:"gateway"`
+	MacAddress  string     `json:"mac_address"`
+	DNSServers  []string   `json:"dns_servers"`
+	CreatedAt   time.Time  `json:"created_at"`
 
 	// Optional fields for advanced configurations
 	VLANID      int     `json:"vlan_id,omitempty"`
@@ -107,12 +108,64 @@ func (n *VMNetwork) GenerateNetworkMetadata() map[string]string {
 }
 
 // KernelCmdlineArgs returns kernel command line arguments for network configuration
+// AIDEV-NOTE: Updated to use correct Firecracker format: ip=G::T:GM::GI:off
+// where G=guest IP, T=TAP IP, GM=guest mask, GI=guest interface
 func (n *VMNetwork) KernelCmdlineArgs() string {
-	// Format: ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>
-	// Example: ip=10.100.1.2::10.100.0.1:255.255.255.0:vm::off
-	return fmt.Sprintf("ip=%s::%s:%s:vm::off",
+	if n.IPAddress == nil {
+		return ""
+	}
+
+	// Calculate the actual host-side veth IP for this /29 subnet
+	// The host veth gets the first IP in the VM's /29 subnet range
+	tapIP := calculateVethHostIP(n.IPAddress)
+
+	// Convert netmask to dotted decimal format
+	netmaskStr := n.formatNetmask()
+
+	// Guest interface name (typically eth0 for the first interface)
+	guestInterface := "eth0"
+
+	// Format: ip=G::T:GM::GI:off
+	// G = Guest IP, T = TAP IP, GM = Guest Mask, GI = Guest Interface
+	return fmt.Sprintf("ip=%s::%s:%s:%s:off",
 		n.IPAddress.String(),
-		n.Gateway.String(),
-		n.Netmask.String(),
+		tapIP,
+		netmaskStr,
+		guestInterface,
 	)
+}
+
+// formatNetmask converts the netmask to dotted decimal format
+func (n *VMNetwork) formatNetmask() string {
+	if n.Netmask == nil {
+		// Default to /24 if no netmask specified
+		return "255.255.255.0"
+	}
+
+	// Handle net.IPMask directly
+	if len(n.Netmask) == 4 {
+		// IPv4 netmask - convert directly to dotted decimal
+		return fmt.Sprintf("%d.%d.%d.%d",
+			n.Netmask[0], n.Netmask[1], n.Netmask[2], n.Netmask[3])
+	}
+
+	// Handle IPv6-style netmask (16 bytes) - extract IPv4 part
+	if len(n.Netmask) == 16 {
+		// IPv4-mapped in IPv6 format, take last 4 bytes
+		return fmt.Sprintf("%d.%d.%d.%d",
+			n.Netmask[12], n.Netmask[13], n.Netmask[14], n.Netmask[15])
+	}
+
+	// Try converting to net.IP as fallback
+	mask := net.IP(n.Netmask)
+	if mask != nil {
+		maskStr := mask.String()
+		// Validate it looks like a dotted decimal IP
+		if len(maskStr) > 0 && maskStr != "<nil>" {
+			return maskStr
+		}
+	}
+
+	// Final fallback
+	return "255.255.255.0"
 }

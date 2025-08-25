@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "name": "advanced-network-vm",
+    "description": "Example VM with advanced guest network configuration via kernel command line",
+    "purpose": "demonstrate advanced network setup using kernel parameters"
+  },
+  "cpu": {
+    "vcpu_count": 2,
+    "max_vcpu_count": 4
+  },
+  "memory": {
+    "size_mb": 2048,
+    "max_size_mb": 4096,
+    "hotplug_enabled": false
+  },
+  "boot": {
+    "kernel_path": "/opt/vm-assets/vmlinux",
+    "kernel_args": "console=ttyS0 reboot=k panic=1 pci=off"
+  },
+  "storage": [
+    {
+      "id": "rootfs",
+      "path": "/opt/vm-assets/ubuntu-rootfs.ext4",
+      "is_root_device": true,
+      "read_only": false
+    }
+  ],
+  "network": [
+    {
+      "interface_id": "eth0",
+      "host_dev_name": "tap0"
+    }
+  ],
+  "_documentation": {
+    "advanced_network_features": [
+      "When this VM configuration is used with metald, the following network kernel parameters will be automatically added:",
+      "1. ip=<guest_ip>::<gateway>:<netmask>:vm::off - Static IP configuration",
+      "2. nameserver=<dns1> nameserver1=<dns2> - DNS server configuration", 
+      "3. route=<dest>,<gw>,<metric> - Custom routes if defined",
+      "4. ipv6=<ipv6_addr> - IPv6 address if configured",
+      "5. vlan=<id> - VLAN ID if specified",
+      "",
+      "These parameters enable advanced guest network configuration without requiring",
+      "complex userspace network setup scripts or cloud-init. The network configuration",
+      "is handled directly by the Linux kernel during boot, making it more reliable",
+      "and faster than userspace alternatives.",
+      "",
+      "Example resulting kernel command line:",
+      "console=ttyS0 reboot=k panic=1 pci=off ip=10.100.1.42::10.100.0.1:255.255.255.0:vm::off nameserver=8.8.8.8 nameserver1=1.1.1.1",
+      "",
+      "This approach is documented in the Firecracker network setup guide:",
+      "https://github.com/firecracker-microvm/firecracker/blob/main/docs/network-setup.md#advanced-guest-network-configuration-using-kernel-command-line"
+    ]
+  }
+}

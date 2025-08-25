@@ -1,0 +1,11 @@
+[Match]
+Name=br-tenant-7
+
+[Network]
+Description=Metald VM Bridge 7
+Address=172.16.7.1/24
+IPv4Forwarding=yes
+IPMasquerade=ipv4
+ConfigureWithoutCarrier=yes
+DNS=8.8.8.8
+DNS=8.8.4.4
