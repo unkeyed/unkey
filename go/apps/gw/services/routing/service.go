@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
-	"time"
 
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
@@ -40,22 +39,7 @@ func New(config Config) (*service, error) {
 
 // GetTarget retrieves target configuration by ID.
 func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.GatewayConfig, error) {
-	start := time.Now()
-	defer func() {
-		latency := time.Since(start)
-		s.logger.Debug("gateway config lookup completed",
-			"host", host,
-			"latency_ms", latency.Milliseconds(),
-			"latency_us", latency.Microseconds(),
-		)
-	}()
-
-	// Use SWR (Stale-While-Revalidate) cache pattern
 	config, hit, err := s.gatewayConfigCache.SWR(ctx, host, func(ctx context.Context) (*partitionv1.GatewayConfig, error) {
-		dbStart := time.Now()
-		s.logger.Debug("fetching target from database", "host", host)
-
-		// Query the database for the gateway config blob
 		gatewayRow, err := db.Query.FindGatewayByHostname(ctx, s.db.RO(), host)
 		if err != nil {
 			return nil, err
@@ -66,13 +50,6 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 		if err := proto.Unmarshal(gatewayRow.Config, &gatewayConfig); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal gateway config: %w", err)
 		}
-
-		dbLatency := time.Since(dbStart)
-		s.logger.Debug("database lookup completed",
-			"host", host,
-			"db_latency_ms", dbLatency.Milliseconds(),
-			"db_latency_us", dbLatency.Microseconds(),
-		)
 
 		return &gatewayConfig, nil
 	}, caches.DefaultFindFirstOp)
@@ -86,37 +63,25 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 			)
 		}
 
-		return nil, fault.Wrap(err)
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("error loading gateway configuration"),
+			fault.Public("Failed to load gateway configuration"),
+		)
 	}
 
 	if hit == cache.Null {
-		return nil, fault.New("no target found",
+		return nil, fault.New("gateway config null",
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
-			fault.Internal("gateway config returned null"),
 			fault.Public("No configuration found for this domain"),
 		)
 	}
 
-	return config, err
+	return config, nil
 }
 
 // SelectVM picks an available VM from the gateway's VM list using simple round-robin.
 func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
-	start := time.Now()
-	defer func() {
-		latency := time.Since(start)
-		s.logger.Debug("VM selection completed",
-			"deploymentID", config.DeploymentId,
-			"latency_ms", latency.Milliseconds(),
-			"latency_us", latency.Microseconds(),
-		)
-	}()
-
-	s.logger.Debug("selecting VM for gateway",
-		"deploymentID", config.DeploymentId,
-		"total_vms", len(config.Vms),
-	)
-
 	if !config.IsEnabled {
 		return nil, fmt.Errorf("gateway %s is disabled", config.DeploymentId)
 	}
@@ -126,7 +91,6 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	availableVms := make([]db.Vm, 0)
-	vmLookupStart := time.Now()
 	for _, vm := range config.Vms {
 		vm, hit, err := s.vmCache.SWR(ctx, vm.Id, func(ctx context.Context) (db.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
@@ -151,7 +115,6 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 
 		availableVms = append(availableVms, vm)
 	}
-	vmLookupLatency := time.Since(vmLookupStart)
 
 	if len(availableVms) == 0 {
 		return nil, fmt.Errorf("no available VMs for gateway %s", config.DeploymentId)
@@ -166,15 +129,6 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	if err != nil {
 		return nil, fmt.Errorf("invalid VM URL %s: %w", fullUrl, err)
 	}
-
-	s.logger.Debug("selected VM",
-		"deploymentID", config.DeploymentId,
-		"selectedVM", targetURL.String(),
-		"fullUrl", fullUrl,
-		"available_vms", len(availableVms),
-		"vm_lookup_latency_ms", vmLookupLatency.Milliseconds(),
-		"vm_lookup_latency_us", vmLookupLatency.Microseconds(),
-	)
 
 	return targetURL, nil
 }

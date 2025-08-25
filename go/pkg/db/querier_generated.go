@@ -113,6 +113,10 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//FindAcmeUserByWorkspaceID
+	//
+	//  SELECT id, workspace_id, encrypted_key, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
+	FindAcmeUserByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?

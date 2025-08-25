@@ -32,7 +32,6 @@ Todos for Demo
   - cli json
 
 - [] OpenAPI request validation
-
 - just use current validator
 
 <!--- Find good library that supports spec 2.0 3.0 3.1
