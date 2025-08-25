@@ -33,6 +33,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	s.DisableClickHouseLogging()
+
 	// Authenticate using Bearer token
 	token, err := zen.Bearer(s)
 	if err != nil {

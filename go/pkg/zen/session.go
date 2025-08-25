@@ -1,7 +1,9 @@
 package zen
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -10,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -39,13 +42,57 @@ type Session struct {
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
+
+	// ClickHouse request logging control - defaults to true (log by default)
+	logRequestToClickHouse bool
 }
 
-func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
+func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.w = w
 	s.r = r
+	s.logRequestToClickHouse = true // Default to logging requests to ClickHouse
 
+	// Apply body size limit if configured
+	if maxBodySize > 0 {
+		s.r.Body = http.MaxBytesReader(s.w, s.r.Body, maxBodySize)
+	}
+
+	// Read and cache the request body so metrics middleware can access it even on early errors.
+	// We need to replace r.Body with a fresh reader afterwards so other middleware
+	// can still read the body if necessary.
+	var err error
+	s.requestBody, err = io.ReadAll(s.r.Body)
+	closeErr := s.r.Body.Close()
+
+	// Handle read errors (including MaxBytesError)
+	if err != nil {
+		// Check if this is a MaxBytesError from http.MaxBytesReader
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			return fault.Wrap(err,
+				fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
+				fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
+				fault.Public(fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", maxBytesErr.Limit)),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Internal("unable to read request body"),
+			fault.Public("The request body could not be read."),
+		)
+	}
+
+	// Handle close error (incase that ever happens)
+	if closeErr != nil {
+		return fault.Wrap(closeErr,
+			fault.Internal("failed to close request body"),
+			fault.Public("An error occurred processing the request."),
+		)
+	}
+
+	// Replace body with a fresh reader for subsequent middleware
+	s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
 	s.WorkspaceID = ""
 	return nil
 }
@@ -56,6 +103,21 @@ func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.WorkspaceID
+}
+
+// DisableClickHouseLogging prevents this request from being logged to ClickHouse.
+// By default, all requests are logged to ClickHouse unless explicitly disabled.
+//
+// This is useful for internal endpoints like health checks, OpenAPI specs,
+// or requests that should not appear in analytics.
+func (s *Session) DisableClickHouseLogging() {
+	s.logRequestToClickHouse = false
+}
+
+// ShouldLogRequestToClickHouse returns whether this request should be logged to ClickHouse.
+// Returns true by default, false only if explicitly disabled.
+func (s *Session) ShouldLogRequestToClickHouse() bool {
+	return s.logRequestToClickHouse
 }
 
 func (s *Session) UserAgent() string {
@@ -114,19 +176,14 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 //	}
 //	// Use the parsed user data
 func (s *Session) BindBody(dst any) error {
-	var err error
-	s.requestBody, err = io.ReadAll(s.r.Body)
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("unable to read request body"), fault.Public("The request body is malformed."))
-	}
-	defer s.r.Body.Close()
-
-	err = json.Unmarshal(s.requestBody, dst)
+	err := json.Unmarshal(s.requestBody, dst)
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Internal("failed to unmarshal request body"), fault.Public("The request body was not valid json."),
+			fault.Internal("failed to unmarshal request body"),
+			fault.Public("The request body was not valid JSON."),
 		)
 	}
+
 	return nil
 }
 
@@ -362,4 +419,5 @@ func (s *Session) reset() {
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
+	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
 }
