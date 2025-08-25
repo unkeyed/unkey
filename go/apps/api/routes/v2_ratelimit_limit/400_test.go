@@ -89,9 +89,14 @@ func TestBadRequests(t *testing.T) {
 
 		// Should return an error for missing namespace
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status) // API returns 200 even for rate limit errors
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received body: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", req, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "POST request body for '/v2/ratelimit.limit' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 }
 
