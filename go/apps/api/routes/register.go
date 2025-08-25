@@ -253,10 +253,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2ApisListKeys.Handler{
-			Logger: svc.Logger,
-			DB:     svc.Database,
-			Keys:   svc.Keys,
-			Vault:  svc.Vault,
+			Logger:   svc.Logger,
+			DB:       svc.Database,
+			Keys:     svc.Keys,
+			Vault:    svc.Vault,
+			ApiCache: svc.Caches.LiveApiByID,
 		},
 	)
 

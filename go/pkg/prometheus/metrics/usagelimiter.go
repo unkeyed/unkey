@@ -62,34 +62,4 @@ var (
 			ConstLabels: constLabels,
 		},
 	)
-
-	// UsagelimiterFallbackOperations counts fallback operations to direct DB access
-	// This counter helps monitor Redis health and fallback frequency.
-	//
-	// Example usage:
-	//   metrics.UsagelimiterFallbackOperations.Inc()
-	UsagelimiterFallbackOperations = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "usagelimiter",
-			Name:        "fallback_operations_total",
-			Help:        "Total number of fallback operations to direct database access.",
-			ConstLabels: constLabels,
-		},
-	)
-
-	// UsagelimiterCreditsProcessed counts the total number of credits processed
-	// This counter helps track the overall usage and throughput of the system.
-	//
-	// Example usage:
-	//   metrics.UsagelimiterCreditsProcessed.Add(float64(creditsUsed))
-	UsagelimiterCreditsProcessed = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "usagelimiter",
-			Name:        "credits_processed_total",
-			Help:        "Total number of credits processed by the usage limiter.",
-			ConstLabels: constLabels,
-		},
-	)
 )
