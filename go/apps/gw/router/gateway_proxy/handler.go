@@ -3,6 +3,7 @@ package gateway_proxy
 import (
 	"context"
 	"net"
+	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
@@ -25,21 +26,27 @@ type Handler struct {
 	Validator      validation.Validator
 }
 
-// Handle processes all HTTP requests for the gateway.
-// This is the main entry point for the gateway - all requests go through here.
-func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
-	ctx, span := tracing.Start(ctx, "proxy.handler")
-	defer span.End()
-
-	req := sess.Request()
-
-	// Look up target configuration based on the request host
+func extractHostname(req *http.Request) string {
 	// Strip port from hostname for database lookup (Host header may include port)
 	hostname, _, err := net.SplitHostPort(req.Host)
 	if err != nil {
 		// If SplitHostPort fails, req.Host doesn't contain a port, use it as-is
 		hostname = req.Host
 	}
+
+	return hostname
+}
+
+// Handle processes all HTTPS requests for the gateway.
+// This is the main entry point for the gateway - all requests go through here.
+func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
+	ctx, span := tracing.Start(ctx, "proxy.handler")
+	defer span.End()
+	req := sess.Request()
+
+	// Look up target configuration based on the request host
+	// Strip port from hostname for database lookup (Host header may include port)
+	hostname := extractHostname(req)
 
 	config, err := h.RoutingService.GetConfig(ctx, hostname)
 	if err != nil {

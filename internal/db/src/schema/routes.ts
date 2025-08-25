@@ -1,7 +1,13 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  index,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { hostnames } from "./hostnames";
+import { domains } from "./domains";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -28,7 +34,7 @@ export const routes = mysqlTable(
     projectIdx: index("project_idx").on(table.projectId),
     hostnameIdx: uniqueIndex("hostname_idx").on(table.hostname),
     deploymentIdx: index("deployment_idx").on(table.deploymentId),
-  }),
+  })
 );
 
 export const routesRelations = relations(routes, ({ one }) => ({
@@ -36,5 +42,5 @@ export const routesRelations = relations(routes, ({ one }) => ({
   workspace: one(workspaces),
   project: one(projects),
   deployment: one(deployments),
-  hostname: one(hostnames),
+  domain: one(domains),
 }));

@@ -34,6 +34,9 @@ var Cmd = &cli.Command{
 		cli.String("main-domain", "Main gateway domain for internal endpoints (e.g., gateway.unkey.com)",
 			cli.EnvVar("UNKEY_MAIN_DOMAIN")),
 
+		cli.String("ctrl-addr", "Address for the control plane to connect to",
+			cli.EnvVar("UNKEY_CTRL_ADDR")),
+
 		// Database Configuration - Partitioned (for gateway operations)
 		cli.String("database-primary", "MySQL connection string for partitioned primary database (gateway operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),

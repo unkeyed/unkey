@@ -13,6 +13,9 @@ type Config struct {
 	// HttpPort defines the HTTP port for the Gateway server to listen on (default: 6060)
 	HttpPort int
 
+	// HttpsPort defines the HTTPS port for the Gateway server to listen on (default: 6061)
+	HttpsPort int
+
 	// Region identifies the geographic region where this node is deployed
 	Region string
 
@@ -25,6 +28,9 @@ type Config struct {
 	// MainDomain is the primary domain for the gateway (e.g., gateway.unkey.com)
 	// Internal endpoints like /_internal/liveness are only accessible on this domain
 	MainDomain string
+
+	// CtrlAddr is the address for the control plane to connect to
+	CtrlAddr string
 
 	// --- ClickHouse configuration ---
 
@@ -42,6 +48,8 @@ type Config struct {
 	// --- Key Service Database configuration ---
 
 	// KeysDatabasePrimary is the primary database connection string for the keys service
+
+	// KeysDatabasePrimary is the primary database connection string for the keys service (non-partitioned)
 	KeysDatabasePrimary string
 
 	// KeysDatabaseReadonlyReplica is an optional read-replica database connection string for the keys service
@@ -50,11 +58,12 @@ type Config struct {
 	// RedisURL is the Redis connection string for the keys service
 	RedisURL string
 
-	// -- OpenTelemetry configuration ---
-	// OtelEnabled specifies whether OpenTelemetry is enabled for the Gateway server
+	// --- OpenTelemetry configuration ---
+
+	// OtelEnabled specifies whether OpenTelemetry tracing is enabled
 	OtelEnabled bool
 
-	// OtelTraceSamplingRate specifies the sampling rate for OpenTelemetry traces
+	// OtelTraceSamplingRate specifies the sampling rate for OpenTelemetry traces (0.0 - 1.0)
 	OtelTraceSamplingRate float64
 
 	// PrometheusPort specifies the port for Prometheus metrics

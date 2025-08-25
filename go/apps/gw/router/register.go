@@ -5,15 +5,25 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/go/apps/gw/router/acme_challenge"
 	"github.com/unkeyed/unkey/go/apps/gw/router/gateway_proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 )
 
+// ServerType indicates which type of server to configure
+type ServerType string
+
+const (
+	HTTPServer  ServerType = "http"
+	HTTPSServer ServerType = "https"
+)
+
 // Register registers all routes with the gateway server.
 // This function runs during startup and sets up the middleware chain and routes.
-func Register(srv *server.Server, svc *Services, region string) {
+// The serverType parameter determines whether to register HTTP (ACME) or HTTPS (main gateway) routes.
+func Register(srv *server.Server, svc *Services, region string, serverType ServerType) {
 	// Define default middleware stack
 	defaultMiddlewares := []server.Middleware{
 		server.WithTracing(),
@@ -89,8 +99,31 @@ func Register(srv *server.Server, svc *Services, region string) {
 		w.Write([]byte(`{"status":"ok","service":"gateway"}`))
 	})
 
-	// All other routes go to the proxy handler (wrapped with middleware)
-	mux.Handle("/", srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares))
+	// HTTP server configuration for ACME challenges
+	if serverType == HTTPServer {
+		acmeHandler := &acme_challenge.Handler{
+			Logger:         svc.Logger,
+			RoutingService: svc.RoutingService,
+			Proxy:          proxyService,
+		}
+
+		// ACME challenge endpoint
+		mux.Handle("/.well-known/acme-challenge/", srv.WrapHandler(acmeHandler.Handle, defaultMiddlewares))
+
+		// Redirect all other HTTP traffic to HTTPS
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// Build HTTPS URL
+			httpsURL := "https://" + r.Host + r.URL.RequestURI()
+			// Use 307 to preserve method and body
+			http.Redirect(w, r, httpsURL, http.StatusTemporaryRedirect)
+		})
+	}
+
+	// HTTPS server configuration for main gateway
+	if serverType == HTTPSServer {
+		// All other routes go to the proxy handler (wrapped with middleware)
+		mux.Handle("/", srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares))
+	}
 
 	// Set the mux as the server handler
 	srv.SetHandler(mux)

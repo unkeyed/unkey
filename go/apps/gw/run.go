@@ -104,7 +104,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	// Create partitioned database connection for gateway operations
 	partitionedDB, err := partitiondb.New(partitiondb.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
@@ -117,19 +116,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create separate non-partitioned database connection for keys service
 	var keysDB db.Database
-	if cfg.KeysDatabasePrimary != "" {
-		keysDB, err = db.New(db.Config{
-			PrimaryDSN:  cfg.KeysDatabasePrimary,
-			ReadOnlyDSN: cfg.KeysDatabaseReadonlyReplica,
-			Logger:      logger,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create keys db: %w", err)
-		}
-		defer keysDB.Close()
-	} else {
-		return fmt.Errorf("KeysDatabasePrimary is required for keys service")
+	keysDB, err = db.New(db.Config{
+		PrimaryDSN:  cfg.KeysDatabasePrimary,
+		ReadOnlyDSN: cfg.KeysDatabaseReadonlyReplica,
+		Logger:      logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create keys db: %w", err)
 	}
+	defer keysDB.Close()
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -213,8 +208,19 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validation service: %w", err)
 	}
 
-	// Create gateway server
-	srv, err := server.New(server.Config{
+	// Create HTTP server for ACME challenges
+	challengeSrv, err := server.New(server.Config{
+		Logger:    logger,
+		Handler:   nil,
+		EnableTLS: false,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create challenge server: %w", err)
+	}
+	shutdowns.RegisterCtx(challengeSrv.Shutdown)
+
+	// Create HTTPS gateway server
+	gwSrv, err := server.New(server.Config{
 		Logger:      logger,
 		Handler:     nil,
 		CertManager: certManager,
@@ -223,9 +229,10 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create gateway server: %w", err)
 	}
+	shutdowns.RegisterCtx(gwSrv.Shutdown)
 
-	// Register routes with all services
-	router.Register(srv, &router.Services{
+	// Services configuration for both servers
+	services := &router.Services{
 		Logger:         logger,
 		CertManager:    certManager,
 		RoutingService: routingService,
@@ -234,24 +241,47 @@ func Run(ctx context.Context, cfg Config) error {
 		Keys:           keySvc,
 		Ratelimit:      nil,
 		MainDomain:     cfg.MainDomain,
-	}, cfg.Region)
-
-	shutdowns.RegisterCtx(srv.Shutdown)
-
-	// Create listener
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
-	if err != nil {
-		return fmt.Errorf("unable to create listener: %w", err)
 	}
 
-	go func() {
-		logger.Info("Gateway server started successfully")
+	// Register routes for HTTP server (ACME challenges)
+	router.Register(challengeSrv, services, cfg.Region, router.HTTPServer)
 
-		serveErr := srv.Serve(ctx, listener)
-		if serveErr != nil {
-			panic(serveErr)
+	// Register routes for HTTPS server (main gateway)
+	router.Register(gwSrv, services, cfg.Region, router.HTTPSServer)
+
+	if cfg.HttpPort != 0 {
+		// Create listener
+		challengeListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		if err != nil {
+			return fmt.Errorf("unable to create listener: %w", err)
 		}
-	}()
+
+		go func() {
+			logger.Info("HTTP server (ACME challenges) started successfully", "addr", challengeListener.Addr().String())
+
+			serveErr := challengeSrv.Serve(ctx, challengeListener)
+			if serveErr != nil {
+				panic(serveErr)
+			}
+		}()
+	}
+
+	if cfg.HttpsPort != 0 {
+		// Create listener
+		gwListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
+		if err != nil {
+			return fmt.Errorf("unable to create listener: %w", err)
+		}
+
+		go func() {
+			logger.Info("HTTPS gateway server started successfully", "addr", gwListener.Addr().String())
+
+			serveErr := gwSrv.Serve(ctx, gwListener)
+			if serveErr != nil {
+				panic(serveErr)
+			}
+		}()
+	}
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
