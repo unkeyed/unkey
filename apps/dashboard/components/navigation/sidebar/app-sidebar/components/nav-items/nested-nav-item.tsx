@@ -12,6 +12,7 @@ import { CaretRight } from "@unkey/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useState, useTransition } from "react";
 import slugify from "slugify";
+import type { NavProps } from ".";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
@@ -23,9 +24,7 @@ export const NestedNavItem = ({
   depth = 0,
   maxDepth = 1,
   isSubItem = false,
-}: {
-  item: NavItem;
-  onLoadMore?: () => void;
+}: NavProps & {
   depth?: number;
   maxDepth?: number;
   isSubItem?: boolean;
@@ -54,13 +53,15 @@ export const NestedNavItem = ({
 
     setIsChildrenOpen(!!hasMatchingChild);
 
-    const itemPath = `/${slugify(item.label, {
-      lower: true,
-      replacement: "-",
-    })}`;
+    if (typeof item.label === "string") {
+      const itemPath = `/${slugify(item.label, {
+        lower: true,
+        replacement: "-",
+      })}`;
 
-    if (pathname.startsWith(itemPath)) {
-      setIsOpen(true);
+      if (pathname.startsWith(itemPath)) {
+        setIsOpen(true);
+      }
     }
   }, [pathname, item.items, item.label, hasChildren]);
 
@@ -97,7 +98,7 @@ export const NestedNavItem = ({
     // If this subitem has children and is not at max depth, render it as another NestedNavItem
     if (hasChildren && depth < maxDepth) {
       return (
-        <SidebarMenuSubItem key={subItem.label ?? index}>
+        <SidebarMenuSubItem key={subItem.label?.toString() ?? index}>
           <NestedNavItem
             item={subItem}
             onLoadMore={onLoadMore}
@@ -112,7 +113,7 @@ export const NestedNavItem = ({
     // Otherwise render as a regular sub-item
     const handleSubItemClick = () => {
       if (isLoadMoreButton && onLoadMore) {
-        onLoadMore();
+        onLoadMore(subItem);
         return;
       }
 
@@ -140,7 +141,7 @@ export const NestedNavItem = ({
     };
 
     return (
-      <SidebarMenuSubItem key={subItem.label ?? index}>
+      <SidebarMenuSubItem key={subItem.label?.toString() ?? index}>
         <NavLink
           href={subItem.href}
           external={subItem.external}
