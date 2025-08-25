@@ -19,14 +19,8 @@ const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimits.limit'
   }'`;
 
 export const NamespaceList = () => {
-  const {
-    projects: namespaces,
-    isLoading,
-    totalCount,
-    hasMore,
-    loadMore,
-    isLoadingMore,
-  } = useNamespaceListQuery();
+  const { namespaces, isLoading, totalCount, hasMore, loadMore, isLoadingMore } =
+    useNamespaceListQuery();
 
   if (isLoading) {
     return (
@@ -87,7 +81,7 @@ export const NamespaceList = () => {
           isFetchingNextPage={isLoadingMore}
           totalVisible={namespaces.length}
           totalCount={totalCount}
-          itemLabel="namespaces"
+          itemLabel="Namespaces"
           buttonText="Load more namespaces"
           hasMore={hasMore}
           hide={!hasMore && namespaces.length === totalCount}

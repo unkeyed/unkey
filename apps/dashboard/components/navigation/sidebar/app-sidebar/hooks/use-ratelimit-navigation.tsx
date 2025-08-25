@@ -16,7 +16,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.ratelimit.namespace.query.useInfiniteQuery(
-      { query: [], startTime: [], endTime: [], since: [] },
+      { query: [] },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
       },

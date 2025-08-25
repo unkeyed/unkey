@@ -1,11 +1,11 @@
 "use client";
+import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { trpc } from "@/lib/trpc/client";
 import { Clock, ProgressBar } from "@unkey/icons";
 import ms from "ms";
-import { useFetchRatelimitOverviewTimeseries } from "../../[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
 
 type Props = {
   namespace: {

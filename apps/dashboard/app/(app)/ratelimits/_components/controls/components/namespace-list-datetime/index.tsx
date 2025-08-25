@@ -1,13 +1,13 @@
+import { useFilters } from "@/app/(app)/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import { useNamespaceListFilters } from "../../../hooks/use-namespace-list-filters";
 
 export const NamespaceListDateTime = () => {
   const [title, setTitle] = useState<string | null>(null);
-  const { filters, updateFilters } = useNamespaceListFilters();
+  const { filters, updateFilters } = useFilters();
 
   useEffect(() => {
     if (!title) {

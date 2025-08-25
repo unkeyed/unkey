@@ -2,7 +2,6 @@ import { parseAsRelativeTime } from "@/components/logs/validation/utils/nuqs-par
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
-  type NamespaceListFilterField,
   type NamespaceListFilterUrlValue,
   type NamespaceListFilterValue,
   type NamespaceListQuerySearchParams,
@@ -28,26 +27,13 @@ export const useNamespaceListFilters = () => {
     const activeFilters: NamespaceListFilterValue[] = [];
 
     // Handle array filters
-    searchParams.query?.forEach((status) => {
+    searchParams.query?.forEach((queryFilter) => {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "query",
-        operator: status.operator,
-        value: status.value,
+        operator: queryFilter.operator,
+        value: queryFilter.value,
       });
-    });
-
-    // Handle time filters
-    ["startTime", "endTime", "since"].forEach((field) => {
-      const value = searchParams[field as keyof NamespaceListQuerySearchParams];
-      if (value !== null && value !== undefined) {
-        activeFilters.push({
-          id: crypto.randomUUID(),
-          field: field as NamespaceListFilterField,
-          operator: "is",
-          value: value as string | number,
-        });
-      }
     });
 
     return activeFilters;
@@ -75,20 +61,6 @@ export const useNamespaceListFilters = () => {
             value: filter.value as string,
             operator: filter.operator,
           });
-        } else {
-          switch (filter.field) {
-            case "startTime":
-            case "endTime":
-              if (typeof filter.value === "number") {
-                newParams[filter.field] = filter.value;
-              }
-              break;
-            case "since":
-              if (typeof filter.value === "string") {
-                newParams.since = filter.value;
-              }
-              break;
-          }
         }
       });
 

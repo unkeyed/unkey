@@ -5,7 +5,7 @@ import {
   namespaceListInputSchema,
   namespaceListOutputSchema,
 } from "@/app/(app)/ratelimits/_components/list/namespace-list.schema";
-import { and, db, eq, isNull, like, lt, schema, sql } from "@/lib/db";
+import { and, db, desc, eq, isNull, like, lt, schema, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 
@@ -88,7 +88,7 @@ export async function fetchRatelimitNamespaces({
     })
     .from(schema.ratelimitNamespaces)
     .where(and(...queryConditions))
-    .orderBy(schema.ratelimitNamespaces.id)
+    .orderBy(desc(schema.ratelimitNamespaces.id))
     .limit(limit + 1);
 
   const hasMore = namespaces.length > limit;

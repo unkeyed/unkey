@@ -1,10 +1,6 @@
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import type {
-  FilterValue,
-  NumberConfig,
-  StringConfig,
-} from "@unkey/ui/src/validation/filter.types";
+import type { FilterValue, StringConfig } from "@unkey/ui/src/validation/filter.types";
 import { z } from "zod";
 
 export const commonStringOperators = ["contains", "is"] as const;
@@ -13,27 +9,12 @@ export type NamespaceListFilterOperator = z.infer<typeof namespaceFilterOperator
 
 export type NamespaceListFilterFieldConfigs = {
   query: StringConfig<NamespaceListFilterOperator>;
-  since: StringConfig<NamespaceListFilterOperator>;
-  startTime: NumberConfig<NamespaceListFilterOperator>;
-  endTime: NumberConfig<NamespaceListFilterOperator>;
 };
 
 export const namespaceListFilterFieldConfig: NamespaceListFilterFieldConfigs = {
   query: {
     type: "string",
     operators: ["contains"],
-  },
-  startTime: {
-    type: "number",
-    operators: ["is"],
-  },
-  endTime: {
-    type: "number",
-    operators: ["is"],
-  },
-  since: {
-    type: "string",
-    operators: ["is"],
   },
 };
 

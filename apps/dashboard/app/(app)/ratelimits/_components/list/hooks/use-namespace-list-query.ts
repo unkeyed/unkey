@@ -13,7 +13,7 @@ export function useNamespaceListQuery() {
   const [namespacesMap, setNamespacesMap] = useState(() => new Map<string, RatelimitNamespace>());
   const { filters } = useNamespaceListFilters();
 
-  const projects = useMemo(() => Array.from(namespacesMap.values()), [namespacesMap]);
+  const namespaces = useMemo(() => Array.from(namespacesMap.values()), [namespacesMap]);
 
   const queryParams = useMemo(() => {
     const params: NamespaceListInputSchema = {
@@ -73,7 +73,7 @@ export function useNamespaceListQuery() {
   }, [projectData]);
 
   return {
-    projects,
+    namespaces,
     isLoading: isLoadingInitial,
     hasMore: hasNextPage,
     loadMore: fetchNextPage,

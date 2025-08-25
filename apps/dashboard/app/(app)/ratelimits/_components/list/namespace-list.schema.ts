@@ -6,7 +6,7 @@ import {
 
 const filterItemSchema = z.object({
   operator: namespaceFilterOperatorEnum,
-  value: z.string(),
+  value: z.string().trim().max(60, "Query too long"),
 });
 
 const cursor = z.object({

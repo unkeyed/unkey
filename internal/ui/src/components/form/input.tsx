@@ -7,7 +7,7 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 // Layout constants
-const BASE_PADDING = 12; // 12px base padding
+const BASE_PADDING = 8; // 12px base padding
 const ICON_SPACE = 36; // 36px total space for icons
 const PREFIX_BUFFER = 1; // 4px gap after prefix
 
