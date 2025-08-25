@@ -32,7 +32,7 @@ func WithRetry[T any](fn func() (T, error)) (T, error) {
 			// Predefined backoff delays: 50ms, 100ms, 200ms
 			delays := []time.Duration{
 				DefaultBackoff,     // 50ms for attempt 1
-				DefaultBackoff * 2, // 100ms for attempt 2  
+				DefaultBackoff * 2, // 100ms for attempt 2
 				DefaultBackoff * 4, // 200ms for attempt 3
 			}
 			if n <= 0 || n > len(delays) {

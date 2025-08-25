@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -12,6 +13,20 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
+
+// limitString truncates a string to the specified maximum number of runes
+func limitString(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) > maxRunes {
+		return string(runes[:maxRunes])
+	}
+	return s
+}
+
+// CreateVersion creates a new deployment version record and kicks off the deployment workflow.
+// It validates workspace/project, normalizes git metadata (branch fallback, commit fields),
+// and persists the deployment in "pending" state. Workflow failures are logged but do not
+// fail creation to allow retries.
 
 func (s *Service) CreateVersion(
 	ctx context.Context,
@@ -53,6 +68,23 @@ func (s *Service) CreateVersion(
 		}
 	}
 
+	// Validate git commit timestamp if provided (must be Unix epoch milliseconds)
+	if req.Msg.GetGitCommitTimestamp() != 0 {
+		timestamp := req.Msg.GetGitCommitTimestamp()
+		// Reject timestamps that are clearly in seconds format (< 1_000_000_000_000)
+		// This corresponds to January 1, 2001 in milliseconds
+		if timestamp < 1_000_000_000_000 {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
+		}
+		// Also reject future timestamps more than 1 hour ahead (likely invalid)
+		maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
+		if timestamp > maxValidTimestamp {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
+		}
+	}
+
 	// Determine environment (default to preview)
 	// TODO: Add environment field to CreateVersionRequest proto
 	environment := db.DeploymentsEnvironmentPreview
@@ -63,19 +95,25 @@ func (s *Service) CreateVersion(
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:             deploymentID,
-		WorkspaceID:    req.Msg.GetWorkspaceId(),
-		ProjectID:      req.Msg.GetProjectId(),
-		Environment:    environment,
-		BuildID:        sql.NullString{String: "", Valid: false}, // Build creation handled separately
-		RootfsImageID:  "",                                       // Image handling not implemented yet
-		GitCommitSha:   sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
-		GitBranch:      sql.NullString{String: gitBranch, Valid: true},
-		ConfigSnapshot: []byte("{}"), // Configuration snapshot placeholder
-		OpenapiSpec:    sql.NullString{String: "", Valid: false},
-		Status:         "pending",
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Int64: now, Valid: true},
+		ID:                       deploymentID,
+		WorkspaceID:              req.Msg.GetWorkspaceId(),
+		ProjectID:                req.Msg.GetProjectId(),
+		Environment:              environment,
+		BuildID:                  sql.NullString{String: "", Valid: false}, // Build creation handled separately
+		RootfsImageID:            "",                                       // Image handling not implemented yet
+		GitCommitSha:             sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
+		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:         sql.NullString{String: limitString(req.Msg.GetGitCommitMessage(), 10240), Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorName:      sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256), Valid: req.Msg.GetGitCommitAuthorName() != ""},
+		GitCommitAuthorEmail:     sql.NullString{String: limitString(strings.TrimSpace(strings.ToLower(req.Msg.GetGitCommitAuthorEmail())), 256), Valid: req.Msg.GetGitCommitAuthorEmail() != ""},
+		GitCommitAuthorUsername:  sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorUsername()), 256), Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
+		GitCommitAuthorAvatarUrl: sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512), Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
+		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
+		ConfigSnapshot:           []byte("{}"), // Configuration snapshot placeholder
+		OpenapiSpec:              sql.NullString{String: "", Valid: false},
+		Status:                   db.DeploymentsStatusPending,
+		CreatedAt:                now,
+		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
