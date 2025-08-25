@@ -44,7 +44,7 @@ export function useNamespaceListQuery() {
   }, [filters]);
 
   const {
-    data: projectData,
+    data: namespaceData,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
@@ -56,21 +56,21 @@ export function useNamespaceListQuery() {
   });
 
   useEffect(() => {
-    if (projectData) {
+    if (namespaceData) {
       const newMap = new Map<string, RatelimitNamespace>();
-      projectData.pages.forEach((page) => {
-        page.namespaceList.forEach((project) => {
-          newMap.set(project.id, project);
+      namespaceData.pages.forEach((page) => {
+        page.namespaceList.forEach((namespace) => {
+          newMap.set(namespace.id, namespace);
         });
       });
 
-      if (projectData.pages.length > 0) {
-        setTotalCount(projectData.pages[0].total);
+      if (namespaceData.pages.length > 0) {
+        setTotalCount(namespaceData.pages[0].total);
       }
 
       setNamespacesMap(newMap);
     }
-  }, [projectData]);
+  }, [namespaceData]);
 
   return {
     namespaces,

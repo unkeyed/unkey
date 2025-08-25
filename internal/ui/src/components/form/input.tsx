@@ -7,9 +7,9 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 // Layout constants
-const BASE_PADDING = 8; // 12px base padding
+const BASE_PADDING = 8; // 8px base padding
 const ICON_SPACE = 36; // 36px total space for icons
-const PREFIX_BUFFER = 1; // 4px gap after prefix
+const PREFIX_BUFFER = 1; // 1px gap after prefix
 
 const inputVariants = cva(
   "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12",

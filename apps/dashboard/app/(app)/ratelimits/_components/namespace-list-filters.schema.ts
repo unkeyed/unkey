@@ -3,7 +3,7 @@ import { createFilterOutputSchema } from "@/components/logs/validation/utils/str
 import type { FilterValue, StringConfig } from "@unkey/ui/src/validation/filter.types";
 import { z } from "zod";
 
-export const commonStringOperators = ["contains", "is"] as const;
+export const commonStringOperators = ["contains"] as const;
 export const namespaceFilterOperatorEnum = z.enum(commonStringOperators);
 export type NamespaceListFilterOperator = z.infer<typeof namespaceFilterOperatorEnum>;
 
@@ -22,7 +22,7 @@ const allFilterFieldNames = Object.keys(
   namespaceListFilterFieldConfig,
 ) as (keyof NamespaceListFilterFieldConfigs)[];
 if (allFilterFieldNames.length === 0) {
-  throw new Error("namespaceFilterFieldConfig must contain at least one field definition.");
+  throw new Error("namespaceListFilterFieldConfig must contain at least one field definition.");
 }
 
 const [firstFieldName, ...restFieldNames] = allFilterFieldNames;

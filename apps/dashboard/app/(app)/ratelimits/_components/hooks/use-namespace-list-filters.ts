@@ -16,7 +16,6 @@ export const queryParamsPayload = {
 } as const;
 
 const arrayFields = ["query"] as const;
-const timeFields = ["startTime", "endTime", "since"] as const;
 
 export const useNamespaceListFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
@@ -43,7 +42,6 @@ export const useNamespaceListFilters = () => {
     (newFilters: NamespaceListFilterValue[]) => {
       const newParams: Partial<NamespaceListQuerySearchParams> = Object.fromEntries([
         ...arrayFields.map((field) => [field, null]),
-        ...timeFields.map((field) => [field, null]),
       ]);
 
       const filterGroups = arrayFields.reduce(
