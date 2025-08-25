@@ -25,6 +25,7 @@ export async function prepareDatabase(): Promise<{
         id: ROW_IDS.rootWorkspace,
         orgId: "user_REPLACE_ME",
         name: "Unkey",
+        slug: "unkey-workspace",
         createdAtM: Date.now(),
         betaFeatures: {},
         features: {},
