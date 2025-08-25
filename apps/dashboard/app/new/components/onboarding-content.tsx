@@ -68,7 +68,7 @@ export function OnboardingContent() {
         </div>
         <div className="mt-10" />
         {/* Form part */}
-        <div className="flex-1 min-h-0 overflow-y-auto pb-24">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
           <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
         </div>
       </div>
