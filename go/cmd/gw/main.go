@@ -50,6 +50,10 @@ var Cmd = &cli.Command{
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
+		// Redis Configuration
+		cli.String("redis-url", "Redis connection string for caching. Recommended for production. Example: redis://user:pass@host:6379/0",
+			cli.EnvVar("UNKEY_REDIS_URL")),
+
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
 			cli.EnvVar("UNKEY_OTEL")),
@@ -87,6 +91,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// ClickHouse
 		ClickhouseURL: cmd.String("clickhouse-url"),
+
+		// Redis Configuration
+		RedisURL: cmd.String("redis-url"),
 
 		// OpenTelemetry configuration
 		OtelEnabled:           cmd.Bool("otel"),

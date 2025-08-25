@@ -63,19 +63,22 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	clk := clock.New()
 	shutdowns := shutdown.New()
+	clk := clock.New()
 
 	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "gateway",
-			Version:         version.Version,
-			InstanceID:      cfg.GatewayID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
+		grafanaErr := otel.InitGrafana(
+			ctx,
+			otel.Config{
+				Application:     "gateway",
+				Version:         version.Version,
+				InstanceID:      cfg.GatewayID,
+				CloudRegion:     cfg.Region,
+				TraceSampleRate: cfg.OtelTraceSamplingRate,
+			},
 			shutdowns,
 		)
+
 		if grafanaErr != nil {
 			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
 		}
@@ -148,7 +151,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Use in-memory counter since Redis is nil
-	ctr := counter.NewMemory()
+	ctr, err := counter.NewRedis(counter.RedisConfig{
+		Logger:   logger,
+		RedisURL: cfg.RedisURL,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create counter: %w", err)
+	}
 
 	// Create rate limiting service
 	rlSvc, err := ratelimit.New(ratelimit.Config{
@@ -167,6 +176,7 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyCache:    caches.VerificationKeyByHash,
 		RateLimiter: rlSvc,
 		RBAC:        rbac.New(),
+		Counter:     ctr,
 		Clickhouse:  ch,
 		Region:      cfg.Region,
 	})

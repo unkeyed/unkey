@@ -17,7 +17,7 @@ func Register(srv *server.Server, svc *Services, region string) {
 	// Define default middleware stack
 	defaultMiddlewares := []server.Middleware{
 		server.WithTracing(),
-		server.WithMetrics(svc.ClickHouse, region), // Pass ClickHouse for event buffering
+		server.WithMetrics(svc.ClickHouse, region),
 		server.WithLogging(svc.Logger),
 		server.WithPanicRecovery(svc.Logger),
 		server.WithErrorHandling(svc.Logger),
@@ -42,23 +42,19 @@ func Register(srv *server.Server, svc *Services, region string) {
 		MaxIdleConns:        transport.MaxIdleConns,
 		IdleConnTimeout:     "90s",
 		TLSHandshakeTimeout: "10s",
-		// Pass the shared transport
-		Transport: transport,
+		Transport:           transport,
 	})
 	if err != nil {
-		// This shouldn't happen with valid config, but handle it gracefully
 		svc.Logger.Error("failed to create proxy service", "error", err.Error())
 		return
 	}
 
-	// Create proxy service with shared transport
 	authService, err := auth.New(auth.Config{
 		Logger: svc.Logger,
 		Keys:   svc.Keys,
 	})
 	if err != nil {
-		// This shouldn't happen with valid config, but handle it gracefully
-		svc.Logger.Error("failed to create proxy service", "error", err.Error())
+		svc.Logger.Error("failed to create auth service", "error", err.Error())
 		return
 	}
 
@@ -82,7 +78,6 @@ func Register(srv *server.Server, svc *Services, region string) {
 			host = host[:idx]
 		}
 
-		// Only allow health checks from the main gateway domain
 		if svc.MainDomain != "" && host != svc.MainDomain {
 			http.NotFound(w, r)
 			return
