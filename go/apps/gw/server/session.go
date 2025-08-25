@@ -116,6 +116,13 @@ func (s *Session) HTML(status int, body []byte) error {
 	return s.send(status, body)
 }
 
+// Plain sends a plain text response with the given status code.
+func (s *Session) Plain(status int, body []byte) error {
+	s.w.Header().Set("Content-Type", "text/plain")
+
+	return s.send(status, body)
+}
+
 // Send sends a raw response with the given status code.
 func (s *Session) Send(status int, body []byte) error {
 	return s.send(status, body)

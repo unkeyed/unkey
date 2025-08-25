@@ -50,6 +50,7 @@ export const domainChallenges = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     domainId: varchar("domain_id", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }).notNull(),
+    authorization: varchar("authorization", { length: 255 }).notNull(),
     status: mysqlEnum("status", ["pending", "verified", "failed", "expired"])
       .notNull()
       .default("pending"),

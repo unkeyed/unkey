@@ -179,6 +179,14 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error)
+	//FindDomainByDomain
+	//
+	//  SELECT id, workspace_id, project_id, domain, type, subdomain_config, created_at, updated_at FROM domains WHERE domain = ?
+	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
+	//FindDomainChallengeByToken
+	//
+	//  SELECT id, workspace_id, domain_id, token, authorization, status, created_at, updated_at, expires_at FROM domain_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	FindDomainChallengeByToken(ctx context.Context, db DBTX, arg FindDomainChallengeByTokenParams) (DomainChallenge, error)
 	//FindHostnameRoutesByDeploymentId
 	//
 	//  SELECT
@@ -736,6 +744,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, db DBTX, id string) (sql.Result, error)
+	//InsertAcmeUser
+	//
+	//
+	//  INSERT INTO acme_users (workspace_id, encrypted_key)
+	//  VALUES (?,?)
+	InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) error
 	//InsertApi
 	//
 	//  INSERT INTO apis (
@@ -901,6 +915,53 @@ type Querier interface {
 	//      error_message = VALUES(error_message),
 	//      created_at = VALUES(created_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
+	//InsertDomain
+	//
+	//  INSERT INTO domains (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      domain,
+	//      type,
+	//      subdomain_config,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      project_id = VALUES(project_id),
+	//      type = VALUES(type),
+	//      subdomain_config = VALUES(subdomain_config),
+	//      updated_at = ?
+	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
+	//InsertDomainChallenge
+	//
+	//  INSERT INTO domain_challenges (
+	//      workspace_id,
+	//      domain_id,
+	//      token,
+	//      authorization,
+	//      status,
+	//      created_at,
+	//      updated_at,
+	//      expires_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDomainChallenge(ctx context.Context, db DBTX, arg InsertDomainChallengeParams) error
 	//InsertHostnameRoute
 	//
 	//  INSERT INTO hostname_routes (

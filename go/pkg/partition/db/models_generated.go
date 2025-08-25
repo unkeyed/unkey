@@ -145,10 +145,13 @@ func (ns NullVmsStatus) Value() (driver.Value, error) {
 }
 
 type Certificate struct {
-	ID                  string `db:"id"`
+	ID                  uint64 `db:"id"`
+	WorkspaceID         string `db:"workspace_id"`
 	Hostname            string `db:"hostname"`
-	CertificatePem      string `db:"certificate_pem"`
-	PrivateKeyEncrypted string `db:"private_key_encrypted"`
+	Certificate         string `db:"certificate"`
+	EncryptedPrivateKey string `db:"encrypted_private_key"`
+	CreatedAt           int64  `db:"created_at"`
+	UpdatedAt           int64  `db:"updated_at"`
 	ExpiresAt           int64  `db:"expires_at"`
 }
 

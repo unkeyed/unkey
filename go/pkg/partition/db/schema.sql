@@ -10,8 +10,7 @@ USE `partition_001`;
 CREATE TABLE gateways (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `hostname` varchar(255) NOT NULL,
-  `config` blob NOT NULL,
-  -- Protobuf with all configuration including deployment_id, workspace_id
+  `config` blob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
   PRIMARY KEY (`id`),
   UNIQUE KEY `gateways_pk` (`hostname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -65,13 +64,16 @@ CREATE TABLE metal_hosts (
 
 -- TLS certificates for hostname routing
 -- Stores certificates and private keys for HTTPS termination
-CREATE TABLE certificates (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
-    hostname VARCHAR(255) NOT NULL,
-    certificate_pem TEXT NOT NULL,
-    private_key_encrypted TEXT NOT NULL,
-    expires_at BIGINT NOT NULL,
-
-    UNIQUE KEY unique_hostname (hostname),
-    INDEX idx_expires_at (expires_at)
-);
+CREATE TABLE `certificates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `workspace_id` varchar(255) NOT NULL,
+  `hostname` varchar(255) NOT NULL,
+  `certificate` text NOT NULL,
+  `encrypted_private_key` text NOT NULL,
+  `created_at` bigint NOT NULL,
+  `updated_at` bigint NOT NULL,
+  `expires_at` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_hostname` (`hostname`),
+  KEY `idx_expires_at` (`expires_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci

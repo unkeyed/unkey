@@ -608,6 +608,50 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
+	err = hydra.StepVoid(ctx, "generate-certificates", func(stepCtx context.Context) error {
+		domains := []db.InsertDomainParams{}
+		now := time.Now().UnixMilli()
+		for _, domain := range assignedHostnames {
+			domains = append(domains, db.InsertDomainParams{
+				ID:              uid.New(uid.DomainPrefix),
+				WorkspaceID:     req.WorkspaceID,
+				ProjectID:       req.ProjectID,
+				Domain:          domain,
+				Type:            db.DomainsTypeGenerated,
+				SubdomainConfig: []byte("{}"),
+				CreatedAt:       now,
+				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
+			})
+		}
+
+		if req.Hostname != "" {
+			domains = append(domains, db.InsertDomainParams{
+				ID:              uid.New(uid.DomainPrefix),
+				WorkspaceID:     req.WorkspaceID,
+				ProjectID:       req.ProjectID,
+				Domain:          req.Hostname,
+				Type:            db.DomainsTypeCustom,
+				SubdomainConfig: []byte("{}"),
+				CreatedAt:       now,
+				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
+			})
+		}
+
+		if len(domains) > 0 {
+			err = db.BulkQuery.InsertDomains(ctx.Context(), w.db.RW(), domains)
+			if err != nil {
+				w.logger.Error("failed to insert domains", "error", err, "deployment_id", req.DeploymentID)
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		w.logger.Error("failed to insert domains", "error", err, "deployment_id", req.DeploymentID)
+		return err
+	}
+
 	// Step 20: Log assigning domains
 	err = hydra.StepVoid(ctx, "log-assigning-domains", func(stepCtx context.Context) error {
 		var message string

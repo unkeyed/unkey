@@ -402,6 +402,7 @@ CREATE TABLE `domain_challenges` (
 	`workspace_id` varchar(255) NOT NULL,
 	`domain_id` varchar(255) NOT NULL,
 	`token` varchar(255) NOT NULL,
+	`authorization` varchar(255) NOT NULL,
 	`status` enum('pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

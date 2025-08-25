@@ -138,7 +138,7 @@ Use --init to create a configuration template file. This generates an unkey.json
 
 DEPLOYMENT PROCESS:
 1. Load configuration from unkey.json or flags
-2. Build Docker image from your application  
+2. Build Docker image from your application
 3. Push image to container registry
 4. Create deployment version on Unkey platform
 5. Monitor deployment status until active

@@ -694,14 +694,15 @@ type Domain struct {
 }
 
 type DomainChallenge struct {
-	ID          uint64                 `db:"id"`
-	WorkspaceID string                 `db:"workspace_id"`
-	DomainID    string                 `db:"domain_id"`
-	Token       string                 `db:"token"`
-	Status      DomainChallengesStatus `db:"status"`
-	CreatedAt   int64                  `db:"created_at"`
-	UpdatedAt   sql.NullInt64          `db:"updated_at"`
-	ExpiresAt   uint64                 `db:"expires_at"`
+	ID            uint64                 `db:"id"`
+	WorkspaceID   string                 `db:"workspace_id"`
+	DomainID      string                 `db:"domain_id"`
+	Token         string                 `db:"token"`
+	Authorization string                 `db:"authorization"`
+	Status        DomainChallengesStatus `db:"status"`
+	CreatedAt     int64                  `db:"created_at"`
+	UpdatedAt     sql.NullInt64          `db:"updated_at"`
+	ExpiresAt     uint64                 `db:"expires_at"`
 }
 
 type EncryptedKey struct {

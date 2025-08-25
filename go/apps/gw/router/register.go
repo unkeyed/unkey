@@ -104,7 +104,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 		acmeHandler := &acme_challenge.Handler{
 			Logger:         svc.Logger,
 			RoutingService: svc.RoutingService,
-			Proxy:          proxyService,
+			AcmeClient:     svc.AcmeClient,
 		}
 
 		// ACME challenge endpoint
@@ -121,7 +121,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 
 	// HTTPS server configuration for main gateway
 	if serverType == HTTPSServer {
-		// All other routes go to the proxy handler (wrapped with middleware)
+		// All other routes go to the proxy handler
 		mux.Handle("/", srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares))
 	}
 

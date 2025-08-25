@@ -2,14 +2,15 @@ package acme_challenge
 
 import (
 	"context"
-	"log"
 	"net"
+	"net/http"
+	"path"
 
+	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/gw/server"
-	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
-	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
-	"github.com/unkeyed/unkey/go/apps/gw/services/validation"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -20,23 +21,12 @@ import (
 type Handler struct {
 	Logger         logging.Logger
 	RoutingService routing.Service
-	Proxy          proxy.Proxy
-	Auth           auth.Authenticator
-	Validator      validation.Validator
+	AcmeClient     ctrlv1connect.AcmeServiceClient
 }
 
 // Handle sends all ACME Let's Encrypt challenges to the control plane.
-func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
-	req := sess.Request()
-
-	// Log the incoming request
-	h.Logger.Debug("handling gateway request",
-		"requestId", sess.RequestID(),
-		"method", req.Method,
-		"host", req.Host,
-		"path", req.URL.Path,
-		"remoteAddr", req.RemoteAddr,
-	)
+func (h *Handler) Handle(ctx context.Context, s *server.Session) error {
+	req := s.Request()
 
 	// Look up target configuration based on the request host
 	// Strip port from hostname for database lookup (Host header may include port)
@@ -46,7 +36,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		hostname = req.Host
 	}
 
-	config, err := h.RoutingService.GetConfig(ctx, hostname)
+	_, err = h.RoutingService.GetConfig(ctx, hostname)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
@@ -55,7 +45,24 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		)
 	}
 
-	log.Printf("%#v", config)
+	// Extract ACME token from path (last segment after /.well-known/acme-challenge/)
+	token := path.Base(req.URL.Path)
+
+	h.Logger.Info("Handling ACME challenge", "hostname", hostname, "token", token)
+
+	createReq := connect.NewRequest(&ctrlv1.HandleCertificateVerificationRequest{
+		Domain: hostname,
+		Token:  token,
+	})
+	// createReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
+
+	resp, err := h.AcmeClient.HandleCertificateVerification(ctx, createReq)
+	if err != nil {
+		h.Logger.Error("Failed to handle certificate verification", "error", err)
+	}
+	h.Logger.Info("Certificate verification handled", "response", resp.Msg.GetToken())
+
+	s.Plain(http.StatusOK, []byte(resp.Msg.GetToken()))
 
 	return nil
 }

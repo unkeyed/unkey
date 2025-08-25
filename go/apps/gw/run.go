@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"runtime/debug"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 	"github.com/unkeyed/unkey/go/apps/gw/services/validation"
+	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -208,6 +210,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validation service: %w", err)
 	}
 
+	// Create ACME client
+	httpClient := &http.Client{}
+	acmeClient := ctrlv1connect.NewAcmeServiceClient(httpClient, cfg.CtrlAddr)
+
 	// Create HTTP server for ACME challenges
 	challengeSrv, err := server.New(server.Config{
 		Logger:    logger,
@@ -241,6 +247,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Keys:           keySvc,
 		Ratelimit:      nil,
 		MainDomain:     cfg.MainDomain,
+		AcmeClient:     acmeClient,
 	}
 
 	// Register routes for HTTP server (ACME challenges)

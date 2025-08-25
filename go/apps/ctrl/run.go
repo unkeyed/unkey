@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -171,6 +172,12 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
+		PartitionDB: partitionDB,
+		DB:          database,
+		HydraEngine: hydraEngine,
+		Logger:      logger,
+	})))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

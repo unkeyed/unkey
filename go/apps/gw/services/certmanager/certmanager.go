@@ -46,7 +46,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		}
 
 		// For non production use aka development
-		cert, err := tls.X509KeyPair([]byte(row.CertificatePem), []byte(row.PrivateKeyEncrypted))
+		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(row.EncryptedPrivateKey))
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)

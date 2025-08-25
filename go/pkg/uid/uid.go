@@ -44,6 +44,7 @@ const (
 	VersionPrefix     Prefix = "v"
 	BuildPrefix       Prefix = "build"
 	RootfsImagePrefix Prefix = "img"
+	DomainPrefix      Prefix = "dom"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a
