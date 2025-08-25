@@ -1303,6 +1303,9 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Include any prefix - even small changes will cause verification to fail.
 	Key string `json:"key"`
 
+	// MigrationId Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
+	MigrationId *string `json:"migrationId,omitempty"`
+
 	// Permissions Checks if the key has the specified permission(s) using a query syntax.
 	// Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
 	// Examples:
