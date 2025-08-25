@@ -69,7 +69,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if key.Status == keys.StatusNotFound && req.MigrationId != nil {
 
-		h.Logger.Warn("key not found, attempting migration", "key", req.Key, "migrationId", req.MigrationId)
 		key, emit, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
 		if err != nil {
 			return err
