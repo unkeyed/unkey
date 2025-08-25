@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
@@ -61,6 +62,14 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 // It establishes connections to the primary database and optionally to a read-only replica.
 // Returns an error if connections cannot be established or if DSNs are misconfigured.
 func New(config Config) (*database, error) {
+	err := assert.All(
+		assert.NotNil(config.Logger),
+		assert.NotEmpty(config.PrimaryDSN),
+	)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("invalid configuration"))
+	}
+
 	write, err := open(config.PrimaryDSN, config.Logger)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))

@@ -1,8 +1,8 @@
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import { cn } from "@/lib/utils";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 
 import {
   type RootKeysFilterField,

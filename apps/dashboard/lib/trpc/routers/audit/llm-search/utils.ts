@@ -215,7 +215,7 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - workspace.create, workspace.update, workspace.delete, workspace.opt_in
    - gateway.create, llmGateway.create, llmGateway.delete
    - api.create, api.update, api.delete
-   - key.create, key.update, key.delete
+   - key.create, key.update, key.delete, key.reroll
    - ratelimitNamespace.create, ratelimitNamespace.update, ratelimitNamespace.delete
    - vercelIntegration.create, vercelIntegration.update, vercelIntegration.delete
    - vercelBinding.create, vercelBinding.update, vercelBinding.delete

@@ -29,6 +29,11 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return nil
 	}
 
+	// Key has unlimited requests if set to NULL
+	if !k.Key.RemainingRequests.Valid {
+		return nil
+	}
+
 	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
 		KeyId: k.Key.ID,
 		Cost:  cost,
@@ -37,7 +42,8 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return err
 	}
 
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: usage.Remaining >= 0}
+	// Always update remaining requests with the accurate count from the usageLimiter
+	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
 	}

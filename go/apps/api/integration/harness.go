@@ -87,7 +87,7 @@ func New(t *testing.T, config Config) *Harness {
 		ctx:           ctx,
 		cancel:        cancel,
 		instanceAddrs: []string{},
-		Seed:          seed.New(t, db),
+		Seed:          seed.New(t, db, nil),
 		dbDSN:         mysqlHostDSN,
 		DB:            db,
 		CH:            ch,

@@ -12,6 +12,7 @@ export const unkeyAuditLogEvents = z.enum([
   "api.update",
   "api.delete",
   "key.create",
+  "key.reroll",
   "key.update",
   "key.delete",
   "ratelimitNamespace.create",

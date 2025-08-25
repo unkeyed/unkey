@@ -1039,6 +1039,72 @@ type V2KeysRemoveRolesResponseBody struct {
 // - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
 type V2KeysRemoveRolesResponseData = []Role
 
+// V2KeysRerollKeyRequestBody defines model for V2KeysRerollKeyRequestBody.
+type V2KeysRerollKeyRequestBody struct {
+	// Expiration Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
+	//
+	// This parameter controls the overlap period for key rotation:
+	// - Set to `0` to revoke the original key immediately
+	// - Positive values keep the original key active for the specified duration
+	// - Allows graceful migration by giving users time to update their credentials
+	//
+	// Common overlap periods:
+	// - Immediate revocation: 0
+	// - 1 hour grace period: 3600000
+	// - 24 hours grace period: 86400000
+	// - 7 days grace period: 604800000
+	// - 30 days grace period: 2592000000
+	Expiration int64 `json:"expiration"`
+
+	// KeyId The database identifier of the key to reroll.
+	//
+	// This is the unique ID returned when creating or listing keys, NOT the actual API key token.
+	// You can find this ID in:
+	// - The response from `keys.createKey`
+	// - Key verification responses
+	// - The Unkey dashboard
+	// - API key listing endpoints
+	KeyId string `json:"keyId"`
+}
+
+// V2KeysRerollKeyResponseBody defines model for V2KeysRerollKeyResponseBody.
+type V2KeysRerollKeyResponseBody struct {
+	Data V2KeysRerollKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2KeysRerollKeyResponseData defines model for V2KeysRerollKeyResponseData.
+type V2KeysRerollKeyResponseData struct {
+	// Key The newly generated API key token (the actual secret that authenticates requests).
+	//
+	// **SECURITY CRITICAL:**
+	// - This is the only time you'll receive the complete key
+	// - Unkey stores only a hashed version (unless the original key was created with `recoverable=true`)
+	// - Never log, store, or expose this value in your systems
+	// - Transmit directly to the end user via secure channels only
+	// - If lost and not recoverable, you must reroll or create a new key
+	//
+	// The key format follows: `[prefix]_[random_bytes]`
+	// - Prefix is extracted from the original key or uses API default
+	// - Random bytes follow API configuration (default: 16 bytes)
+	//
+	// This is NOT the keyId - it's the actual secret token used for authentication.
+	Key string `json:"key"`
+
+	// KeyId The unique identifier for the newly created key.
+	//
+	// This is NOT the actual API key token, but a reference ID for management operations.
+	// Store this ID to:
+	// - Update or revoke the key later
+	// - Track the key in your database
+	// - Display in admin dashboards (safe to log)
+	//
+	// Note: This is a new ID - the original key retains its own ID.
+	KeyId string `json:"keyId"`
+}
+
 // V2KeysSetPermissionsRequestBody defines model for V2KeysSetPermissionsRequestBody.
 type V2KeysSetPermissionsRequestBody struct {
 	// KeyId Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
@@ -1951,6 +2017,9 @@ type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
 
 // RemoveRolesJSONRequestBody defines body for RemoveRoles for application/json ContentType.
 type RemoveRolesJSONRequestBody = V2KeysRemoveRolesRequestBody
+
+// RerollKeyJSONRequestBody defines body for RerollKey for application/json ContentType.
+type RerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
 
 // SetPermissionsJSONRequestBody defines body for SetPermissions for application/json ContentType.
 type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody

@@ -33,16 +33,26 @@ func TestGetKeyBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("empty keyId string", func(t *testing.T) {
-		req := handler.Request{
-			KeyId:   "",
-			Decrypt: ptr.P(false),
-		}
+	req := handler.Request{
+		KeyId:   "",
+		Decrypt: ptr.P(false),
+	}
 
+	t.Run("empty keyId string", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 	})
 
+	t.Run("invalid key format", func(t *testing.T) {
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer invalid_key_format_not_uid"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+	})
 }

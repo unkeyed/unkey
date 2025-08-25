@@ -145,7 +145,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},
-		TLS: cfg.TLSConfig,
+		TLS:                cfg.TLSConfig,
+		MaxRequestBodySize: cfg.MaxRequestBodySize,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -185,10 +186,14 @@ func Run(ctx context.Context, cfg Config) error {
 		RBAC:        rbac.New(),
 		Clickhouse:  ch,
 		Region:      cfg.Region,
+		Counter:     ctr,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+
+	shutdowns.Register(keySvc.Close)
+	shutdowns.Register(ctr.Close)
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {

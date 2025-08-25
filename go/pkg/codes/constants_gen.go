@@ -14,6 +14,8 @@ const (
 
 	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
 	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
+	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
+	UserErrorsBadRequestRequestBodyTooLarge URN = "err:user:bad_request:request_body_too_large"
 
 	// ----------------
 	// UnkeyAuthErrors

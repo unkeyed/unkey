@@ -49,5 +49,4 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	return bearer, nil
-
 }

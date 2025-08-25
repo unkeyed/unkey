@@ -12,6 +12,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: useblacksmith/setup-docker-builder@v1
+      - name: Create dashboard env file for Docker Compose
+        run: |
+          mkdir -p ./apps/dashboard
+          touch ./apps/dashboard/.env
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait
         env:

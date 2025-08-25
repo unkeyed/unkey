@@ -154,6 +154,8 @@ paths:
 
   /v2/keys.createKey:
     $ref: "./spec/paths/v2/keys/createKey/index.yaml"
+  /v2/keys.rerollKey:
+    $ref: "./spec/paths/v2/keys/rerollKey/index.yaml"
   /v2/keys.updateKey:
     $ref: "./spec/paths/v2/keys/updateKey/index.yaml"
   /v2/keys.updateCredits:

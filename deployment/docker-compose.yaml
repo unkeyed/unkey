@@ -263,13 +263,13 @@ services:
     depends_on:
       - planetscale
       - agent
+    env_file:
+      - ../apps/dashboard/.env
     environment:
       # Database configuration
       DATABASE_HOST: "planetscale:3900"
-      DATABASE_USERNAME: "unkey"
-      DATABASE_PASSWORD: "password"
       # Auth configuration
-      AUTH_PROVIDER: "local"
+      # Reading from env file, no override necessary
       # Agent configuration
       AGENT_URL: "http://agent:8080"
       AGENT_TOKEN: "agent-auth-secret"
@@ -278,8 +278,7 @@ services:
       # Environment
       NODE_ENV: "production"
       # Bootstrap workspace/API IDs
-      UNKEY_WORKSPACE_ID: "ws_local_root"
-      UNKEY_API_ID: "api_local_root_keys"
+      # Reading from env file, no override necessary
   # Unkey Deploy Services - All-in-one development container with all 4 services
   metald-aio:
     build:

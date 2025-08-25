@@ -51,6 +51,10 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	if s.Request().Header.Get("X-Unkey-Metrics") == "disabled" {
+		s.DisableClickHouseLogging()
+	}
+
 	// Authenticate the request with a root key
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -180,7 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Apply rate limit
 	limitReq := ratelimit.RatelimitRequest{
-		Identifier: req.Identifier,
+		Identifier: namespace.ID + ":" + req.Identifier,
 		Duration:   time.Duration(duration) * time.Millisecond,
 		Limit:      limit,
 		Cost:       cost,
@@ -206,7 +210,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if s.Request().Header.Get("X-Unkey-Metrics") != "disabled" {
+	if s.ShouldLogRequestToClickHouse() {
 		h.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
 			RequestID:   s.RequestID(),
 			WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -216,6 +220,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Passed:      result.Success,
 		})
 	}
+
 	res := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

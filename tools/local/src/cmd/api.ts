@@ -28,7 +28,7 @@ export async function bootstrapApi(resources: {
       EMIT_METRICS_LOGS: "false",
     },
     Clickhouse: {
-      CLICKHOUSE_URL: "http://default:password@clickhouse:8123",
+      CLICKHOUSE_URL: "http://default:password@localhost:8123",
     },
   });
 

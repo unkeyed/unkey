@@ -9,6 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Setup Docker permissions
+        run: |
+          sudo chmod 666 /var/run/docker.sock
+          docker version
+      - name: Install goose
+        run: |
+          wget -qO- https://github.com/pressly/goose/releases/download/v3.20.0/goose_linux_x86_64 > /tmp/goose
+          chmod +x /tmp/goose
+          sudo mv /tmp/goose /usr/local/bin/goose
+          goose --version
       - name: Setup Node
         uses: ./.github/actions/setup-node
         with:
@@ -21,3 +33,6 @@ jobs:
         run: pnpm turbo run test --filter '!api'
         env:
           CI: 1
+          TESTCONTAINERS_RYUK_DISABLED: true
+          DOCKER_HOST: unix:///var/run/docker.sock
+          TESTCONTAINERS_HOST_OVERRIDE: localhost
