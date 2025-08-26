@@ -1,8 +1,7 @@
 additionalProperties: false
 properties:
   namespace:
-    description: The id or name of the rate limit namespace to list overrides
-      for.
+    description: The id or name of the rate limit namespace to list overrides for.
     type: string
     minLength: 1
     maxLength: 255
