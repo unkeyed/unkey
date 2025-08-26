@@ -3,11 +3,11 @@ package auth
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -23,6 +23,13 @@ var _ Authenticator = (*authenticator)(nil)
 
 // New creates a new authenticator with the given configuration.
 func New(config Config) (Authenticator, error) {
+	if err := assert.All(
+		assert.NotNilAndNotZero(config.Logger, "Logger is required"),
+		assert.NotNilAndNotZero(config.Keys, "Keys DB is required"),
+	); err != nil {
+		return nil, err
+	}
+
 	return &authenticator{
 		logger: config.Logger,
 		keys:   config.Keys,
@@ -81,11 +88,12 @@ func (a *authenticator) extractAPIKey(sess *server.Session) (string, error) {
 
 // verifyAPIKey retrieves and validates the API key against the configured keyspace.
 func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, apiKey string, config *partitionv1.GatewayConfig) error {
-	req := sess.Request()
-	keyVerifyStart := time.Now()
+	z := zen.Session{
+		WorkspaceID: sess.WorkspaceID,
+	}
 
-	// Get the API key from the key service
-	key, logKeyFunc, err := a.keys.Get(ctx, &zen.Session{}, apiKey)
+	key, emit, err := a.keys.Get(ctx, &z, apiKey)
+	defer emit()
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Internal.KeyVerificationFailed.URN()),
@@ -93,9 +101,6 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 			fault.Public("Internal server error"),
 		)
 	}
-	defer logKeyFunc()
-
-	keyVerifyLatency := time.Since(keyVerifyStart)
 
 	// Validate keyspace - ensure key belongs to the correct keyspace
 	if key.Key.KeyAuthID != config.AuthConfig.KeyspaceId {
@@ -124,6 +129,8 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 	opts := []keys.VerifyOption{
 		keys.WithCredits(1),      // Default cost
 		keys.WithRateLimits(nil), // Auto-applied rate limits only
+		keys.WithIPWhitelist(),
+		// keys.WithTags([]string)
 	}
 
 	err = key.Verify(ctx, opts...)
@@ -142,14 +149,6 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 
 	// Check if key is valid after verification
 	if key.Status != keys.StatusValid {
-		a.logger.Warn("invalid api key status",
-			"requestId", sess.RequestID(),
-			"host", req.Host,
-			"path", req.URL.Path,
-			"key_status", key.Status,
-			"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
-		)
-
 		switch key.Status {
 		case keys.StatusRateLimited:
 			return fault.New("api key rate limited",
@@ -163,16 +162,6 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 			)
 		}
 	}
-
-	// API key is valid - log success
-	a.logger.Info("api key verified successfully",
-		"requestId", sess.RequestID(),
-		"host", req.Host,
-		"path", req.URL.Path,
-		"key_id", key.Key.ID,
-		"workspace_id", key.Key.WorkspaceID,
-		"key_verify_latency_ms", keyVerifyLatency.Milliseconds(),
-	)
 
 	return nil
 }

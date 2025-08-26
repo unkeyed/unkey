@@ -10,6 +10,7 @@ import (
 	"github.com/pb33f/libopenapi-validator/errors"
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -25,12 +26,11 @@ type Service struct {
 
 // New creates a new validation service.
 func New(config Config) (*Service, error) {
-	if config.Logger == nil {
-		return nil, fault.New("logger is required")
-	}
-
-	if config.OpenAPISpecCache == nil {
-		return nil, fault.New("OpenAPI spec cache is required")
+	if err := assert.All(
+		assert.NotNilAndNotZero(config.Logger, "Logger is required"),
+		assert.NotNilAndNotZero(config.OpenAPISpecCache, "OpenAPI spec cache is required"),
+	); err != nil {
+		return nil, err
 	}
 
 	return &Service{

@@ -73,6 +73,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
+		// todo: handle error
 		// if db.IsNotFound(err) {
 		// // If we have a default cert domain configured, try to fetch that cert
 		// if s.defaultCertDomain != "" && domain != s.defaultCertDomain {

@@ -8,6 +8,7 @@ import (
 
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -29,6 +30,15 @@ var _ Service = (*service)(nil)
 
 // New creates a new routing service instance.
 func New(config Config) (*service, error) {
+	if err := assert.All(
+		assert.NotNilAndNotZero(config.Logger, "Logger is required"),
+		assert.NotNilAndNotZero(config.DB, "Database is required"),
+		assert.NotNilAndNotZero(config.GatewayConfigCache, "Gateway config cache is required"),
+		assert.NotNilAndNotZero(config.VMCache, "VM cache is required"),
+	); err != nil {
+		return nil, err
+	}
+
 	return &service{
 		db:                 config.DB,
 		logger:             config.Logger,
