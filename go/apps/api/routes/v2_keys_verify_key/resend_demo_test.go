@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/prefixedapikey"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
@@ -33,6 +34,7 @@ func TestResendDemo(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
 
@@ -82,11 +84,14 @@ func TestResendDemo(t *testing.T) {
 		// When migrating keys to unkey, you just need to give us the longTokenHash
 		// and optional user id etc to link them together so you can later query all
 		// keys for a specific user.
-		longTokenHash := "c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64"
+		// longTokenHash := "f8d7af831e76a886cb225e56d0750a54efab6f89c036e01b2ca1f52203425c72"
 
 		// Unkey doesn't store this token, we just use it below to run a demo
 		// verification.
-		token := "resend_2aGwhSYz_GEbTboUygK1ixefLDTUM5wf7"
+		// token := "re_QgLu9m3D_FMbosT9oDBP3D8RkTu6p24wT"
+		resendKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
+			KeyPrefix: "re",
+		})
 
 		// 3. Migrate existing keys to unkey
 		//
@@ -97,7 +102,7 @@ func TestResendDemo(t *testing.T) {
 			KeyringID:          api.KeyAuthID.String,
 			WorkspaceID:        workspace.ID,
 			CreatedAtM:         time.Now().UnixMilli(),
-			Hash:               longTokenHash,
+			Hash:               resendKey.LongTokenHash,
 			Enabled:            true,
 			PendingMigrationID: sql.NullString{Valid: true, String: "resend"},
 		})
@@ -109,7 +114,7 @@ func TestResendDemo(t *testing.T) {
 		// You need to send the key and the preshared constant migration ID,
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Key:         token,
+			Key:         resendKey.Token,
 			MigrationId: ptr.P("resend"),
 		})
 
@@ -122,12 +127,10 @@ func TestResendDemo(t *testing.T) {
 		// Sending the migration ID along for this key is no longer necessary, but doesn't hurt either.
 		// Since you don't know before hand if the key is migrated or not, you can always send the migration ID along with the key and we will handle it accordingly.
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Key: token,
+			Key: resendKey.Token,
 		})
 
 		require.Equal(t, 200, res2.Status)
 		require.True(t, res2.Body.Data.Valid)
-
 	})
-
 }

@@ -858,6 +858,7 @@ components:
                     example: api_123456789
                 keys:
                     type: array
+                    minItems: 1
                     items:
                         $ref: "#/components/schemas/V2KeysMigrateKeyData"
             additionalProperties: false

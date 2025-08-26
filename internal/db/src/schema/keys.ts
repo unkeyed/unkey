@@ -7,6 +7,7 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
+  primaryKey,
   text,
   tinyint,
   uniqueIndex,
@@ -157,10 +158,14 @@ export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
   }),
 }));
 
-export const keyMigrations = mysqlTable("key_migrations", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-  algorithm: mysqlEnum("algorithm", [
-    "github.com/seamapi/prefixed-api-key"
-  ])
-})
+export const keyMigrations = mysqlTable(
+  "key_migrations",
+  {
+    id: varchar("id", { length: 255 }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    algorithm: mysqlEnum("algorithm", ["github.com/seamapi/prefixed-api-key"]),
+  },
+  (table) => ({
+    idWorkspacePk: primaryKey({ columns: [table.id, table.workspaceId] }),
+  }),
+);

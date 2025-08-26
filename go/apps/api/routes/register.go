@@ -383,8 +383,8 @@ func Register(srv *zen.Server, svc *Services) {
 			Logger:    svc.Logger,
 			ApiCache:  svc.Caches.LiveApiByID,
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
+			Keys:      svc.Keys,
 		},
 	)
 
