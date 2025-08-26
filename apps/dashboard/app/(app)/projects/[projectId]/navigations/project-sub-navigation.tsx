@@ -5,6 +5,7 @@ import { Cloud, Gear, GridCircle, Layers3 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { Button } from "@unkey/ui";
 import { useParams, usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 type TabItem = {
   id: string;
@@ -13,11 +14,24 @@ type TabItem = {
   path: string;
 };
 
-export const ProjectSubNavigation = () => {
+export const ProjectSubNavigation = ({
+  onMount,
+}: {
+  onMount: (distanceToTop: number) => void;
+}) => {
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
   const projectId = params?.projectId as string;
+
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (onMount) {
+      const distanceToTop = anchorRef.current?.getBoundingClientRect().top ?? 0;
+      onMount(distanceToTop);
+    }
+  }, [onMount]);
 
   // Detect current route and set active tab
   const getCurrentTab = (): string => {
@@ -72,7 +86,7 @@ export const ProjectSubNavigation = () => {
   }
 
   return (
-    <div className="w-full border-b border-gray-4 bg-transparent relative">
+    <div className="w-full border-b border-gray-4 bg-transparent relative" ref={anchorRef}>
       <div className="flex">
         {tabs.map((tab) => {
           const IconComponent = tab.icon || GridCircle;
