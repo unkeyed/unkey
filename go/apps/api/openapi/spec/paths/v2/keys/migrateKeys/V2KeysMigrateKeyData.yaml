@@ -5,6 +5,15 @@ properties:
     minLength: 3
     description: The current hash of the key on your sides
     example: qwerty123
+  name:
+    type: string
+    minLength: 1
+    maxLength: 255
+    description: |
+      Sets a human-readable identifier for internal organization and dashboard display.
+      Never exposed to end users, only visible in management interfaces and API responses.
+      Avoid generic names like "API Key" when managing multiple keys for the same user or service.
+    example: Payment Service Production Key
   externalId:
     type: string
     minLength: 1

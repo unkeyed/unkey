@@ -985,6 +985,11 @@ type V2KeysMigrateKeyData struct {
 	// Large metadata objects increase verification latency and should stay under 10KB total size.
 	Meta *map[string]interface{} `json:"meta,omitempty"`
 
+	// Name Sets a human-readable identifier for internal organization and dashboard display.
+	// Never exposed to end users, only visible in management interfaces and API responses.
+	// Avoid generic names like "API Key" when managing multiple keys for the same user or service.
+	Name *string `json:"name,omitempty"`
+
 	// Permissions Grants specific permissions directly to this key without requiring role membership.
 	// Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
 	// Direct permissions supplement any permissions inherited from assigned roles.
@@ -1003,6 +1008,15 @@ type V2KeysMigrateKeyData struct {
 	Roles *[]string `json:"roles,omitempty"`
 }
 
+// V2KeysMigrateKeysMigration defines model for V2KeysMigrateKeysMigration.
+type V2KeysMigrateKeysMigration struct {
+	// Hash The hash provided in the migration request
+	Hash string `json:"hash"`
+
+	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+	KeyId string `json:"keyId"`
+}
+
 // V2KeysMigrateKeysRequestBody defines model for V2KeysMigrateKeysRequestBody.
 type V2KeysMigrateKeysRequestBody struct {
 	// ApiId The ID of the API that the keys should be inserted into
@@ -1015,7 +1029,7 @@ type V2KeysMigrateKeysRequestBody struct {
 
 // V2KeysMigrateKeysResponseBody defines model for V2KeysMigrateKeysResponseBody.
 type V2KeysMigrateKeysResponseBody struct {
-	Data []V2KeysMigrateKeysResponseData `json:"data"`
+	Data V2KeysMigrateKeysResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -1023,8 +1037,11 @@ type V2KeysMigrateKeysResponseBody struct {
 
 // V2KeysMigrateKeysResponseData defines model for V2KeysMigrateKeysResponseData.
 type V2KeysMigrateKeysResponseData struct {
-	// Hash The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
-	Hash string `json:"hash"`
+	// Failed Hashes that could not be migrated (e.g., already exist in the system)
+	Failed []string `json:"failed"`
+
+	// Migrated Successfully migrated keys with their hash and generated keyId
+	Migrated []V2KeysMigrateKeysMigration `json:"migrated"`
 }
 
 // V2KeysRemovePermissionsRequestBody defines model for V2KeysRemovePermissionsRequestBody.

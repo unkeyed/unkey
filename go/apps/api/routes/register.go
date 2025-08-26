@@ -40,6 +40,7 @@ import (
 	v2KeysCreateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
 	v2KeysDeleteKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_delete_key"
 	v2KeysGetKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
+	v2KeysMigrateKeys "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_migrate_keys"
 	v2KeysRemovePermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	v2KeysRemoveRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_roles"
 	v2KeysRerollKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_reroll_key"
@@ -372,6 +373,18 @@ func Register(srv *zen.Server, svc *Services) {
 			DB:         svc.Database,
 			Keys:       svc.Keys,
 			Auditlogs:  svc.Auditlogs,
+		},
+	)
+
+	// v2/keys.migrateKeys
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysMigrateKeys.Handler{
+			Logger:    svc.Logger,
+			ApiCache:  svc.Caches.LiveApiByID,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 

@@ -12,9 +12,10 @@ import (
 
 const updateKeyHashAndMigration = `-- name: UpdateKeyHashAndMigration :exec
 UPDATE ` + "`" + `keys` + "`" + `
-SET 
+SET
     hash = ?,
     pending_migration_id = ?,
+    start = ?,
     updated_at_m = ?
 WHERE id = ?
 `
@@ -22,6 +23,7 @@ WHERE id = ?
 type UpdateKeyHashAndMigrationParams struct {
 	Hash               string         `db:"hash"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
+	Start              string         `db:"start"`
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	ID                 string         `db:"id"`
 }
@@ -32,12 +34,14 @@ type UpdateKeyHashAndMigrationParams struct {
 //	SET
 //	    hash = ?,
 //	    pending_migration_id = ?,
+//	    start = ?,
 //	    updated_at_m = ?
 //	WHERE id = ?
 func (q *Queries) UpdateKeyHashAndMigration(ctx context.Context, db DBTX, arg UpdateKeyHashAndMigrationParams) error {
 	_, err := db.ExecContext(ctx, updateKeyHashAndMigration,
 		arg.Hash,
 		arg.PendingMigrationID,
+		arg.Start,
 		arg.UpdatedAtM,
 		arg.ID,
 	)

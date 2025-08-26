@@ -190,6 +190,12 @@ type Querier interface {
 	//  WHERE deployment_id = ? AND is_enabled = true
 	//  ORDER BY created_at ASC
 	FindHostnameRoutesByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]HostnameRoute, error)
+	//FindIdentitiesByExternalId
+	//
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
+	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -299,7 +305,8 @@ type Querier interface {
 	//      workspace_id,
 	//      algorithm
 	//  FROM key_migrations
-	//  WHERE id = ? and workspace_id = ?
+	//  WHERE id = ?
+	//  and workspace_id = ?
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (KeyMigration, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
@@ -312,6 +319,10 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindKeysByHash
+	//
+	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
+	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
 	//FindLatestBuildByDeploymentId
 	//
 	//  SELECT
@@ -1685,6 +1696,7 @@ type Querier interface {
 	//  SET
 	//      hash = ?,
 	//      pending_migration_id = ?,
+	//      start = ?,
 	//      updated_at_m = ?
 	//  WHERE id = ?
 	UpdateKeyHashAndMigration(ctx context.Context, db DBTX, arg UpdateKeyHashAndMigrationParams) error

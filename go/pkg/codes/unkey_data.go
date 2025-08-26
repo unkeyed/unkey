@@ -20,6 +20,12 @@ type dataApi struct {
 	NotFound Code
 }
 
+// dataMigration defines errors related to migration operations.
+type dataMigration struct {
+	// NotFound indicates the requested migration was not found.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -78,6 +84,7 @@ type UnkeyDataErrors struct {
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
+	Migration          dataMigration
 	Permission         dataPermission
 	Role               dataRole
 	KeyAuth            dataKeyAuth

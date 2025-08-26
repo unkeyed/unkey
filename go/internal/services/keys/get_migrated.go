@@ -48,6 +48,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			fault.Public("We could not load the requested migration."),
 		)
 	}
+
 	// h is the result of whatever algorithm we should use.
 	// The section below is expected to populate this and we can use it to look up a key in the db
 	var h string
@@ -62,16 +63,9 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 					fault.Code(codes.URN(codes.Auth.Authentication.Malformed.URN())),
 					fault.Public("Invalid key format"))
 			}
-			s.logger.Info("Loaded migration",
-
-				"rawKey", rawKey,
-				"parts", parts,
-				"algorithm", migration.Algorithm,
-			)
 
 			b := sha256.Sum256([]byte(parts[2]))
 			h = hex.EncodeToString(b[:])
-
 		}
 	default:
 		return nil, emptyLog, fault.New(
@@ -86,17 +80,11 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	}
 
 	if key.Key.PendingMigrationID.Valid && key.Key.PendingMigrationID.String == migrationID {
-		s.logger.Info("Updating hash",
-			"rawKey", rawKey,
-			"hash", h,
-			"algorithm", migration.Algorithm,
-		)
-		// Now we need to rehash and remove the pending migration id
-
 		newHash := hash.Sha256(rawKey)
 		err = db.Query.UpdateKeyHashAndMigration(ctx, s.db.RW(), db.UpdateKeyHashAndMigrationParams{
 			ID:                 key.Key.ID,
 			Hash:               newHash,
+			Start:              extractStart(rawKey),
 			PendingMigrationID: sql.NullString{Valid: false, String: ""},
 			UpdatedAtM:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -114,5 +102,33 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	}
 
 	return key, log, nil
+}
 
+// extractStart extracts the start value from a key, handling both prefixed and non-prefixed keys
+func extractStart(key string) string {
+	// Check if the key has a prefix (format: prefix_actualkey)
+	parts := strings.Split(key, "_")
+
+	// If there are 2 or more parts, it's a prefixed key
+	if len(parts) >= 2 {
+		// Extract the prefix
+		prefix := parts[0]
+		// Get the actual key part (everything after first underscore)
+		actualKey := strings.Join(parts[1:], "_")
+
+		if len(actualKey) >= 4 {
+			return fmt.Sprintf("%s_%s", prefix, actualKey[:4])
+		}
+
+		// If actual key is shorter than 4 chars, use what we have
+		// this should never happen, but just in case
+		return fmt.Sprintf("%s_%s", prefix, actualKey)
+	}
+
+	// No prefix, just return first 4 characters
+	if len(key) >= 4 {
+		return key[:4]
+	}
+
+	return key
 }

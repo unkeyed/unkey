@@ -615,7 +615,7 @@ components:
                 name:
                     type: string
                     minLength: 1
-                    maxLength: 200
+                    maxLength: 255
                     description: |
                         Sets a human-readable identifier for internal organization and dashboard display.
                         Never exposed to end users, only visible in management interfaces and API responses.
@@ -874,9 +874,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    type: array
-                    items:
-                        "$ref": "#/components/schemas/V2KeysMigrateKeysResponseData"
+                    "$ref": "#/components/schemas/V2KeysMigrateKeysResponseData"
         V2KeysRemovePermissionsRequestBody:
             type: object
             required:
@@ -2546,6 +2544,15 @@ components:
                     minLength: 3
                     description: The current hash of the key on your sides
                     example: qwerty123
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        Sets a human-readable identifier for internal organization and dashboard display.
+                        Never exposed to end users, only visible in management interfaces and API responses.
+                        Avoid generic names like "API Key" when managing multiple keys for the same user or service.
+                    example: Payment Service Production Key
                 externalId:
                     type: string
                     minLength: 1
@@ -2660,13 +2667,36 @@ components:
                 - hash
         V2KeysMigrateKeysResponseData:
             type: object
+            required:
+                - migrated
+                - failed
+            properties:
+                migrated:
+                    type: array
+                    description: Successfully migrated keys with their hash and generated keyId
+                    items:
+                        "$ref": "#/components/schemas/V2KeysMigrateKeysMigration"
+                failed:
+                    type: array
+                    description: Hashes that could not be migrated (e.g., already exist in the system)
+                    items:
+                        type: string
+                        description: The hash that failed to migrate
+                        example: sha256_ghi789jkl012
+        V2KeysMigrateKeysMigration:
+            type: object
+            required:
+                - hash
+                - keyId
             properties:
                 hash:
                     type: string
+                    description: The hash provided in the migration request
+                    example: sha256_abc123def456
+                keyId:
+                    type: string
                     description: The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
-            required:
-                - hash
         V2KeysRemovePermissionsResponseData:
             type: array
             description: |-

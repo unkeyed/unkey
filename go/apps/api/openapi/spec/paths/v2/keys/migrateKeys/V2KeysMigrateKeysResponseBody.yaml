@@ -6,6 +6,4 @@ properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    type: array
-    items:
-      "$ref": "./V2KeysMigrateKeysResponseData.yaml"
+    "$ref": "./V2KeysMigrateKeysResponseData.yaml"
