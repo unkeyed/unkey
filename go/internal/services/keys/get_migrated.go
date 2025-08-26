@@ -59,9 +59,11 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			parts := strings.Split(rawKey, "_")
 			err = assert.Equal(len(parts), 3, "Expected prefixed api keys to have 3 segments")
 			if err != nil {
-				return nil, emptyLog, fault.Wrap(err,
+				return nil, emptyLog, fault.Wrap(
+					err,
 					fault.Code(codes.URN(codes.Auth.Authentication.Malformed.URN())),
-					fault.Public("Invalid key format"))
+					fault.Public("Invalid key format"),
+				)
 			}
 
 			b := sha256.Sum256([]byte(parts[2]))
@@ -89,9 +91,11 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			UpdatedAtM:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return nil, log, fault.Wrap(err,
+			return nil, log, fault.Wrap(
+				err,
 				fault.Code(codes.URN(codes.UnkeyAppErrorsInternalServiceUnavailable)),
-				fault.Public("We could not update the key hash and migration id"))
+				fault.Public("We could not update the key hash and migration id"),
+			)
 		}
 
 		s.keyCache.Remove(

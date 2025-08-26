@@ -147,7 +147,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var rolesToFind []string
 
 	var keysArray []db.InsertKeyParams
-	var keysToInsert map[string]db.InsertKeyParams
 	var ratelimitsToInsert []db.InsertKeyRatelimitParams
 	var identitiesToInsert []db.InsertIdentityParams
 	var keyRolesToInsert []db.InsertKeyRoleParams
@@ -155,12 +154,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var rolesToInsert []db.InsertRoleParams
 	var permissionsToInsert []db.InsertPermissionParams
 
-	var externalIdToIdentityId map[string]*string
-	var permissionSlugToPermissionId map[string]*string
-	var roleNameToRoleId map[string]*string
+	var keysToInsert = make(map[string]db.InsertKeyParams)
+	var externalIdToIdentityId = make(map[string]*string)
+	var permissionSlugToPermissionId = make(map[string]*string)
+	var roleNameToRoleId = make(map[string]*string)
 
 	var auditLogs []auditlog.AuditLog
-	var failedHashes []string
+	var failedHashes = make([]string, 0)
 
 	for _, key := range req.Keys {
 		hashes = append(hashes, key.Hash)
