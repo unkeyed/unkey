@@ -284,6 +284,7 @@ func Run(ctx context.Context, cfg Config) error {
 		PartitionDB: partitionDB,
 		Logger:      logger,
 		AcmeClient:  acmeClient,
+		Vault:       vaultSvc,
 	})
 	err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
 	if err != nil {
@@ -294,7 +295,7 @@ func Run(ctx context.Context, cfg Config) error {
 	go func() {
 		logger.Info("Starting cert worker")
 
-		err = hydraEngine.RegisterCron("* * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
+		err = hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
 			challenges, err := db.Query.ListWaitingChallenges(ctx, database.RO())
 			if err != nil {
 				logger.Error("Failed to start workflow", "error", err)

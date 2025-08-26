@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"strings"
 
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -55,13 +56,22 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			return tls.Certificate{}, err
 		}
 
-		// todo: handle vault
+		pem, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+			Keyring:   "unkey",
+			Encrypted: row.EncryptedPrivateKey,
+		})
+		if err != nil {
+			return tls.Certificate{}, err
+		}
 
-		// For non production use aka development
-		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(row.EncryptedPrivateKey))
+		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(pem.Plaintext))
+		if err != nil {
+			return tls.Certificate{}, err
+		}
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
+
 	if err != nil {
 		// if db.IsNotFound(err) {
 		// // If we have a default cert domain configured, try to fetch that cert
@@ -83,7 +93,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	}
 
 	if hit == cache.Null {
-		// todo: return wrapped 404
 		return nil, err
 	}
 

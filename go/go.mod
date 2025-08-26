@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.36.6
 	github.com/aws/aws-sdk-go-v2/config v1.29.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.71
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.53.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.84.1
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/getkin/kin-openapi v0.132.0

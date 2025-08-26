@@ -1,6 +1,7 @@
 package acme
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -8,9 +9,12 @@ import (
 
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 // CertificateChallenge tries to get a certificate from Let's Encrypt
@@ -19,12 +23,7 @@ type CertificateChallenge struct {
 	partitionDB db.Database
 	logger      logging.Logger
 	acmeClient  *lego.Client
-
-	// DNS challenge config (optional)
-	route53HostedZoneID string
-	awsAccessKeyID      string
-	awsSecretAccessKey  string
-	awsRegion           string
+	vault       *vault.Service
 }
 
 type CertificateChallengeConfig struct {
@@ -32,12 +31,7 @@ type CertificateChallengeConfig struct {
 	PartitionDB db.Database
 	Logger      logging.Logger
 	AcmeClient  *lego.Client
-
-	// DNS challenge provider configuration (optional)
-	Route53HostedZoneID string // For DNS-01
-	AWSAccessKeyID      string // Optional, for DNS-01
-	AWSSecretAccessKey  string // Optional, for DNS-01
-	AWSRegion           string // Optional, defaults to us-east-1
+	Vault       *vault.Service
 }
 
 // NewCertificateChallenge creates a new certificate challenges workflow instance
@@ -48,6 +42,7 @@ func NewCertificateChallenge(config CertificateChallengeConfig) *CertificateChal
 		partitionDB: config.PartitionDB,
 		logger:      config.Logger,
 		acmeClient:  config.AcmeClient,
+		vault:       config.Vault,
 	}
 }
 
@@ -74,10 +69,16 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		Bundle:  true,
 	}
 
+	dom, err := db.Query.FindDomainByDomain(ctx.Context(), w.db.RO(), req.Domain)
+	if err != nil {
+		w.logger.Error("failed to find domain", "error", err)
+		return err
+	}
+
 	certificates, err := w.acmeClient.Certificate.Obtain(request)
 	if err != nil {
 		db.Query.UpdateDomainChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateDomainChallengeStatusParams{
-			DomainID:  req.Domain,
+			DomainID:  dom.ID,
 			Status:    db.DomainChallengesStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -95,27 +96,38 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 	os.WriteFile("certificate.pem", certificates.Certificate, 0644)
 	os.WriteFile("private_key.pem", certificates.PrivateKey, 0644)
 
-	// // Step 1: Generate build ID
-	// buildID, err := hydra.Step(ctx, "generate-build-id", func(stepCtx context.Context) (string, error) {
-	// 	id := uid.New(uid.BuildPrefix)
-	// 	w.logger.Info("generated build ID", "build_id", id)
-	// 	return id, nil
-	// })
-	// if err != nil {
-	// 	w.logger.Error("failed to generate build ID", "error", err)
-	// 	return err
-	// }
+	encrypted, err := hydra.Step(ctx, "encrypt-cert", func(stepCtx context.Context) (string, error) {
+		resp, err := w.vault.Encrypt(stepCtx, &vaultv1.EncryptRequest{
+			Keyring: "unkey",
+			Data:    string(certificates.PrivateKey),
+		})
 
-	// // Step 1: Generate build ID
-	// buildID, err := hydra.Step(ctx, "generate-build-id", func(stepCtx context.Context) (string, error) {
-	// 	id := uid.New(uid.BuildPrefix)
-	// 	w.logger.Info("generated build ID", "build_id", id)
-	// 	return id, nil
-	// })
-	// if err != nil {
-	// 	w.logger.Error("failed to generate build ID", "error", err)
-	// 	return err
-	// }
+		if err != nil {
+			return "", err
+		}
+
+		return resp.Encrypted, nil
+	})
+	if err != nil {
+		w.logger.Error("failed to store cert in vaults", "error", err)
+		return err
+	}
+
+	err = hydra.StepVoid(ctx, "store-cert", func(stepCtx context.Context) error {
+		now := time.Now().UnixMilli()
+		return pdb.Query.InsertCertificate(stepCtx, w.partitionDB.RW(), pdb.InsertCertificateParams{
+			WorkspaceID:         dom.WorkspaceID,
+			Hostname:            req.Domain,
+			Certificate:         string(certificates.Certificate),
+			EncryptedPrivateKey: encrypted,
+			CreatedAt:           now,
+			UpdatedAt:           now,
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to store cert in vaults", "error", err)
+		return err
+	}
 
 	return nil
 }

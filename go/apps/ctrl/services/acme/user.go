@@ -95,7 +95,6 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 		WorkspaceID:  cfg.WorkspaceID,
 	}
 
-	// Convert private key to string for encryption
 	privKeyString, err := privateKeyToString(privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize private key: %w", err)
