@@ -1,5 +1,10 @@
 package gw
 
+import (
+	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
+)
+
 type Config struct {
 	// GatewayID is the unique identifier for this instance of the Gateway server
 	GatewayID string
@@ -47,13 +52,13 @@ type Config struct {
 
 	// --- Key Service Database configuration ---
 
-	// KeysDatabasePrimary is the primary database connection string for the keys service
+	// MainDatabasePrimary is the primary database connection string for the keys service
 
-	// KeysDatabasePrimary is the primary database connection string for the keys service (non-partitioned)
-	KeysDatabasePrimary string
+	// MainDatabasePrimary is the primary database connection string for the keys service (non-partitioned)
+	MainDatabasePrimary string
 
-	// KeysDatabaseReadonlyReplica is an optional read-replica database connection string for the keys service
-	KeysDatabaseReadonlyReplica string
+	// MainDatabaseReadonlyReplica is an optional read-replica database connection string for the keys service
+	MainDatabaseReadonlyReplica string
 
 	// RedisURL is the Redis connection string for the keys service
 	RedisURL string
@@ -68,8 +73,24 @@ type Config struct {
 
 	// PrometheusPort specifies the port for Prometheus metrics
 	PrometheusPort int
+
+	// --- Vault Configuration ---
+	VaultMasterKeys []string
+	VaultS3         *storage.S3Config
 }
 
 func (c Config) Validate() error {
+	if c.VaultS3 != nil {
+		err := assert.All(
+			assert.NotEmpty(c.VaultS3.S3URL, "vault s3 url is empty"),
+			assert.NotEmpty(c.VaultS3.S3Bucket, "vault s3 bucket is empty"),
+			assert.NotEmpty(c.VaultS3.S3AccessKeyID, "vault s3 access key id is empty"),
+			assert.NotEmpty(c.VaultS3.S3AccessKeySecret, "vault s3 secret access key is empty"),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

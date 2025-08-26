@@ -28,6 +28,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	"github.com/unkeyed/unkey/go/pkg/version"
 )
 
@@ -106,6 +108,29 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
+	var vaultSvc *vault.Service
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
+		vaultStorage, err := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.VaultS3.S3URL,
+			S3Bucket:          cfg.VaultS3.S3Bucket,
+			S3AccessKeyID:     cfg.VaultS3.S3AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.S3AccessKeySecret,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault storage: %w", err)
+		}
+
+		vaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    vaultStorage,
+			MasterKeys: cfg.VaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault service: %w", err)
+		}
+	}
+
 	partitionedDB, err := partitiondb.New(partitiondb.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
@@ -114,19 +139,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
-	defer partitionedDB.Close()
+	shutdowns.Register(partitionedDB.Close)
 
 	// Create separate non-partitioned database connection for keys service
-	var keysDB db.Database
-	keysDB, err = db.New(db.Config{
-		PrimaryDSN:  cfg.KeysDatabasePrimary,
-		ReadOnlyDSN: cfg.KeysDatabaseReadonlyReplica,
+	var mainDB db.Database
+	mainDB, err = db.New(db.Config{
+		PrimaryDSN:  cfg.MainDatabasePrimary,
+		ReadOnlyDSN: cfg.MainDatabaseReadonlyReplica,
 		Logger:      logger,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to create keys db: %w", err)
+		return fmt.Errorf("unable to create main db: %w", err)
 	}
-	defer keysDB.Close()
+	shutdowns.Register(mainDB.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -155,6 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create counter: %w", err)
 	}
+	shutdowns.Register(ctr.Close)
 
 	// Create rate limiting service
 	rlSvc, err := ratelimit.New(ratelimit.Config{
@@ -165,11 +191,12 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
+	shutdowns.Register(rlSvc.Close)
 
 	// Create key service with non-partitioned database
 	keySvc, err := keys.New(keys.Config{
 		Logger:      logger,
-		DB:          keysDB,
+		DB:          mainDB,
 		KeyCache:    caches.VerificationKeyByHash,
 		RateLimiter: rlSvc,
 		RBAC:        rbac.New(),
@@ -180,6 +207,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+	shutdowns.Register(keySvc.Close)
 
 	// Create routing service with partitioned database
 	routingService, err := routing.New(routing.Config{
@@ -199,6 +227,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:                  partitionedDB,
 		TLSCertificateCache: caches.TLSCertificate,
 		DefaultCertDomain:   cfg.DefaultCertDomain,
+		Vault:               vaultSvc,
 	})
 
 	// Create validation service
@@ -210,7 +239,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validation service: %w", err)
 	}
 
-	// Create ACME client
 	httpClient := &http.Client{}
 	acmeClient := ctrlv1connect.NewAcmeServiceClient(httpClient, cfg.CtrlAddr)
 
@@ -256,8 +284,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register routes for HTTPS server (main gateway)
 	router.Register(gwSrv, services, cfg.Region, router.HTTPSServer)
 
-	if cfg.HttpPort != 0 {
-		// Create listener
+	if cfg.HttpPort > 0 {
 		challengeListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if err != nil {
 			return fmt.Errorf("unable to create listener: %w", err)
@@ -265,7 +292,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 		go func() {
 			logger.Info("HTTP server (ACME challenges) started successfully", "addr", challengeListener.Addr().String())
-
 			serveErr := challengeSrv.Serve(ctx, challengeListener)
 			if serveErr != nil {
 				panic(serveErr)
@@ -273,8 +299,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	if cfg.HttpsPort != 0 {
-		// Create listener
+	if cfg.HttpsPort > 0 {
 		gwListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
 		if err != nil {
 			return fmt.Errorf("unable to create listener: %w", err)
@@ -282,7 +307,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 		go func() {
 			logger.Info("HTTPS gateway server started successfully", "addr", gwListener.Addr().String())
-
 			serveErr := gwSrv.Serve(ctx, gwListener)
 			if serveErr != nil {
 				panic(serveErr)

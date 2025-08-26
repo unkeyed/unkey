@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/partition/db"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 type Service interface {
@@ -20,6 +21,9 @@ type Config struct {
 
 	// DB is the database used to store certificates.
 	DB db.Database
+
+	// VaultSvc is the vault service used to store certificates.
+	Vault *vault.Service
 
 	TLSCertificateCache cache.Cache[string, tls.Certificate]
 

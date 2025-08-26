@@ -283,6 +283,7 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 type DomainChallengesStatus string
 
 const (
+	DomainChallengesStatusWaiting  DomainChallengesStatus = "waiting"
 	DomainChallengesStatusPending  DomainChallengesStatus = "pending"
 	DomainChallengesStatusVerified DomainChallengesStatus = "verified"
 	DomainChallengesStatusFailed   DomainChallengesStatus = "failed"
@@ -322,6 +323,49 @@ func (ns NullDomainChallengesStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DomainChallengesStatus), nil
+}
+
+type DomainChallengesType string
+
+const (
+	DomainChallengesTypeHttp01    DomainChallengesType = "http-01"
+	DomainChallengesTypeDns01     DomainChallengesType = "dns-01"
+	DomainChallengesTypeTlsAlpn01 DomainChallengesType = "tls-alpn-01"
+)
+
+func (e *DomainChallengesType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DomainChallengesType(s)
+	case string:
+		*e = DomainChallengesType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DomainChallengesType: %T", src)
+	}
+	return nil
+}
+
+type NullDomainChallengesType struct {
+	DomainChallengesType DomainChallengesType
+	Valid                bool // Valid is true if DomainChallengesType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDomainChallengesType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DomainChallengesType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DomainChallengesType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDomainChallengesType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DomainChallengesType), nil
 }
 
 type DomainsType string
@@ -579,11 +623,12 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeUser struct {
-	ID           uint64        `db:"id"`
-	WorkspaceID  string        `db:"workspace_id"`
-	EncryptedKey string        `db:"encrypted_key"`
-	CreatedAt    int64         `db:"created_at"`
-	UpdatedAt    sql.NullInt64 `db:"updated_at"`
+	ID              uint64         `db:"id"`
+	WorkspaceID     string         `db:"workspace_id"`
+	EncryptedKey    string         `db:"encrypted_key"`
+	RegistrationUri sql.NullString `db:"registration_uri"`
+	CreatedAt       int64          `db:"created_at"`
+	UpdatedAt       sql.NullInt64  `db:"updated_at"`
 }
 
 type Api struct {
@@ -697,12 +742,13 @@ type DomainChallenge struct {
 	ID            uint64                 `db:"id"`
 	WorkspaceID   string                 `db:"workspace_id"`
 	DomainID      string                 `db:"domain_id"`
-	Token         string                 `db:"token"`
-	Authorization string                 `db:"authorization"`
+	Token         sql.NullString         `db:"token"`
+	Authorization sql.NullString         `db:"authorization"`
 	Status        DomainChallengesStatus `db:"status"`
+	Type          DomainChallengesType   `db:"type"`
 	CreatedAt     int64                  `db:"created_at"`
 	UpdatedAt     sql.NullInt64          `db:"updated_at"`
-	ExpiresAt     uint64                 `db:"expires_at"`
+	ExpiresAt     sql.NullInt64          `db:"expires_at"`
 }
 
 type EncryptedKey struct {

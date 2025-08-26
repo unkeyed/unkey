@@ -7,21 +7,22 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findDomainChallengeByToken = `-- name: FindDomainChallengeByToken :one
-SELECT id, workspace_id, domain_id, token, authorization, status, created_at, updated_at, expires_at FROM domain_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+SELECT id, workspace_id, domain_id, token, authorization, status, type, created_at, updated_at, expires_at FROM domain_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 `
 
 type FindDomainChallengeByTokenParams struct {
-	WorkspaceID string `db:"workspace_id"`
-	DomainID    string `db:"domain_id"`
-	Token       string `db:"token"`
+	WorkspaceID string         `db:"workspace_id"`
+	DomainID    string         `db:"domain_id"`
+	Token       sql.NullString `db:"token"`
 }
 
 // FindDomainChallengeByToken
 //
-//	SELECT id, workspace_id, domain_id, token, authorization, status, created_at, updated_at, expires_at FROM domain_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+//	SELECT id, workspace_id, domain_id, token, authorization, status, type, created_at, updated_at, expires_at FROM domain_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 func (q *Queries) FindDomainChallengeByToken(ctx context.Context, db DBTX, arg FindDomainChallengeByTokenParams) (DomainChallenge, error) {
 	row := db.QueryRowContext(ctx, findDomainChallengeByToken, arg.WorkspaceID, arg.DomainID, arg.Token)
 	var i DomainChallenge
@@ -32,6 +33,7 @@ func (q *Queries) FindDomainChallengeByToken(ctx context.Context, db DBTX, arg F
 		&i.Token,
 		&i.Authorization,
 		&i.Status,
+		&i.Type,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ExpiresAt,

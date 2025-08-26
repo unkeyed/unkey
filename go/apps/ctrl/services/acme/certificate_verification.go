@@ -2,6 +2,8 @@ package acme
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -28,7 +30,7 @@ func (s *Service) HandleCertificateVerification(
 	challenge, err := db.Query.FindDomainChallengeByToken(ctx, s.db.RO(), db.FindDomainChallengeByTokenParams{
 		WorkspaceID: domain.WorkspaceID,
 		DomainID:    domain.ID,
-		Token:       req.Msg.GetToken(),
+		Token:       sql.NullString{Valid: true, String: req.Msg.GetToken()},
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -38,8 +40,12 @@ func (s *Service) HandleCertificateVerification(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	if !challenge.Authorization.Valid {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("challenge hasn't been issued yet"))
+	}
+
 	s.logger.Info("Found domain and challenge", "domain", domain.ID, "challenge", challenge.ID)
-	res.Msg.Token = challenge.Authorization
+	res.Msg.Token = challenge.Authorization.String
 
 	return res, nil
 }

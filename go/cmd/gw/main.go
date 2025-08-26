@@ -6,6 +6,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
 var Cmd = &cli.Command{
@@ -52,10 +53,10 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_DATABASE_REPLICA")),
 
 		// Database Configuration - Keys Service
-		cli.String("keys-database-primary", "MySQL connection string for keys service primary database (non-partitioned). Required. Example: user:pass@host:3306/unkey?parseTime=true",
+		cli.String("main-database-primary", "MySQL connection string for keys service primary database (non-partitioned). Required. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_KEYS_DATABASE_PRIMARY")),
 
-		cli.String("keys-database-replica", "MySQL connection string for keys service read-replica (non-partitioned). Format same as keys-database-primary.",
+		cli.String("main-database-replica", "MySQL connection string for keys service read-replica (non-partitioned). Format same as main-database-primary.",
 			cli.EnvVar("UNKEY_KEYS_DATABASE_REPLICA")),
 
 		// ClickHouse Configuration
@@ -73,11 +74,33 @@ var Cmd = &cli.Command{
 			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
 		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.",
 			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
+
+		// Vault Configuration
+		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
+			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket name",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 secret access key",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 	},
 	Action: action,
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
+	var vaultS3Config *storage.S3Config
+	if cmd.String("vault-s3-url") != "" {
+		vaultS3Config = &storage.S3Config{
+			S3URL:             cmd.String("vault-s3-url"),
+			S3Bucket:          cmd.String("vault-s3-bucket"),
+			S3AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			S3AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+		}
+	}
+
 	config := gw.Config{
 		// Basic configuration
 		GatewayID: cmd.String("gateway-id"),
@@ -99,8 +122,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		DatabaseReadonlyReplica: cmd.String("database-replica"),
 
 		// Keys Database configuration
-		KeysDatabasePrimary:         cmd.String("keys-database-primary"),
-		KeysDatabaseReadonlyReplica: cmd.String("keys-database-replica"),
+		MainDatabasePrimary:         cmd.String("main-database-primary"),
+		MainDatabaseReadonlyReplica: cmd.String("main-database-replica"),
 
 		// Control Plane configuration
 		CtrlAddr: cmd.String("ctrl-addr"),
@@ -115,6 +138,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 		PrometheusPort:        cmd.Int("prometheus-port"),
+
+		// Vault configuration
+		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
+		VaultS3:         vaultS3Config,
 	}
 
 	err := config.Validate()

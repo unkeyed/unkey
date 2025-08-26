@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
 var Cmd = &cli.Command{
@@ -58,6 +59,18 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_METALD_ADDRESS")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
+
+		// Vault Configuration
+		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
+			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket name",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 secret access key",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 	},
 	Action: action,
 }
@@ -77,6 +90,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		tlsConfig, err = tls.NewFromFiles(tlsCertFile, tlsKeyFile)
 		if err != nil {
 			return cli.Exit("Failed to load TLS configuration: "+err.Error(), 1)
+		}
+	}
+
+	var vaultS3Config *storage.S3Config
+	if cmd.String("vault-s3-url") != "" {
+		vaultS3Config = &storage.S3Config{
+			S3URL:             cmd.String("vault-s3-url"),
+			S3Bucket:          cmd.String("vault-s3-bucket"),
+			S3AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			S3AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 		}
 	}
 
@@ -104,6 +127,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		AuthToken:        cmd.String("auth-token"),
 		MetaldAddress:    cmd.String("metald-address"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
+
+		// Vault configuration
+		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
+		VaultS3:         vaultS3Config,
 
 		// Common
 		Clock: clock.New(),

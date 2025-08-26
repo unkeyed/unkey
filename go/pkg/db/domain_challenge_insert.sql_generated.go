@@ -35,12 +35,12 @@ INSERT INTO domain_challenges (
 type InsertDomainChallengeParams struct {
 	WorkspaceID   string                 `db:"workspace_id"`
 	DomainID      string                 `db:"domain_id"`
-	Token         string                 `db:"token"`
-	Authorization string                 `db:"authorization"`
+	Token         sql.NullString         `db:"token"`
+	Authorization sql.NullString         `db:"authorization"`
 	Status        DomainChallengesStatus `db:"status"`
 	CreatedAt     int64                  `db:"created_at"`
 	UpdatedAt     sql.NullInt64          `db:"updated_at"`
-	ExpiresAt     uint64                 `db:"expires_at"`
+	ExpiresAt     sql.NullInt64          `db:"expires_at"`
 }
 
 // InsertDomainChallenge

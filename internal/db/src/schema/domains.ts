@@ -46,25 +46,38 @@ export const domains = mysqlTable(
 export const domainChallenges = mysqlTable(
   "domain_challenges",
   {
-    id: bigint("id", { mode: "number", unsigned: true }).primaryKey(),
+    id: bigint("id", { mode: "number", unsigned: true })
+      .primaryKey()
+      .autoincrement(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     domainId: varchar("domain_id", { length: 255 }).notNull(),
-    token: varchar("token", { length: 255 }).notNull(),
-    authorization: varchar("authorization", { length: 255 }).notNull(),
-    status: mysqlEnum("status", ["pending", "verified", "failed", "expired"])
+    token: varchar("token", { length: 255 }),
+    authorization: varchar("authorization", { length: 255 }),
+    // waiting mean's we haven't picked it up yet and it's not started
+    status: mysqlEnum("status", [
+      "waiting",
+      "pending",
+      "verified",
+      "failed",
+      "expired",
+    ])
       .notNull()
       .default("pending"),
+    type: mysqlEnum("type", ["http-01", "dns-01", "tls-alpn-01"])
+      .notNull()
+      .default("http-01"),
     ...lifecycleDates,
     expiresAt: bigint("expires_at", {
       mode: "number",
       unsigned: true,
-    }).notNull(),
+    }),
   },
   (table) => ({
-    domainIdWorkspaceIdIdx: index("domainIdWorkspaceId_idx").on(
+    domainIdWorkspaceIdIdx: uniqueIndex("domainIdWorkspaceId_idx").on(
       table.domainId,
       table.workspaceId
     ),
+    domainStatus: index("domain_status_idx").on(table.status),
   })
 );
 

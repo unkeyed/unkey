@@ -625,8 +625,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}
 
 		if req.Hostname != "" {
+			domainId := uid.New(uid.DomainPrefix)
 			domains = append(domains, db.InsertDomainParams{
-				ID:              uid.New(uid.DomainPrefix),
+				ID:              domainId,
 				WorkspaceID:     req.WorkspaceID,
 				ProjectID:       req.ProjectID,
 				Domain:          req.Hostname,
@@ -635,6 +636,21 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				CreatedAt:       now,
 				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
 			})
+
+			err = db.Query.InsertDomainChallenge(ctx.Context(), w.db.RW(), db.InsertDomainChallengeParams{
+				WorkspaceID:   req.WorkspaceID,
+				DomainID:      domainId,
+				Token:         sql.NullString{Valid: false, String: ""},
+				Authorization: sql.NullString{Valid: false, String: ""},
+				Status:        db.DomainChallengesStatusWaiting,
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
+				ExpiresAt:     sql.NullInt64{Valid: false, Int64: 0},
+			})
+			if err != nil {
+				w.logger.Error("failed to insert domain challenge", "error", err, "deployment_id", req.DeploymentID)
+				return err
+			}
 		}
 
 		if len(domains) > 0 {

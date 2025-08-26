@@ -376,9 +376,10 @@ CREATE TABLE `deployments` (
 );
 
 CREATE TABLE `acme_users` (
-	`id` bigint unsigned NOT NULL,
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
-	`encrypted_key` varchar(255) NOT NULL,
+	`encrypted_key` text NOT NULL,
+	`registration_uri` text,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
@@ -398,16 +399,18 @@ CREATE TABLE `hostname_routes` (
 );
 
 CREATE TABLE `domain_challenges` (
-	`id` bigint unsigned NOT NULL,
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`domain_id` varchar(255) NOT NULL,
-	`token` varchar(255) NOT NULL,
-	`authorization` varchar(255) NOT NULL,
-	`status` enum('pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
+	`token` varchar(255),
+	`authorization` varchar(255),
+	`status` enum('waiting','pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
+	`type` enum('http-01','dns-01','tls-alpn-01') NOT NULL DEFAULT 'http-01',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	`expires_at` bigint unsigned NOT NULL,
-	CONSTRAINT `domain_challenges_id` PRIMARY KEY(`id`)
+	`expires_at` bigint unsigned,
+	CONSTRAINT `domain_challenges_id` PRIMARY KEY(`id`),
+	CONSTRAINT `domainIdWorkspaceId_idx` UNIQUE(`domain_id`,`workspace_id`)
 );
 
 CREATE TABLE `domains` (
@@ -460,6 +463,6 @@ CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);
 CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);
 CREATE INDEX `deployment_idx` ON `hostname_routes` (`deployment_id`);
-CREATE INDEX `domainIdWorkspaceId_idx` ON `domain_challenges` (`domain_id`,`workspace_id`);
+CREATE INDEX `domain_status_idx` ON `domain_challenges` (`status`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
