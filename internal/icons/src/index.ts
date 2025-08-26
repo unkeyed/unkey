@@ -78,6 +78,7 @@ export * from "./icons/laptop-2";
 export * from "./icons/layers-2";
 export * from "./icons/layers-3";
 export * from "./icons/link-4";
+export * from "./icons/list-radio";
 export * from "./icons/lock";
 export * from "./icons/magnifier";
 export * from "./icons/minus";

@@ -1,9 +1,9 @@
 "use client";
 
+import { DeploymentsNavigation } from "../navigation";
 import { DeploymentsListControlCloud } from "./components/control-cloud";
 import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsList } from "./components/table/deployments-list";
-import { DeploymentsNavigation } from "./navigation";
 
 export default function Deployments({
   params: { projectId },
