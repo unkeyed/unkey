@@ -1,11 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  mysqlTable,
-  varchar,
-  text,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const acmeUsers = mysqlTable(
@@ -19,7 +13,7 @@ export const acmeUsers = mysqlTable(
   },
   (table) => ({
     domainIdx: index("domain_idx").on(table.workspaceId),
-  })
+  }),
 );
 
 export const acmeUsersRelations = relations(acmeUsers, () => ({

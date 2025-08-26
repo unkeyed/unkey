@@ -22,9 +22,7 @@ export const domains = mysqlTable(
     // Domain information
     domain: varchar("domain", { length: 255 }).notNull(),
 
-    type: mysqlEnum("type", ["custom", "generated"])
-      .notNull()
-      .default("generated"),
+    type: mysqlEnum("type", ["custom", "generated"]).notNull().default("generated"),
 
     // Auto-generated subdomain configuration
     subdomainConfig: json("subdomain_config").$type<{
@@ -40,32 +38,22 @@ export const domains = mysqlTable(
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
     projectIdx: index("project_idx").on(table.projectId),
     domainIdx: uniqueIndex("domain_idx").on(table.domain),
-  })
+  }),
 );
 
 export const domainChallenges = mysqlTable(
   "domain_challenges",
   {
-    id: bigint("id", { mode: "number", unsigned: true })
-      .primaryKey()
-      .autoincrement(),
+    id: bigint("id", { mode: "number", unsigned: true }).primaryKey().autoincrement(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     domainId: varchar("domain_id", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }),
     authorization: varchar("authorization", { length: 255 }),
     // waiting mean's we haven't picked it up yet and it's not started
-    status: mysqlEnum("status", [
-      "waiting",
-      "pending",
-      "verified",
-      "failed",
-      "expired",
-    ])
+    status: mysqlEnum("status", ["waiting", "pending", "verified", "failed", "expired"])
       .notNull()
       .default("pending"),
-    type: mysqlEnum("type", ["http-01", "dns-01", "tls-alpn-01"])
-      .notNull()
-      .default("http-01"),
+    type: mysqlEnum("type", ["http-01", "dns-01", "tls-alpn-01"]).notNull().default("http-01"),
     ...lifecycleDates,
     expiresAt: bigint("expires_at", {
       mode: "number",
@@ -75,10 +63,10 @@ export const domainChallenges = mysqlTable(
   (table) => ({
     domainIdWorkspaceIdIdx: uniqueIndex("domainIdWorkspaceId_idx").on(
       table.domainId,
-      table.workspaceId
+      table.workspaceId,
     ),
     domainStatus: index("domain_status_idx").on(table.status),
-  })
+  }),
 );
 
 export const domainRelations = relations(domains, () => ({
