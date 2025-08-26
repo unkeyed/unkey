@@ -1,3 +1,4 @@
+"use client";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -17,6 +18,7 @@ import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
+
 export const NestedNavItem = ({
   item,
   onLoadMore,
@@ -24,6 +26,7 @@ export const NestedNavItem = ({
   depth = 0,
   maxDepth = 1,
   isSubItem = false,
+  forceCollapsed = false,
 }: NavProps & {
   depth?: number;
   maxDepth?: number;
@@ -44,6 +47,14 @@ export const NestedNavItem = ({
   const Icon = item.icon;
   const hasChildren = item.items && item.items.length > 0;
 
+  // Force collapse when forceCollapsed prop changes
+  useLayoutEffect(() => {
+    if (forceCollapsed && isOpen) {
+      setIsOpen(false);
+      setUserManuallyCollapsed(true);
+    }
+  }, [forceCollapsed, isOpen]);
+
   useLayoutEffect(() => {
     if (!hasChildren || !pathname) {
       return;
@@ -61,8 +72,8 @@ export const NestedNavItem = ({
         lower: true,
         replacement: "-",
       })}`;
-      // Only auto-open parent if user hasn't manually collapsed it
-      if (pathname.startsWith(itemPath) && !userManuallyCollapsed) {
+      // Only auto-open parent if user hasn't manually collapsed it AND not force collapsed
+      if (pathname.startsWith(itemPath) && !userManuallyCollapsed && !forceCollapsed) {
         setIsOpen(true);
       }
     }
@@ -73,6 +84,7 @@ export const NestedNavItem = ({
     hasChildren,
     userManuallyCollapsed,
     childrenUserManuallyCollapsed,
+    forceCollapsed,
   ]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
@@ -80,6 +92,7 @@ export const NestedNavItem = ({
     if (sidebar.open && hasChildren && !isSubItem) {
       e.preventDefault();
       const newOpenState = !isOpen;
+
       setIsOpen(newOpenState);
       // Track user preference - if they're closing it, mark as manually collapsed
       setUserManuallyCollapsed(!newOpenState);
@@ -99,6 +112,7 @@ export const NestedNavItem = ({
       });
     }
   };
+
   const handleOpenChange = (open: boolean) => {
     if (isSubItem) {
       setIsChildrenOpen(open);
@@ -114,6 +128,7 @@ export const NestedNavItem = ({
       }
     }
   };
+
   // Reset user preferences when pathname changes to a different section
   // This allows auto-opening to work again when navigating to different areas
   useLayoutEffect(() => {
@@ -147,6 +162,7 @@ export const NestedNavItem = ({
             depth={depth + 1}
             maxDepth={maxDepth}
             isSubItem={true}
+            forceCollapsed={forceCollapsed}
           />
         </SidebarMenuSubItem>
       );
@@ -203,6 +219,7 @@ export const NestedNavItem = ({
       </SidebarMenuSubItem>
     );
   };
+
   return (
     <Collapsible
       asChild

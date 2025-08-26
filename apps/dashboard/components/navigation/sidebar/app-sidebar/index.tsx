@@ -168,6 +168,19 @@ export function AppSidebar({
     );
   }, [currentSoloConfig, projectAddedNavItems]);
 
+  const getForceCollapsedForItem = useCallback(
+    (item: NavItem): boolean => {
+      if (!currentSoloConfig) {
+        return false;
+      }
+
+      // Force collapse if this item corresponds to the current solo mode and soloModeOverride is false
+      const itemMatchesSoloMode = item.href.includes(`/${currentSoloConfig.routeSegment}`);
+      return itemMatchesSoloMode && !soloModeOverride;
+    },
+    [currentSoloConfig, soloModeOverride],
+  );
+
   const handleBackToMainMenu = useCallback(() => {
     if (currentSoloNavItem) {
       handleToggleCollapse(currentSoloNavItem, false);
@@ -209,6 +222,7 @@ export function AppSidebar({
                   item={item}
                   onLoadMore={handleLoadMore}
                   onToggleCollapse={handleToggleCollapse}
+                  forceCollapsed={getForceCollapsedForItem(item)}
                 />
               </div>
             ))}
