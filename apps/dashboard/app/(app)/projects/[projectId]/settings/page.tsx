@@ -11,7 +11,7 @@ export default function ProjectSettings({
   return (
     <div>
       <ProjectNavigation projectId={projectId} />
-      <ProjectSubNavigation />
+      <ProjectSubNavigation onMount={() => {}} />
       <div className="flex flex-col">Dummy Settings</div>
     </div>
   );

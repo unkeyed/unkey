@@ -11,7 +11,7 @@ export default function ProjectLogs({
   return (
     <div>
       <ProjectNavigation projectId={projectId} />
-      <ProjectSubNavigation />
+      <ProjectSubNavigation onMount={() => {}} />
       <div className="flex flex-col">Go away!</div>
     </div>
   );

@@ -14,7 +14,7 @@ export default function Deployments({
   return (
     <div>
       <ProjectNavigation projectId={projectId} />
-      <ProjectSubNavigation />
+      <ProjectSubNavigation onMount={() => {}} />
       <div className="flex flex-col">
         <DeploymentsListControls />
         <DeploymentsListControlCloud />
