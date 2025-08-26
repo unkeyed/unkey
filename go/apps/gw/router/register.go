@@ -23,7 +23,7 @@ const (
 // Register registers all routes with the gateway server.
 // This function runs during startup and sets up the middleware chain and routes.
 // The serverType parameter determines whether to register HTTP (ACME) or HTTPS (main gateway) routes.
-func Register(srv *server.Server, svc *Services, region string, serverType ServerType) {
+func Register(srv *server.Server, svc *Services, region string, serverType ServerType) error {
 	// Define default middleware stack
 	defaultMiddlewares := []server.Middleware{
 		server.WithTracing(),
@@ -47,6 +47,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 	}
 
 	// Create proxy service with shared transport
+	// Random defaults which can be fine-tuned later
 	proxyService, err := proxy.New(proxy.Config{
 		Logger:              svc.Logger,
 		MaxIdleConns:        transport.MaxIdleConns,
@@ -56,7 +57,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 	})
 	if err != nil {
 		svc.Logger.Error("failed to create proxy service", "error", err.Error())
-		return
+		return err
 	}
 
 	authService, err := auth.New(auth.Config{
@@ -65,7 +66,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 	})
 	if err != nil {
 		svc.Logger.Error("failed to create auth service", "error", err.Error())
-		return
+		return err
 	}
 
 	// Create the main proxy handler that handles all gateway requests
@@ -127,4 +128,6 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 
 	// Set the mux as the server handler
 	srv.SetHandler(mux)
+
+	return nil
 }

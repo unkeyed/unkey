@@ -2,7 +2,6 @@ package acme_challenge
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"path"
 
@@ -29,14 +28,9 @@ func (h *Handler) Handle(ctx context.Context, s *server.Session) error {
 	req := s.Request()
 
 	// Look up target configuration based on the request host
-	// Strip port from hostname for database lookup (Host header may include port)
-	hostname, _, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		// If SplitHostPort fails, req.Host doesn't contain a port, use it as-is
-		hostname = req.Host
-	}
+	hostname := routing.ExtractHostname(req)
 
-	_, err = h.RoutingService.GetConfig(ctx, hostname)
+	_, err := h.RoutingService.GetConfig(ctx, hostname)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),

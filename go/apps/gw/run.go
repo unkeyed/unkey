@@ -279,10 +279,16 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register routes for HTTP server (ACME challenges)
-	router.Register(challengeSrv, services, cfg.Region, router.HTTPServer)
+	err = router.Register(challengeSrv, services, cfg.Region, router.HTTPServer)
+	if err != nil {
+		return fmt.Errorf("unable to register routes for HTTP server: %w", err)
+	}
 
 	// Register routes for HTTPS server (main gateway)
-	router.Register(gwSrv, services, cfg.Region, router.HTTPSServer)
+	err = router.Register(gwSrv, services, cfg.Region, router.HTTPSServer)
+	if err != nil {
+		return fmt.Errorf("unable to register routes for HTTPS server: %w", err)
+	}
 
 	if cfg.HttpPort > 0 {
 		challengeListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
