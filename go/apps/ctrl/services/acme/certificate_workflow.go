@@ -3,8 +3,6 @@ package acme
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-acme/lego/v4/certificate"
@@ -58,55 +56,53 @@ type CertificateChallengeRequest struct {
 	Domain      string `json:"domain"`
 }
 
+type EncryptedCertificate struct {
+	Certificate         string `json:"certificate"`
+	EncryptedPrivateKey string `json:"encrypted_private_key"`
+}
+
 // Run executes the complete build and deployment workflow
 func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateChallengeRequest) error {
 	w.logger.Info("starting lets-encrypt challenge", "workspace_id", req.WorkspaceID, "domain", req.Domain)
 
-	// The challenge provider is already configured on the ACME client
-	// Just request the certificate
-	request := certificate.ObtainRequest{
-		Domains: []string{req.Domain},
-		Bundle:  true,
-	}
-
-	dom, err := db.Query.FindDomainByDomain(ctx.Context(), w.db.RO(), req.Domain)
+	dom, err := hydra.Step(ctx, "find-domain", func(stepCtx context.Context) (db.Domain, error) {
+		return db.Query.FindDomainByDomain(ctx.Context(), w.db.RO(), req.Domain)
+	})
 	if err != nil {
 		w.logger.Error("failed to find domain", "error", err)
 		return err
 	}
 
-	certificates, err := w.acmeClient.Certificate.Obtain(request)
-	if err != nil {
-		db.Query.UpdateDomainChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateDomainChallengeStatusParams{
-			DomainID:  dom.ID,
-			Status:    db.DomainChallengesStatusFailed,
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	cert, err := hydra.Step(ctx, "get-and-encrypt-cert", func(stepCtx context.Context) (EncryptedCertificate, error) {
+		// The challenge provider is already configured on the ACME client
+		// Just request the certificate
+		certificates, err := w.acmeClient.Certificate.Obtain(certificate.ObtainRequest{
+			Domains: []string{req.Domain},
+			Bundle:  true,
 		})
-		w.logger.Error("failed to obtain certificate", "error", err)
-		return err
-	}
 
-	// TODO: Implement certificate renewal logic
-	// w.acmeClient.Certificate.Renew(certificate.Resource{}, bundle bool, mustStaple bool, preferredChain string)
+		if err != nil {
+			db.Query.UpdateDomainChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateDomainChallengeStatusParams{
+				DomainID:  dom.ID,
+				Status:    db.DomainChallengesStatusFailed,
+				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+			w.logger.Error("failed to obtain certificate", "error", err)
+			return EncryptedCertificate{}, err
+		}
 
-	// Each certificate comes back with the cert bytes, the bytes of the client's
-	// private key, and a certificate URL. SAVE THESE TO DISK.
-	fmt.Printf("%#v\n", certificates)
-
-	os.WriteFile("certificate.pem", certificates.Certificate, 0644)
-	os.WriteFile("private_key.pem", certificates.PrivateKey, 0644)
-
-	encrypted, err := hydra.Step(ctx, "encrypt-cert", func(stepCtx context.Context) (string, error) {
+		// TODO: Implement certificate renewal logic
+		// w.acmeClient.Certificate.Renew(certificate.Resource{}, bundle bool, mustStaple bool, preferredChain string)
 		resp, err := w.vault.Encrypt(stepCtx, &vaultv1.EncryptRequest{
 			Keyring: "unkey",
 			Data:    string(certificates.PrivateKey),
 		})
 
 		if err != nil {
-			return "", err
+			return EncryptedCertificate{}, err
 		}
 
-		return resp.Encrypted, nil
+		return EncryptedCertificate{Certificate: certificates.CertStableURL, EncryptedPrivateKey: resp.Encrypted}, nil
 	})
 	if err != nil {
 		w.logger.Error("failed to store cert in vaults", "error", err)
@@ -118,10 +114,10 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		return pdb.Query.InsertCertificate(stepCtx, w.partitionDB.RW(), pdb.InsertCertificateParams{
 			WorkspaceID:         dom.WorkspaceID,
 			Hostname:            req.Domain,
-			Certificate:         string(certificates.Certificate),
-			EncryptedPrivateKey: encrypted,
+			Certificate:         cert.Certificate,
+			EncryptedPrivateKey: cert.EncryptedPrivateKey,
 			CreatedAt:           now,
-			UpdatedAt:           now,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
 		})
 	})
 	if err != nil {

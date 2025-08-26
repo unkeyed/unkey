@@ -71,8 +71,7 @@ CREATE TABLE `certificates` (
   `certificate` text NOT NULL,
   `encrypted_private_key` text NOT NULL,
   `created_at` bigint NOT NULL,
-  `updated_at` bigint NOT NULL,
-  `expires_at` bigint NOT NULL,
+  `updated_at` bigint,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_hostname` (`hostname`),
   KEY `idx_expires_at` (`expires_at`)

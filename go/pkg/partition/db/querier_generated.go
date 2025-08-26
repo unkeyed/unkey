@@ -15,7 +15,7 @@ type Querier interface {
 	DeleteGatewayByHostname(ctx context.Context, db DBTX, hostname string) error
 	//FindCertificateByHostname
 	//
-	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at, expires_at FROM certificates WHERE hostname = ?
+	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
 	//FindGatewayByHostname
 	//

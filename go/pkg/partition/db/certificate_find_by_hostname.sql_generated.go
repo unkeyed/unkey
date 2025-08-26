@@ -10,12 +10,12 @@ import (
 )
 
 const findCertificateByHostname = `-- name: FindCertificateByHostname :one
-SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at, expires_at FROM certificates WHERE hostname = ?
+SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 `
 
 // FindCertificateByHostname
 //
-//	SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at, expires_at FROM certificates WHERE hostname = ?
+//	SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 func (q *Queries) FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error) {
 	row := db.QueryRowContext(ctx, findCertificateByHostname, hostname)
 	var i Certificate
@@ -27,7 +27,6 @@ func (q *Queries) FindCertificateByHostname(ctx context.Context, db DBTX, hostna
 		&i.EncryptedPrivateKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ExpiresAt,
 	)
 	return i, err
 }

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertCertificate = `-- name: InsertCertificate :exec
@@ -20,12 +21,12 @@ updated_at = ?
 `
 
 type InsertCertificateParams struct {
-	WorkspaceID         string `db:"workspace_id"`
-	Hostname            string `db:"hostname"`
-	Certificate         string `db:"certificate"`
-	EncryptedPrivateKey string `db:"encrypted_private_key"`
-	CreatedAt           int64  `db:"created_at"`
-	UpdatedAt           int64  `db:"updated_at"`
+	WorkspaceID         string        `db:"workspace_id"`
+	Hostname            string        `db:"hostname"`
+	Certificate         string        `db:"certificate"`
+	EncryptedPrivateKey string        `db:"encrypted_private_key"`
+	CreatedAt           int64         `db:"created_at"`
+	UpdatedAt           sql.NullInt64 `db:"updated_at"`
 }
 
 // InsertCertificate
