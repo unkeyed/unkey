@@ -13,8 +13,8 @@ export const createWorkspace = t.procedure
   .input(
     z.object({
       name: z.string().min(3).max(50),
-      slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
-        message: "Slug must be lowercase alphanumeric, words separated by single hyphens",
+      slug: z.string().regex(/^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/, {
+        message: "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
       }),
     }),
   )
