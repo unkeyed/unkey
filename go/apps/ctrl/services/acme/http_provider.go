@@ -39,13 +39,6 @@ func NewHTTPProvider(cfg HTTPProviderConfig) *HTTPProvider {
 // and respond with the keyAuth value
 func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	ctx := context.Background()
-
-	p.logger.Info("presenting HTTP-01 challenge",
-		"domain", domain,
-		"token", token,
-		"path", http01.ChallengePath(token),
-	)
-
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
 		p.logger.Error("failed to find domain", "error", err, "domain", domain)
@@ -53,7 +46,6 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	}
 
 	// Update the existing challenge record with the token and authorization
-	// The challenge record should already exist from when it was created
 	err = db.Query.UpdateDomainChallengePending(ctx, p.db.RW(), db.UpdateDomainChallengePendingParams{
 		DomainID:      dom.ID,
 		Status:        db.DomainChallengesStatusPending,
@@ -74,7 +66,6 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	)
 
 	// Give the database time to replicate before Let's Encrypt tries to validate
-	// This is especially important if using read replicas
 	time.Sleep(2 * time.Second)
 
 	return nil
@@ -84,16 +75,13 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	ctx := context.Background()
 
-	p.logger.Info("cleaning up HTTP-01 challenge", "domain", domain, "token", token)
-
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
 		p.logger.Error("failed to find domain", "error", err, "domain", domain)
 		return fmt.Errorf("failed to find domain: %w", err)
 	}
 
-	// Update the challenge status to mark it as no longer needed
-	// You might want to delete it or mark it as 'completed'/'expired'
+	// Update the challenge status to mark it as verified
 	err = db.Query.UpdateDomainChallengeStatus(ctx, p.db.RW(), db.UpdateDomainChallengeStatusParams{
 		DomainID:  dom.ID,
 		Status:    db.DomainChallengesStatusVerified,
@@ -101,7 +89,6 @@ func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	})
 
 	if err != nil {
-		// Non-fatal error - challenge will expire naturally
 		p.logger.Warn("failed to clean up challenge", "error", err, "domain", domain, "token", token)
 	}
 
