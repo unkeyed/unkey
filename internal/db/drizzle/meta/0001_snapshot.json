@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "9f26deca-1f4b-47b2-975b-10b0f10d417b",
+  "id": "2e68f43f-10c8-4438-be11-42ff42733885",
   "prevId": "66125fd8-4e0f-4388-a524-e9afb1d90917",
   "tables": {
     "apis": {
@@ -1127,13 +1127,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "slug": {
-          "name": "slug",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "partition_id": {
           "name": "partition_id",
           "type": "varchar(256)",
@@ -1199,6 +1192,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "delete_protection": {
           "name": "delete_protection",

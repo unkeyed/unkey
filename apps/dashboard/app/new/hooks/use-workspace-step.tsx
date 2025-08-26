@@ -19,16 +19,17 @@ const workspaceSchema = z.object({
   workspaceUrl: z
     .string()
     .min(3, "Workspace URL is required")
+    .max(64, "Workspace URL must be 64 characters or less")
     .regex(
-      /^[a-zA-Z0-9-_]+$/,
-      "URL handle can only contain letters, numbers, hyphens, and underscores",
+      /^(?![-])[a-zA-Z0-9-]+(?<![-])$/,
+      "URL handle can only contain letters, numbers, and hyphens",
     ),
 });
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
 export const useWorkspaceStep = (): OnboardingStep => {
-  const [isSlugGenerated, setIsSlugGenerated] = useState(false);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -103,7 +104,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     }
     createWorkspace.mutateAsync({
       name: data.workspaceName,
-      slug: data.workspaceUrl,
+      slug: data.workspaceUrl.toLowerCase(),
     });
   };
 
@@ -155,10 +156,13 @@ export const useWorkspaceStep = (): OnboardingStep => {
               placeholder="Enter workspace name"
               label="Workspace name"
               onBlur={(evt) => {
-                if (!isSlugGenerated) {
+                const currentSlug = form.getValues("workspaceUrl");
+                const isSlugDirty = form.formState.dirtyFields.workspaceUrl;
+
+                // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
+                if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
                   form.setValue("workspaceUrl", slugify(evt.currentTarget.value));
                   form.trigger("workspaceUrl");
-                  setIsSlugGenerated(true);
                 }
               }}
               required
@@ -172,6 +176,13 @@ export const useWorkspaceStep = (): OnboardingStep => {
               required
               error={form.formState.errors.workspaceUrl?.message}
               prefix="app.unkey.com/"
+              maxLength={64}
+              onChange={(evt) => {
+                // Mark slug as manually edited when user changes it
+                if (evt.currentTarget.value) {
+                  setSlugManuallyEdited(true);
+                }
+              }}
             />
           </div>
         </div>
@@ -204,7 +215,7 @@ const slugify = (text: string): string => {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, "") // Remove special chars except spaces and hyphens
+    .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special chars except letters, numbers, spaces, and hyphens
     .replace(/\s+/g, "-") // Replace spaces with hyphens
     .replace(/-+/g, "-") // Replace multiple hyphens with single
     .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
