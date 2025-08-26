@@ -25,17 +25,6 @@ pull:
 
 up: pull
 	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel
-	@echo "Starting ClickHouse migrations (will retry if ClickHouse isn't ready)..."
-	@for i in {1..10}; do \
-		echo "Migration attempt $$i..."; \
-		if docker compose -f ../deployment/docker-compose.yaml run --rm clickhouse_migrator; then \
-			echo "Migrations completed successfully!"; \
-			break; \
-		else \
-			echo "Migration failed, retrying in 5 seconds..."; \
-			sleep 5; \
-		fi; \
-	done
 
 clean:
 	@docker compose -f ../deployment/docker-compose.yaml down --volumes

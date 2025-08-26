@@ -17,7 +17,8 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       timeout: 20s
       retries: 10
       start_period: 40s
@@ -25,7 +26,14 @@ services:
   planetscale:
     container_name: planetscale
     image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
-    command: ["-listen-port=3900", "-mysql-dbname=unkey", "-mysql-addr=mysql", "-mysql-max-rows=100000", "-mysql-idle-timeout=1s"]
+    command:
+      [
+        "-listen-port=3900",
+        "-mysql-dbname=unkey",
+        "-mysql-addr=mysql",
+        "-mysql-max-rows=100000",
+        "-mysql-idle-timeout=1s",
+      ]
     depends_on:
       mysql:
         condition: service_healthy
@@ -102,8 +110,10 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
   clickhouse:
-    image: bitnami/clickhouse:25.6.4
     container_name: clickhouse
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.clickhouse
     environment:
       CLICKHOUSE_ADMIN_USER: default
       CLICKHOUSE_ADMIN_PASSWORD: password
@@ -113,18 +123,23 @@ services:
     volumes:
       - clickhouse:/bitnami/clickhouse
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--host", "localhost", "--user", "default", "--password", "password", "--query", "SELECT 1"]
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--host",
+          "localhost",
+          "--user",
+          "default",
+          "--password",
+          "password",
+          "--query",
+          "SELECT 1",
+        ]
       timeout: 10s
       retries: 10
       start_period: 30s
       interval: 5s
-  clickhouse_migrator:
-    container_name: clickhouse_migrator
-    build:
-      context: ../internal/clickhouse
-      dockerfile: ./Dockerfile
-    depends_on:
-      - clickhouse
   s3:
     container_name: s3
     image: bitnami/minio:2025.4.3
@@ -151,7 +166,24 @@ services:
       dockerfile: ./apps/api/Dockerfile.dev
     ports:
       - 8787:8787
-    command: ["pnpm", "wrangler", "dev", "--ip=0.0.0.0", "--var=VERSION:1", "--var=DATABASE_HOST:planetscale:3900", "--var=DATABASE_USERNAME:unkey", "--var=DATABASE_PASSWORD:password", "--var=AGENT_URL:http://agent:8080", "--var=AGENT_TOKEN:agent-auth-secret", "--var=EMIT_METRICS_LOGS:false", "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0", "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123", "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070", "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123"]
+    command:
+      [
+        "pnpm",
+        "wrangler",
+        "dev",
+        "--ip=0.0.0.0",
+        "--var=VERSION:1",
+        "--var=DATABASE_HOST:planetscale:3900",
+        "--var=DATABASE_USERNAME:unkey",
+        "--var=DATABASE_PASSWORD:password",
+        "--var=AGENT_URL:http://agent:8080",
+        "--var=AGENT_TOKEN:agent-auth-secret",
+        "--var=EMIT_METRICS_LOGS:false",
+        "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
+        "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
+        "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070",
+        "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123",
+      ]
     depends_on:
       - planetscale
       - agent
