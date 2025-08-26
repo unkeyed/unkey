@@ -585,6 +585,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
+		if len(ratelimitsToInsert) > 0 {
+			chunks := chunk(ratelimitsToInsert, ChunkSize)
+			for _, chunk := range chunks {
+				if err := db.BulkQuery.InsertKeyRatelimits(ctx, tx, chunk); err != nil {
+					return err
+				}
+			}
+		}
+
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return err

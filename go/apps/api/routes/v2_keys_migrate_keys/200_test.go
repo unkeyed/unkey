@@ -98,16 +98,23 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.NotEmpty(t, res.Body.Data.Migrated[0].Hash)
 
 	// Verify key was created in database
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res.Body.Data.Migrated[0].KeyId)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), res.Body.Data.Migrated[0].KeyId)
 	require.NoError(t, err)
+
+	keydata := db.ToKeyData(key)
 
 	require.Equal(t, res.Body.Data.Migrated[0].KeyId, key.ID)
 	require.Equal(t, otherApiKey.LongTokenHash, key.Hash)
-	require.Empty(t, key.Start)
-	require.False(t, key.Enabled)
-	require.NotEmpty(t, key.IdentityID.String)
-	require.NotEmpty(t, key.Name.String)
-	require.NotEmpty(t, key.Meta.String)
+	require.Empty(t, keydata.Key.Start)
+	require.False(t, keydata.Key.Enabled)
+	require.NotNil(t, keydata.Identity)
+	require.NotEmpty(t, keydata.Identity.ID)
+	require.NotEmpty(t, keydata.Key.Name.String)
+	require.NotEmpty(t, keydata.Key.Meta.String)
+	require.Len(t, keydata.Permissions, 1)
+	require.Len(t, keydata.Roles, 1)
+	require.Len(t, keydata.RolePermissions, 0)
+	require.Len(t, keydata.Ratelimits, 1)
 }
 
 // func TestCreateKeyWithOptionalFields(t *testing.T) {
