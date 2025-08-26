@@ -13,11 +13,9 @@ export const createWorkspace = t.procedure
   .input(
     z.object({
       name: z.string().min(3).max(50),
-      slug: z
-        .string()
-        .min(3)
-        .max(64)
-        .regex(/^[a-zA-Z0-9-_]+$/),
+      slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+        message: "Slug must be lowercase alphanumeric, words separated by single hyphens",
+      }),
     }),
   )
   .mutation(async ({ ctx, input }) => {

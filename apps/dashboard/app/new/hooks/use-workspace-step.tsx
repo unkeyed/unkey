@@ -21,8 +21,8 @@ const workspaceSchema = z.object({
     .min(3, "Workspace URL is required")
     .max(64, "Workspace URL must be 64 characters or less")
     .regex(
-      /^(?![-])[a-zA-Z0-9-]+(?<![-])$/,
-      "URL handle can only contain letters, numbers, and hyphens",
+      /^(?!-)[a-z0-9-]+(?<!-)$/,
+      "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
     ),
 });
 
