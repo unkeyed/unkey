@@ -230,7 +230,10 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
 
-	limit, err := db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
+		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+	})
+
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
