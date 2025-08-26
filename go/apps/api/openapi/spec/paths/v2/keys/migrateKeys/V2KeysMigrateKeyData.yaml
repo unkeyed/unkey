@@ -1,0 +1,124 @@
+type: object
+properties:
+  hash:
+    type: string
+    minLength: 3
+    description: The current hash of the key on your sides
+    example: qwerty123
+  externalId:
+    type: string
+    minLength: 1
+    maxLength: 255
+    description: |
+      Links this key to a user or entity in your system using your own identifier.
+      Returned during verification to identify the key owner without additional database lookups.
+      Essential for user-specific analytics, billing, and multi-tenant key management.
+      Use your primary user ID, organization ID, or tenant ID for best results.
+      Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
+    example: user_1234abcd
+  meta:
+    type: object
+    additionalProperties: true
+    maxProperties: 100 # Prevent DoS while allowing rich metadata
+    description: |
+      Stores arbitrary JSON metadata returned during key verification for contextual information.
+      Eliminates additional database lookups during verification, improving performance for stateless services.
+      Avoid storing sensitive data here as it's returned in verification responses.
+      Large metadata objects increase verification latency and should stay under 10KB total size.
+    example:
+      plan: enterprise
+      featureFlags:
+        betaAccess: true
+        concurrentConnections: 10
+      customerName: Acme Corp
+      billing:
+        tier: premium
+        renewal: "2024-12-31"
+  roles:
+    type: array
+    maxItems: 100 # Reasonable limit for role assignments per key
+    items:
+      type: string
+      minLength: 1
+      maxLength: 100 # Keep role names concise and readable
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+    description: |
+      Assigns existing roles to this key for permission management through role-based access control.
+      Roles must already exist in your workspace before assignment.
+      During verification, all permissions from assigned roles are checked against requested permissions.
+      Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
+    example:
+      - api_admin
+      - billing_reader
+  permissions:
+    type: array
+    maxItems: 1000 # Allow extensive permission sets for complex applications
+    items:
+      type: string
+      minLength: 1
+      maxLength: 100 # Keep permission names concise and readable
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    description: |
+      Grants specific permissions directly to this key without requiring role membership.
+      Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
+      Direct permissions supplement any permissions inherited from assigned roles.
+    example:
+      - documents.read
+      - documents.write
+      - settings.view
+  expires:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 4102444800000 # January 1, 2100 - reasonable future limit
+    description: |
+      Sets when this key automatically expires as a Unix timestamp in milliseconds.
+      Verification fails with code=EXPIRED immediately after this time passes.
+      Omitting this field creates a permanent key that never expires.
+
+      Avoid setting timestamps in the past as they immediately invalidate the key.
+      Keys expire based on server time, not client time, which prevents timezone-related issues.
+      Essential for trial periods, temporary access, and security compliance requiring key rotation.
+  enabled:
+    type: boolean
+    default: true
+    description: |
+      Controls whether the key is active immediately upon creation.
+      When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
+      Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
+      Most keys should be created with `enabled=true` for immediate use.
+    example: true
+  credits:
+    "$ref": "../../../../common/KeyCreditsData.yaml"
+    description: |
+      Controls usage-based limits through credit consumption with optional automatic refills.
+      Unlike rate limits which control frequency, credits control total usage with global consistency.
+      Essential for implementing usage-based pricing, subscription tiers, and hard usage quotas.
+      Omitting this field creates unlimited usage, while setting null is not allowed during creation.
+  ratelimits:
+    type: array
+    maxItems: 50 # Reasonable limit for rate limit configurations per identity
+    items:
+      "$ref": "../../../../common/RatelimitRequest.yaml"
+    description: |
+      Defines time-based rate limits that protect against abuse by controlling request frequency.
+      Unlike credits which track total usage, rate limits reset automatically after each window expires.
+      Multiple rate limits can control different operation types with separate thresholds and windows.
+      Essential for preventing API abuse while maintaining good performance for legitimate usage.
+    example:
+      - name: requests
+        limit: 100
+        duration: 60000
+        autoApply: true
+      - name: heavy_operations
+        limit: 10
+        duration: 3600000
+        autoApply: false
+additionalProperties: false
+required:
+  - hash
+examples:
+  basicKey:
+    summary: Basic key
+    description: Migrate this basic key
+    value:

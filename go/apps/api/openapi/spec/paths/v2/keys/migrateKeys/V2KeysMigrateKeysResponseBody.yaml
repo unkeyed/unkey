@@ -1,0 +1,11 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    items:
+      "$ref": "./V2KeysMigrateKeysResponseData.yaml"

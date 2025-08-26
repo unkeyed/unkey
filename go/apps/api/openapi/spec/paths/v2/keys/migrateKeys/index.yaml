@@ -1,0 +1,59 @@
+post:
+  tags:
+    - keys
+  summary: Migrate Api Key(s)
+  description: |
+    Migrate Api Key(s) to Unkey
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions for basic key information:
+    - `api.*.create_key` (to migrate keys to any API)
+    - `api.<api_id>.create_key` (to migrate keys to a specific API)
+  operationId: migrateKeys
+  x-speakeasy-name-override: migrateKeys
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysMigrateKeysRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysMigrateKeysResponseBody.yaml"
+      description: Successfully migrated keys.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -1,0 +1,31 @@
+type: object
+properties:
+  migrationId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    description: Which migration to use
+    example: resend
+  apiId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    description: The ID of the API that the keys should be inserted into
+    example: api_123456789
+  keys:
+    type: array
+    items:
+      $ref: "./V2KeysMigrateKeyData.yaml"
+additionalProperties: false
+required:
+  - migrationId
+  - apiId
+  - keys
+examples:
+  basic:
+    summary: Basic migration example
+    description: A simple migration example with a single key
+    value:
+      migrationId: resend
+      apiId: api_123456789
+      keys: []
