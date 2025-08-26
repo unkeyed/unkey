@@ -474,7 +474,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		if req.KeyspaceID != "" {
 			gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
 				RequireApiKey:  true,
-				RequiredScopes: []string{},
 				KeyspaceId:     req.KeyspaceID,
 				AllowAnonymous: false,
 				Enabled:        true,
@@ -869,9 +868,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}
 		gatewayConfig.ValidationConfig.OpenapiSpec = openapiSpec
 		gatewayConfig.ValidationConfig.Enabled = true
-		gatewayConfig.ValidationConfig.ValidateRequest = true
-		gatewayConfig.ValidationConfig.ValidateResponse = false // Set to false by default
-		gatewayConfig.ValidationConfig.StrictMode = false       // Set to false by default
 
 		// Marshal updated config
 		configBytes, err := proto.Marshal(&gatewayConfig)

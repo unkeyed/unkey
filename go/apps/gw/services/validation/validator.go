@@ -72,11 +72,6 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 		return nil
 	}
 
-	// Only validate requests if configured
-	if !config.ValidationConfig.ValidateRequest {
-		return nil
-	}
-
 	// Perform validation
 	req := sess.Request()
 	valid, errors := (*v).ValidateHttpRequest(req)
@@ -92,7 +87,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	}
 
 	// Build validation error response
-	validationErr := s.buildValidationError(errors, config.ValidationConfig.StrictMode)
+	validationErr := s.buildValidationError(errors)
 
 	s.logger.Warn("request validation failed",
 		"requestId", sess.RequestID(),
@@ -170,7 +165,7 @@ func (s *Service) getOrCreateValidator(ctx context.Context, deploymentID string,
 }
 
 // buildValidationError converts OpenAPI validation errors to our error format.
-func (s *Service) buildValidationError(validationErrors []*errors.ValidationError, strictMode bool) ValidationError {
+func (s *Service) buildValidationError(validationErrors []*errors.ValidationError) ValidationError {
 	ve := ValidationError{
 		StatusCode: http.StatusBadRequest,
 		Title:      "Request Validation Failed",
@@ -208,12 +203,6 @@ func (s *Service) buildValidationError(validationErrors []*errors.ValidationErro
 			}
 			ve.Errors = append(ve.Errors, fe)
 		}
-	}
-
-	// In strict mode, treat unknown fields as errors
-	if strictMode {
-		ve.Title = "Request Validation Failed (Strict Mode)"
-		ve.Detail = fmt.Sprintf("%s (strict mode enabled - unknown fields are rejected)", ve.Detail)
 	}
 
 	return ve

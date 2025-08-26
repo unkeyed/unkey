@@ -20,8 +20,7 @@ message GatewayConfig {
 
   // Middleware configurations
   AuthConfig auth_config = 10;
-  RatelimitConfig ratelimit_config = 11;
-  ValidationConfig validation_config = 12;
+  ValidationConfig validation_config = 11;
 
   // Deployment metadata
   string git_commit_sha = 20;
@@ -34,48 +33,15 @@ message VM {
 }
 
 // Authentication middleware configuration
-// Claude BS, treat it as example
 message AuthConfig {
   bool require_api_key = 1;
-  repeated string required_scopes = 2;
-  string keyspace_id = 3;
-  bool allow_anonymous = 4;
-  bool enabled = 5;
-  // JWT configuration for downstream services
-  JWTConfig jwt_config = 10;
-}
-
-// JWT configuration for service-to-service auth
-// Claude BS, treat it as example
-message JWTConfig {
-  string signing_key = 1;
-  int32 expires_in_seconds = 2;
-  string issuer = 3;
-  repeated string audiences = 4;
-}
-
-// Rate limiting middleware configuration
-// Claude BS, treat it as example
-message RatelimitConfig {
-  bool enabled = 1;
-  int32 requests_per_minute = 2;
-  string window_type = 3; // "sliding", "fixed"
-  string identifier_type = 4; // "ip", "api_key", "user_id"
-  // Override rules for specific identifiers
-  repeated RatelimitOverride overrides = 10;
-}
-
-// Rate limit override for specific identifiers
-message RatelimitOverride {
-  string identifier = 1;
-  int32 requests_per_minute = 2;
+  string keyspace_id = 2;
+  bool allow_anonymous = 3;
+  bool enabled = 4;
 }
 
 // Request validation middleware configuration
 message ValidationConfig {
   bool enabled = 1;
   string openapi_spec = 2;
-  bool validate_request = 3;
-  bool validate_response = 4;
-  bool strict_mode = 5; // Reject requests with unknown fields
 }

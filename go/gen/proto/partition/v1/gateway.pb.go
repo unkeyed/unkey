@@ -35,8 +35,7 @@ type GatewayConfig struct {
 	Vms          []*VM  `protobuf:"bytes,6,rep,name=vms,proto3" json:"vms,omitempty"`
 	// Middleware configurations
 	AuthConfig       *AuthConfig       `protobuf:"bytes,10,opt,name=auth_config,json=authConfig,proto3" json:"auth_config,omitempty"`
-	RatelimitConfig  *RatelimitConfig  `protobuf:"bytes,11,opt,name=ratelimit_config,json=ratelimitConfig,proto3" json:"ratelimit_config,omitempty"`
-	ValidationConfig *ValidationConfig `protobuf:"bytes,12,opt,name=validation_config,json=validationConfig,proto3" json:"validation_config,omitempty"`
+	ValidationConfig *ValidationConfig `protobuf:"bytes,11,opt,name=validation_config,json=validationConfig,proto3" json:"validation_config,omitempty"`
 	// Deployment metadata
 	GitCommitSha  string `protobuf:"bytes,20,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
 	GitBranch     string `protobuf:"bytes,21,opt,name=git_branch,json=gitBranch,proto3" json:"git_branch,omitempty"`
@@ -123,13 +122,6 @@ func (x *GatewayConfig) GetAuthConfig() *AuthConfig {
 	return nil
 }
 
-func (x *GatewayConfig) GetRatelimitConfig() *RatelimitConfig {
-	if x != nil {
-		return x.RatelimitConfig
-	}
-	return nil
-}
-
 func (x *GatewayConfig) GetValidationConfig() *ValidationConfig {
 	if x != nil {
 		return x.ValidationConfig
@@ -204,18 +196,14 @@ func (x *VM) GetRegion() string {
 }
 
 // Authentication middleware configuration
-// Claude BS, treat it as example
 type AuthConfig struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	RequireApiKey  bool                   `protobuf:"varint,1,opt,name=require_api_key,json=requireApiKey,proto3" json:"require_api_key,omitempty"`
-	RequiredScopes []string               `protobuf:"bytes,2,rep,name=required_scopes,json=requiredScopes,proto3" json:"required_scopes,omitempty"`
-	KeyspaceId     string                 `protobuf:"bytes,3,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
-	AllowAnonymous bool                   `protobuf:"varint,4,opt,name=allow_anonymous,json=allowAnonymous,proto3" json:"allow_anonymous,omitempty"`
-	Enabled        bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// JWT configuration for downstream services
-	JwtConfig     *JWTConfig `protobuf:"bytes,10,opt,name=jwt_config,json=jwtConfig,proto3" json:"jwt_config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	KeyspaceId     string                 `protobuf:"bytes,2,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
+	AllowAnonymous bool                   `protobuf:"varint,3,opt,name=allow_anonymous,json=allowAnonymous,proto3" json:"allow_anonymous,omitempty"`
+	Enabled        bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AuthConfig) Reset() {
@@ -255,13 +243,6 @@ func (x *AuthConfig) GetRequireApiKey() bool {
 	return false
 }
 
-func (x *AuthConfig) GetRequiredScopes() []string {
-	if x != nil {
-		return x.RequiredScopes
-	}
-	return nil
-}
-
 func (x *AuthConfig) GetKeyspaceId() string {
 	if x != nil {
 		return x.KeyspaceId
@@ -283,230 +264,18 @@ func (x *AuthConfig) GetEnabled() bool {
 	return false
 }
 
-func (x *AuthConfig) GetJwtConfig() *JWTConfig {
-	if x != nil {
-		return x.JwtConfig
-	}
-	return nil
-}
-
-// JWT configuration for service-to-service auth
-// Claude BS, treat it as example
-type JWTConfig struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	SigningKey       string                 `protobuf:"bytes,1,opt,name=signing_key,json=signingKey,proto3" json:"signing_key,omitempty"`
-	ExpiresInSeconds int32                  `protobuf:"varint,2,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
-	Issuer           string                 `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
-	Audiences        []string               `protobuf:"bytes,4,rep,name=audiences,proto3" json:"audiences,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *JWTConfig) Reset() {
-	*x = JWTConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *JWTConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*JWTConfig) ProtoMessage() {}
-
-func (x *JWTConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use JWTConfig.ProtoReflect.Descriptor instead.
-func (*JWTConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *JWTConfig) GetSigningKey() string {
-	if x != nil {
-		return x.SigningKey
-	}
-	return ""
-}
-
-func (x *JWTConfig) GetExpiresInSeconds() int32 {
-	if x != nil {
-		return x.ExpiresInSeconds
-	}
-	return 0
-}
-
-func (x *JWTConfig) GetIssuer() string {
-	if x != nil {
-		return x.Issuer
-	}
-	return ""
-}
-
-func (x *JWTConfig) GetAudiences() []string {
-	if x != nil {
-		return x.Audiences
-	}
-	return nil
-}
-
-// Rate limiting middleware configuration
-// Claude BS, treat it as example
-type RatelimitConfig struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Enabled           bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	RequestsPerMinute int32                  `protobuf:"varint,2,opt,name=requests_per_minute,json=requestsPerMinute,proto3" json:"requests_per_minute,omitempty"`
-	WindowType        string                 `protobuf:"bytes,3,opt,name=window_type,json=windowType,proto3" json:"window_type,omitempty"`             // "sliding", "fixed"
-	IdentifierType    string                 `protobuf:"bytes,4,opt,name=identifier_type,json=identifierType,proto3" json:"identifier_type,omitempty"` // "ip", "api_key", "user_id"
-	// Override rules for specific identifiers
-	Overrides     []*RatelimitOverride `protobuf:"bytes,10,rep,name=overrides,proto3" json:"overrides,omitempty"`
+// Request validation middleware configuration
+type ValidationConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	OpenapiSpec   string                 `protobuf:"bytes,2,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RatelimitConfig) Reset() {
-	*x = RatelimitConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RatelimitConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RatelimitConfig) ProtoMessage() {}
-
-func (x *RatelimitConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RatelimitConfig.ProtoReflect.Descriptor instead.
-func (*RatelimitConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *RatelimitConfig) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *RatelimitConfig) GetRequestsPerMinute() int32 {
-	if x != nil {
-		return x.RequestsPerMinute
-	}
-	return 0
-}
-
-func (x *RatelimitConfig) GetWindowType() string {
-	if x != nil {
-		return x.WindowType
-	}
-	return ""
-}
-
-func (x *RatelimitConfig) GetIdentifierType() string {
-	if x != nil {
-		return x.IdentifierType
-	}
-	return ""
-}
-
-func (x *RatelimitConfig) GetOverrides() []*RatelimitOverride {
-	if x != nil {
-		return x.Overrides
-	}
-	return nil
-}
-
-// Rate limit override for specific identifiers
-type RatelimitOverride struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Identifier        string                 `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	RequestsPerMinute int32                  `protobuf:"varint,2,opt,name=requests_per_minute,json=requestsPerMinute,proto3" json:"requests_per_minute,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *RatelimitOverride) Reset() {
-	*x = RatelimitOverride{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RatelimitOverride) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RatelimitOverride) ProtoMessage() {}
-
-func (x *RatelimitOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RatelimitOverride.ProtoReflect.Descriptor instead.
-func (*RatelimitOverride) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *RatelimitOverride) GetIdentifier() string {
-	if x != nil {
-		return x.Identifier
-	}
-	return ""
-}
-
-func (x *RatelimitOverride) GetRequestsPerMinute() int32 {
-	if x != nil {
-		return x.RequestsPerMinute
-	}
-	return 0
-}
-
-// Request validation middleware configuration
-type ValidationConfig struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Enabled          bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	OpenapiSpec      string                 `protobuf:"bytes,2,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
-	ValidateRequest  bool                   `protobuf:"varint,3,opt,name=validate_request,json=validateRequest,proto3" json:"validate_request,omitempty"`
-	ValidateResponse bool                   `protobuf:"varint,4,opt,name=validate_response,json=validateResponse,proto3" json:"validate_response,omitempty"`
-	StrictMode       bool                   `protobuf:"varint,5,opt,name=strict_mode,json=strictMode,proto3" json:"strict_mode,omitempty"` // Reject requests with unknown fields
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
 func (x *ValidationConfig) Reset() {
 	*x = ValidationConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[6]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -518,7 +287,7 @@ func (x *ValidationConfig) String() string {
 func (*ValidationConfig) ProtoMessage() {}
 
 func (x *ValidationConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[6]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -531,7 +300,7 @@ func (x *ValidationConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidationConfig.ProtoReflect.Descriptor instead.
 func (*ValidationConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{6}
+	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ValidationConfig) GetEnabled() bool {
@@ -548,32 +317,11 @@ func (x *ValidationConfig) GetOpenapiSpec() string {
 	return ""
 }
 
-func (x *ValidationConfig) GetValidateRequest() bool {
-	if x != nil {
-		return x.ValidateRequest
-	}
-	return false
-}
-
-func (x *ValidationConfig) GetValidateResponse() bool {
-	if x != nil {
-		return x.ValidateResponse
-	}
-	return false
-}
-
-func (x *ValidationConfig) GetStrictMode() bool {
-	if x != nil {
-		return x.StrictMode
-	}
-	return false
-}
-
 var File_proto_partition_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_proto_partition_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	" proto/partition/v1/gateway.proto\x12\fpartition.v1\"\xf2\x03\n" +
+	" proto/partition/v1/gateway.proto\x12\fpartition.v1\"\xa8\x03\n" +
 	"\rGatewayConfig\x12\x1d\n" +
 	"\n" +
 	"is_enabled\x18\x01 \x01(\bR\tisEnabled\x12#\n" +
@@ -585,52 +333,24 @@ const file_proto_partition_v1_gateway_proto_rawDesc = "" +
 	"\x03vms\x18\x06 \x03(\v2\x10.partition.v1.VMR\x03vms\x129\n" +
 	"\vauth_config\x18\n" +
 	" \x01(\v2\x18.partition.v1.AuthConfigR\n" +
-	"authConfig\x12H\n" +
-	"\x10ratelimit_config\x18\v \x01(\v2\x1d.partition.v1.RatelimitConfigR\x0fratelimitConfig\x12K\n" +
-	"\x11validation_config\x18\f \x01(\v2\x1e.partition.v1.ValidationConfigR\x10validationConfig\x12$\n" +
+	"authConfig\x12K\n" +
+	"\x11validation_config\x18\v \x01(\v2\x1e.partition.v1.ValidationConfigR\x10validationConfig\x12$\n" +
 	"\x0egit_commit_sha\x18\x14 \x01(\tR\fgitCommitSha\x12\x1d\n" +
 	"\n" +
 	"git_branch\x18\x15 \x01(\tR\tgitBranch\",\n" +
 	"\x02VM\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06region\x18\x02 \x01(\tR\x06region\"\xf9\x01\n" +
+	"\x06region\x18\x02 \x01(\tR\x06region\"\x98\x01\n" +
 	"\n" +
 	"AuthConfig\x12&\n" +
-	"\x0frequire_api_key\x18\x01 \x01(\bR\rrequireApiKey\x12'\n" +
-	"\x0frequired_scopes\x18\x02 \x03(\tR\x0erequiredScopes\x12\x1f\n" +
-	"\vkeyspace_id\x18\x03 \x01(\tR\n" +
+	"\x0frequire_api_key\x18\x01 \x01(\bR\rrequireApiKey\x12\x1f\n" +
+	"\vkeyspace_id\x18\x02 \x01(\tR\n" +
 	"keyspaceId\x12'\n" +
-	"\x0fallow_anonymous\x18\x04 \x01(\bR\x0eallowAnonymous\x12\x18\n" +
-	"\aenabled\x18\x05 \x01(\bR\aenabled\x126\n" +
-	"\n" +
-	"jwt_config\x18\n" +
-	" \x01(\v2\x17.partition.v1.JWTConfigR\tjwtConfig\"\x90\x01\n" +
-	"\tJWTConfig\x12\x1f\n" +
-	"\vsigning_key\x18\x01 \x01(\tR\n" +
-	"signingKey\x12,\n" +
-	"\x12expires_in_seconds\x18\x02 \x01(\x05R\x10expiresInSeconds\x12\x16\n" +
-	"\x06issuer\x18\x03 \x01(\tR\x06issuer\x12\x1c\n" +
-	"\taudiences\x18\x04 \x03(\tR\taudiences\"\xe4\x01\n" +
-	"\x0fRatelimitConfig\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12.\n" +
-	"\x13requests_per_minute\x18\x02 \x01(\x05R\x11requestsPerMinute\x12\x1f\n" +
-	"\vwindow_type\x18\x03 \x01(\tR\n" +
-	"windowType\x12'\n" +
-	"\x0fidentifier_type\x18\x04 \x01(\tR\x0eidentifierType\x12=\n" +
-	"\toverrides\x18\n" +
-	" \x03(\v2\x1f.partition.v1.RatelimitOverrideR\toverrides\"c\n" +
-	"\x11RatelimitOverride\x12\x1e\n" +
-	"\n" +
-	"identifier\x18\x01 \x01(\tR\n" +
-	"identifier\x12.\n" +
-	"\x13requests_per_minute\x18\x02 \x01(\x05R\x11requestsPerMinute\"\xc8\x01\n" +
+	"\x0fallow_anonymous\x18\x03 \x01(\bR\x0eallowAnonymous\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\"O\n" +
 	"\x10ValidationConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
-	"\fopenapi_spec\x18\x02 \x01(\tR\vopenapiSpec\x12)\n" +
-	"\x10validate_request\x18\x03 \x01(\bR\x0fvalidateRequest\x12+\n" +
-	"\x11validate_response\x18\x04 \x01(\bR\x10validateResponse\x12\x1f\n" +
-	"\vstrict_mode\x18\x05 \x01(\bR\n" +
-	"strictModeB@Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1b\x06proto3"
+	"\fopenapi_spec\x18\x02 \x01(\tR\vopenapiSpecB@Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1b\x06proto3"
 
 var (
 	file_proto_partition_v1_gateway_proto_rawDescOnce sync.Once
@@ -644,28 +364,22 @@ func file_proto_partition_v1_gateway_proto_rawDescGZIP() []byte {
 	return file_proto_partition_v1_gateway_proto_rawDescData
 }
 
-var file_proto_partition_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_partition_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_partition_v1_gateway_proto_goTypes = []any{
-	(*GatewayConfig)(nil),     // 0: partition.v1.GatewayConfig
-	(*VM)(nil),                // 1: partition.v1.VM
-	(*AuthConfig)(nil),        // 2: partition.v1.AuthConfig
-	(*JWTConfig)(nil),         // 3: partition.v1.JWTConfig
-	(*RatelimitConfig)(nil),   // 4: partition.v1.RatelimitConfig
-	(*RatelimitOverride)(nil), // 5: partition.v1.RatelimitOverride
-	(*ValidationConfig)(nil),  // 6: partition.v1.ValidationConfig
+	(*GatewayConfig)(nil),    // 0: partition.v1.GatewayConfig
+	(*VM)(nil),               // 1: partition.v1.VM
+	(*AuthConfig)(nil),       // 2: partition.v1.AuthConfig
+	(*ValidationConfig)(nil), // 3: partition.v1.ValidationConfig
 }
 var file_proto_partition_v1_gateway_proto_depIdxs = []int32{
 	1, // 0: partition.v1.GatewayConfig.vms:type_name -> partition.v1.VM
 	2, // 1: partition.v1.GatewayConfig.auth_config:type_name -> partition.v1.AuthConfig
-	4, // 2: partition.v1.GatewayConfig.ratelimit_config:type_name -> partition.v1.RatelimitConfig
-	6, // 3: partition.v1.GatewayConfig.validation_config:type_name -> partition.v1.ValidationConfig
-	3, // 4: partition.v1.AuthConfig.jwt_config:type_name -> partition.v1.JWTConfig
-	5, // 5: partition.v1.RatelimitConfig.overrides:type_name -> partition.v1.RatelimitOverride
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	3, // 2: partition.v1.GatewayConfig.validation_config:type_name -> partition.v1.ValidationConfig
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_partition_v1_gateway_proto_init() }
@@ -679,7 +393,7 @@ func file_proto_partition_v1_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_partition_v1_gateway_proto_rawDesc), len(file_proto_partition_v1_gateway_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
