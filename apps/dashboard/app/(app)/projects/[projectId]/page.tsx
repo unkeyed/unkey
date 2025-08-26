@@ -1,6 +1,7 @@
 "use client";
 
-import { DeploymentsNavigation } from "./navigation";
+import { ProjectNavigation } from "./navigations/project-navigation";
+import { ProjectSubNavigation } from "./navigations/project-sub-navigation";
 
 export default function ProjectDetails({
   params: { projectId },
@@ -9,8 +10,9 @@ export default function ProjectDetails({
 }) {
   return (
     <div>
-      <DeploymentsNavigation projectId={projectId} />
-      <div className="flex flex-col">hoho</div>
+      <ProjectNavigation projectId={projectId} />
+      <ProjectSubNavigation />
+      <div className="flex flex-col">Overview</div>
     </div>
   );
 }

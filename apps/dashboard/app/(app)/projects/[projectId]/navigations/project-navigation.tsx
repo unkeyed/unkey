@@ -5,13 +5,13 @@ import { Navbar } from "@/components/navigation/navbar";
 import { trpc } from "@/lib/trpc/client";
 import { ArrowDottedRotateAnticlockwise, Cube, Dots, ListRadio, Refresh3 } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
-import { RepoDisplay } from "../_components/list/repo-display";
+import { RepoDisplay } from "../../_components/list/repo-display";
 
-type DeploymentsNavigationProps = {
+type ProjectNavigationProps = {
   projectId: string;
 };
 
-export const DeploymentsNavigation = ({ projectId }: DeploymentsNavigationProps) => {
+export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   const { data: projectData, isLoading } = trpc.deploy.project.list.useInfiniteQuery(
     {}, // No filters needed
     {

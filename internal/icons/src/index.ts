@@ -68,6 +68,7 @@ export * from "./icons/gauge";
 export * from "./icons/gear";
 export * from "./icons/github";
 export * from "./icons/grid";
+export * from "./icons/grid-circle";
 export * from "./icons/half-dotted-circle-play";
 export * from "./icons/input-password-edit";
 export * from "./icons/input-password-settings";
