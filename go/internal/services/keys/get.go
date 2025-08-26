@@ -67,8 +67,12 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
-		return db.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
+		// Use database retry with exponential backoff, skipping non-transient errors
+		return db.WithRetry(func() (db.FindKeyForVerificationRow, error) {
+			return db.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
+		})
 	}, caches.DefaultFindFirstOp)
+
 	if err != nil {
 		if db.IsNotFound(err) {
 			// nolint:exhaustruct
