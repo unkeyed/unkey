@@ -1,4 +1,4 @@
-.PHONY: install fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean
+.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean
 
 # Detect OS and set GOMAXPROCS accordingly
 UNAME_S := $(shell uname -s)
@@ -15,6 +15,11 @@ PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS
 
 install:
 	go mod tidy
+
+tools:
+	go install github.com/bufbuild/buf/cmd/buf@v1.57.0
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0
 
 fmt:
 	go fmt ./...

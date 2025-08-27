@@ -11,6 +11,18 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
+// validateTimestamp applies the same validation logic as the CreateVersion service
+func validateTimestamp(timestamp int64) bool {
+	if timestamp == 0 {
+		return true // Zero timestamps skip validation (optional field)
+	}
+
+	isValidLowerBound := timestamp >= 1_000_000_000_000
+	maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
+	isValidUpperBound := timestamp <= maxValidTimestamp
+	return isValidLowerBound && isValidUpperBound
+}
+
 // TestGitFieldValidation_SpecialCharacters tests handling of special characters
 func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 	t.Parallel()
@@ -162,13 +174,8 @@ func TestTimestampConversion(t *testing.T) {
 func TestCreateVersionTimestampValidation_InvalidSecondsFormat(t *testing.T) {
 	t.Parallel()
 
-	// Create a mock service to test timestamp validation logic
-	// Since we can't easily mock the full service dependencies,
-	// we'll test the validation logic directly
-
-	// Test case 1: Timestamp in seconds format (should be rejected)
-	req := &connect.Request[ctrlv1.CreateVersionRequest]{}
-	req.Msg = &ctrlv1.CreateVersionRequest{
+	// Create proto request directly with seconds timestamp (should be rejected)
+	req := &ctrlv1.CreateVersionRequest{
 		WorkspaceId:        "ws_test123",
 		ProjectId:          "proj_test456",
 		Branch:             "main",
@@ -177,25 +184,17 @@ func TestCreateVersionTimestampValidation_InvalidSecondsFormat(t *testing.T) {
 		GitCommitTimestamp: time.Now().Unix(), // This is in seconds - should be rejected
 	}
 
-	// Validate the timestamp would be rejected (simulate the validation logic)
-	timestamp := req.Msg.GetGitCommitTimestamp()
-
-	// Test the validation conditions
-	require.True(t, timestamp > 0, "Timestamp should be provided")
-	require.True(t, timestamp < 1_000_000_000_000, "Seconds timestamp should be less than millisecond threshold")
-
-	// This simulates what the service validation would do
-	isValidMilliseconds := timestamp >= 1_000_000_000_000
-	require.False(t, isValidMilliseconds, "Seconds-based timestamp should be considered invalid")
+	// Use shared validation helper
+	isValid := validateTimestamp(req.GetGitCommitTimestamp())
+	require.False(t, isValid, "Seconds-based timestamp should be considered invalid")
 }
 
 // TestCreateVersionTimestampValidation_ValidMillisecondsFormat tests valid timestamp
 func TestCreateVersionTimestampValidation_ValidMillisecondsFormat(t *testing.T) {
 	t.Parallel()
 
-	// Test case 2: Timestamp in milliseconds format (should be accepted)
-	req := &connect.Request[ctrlv1.CreateVersionRequest]{}
-	req.Msg = &ctrlv1.CreateVersionRequest{
+	// Create proto request directly with milliseconds timestamp
+	req := &ctrlv1.CreateVersionRequest{
 		WorkspaceId:        "ws_test123",
 		ProjectId:          "proj_test456",
 		Branch:             "main",
@@ -204,20 +203,9 @@ func TestCreateVersionTimestampValidation_ValidMillisecondsFormat(t *testing.T) 
 		GitCommitTimestamp: time.Now().UnixMilli(), // This is in milliseconds - should be accepted
 	}
 
-	// Validate the timestamp would be accepted
-	timestamp := req.Msg.GetGitCommitTimestamp()
-
-	// Test the validation conditions
-	require.True(t, timestamp > 0, "Timestamp should be provided")
-	require.True(t, timestamp >= 1_000_000_000_000, "Milliseconds timestamp should be >= threshold")
-
-	// Test upper bound (not too far in future)
-	maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
-	require.True(t, timestamp <= maxValidTimestamp, "Timestamp should not be too far in future")
-
-	// This simulates what the service validation would do
-	isValidMilliseconds := timestamp >= 1_000_000_000_000 && timestamp <= maxValidTimestamp
-	require.True(t, isValidMilliseconds, "Milliseconds-based timestamp should be considered valid")
+	// Use shared validation helper
+	isValid := validateTimestamp(req.GetGitCommitTimestamp())
+	require.True(t, isValid, "Milliseconds-based timestamp should be considered valid")
 }
 
 // TestTimestampValidationBoundaries tests edge cases for timestamp validation
@@ -266,18 +254,8 @@ func TestTimestampValidationBoundaries(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Test the validation logic that would be applied in the service
-			if tt.timestamp == 0 {
-				// Zero timestamps skip validation (optional field)
-				require.True(t, true, "Zero timestamp should skip validation")
-				return
-			}
-
-			// Apply the same validation logic as in CreateVersion service
-			isValidLowerBound := tt.timestamp >= 1_000_000_000_000
-			maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
-			isValidUpperBound := tt.timestamp <= maxValidTimestamp
-			isValid := isValidLowerBound && isValidUpperBound
+			// Use shared validation helper
+			isValid := validateTimestamp(tt.timestamp)
 
 			if tt.shouldPass {
 				require.True(t, isValid, tt.description)
