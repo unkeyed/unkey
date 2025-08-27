@@ -1,4 +1,4 @@
-import { useFilters } from "@/app/(app)/[workspaceId]/audit/hooks/use-filters";
+import { useFilters } from "@/app/(app)/[workspace]/audit/hooks/use-filters";
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";

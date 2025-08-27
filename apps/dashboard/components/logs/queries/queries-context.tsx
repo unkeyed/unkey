@@ -1,6 +1,6 @@
 import type { QuerySearchParams } from "@/app/(app)/[workspace]/logs/filters.schema";
-import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/audit/filters.schema";
-import type { RatelimitQuerySearchParams } from "@/app/(app)/ratelimits/[namespaceSlug]/logs/filters.schema";
+import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/[workspace]/audit/filters.schema";
+import type { RatelimitQuerySearchParams } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { type ReactNode, createContext, useContext } from "react";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
 import type { FilterValue } from "../validation/filter.types";

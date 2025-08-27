@@ -1,4 +1,4 @@
-import { useFilters } from "@/app/(app)/[workspaceId]/audit/hooks/use-filters";
+import { useFilters } from "@/app/(app)/[workspace]/audit/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 export const BucketFilter = ({

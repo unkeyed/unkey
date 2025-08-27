@@ -1,4 +1,4 @@
-import { auditQueryLogsPayload } from "@/app/(app)/[workspaceId]/audit/components/table/query-logs.schema";
+import { auditQueryLogsPayload } from "@/app/(app)/[workspace]/audit/components/table/query-logs.schema";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
 import { type Workspace, db } from "@/lib/db";
