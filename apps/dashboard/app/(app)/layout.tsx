@@ -32,7 +32,7 @@ export default async function Layout({ children }: LayoutProps) {
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}
           <AppSidebar
-            workspace={{ ...workspace, quotas: workspace.quotas }}
+            workspace={workspace}
             className="bg-gray-1 border-grayA-4"
           />
 
