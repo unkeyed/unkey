@@ -1,4 +1,4 @@
-import { ratelimitQueryOverviewLogsPayload } from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
+import { ratelimitQueryOverviewLogsPayload } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";

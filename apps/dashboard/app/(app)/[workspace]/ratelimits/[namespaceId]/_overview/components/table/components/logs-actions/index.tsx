@@ -1,9 +1,8 @@
 "use client";
 
-import { DeleteDialog } from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/_components/delete-dialog";
-
-import { IdentifierDialog } from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/_components/identifier-dialog";
-import type { OverrideDetails } from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/types";
+import { DeleteDialog } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_components/delete-dialog";
+import { IdentifierDialog } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_components/identifier-dialog";
+import type { OverrideDetails } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/types";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";

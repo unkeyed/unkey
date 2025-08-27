@@ -1,4 +1,4 @@
-import type { RatelimitQueryOverviewLogsPayload } from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
+import type { RatelimitQueryOverviewLogsPayload } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { RatelimitOverviewLogsParams } from "@unkey/clickhouse/src/ratelimits";
 

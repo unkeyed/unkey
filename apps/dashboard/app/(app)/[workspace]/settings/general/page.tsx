@@ -15,7 +15,6 @@ export default function SettingsPage() {
   const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
 
-
   useEffect(() => {
     if (!isLoading && !workspace) {
       router.replace("/new");

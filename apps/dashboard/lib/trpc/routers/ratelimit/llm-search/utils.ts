@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   ratelimitFilterFieldConfig,
-} from "@/app/(app)/[workspaceId]/ratelimits/[namespaceId]/logs/filters.schema";
+} from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
