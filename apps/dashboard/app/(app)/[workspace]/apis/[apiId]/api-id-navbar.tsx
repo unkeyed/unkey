@@ -37,7 +37,7 @@ export const ApisNavbar = ({
   keyspaceId,
   keyId,
   activePage,
-  workspaceId,
+  workspaceSlug,
 }: {
   apiId: string;
   keyspaceId?: string;
@@ -46,7 +46,7 @@ export const ApisNavbar = ({
     href: string;
     text: string;
   };
-  workspaceId: string;
+  workspaceSlug: string;
 }) => {
   const isMobile = useIsMobile();
   const trpcUtils = trpc.useUtils();
@@ -86,7 +86,7 @@ export const ApisNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/apis`}>APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -128,8 +128,8 @@ export const ApisNavbar = ({
   const { currentApi, workspaceApis } = layoutData;
 
   // Define base path for API navigation
-  const base = `/${workspaceId}/apis/${currentApi.id}`;
-  const navItems = navigation(currentApi.id, currentApi.keyAuthId ?? "", workspaceId);
+  const base = `/${workspaceSlug}/apis/${currentApi.id}`;
+  const navItems = navigation(currentApi.id, currentApi.keyAuthId ?? "", workspaceSlug);
 
   return (
     <>
@@ -138,7 +138,7 @@ export const ApisNavbar = ({
           <Navbar.Breadcrumbs className="flex-1 w-full" icon={<Nodes />}>
             {!isMobile && (
               <>
-                <Navbar.Breadcrumbs.Link href={`/${workspaceId}/apis`} className="max-md:hidden">
+                <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/apis`} className="max-md:hidden">
                   APIs
                 </Navbar.Breadcrumbs.Link>
                 <Navbar.Breadcrumbs.Link
@@ -151,7 +151,7 @@ export const ApisNavbar = ({
                     items={workspaceApis.map((api) => ({
                       id: api.id,
                       label: api.name,
-                      href: `/${workspaceId}/apis/${api.id}`,
+                      href: `/${workspaceSlug}/apis/${api.id}`,
                     }))}
                     shortcutKey="N"
                   >
@@ -206,7 +206,7 @@ export const ApisNavbar = ({
                 keyspaceId={currentApi.keyAuthId}
                 apiId={currentApi.id}
                 keyspaceDefaults={currentApi.keyspaceDefaults}
-                workspaceId={workspaceId}
+                workspaceSlug={workspaceSlug}
               />
             )
           )}

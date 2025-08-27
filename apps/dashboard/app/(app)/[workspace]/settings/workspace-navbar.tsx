@@ -37,6 +37,7 @@ export const WorkspaceNavbar = ({
   workspace: {
     id: string;
     name: string;
+    slug: string | null;
   };
   activePage: {
     href: string;
@@ -47,7 +48,7 @@ export const WorkspaceNavbar = ({
     <div className="flex flex-col w-full h-full">
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.id}/settings`}>
+          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/settings`}>
             Settings
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
@@ -56,7 +57,7 @@ export const WorkspaceNavbar = ({
                 {
                   id: setting.href,
                   label: setting.text,
-                  href: `/${workspace.id}/settings/${setting.href}`,
+                  href: `/${workspace.slug}/settings/${setting.href}`,
                 },
               ])}
               shortcutKey="M"
@@ -71,7 +72,7 @@ export const WorkspaceNavbar = ({
         <Navbar.Actions>
           {activePage.href === "general" && <CopyableIDButton value={workspace.id} />}
           {activePage.href === "root-keys" && (
-            <Link key="create-root-key" href={`/${workspace.id}/settings/root-keys/new`}>
+            <Link key="create-root-key" href={`/${workspace.slug}/settings/root-keys/new`}>
               <Button variant="primary">Create New Root Key</Button>
             </Link>
           )}

@@ -27,12 +27,12 @@ const formSchema = z.object({
 
 type Props = {
   defaultOpen?: boolean;
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
 export const CreateApiButton = ({
   defaultOpen,
-  workspaceId,
+  workspaceSlug,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
@@ -50,9 +50,9 @@ export const CreateApiButton = ({
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
       toast.success("Your API has been created");
-      await revalidate(`/${workspaceId}/apis`);
+      await revalidate(`/${workspaceSlug}/apis`);
       api.overview.query.invalidate();
-      router.push(`/${workspaceId}/apis/${res.id}`);
+      router.push(`/${workspaceSlug}/apis/${res.id}`);
       setIsOpen(false);
     },
     onError(err) {

@@ -1,8 +1,12 @@
 "use client";
 import { useWorkspace } from "@/providers/workspace-provider";
+<<<<<<< HEAD
 import { Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+=======
+import { redirect, useRouter } from "next/navigation";
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
 
@@ -13,6 +17,7 @@ export default function APIKeysPage(props: {
   };
 }) {
   const apiId = props.params.apiId;
+<<<<<<< HEAD
   const { workspace, error, isLoading } = useWorkspace();
   const keyspaceId = props.params.keyAuthId;
   const router = useRouter();
@@ -47,10 +52,22 @@ export default function APIKeysPage(props: {
     return null;
   }
 
+=======
+  const { workspace, error } = useWorkspace();
+  const keyspaceId = props.params.keyAuthId;
+  const router = useRouter();
+
+  if (!workspace || error) {
+    return redirect("/new");
+  }
+
+  router.replace(`/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`);
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
   return (
     <div>
       <ApisNavbar
         activePage={{
+<<<<<<< HEAD
           href: `/${workspace.id}/apis/${apiId}/keys/${keyspaceId}`,
           text: "Keys",
         }}
@@ -58,6 +75,19 @@ export default function APIKeysPage(props: {
         workspaceId={workspace.id}
       />
       <KeysClient apiId={props.params.apiId} keyspaceId={keyspaceId} workspaceId={workspace.id} />
+=======
+          href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`,
+          text: "Keys",
+        }}
+        apiId={apiId}
+        workspaceSlug={workspace?.slug ?? ""}
+      />
+      <KeysClient
+        apiId={props.params.apiId}
+        keyspaceId={keyspaceId}
+        workspaceSlug={workspace?.slug ?? ""}
+      />
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
     </div>
   );
 }

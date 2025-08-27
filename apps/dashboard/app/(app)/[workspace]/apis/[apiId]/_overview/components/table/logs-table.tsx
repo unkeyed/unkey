@@ -19,14 +19,14 @@ type Props = {
   log: KeysOverviewLog | null;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
   apiId: string;
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
 export const KeysOverviewLogsTable = ({
   apiId,
   setSelectedLog,
   log: selectedLog,
-  workspaceId,
+  workspaceSlug,
 }: Props) => {
   const { getSortDirection, toggleSort } = useSort<SortFields>();
   const { historicalLogs, isLoading, isLoadingMore, loadMore } = useKeysOverviewLogsQuery({
@@ -45,7 +45,7 @@ export const KeysOverviewLogsTable = ({
             log={log}
             apiId={apiId}
             onNavigate={() => setSelectedLog(null)}
-            workspaceId={workspaceId}
+            workspaceSlug={workspaceSlug}
           />
         ),
       },

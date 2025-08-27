@@ -11,7 +11,7 @@ export const ApiListGrid = ({
   hasMore,
   isLoadingMore,
   total,
-  workspaceId,
+  workspaceSlug,
 }: {
   apiList: ApiOverview[];
   isSearching?: boolean;
@@ -19,7 +19,7 @@ export const ApiListGrid = ({
   hasMore: boolean;
   isLoadingMore: boolean;
   total: number;
-  workspaceId: string;
+  workspaceSlug: string;
 }) => {
   if (apiList.length === 0) {
     return (
@@ -39,7 +39,7 @@ export const ApiListGrid = ({
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
         {apiList.map((api) => (
-          <ApiListCard api={api} key={api.id} workspaceId={workspaceId} />
+          <ApiListCard api={api} key={api.id} workspaceSlug={workspaceSlug} />
         ))}
       </div>
 

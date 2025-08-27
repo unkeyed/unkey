@@ -1,4 +1,4 @@
-import { ExternalIdField } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/components/external-id-field";
+import { ExternalIdField } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/external-id-field";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer } from "@unkey/ui";

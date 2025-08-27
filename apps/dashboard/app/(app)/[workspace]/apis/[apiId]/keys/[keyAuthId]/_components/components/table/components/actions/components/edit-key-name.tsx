@@ -1,4 +1,4 @@
-import { nameSchema } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/create-key.schema";
+import { nameSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";

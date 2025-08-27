@@ -39,12 +39,12 @@ export default function SettingsPage() {
 
     // If current workspace ID matches the URL workspace ID, redirect to general settings
     if (workspace.id === workspaceId) {
-      router.replace(`/${workspace.id}/settings/general`);
+      router.replace(`/${workspace.slug}/settings/general`);
       return;
     }
 
     // If workspace IDs don't match, redirect to the correct workspace
-    router.replace(`/${workspace.id}/settings`);
+    router.replace(`/${workspace.slug}/settings`);
   }, [workspace, isLoading, workspaceId, router]);
 
   // Show loading state while redirecting

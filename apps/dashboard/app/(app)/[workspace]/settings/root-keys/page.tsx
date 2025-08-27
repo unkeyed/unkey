@@ -39,6 +39,7 @@ export default function RootKeysPage() {
         workspace={{
           id: workspace.id,
           name: workspace.name,
+          slug: workspace.slug ?? "",
         }}
         activePage={{
           href: "root-keys",

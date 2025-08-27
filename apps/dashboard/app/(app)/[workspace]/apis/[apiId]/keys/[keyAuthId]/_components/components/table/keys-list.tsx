@@ -49,11 +49,11 @@ const KeysTableActionPopover = dynamic(
 export const KeysList = ({
   keyspaceId,
   apiId,
-  workspaceId,
+  workspaceSlug,
 }: {
   keyspaceId: string;
   apiId: string;
-  workspaceId: string;
+  workspaceSlug: string;
 }) => {
   const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
     keyAuthId: keyspaceId,
@@ -177,7 +177,7 @@ export const KeysList = ({
                   <Link
                     title={`View details for ${key.id}`}
                     className="font-mono group-hover:underline decoration-dotted"
-                    href={`/${workspaceId}/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
+                    href={`/${workspaceSlug}/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
                     aria-disabled={isNavigating}
                     onClick={() => {
                       handleLinkClick(key.id);
@@ -267,7 +267,7 @@ export const KeysList = ({
       selectedKeys,
       toggleSelection,
       hoveredKeyId,
-      workspaceId,
+      workspaceSlug,
     ],
   );
 

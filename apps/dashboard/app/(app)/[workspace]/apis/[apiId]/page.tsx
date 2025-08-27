@@ -1,9 +1,13 @@
 "use client";
 import { LogsClient } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/logs-client";
 import { useWorkspace } from "@/providers/workspace-provider";
+<<<<<<< HEAD
 import { Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+=======
+import { redirect, useRouter } from "next/navigation";
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
 import { ApisNavbar } from "./api-id-navbar";
 
 export default function ApiPage(props: { params: { apiId: string } }) {
@@ -11,6 +15,7 @@ export default function ApiPage(props: { params: { apiId: string } }) {
   const { workspace, error, isLoading } = useWorkspace();
   const router = useRouter();
 
+<<<<<<< HEAD
   useEffect(() => {
     // Return early while loading
     if (isLoading) {
@@ -39,6 +44,14 @@ export default function ApiPage(props: { params: { apiId: string } }) {
   // Don't render anything if no workspace or error (will redirect)
   if (!workspace || error) {
     return null;
+=======
+  if (workspace && !isLoading) {
+    router.replace(`/${workspace?.slug}/apis/${apiId}`);
+  }
+
+  if (!workspace || error) {
+    return redirect("/new");
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
   }
 
   return (
@@ -46,12 +59,21 @@ export default function ApiPage(props: { params: { apiId: string } }) {
       <ApisNavbar
         apiId={apiId}
         activePage={{
+<<<<<<< HEAD
           href: `/${workspace.id}/apis/${apiId}`,
           text: "Requests",
         }}
         workspaceId={workspace.id}
       />
       <LogsClient apiId={apiId} workspaceId={workspace.id} />
+=======
+          href: `/${workspace?.slug}/apis/${apiId}`,
+          text: "Requests",
+        }}
+        workspaceSlug={workspace?.slug ?? ""}
+      />
+      <LogsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
     </div>
   );
 }

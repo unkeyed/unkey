@@ -1,12 +1,18 @@
 "use client";
 
 import { useWorkspace } from "@/providers/workspace-provider";
+<<<<<<< HEAD
 import { Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
 
+=======
+import { redirect, useRouter } from "next/navigation";
+import { ApisNavbar } from "../api-id-navbar";
+import { SettingsClient } from "./components/settings-client";
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
 type Props = {
   params: {
     apiId: string;
@@ -15,6 +21,7 @@ type Props = {
 
 export default function SettingsPage(props: Props) {
   const { apiId } = props.params;
+<<<<<<< HEAD
   const { workspace, error, isLoading } = useWorkspace();
   const router = useRouter();
 
@@ -48,17 +55,37 @@ export default function SettingsPage(props: Props) {
     return null;
   }
 
+=======
+  const { workspace, error } = useWorkspace();
+  const router = useRouter();
+
+  if (!workspace || error) {
+    return redirect("/new");
+  }
+
+  router.replace(`/${workspace?.slug}/apis/${apiId}/settings`);
+
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
   return (
     <div>
       <ApisNavbar
         apiId={apiId}
         activePage={{
+<<<<<<< HEAD
           href: `/${workspace.id}/apis/${apiId}/settings`,
           text: "Settings",
         }}
         workspaceId={workspace.id}
       />
       <SettingsClient apiId={apiId} />
+=======
+          href: `/${workspace?.slug}/apis/${apiId}/settings`,
+          text: "Settings",
+        }}
+        workspaceSlug={workspace?.slug ?? ""}
+      />
+      <SettingsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
+>>>>>>> eng-1894-a-user-can-access-settings-within-workspace-context
     </div>
   );
 }

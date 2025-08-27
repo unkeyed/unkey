@@ -9,10 +9,10 @@ import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
 
 type Props = {
   api: ApiOverview;
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
-export const ApiListCard = ({ api, workspaceId }: Props) => {
+export const ApiListCard = ({ api, workspaceSlug }: Props) => {
   const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
@@ -23,7 +23,7 @@ export const ApiListCard = ({ api, workspaceId }: Props) => {
     <StatsCard
       name={api.name}
       secondaryId={api.id}
-      linkPath={`/${workspaceId}/apis/${api.id}`}
+      linkPath={`/${workspaceSlug}/apis/${api.id}`}
       chart={
         <StatsTimeseriesBarChart
           data={timeseries}
