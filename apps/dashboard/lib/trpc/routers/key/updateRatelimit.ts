@@ -1,4 +1,4 @@
-import { ratelimitSchema } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/create-key.schema";
+import { ratelimitSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { type Key, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
