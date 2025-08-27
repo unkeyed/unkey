@@ -12,6 +12,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
+	"github.com/unkeyed/unkey/go/pkg/prefixedapikey"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
@@ -67,15 +68,17 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		})
 		require.NoError(t, err, "Failed to insert migration")
 
-		rawKey := "resend_LXU3Cg7c_FYCCNMkHVZ2yQAi4rEZFwMuu"
-		migratedHash := "2facb5642fa68ca8406a1e1df71754972a6f5ac7f1107437f3021216262e89a2"
+		resendKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
+			KeyPrefix: "re",
+		})
+		require.NoError(t, err)
 
 		migrateReq := migrateHandler.Request{
 			ApiId:       api.ID,
 			MigrationId: migrationID,
 			Keys: []openapi.V2KeysMigrateKeyData{
 				{
-					Hash:    migratedHash,
+					Hash:    resendKey.LongTokenHash,
 					Enabled: ptr.P(true),
 				},
 			},
@@ -88,7 +91,7 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		keyID := migrateRes.Body.Data.Migrated[0].KeyId
 
 		req := handler.Request{
-			Key:         rawKey,
+			Key:         resendKey.Token,
 			MigrationId: ptr.P(migrationID),
 		}
 
@@ -101,7 +104,7 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 
 		// Now we should be able to verify the key without the migration ID
 		req = handler.Request{
-			Key: rawKey,
+			Key: resendKey.Token,
 		}
 
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)
@@ -115,8 +118,8 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, key.PendingMigrationID.Valid)
 		require.Empty(t, key.PendingMigrationID.String)
-		require.NotEqual(t, migratedHash, key.Hash, "Hash should be different after migration")
-		require.Equal(t, hash.Sha256(rawKey), key.Hash)
-		require.Equal(t, rawKey[:6], key.Start, "start should match first 6 chars of raw key after migration")
+		require.NotEqual(t, resendKey.LongTokenHash, key.Hash, "Hash should be different after migration")
+		require.Equal(t, hash.Sha256(resendKey.Token), key.Hash)
+		require.Equal(t, resendKey.Token[:7], key.Start, "start should match first 6 chars of raw key after migration")
 	})
 }
