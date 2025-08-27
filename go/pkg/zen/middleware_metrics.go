@@ -17,16 +17,29 @@ type EventBuffer interface {
 	BufferApiRequest(schema.ApiRequestV1)
 }
 
-var redactions = map[*regexp.Regexp]string{
-	regexp.MustCompile(`"key"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`):       `"key": "[REDACTED]"`,
-	regexp.MustCompile(`"plaintext"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`): `"plaintext": "[REDACTED]"`,
+type redactionRule struct {
+	regexp      *regexp.Regexp
+	replacement string
+}
+
+var redactionRules = []redactionRule{
+	// Redact "key" field values - matches JSON-style key fields with various whitespace combinations
+	{
+		regexp:      regexp.MustCompile(`"key"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: `"key": "[REDACTED]"`,
+	},
+	// Redact "plaintext" field values - matches JSON-style plaintext fields with various whitespace combinations
+	{
+		regexp:      regexp.MustCompile(`"plaintext"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: `"plaintext": "[REDACTED]"`,
+	},
 }
 
 func redact(in []byte) []byte {
 	b := in
 
-	for r, replacement := range redactions {
-		b = r.ReplaceAll(b, []byte(replacement))
+	for _, rule := range redactionRules {
+		b = rule.regexp.ReplaceAll(b, []byte(rule.replacement))
 	}
 
 	return b
