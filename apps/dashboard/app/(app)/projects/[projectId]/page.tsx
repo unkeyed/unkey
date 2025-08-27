@@ -1,5 +1,16 @@
 "use client";
-import { ChevronDown, CircleCheck, Cloud, CodeBranch, CodeCommit, FolderCloud } from "@unkey/icons";
+import {
+  ChevronDown,
+  CircleCheck,
+  CircleWarning,
+  Cloud,
+  CodeBranch,
+  CodeCommit,
+  Earth,
+  FolderCloud,
+  Link4,
+  ShareUpRight,
+} from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { ProjectLayout } from "./project-layout";
@@ -18,11 +29,11 @@ export default function ProjectDetails({
             isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
           )}
         >
-          <div className="max-w-[960px] flex flex-col w-full mt-4">
+          <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
             {/*Active deployment section*/}
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2.5 py-1.5 px-2">
-                <Cloud size="sm-regular" className="text-gray-9" />
+                <Cloud size="md-regular" className="text-gray-9" />
                 <div className="text-accent-12 font-medium text-[13px] leading-4">
                   Active Deployment
                 </div>
@@ -131,6 +142,86 @@ export default function ProjectDetails({
                       </Button>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2.5 py-1.5 px-2">
+                <Earth size="md-regular" className="text-gray-9" />
+                <div className="text-accent-12 font-medium text-[13px] leading-4">Domains</div>
+              </div>
+              <div>
+                <div className="border border-gray-4 rounded-t-[14px] w-full px-4 py-3 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Link4 className="text-gray-9" size="sm-medium" />
+                    <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+                      api.gateway.com
+                    </div>
+                    <ShareUpRight className="text-gray-9 shrink-0" size="md-regular" />
+                    <div className="ml-3" />
+                    <div className="flex gap-1.5 items-center h-4">
+                      <div className="bg-gray-4 text-grayA-11 rounded-md px-1 text-[11px] leading-6 font-mono">
+                        https
+                      </div>
+                      <div className="bg-feature-4 text-feature-11 rounded-md px-1 text-[11px] leading-6 font-mono">
+                        primary
+                      </div>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="success"
+                    className="p-[5px] size-[22px] flex items-center justify-center"
+                  >
+                    <CircleCheck className="shrink-0" size="sm-regular" />
+                  </Badge>
+                </div>
+                <div className="border border-gray-4 border-t-0 border-b-0 w-full px-4 py-3 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Link4 className="text-gray-9" size="sm-medium" />
+                    <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+                      dev.gateway.com
+                    </div>
+                    <ShareUpRight className="text-gray-9 shrink-0" size="md-regular" />
+                    <div className="ml-3" />
+                    <div className="flex gap-1.5 items-center h-4">
+                      <div className="bg-gray-4 text-grayA-11 rounded-md px-1 text-[11px] leading-6 font-mono">
+                        https
+                      </div>
+                      <div className="bg-feature-4 text-feature-11 rounded-md px-1 text-[11px] leading-6 font-mono">
+                        primary
+                      </div>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="error"
+                    className="p-[5px] size-[22px] flex items-center justify-center"
+                  >
+                    <CircleWarning className="shrink-0" size="sm-regular" />
+                  </Badge>
+                </div>
+                <div className="border border-gray-4 rounded-b-[14px] w-full px-4 py-3 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Link4 className="text-gray-9" size="sm-medium" />
+                    <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+                      staging.gateway.com
+                    </div>
+                    <ShareUpRight className="text-gray-9 shrink-0" size="md-regular" />
+                    <div className="ml-3" />
+                    <div className="flex gap-1.5 items-center h-4">
+                      <div className="bg-gray-4 text-grayA-11 rounded-md px-1 text-[11px] leading-6 font-mono">
+                        https
+                      </div>
+                      <div className="bg-feature-4 text-feature-11 rounded-md px-1 text-[11px] leading-6 font-mono">
+                        primary
+                      </div>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="success"
+                    className="p-[5px] size-[22px] flex items-center justify-center"
+                  >
+                    <CircleCheck className="shrink-0" size="sm-regular" />
+                  </Badge>
                 </div>
               </div>
             </div>
