@@ -1,4 +1,4 @@
-import { updateKeyRbacSchema } from "@/app/(app)/[workspaceId]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/components/edit-rbac/update-key-rbac.schema";
+import { updateKeyRbacSchema } from "@/app/(app)/[workspace]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/actions/components/edit-rbac/update-key-rbac.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
