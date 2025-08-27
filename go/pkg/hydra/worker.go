@@ -898,7 +898,7 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 		return err
 	}
 	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && rollbackErr != sql.ErrTxDone {
 			w.engine.logger.Error("failed to rollback transaction", "error", rollbackErr)
 		}
 	}()
