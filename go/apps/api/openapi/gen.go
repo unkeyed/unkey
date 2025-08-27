@@ -976,7 +976,7 @@ type V2KeysMigrateKeyData struct {
 	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
 	ExternalId *string `json:"externalId,omitempty"`
 
-	// Hash The current hash of the key on your sides
+	// Hash The current hash of the key on your side
 	Hash string `json:"hash"`
 
 	// Meta Stores arbitrary JSON metadata returned during key verification for contextual information.
@@ -1023,7 +1023,7 @@ type V2KeysMigrateKeysRequestBody struct {
 	ApiId string                 `json:"apiId"`
 	Keys  []V2KeysMigrateKeyData `json:"keys"`
 
-	// MigrationId Which migration to use
+	// MigrationId Identifier of the configured migration provider/strategy to use (e.g., "your_company").
 	MigrationId string `json:"migrationId"`
 }
 

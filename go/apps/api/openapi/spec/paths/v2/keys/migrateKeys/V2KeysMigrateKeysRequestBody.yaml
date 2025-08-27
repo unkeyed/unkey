@@ -4,8 +4,8 @@ properties:
     type: string
     minLength: 3
     maxLength: 255
-    description: Which migration to use
-    example: resend
+    description: Identifier of the configured migration provider/strategy to use (e.g., "your_company").
+    example: your_company
   apiId:
     type: string
     minLength: 3
@@ -27,6 +27,6 @@ examples:
     summary: Basic migration example
     description: A simple migration example with a single key
     value:
-      migrationId: resend
+      migrationId: your_company
       apiId: api_123456789
       keys: []

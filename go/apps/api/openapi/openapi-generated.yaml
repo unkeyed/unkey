@@ -848,8 +848,8 @@ components:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    description: Which migration to use
-                    example: resend
+                    description: Identifier of the configured migration provider/strategy to use (e.g., "your_company").
+                    example: your_company
                 apiId:
                     type: string
                     minLength: 3
@@ -2542,7 +2542,7 @@ components:
                 hash:
                     type: string
                     minLength: 3
-                    description: The current hash of the key on your sides
+                    description: The current hash of the key on your side
                     example: qwerty123
                 name:
                     type: string
@@ -2589,7 +2589,6 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -2605,7 +2604,6 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 100
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -4478,10 +4476,10 @@ paths:
     /v2/keys.migrateKeys:
         post:
             description: |
-                Migrate Api Key(s) to Unkey
+                Returns HTTP 200 even on partial success; hashes that could not be migrated are listed under `data.failed`.
+                Example usage provided in the docs and tests.
 
                 **Required Permissions**
-
                 Your root key must have one of the following permissions for basic key information:
                 - `api.*.create_key` (to migrate keys to any API)
                 - `api.<api_id>.create_key` (to migrate keys to a specific API)
@@ -4531,7 +4529,7 @@ paths:
                     description: Internal server error
             security:
                 - rootKey: []
-            summary: Migrate Api Key(s)
+            summary: Migrate API key(s)
             tags:
                 - keys
             x-speakeasy-name-override: migrateKeys
