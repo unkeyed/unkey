@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { Cloud, Gear, GridCircle, Layers3 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
-import { Button } from "@unkey/ui";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -16,8 +15,10 @@ type TabItem = {
 
 export const ProjectSubNavigation = ({
   onMount,
+  detailsExpandableTrigger,
 }: {
   onMount: (distanceToTop: number) => void;
+  detailsExpandableTrigger: React.ReactNode;
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -86,27 +87,33 @@ export const ProjectSubNavigation = ({
   }
 
   return (
-    <div className="w-full border-b border-gray-4 bg-transparent relative" ref={anchorRef}>
-      <div className="flex">
+    <div
+      className="w-full border-b border-gray-4 bg-transparent relative h-10"
+      ref={anchorRef}
+    >
+      <div className="flex items-center h-full">
         {tabs.map((tab) => {
           const IconComponent = tab.icon || GridCircle;
           const isActive = tab.id === activeTab;
           return (
-            <Button
+            // Our <Button /> component has too many default options using a native button easier to use in this case.
+            <button
+              type="button"
               key={tab.id}
-              variant="ghost"
               onClick={() => handleTabChange(tab.path)}
               className={cn(
-                "flex gap-2.5 items-center px-5 py-2 min-h-[40px] relative text-[13px] leading-4 font-medium focus:ring-0 transition-colors duration-150 rounded-none",
+                "flex gap-2.5 items-center px-5 py-2 h-full relative text-[13px] leading-4 font-medium transition-colors duration-150 rounded-none",
+                "text-gray-12 bg-transparent hover:bg-grayA-4 focus:outline-none",
                 "after:absolute after:-bottom-[1px] after:left-0 after:right-0 after:h-px after:bg-accent-12 after:scale-x-0 after:transition-transform after:duration-300 after:ease-out",
-                isActive && "text-accent-12 after:scale-x-100",
+                isActive && "text-accent-12 after:scale-x-100"
               )}
             >
               <IconComponent size="sm-medium" />
               <span>{tab.label}</span>
-            </Button>
+            </button>
           );
         })}
+        <div className="ml-auto mr-2 py-2">{detailsExpandableTrigger}</div>
       </div>
     </div>
   );

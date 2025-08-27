@@ -59,6 +59,7 @@ export * from "./icons/connections";
 export * from "./icons/conversion";
 export * from "./icons/cube";
 export * from "./icons/dots";
+export * from "./icons/double-chevron-left";
 export * from "./icons/double-chevron-right";
 export * from "./icons/earth";
 export * from "./icons/eye-slash";

@@ -1,7 +1,6 @@
 "use client";
 
-import { ProjectNavigation } from "../navigations/project-navigation";
-import { ProjectSubNavigation } from "../navigations/project-sub-navigation";
+import { ProjectLayout } from "../project-layout";
 
 export default function ProjectSettings({
   params: { projectId },
@@ -9,10 +8,8 @@ export default function ProjectSettings({
   params: { projectId: string };
 }) {
   return (
-    <div>
-      <ProjectNavigation projectId={projectId} />
-      <ProjectSubNavigation onMount={() => {}} />
-      <div className="flex flex-col">Dummy Settings</div>
-    </div>
+    <ProjectLayout projectId={projectId}>
+      <div className="bg-success-10">ProjectSettings</div>
+    </ProjectLayout>
   );
 }
