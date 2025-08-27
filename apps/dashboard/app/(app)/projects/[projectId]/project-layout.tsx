@@ -1,13 +1,13 @@
-import { useState, useCallback } from "react";
+import { DoubleChevronLeft } from "@unkey/icons";
+import { Button, InfoTooltip } from "@unkey/ui";
+import { useCallback, useState } from "react";
 import { ProjectDetailsExpandable } from "./details/project-details-expandables";
 import { ProjectNavigation } from "./navigations/project-navigation";
 import { ProjectSubNavigation } from "./navigations/project-sub-navigation";
-import { Button, InfoTooltip } from "@unkey/ui";
-import { DoubleChevronLeft } from "@unkey/icons";
 
 type ProjectLayoutProps = {
   projectId: string;
-  children: React.ReactNode;
+  children: React.ReactNode | ((props: { isDetailsOpen: boolean }) => React.ReactNode);
 };
 
 export const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
@@ -26,17 +26,14 @@ export const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
           onMount={handleDistanceToTop}
           detailsExpandableTrigger={
             <InfoTooltip
+              asChild
               content="Show details"
               position={{
                 side: "bottom",
                 align: "end",
               }}
             >
-              <Button
-                variant="ghost"
-                className="size-6"
-                onClick={() => setIsDetailsOpen(true)}
-              >
+              <Button variant="ghost" className="size-6" onClick={() => setIsDetailsOpen(true)}>
                 <DoubleChevronLeft size="lg-medium" className="text-gray-12" />
               </Button>
             </InfoTooltip>
@@ -44,7 +41,9 @@ export const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         />
       </div>
       <div className="flex">
-        <div className="flex-1">{children}</div>
+        <div className="flex-1">
+          {typeof children === "function" ? children({ isDetailsOpen }) : children}
+        </div>
         <ProjectDetailsExpandable
           tableDistanceToTop={tableDistanceToTop}
           isOpen={isDetailsOpen}

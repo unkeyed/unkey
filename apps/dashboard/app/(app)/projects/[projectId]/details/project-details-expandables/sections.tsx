@@ -1,19 +1,19 @@
 import {
+  Bolt,
+  ChartActivity,
+  CircleHalfDottedClock,
   CodeBranch,
   CodeCommit,
-  MessageWriting,
-  FolderCloud,
   Connections,
-  Location2,
-  Harddrive,
-  ChartActivity,
-  PaperClip2,
-  CircleHalfDottedClock,
+  FolderCloud,
   Gear,
-  Bolt,
   Github,
   Grid,
+  Harddrive,
   Heart,
+  Location2,
+  MessageWriting,
+  PaperClip2,
   User,
 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
@@ -46,39 +46,26 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: (
-          <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />
-        ),
+        icon: <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Branch",
         content: <span className="text-gray-12 font-medium">main</span>,
       },
       {
-        icon: (
-          <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />
-        ),
+        icon: <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Commit",
         content: <span className="text-gray-12 font-medium">e5f6a7b</span>,
       },
       {
-        icon: (
-          <MessageWriting
-            className="size-[14px] text-gray-12"
-            size="md-regular"
-          />
-        ),
+        icon: <MessageWriting className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Description",
         content: (
           <div className="truncate max-w-[150px] min-w-0">
-            <span className="text-gray-12 font-medium">
-              Add auth routes + logging
-            </span>
+            <span className="text-gray-12 font-medium">Add auth routes + logging</span>
           </div>
         ),
       },
       {
-        icon: (
-          <FolderCloud className="size-[14px] text-gray-12" size="md-regular" />
-        ),
+        icon: <FolderCloud className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Image",
         content: (
           <div className="text-grayA-10">
@@ -103,12 +90,7 @@ export const createDetailSections = (): DetailSection[] => [
       {
         icon: <User className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Created",
-        content: (
-          <TimestampInfo
-            value={Date.now()}
-            className="font-medium text-grayA-12 text-sm"
-          />
-        ),
+        content: <TimestampInfo value={Date.now()} className="font-medium text-grayA-12 text-sm" />,
       },
     ],
   },
@@ -125,9 +107,7 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: (
-          <Location2 className="size-[14px] text-gray-12" size="md-regular" />
-        ),
+        icon: <Location2 className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Regions",
         alignment: "start",
         content: (
@@ -162,9 +142,7 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: (
-          <Harddrive className="size-[14px] text-gray-12" size="md-regular" />
-        ),
+        icon: <Harddrive className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Storage",
         content: (
           <div className="text-grayA-10">
@@ -196,12 +174,7 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: (
-          <ChartActivity
-            className="size-[14px] text-gray-12"
-            size="md-regular"
-          />
-        ),
+        icon: <ChartActivity className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Scaling",
         alignment: "start",
         content: (
@@ -211,8 +184,7 @@ export const createDetailSections = (): DetailSection[] => [
               <span className="text-gray-12 font-medium">5</span> instances
             </div>
             <div className="text-xs mt-0.5">
-              at <span className="text-gray-12 font-medium">80%</span> CPU
-              threshold
+              at <span className="text-gray-12 font-medium">80%</span> CPU threshold
             </div>
           </div>
         ),
@@ -232,9 +204,7 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: (
-          <CircleHalfDottedClock className="text-gray-12" size="md-regular" />
-        ),
+        icon: <CircleHalfDottedClock className="text-gray-12" size="md-regular" />,
         label: "Build time",
         content: (
           <div className="text-grayA-10">
@@ -261,12 +231,7 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: (
-          <CircleHalfDottedClock
-            className="size-[14px] text-gray-12"
-            size="md-regular"
-          />
-        ),
+        icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Built At",
         content: (
           <TimestampInfo

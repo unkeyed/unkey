@@ -8,12 +8,7 @@ type DetailRowProps = {
   alignment?: "center" | "start";
 };
 
-function DetailRow({
-  icon,
-  label,
-  children,
-  alignment = "center",
-}: DetailRowProps) {
+function DetailRow({ icon, label, children, alignment = "center" }: DetailRowProps) {
   const alignmentClass = alignment === "start" ? "items-start" : "items-center";
 
   return (
@@ -35,11 +30,7 @@ type DetailSectionProps = {
   isFirst?: boolean;
 };
 
-export function DetailSection({
-  title,
-  items,
-  isFirst = false,
-}: DetailSectionProps) {
+export function DetailSection({ title, items, isFirst = false }: DetailSectionProps) {
   return (
     <div className={`px-4 ${isFirst ? "" : "mt-7"}`}>
       <div className="flex items-center gap-3">
