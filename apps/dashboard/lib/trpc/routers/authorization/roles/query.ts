@@ -1,5 +1,5 @@
-import { rolesQueryPayload } from "@/app/(app)/[workspaceId]/authorization/roles/components/table/query-logs.schema";
-import type { RolesFilterOperator } from "@/app/(app)/[workspaceId]/authorization/roles/filters.schema";
+import { rolesQueryPayload } from "@/app/(app)/[workspace]/authorization/roles/components/table/query-logs.schema";
+import type { RolesFilterOperator } from "@/app/(app)/[workspace]/authorization/roles/filters.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";

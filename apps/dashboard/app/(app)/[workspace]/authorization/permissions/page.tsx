@@ -16,7 +16,7 @@ export default function PermissionsPage() {
 
   return (
     <div>
-      <Navigation workspaceId={workspace?.id ?? ""} />
+      <Navigation workspaceSlug={workspace?.slug ?? ""} />
       <div className="flex flex-col">
         <PermissionListControls />
         <PermissionsListControlCloud />
