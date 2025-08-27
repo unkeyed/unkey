@@ -73,6 +73,5 @@ CREATE TABLE `certificates` (
   `created_at` bigint NOT NULL,
   `updated_at` bigint,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_hostname` (`hostname`),
-  KEY `idx_expires_at` (`expires_at`)
+  UNIQUE KEY `unique_hostname` (`hostname`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci

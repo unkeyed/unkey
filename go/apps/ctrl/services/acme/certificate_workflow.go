@@ -102,7 +102,7 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			return EncryptedCertificate{}, err
 		}
 
-		return EncryptedCertificate{Certificate: certificates.CertStableURL, EncryptedPrivateKey: resp.Encrypted}, nil
+		return EncryptedCertificate{Certificate: string(certificates.Certificate), EncryptedPrivateKey: resp.Encrypted}, nil
 	})
 	if err != nil {
 		w.logger.Error("failed to store cert in vaults", "error", err)
