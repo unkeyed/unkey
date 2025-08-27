@@ -7,8 +7,8 @@ import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
+import { z } from "zod";
 import { SearchField } from "./filter";
 import { Navigation } from "./navigation";
 import { Row } from "./row";
@@ -23,16 +23,35 @@ type Props = {
 };
 
 const DEFAULT_LIMIT = 100;
+
+const searchParamsSchema = z.object({
+  search: z.string().optional(),
+  limit: z.string().regex(/^\d+$/).optional(),
+});
+
 export default async function Page(props: Props) {
-  const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
-  const limit = parseAsInteger
-    .withDefault(DEFAULT_LIMIT)
-    .parse(props.searchParams.limit ?? DEFAULT_LIMIT.toString());
+  const validatedParams = searchParamsSchema.parse(props.searchParams);
+  const search = validatedParams.search ?? "";
+  const limit = validatedParams.limit ? Number.parseInt(validatedParams.limit, 10) : DEFAULT_LIMIT;
 
   const { orgId } = await getAuth();
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.orgId, orgId),
-  });
+
+  let workspace: Awaited<ReturnType<typeof db.query.workspaces.findFirst>>;
+  try {
+    workspace = await db.query.workspaces.findFirst({
+      where: (table, { eq }) => eq(table.orgId, orgId),
+    });
+  } catch (error) {
+    console.error({
+      message: "Failed to fetch workspace for identities page",
+      orgId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    // Redirect to sign-in page on database failure
+    return redirect("/auth/sign-in");
+  }
 
   if (!workspace) {
     return redirect("/auth/sign-in");
@@ -44,7 +63,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation workspaceId={workspace.id} />
+      <Navigation workspaceSlug={workspace.slug ?? ""} />
       <PageContent>
         <SearchField />
         <div className="flex flex-col gap-8 mb-20 mt-8">
@@ -96,7 +115,29 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
     [`${orgId}-${props.search}-${props.limit}`],
   );
 
-  const workspace = await getData();
+  let workspace: Awaited<ReturnType<typeof getData>>;
+  try {
+    workspace = await getData();
+  } catch (error) {
+    console.error({
+      message: "Failed to fetch workspace data for identities results",
+      orgId,
+      search: props.search,
+      limit: props.limit,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    // Return an error state instead of crashing
+    return (
+      <div className="flex items-center justify-center w-full py-8">
+        <p className="text-content-subtle text-sm">
+          Unable to load identities. Please try refreshing the page or contact support if the issue
+          persists.
+        </p>
+      </div>
+    );
+  }
 
   if (!workspace) {
     return redirect("/new");
@@ -128,6 +169,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
             return (
               <Row
                 key={identity.id}
+                workspaceSlug={workspace.slug ?? ""}
                 identity={{
                   id: identity.id,
                   externalId: identity.externalId,

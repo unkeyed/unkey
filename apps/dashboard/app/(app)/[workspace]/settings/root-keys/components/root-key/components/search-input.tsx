@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
+import type { ChangeEvent, RefObject } from "react";
 
 export const SEARCH_MODES = {
   ALLOW_TYPE: "allowTypeDuringSearch",
@@ -18,8 +19,8 @@ type SearchInputProps = {
   loadingText: string;
   clearingText: string;
   searchMode: (typeof SEARCH_MODES)[keyof typeof SEARCH_MODES];
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  inputRef: React.RefObject<HTMLInputElement>;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  inputRef: RefObject<HTMLInputElement>;
 };
 
 export const SearchInput = ({

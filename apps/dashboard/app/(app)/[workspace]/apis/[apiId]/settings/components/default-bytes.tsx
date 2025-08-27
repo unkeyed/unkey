@@ -23,9 +23,10 @@ type Props = {
     defaultBytes: number | undefined | null;
   };
   apiId: string;
+  workspaceSlug: string;
 };
 
-export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
+export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId, workspaceSlug }) => {
   const { onUpdateSuccess, onError } = createMutationHandlers();
 
   const {
@@ -57,7 +58,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultBytes.mutateAsync(values);
-    revalidate(`/apis/${apiId}/settings`);
+    revalidate(`/${workspaceSlug}/apis/${apiId}/settings`);
   }
 
   return (
@@ -69,7 +70,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
         </div>
       }
       border="top"
-      className="border-b-1"
+      className="border-b"
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
     >
       <form

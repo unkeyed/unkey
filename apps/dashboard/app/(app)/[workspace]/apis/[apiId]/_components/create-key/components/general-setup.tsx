@@ -29,7 +29,7 @@ export const GeneralSetup = () => {
         className="[&_input:first-of-type]:h-[36px]"
         label="Prefix"
         placeholder="Enter prefix"
-        maxLength={8}
+        maxLength={16}
         description="Prefix to distinguish between different APIs (we'll add the underscore)."
         error={errors.prefix?.message}
         optional

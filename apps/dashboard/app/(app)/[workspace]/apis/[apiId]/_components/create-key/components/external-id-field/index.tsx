@@ -1,6 +1,6 @@
-import { useCreateIdentity } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/hooks/use-create-identity";
-import { useFetchIdentities } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
-import { createIdentityOptions } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
+import { useCreateIdentity } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/hooks/use-create-identity";
+import { useFetchIdentities } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
+import { createIdentityOptions } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { Identity } from "@unkey/db";
 import { TriangleWarning2 } from "@unkey/icons";

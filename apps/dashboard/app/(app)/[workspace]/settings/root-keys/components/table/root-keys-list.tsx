@@ -1,5 +1,5 @@
 "use client";
-import { HiddenValueCell } from "@/app/(app)/[workspaceId]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
+import { HiddenValueCell } from "@/app/(app)/[workspace]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
@@ -50,7 +50,7 @@ const RootKeysTableActions = dynamic(
   },
 );
 
-export const RootKeysList = ({ workspaceId }: { workspaceId: string }) => {
+export const RootKeysList = () => {
   const { rootKeys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     useRootKeysListQuery();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);

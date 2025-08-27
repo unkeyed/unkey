@@ -28,17 +28,21 @@ export const useFilters = () => {
         continue;
       }
 
-      for (const filterItem of value) {
-        if (filterItem && typeof filterItem.value === "string" && filterItem.operator) {
-          const baseFilter: RootKeysFilterValue = {
-            id: crypto.randomUUID(),
-            field: field,
-            operator: filterItem.operator,
-            value: filterItem.value,
-          };
-          activeFilters.push(baseFilter);
+      value.forEach((filterItem, idx) => {
+        const operator = filterItem?.operator;
+        const raw = typeof filterItem?.value === "string" ? filterItem.value : "";
+        const v = raw.trim();
+        const allowed = rootKeysFilterFieldConfig[field]?.operators ?? [];
+        if (!v || !operator || !allowed.includes(operator)) {
+          return;
         }
-      }
+        activeFilters.push({
+          id: `${field}:${operator}:${v}:${idx}`, // deterministic across SSR/CSR
+          field,
+          operator,
+          value: v,
+        });
+      });
     }
 
     return activeFilters;

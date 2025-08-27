@@ -14,7 +14,8 @@ type Props = {
   };
 };
 
-export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
+export function UpdateWorkspaceName(props: Props) {
+  const { workspace } = props;
   const router = useRouter();
   const utils = trpc.useUtils();
   const [name, setName] = useState(workspace.name);
@@ -51,7 +52,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       router.refresh();
     },
     onError(err) {
-      toast.error("Failed to update namespace name", {
+      toast.error("Failed to update workspace name", {
         description: err.message,
       });
     },
@@ -71,18 +72,19 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         title={"Workspace Name"}
         description={"Not customer-facing. Choose a name that is easy to recognize."}
         border="top"
-        className="border-b-1"
+        className="border-b"
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">
           <input type="hidden" name="workspaceId" value={workspace.id} />
-          <label htmlFor="workspaceName" className="hidden sr-only">
+          <label htmlFor="workspaceName" className="sr-only">
             Workspace Name
           </label>
           <FormInput
             className="w-[21rem]"
             placeholder="Workspace Name"
             minLength={3}
+            maxLength={50}
             error={errors.workspaceName?.message}
             {...register("workspaceName")}
           />
@@ -101,4 +103,4 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       </SettingCard>
     </form>
   );
-};
+}

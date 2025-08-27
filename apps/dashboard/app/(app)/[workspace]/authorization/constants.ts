@@ -1,12 +1,12 @@
-export const navigation = (workspaceId: string) => [
+export const navigation = (workspaceSlug: string) => [
   {
     label: "Roles",
-    href: `/${workspaceId}/authorization/roles`,
+    href: `/${workspaceSlug}/authorization/roles`,
     segment: "roles",
   },
   {
     label: "Permissions",
-    href: `/${workspaceId}/authorization/permissions`,
+    href: `/${workspaceSlug}/authorization/permissions`,
     segment: "permissions",
   },
 ];

@@ -1,6 +1,6 @@
 "use client";
-import { RED_STATES, YELLOW_STATES } from "@/app/(app)/[workspaceId]/logs/constants";
-import { extractResponseField, getRequestHeader } from "@/app/(app)/[workspaceId]/logs/utils";
+import { RED_STATES, YELLOW_STATES } from "@/app/(app)/[workspace]/logs/constants";
+import { extractResponseField, getRequestHeader } from "@/app/(app)/[workspace]/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { cn } from "@/lib/utils";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";

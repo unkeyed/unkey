@@ -1,17 +1,20 @@
-export const navigation = (apiId: string, keyAuthId: string, workspaceId: string) => [
-  {
-    label: "Overview",
-    href: `/${workspaceId}/apis/${apiId}`,
-    segment: "overview",
-  },
-  {
-    label: "Keys",
-    href: `/${workspaceId}/apis/${apiId}/keys/${keyAuthId}`,
-    segment: "keys",
-  },
-  {
-    label: "API Settings",
-    href: `/${workspaceId}/apis/${apiId}/settings`,
-    segment: "settings",
-  },
-];
+export const navigation = (apiId: string, keyAuthId: string, workspaceSlug: string) => {
+  const base = `/${workspaceSlug}/apis/${apiId}`;
+  return [
+    {
+      label: "Requests",
+      href: base,
+      segment: "requests",
+    },
+    {
+      label: "Keys",
+      href: `${base}/keys/${keyAuthId}`,
+      segment: "keys",
+    },
+    {
+      label: "Settings",
+      href: `${base}/settings`,
+      segment: "settings",
+    },
+  ];
+};

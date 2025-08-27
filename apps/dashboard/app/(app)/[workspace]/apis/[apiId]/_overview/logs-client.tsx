@@ -8,7 +8,7 @@ import { KeysOverviewLogsControls } from "./components/controls";
 import { KeysOverviewLogDetails } from "./components/table/components/log-details";
 import { KeysOverviewLogsTable } from "./components/table/logs-table";
 
-export const LogsClient = ({ apiId, workspaceId }: { apiId: string; workspaceId: string }) => {
+export const LogsClient = ({ apiId, workspaceSlug }: { apiId: string; workspaceSlug: string }) => {
   const [selectedLog, setSelectedLog] = useState<KeysOverviewLog | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
@@ -30,7 +30,7 @@ export const LogsClient = ({ apiId, workspaceId }: { apiId: string; workspaceId:
           apiId={apiId}
           setSelectedLog={handleSelectedLog}
           log={selectedLog}
-          workspaceId={workspaceId}
+          workspaceSlug={workspaceSlug}
         />
       </div>
       <KeysOverviewLogDetails
@@ -38,7 +38,7 @@ export const LogsClient = ({ apiId, workspaceId }: { apiId: string; workspaceId:
         distanceToTop={tableDistanceToTop}
         setSelectedLog={handleSelectedLog}
         log={selectedLog}
-        workspaceId={workspaceId}
+        workspaceSlug={workspaceSlug}
       />
     </div>
   );

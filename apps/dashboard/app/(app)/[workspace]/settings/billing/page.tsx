@@ -72,7 +72,7 @@ export default async function BillingPage() {
 
   if (isLegacy) {
     return (
-      <Shell workspace={workspace}>
+      <Shell>
         <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
         <div className="w-full">
           <SettingCard
@@ -155,7 +155,7 @@ export default async function BillingPage() {
             workspace={workspace}
             activePage={{ href: "billing", text: "Billing" }}
           />
-          <Shell workspace={workspace}>
+          <Shell>
             <div className="w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
           </Shell>
         </div>

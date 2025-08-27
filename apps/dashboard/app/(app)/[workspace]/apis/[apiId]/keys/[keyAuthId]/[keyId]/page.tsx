@@ -16,7 +16,7 @@ export default function KeyDetailsPage(props: {
     return redirect("/new");
   }
 
-  router.replace(`/${workspace?.id}/apis/${apiId}/keys/${keyspaceId}/${keyId}`);
+  router.replace(`/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`);
   return (
     <div className="w-full">
       <ApisNavbar
@@ -24,10 +24,10 @@ export default function KeyDetailsPage(props: {
         keyspaceId={keyspaceId}
         keyId={keyId}
         activePage={{
-          href: `/${workspace?.id}/apis/${apiId}/keys/${keyspaceId}/${keyId}`,
+          href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`,
           text: "Keys",
         }}
-        workspaceId={workspace?.id ?? ""}
+        workspaceSlug={workspace?.slug ?? ""}
       />
       <KeyDetailsLogsClient apiId={apiId} keyspaceId={keyspaceId} keyId={keyId} />
     </div>

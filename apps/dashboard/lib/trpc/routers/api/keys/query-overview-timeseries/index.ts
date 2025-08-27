@@ -1,5 +1,5 @@
-import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
-import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/filters.schema";
+import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
+import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/filters.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

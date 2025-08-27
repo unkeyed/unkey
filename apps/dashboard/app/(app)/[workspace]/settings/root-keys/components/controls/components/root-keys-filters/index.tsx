@@ -26,9 +26,20 @@ export const RootKeysFilters = () => {
     const displayConfig = FIELD_DISPLAY_CONFIG[fieldName];
 
     if (!displayConfig) {
-      throw new Error(`Missing display configuration for field: ${fieldName}`);
+      if (process.env.NODE_ENV !== "production") {
+        // Fail-fast in dev to surface schema/display drift
+        throw new Error(`Missing display configuration for field: ${fieldName}`);
+      }
+      // Fail-soft in prod
+      return {
+        id: fieldName,
+        label: fieldName.charAt(0).toUpperCase() + fieldName.slice(1),
+        shortcut: "",
+        component: null,
+      } as const;
     }
 
+    // …rest of mapping logic using displayConfig…
     const options = fieldConfig.operators.map((op) => ({
       id: op,
       label: op,
@@ -75,8 +86,8 @@ export const RootKeysFilters = () => {
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filters.length > 0 ? "bg-gray-4" : "",
           )}
-          aria-label="Filter logs"
-          aria-haspopup="true"
+          aria-label="Filter root keys"
+          aria-haspopup="dialog"
           size="md"
           title="Press 'F' to toggle filters"
         >

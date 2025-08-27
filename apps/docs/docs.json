@@ -209,7 +209,10 @@
               },
               {
                 "group": "User Errors",
-                "pages": ["errors/user/bad_request/permissions_query_syntax_error"]
+                "pages": [
+                  "errors/user/bad_request/permissions_query_syntax_error",
+                  "errors/user/bad_request/request_body_too_large"
+                ]
               }
             ]
           }

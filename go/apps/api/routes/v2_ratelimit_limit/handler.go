@@ -51,6 +51,10 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	if s.Request().Header.Get("X-Unkey-Metrics") == "disabled" {
+		s.DisableClickHouseLogging()
+	}
+
 	// Authenticate the request with a root key
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -74,11 +78,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: namespaceKey},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Namespace:   namespaceKey,
-			})
 			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
+
+			response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Namespace:   namespaceKey,
+				})
+			})
 			if err != nil {
 				return result, err
 			}
@@ -180,12 +187,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Apply rate limit
 	limitReq := ratelimit.RatelimitRequest{
-		Identifier: req.Identifier,
+		Identifier: namespace.ID + ":" + req.Identifier,
 		Duration:   time.Duration(duration) * time.Millisecond,
 		Limit:      limit,
 		Cost:       cost,
 		Time:       time.Time{},
 	}
+
 	if h.TestMode {
 		header := s.Request().Header.Get("X-Test-Time")
 		if header != "" {
@@ -206,7 +214,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if s.Request().Header.Get("X-Unkey-Metrics") != "disabled" {
+	if s.ShouldLogRequestToClickHouse() {
 		h.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
 			RequestID:   s.RequestID(),
 			WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -216,6 +224,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Passed:      result.Success,
 		})
 	}
+
 	res := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
