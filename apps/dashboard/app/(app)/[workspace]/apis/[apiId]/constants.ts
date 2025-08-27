@@ -1,5 +1,5 @@
-export const navigation = (apiId: string, keyAuthId: string, workspaceId: string) => {
-  const base = `/${workspaceId}/apis/${apiId}`;
+export const navigation = (apiId: string, keyAuthId: string, workspaceSlug: string) => {
+  const base = `/${workspaceSlug}/apis/${apiId}`;
   return [
     {
       label: "Requests",

@@ -29,7 +29,7 @@ type KeysOverviewLogDetailsProps = {
   log: KeysOverviewLog | null;
   apiId: string;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
 export const KeysOverviewLogDetails = ({
@@ -37,7 +37,7 @@ export const KeysOverviewLogDetails = ({
   log,
   setSelectedLog,
   apiId,
-  workspaceId,
+  workspaceSlug,
 }: KeysOverviewLogDetailsProps) => {
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
   if (!log) {
@@ -69,7 +69,7 @@ export const KeysOverviewLogDetails = ({
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono underline decoration-dotted"
-        href={`/${workspaceId}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        href={`/${workspaceSlug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
       >
         <div className="font-mono font-medium truncate">{log.key_id}</div>
       </Link>

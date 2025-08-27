@@ -16,19 +16,20 @@ const workspaceSchema = z.object({
     .trim()
     .min(3, "Workspace name is required")
     .max(50, "Workspace name must be 50 characters or less"),
-  // workspaceUrl: z
-  //   .string()
-  //   .min(3, "Workspace URL is required")
-  //   .regex(
-  //     /^[a-zA-Z0-9-_]+$/,
-  //     "URL handle can only contain letters, numbers, hyphens, and underscores"
-  //   ),
+  workspaceUrl: z
+    .string()
+    .min(3, "Workspace URL is required")
+    .max(64, "Workspace URL must be 64 characters or less")
+    .regex(
+      /^(?!-)[a-z0-9-]+(?<!-)$/,
+      "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
+    ),
 });
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
 export const useWorkspaceStep = (): OnboardingStep => {
-  // const [isSlugGenerated, setIsSlugGenerated] = useState(false);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -101,7 +102,10 @@ export const useWorkspaceStep = (): OnboardingStep => {
       // Workspace already created, just proceed
       return;
     }
-    createWorkspace.mutateAsync({ name: data.workspaceName });
+    createWorkspace.mutateAsync({
+      name: data.workspaceName,
+      slug: data.workspaceUrl.toLowerCase(),
+    });
   };
 
   const validFieldCount = Object.keys(form.getValues()).filter((field) => {
@@ -151,35 +155,42 @@ export const useWorkspaceStep = (): OnboardingStep => {
               {...form.register("workspaceName")}
               placeholder="Enter workspace name"
               label="Workspace name"
-              // onBlur={(evt) => {
-              //   if (!isSlugGenerated) {
-              //     form.setValue(
-              //       "workspaceUrl",
-              //       slugify(evt.currentTarget.value)
-              //     );
-              //     form.trigger("workspaceUrl");
-              //     setIsSlugGenerated(true);
-              //   }
-              // }}
+              onBlur={(evt) => {
+                const currentSlug = form.getValues("workspaceUrl");
+                const isSlugDirty = form.formState.dirtyFields.workspaceUrl;
+
+                // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
+                if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
+                  form.setValue("workspaceUrl", slugify(evt.currentTarget.value));
+                  form.trigger("workspaceUrl");
+                }
+              }}
               required
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
             />
-            {/* <FormInput */}
-            {/*   {...form.register("workspaceUrl")} */}
-            {/*   placeholder="enter-a-handle" */}
-            {/*   label="Workspace URL handle" */}
-            {/*   required */}
-            {/*   error={form.formState.errors.workspaceUrl?.message} */}
-            {/*   prefix="app.unkey.com/" */}
-            {/* /> */}
+            <FormInput
+              {...form.register("workspaceUrl")}
+              placeholder="enter-a-handle"
+              label="Workspace URL handle"
+              required
+              error={form.formState.errors.workspaceUrl?.message}
+              prefix="app.unkey.com/"
+              maxLength={64}
+              onChange={(evt) => {
+                // Mark slug as manually edited when user changes it
+                if (evt.currentTarget.value) {
+                  setSlugManuallyEdited(true);
+                }
+              }}
+            />
           </div>
         </div>
       </form>
     ),
     kind: "required" as const,
     validFieldCount,
-    requiredFieldCount: 1,
+    requiredFieldCount: 2,
     buttonText: workspaceCreated ? "Continue" : "Create workspace",
     description: workspaceCreated
       ? "Workspace created successfully, continue to next step"
@@ -200,12 +211,12 @@ export const useWorkspaceStep = (): OnboardingStep => {
   };
 };
 
-// const slugify = (text: string): string => {
-//   return text
-//     .toLowerCase()
-//     .trim()
-//     .replace(/[^\w\s-]/g, "") // Remove special chars except spaces and hyphens
-//     .replace(/\s+/g, "-") // Replace spaces with hyphens
-//     .replace(/-+/g, "-") // Replace multiple hyphens with single
-//     .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
-// };
+const slugify = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special chars except letters, numbers, spaces, and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+};

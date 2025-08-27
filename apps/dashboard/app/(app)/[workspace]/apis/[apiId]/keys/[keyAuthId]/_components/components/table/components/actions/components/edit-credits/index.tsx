@@ -1,8 +1,8 @@
-import { UsageSetup } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/components/credits-setup";
+import { UsageSetup } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/credits-setup";
 import {
   type CreditsFormValues,
   creditsSchema,
-} from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/create-key.schema";
+} from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { trpc } from "@/lib/trpc/client";
