@@ -3,7 +3,7 @@ properties:
   hash:
     type: string
     minLength: 3
-    description: The current hash of the key on your sides
+    description: The current hash of the key on your side
     example: qwerty123
   name:
     type: string

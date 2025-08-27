@@ -26,6 +26,7 @@ func TestCreateKeySuccess(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		ApiCache:  h.Caches.LiveApiByID,
 	}
 
 	h.Register(route)
@@ -77,6 +78,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		ApiCache:  h.Caches.LiveApiByID,
 	}
 
 	h.Register(route)
@@ -140,6 +142,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		ApiCache:  h.Caches.LiveApiByID,
 	}
 
 	h.Register(route)

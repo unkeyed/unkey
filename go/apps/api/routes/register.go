@@ -397,6 +397,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			ApiCache:  svc.Caches.LiveApiByID,
 		},
 	)
 

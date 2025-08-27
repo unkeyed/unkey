@@ -1,12 +1,12 @@
 post:
   tags:
     - keys
-  summary: Migrate Api Key(s)
+  summary: Migrate API key(s)
   description: |
-    Migrate Api Key(s) to Unkey
+    Returns HTTP 200 even on partial success; hashes that could not be migrated are listed under `data.failed`.
+    Example usage provided in the docs and tests.
 
     **Required Permissions**
-
     Your root key must have one of the following permissions for basic key information:
     - `api.*.create_key` (to migrate keys to any API)
     - `api.<api_id>.create_key` (to migrate keys to a specific API)

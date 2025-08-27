@@ -412,10 +412,10 @@ CREATE TABLE `domains` (
 );
 
 CREATE TABLE `key_migrations` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`algorithm` enum('github.com/seamapi/prefixed-api-key') NOT NULL,
-	CONSTRAINT `key_migrations_id` PRIMARY KEY(`id`)
+  `id` varchar(255) NOT NULL,
+  `workspace_id` varchar(256) NOT NULL,
+  `algorithm` enum('github.com/seamapi/prefixed-api-key') NOT NULL,
+  PRIMARY KEY (`id`,`workspace_id`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
