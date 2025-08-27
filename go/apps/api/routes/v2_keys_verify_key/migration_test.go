@@ -2,14 +2,13 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
+	migrateHandler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_migrate_keys"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -23,7 +22,15 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{
+	migrateRoute := &migrateHandler.Handler{
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		ApiCache:  h.Caches.LiveApiByID,
+	}
+
+	verifyRoute := &handler.Handler{
 		DB:         h.DB,
 		Keys:       h.Keys,
 		Logger:     h.Logger,
@@ -31,12 +38,14 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		ClickHouse: h.ClickHouse,
 	}
 
-	h.Register(route)
+	h.Register(verifyRoute)
+	h.Register(migrateRoute)
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key", "api.*.create_key")
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
@@ -58,30 +67,34 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		})
 		require.NoError(t, err, "Failed to insert migration")
 
-		// Create key with specific raw key and hash
-		keyID := uid.New(uid.KeyPrefix)
 		rawKey := "resend_LXU3Cg7c_FYCCNMkHVZ2yQAi4rEZFwMuu"
 		migratedHash := "2facb5642fa68ca8406a1e1df71754972a6f5ac7f1107437f3021216262e89a2"
 
-		// Create key with pending migration
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                 keyID,
-			KeyringID:          api.KeyAuthID.String,
-			WorkspaceID:        workspace.ID,
-			CreatedAtM:         time.Now().UnixMilli(),
-			Hash:               migratedHash,
-			Enabled:            true,
-			PendingMigrationID: sql.NullString{Valid: true, String: migrationID},
-		})
+		migrateReq := migrateHandler.Request{
+			ApiId:       api.ID,
+			MigrationId: migrationID,
+			Keys: []openapi.V2KeysMigrateKeyData{
+				{
+					Hash:    migratedHash,
+					Enabled: ptr.P(true),
+				},
+			},
+		}
+
+		migrateRes := testutil.CallRoute[migrateHandler.Request, migrateHandler.Response](h, migrateRoute, headers, migrateReq)
+		require.Equal(t, 200, migrateRes.Status, "expected 200, received: %#v", migrateRes)
+		require.Len(t, migrateRes.Body.Data.Failed, 0, "No keys should fail migration")
+		require.Len(t, migrateRes.Body.Data.Migrated, 1, "One key should be migrated")
+		keyID := migrateRes.Body.Data.Migrated[0].KeyId
 
 		req := handler.Request{
 			Key:         rawKey,
 			MigrationId: ptr.P(migrationID),
 		}
-		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+
+		res1 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)
 
 		t.Logf("Response 1: %v", res1.RawBody)
-
 		require.Equal(t, 200, res1.Status, "expected 200, received: %#v", res1)
 		require.NotNil(t, res1.Body)
 		require.Equal(t, openapi.VALID, res1.Body.Data.Code, "Key should be valid but got %s", res1.Body.Data.Code)
@@ -91,7 +104,7 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		req = handler.Request{
 			Key: rawKey,
 		}
-		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		res2 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)
 		t.Logf("Response 2: %v", res2.RawBody)
 
 		require.Equal(t, 200, res2.Status, "expected 200, received: %#v", res2)
