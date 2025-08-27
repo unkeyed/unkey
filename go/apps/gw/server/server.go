@@ -73,7 +73,7 @@ func New(config Config) (*Server, error) {
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				return config.CertManager.GetCertificate(context.Background(), hello.ServerName)
 			},
-			MinVersion: tls.VersionTLS12,
+			MinVersion: tls.VersionTLS13,
 		}
 	}
 
@@ -114,6 +114,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 		s.mu.Unlock()
 		return nil
 	}
+
 	s.isListening = true
 	s.mu.Unlock()
 

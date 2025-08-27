@@ -46,8 +46,10 @@ func New(cfg Config) *service {
 
 // GetCertificate implements the CertManager interface.
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
-	if strings.HasSuffix(domain, s.defaultCertDomain) && domain != "*."+s.defaultCertDomain {
-		return s.GetCertificate(ctx, "*."+s.defaultCertDomain)
+	if s.defaultCertDomain != "" {
+		if strings.HasSuffix(domain, s.defaultCertDomain) && domain != "*."+s.defaultCertDomain {
+			return s.GetCertificate(ctx, "*."+s.defaultCertDomain)
+		}
 	}
 
 	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
