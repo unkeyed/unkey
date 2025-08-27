@@ -17,6 +17,34 @@ type EventBuffer interface {
 	BufferApiRequest(schema.ApiRequestV1)
 }
 
+type redactionRule struct {
+	regexp      *regexp.Regexp
+	replacement []byte
+}
+
+var redactionRules = []redactionRule{
+	// Redact "key" field values - matches JSON-style key fields with various whitespace combinations
+	{
+		regexp:      regexp.MustCompile(`"key"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: []byte(`"key": "[REDACTED]"`),
+	},
+	// Redact "plaintext" field values - matches JSON-style plaintext fields with various whitespace combinations
+	{
+		regexp:      regexp.MustCompile(`"plaintext"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: []byte(`"plaintext": "[REDACTED]"`),
+	},
+}
+
+func redact(in []byte) []byte {
+	b := in
+
+	for _, rule := range redactionRules {
+		b = rule.regexp.ReplaceAll(b, rule.replacement)
+	}
+
+	return b
+}
+
 // WithMetrics returns middleware that collects metrics about each request,
 // including request counts, latencies, and status codes.
 //
@@ -29,18 +57,6 @@ type EventBuffer interface {
 //	    route,
 //	)
 func WithMetrics(eventBuffer EventBuffer) Middleware {
-	redactions := map[*regexp.Regexp]string{
-		regexp.MustCompile(`"key":\s*"[a-zA-Z0-9_]+"`):       `"key": "[REDACTED]"`,
-		regexp.MustCompile(`"plaintext":\s*"[a-zA-Z0-9_]+"`): `"plaintext": "[REDACTED]"`,
-	}
-
-	redact := func(in []byte) []byte {
-		b := in
-		for r, replacement := range redactions {
-			b = r.ReplaceAll(b, []byte(replacement))
-		}
-		return b
-	}
 
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
