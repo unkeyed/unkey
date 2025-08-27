@@ -1,5 +1,5 @@
-import { useFilters } from "@/app/(app)/[workspaceId]/logs/hooks/use-filters";
-import type { ResponseStatus } from "@/app/(app)/[workspaceId]/logs/types";
+import { useFilters } from "@/app/(app)/[workspace]/logs/hooks/use-filters";
+import type { ResponseStatus } from "@/app/(app)/[workspace]/logs/types";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 type StatusOption = {

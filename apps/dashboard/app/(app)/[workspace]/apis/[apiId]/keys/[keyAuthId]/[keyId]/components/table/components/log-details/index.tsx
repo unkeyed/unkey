@@ -2,11 +2,11 @@
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { useEffect, useMemo, useState } from "react";
 
-import { LogFooter } from "@/app/(app)/[workspaceId]/logs/components/table/log-details/components/log-footer";
-import { LogHeader } from "@/app/(app)/[workspaceId]/logs/components/table/log-details/components/log-header";
-import { LogSection } from "@/app/(app)/[workspaceId]/logs/components/table/log-details/components/log-section";
-import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/[workspaceId]/logs/constants";
-import { safeParseJson } from "@/app/(app)/[workspaceId]/logs/utils";
+import { LogFooter } from "@/app/(app)/[workspace]/logs/components/table/log-details/components/log-footer";
+import { LogHeader } from "@/app/(app)/[workspace]/logs/components/table/log-details/components/log-header";
+import { LogSection } from "@/app/(app)/[workspace]/logs/components/table/log-details/components/log-section";
+import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/[workspace]/logs/constants";
+import { safeParseJson } from "@/app/(app)/[workspace]/logs/utils";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "./components/hooks/use-logs-query";

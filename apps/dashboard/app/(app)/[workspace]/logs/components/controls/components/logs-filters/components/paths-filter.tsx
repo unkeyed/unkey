@@ -1,5 +1,5 @@
-import { logsFilterFieldConfig } from "@/app/(app)/[workspaceId]/logs/filters.schema";
-import { useFilters } from "@/app/(app)/[workspaceId]/logs/hooks/use-filters";
+import { logsFilterFieldConfig } from "@/app/(app)/[workspace]/logs/filters.schema";
+import { useFilters } from "@/app/(app)/[workspace]/logs/hooks/use-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 
 export const PathsFilter = () => {

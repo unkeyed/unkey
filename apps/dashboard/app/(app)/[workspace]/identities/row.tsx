@@ -17,7 +17,7 @@ type Props = {
     }>;
     workspaceId: string;
   };
-   workspaceSlug: string;
+  workspaceSlug: string;
 };
 
 function RowComponent(props: Props) {

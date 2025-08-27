@@ -57,7 +57,10 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation identityId={props.params.identityId} workspaceSlug={identity.workspace.slug ?? ""} />
+      <Navigation
+        identityId={props.params.identityId}
+        workspaceSlug={identity.workspace.slug ?? ""}
+      />
       <PageContent>
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">

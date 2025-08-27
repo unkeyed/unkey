@@ -1,5 +1,5 @@
 "use client";
-import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/[workspaceId]/logs/constants";
+import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/[workspace]/logs/constants";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TimestampInfo } from "@unkey/ui";

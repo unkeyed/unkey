@@ -10,7 +10,7 @@ import {
 } from "date-fns";
 import React from "react";
 
-import { logsFilterFieldEnum } from "@/app/(app)/[workspaceId]/logs/filters.schema";
+import { logsFilterFieldEnum } from "@/app/(app)/[workspace]/logs/filters.schema";
 import { auditLogsFilterFieldEnum } from "@/app/(app)/audit/filters.schema";
 import { ratelimitFilterFieldEnum } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { ratelimitListFilterFieldEnum } from "@/app/(app)/ratelimits/_components/filters.schema";
@@ -31,7 +31,7 @@ import {
 import type {
   LogsFilterField,
   QuerySearchParams,
-} from "@/app/(app)/[workspaceId]/logs/filters.schema";
+} from "@/app/(app)/[workspace]/logs/filters.schema";
 import type { AuditLogsFilterField } from "@/app/(app)/audit/filters.schema";
 import type { RatelimitFilterField } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import type { IconProps } from "@unkey/icons/src/props";

@@ -3,9 +3,7 @@
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Nodes } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 import { ApiListClient } from "./_components/api-list-client";
 import { CreateApiButton } from "./_components/create-api-button";
 

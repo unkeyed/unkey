@@ -1,4 +1,4 @@
-import type { QuerySearchParams } from "@/app/(app)/[workspaceId]/logs/filters.schema";
+import type { QuerySearchParams } from "@/app/(app)/[workspace]/logs/filters.schema";
 import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/audit/filters.schema";
 import type { RatelimitQuerySearchParams } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { type ReactNode, createContext, useContext } from "react";
