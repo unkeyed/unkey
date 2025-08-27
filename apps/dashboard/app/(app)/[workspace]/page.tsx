@@ -9,7 +9,7 @@ export default function WorkspacePage() {
   const { workspace, isLoading } = useWorkspace();
 
   if (workspace && !isLoading) {
-    router.replace(`/${workspace.id}/apis`);
+    router.replace(`/${workspace.slug}/apis`);
   }
 
   // Show loading state while redirecting

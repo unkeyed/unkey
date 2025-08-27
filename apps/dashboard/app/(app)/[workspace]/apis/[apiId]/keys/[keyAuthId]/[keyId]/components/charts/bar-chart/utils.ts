@@ -1,5 +1,5 @@
-import { OUTCOME_BACKGROUND_COLORS } from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/constants";
-import { formatOutcomeName } from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/utils";
+import { OUTCOME_BACKGROUND_COLORS } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/constants";
+import { formatOutcomeName } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/utils";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 
 /**

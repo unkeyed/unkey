@@ -1,5 +1,5 @@
 "use client";
-import { LogsClient } from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/logs-client";
+import { LogsClient } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/logs-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { redirect, useRouter } from "next/navigation";
 import { ApisNavbar } from "./api-id-navbar";
@@ -9,8 +9,9 @@ export default function ApiPage(props: { params: { apiId: string } }) {
   const { workspace, error, isLoading } = useWorkspace();
   const router = useRouter();
 
+
   if (workspace && !isLoading) {
-    router.replace(`/${workspace?.id}/apis/${apiId}`);
+    router.replace(`/${workspace?.slug}/apis/${apiId}`);
   }
 
   if (!workspace || error) {
@@ -22,12 +23,12 @@ export default function ApiPage(props: { params: { apiId: string } }) {
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace?.id}/apis/${apiId}`,
+          href: `/${workspace?.slug}/apis/${apiId}`,
           text: "Requests",
         }}
-        workspaceId={workspace?.id ?? ""}
+        workspaceSlug={workspace?.slug ?? ""}
       />
-      <LogsClient apiId={apiId} workspaceId={workspace?.id ?? ""} />
+      <LogsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ type StatusBadgeProps = {
   status: "pending" | "accepted" | "revoked" | "expired";
 };
 
-export const StatusBadge = memo<StatusBadgeProps>(({ status }) => {
+export const StatusBadge = memo(({ status }: StatusBadgeProps) => {
   switch (status) {
     case "pending":
       return <Badge variant="primary">Pending</Badge>;

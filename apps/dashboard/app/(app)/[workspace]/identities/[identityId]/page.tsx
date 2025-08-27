@@ -34,6 +34,7 @@ export default async function Page(props: Props) {
         columns: {
           id: true,
           orgId: true,
+          slug: true,
         },
       },
       keys: {
@@ -56,7 +57,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation identityId={props.params.identityId} workspaceId={identity.workspace.id} />
+      <Navigation identityId={props.params.identityId} workspaceSlug={identity.workspace.slug ?? ""} />
       <PageContent>
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">
@@ -140,7 +141,13 @@ export default async function Page(props: Props) {
                     <TableCell className="font-mono">{key.id}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {key.meta ? (
-                        JSON.stringify(JSON.parse(key.meta), null, 2)
+                        (() => {
+                          try {
+                            return JSON.stringify(JSON.parse(key.meta), null, 2);
+                          } catch {
+                            return key.meta;
+                          }
+                        })()
                       ) : (
                         <Minus className="text-content-subtle w-4 h-4" />
                       )}

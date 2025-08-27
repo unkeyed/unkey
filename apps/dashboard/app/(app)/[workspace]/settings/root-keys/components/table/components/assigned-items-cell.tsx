@@ -27,19 +27,24 @@ export const AssignedItemsCell = ({
     return (
       <div className="flex flex-col gap-1 py-1 max-w-[300px]">
         <div className={emptyClassName}>
-          <Page2 className="size-3" />
+          <Page2 className="size-3" aria-hidden="true" />
           <span className="text-grayA-9 text-xs">None assigned</span>
         </div>
       </div>
     );
   }
 
+  const permissionCountString = `${total} Permission${total === 1 ? "" : "s"}`;
+
   return (
     <div className="flex flex-wrap gap-1 py-2 max-w-[300px]">
       <div className={itemClassName}>
-        <Page2 className="size-3" />
-        <span className="text-grayA-11 text-xs max-w-[150px] truncate">
-          {total} Permission{total === 1 ? "" : "s"}
+        <Page2 className="size-3" aria-hidden="true" />
+        <span
+          className="text-grayA-11 text-xs max-w-[150px] truncate"
+          title={permissionCountString}
+        >
+          {permissionCountString}
         </span>
       </div>
     </div>

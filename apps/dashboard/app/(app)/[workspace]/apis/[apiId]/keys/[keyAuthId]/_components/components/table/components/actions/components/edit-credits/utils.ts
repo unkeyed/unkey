@@ -1,5 +1,5 @@
-import type { refillSchema } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/create-key.schema";
-import { getDefaultValues } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/create-key.utils";
+import type { refillSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
+import { getDefaultValues } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.utils";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import type { z } from "zod";
 

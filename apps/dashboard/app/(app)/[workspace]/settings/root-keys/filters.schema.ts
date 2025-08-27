@@ -29,6 +29,8 @@ export const rootKeysFilterFieldConfig: FilterFieldConfigs = {
   },
 };
 
+export const rootKeysListFilterFieldNames = ["name", "start", "permission"] as const;
+
 const allFilterFieldNames = Object.keys(rootKeysFilterFieldConfig) as (keyof FilterFieldConfigs)[];
 
 if (allFilterFieldNames.length === 0) {
@@ -38,7 +40,6 @@ if (allFilterFieldNames.length === 0) {
 const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
 
 export const rootKeysFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
-export const rootKeysListFilterFieldNames = allFilterFieldNames;
 export type RootKeysFilterField = z.infer<typeof rootKeysFilterFieldEnum>;
 
 export const filterOutputSchema = createFilterOutputSchema(

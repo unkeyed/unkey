@@ -56,7 +56,7 @@ export default async function Page(props: Props) {
   if (!integration) {
     return (
       <div>
-        <Navigation href={`/${workspace.id}/settings/vercel`} name="Settings" icon={<Gear />} />
+        <Navigation href={`/${workspace.slug}/settings/vercel`} name="Settings" icon={<Gear />} />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
@@ -182,7 +182,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation href={`/${workspace.id}/settings/vercel`} icon={<Gear />} name="Settings" />
+      <Navigation href={`/${workspace.slug}/settings/vercel`} icon={<Gear />} name="Settings" />
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />

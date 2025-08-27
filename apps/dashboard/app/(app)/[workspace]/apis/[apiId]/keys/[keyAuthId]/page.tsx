@@ -19,21 +19,22 @@ export default function APIKeysPage(props: {
     return redirect("/new");
   }
 
-  router.replace(`/${workspace?.id}/apis/${apiId}/keys/${keyspaceId}`);
+  router.replace(`/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`);
   return (
     <div>
       <ApisNavbar
         activePage={{
-          href: `/${workspace?.id}/apis/${apiId}/keys/${keyspaceId}`,
+
+          href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`,
           text: "Keys",
         }}
         apiId={apiId}
-        workspaceId={workspace?.id ?? ""}
+        workspaceSlug={workspace?.slug ?? ""}
       />
       <KeysClient
         apiId={props.params.apiId}
         keyspaceId={keyspaceId}
-        workspaceId={workspace?.id ?? ""}
+        workspaceSlug={workspace?.slug ?? ""}
       />
     </div>
   );

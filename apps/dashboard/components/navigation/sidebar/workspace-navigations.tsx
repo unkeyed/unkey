@@ -40,10 +40,10 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures" | "id">,
+  workspace: Pick<Workspace, "features" | "betaFeatures" | "id" | "slug">,
   segments: string[],
 ) => {
-  const basePath = `/${workspace.id}`;
+  const basePath = `/${workspace.slug}`;
   return [
     {
       icon: Nodes,

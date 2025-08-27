@@ -14,7 +14,7 @@ import { ApiCardSkeleton } from "./skeleton";
 
 const DEFAULT_LIMIT = 10;
 
-export const ApiListClient = ({ workspaceId }: { workspaceId: string }) => {
+export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
@@ -75,7 +75,7 @@ export const ApiListClient = ({ workspaceId }: { workspaceId: string }) => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
             {apiList.map((api) => (
-              <ApiListCard api={api} key={api.id} workspaceId={workspaceId} />
+              <ApiListCard api={api} key={api.id} workspaceSlug={workspaceSlug} />
             ))}
           </div>
 
@@ -112,7 +112,7 @@ export const ApiListClient = ({ workspaceId }: { workspaceId: string }) => {
             </Empty.Description>
             {!isSearching && (
               <Empty.Actions className="mt-4">
-                <CreateApiButton defaultOpen={isNewApi} workspaceId={workspaceId} />
+                <CreateApiButton defaultOpen={isNewApi} workspaceSlug={workspaceSlug} />
                 <a
                   href="https://www.unkey.com/docs/introduction"
                   target="_blank"

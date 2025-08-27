@@ -1,4 +1,4 @@
-import { UNNAMED_KEY } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/create-key.constants";
+import { UNNAMED_KEY } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.constants";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 

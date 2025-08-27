@@ -40,9 +40,11 @@ const ExpandableCategory = forwardRef<
           props.className,
         )}
       >
-        <div className="flex flex-col text-left min-w-48 w-full">
+        <div className="flex flex-col text-left min-w-[12rem] w-full">
           <p className="text-sm w-full">{category}</p>
-          <p className="text-xs text-gray-10 w-full truncate">{description}</p>
+          {description ? (
+            <p className="text-xs text-gray-10 w-full truncate">{description}</p>
+          ) : null}
         </div>
         <CaretRight
           className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7"
