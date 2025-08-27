@@ -27,6 +27,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	s.DisableClickHouseLogging()
+
 	html := fmt.Sprintf(`
 <!doctype html>
 <html>

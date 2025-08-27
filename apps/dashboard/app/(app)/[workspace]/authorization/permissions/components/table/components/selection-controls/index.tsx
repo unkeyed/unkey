@@ -1,4 +1,4 @@
-import { AnimatedCounter } from "@/app/(app)/[workspaceId]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/selection-controls";
+import { AnimatedCounter } from "@/app/(app)/[workspace]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/selection-controls";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";

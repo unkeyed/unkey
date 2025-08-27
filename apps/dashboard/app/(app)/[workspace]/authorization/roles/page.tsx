@@ -10,7 +10,7 @@ export default function RolesPage() {
 
   return (
     <div>
-      <Navigation workspaceId={workspace?.id ?? ""} />
+      <Navigation workspaceSlug={workspace?.slug ?? ""} />
       <div className="flex flex-col">
         <RoleListControls />
         <RolesListControlCloud />

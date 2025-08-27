@@ -1,4 +1,4 @@
-import { StatusBadge } from "@/app/(app)/[workspaceId]/apis/[apiId]/settings/components/status-badge";
+import { StatusBadge } from "@/app/(app)/[workspace]/apis/[apiId]/settings/components/status-badge";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";

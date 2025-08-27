@@ -14,7 +14,8 @@ func BindBody[T any](s *Session) (T, error) {
 	if err != nil {
 		return req, fault.Wrap(err,
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("invalid request body"), fault.Public("The request body is invalid."),
+			fault.Internal("invalid request body"),
+			fault.Public("The request body is invalid."),
 		)
 	}
 

@@ -1,5 +1,5 @@
-import { permissionsQueryPayload } from "@/app/(app)/[workspaceId]/authorization/permissions/components/table/query-logs.schema";
-import type { PermissionsFilterOperator } from "@/app/(app)/[workspaceId]/authorization/permissions/filters.schema";
+import { permissionsQueryPayload } from "@/app/(app)/[workspace]/authorization/permissions/components/table/query-logs.schema";
+import type { PermissionsFilterOperator } from "@/app/(app)/[workspace]/authorization/permissions/filters.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";

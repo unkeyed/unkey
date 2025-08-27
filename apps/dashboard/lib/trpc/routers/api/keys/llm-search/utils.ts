@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   keysOverviewFilterFieldConfig,
-} from "@/app/(app)/[workspaceId]/apis/[apiId]/_overview/filters.schema";
+} from "@/app/(app)/[workspace]/apis/[apiId]/_overview/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";

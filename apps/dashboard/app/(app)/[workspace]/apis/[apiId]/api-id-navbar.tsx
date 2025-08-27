@@ -9,6 +9,7 @@ import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
+import { navigation } from "./constants";
 import { getKeysTableActionItems } from "./keys/[keyAuthId]/_components/components/table/components/actions/keys-table-action.popover.constants";
 
 const CreateKeyDialog = dynamic(
@@ -36,7 +37,7 @@ export const ApisNavbar = ({
   keyspaceId,
   keyId,
   activePage,
-  workspaceId,
+  workspaceSlug,
 }: {
   apiId: string;
   keyspaceId?: string;
@@ -45,7 +46,7 @@ export const ApisNavbar = ({
     href: string;
     text: string;
   };
-  workspaceId: string;
+  workspaceSlug: string;
 }) => {
   const isMobile = useIsMobile();
   const trpcUtils = trpc.useUtils();
@@ -85,7 +86,7 @@ export const ApisNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/apis`}>APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -126,6 +127,10 @@ export const ApisNavbar = ({
 
   const { currentApi, workspaceApis } = layoutData;
 
+  // Define base path for API navigation
+  const base = `/${workspaceSlug}/apis/${currentApi.id}`;
+  const navItems = navigation(currentApi.id, currentApi.keyAuthId ?? "", workspaceSlug);
+
   return (
     <>
       <div className="w-full">
@@ -133,11 +138,11 @@ export const ApisNavbar = ({
           <Navbar.Breadcrumbs className="flex-1 w-full" icon={<Nodes />}>
             {!isMobile && (
               <>
-                <Navbar.Breadcrumbs.Link href={`/${workspaceId}/apis`} className="max-md:hidden">
+                <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/apis`} className="max-md:hidden">
                   APIs
                 </Navbar.Breadcrumbs.Link>
                 <Navbar.Breadcrumbs.Link
-                  href={`/${workspaceId}/apis/${currentApi.id}`}
+                  href={base}
                   isIdentifier
                   className="group max-md:hidden"
                   noop
@@ -146,7 +151,7 @@ export const ApisNavbar = ({
                     items={workspaceApis.map((api) => ({
                       id: api.id,
                       label: api.name,
-                      href: `/${workspaceId}/apis/${api.id}`,
+                      href: `/${workspaceSlug}/apis/${api.id}`,
                     }))}
                     shortcutKey="N"
                   >
@@ -159,23 +164,11 @@ export const ApisNavbar = ({
             )}
             <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!specificKey}>
               <QuickNavPopover
-                items={[
-                  {
-                    id: "requests",
-                    label: "Requests",
-                    href: `/${workspaceId}/apis/${currentApi.id}`,
-                  },
-                  {
-                    id: "keys",
-                    label: "Keys",
-                    href: `/${workspaceId}/apis/${currentApi.id}/keys/${currentApi.keyAuthId}`,
-                  },
-                  {
-                    id: "settings",
-                    label: "Settings",
-                    href: `/${workspaceId}/apis/${currentApi.id}/settings`,
-                  },
-                ]}
+                items={navItems.map((item) => ({
+                  id: item.segment,
+                  label: item.label,
+                  href: item.href,
+                }))}
               >
                 <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
                   {activePage?.text ?? ""}
@@ -185,7 +178,7 @@ export const ApisNavbar = ({
             </Navbar.Breadcrumbs.Link>
             {specificKey && (
               <Navbar.Breadcrumbs.Link
-                href={`/${workspaceId}/apis/${currentApi.id}/keys/${currentApi.keyAuthId}/${specificKey.id}`}
+                href={`${base}/keys/${currentApi.keyAuthId}/${specificKey.id}`}
                 className="max-md:hidden"
                 isLast
                 isIdentifier
@@ -213,7 +206,7 @@ export const ApisNavbar = ({
                 keyspaceId={currentApi.keyAuthId}
                 apiId={currentApi.id}
                 keyspaceDefaults={currentApi.keyspaceDefaults}
-                workspaceId={currentApi.workspaceId}
+                workspaceSlug={workspaceSlug}
               />
             )
           )}

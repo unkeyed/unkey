@@ -1,4 +1,4 @@
-import { useFilters } from "@/app/(app)/[workspaceId]/logs/hooks/use-filters";
+import { useFilters } from "@/app/(app)/[workspace]/logs/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 
 type MethodOption = {

@@ -15,7 +15,7 @@ export const KeyCreatedSuccessDialog = ({
   keyData,
   apiId,
   keyspaceId,
-  workspaceId,
+  workspaceSlug,
   onCreateAnother,
 }: {
   isOpen: boolean;
@@ -23,7 +23,7 @@ export const KeyCreatedSuccessDialog = ({
   keyData: { key: string; id: string; name?: string } | null;
   apiId: string;
   keyspaceId?: string | null;
-  workspaceId: string;
+  workspaceSlug: string;
   onCreateAnother?: () => void;
 }) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -91,7 +91,7 @@ export const KeyCreatedSuccessDialog = ({
             });
             return;
           }
-          router.push(`/${workspaceId}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
+          router.push(`/${workspaceSlug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
           break;
 
         default:

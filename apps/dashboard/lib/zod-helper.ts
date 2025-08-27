@@ -9,7 +9,7 @@ export const formSchema = z.object({
   }),
   prefix: z
     .string()
-    .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .max(16, { message: "Please limit the prefix to under 16 characters." })
     .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),

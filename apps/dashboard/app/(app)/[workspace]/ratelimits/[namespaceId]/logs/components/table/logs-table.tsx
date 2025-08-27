@@ -1,6 +1,6 @@
 "use client";
 
-import { safeParseJson } from "@/app/(app)/[workspaceId]/logs/utils";
+import { safeParseJson } from "@/app/(app)/[workspace]/logs/utils";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";

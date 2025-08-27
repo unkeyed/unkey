@@ -19,19 +19,19 @@ export default function SettingsPage(props: Props) {
     return redirect("/new");
   }
 
-  router.replace(`/${workspace?.id}/apis/${apiId}/settings`);
+  router.replace(`/${workspace?.slug}/apis/${apiId}/settings`);
 
   return (
     <div>
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace?.id}/apis/${apiId}/settings`,
+          href: `/${workspace?.slug}/apis/${apiId}/settings`,
           text: "Settings",
         }}
-        workspaceId={workspace?.id ?? ""}
+        workspaceSlug={workspace?.slug ?? ""}
       />
-      <SettingsClient apiId={apiId} />
+      <SettingsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
     </div>
   );
 }

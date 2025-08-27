@@ -12,7 +12,7 @@ export default function ApisOverviewPage() {
   const router = useRouter();
 
   if (workspace && !isLoading) {
-    router.replace(`/${workspace.id}/apis`);
+    router.replace(`/${workspace.slug}/apis`);
   }
 
   const searchParams = useSearchParams();
@@ -23,22 +23,24 @@ export default function ApisOverviewPage() {
   }
 
   return (
-    <div>
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace?.id}/apis`} active>
-            APIs
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <Navbar.Actions>
-          <CreateApiButton
-            key="createApi"
-            defaultOpen={isNewApi}
-            workspaceId={workspace?.id ?? ""}
-          />
-        </Navbar.Actions>
-      </Navbar>
-      <ApiListClient workspaceId={workspace?.id ?? ""} />
-    </div>
+    workspace && (
+      <div>
+        <Navbar>
+          <Navbar.Breadcrumbs icon={<Nodes />}>
+            <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/apis`} active>
+              APIs
+            </Navbar.Breadcrumbs.Link>
+          </Navbar.Breadcrumbs>
+          <Navbar.Actions>
+            <CreateApiButton
+              key="createApi"
+              defaultOpen={isNewApi}
+              workspaceSlug={workspace.slug ?? ""}
+            />
+          </Navbar.Actions>
+        </Navbar>
+        <ApiListClient workspaceSlug={workspace.slug ?? ""} />
+      </div>
+    )
   );
 }

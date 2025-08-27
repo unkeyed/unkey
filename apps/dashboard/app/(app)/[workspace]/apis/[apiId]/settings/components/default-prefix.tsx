@@ -23,9 +23,10 @@ type Props = {
     defaultPrefix: string | undefined | null;
   };
   apiId: string;
+  workspaceSlug: string;
 };
 
-export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
+export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId, workspaceSlug }) => {
   const { onUpdateSuccess, onError } = createMutationHandlers();
 
   const {
@@ -57,7 +58,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultPrefix.mutateAsync(values);
-    revalidate(`/apis/${apiId}/settings`);
+    revalidate(`/${workspaceSlug}/apis/${apiId}/settings`);
   }
 
   return (

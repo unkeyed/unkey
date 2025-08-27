@@ -8,12 +8,14 @@ const filterItemSchema = z.object({
 
 const baseFilterArraySchema = z.array(filterItemSchema).nullish();
 
+type FilterFieldName = (typeof rootKeysListFilterFieldNames)[number];
+
 const filterFieldsSchema = rootKeysListFilterFieldNames.reduce(
   (acc, fieldName) => {
     acc[fieldName] = baseFilterArraySchema;
     return acc;
   },
-  {} as Record<string, typeof baseFilterArraySchema>,
+  {} as Record<FilterFieldName, typeof baseFilterArraySchema>,
 );
 
 const baseRootKeysSchema = z.object(filterFieldsSchema);

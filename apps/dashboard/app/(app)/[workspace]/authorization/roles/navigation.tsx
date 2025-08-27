@@ -17,14 +17,14 @@ const UpsertRoleDialog = dynamic(
   },
 );
 
-export function Navigation({ workspaceId }: { workspaceId: string }) {
+export function Navigation({ workspaceSlug }: { workspaceSlug: string }) {
   return (
     <Navbar className="w-full flex justify-between">
       <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
-        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/roles`}>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/authorization/roles`}>
           Authorization
         </Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link href={`/${workspaceId}/authorization/roles`} active>
+        <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/authorization/roles`} active>
           Roles
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
