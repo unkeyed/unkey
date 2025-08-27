@@ -51,11 +51,11 @@ export function AppSidebar({
 
   const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } = useApiNavigation(
     baseNavItems,
-    props.workspace.id,
+    props.workspace.slug ?? "",
   );
 
   const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
-    useRatelimitNavigation(apiAddedNavItems, props.workspace.id);
+    useRatelimitNavigation(apiAddedNavItems);
 
   const handleLoadMore = useCallback(
     (item: NavItem & { loadMoreAction?: boolean }) => {

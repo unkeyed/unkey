@@ -1,5 +1,5 @@
 "use client";
-import { KeySecretSection } from "@/app/(app)/[workspaceId]/apis/[apiId]/_components/create-key/components/key-secret-section";
+import { KeySecretSection } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { TriangleWarning } from "@unkey/icons";
 import { useRouter, useSearchParams } from "next/navigation";
