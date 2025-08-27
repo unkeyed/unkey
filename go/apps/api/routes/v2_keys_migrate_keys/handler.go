@@ -280,53 +280,59 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			failedHashes = append(failedHashes, hash.Hash)
 		}
 
-		identities, err := db.Query.FindIdentitiesByExternalId(ctx, tx, db.FindIdentitiesByExternalIdParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			ExternalIds: identitiesToFind,
-			Deleted:     false,
-		})
-		if err != nil && !db.IsNotFound(err) {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to check for duplicate identities."),
-			)
+		if len(identitiesToFind) > 0 {
+			identities, err := db.Query.FindIdentitiesByExternalId(ctx, tx, db.FindIdentitiesByExternalIdParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				ExternalIds: identitiesToFind,
+				Deleted:     false,
+			})
+			if err != nil && !db.IsNotFound(err) {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to check for duplicate identities."),
+				)
+			}
+
+			for _, identity := range identities {
+				externalIdToIdentityId[identity.ExternalID] = &identity.ID
+			}
 		}
 
-		for _, identity := range identities {
-			externalIdToIdentityId[identity.ExternalID] = &identity.ID
+		if len(permissionsToFind) > 0 {
+			permissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Slugs:       permissionsToFind,
+			})
+			if err != nil && !db.IsNotFound(err) {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to check for duplicate permissions."),
+				)
+			}
+
+			for _, permission := range permissions {
+				permissionSlugToPermissionId[permission.Slug] = &permission.ID
+			}
 		}
 
-		permissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Slugs:       permissionsToFind,
-		})
-		if err != nil && !db.IsNotFound(err) {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to check for duplicate permissions."),
-			)
-		}
+		if len(rolesToFind) > 0 {
+			roles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Names:       rolesToFind,
+			})
+			if err != nil && !db.IsNotFound(err) {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to check for duplicate roles."),
+				)
+			}
 
-		for _, permission := range permissions {
-			permissionSlugToPermissionId[permission.Slug] = &permission.ID
-		}
-
-		roles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Names:       rolesToFind,
-		})
-		if err != nil && !db.IsNotFound(err) {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to check for duplicate roles."),
-			)
-		}
-
-		for _, role := range roles {
-			roleNameToRoleId[role.Name] = &role.ID
+			for _, role := range roles {
+				roleNameToRoleId[role.Name] = &role.ID
+			}
 		}
 
 		// We found the stuff that we could find, now we can just upsert everything that doesn't exist.
@@ -381,33 +387,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 
 			roleNameToRoleId[name] = &id
-		}
-
-		if len(permissionsToInsert) > 0 {
-			chunks := chunk(permissionsToInsert, ChunkSize)
-			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertPermissions(ctx, tx, chunk); err != nil {
-					return err
-				}
-			}
-		}
-
-		if len(identitiesToInsert) > 0 {
-			chunks := chunk(identitiesToInsert, ChunkSize)
-			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertIdentities(ctx, tx, chunk); err != nil {
-					return err
-				}
-			}
-		}
-
-		if len(rolesToInsert) > 0 {
-			chunks := chunk(rolesToInsert, ChunkSize)
-			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertRoles(ctx, tx, chunk); err != nil {
-					return err
-				}
-			}
 		}
 
 		// Now the fun begins.
@@ -556,6 +535,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 
 			keysArray = append(keysArray, keyParams)
+		}
+
+		if len(permissionsToInsert) > 0 {
+			chunks := chunk(permissionsToInsert, ChunkSize)
+			for _, chunk := range chunks {
+				if err := db.BulkQuery.InsertPermissions(ctx, tx, chunk); err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(identitiesToInsert) > 0 {
+			chunks := chunk(identitiesToInsert, ChunkSize)
+			for _, chunk := range chunks {
+				if err := db.BulkQuery.InsertIdentities(ctx, tx, chunk); err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(rolesToInsert) > 0 {
+			chunks := chunk(rolesToInsert, ChunkSize)
+			for _, chunk := range chunks {
+				if err := db.BulkQuery.InsertRoles(ctx, tx, chunk); err != nil {
+					return err
+				}
+			}
 		}
 
 		if len(keysArray) > 0 {

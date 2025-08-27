@@ -16,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyNotFound(t *testing.T) {
+func TestMigrateKeysNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := t.Context()
 

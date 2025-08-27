@@ -110,6 +110,10 @@ var Data = UnkeyDataErrors{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "api_not_found"},
 	},
 
+	Migration: dataMigration{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "migration_not_found"},
+	},
+
 	Permission: dataPermission{
 		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "permission_not_found"},
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "permission_already_exists"},

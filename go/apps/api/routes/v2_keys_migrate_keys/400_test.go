@@ -15,8 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyBadRequest(t *testing.T) {
-
+func TestMigrateKeysBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{

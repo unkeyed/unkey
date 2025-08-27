@@ -18,7 +18,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func TestCreateKeySuccess(t *testing.T) {
+func TestMigrateKeysSuccess(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)

@@ -64,7 +64,7 @@ const (
 	// Migration
 
 	// NotFound indicates the requested migration was not found.
-	UnkeyDataErrorsMigrationNotFound URN = "err:::"
+	UnkeyDataErrorsMigrationNotFound URN = "err:unkey:data:migration_not_found"
 
 	// Permission
 

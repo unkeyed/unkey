@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyUnauthorized(t *testing.T) {
+func TestMigrateKeysUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := t.Context()
 

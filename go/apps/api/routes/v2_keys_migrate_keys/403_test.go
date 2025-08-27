@@ -16,8 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestCreateKeyForbidden(t *testing.T) {
-
+func TestMigrateKeysForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
