@@ -55,7 +55,7 @@ func TestResendDemo(t *testing.T) {
 		err := db.Query.InsertKeyMigration(ctx, h.DB.RW(), db.InsertKeyMigrationParams{
 			ID:          "resend",
 			WorkspaceID: workspace.ID,
-			Algorithm:   "github.com/seamapi/prefixed-api-key",
+			Algorithm:   db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey,
 		})
 		require.NoError(t, err, "Failed to insert migration")
 
@@ -92,6 +92,7 @@ func TestResendDemo(t *testing.T) {
 		resendKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
 			KeyPrefix: "re",
 		})
+		require.NoError(t, err)
 
 		// 3. Migrate existing keys to unkey
 		//

@@ -74,7 +74,7 @@ func TestMigrateKeysBadRequest(t *testing.T) {
 	t.Run("no keys", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:       api.ID,
-			MigrationId: "",
+			MigrationId: uid.New(""),
 			Keys:        []openapi.V2KeysMigrateKeyData{},
 		}
 
@@ -86,7 +86,7 @@ func TestMigrateKeysBadRequest(t *testing.T) {
 	t.Run("empty hash", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:       api.ID,
-			MigrationId: "",
+			MigrationId: uid.New(""),
 			Keys: []openapi.V2KeysMigrateKeyData{
 				{
 					Hash: "",

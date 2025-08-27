@@ -93,7 +93,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		if err != nil {
 			return nil, log, fault.Wrap(
 				err,
-				fault.Code(codes.URN(codes.UnkeyAppErrorsInternalServiceUnavailable)),
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Public("We could not update the key hash and migration id"),
 			)
 		}

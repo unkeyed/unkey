@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
 				err,
-				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Code(codes.Data.Migration.NotFound.URN()),
 				fault.Internal("migration does not exist"),
 				fault.Public("The requested Migration does not exist or has been deleted."),
 			)

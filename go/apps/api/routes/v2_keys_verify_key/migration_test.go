@@ -94,7 +94,6 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)
 
-		t.Logf("Response 1: %v", res1.RawBody)
 		require.Equal(t, 200, res1.Status, "expected 200, received: %#v", res1)
 		require.NotNil(t, res1.Body)
 		require.Equal(t, openapi.VALID, res1.Body.Data.Code, "Key should be valid but got %s", res1.Body.Data.Code)
@@ -104,9 +103,8 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		req = handler.Request{
 			Key: rawKey,
 		}
-		res2 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)
-		t.Logf("Response 2: %v", res2.RawBody)
 
+		res2 := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, req)
 		require.Equal(t, 200, res2.Status, "expected 200, received: %#v", res2)
 		require.NotNil(t, res2.Body)
 		require.Equal(t, openapi.VALID, res2.Body.Data.Code, "Key should be valid but got %s", res2.Body.Data.Code)
@@ -119,7 +117,6 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		require.Empty(t, key.PendingMigrationID.String)
 		require.NotEqual(t, migratedHash, key.Hash, "Hash should be different after migration")
 		require.Equal(t, hash.Sha256(rawKey), key.Hash)
-
+		require.Equal(t, rawKey[:6], key.Start, "start should match first 6 chars of raw key after migration")
 	})
-
 }

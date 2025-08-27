@@ -56,6 +56,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	generatedKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
 		KeyPrefix: "unkeyed",
 	})
+	require.NoError(t, err)
 
 	keyToMigrate := openapi.V2KeysMigrateKeyData{
 		Hash: generatedKey.LongTokenHash,
@@ -73,7 +74,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		Ratelimits: &[]openapi.RatelimitRequest{
 			{
 				AutoApply: true,
-				Duration:  (time.Minute * 60).Milliseconds(),
+				Duration:  time.Hour.Milliseconds(),
 				Limit:     100,
 				Name:      "default",
 			},
