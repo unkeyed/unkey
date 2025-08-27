@@ -1669,6 +1669,12 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE domain_id = ?
 	UpdateDomainChallengeStatus(ctx context.Context, db DBTX, arg UpdateDomainChallengeStatusParams) error
+	//UpdateDomainChallengeTryClaiming
+	//
+	//  UPDATE domain_challenges
+	//  SET status = ?, updated_at = ?
+	//  WHERE domain_id = ? AND status = 'waiting'
+	UpdateDomainChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateDomainChallengeTryClaimingParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`

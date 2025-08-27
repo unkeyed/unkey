@@ -73,6 +73,18 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		return err
 	}
 
+	err = hydra.StepVoid(ctx, "claim-challenge", func(stepCtx context.Context) error {
+		return db.Query.UpdateDomainChallengeTryClaiming(stepCtx, w.db.RW(), db.UpdateDomainChallengeTryClaimingParams{
+			DomainID:  dom.ID,
+			Status:    db.DomainChallengesStatusPending,
+			UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to claim challenge", "error", err)
+		return err
+	}
+
 	cert, err := hydra.Step(ctx, "get-and-encrypt-cert", func(stepCtx context.Context) (EncryptedCertificate, error) {
 		// The challenge provider is already configured on the ACME client
 		// Just request the certificate
