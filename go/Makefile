@@ -46,6 +46,7 @@ build:
 generate:
 	buf generate
 	go generate ./...
+	go fmt ./...
 
 test: test-unit
 

@@ -12,9 +12,11 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
@@ -38,6 +40,7 @@ type Handler struct {
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	Vault     *vault.Service
+	ApiCache  cache.Cache[string, db.FindLiveApiByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -54,20 +57,17 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.createKey")
 
-	// 1. Authentication
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -84,40 +84,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	api, hit, err := h.ApiCache.SWR(ctx, req.ApiId, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
+	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
+			return fault.Wrap(
+				err,
 				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The specified API was not found."),
+				fault.Internal("api does not exist"),
+				fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
 
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve API information."),
 		)
 	}
 
-	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if hit == cache.Null {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
-		)
-	}
-
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+			fault.Internal("api not found"),
+			fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -157,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keyAuth.StoreEncryptedKeys {
+		if !api.KeyAuth.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -239,6 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						fault.Public("Failed to create identity."),
 					)
 				}
+
 				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identityID}
 			} else {
 				// Use existing identity
@@ -326,9 +318,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Ratelimits != nil && len(*req.Ratelimits) > 0 {
 			ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
 			for i, ratelimit := range *req.Ratelimits {
-				ratelimitID := uid.New(uid.RatelimitPrefix)
 				ratelimitsToInsert[i] = db.InsertKeyRatelimitParams{
-					ID:          ratelimitID,
+					ID:          uid.New(uid.RatelimitPrefix),
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: keyID, Valid: true},
 					Name:        ratelimit.Name,

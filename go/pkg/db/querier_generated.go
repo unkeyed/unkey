@@ -190,6 +190,12 @@ type Querier interface {
 	//  WHERE deployment_id = ? AND is_enabled = true
 	//  ORDER BY created_at ASC
 	FindHostnameRoutesByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]HostnameRoute, error)
+	//FindIdentitiesByExternalId
+	//
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
+	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -200,7 +206,7 @@ type Querier interface {
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
 	//FindKeyByID
 	//
-	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k
+	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment, pending_migration_id FROM `keys` k
 	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
 	//FindKeyCredits
@@ -226,10 +232,12 @@ type Querier interface {
 	//         k.last_refill_at,
 	//         k.enabled,
 	//         k.remaining_requests,
+	//         k.pending_migration_id,
 	//         a.ip_whitelist,
 	//         a.workspace_id  as api_workspace_id,
 	//         a.id            as api_id,
 	//         a.deleted_at_m  as api_deleted_at_m,
+	//
 	//
 	//         COALESCE(
 	//                 (SELECT JSON_ARRAYAGG(name)
@@ -290,6 +298,16 @@ type Querier interface {
 	//  where k.hash = ?
 	//    and k.deleted_at_m is null
 	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
+	//FindKeyMigrationByID
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      algorithm
+	//  FROM key_migrations
+	//  WHERE id = ?
+	//  and workspace_id = ?
+	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (KeyMigration, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
 	//  SELECT key_id, role_id, workspace_id, created_at_m, updated_at_m
@@ -301,6 +319,10 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindKeysByHash
+	//
+	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
+	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
 	//FindLatestBuildByDeploymentId
 	//
 	//  SELECT
@@ -336,7 +358,7 @@ type Querier interface {
 	//FindLiveKeyByHash
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 	//      ws.id, ws.org_id, ws.name, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
@@ -427,7 +449,7 @@ type Querier interface {
 	//FindLiveKeyByID
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 	//      ws.id, ws.org_id, ws.name, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
@@ -975,7 +997,8 @@ type Querier interface {
 	//      enabled,
 	//      remaining_requests,
 	//      refill_day,
-	//      refill_amount
+	//      refill_amount,
+	//      pending_migration_id
 	//  ) VALUES (
 	//      ?,
 	//      ?,
@@ -992,6 +1015,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
@@ -1001,6 +1025,18 @@ type Querier interface {
 	//  (workspace_id, key_id, encrypted, encryption_key_id, created_at)
 	//  VALUES (?, ?, ?, ?, ?)
 	InsertKeyEncryption(ctx context.Context, db DBTX, arg InsertKeyEncryptionParams) error
+	//InsertKeyMigration
+	//
+	//  INSERT INTO key_migrations (
+	//      id,
+	//      workspace_id,
+	//      algorithm
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertKeyMigration(ctx context.Context, db DBTX, arg InsertKeyMigrationParams) error
 	//InsertKeyPermission
 	//
 	//  INSERT INTO `keys_permissions` (
@@ -1256,7 +1292,7 @@ type Querier interface {
 	//ListKeysByKeyAuthID
 	//
 	//  SELECT
-	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//    i.id as identity_id,
 	//    i.external_id as external_id,
 	//    i.meta as identity_meta,
@@ -1276,7 +1312,7 @@ type Querier interface {
 	//ListLiveKeysByKeyAuthID
 	//
 	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -1654,6 +1690,16 @@ type Querier interface {
 	//  SET remaining_requests = ?
 	//  WHERE id = ?
 	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error
+	//UpdateKeyHashAndMigration
+	//
+	//  UPDATE `keys`
+	//  SET
+	//      hash = ?,
+	//      pending_migration_id = ?,
+	//      start = ?,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	UpdateKeyHashAndMigration(ctx context.Context, db DBTX, arg UpdateKeyHashAndMigrationParams) error
 	//UpdateKeyringKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?

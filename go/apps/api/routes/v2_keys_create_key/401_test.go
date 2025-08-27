@@ -22,6 +22,7 @@ func TestCreateKeyUnauthorized(t *testing.T) {
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		ApiCache:  h.Caches.LiveApiByID,
 	}
 
 	h.Register(route)
