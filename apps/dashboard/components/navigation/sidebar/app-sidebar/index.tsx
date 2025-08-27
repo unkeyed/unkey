@@ -29,11 +29,11 @@ import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  workspace: Workspace & { quotas: Quotas | null  };
+  workspace: Workspace & { quotas: Quotas | null };
 }) {
   const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
-  
+
   // Refresh the router when workspace changes to update sidebar
   useEffect(() => {
     if (!props.workspace.id) {

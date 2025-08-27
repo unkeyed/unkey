@@ -19,7 +19,7 @@ import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
 
-export function TeamPageClient({ team, workspaceId }: { team: boolean; workspaceId: string }) {
+export function TeamPageClient({ team, workspaceSlug }: { team: boolean; workspaceSlug: string }) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
@@ -83,7 +83,7 @@ export function TeamPageClient({ team, workspaceId }: { team: boolean; workspace
           <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
           <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
-            <Link href={`/${workspaceId}/settings/billing`}>
+            <Link href={`/${workspaceSlug}/settings/billing`}>
               <Button>Upgrade</Button>
             </Link>
           </Empty.Actions>

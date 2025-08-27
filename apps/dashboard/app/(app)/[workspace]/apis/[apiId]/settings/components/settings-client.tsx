@@ -10,7 +10,10 @@ import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
-export const SettingsClient = ({ apiId }: { apiId: string }) => {
+export const SettingsClient = ({
+  apiId,
+  workspaceSlug,
+}: { apiId: string; workspaceSlug: string }) => {
   const {
     data: layoutData,
     isLoading,
@@ -67,12 +70,12 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
             <DefaultBytes
               keyAuth={keyAuthForComponents}
               apiId={api.id}
-              workspaceId={workspace.id}
+              workspaceSlug={workspaceSlug}
             />
             <DefaultPrefix
               keyAuth={keyAuthForComponents}
               apiId={api.id}
-              workspaceId={workspace.id}
+              workspaceSlug={workspaceSlug}
             />
           </div>
           <div>

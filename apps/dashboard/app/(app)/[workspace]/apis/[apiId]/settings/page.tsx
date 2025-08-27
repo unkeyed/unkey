@@ -31,7 +31,7 @@ export default function SettingsPage(props: Props) {
         }}
         workspaceSlug={workspace?.slug ?? ""}
       />
-      <SettingsClient apiId={apiId} />
+      <SettingsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
     </div>
   );
 }

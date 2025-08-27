@@ -36,6 +36,7 @@ export const Navigation = ({
   workspace: {
     id: string;
     name: string;
+    slug: string;
   };
   activePage: {
     href: string;
@@ -46,11 +47,11 @@ export const Navigation = ({
     <div className="flex flex-col w-full h-full">
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.id}/settings`}>
+          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/settings`}>
             Settings
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/${workspace.id}/settings/${activePage.href}`}
+            href={`/${workspace.slug}/settings/${activePage.href}`}
             noop
             active
           >
@@ -59,7 +60,7 @@ export const Navigation = ({
                 {
                   id: setting.href,
                   label: setting.text,
-                  href: `/${workspace.id}/settings/${setting.href}`,
+                  href: `/${workspace.slug}/settings/${setting.href}`,
                 },
               ])}
               shortcutKey="M"
