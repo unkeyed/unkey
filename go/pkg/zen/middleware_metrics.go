@@ -17,6 +17,21 @@ type EventBuffer interface {
 	BufferApiRequest(schema.ApiRequestV1)
 }
 
+var redactions = map[*regexp.Regexp]string{
+	regexp.MustCompile(`"key"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`):       `"key": "[REDACTED]"`,
+	regexp.MustCompile(`"plaintext"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`): `"plaintext": "[REDACTED]"`,
+}
+
+func redact(in []byte) []byte {
+	b := in
+
+	for r, replacement := range redactions {
+		b = r.ReplaceAll(b, []byte(replacement))
+	}
+
+	return b
+}
+
 // WithMetrics returns middleware that collects metrics about each request,
 // including request counts, latencies, and status codes.
 //
@@ -29,18 +44,6 @@ type EventBuffer interface {
 //	    route,
 //	)
 func WithMetrics(eventBuffer EventBuffer) Middleware {
-	redactions := map[*regexp.Regexp]string{
-		regexp.MustCompile(`"key":\s*"[a-zA-Z0-9_]+"`):       `"key": "[REDACTED]"`,
-		regexp.MustCompile(`"plaintext":\s*"[a-zA-Z0-9_]+"`): `"plaintext": "[REDACTED]"`,
-	}
-
-	redact := func(in []byte) []byte {
-		b := in
-		for r, replacement := range redactions {
-			b = r.ReplaceAll(b, []byte(replacement))
-		}
-		return b
-	}
 
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
