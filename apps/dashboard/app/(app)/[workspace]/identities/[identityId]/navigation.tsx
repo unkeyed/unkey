@@ -5,18 +5,18 @@ import { Fingerprint } from "@unkey/icons";
 
 type NavigationProps = {
   readonly identityId: string;
-  readonly workspaceId: string;
+  readonly workspaceSlug: string;
 };
 
-export function Navigation({ identityId, workspaceId }: NavigationProps): JSX.Element {
+export function Navigation({ identityId, workspaceSlug }: NavigationProps): JSX.Element {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Fingerprint aria-hidden="true" focusable={false} />}>
-        <Navbar.Breadcrumbs.Link href={`/${encodeURIComponent(workspaceId)}/identities`}>
+        <Navbar.Breadcrumbs.Link href={`/${encodeURIComponent(workspaceSlug)}/identities`}>
           Identities
         </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
-          href={`/${encodeURIComponent(workspaceId)}/identities/${encodeURIComponent(identityId)}`}
+          href={`/${encodeURIComponent(workspaceSlug)}/identities/${encodeURIComponent(identityId)}`}
           className="w-[200px] truncate"
           active
           isIdentifier

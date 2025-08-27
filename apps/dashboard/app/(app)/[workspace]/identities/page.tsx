@@ -63,7 +63,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation workspaceId={workspace.id} />
+      <Navigation workspaceSlug={workspace.slug ?? ""} />
       <PageContent>
         <SearchField />
         <div className="flex flex-col gap-8 mb-20 mt-8">
@@ -169,6 +169,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
             return (
               <Row
                 key={identity.id}
+                workspaceSlug={workspace.slug ?? ""}
                 identity={{
                   id: identity.id,
                   externalId: identity.externalId,

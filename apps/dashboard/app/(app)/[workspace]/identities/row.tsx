@@ -17,16 +17,17 @@ type Props = {
     }>;
     workspaceId: string;
   };
+   workspaceSlug: string;
 };
 
 function RowComponent(props: Props) {
-  const { identity } = props;
+  const { identity, workspaceSlug } = props;
 
   const detailsUrl = useMemo(() => {
-    const encodedWorkspaceId = encodeURIComponent(identity.workspaceId);
+    const encodedWorkspaceId = encodeURIComponent(workspaceSlug);
     const encodedId = encodeURIComponent(identity.id);
     return `/${encodedWorkspaceId}/identities/${encodedId}`;
-  }, [identity.workspaceId, identity.id]);
+  }, [workspaceSlug, identity.id]);
 
   const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasPrefetchedRef = useRef(false);
