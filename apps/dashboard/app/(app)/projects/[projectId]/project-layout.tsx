@@ -19,9 +19,9 @@ export const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   }, []);
 
   return (
-    <div>
+    <div className="h-screen flex flex-col overflow-hidden">
       <ProjectNavigation projectId={projectId} />
-      <div className="flex items-center">
+      <div className="flex items-center flex-shrink-0">
         <ProjectSubNavigation
           onMount={handleDistanceToTop}
           detailsExpandableTrigger={
@@ -40,8 +40,8 @@ export const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
           }
         />
       </div>
-      <div className="flex">
-        <div className="flex-1">
+      <div className="flex flex-1 min-h-0">
+        <div className="flex-1 overflow-auto">
           {typeof children === "function" ? children({ isDetailsOpen }) : children}
         </div>
         <ProjectDetailsExpandable

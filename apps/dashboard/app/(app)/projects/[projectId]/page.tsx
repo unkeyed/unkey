@@ -1,10 +1,11 @@
+// Updated project details component
 "use client";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
 import { ActiveDeploymentCard, type DeploymentStatus } from "./details/active-deployment-card";
-import { CollapsibleRow } from "./details/collapsible-row";
 import { DomainRow } from "./details/domain-row";
+import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { ProjectLayout } from "./project-layout";
 
 const DEPLOYMENT_DATA = {
@@ -39,7 +40,45 @@ const DOMAINS = [
   },
 ];
 
-const ENVS = ["Production", "Preview"];
+// Mock environment variables data
+const PRODUCTION_VARS = [
+  {
+    id: "1",
+    key: "DATABASE_URL",
+    value: "postgresql://user:pass@prod.db.com:5432/app",
+    isSecret: true,
+  },
+  {
+    id: "2",
+    key: "API_KEY",
+    value: "sk_prod_1234567890abcdef",
+    isSecret: true,
+  },
+  { id: "3", key: "NODE_ENV", value: "production", isSecret: false },
+  {
+    id: "4",
+    key: "REDIS_URL",
+    value: "redis://prod.redis.com:6379",
+    isSecret: true,
+  },
+  { id: "5", key: "LOG_LEVEL", value: "info", isSecret: false },
+];
+
+const PREVIEW_VARS = [
+  {
+    id: "6",
+    key: "DATABASE_URL",
+    value: "postgresql://user:pass@staging.db.com:5432/app",
+    isSecret: true,
+  },
+  {
+    id: "7",
+    key: "API_KEY",
+    value: "sk_test_abcdef1234567890",
+    isSecret: true,
+  },
+  { id: "8", key: "NODE_ENV", value: "development", isSecret: false },
+];
 
 export default function ProjectDetails({
   params: { projectId },
@@ -51,7 +90,7 @@ export default function ProjectDetails({
       {({ isDetailsOpen }) => (
         <div
           className={cn(
-            "flex justify-center transition-all duration-300 ease-in-out",
+            "flex justify-center transition-all duration-300 ease-in-out pb-20",
             isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
           )}
         >
@@ -82,13 +121,17 @@ export default function ProjectDetails({
                 title="Environment Variables"
               />
               <div>
-                {ENVS.map((env) => (
-                  <CollapsibleRow
-                    key={env}
-                    icon={<Page2 className="text-gray-9" size="sm-medium" />}
-                    title={env}
-                  />
-                ))}
+                <EnvironmentVariablesSection
+                  icon={<Page2 className="text-gray-9" size="sm-medium" />}
+                  title="Production"
+                  initialVars={PRODUCTION_VARS}
+                  initialOpen
+                />
+                <EnvironmentVariablesSection
+                  icon={<Page2 className="text-gray-9" size="sm-medium" />}
+                  title="Preview"
+                  initialVars={PREVIEW_VARS}
+                />
               </div>
             </Section>
           </div>

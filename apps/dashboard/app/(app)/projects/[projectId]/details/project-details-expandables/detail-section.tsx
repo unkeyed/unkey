@@ -19,7 +19,7 @@ function DetailRow({ icon, label, children, alignment = "center" }: DetailRowPro
         </div>
         <span className="text-grayA-11 text-[13px]">{label}</span>
       </div>
-      <div className="text-grayA-11 text-sm min-w-0 flex-1">{children}</div>
+      <div className="text-grayA-11 text-[13px] min-w-0 flex-1">{children}</div>
     </div>
   );
 }

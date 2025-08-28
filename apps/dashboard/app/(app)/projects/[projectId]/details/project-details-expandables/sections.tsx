@@ -88,9 +88,11 @@ export const createDetailSections = (): DetailSection[] => [
         ),
       },
       {
-        icon: <User className="size-[14px] text-gray-12" size="md-regular" />,
+        icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Created",
-        content: <TimestampInfo value={Date.now()} className="font-medium text-grayA-12 text-sm" />,
+        content: (
+          <TimestampInfo value={Date.now()} className="font-medium text-grayA-12 text-[13px]" />
+        ),
       },
     ],
   },
@@ -183,7 +185,7 @@ export const createDetailSections = (): DetailSection[] => [
               <span className="text-gray-12 font-medium">0</span> to{" "}
               <span className="text-gray-12 font-medium">5</span> instances
             </div>
-            <div className="text-xs mt-0.5">
+            <div className="mt-0.5">
               at <span className="text-gray-12 font-medium">80%</span> CPU threshold
             </div>
           </div>
@@ -236,7 +238,7 @@ export const createDetailSections = (): DetailSection[] => [
         content: (
           <TimestampInfo
             value={Date.now() - 300000}
-            className="font-medium text-grayA-12 text-sm"
+            className="font-medium text-grayA-12 text-[13px]"
           />
         ),
       },
