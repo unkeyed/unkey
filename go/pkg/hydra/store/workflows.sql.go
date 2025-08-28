@@ -54,7 +54,8 @@ INSERT INTO cron_jobs (
     created_at, updated_at, last_run_at, next_run_at
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-)
+) ON DUPLICATE KEY UPDATE 
+    cron_spec = ?, enabled = ?, updated_at = ?, next_run_at = ?, last_run_at = ?, next_run_at = ?
 `
 
 type CreateCronJobParams struct {
@@ -80,6 +81,12 @@ func (q *Queries) CreateCronJob(ctx context.Context, db DBTX, arg CreateCronJobP
 		arg.Enabled,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.LastRunAt,
+		arg.NextRunAt,
+		arg.CronSpec,
+		arg.Enabled,
+		arg.UpdatedAt,
+		arg.NextRunAt,
 		arg.LastRunAt,
 		arg.NextRunAt,
 	)
