@@ -24,7 +24,7 @@ type ProjectLayoutProps = {
 
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const tableDistanceToTopRef = useRef(0);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
 
   const handleDistanceToTop = useCallback((distanceToTop: number) => {
     tableDistanceToTopRef.current = distanceToTop;
