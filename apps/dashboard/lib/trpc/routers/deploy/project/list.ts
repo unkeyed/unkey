@@ -76,13 +76,13 @@ export const queryProjects = t.procedure
         queryConditions.push(
           exists(
             db
-              .select({ projectId: schema.routes.projectId })
-              .from(schema.routes)
+              .select({ projectId: schema.domains.projectId })
+              .from(schema.domains)
               .where(
                 and(
-                  eq(schema.routes.workspaceId, ctx.workspace.id),
-                  eq(schema.routes.projectId, schema.projects.id),
-                  like(schema.routes.hostname, searchValue),
+                  eq(schema.domains.workspaceId, ctx.workspace.id),
+                  eq(schema.domains.projectId, schema.projects.id),
+                  like(schema.domains.domain, searchValue),
                 ),
               ),
           ),
@@ -137,18 +137,18 @@ export const queryProjects = t.procedure
       // Fetch hostnames for all projects - only .unkey.app domains
       const hostnamesResult =
         projectIds.length > 0
-          ? await db.query.routes.findMany({
+          ? await db.query.domains.findMany({
               where: and(
-                eq(schema.routes.workspaceId, ctx.workspace.id),
-                inArray(schema.routes.projectId, projectIds),
-                like(schema.routes.hostname, "%.unkey.app"),
+                eq(schema.domains.workspaceId, ctx.workspace.id),
+                inArray(schema.domains.projectId, projectIds),
+                like(schema.domains.domain, "%.unkey.app"),
               ),
               columns: {
                 id: true,
                 projectId: true,
-                hostname: true,
+                domain: true,
               },
-              orderBy: [desc(schema.routes.createdAt)],
+              orderBy: [desc(schema.domains.createdAt)],
             })
           : [];
 
@@ -160,7 +160,7 @@ export const queryProjects = t.procedure
           }
           acc[hostname.projectId].push({
             id: hostname.id,
-            hostname: hostname.hostname,
+            hostname: hostname.domain,
           });
           return acc;
         },

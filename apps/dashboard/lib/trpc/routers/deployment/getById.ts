@@ -15,6 +15,9 @@ export const getById = t.procedure
     try {
       // Get deployment information
       const deployment = await db.query.deployments.findFirst({
+        with: {
+          environment: true,
+        },
         where: (table, { eq, and }) =>
           and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
       });
@@ -31,7 +34,7 @@ export const getById = t.procedure
         status: deployment.status,
         gitCommitSha: deployment.gitCommitSha,
         gitBranch: deployment.gitBranch,
-        environment: deployment.environment,
+        environment: deployment.environment?.slug ?? "",
         createdAt: deployment.createdAt,
         updatedAt: deployment.updatedAt,
       };
