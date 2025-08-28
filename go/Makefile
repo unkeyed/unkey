@@ -18,7 +18,7 @@ install:
 
 tools:
 	go install github.com/bufbuild/buf/cmd/buf@v1.57.0
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0
 
 fmt:
