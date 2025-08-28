@@ -9,13 +9,12 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-
 import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
-export const TriangleWarning2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
 
+export const CircleXMark: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
       height={pixelSize}
@@ -25,20 +24,38 @@ export const TriangleWarning2: React.FC<IconProps> = ({ size = "xl-thin", ...pro
       {...props}
     >
       <g fill="currentColor">
-        <path
-          d="m9,8c0-.552.447-1,1-1s1,.448,1,1v4.5c0,.552-.447,1-1,1s-1-.448-1-1v-4.5Z"
-          fill="currentColor"
-          strokeWidth={strokeWidth}
-        />
-        <path
-          d="m13.725,16h1.471c1.54,0,2.502-1.667,1.732-3l-5.196-9c-.77-1.333-2.694-1.333-3.464,0L3.072,13c-.77,1.333.192,3,1.732,3h1.471"
+        <circle
+          cx="9"
+          cy="9"
           fill="none"
+          r="7.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth={strokeWidth} />
+        <line
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="6.25"
+          x2="11.75"
+          y1="6.25"
+          y2="11.75"
+        />
+        <line
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="11.75"
+          x2="6.25"
+          y1="6.25"
+          y2="11.75"
+        />
       </g>
     </svg>
   );

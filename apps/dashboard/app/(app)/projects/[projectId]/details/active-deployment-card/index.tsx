@@ -3,13 +3,19 @@ import {
   ChevronDown,
   CircleCheck,
   CircleWarning,
+  CircleXMark,
   CodeBranch,
   CodeCommit,
   FolderCloud,
+  Layers3,
+  Magnifier,
+  TriangleWarning2,
 } from "@unkey/icons";
-import { Badge, Button, Card } from "@unkey/ui";
+import { Badge, Button, Card, CopyButton, Input } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useRef, useState } from "react";
+import { FilterButton } from "./filter-button";
+import { useDeploymentLogs } from "./hooks/use-deployment-logs";
+import { InfoChip } from "./info-chip";
 import { StatusIndicator } from "./status-indicator";
 
 export type DeploymentStatus = "active" | "error" | "pending";
@@ -32,8 +38,22 @@ type DeploymentCardProps = {
   branch: string;
   commit: string;
   image: string;
-  logs?: LogEntry[];
 };
+
+const ANIMATION_STYLES = {
+  expand: "transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
+  slideIn: "transition-all duration-500 ease-out",
+} as const;
+
+const STATUS_CONFIG = {
+  active: { variant: "success" as const, icon: CircleCheck, text: "Active" },
+  error: { variant: "error" as const, icon: CircleWarning, text: "Error" },
+  pending: {
+    variant: "warning" as const,
+    icon: CircleWarning,
+    text: "Pending",
+  },
+} as const;
 
 const MOCK_LOGS: LogEntry[] = [
   {
@@ -128,43 +148,23 @@ export function ActiveDeploymentCard({
   branch,
   commit,
   image,
-  logs = MOCK_LOGS,
 }: DeploymentCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [showFade, setShowFade] = useState(true);
+  const {
+    logFilter,
+    searchTerm,
+    isExpanded,
+    showFade,
+    filteredLogs,
+    logCounts,
+    toggleExpanded,
+    handleScroll,
+    handleFilterChange,
+    handleSearchChange,
+    scrollRef,
+  } = useDeploymentLogs({ logs: MOCK_LOGS });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const statusConfig = {
-    active: { variant: "success" as const, icon: CircleCheck, text: "Active" },
-    error: { variant: "error" as const, icon: CircleWarning, text: "Error" },
-    pending: {
-      variant: "warning" as const,
-      icon: CircleWarning,
-      text: "Pending",
-    },
-  };
-
-  const { variant, icon: StatusIcon, text } = statusConfig[status];
-
-  const handleToggleLogs = () => {
-    setIsExpanded(!isExpanded);
-    // Reset scroll position when collapsing
-    if (isExpanded) {
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = 0;
-          setShowFade(true);
-        }
-      }, 50);
-    }
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
-    setShowFade(!isAtBottom);
-  };
+  const { variant, icon: StatusIcon, text } = STATUS_CONFIG[status];
+  const [imageName, imageTag] = image.split(":");
 
   return (
     <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">
@@ -197,31 +197,28 @@ export function ActiveDeploymentCard({
         <div className="relative h-4 flex items-center justify-center">
           <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
         </div>
+
         <div className="pb-2.5 pt-2 flex justify-between items-center px-3">
           <div className="flex items-center gap-2.5">
             <span className="text-grayA-9 text-xs">{createdAt}</span>
             <div className="flex items-center gap-1.5">
-              <div className="gap-2 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-                <CodeBranch size="md-medium" className="text-gray-12" />
+              <InfoChip icon={CodeBranch}>
                 <span className="text-grayA-9 text-xs">{branch}</span>
-              </div>
-              <div className="gap-2 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-                <CodeCommit size="md-medium" className="text-gray-12" />
+              </InfoChip>
+              <InfoChip icon={CodeCommit}>
                 <span className="text-grayA-9 text-xs">{commit}</span>
-              </div>
+              </InfoChip>
             </div>
             <span className="text-grayA-9 text-xs">using image</span>
-            <div className="gap-2 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-              <FolderCloud size="md-medium" className="text-gray-12" />
+            <InfoChip icon={FolderCloud}>
               <div className="text-grayA-10 text-xs">
-                <span className="text-gray-12 font-medium">{image.split(":")[0]}</span>:
-                {image.split(":")[1]}
+                <span className="text-gray-12 font-medium">{imageName}</span>:{imageTag}
               </div>
-            </div>
+            </InfoChip>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="text-grayA-9 text-xs">Build logs</div>
-            <Button size="icon" variant="ghost" onClick={handleToggleLogs}>
+            <Button size="icon" variant="ghost" onClick={toggleExpanded}>
               <ChevronDown
                 className={cn(
                   "text-grayA-9 !size-3 transition-transform duration-200",
@@ -236,16 +233,54 @@ export function ActiveDeploymentCard({
         <div
           className={cn(
             "bg-gray-1 relative overflow-hidden",
-            "transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
+            ANIMATION_STYLES.expand,
             isExpanded ? "h-96 opacity-100 py-3" : "h-0 opacity-0 py-0",
           )}
-          style={{
-            willChange: isExpanded ? "height, opacity" : "auto",
-          }}
         >
+          <div className="flex items-center gap-1.5 px-3 mb-3">
+            <FilterButton
+              isActive={logFilter === "all"}
+              count={logCounts.total}
+              onClick={() => handleFilterChange("all")}
+              icon={Layers3}
+              label="All Logs"
+            />
+            <FilterButton
+              isActive={logFilter === "errors"}
+              count={logCounts.errors}
+              onClick={() => handleFilterChange("errors")}
+              icon={CircleXMark}
+              label="Errors"
+            />
+            <FilterButton
+              isActive={logFilter === "warnings"}
+              count={logCounts.warnings}
+              onClick={() => handleFilterChange("warnings")}
+              icon={TriangleWarning2}
+              label="Warnings"
+            />
+
+            <Input
+              variant="ghost"
+              wrapperClassName="ml-4"
+              className="min-h-[26px] text-xs rounded-lg placeholder:text-grayA-8"
+              leftIcon={<Magnifier size="sm-medium" className="text-accent-9 !size-[14px]" />}
+              placeholder="Find in logs..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
+
+            <CopyButton
+              value={JSON.stringify(filteredLogs)}
+              className="size-[22px] [&_svg]:size-[14px] ml-4"
+              toastMessage="Logs copied to clipboard"
+            />
+          </div>
+
           <div
             className={cn(
-              "transition-all duration-500 ease-out h-full",
+              ANIMATION_STYLES.slideIn,
+              "h-full",
               isExpanded ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
             )}
             style={{
@@ -253,14 +288,17 @@ export function ActiveDeploymentCard({
             }}
           >
             <div className="h-full overflow-y-auto" onScroll={handleScroll} ref={scrollRef}>
-              {logs.length === 0 ? (
-                <div className="text-center text-gray-9 text-xs py-4">No build logs available</div>
+              {filteredLogs.length === 0 ? (
+                <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
+                  {searchTerm
+                    ? `No logs match "${searchTerm}"`
+                    : `No ${logFilter === "all" ? "build" : logFilter} logs available`}
+                </div>
               ) : (
-                <div>
-                  {logs.map((log, index) => (
+                <div className="flex flex-col gap-px">
+                  {filteredLogs.map((log, index) => (
                     <div
-                      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                      key={index}
+                      key={`${log.message}-${index}`}
                       className={cn(
                         "font-mono text-xs flex gap-6 items-center text-[11px] leading-7 font-medium",
                         "transition-all duration-300 ease-out",
@@ -275,12 +313,8 @@ export function ActiveDeploymentCard({
                         transitionDelay: isExpanded ? `${200 + index * 20}ms` : "0ms",
                       }}
                     >
-                      <span className="text-grayA-9 pl-3 ">{log.timestamp}</span>
-                      {log.level === "warning" ? (
-                        <span>[WARNING]</span>
-                      ) : log.level === "error" ? (
-                        <span>[ERROR]</span>
-                      ) : null}
+                      <span className="text-grayA-9 pl-3">{log.timestamp}</span>
+                      {log.level && <span className="font-bold">[{log.level.toUpperCase()}]</span>}
                       <span className="text-grayA-12 pr-3">{log.message}</span>
                     </div>
                   ))}
@@ -289,9 +323,9 @@ export function ActiveDeploymentCard({
             </div>
           </div>
 
-          {/* Fade overlay - positioned relative to stable container, not animated content */}
+          {/* Fade overlay */}
           {showFade && (
-            <div className="absolute bottom-3 left-0 right-0 h-8 bg-gradient-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
           )}
         </div>
       </div>

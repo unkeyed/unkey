@@ -44,6 +44,7 @@ export * from "./icons/circle-info-sparkle";
 export * from "./icons/circle-lock";
 export * from "./icons/circle-question";
 export * from "./icons/circle-warning";
+export * from "./icons/circle-xmark";
 export * from "./icons/clipboard";
 export * from "./icons/clipboard-check";
 export * from "./icons/clock";
