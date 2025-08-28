@@ -95,17 +95,17 @@ func (s *Service) CreateVersion(
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:                       deploymentID,
-		WorkspaceID:              req.Msg.GetWorkspaceId(),
-		ProjectID:                req.Msg.GetProjectId(),
-		Environment:              environment,
-		BuildID:                  sql.NullString{String: "", Valid: false}, // Build creation handled separately
-		RootfsImageID:            "",                                       // Image handling not implemented yet
-		GitCommitSha:             sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
-		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
-		GitCommitMessage:         sql.NullString{String: limitString(req.Msg.GetGitCommitMessage(), 10240), Valid: req.Msg.GetGitCommitMessage() != ""},
-		GitCommitAuthorName:      sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256), Valid: req.Msg.GetGitCommitAuthorName() != ""},
-		GitCommitAuthorEmail:     sql.NullString{String: limitString(strings.TrimSpace(strings.ToLower(req.Msg.GetGitCommitAuthorEmail())), 256), Valid: req.Msg.GetGitCommitAuthorEmail() != ""},
+		ID:                  deploymentID,
+		WorkspaceID:         req.Msg.GetWorkspaceId(),
+		ProjectID:           req.Msg.GetProjectId(),
+		Environment:         environment,
+		BuildID:             sql.NullString{String: "", Valid: false}, // Build creation handled separately
+		RootfsImageID:       "",                                       // Image handling not implemented yet
+		GitCommitSha:        sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
+		GitBranch:           sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:    sql.NullString{String: limitString(req.Msg.GetGitCommitMessage(), 10240), Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorName: sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256), Valid: req.Msg.GetGitCommitAuthorName() != ""},
+		// TODO: Use email to lookup GitHub username/avatar via GitHub API instead of persisting PII
 		GitCommitAuthorUsername:  sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorUsername()), 256), Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
 		GitCommitAuthorAvatarUrl: sql.NullString{String: limitString(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512), Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},

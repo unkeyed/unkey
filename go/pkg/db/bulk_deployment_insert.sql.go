@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertDeployment is the base query for bulk insert
-const bulkInsertDeployment = `INSERT INTO ` + "`" + `deployments` + "`" + ` ( id, workspace_id, project_id, environment, build_id, rootfs_image_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_name, git_commit_author_email, git_commit_author_username, git_commit_author_avatar_url, git_commit_timestamp, config_snapshot, openapi_spec, status, created_at, updated_at ) VALUES %s`
+const bulkInsertDeployment = `INSERT INTO ` + "`" + `deployments` + "`" + ` ( id, workspace_id, project_id, environment, build_id, rootfs_image_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_name, git_commit_author_username, git_commit_author_avatar_url, git_commit_timestamp, config_snapshot, openapi_spec, status, created_at, updated_at ) VALUES %s`
 
 // InsertDeployments performs bulk insert in a single query
 func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []Ins
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDeployment, strings.Join(valueClauses, ", "))
@@ -39,7 +39,6 @@ func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []Ins
 		allArgs = append(allArgs, arg.GitBranch)
 		allArgs = append(allArgs, arg.GitCommitMessage)
 		allArgs = append(allArgs, arg.GitCommitAuthorName)
-		allArgs = append(allArgs, arg.GitCommitAuthorEmail)
 		allArgs = append(allArgs, arg.GitCommitAuthorUsername)
 		allArgs = append(allArgs, arg.GitCommitAuthorAvatarUrl)
 		allArgs = append(allArgs, arg.GitCommitTimestamp)
@@ -51,6 +50,6 @@ func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []Ins
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

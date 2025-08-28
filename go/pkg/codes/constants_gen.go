@@ -6,22 +6,22 @@ type URN string
 
 // Error code constants for use in switch statements for exhaustive checking
 const (
-// ----------------
-// UserErrors
-// ----------------
+	// ----------------
+	// UserErrors
+	// ----------------
 
-// BadRequest
+	// BadRequest
 
 	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
 	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
 	UserErrorsBadRequestRequestBodyTooLarge URN = "err:user:bad_request:request_body_too_large"
 
-// ----------------
-// UnkeyAuthErrors
-// ----------------
+	// ----------------
+	// UnkeyAuthErrors
+	// ----------------
 
-// Authentication
+	// Authentication
 
 	// Missing indicates authentication credentials were not provided.
 	UnkeyAuthErrorsAuthenticationMissing URN = "err:unkey:authentication:missing"
@@ -30,7 +30,7 @@ const (
 	// KeyNotFound indicates the authentication key was not found.
 	UnkeyAuthErrorsAuthenticationKeyNotFound URN = "err:unkey:authentication:key_not_found"
 
-// Authorization
+	// Authorization
 
 	// InsufficientPermissions indicates the authenticated entity lacks
 	// sufficient permissions for the requested operation.
@@ -42,90 +42,90 @@ const (
 	// WorkspaceDisabled indicates the associated workspace is disabled.
 	UnkeyAuthErrorsAuthorizationWorkspaceDisabled URN = "err:unkey:authorization:workspace_disabled"
 
-// ----------------
-// UnkeyDataErrors
-// ----------------
+	// ----------------
+	// UnkeyDataErrors
+	// ----------------
 
-// Key
+	// Key
 
 	// NotFound indicates the requested key was not found.
 	UnkeyDataErrorsKeyNotFound URN = "err:unkey:data:key_not_found"
 
-// Workspace
+	// Workspace
 
 	// NotFound indicates the requested workspace was not found.
 	UnkeyDataErrorsWorkspaceNotFound URN = "err:unkey:data:workspace_not_found"
 
-// Api
+	// Api
 
 	// NotFound indicates the requested API was not found.
 	UnkeyDataErrorsApiNotFound URN = "err:unkey:data:api_not_found"
 
-// Permission
+	// Permission
 
 	// Duplicate indicates the requested permission already exists.
 	UnkeyDataErrorsPermissionDuplicate URN = "err:unkey:data:permission_already_exists"
 	// NotFound indicates the requested permission was not found.
 	UnkeyDataErrorsPermissionNotFound URN = "err:unkey:data:permission_not_found"
 
-// Role
+	// Role
 
 	// Duplicate indicates the requested role already exists.
 	UnkeyDataErrorsRoleDuplicate URN = "err:unkey:data:role_already_exists"
 	// NotFound indicates the requested role was not found.
 	UnkeyDataErrorsRoleNotFound URN = "err:unkey:data:role_not_found"
 
-// KeyAuth
+	// KeyAuth
 
 	// NotFound indicates the requested key authentication was not found.
 	UnkeyDataErrorsKeyAuthNotFound URN = "err:unkey:data:key_auth_not_found"
 
-// RatelimitNamespace
+	// RatelimitNamespace
 
 	// NotFound indicates the requested rate limit namespace was not found.
 	UnkeyDataErrorsRatelimitNamespaceNotFound URN = "err:unkey:data:ratelimit_namespace_not_found"
 
-// RatelimitOverride
+	// RatelimitOverride
 
 	// NotFound indicates the requested rate limit override was not found.
 	UnkeyDataErrorsRatelimitOverrideNotFound URN = "err:unkey:data:ratelimit_override_not_found"
 
-// Identity
+	// Identity
 
 	// NotFound indicates the requested identity was not found.
 	UnkeyDataErrorsIdentityNotFound URN = "err:unkey:data:identity_not_found"
 	// Duplicate indicates the requested identity already exists.
 	UnkeyDataErrorsIdentityDuplicate URN = "err:unkey:data:identity_already_exists"
 
-// AuditLog
+	// AuditLog
 
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-// ----------------
-// UnkeyAppErrors
-// ----------------
+	// ----------------
+	// UnkeyAppErrors
+	// ----------------
 
-// Internal
+	// Internal
 
 	// UnexpectedError represents an unhandled or unexpected error condition.
 	UnkeyAppErrorsInternalUnexpectedError URN = "err:unkey:application:unexpected_error"
 	// ServiceUnavailable indicates a service is temporarily unavailable.
 	UnkeyAppErrorsInternalServiceUnavailable URN = "err:unkey:application:service_unavailable"
 
-// Validation
+	// Validation
 
 	// InvalidInput indicates a client provided input that failed validation.
 	UnkeyAppErrorsValidationInvalidInput URN = "err:unkey:application:invalid_input"
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	UnkeyAppErrorsValidationAssertionFailed URN = "err:unkey:application:assertion_failed"
 
-// Protection
+	// Protection
 
 	// ProtectedResource indicates an attempt to modify a protected resource.
 	UnkeyAppErrorsProtectionProtectedResource URN = "err:unkey:application:protected_resource"
 
-// Precondition
+	// Precondition
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"

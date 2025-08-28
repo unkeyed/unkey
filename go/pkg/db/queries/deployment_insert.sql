@@ -10,7 +10,6 @@ INSERT INTO `deployments` (
     git_branch,
     git_commit_message,
     git_commit_author_name,
-    git_commit_author_email,
     git_commit_author_username,
     git_commit_author_avatar_url,
     git_commit_timestamp, -- Unix epoch milliseconds
@@ -31,7 +30,6 @@ VALUES (
     sqlc.arg(git_branch),
     sqlc.arg(git_commit_message),
     sqlc.arg(git_commit_author_name),
-    sqlc.arg(git_commit_author_email),
     sqlc.arg(git_commit_author_username),
     sqlc.arg(git_commit_author_avatar_url),
     sqlc.arg(git_commit_timestamp),

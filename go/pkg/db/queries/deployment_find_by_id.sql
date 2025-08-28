@@ -10,7 +10,6 @@ SELECT
     git_branch,
     git_commit_message,
     git_commit_author_name,
-    git_commit_author_email,
     git_commit_author_username,
     git_commit_author_avatar_url,
     git_commit_timestamp,

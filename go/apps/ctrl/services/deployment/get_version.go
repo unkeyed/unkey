@@ -32,7 +32,6 @@ func (s *Service) GetVersion(
 		GitBranch:                "",
 		GitCommitMessage:         "",
 		GitCommitAuthorName:      "",
-		GitCommitAuthorEmail:     "",
 		GitCommitAuthorUsername:  "",
 		GitCommitAuthorAvatarUrl: "",
 		GitCommitTimestamp:       0,
@@ -58,9 +57,7 @@ func (s *Service) GetVersion(
 	if deployment.GitCommitAuthorName.Valid {
 		protoVersion.GitCommitAuthorName = deployment.GitCommitAuthorName.String
 	}
-	if deployment.GitCommitAuthorEmail.Valid {
-		protoVersion.GitCommitAuthorEmail = deployment.GitCommitAuthorEmail.String
-	}
+	// Email removed to avoid storing PII - TODO: implement GitHub API lookup
 	if deployment.GitCommitAuthorUsername.Valid {
 		protoVersion.GitCommitAuthorUsername = deployment.GitCommitAuthorUsername.String
 	}

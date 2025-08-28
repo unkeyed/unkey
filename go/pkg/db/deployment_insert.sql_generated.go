@@ -23,7 +23,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_branch,
     git_commit_message,
     git_commit_author_name,
-    git_commit_author_email,
     git_commit_author_username,
     git_commit_author_avatar_url,
     git_commit_timestamp, -- Unix epoch milliseconds
@@ -34,7 +33,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     updated_at
 )
 VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -67,7 +65,6 @@ type InsertDeploymentParams struct {
 	GitBranch                sql.NullString         `db:"git_branch"`
 	GitCommitMessage         sql.NullString         `db:"git_commit_message"`
 	GitCommitAuthorName      sql.NullString         `db:"git_commit_author_name"`
-	GitCommitAuthorEmail     sql.NullString         `db:"git_commit_author_email"`
 	GitCommitAuthorUsername  sql.NullString         `db:"git_commit_author_username"`
 	GitCommitAuthorAvatarUrl sql.NullString         `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp       sql.NullInt64          `db:"git_commit_timestamp"`
@@ -91,7 +88,6 @@ type InsertDeploymentParams struct {
 //	    git_branch,
 //	    git_commit_message,
 //	    git_commit_author_name,
-//	    git_commit_author_email,
 //	    git_commit_author_username,
 //	    git_commit_author_avatar_url,
 //	    git_commit_timestamp, -- Unix epoch milliseconds
@@ -102,7 +98,6 @@ type InsertDeploymentParams struct {
 //	    updated_at
 //	)
 //	VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -134,7 +129,6 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitBranch,
 		arg.GitCommitMessage,
 		arg.GitCommitAuthorName,
-		arg.GitCommitAuthorEmail,
 		arg.GitCommitAuthorUsername,
 		arg.GitCommitAuthorAvatarUrl,
 		arg.GitCommitTimestamp,

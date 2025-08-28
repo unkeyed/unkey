@@ -41,7 +41,7 @@ message CreateVersionRequest {
   // Extended git information
   string git_commit_message = 9;
   string git_commit_author_name = 10;
-  string git_commit_author_email = 11;
+  // TODO: Add GitHub API integration to lookup username/avatar from email
   string git_commit_author_username = 12;
   string git_commit_author_avatar_url = 13;
   int64 git_commit_timestamp = 14; // Unix epoch milliseconds
@@ -97,7 +97,7 @@ message Version {
   // Extended git information
   string git_commit_message = 17;
   string git_commit_author_name = 18;
-  string git_commit_author_email = 19;
+  // Removed: email is PII and not stored
   string git_commit_author_username = 20;
   string git_commit_author_avatar_url = 21;
   int64 git_commit_timestamp = 22; // Unix epoch milliseconds

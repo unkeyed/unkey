@@ -714,7 +714,6 @@ type Deployment struct {
 	GitBranch                sql.NullString         `db:"git_branch"`
 	GitCommitMessage         sql.NullString         `db:"git_commit_message"`
 	GitCommitAuthorName      sql.NullString         `db:"git_commit_author_name"`
-	GitCommitAuthorEmail     sql.NullString         `db:"git_commit_author_email"`
 	GitCommitAuthorUsername  sql.NullString         `db:"git_commit_author_username"`
 	GitCommitAuthorAvatarUrl sql.NullString         `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp       sql.NullInt64          `db:"git_commit_timestamp"`

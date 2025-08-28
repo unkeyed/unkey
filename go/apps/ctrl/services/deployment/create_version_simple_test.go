@@ -52,9 +52,9 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 			expected: "Multi-line commit\n\nWith detailed description",
 		},
 		{
-			name:     "email with plus",
-			input:    "user+test@example.com",
-			expected: "user+test@example.com",
+			name:     "username with dash",
+			input:    "user-test",
+			expected: "user-test",
 		},
 		{
 			name:     "url with query params",
@@ -71,14 +71,12 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 			req := &ctrlv1.CreateVersionRequest{
 				GitCommitMessage:         tt.input,
 				GitCommitAuthorName:      tt.input,
-				GitCommitAuthorEmail:     tt.input,
 				GitCommitAuthorUsername:  tt.input,
 				GitCommitAuthorAvatarUrl: tt.input,
 			}
 
 			require.Equal(t, tt.expected, req.GetGitCommitMessage())
 			require.Equal(t, tt.expected, req.GetGitCommitAuthorName())
-			require.Equal(t, tt.expected, req.GetGitCommitAuthorEmail())
 			require.Equal(t, tt.expected, req.GetGitCommitAuthorUsername())
 			require.Equal(t, tt.expected, req.GetGitCommitAuthorAvatarUrl())
 
@@ -86,14 +84,12 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 			deployment := db.Deployment{
 				GitCommitMessage:         sql.NullString{String: tt.input, Valid: true},
 				GitCommitAuthorName:      sql.NullString{String: tt.input, Valid: true},
-				GitCommitAuthorEmail:     sql.NullString{String: tt.input, Valid: true},
 				GitCommitAuthorUsername:  sql.NullString{String: tt.input, Valid: true},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: tt.input, Valid: true},
 			}
 
 			require.Equal(t, tt.expected, deployment.GitCommitMessage.String)
 			require.Equal(t, tt.expected, deployment.GitCommitAuthorName.String)
-			require.Equal(t, tt.expected, deployment.GitCommitAuthorEmail.String)
 			require.Equal(t, tt.expected, deployment.GitCommitAuthorUsername.String)
 			require.Equal(t, tt.expected, deployment.GitCommitAuthorAvatarUrl.String)
 		})
@@ -110,7 +106,6 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 		ProjectId:                "proj_test",
 		GitCommitMessage:         "",
 		GitCommitAuthorName:      "",
-		GitCommitAuthorEmail:     "",
 		GitCommitAuthorUsername:  "",
 		GitCommitAuthorAvatarUrl: "",
 		GitCommitTimestamp:       0,
@@ -119,7 +114,6 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 	// Empty strings should be returned as-is
 	require.Equal(t, "", req.GetGitCommitMessage())
 	require.Equal(t, "", req.GetGitCommitAuthorName())
-	require.Equal(t, "", req.GetGitCommitAuthorEmail())
 	require.Equal(t, "", req.GetGitCommitAuthorUsername())
 	require.Equal(t, "", req.GetGitCommitAuthorAvatarUrl())
 	require.Equal(t, int64(0), req.GetGitCommitTimestamp())
@@ -128,7 +122,6 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 	deployment := db.Deployment{
 		GitCommitMessage:         sql.NullString{Valid: false},
 		GitCommitAuthorName:      sql.NullString{Valid: false},
-		GitCommitAuthorEmail:     sql.NullString{Valid: false},
 		GitCommitAuthorUsername:  sql.NullString{Valid: false},
 		GitCommitAuthorAvatarUrl: sql.NullString{Valid: false},
 		GitCommitTimestamp:       sql.NullInt64{Valid: false},
@@ -137,7 +130,6 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 	// NULL fields should be invalid
 	require.False(t, deployment.GitCommitMessage.Valid)
 	require.False(t, deployment.GitCommitAuthorName.Valid)
-	require.False(t, deployment.GitCommitAuthorEmail.Valid)
 	require.False(t, deployment.GitCommitAuthorUsername.Valid)
 	require.False(t, deployment.GitCommitAuthorAvatarUrl.Valid)
 	require.False(t, deployment.GitCommitTimestamp.Valid)
@@ -281,8 +273,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			gitCommitMessageValid         bool
 			gitCommitAuthorName           string
 			gitCommitAuthorNameValid      bool
-			gitCommitAuthorEmail          string
-			gitCommitAuthorEmailValid     bool
 			gitCommitAuthorUsername       string
 			gitCommitAuthorUsernameValid  bool
 			gitCommitAuthorAvatarUrl      string
@@ -301,7 +291,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitCommitSha:             "abc123def456789",
 				GitCommitMessage:         "feat: implement new feature",
 				GitCommitAuthorName:      "Jane Doe",
-				GitCommitAuthorEmail:     "jane@example.com",
 				GitCommitAuthorUsername:  "janedoe",
 				GitCommitAuthorAvatarUrl: "https://github.com/janedoe.png",
 				GitCommitTimestamp:       1724251845123, // Fixed millisecond timestamp
@@ -315,8 +304,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitCommitMessageValid         bool
 				gitCommitAuthorName           string
 				gitCommitAuthorNameValid      bool
-				gitCommitAuthorEmail          string
-				gitCommitAuthorEmailValid     bool
 				gitCommitAuthorUsername       string
 				gitCommitAuthorUsernameValid  bool
 				gitCommitAuthorAvatarUrl      string
@@ -332,8 +319,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitCommitMessageValid:         true,
 				gitCommitAuthorName:           "Jane Doe",
 				gitCommitAuthorNameValid:      true,
-				gitCommitAuthorEmail:          "jane@example.com",
-				gitCommitAuthorEmailValid:     true,
 				gitCommitAuthorUsername:       "janedoe",
 				gitCommitAuthorUsernameValid:  true,
 				gitCommitAuthorAvatarUrl:      "https://github.com/janedoe.png",
@@ -352,7 +337,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitCommitSha:             "",
 				GitCommitMessage:         "",
 				GitCommitAuthorName:      "",
-				GitCommitAuthorEmail:     "",
 				GitCommitAuthorUsername:  "",
 				GitCommitAuthorAvatarUrl: "",
 				GitCommitTimestamp:       0,
@@ -366,8 +350,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitCommitMessageValid         bool
 				gitCommitAuthorName           string
 				gitCommitAuthorNameValid      bool
-				gitCommitAuthorEmail          string
-				gitCommitAuthorEmailValid     bool
 				gitCommitAuthorUsername       string
 				gitCommitAuthorUsernameValid  bool
 				gitCommitAuthorAvatarUrl      string
@@ -383,8 +365,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitCommitMessageValid:         false,
 				gitCommitAuthorName:           "",
 				gitCommitAuthorNameValid:      false,
-				gitCommitAuthorEmail:          "",
-				gitCommitAuthorEmailValid:     false,
 				gitCommitAuthorUsername:       "",
 				gitCommitAuthorUsernameValid:  false,
 				gitCommitAuthorAvatarUrl:      "",
@@ -403,7 +383,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitCommitSha:             "xyz789abc123",
 				GitCommitMessage:         "fix: critical security issue",
 				GitCommitAuthorName:      "", // Empty
-				GitCommitAuthorEmail:     "security-team@example.com",
 				GitCommitAuthorUsername:  "", // Empty
 				GitCommitAuthorAvatarUrl: "", // Empty
 				GitCommitTimestamp:       1724251845999,
@@ -417,8 +396,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitCommitMessageValid         bool
 				gitCommitAuthorName           string
 				gitCommitAuthorNameValid      bool
-				gitCommitAuthorEmail          string
-				gitCommitAuthorEmailValid     bool
 				gitCommitAuthorUsername       string
 				gitCommitAuthorUsernameValid  bool
 				gitCommitAuthorAvatarUrl      string
@@ -434,8 +411,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitCommitMessageValid:         true,
 				gitCommitAuthorName:           "",
 				gitCommitAuthorNameValid:      false, // Empty string should be invalid
-				gitCommitAuthorEmail:          "security-team@example.com",
-				gitCommitAuthorEmailValid:     true,
 				gitCommitAuthorUsername:       "",
 				gitCommitAuthorUsernameValid:  false, // Empty string should be invalid
 				gitCommitAuthorAvatarUrl:      "",
@@ -464,7 +439,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitBranch:                sql.NullString{String: tt.request.GetBranch(), Valid: true},
 				GitCommitMessage:         sql.NullString{String: tt.request.GetGitCommitMessage(), Valid: tt.request.GetGitCommitMessage() != ""},
 				GitCommitAuthorName:      sql.NullString{String: tt.request.GetGitCommitAuthorName(), Valid: tt.request.GetGitCommitAuthorName() != ""},
-				GitCommitAuthorEmail:     sql.NullString{String: tt.request.GetGitCommitAuthorEmail(), Valid: tt.request.GetGitCommitAuthorEmail() != ""},
 				GitCommitAuthorUsername:  sql.NullString{String: tt.request.GetGitCommitAuthorUsername(), Valid: tt.request.GetGitCommitAuthorUsername() != ""},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: tt.request.GetGitCommitAuthorAvatarUrl(), Valid: tt.request.GetGitCommitAuthorAvatarUrl() != ""},
 				GitCommitTimestamp:       sql.NullInt64{Int64: tt.request.GetGitCommitTimestamp(), Valid: tt.request.GetGitCommitTimestamp() != 0},
@@ -487,9 +461,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 
 			require.Equal(t, tt.expected.gitCommitAuthorName, params.GitCommitAuthorName.String, "GitCommitAuthorName string mismatch")
 			require.Equal(t, tt.expected.gitCommitAuthorNameValid, params.GitCommitAuthorName.Valid, "GitCommitAuthorName valid flag mismatch")
-
-			require.Equal(t, tt.expected.gitCommitAuthorEmail, params.GitCommitAuthorEmail.String, "GitCommitAuthorEmail string mismatch")
-			require.Equal(t, tt.expected.gitCommitAuthorEmailValid, params.GitCommitAuthorEmail.Valid, "GitCommitAuthorEmail valid flag mismatch")
 
 			require.Equal(t, tt.expected.gitCommitAuthorUsername, params.GitCommitAuthorUsername.String, "GitCommitAuthorUsername string mismatch")
 			require.Equal(t, tt.expected.gitCommitAuthorUsernameValid, params.GitCommitAuthorUsername.Valid, "GitCommitAuthorUsername valid flag mismatch")
