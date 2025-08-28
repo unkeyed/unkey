@@ -39,7 +39,7 @@ export function EnvVarRow({
 
   if (isEditing) {
     return (
-      <div className="w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0">
+      <div className="w-full flex px-4 py-3 bg-gray-2">
         <div className="w-fit flex gap-2 items-center">
           <Input
             value={editKey}

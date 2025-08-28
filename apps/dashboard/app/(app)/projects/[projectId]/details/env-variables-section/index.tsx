@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-
 import { type ReactNode, useState } from "react";
 import { AddEnvVarRow } from "./add-env-var-row";
 import { EnvVarRow } from "./env-var-row";
@@ -26,7 +25,6 @@ export function EnvironmentVariablesSection({
   initialOpen,
 }: EnvironmentVariablesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(initialOpen);
-
   const {
     envVars,
     editingId,
@@ -116,24 +114,44 @@ export function EnvironmentVariablesSection({
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  {envVars.map((envVar) => (
-                    <EnvVarRow
+                  {envVars.map((envVar, index) => (
+                    <div
                       key={envVar.id}
-                      envVar={envVar}
-                      isEditing={editingId === envVar.id}
-                      onEdit={() => startEditing(envVar.id)}
-                      onSave={(updates) => updateVariable(envVar.id, updates)}
-                      onDelete={() => deleteVariable(envVar.id)}
-                      onCancel={cancelEditing}
-                    />
+                      className={cn(
+                        "transition-all duration-150 ease-out border-b border-gray-4 last:border-b-0",
+                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
+                      )}
+                      style={{
+                        transitionDelay: isExpanded ? `${200 + index * 50}ms` : "0ms",
+                      }}
+                    >
+                      <EnvVarRow
+                        envVar={envVar}
+                        isEditing={editingId === envVar.id}
+                        onEdit={() => startEditing(envVar.id)}
+                        onSave={(updates) => updateVariable(envVar.id, updates)}
+                        onDelete={() => deleteVariable(envVar.id)}
+                        onCancel={cancelEditing}
+                      />
+                    </div>
                   ))}
                   {isAddingNew && (
-                    <AddEnvVarRow
-                      value={newVar}
-                      onChange={setNewVar}
-                      onSave={addVariable}
-                      onCancel={cancelEditing}
-                    />
+                    <div
+                      className={cn(
+                        "transition-all duration-300 ease-out",
+                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
+                      )}
+                      style={{
+                        transitionDelay: isExpanded ? `${200 + envVars.length * 50}ms` : "0ms",
+                      }}
+                    >
+                      <AddEnvVarRow
+                        value={newVar}
+                        onChange={setNewVar}
+                        onSave={addVariable}
+                        onCancel={cancelEditing}
+                      />
+                    </div>
                   )}
                 </div>
               )}
