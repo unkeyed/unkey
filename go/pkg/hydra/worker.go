@@ -747,7 +747,6 @@ func (w *worker) processCronJobs(ctx context.Context) {
 }
 
 func (w *worker) processDueCronJobs(ctx context.Context) {
-
 	now := w.engine.clock.Now().UnixMilli()
 
 	dueCrons, err := store.Query.GetDueCronJobs(ctx, w.engine.GetDB(), store.GetDueCronJobsParams{
