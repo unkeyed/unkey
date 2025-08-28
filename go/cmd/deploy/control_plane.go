@@ -53,11 +53,13 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 	createReq := connect.NewRequest(&ctrlv1.CreateVersionRequest{
 		WorkspaceId:    c.opts.WorkspaceID,
 		ProjectId:      c.opts.ProjectID,
+		KeyspaceId:     c.opts.KeyspaceID,
 		Branch:         c.opts.Branch,
 		SourceType:     ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		GitCommitSha:   c.opts.Commit,
 		EnvironmentId:  "env_prod", // TODO: Make this configurable
 		DockerImageTag: dockerImage,
+		Hostname:       c.opts.Hostname,
 	})
 
 	createReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
@@ -67,12 +69,12 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 		return "", c.handleCreateDeploymentError(err)
 	}
 
-	deploymentId := createResp.Msg.GetVersionId()
-	if deploymentId == "" {
+	deploymentID := createResp.Msg.GetVersionId()
+	if deploymentID == "" {
 		return "", fmt.Errorf("empty deployment ID returned from control plane")
 	}
 
-	return deploymentId, nil
+	return deploymentID, nil
 }
 
 // GetDeployment retrieves deployment information from the control plane
@@ -94,7 +96,7 @@ func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId str
 func (c *ControlPlaneClient) PollDeploymentStatus(
 	ctx context.Context,
 	logger logging.Logger,
-	deploymentId string,
+	deploymentID string,
 	onStatusChange func(DeploymentStatusEvent) error,
 	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
@@ -114,9 +116,9 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 		case <-timeout.C:
 			return fmt.Errorf("deployment timeout after 5 minutes")
 		case <-ticker.C:
-			version, err := c.GetDeployment(ctx, deploymentId)
+			version, err := c.GetDeployment(ctx, deploymentID)
 			if err != nil {
-				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentId)
+				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentID)
 				continue
 			}
 
@@ -125,7 +127,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 			// Handle deployment status changes
 			if currentStatus != lastStatus {
 				event := DeploymentStatusEvent{
-					DeploymentID:   deploymentId,
+					DeploymentID:   deploymentID,
 					PreviousStatus: lastStatus,
 					CurrentStatus:  currentStatus,
 					Version:        version,
@@ -138,7 +140,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 			}
 
 			// Process new step updates
-			if err := c.processNewSteps(deploymentId, version.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
+			if err := c.processNewSteps(deploymentID, version.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
 				return err
 			}
 
@@ -152,7 +154,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 
 // processNewSteps processes new deployment steps and calls the event handler
 func (c *ControlPlaneClient) processNewSteps(
-	deploymentId string,
+	deploymentID string,
 	steps []*ctrlv1.VersionStep,
 	processedSteps map[int64]bool,
 	currentStatus ctrlv1.VersionStatus,
@@ -174,7 +176,7 @@ func (c *ControlPlaneClient) processNewSteps(
 		// Call step update handler
 		if step.GetMessage() != "" {
 			event := DeploymentStepEvent{
-				DeploymentID: deploymentId,
+				DeploymentID: deploymentID,
 				Step:         step,
 				Status:       currentStatus,
 			}

@@ -3,12 +3,13 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"log/slog"
-
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -20,6 +21,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -66,6 +69,29 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	var vaultSvc *vault.Service
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
+		vaultStorage, err := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.VaultS3.S3URL,
+			S3Bucket:          cfg.VaultS3.S3Bucket,
+			S3AccessKeyID:     cfg.VaultS3.S3AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.S3AccessKeySecret,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault storage: %w", err)
+		}
+
+		vaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    vaultStorage,
+			MasterKeys: cfg.VaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault service: %w", err)
+		}
+	}
+
 	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
@@ -75,6 +101,17 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
+
+	partitionDB, err := db.New(db.Config{
+		PrimaryDSN:  cfg.DatabasePartition,
+		ReadOnlyDSN: "",
+		Logger:      logger,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create partition db: %w", err)
+	}
+
+	shutdowns.Register(partitionDB.Close)
 	shutdowns.Register(database.Close)
 
 	// Initialize Hydra workflow engine with DSN
@@ -149,7 +186,7 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("metald client configured", "address", cfg.MetaldAddress, "auth_mode", authMode)
 
 	// Register deployment workflow with Hydra worker
-	deployWorkflow := deployment.NewDeployWorkflow(database, logger, metaldClient)
+	deployWorkflow := deployment.NewDeployWorkflow(database, partitionDB, logger, metaldClient)
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
@@ -160,8 +197,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the service handlers with interceptors
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, hydraEngine, logger)))
+	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
+		PartitionDB: partitionDB,
+		DB:          database,
+		HydraEngine: hydraEngine,
+		Logger:      logger,
+	})))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -195,15 +238,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register server shutdown
 	shutdowns.RegisterCtx(server.Shutdown)
 
-	// Start Hydra worker
-	go func() {
-		logger.Info("Starting Hydra workflow worker")
-		if err := hydraWorker.Start(ctx); err != nil {
-			logger.Error("Failed to start Hydra worker", "error", err)
-		}
-	}()
-	shutdowns.RegisterCtx(hydraWorker.Shutdown)
-
 	// Start server
 	go func() {
 		logger.Info("Starting ctrl server", "addr", addr, "tls", cfg.TLSConfig != nil)
@@ -222,6 +256,92 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("Server failed", "error", err)
 		}
 	}()
+
+	acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
+		DB:          database,
+		Logger:      logger,
+		Vault:       vaultSvc,
+		WorkspaceID: "unkey",
+	})
+	if err != nil {
+		logger.Error("Failed to create ACME user", "error", err)
+		return fmt.Errorf("failed to create ACME user: %w", err)
+	}
+
+	// Set up our custom HTTP-01 challenge provider on the ACME client
+	httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
+		DB:     database,
+		Logger: logger,
+	})
+	err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
+	if err != nil {
+		logger.Error("failed to set HTTP-01 provider", "error", err)
+		return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
+	}
+
+	// Register deployment workflow with Hydra worker
+	acmeWorkflows := acme.NewCertificateChallenge(acme.CertificateChallengeConfig{
+		DB:          database,
+		PartitionDB: partitionDB,
+		Logger:      logger,
+		AcmeClient:  acmeClient,
+		Vault:       vaultSvc,
+	})
+	err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
+	if err != nil {
+		logger.Error("unable to register deployment workflow: %w", err)
+		return fmt.Errorf("unable to register deployment workflow: %w", err)
+	}
+
+	go func() {
+		logger.Info("Starting cert worker")
+
+		err = hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
+			challenges, err := db.Query.ListExecutableChallenges(ctx, database.RO())
+			if err != nil {
+				logger.Error("Failed to start workflow", "error", err)
+				return err
+			}
+
+			logger.Info("Starting certificate challenges", "count", len(challenges))
+
+			for _, challenge := range challenges {
+				executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
+					acme.CertificateChallengeRequest{
+						ID:          challenge.ID,
+						WorkspaceID: challenge.WorkspaceID,
+						Domain:      challenge.Domain,
+					},
+					hydra.WithMaxAttempts(24),
+					hydra.WithTimeout(25*time.Hour),
+					hydra.WithRetryBackoff(1*time.Hour),
+				)
+				if err != nil {
+					logger.Error("Failed to start workflow", "error", err)
+					continue
+				}
+
+				logger.Info("Workflow started", "executionID", executionID)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			logger.Error("Failed to register daily report cron job", "error", err)
+			return
+		}
+	}()
+
+	// Start Hydra worker
+	go func() {
+		logger.Info("Starting Hydra workflow worker")
+		if err := hydraWorker.Start(ctx); err != nil {
+			logger.Error("Failed to start Hydra worker", "error", err)
+		}
+	}()
+
+	shutdowns.RegisterCtx(hydraWorker.Shutdown)
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
