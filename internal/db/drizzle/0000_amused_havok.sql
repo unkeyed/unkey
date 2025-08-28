@@ -44,7 +44,6 @@ CREATE TABLE `permissions` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`),
 	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`)
 );
 --> statement-breakpoint
@@ -376,6 +375,16 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `acme_users` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`encrypted_key` text NOT NULL,
+	`registration_uri` text,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `hostname_routes` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -389,21 +398,32 @@ CREATE TABLE `hostname_routes` (
 	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
 );
 --> statement-breakpoint
+CREATE TABLE `domain_challenges` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`domain_id` varchar(255) NOT NULL,
+	`token` varchar(255),
+	`authorization` varchar(255),
+	`status` enum('waiting','pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
+	`type` enum('http-01','dns-01','tls-alpn-01') NOT NULL DEFAULT 'http-01',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	`expires_at` bigint unsigned,
+	CONSTRAINT `domain_challenges_id` PRIMARY KEY(`id`),
+	CONSTRAINT `domainIdWorkspaceId_idx` UNIQUE(`domain_id`,`workspace_id`)
+);
+--> statement-breakpoint
 CREATE TABLE `domains` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`hostname` varchar(256) NOT NULL,
-	`is_custom_domain` boolean NOT NULL DEFAULT false,
-	`certificate_id` varchar(256),
-	`verification_status` enum('pending','verified','failed','expired') DEFAULT 'pending',
-	`verification_token` varchar(256),
-	`verification_method` enum('dns_txt','dns_cname','file_upload','automatic'),
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`domain` varchar(255) NOT NULL,
+	`type` enum('custom','generated') NOT NULL DEFAULT 'generated',
 	`subdomain_config` json,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
-	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+	CONSTRAINT `domain_idx` UNIQUE(`domain`)
 );
 --> statement-breakpoint
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);--> statement-breakpoint
@@ -439,10 +459,10 @@ CREATE INDEX `project_idx` ON `deployments` (`project_id`);--> statement-breakpo
 CREATE INDEX `environment_idx` ON `deployments` (`environment`);--> statement-breakpoint
 CREATE INDEX `status_idx` ON `deployments` (`status`);--> statement-breakpoint
 CREATE INDEX `rootfs_image_idx` ON `deployments` (`rootfs_image_id`);--> statement-breakpoint
+CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);--> statement-breakpoint
 CREATE INDEX `deployment_idx` ON `hostname_routes` (`deployment_id`);--> statement-breakpoint
+CREATE INDEX `domain_status_idx` ON `domain_challenges` (`status`);--> statement-breakpoint
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);--> statement-breakpoint
-CREATE INDEX `project_idx` ON `domains` (`project_id`);--> statement-breakpoint
-CREATE INDEX `verification_status_idx` ON `domains` (`verification_status`);--> statement-breakpoint
-CREATE INDEX `certificate_idx` ON `domains` (`certificate_id`);
+CREATE INDEX `project_idx` ON `domains` (`project_id`);

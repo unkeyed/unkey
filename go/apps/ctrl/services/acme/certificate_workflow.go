@@ -59,6 +59,7 @@ type CertificateChallengeRequest struct {
 type EncryptedCertificate struct {
 	Certificate         string `json:"certificate"`
 	EncryptedPrivateKey string `json:"encrypted_private_key"`
+	ExpiresAt           int64  `json:"expires_at"`
 }
 
 // Run executes the complete build and deployment workflow
@@ -86,13 +87,10 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 	}
 
 	cert, err := hydra.Step(ctx, "get-and-encrypt-cert", func(stepCtx context.Context) (EncryptedCertificate, error) {
-		// The challenge provider is already configured on the ACME client
-		// Just request the certificate
-		certificates, err := w.acmeClient.Certificate.Obtain(certificate.ObtainRequest{
-			Domains: []string{req.Domain},
-			Bundle:  true,
-		})
-
+		// A certificate request can be either
+		// A: We have a new domain WITHOUT a certificate
+		// B: We have to renew a existing certificate
+		// Regardless we first claim the challenge so that no-other job tries to do the same, this will just annoy acme ratelimits
 		if err != nil {
 			db.Query.UpdateDomainChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateDomainChallengeStatusParams{
 				DomainID:  dom.ID,
@@ -103,18 +101,57 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			return EncryptedCertificate{}, err
 		}
 
-		// TODO: Implement certificate renewal logic
-		// w.acmeClient.Certificate.Renew(certificate.Resource{}, bundle bool, mustStaple bool, preferredChain string)
+		currCert, err := pdb.Query.FindCertificateByHostname(stepCtx, w.partitionDB.RO(), req.Domain)
+		if err != nil && !db.IsNotFound(err) {
+			return EncryptedCertificate{}, err
+		}
+
+		shouldRenew := db.IsNotFound(err)
+		var certificates *certificate.Resource
+		if shouldRenew {
+			resp, err := w.vault.Decrypt(stepCtx, &vaultv1.DecryptRequest{
+				Keyring:   "unkey",
+				Encrypted: string(currCert.EncryptedPrivateKey),
+			})
+			if err != nil {
+				return EncryptedCertificate{}, err
+			}
+
+			certificates, err = w.acmeClient.Certificate.Renew(certificate.Resource{
+				Domain:      req.Domain,
+				PrivateKey:  []byte(resp.Plaintext),
+				Certificate: []byte(currCert.Certificate),
+			}, true, false, "")
+		} else {
+			// The challenge provider is already configured on the ACME client
+			certificates, err = w.acmeClient.Certificate.Obtain(certificate.ObtainRequest{
+				Domains: []string{req.Domain},
+				Bundle:  true,
+			})
+		}
+		if err != nil {
+			w.logger.Error("failed to renew/issue certificate", "error", err)
+			return EncryptedCertificate{}, err
+		}
+
 		resp, err := w.vault.Encrypt(stepCtx, &vaultv1.EncryptRequest{
 			Keyring: "unkey",
 			Data:    string(certificates.PrivateKey),
 		})
-
 		if err != nil {
 			return EncryptedCertificate{}, err
 		}
 
-		return EncryptedCertificate{Certificate: string(certificates.Certificate), EncryptedPrivateKey: resp.Encrypted}, nil
+		expiresAt, err := getCertificateExpiry(string(certificates.Certificate))
+		if err != nil {
+			return EncryptedCertificate{}, err
+		}
+
+		return EncryptedCertificate{
+			ExpiresAt:           expiresAt.UnixMilli(),
+			Certificate:         string(certificates.Certificate),
+			EncryptedPrivateKey: resp.Encrypted,
+		}, nil
 	})
 	if err != nil {
 		w.logger.Error("failed to store cert in vaults", "error", err)

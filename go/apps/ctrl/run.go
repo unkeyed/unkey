@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -268,7 +269,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Set up our custom HTTP-01 challenge provider on the ACME client
-	httpProvider := acme.NewHTTPProvider(acme.HTTPProviderConfig{
+	httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
 		DB:     database,
 		Logger: logger,
 	})
