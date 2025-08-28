@@ -4,15 +4,17 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
 
+type ProjectDetailsExpandableProps = {
+  tableDistanceToTop: number;
+  isOpen: boolean;
+  onClose: () => void;
+};
+
 export const ProjectDetailsExpandable = ({
   tableDistanceToTop,
   isOpen,
   onClose,
-}: {
-  tableDistanceToTop: number;
-  isOpen: boolean;
-  onClose: () => void;
-}) => {
+}: ProjectDetailsExpandableProps) => {
   const detailSections = createDetailSections();
 
   return (
@@ -20,10 +22,8 @@ export const ProjectDetailsExpandable = ({
       <div
         className={cn(
           "fixed right-0 bg-gray-1 border-l border-grayA-4 w-[360px] overflow-hidden z-50",
-          // Better easing curve and slightly longer duration
-          "transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
-          // Elevated shadow for depth
-          "shadow-md ",
+          "transition-all duration-300 ease-out",
+          "shadow-md",
           isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
         )}
         style={{
@@ -112,7 +112,7 @@ export const ProjectDetailsExpandable = ({
               <div
                 key={section.title}
                 className={cn(
-                  "transition-all duration-400 ease-out",
+                  "transition-all duration-300 ease-out",
                   isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
                 )}
                 style={{

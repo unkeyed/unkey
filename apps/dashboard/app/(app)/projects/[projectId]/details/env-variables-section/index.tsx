@@ -15,7 +15,7 @@ type EnvironmentVariablesSectionProps = {
 };
 
 const ANIMATION_STYLES = {
-  expand: "transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
+  expand: "transition-all duration-400 ease-in",
   slideIn: "transition-all duration-300 ease-out",
 } as const;
 
