@@ -18,11 +18,12 @@ const workspaceSchema = z.object({
     .max(50, "Workspace name must be 50 characters or less"),
   slug: z
     .string()
-    .min(3, "Workspace URL is required")
-    .max(64, "Workspace URL must be 64 characters or less")
+    .trim()
+    .min(3, "Workspace slug is required")
+    .max(64, "Workspace slug must be 64 characters or less")
     .regex(
-      /^(?!-)[a-z0-9-]+(?<!-)$/,
-      "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
+      /^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/,
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
     ),
 });
 
