@@ -39,8 +39,8 @@ message CreateVersionRequest {
   string keyspace_id = 10;
   
   // Extended git information
-  string git_commit_message = 9;
-  string git_commit_author_name = 10;
+  string git_commit_message = 6;
+  string git_commit_author_name = 11;
   // TODO: Add GitHub API integration to lookup username/avatar from email
   string git_commit_author_username = 12;
   string git_commit_author_avatar_url = 13;

@@ -148,12 +148,10 @@ type CreateVersionRequest struct {
 	// Gateway hostname for routing
 	Hostname string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	// Keyspace ID for authentication
-	KeyspaceId    string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	KeyspaceId string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
 	// Extended git information
-	GitCommitMessage    string `protobuf:"bytes,9,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
-	GitCommitAuthorName string `protobuf:"bytes,10,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
+	GitCommitMessage    string `protobuf:"bytes,6,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
+	GitCommitAuthorName string `protobuf:"bytes,11,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
 	// TODO: Add GitHub API integration to lookup username/avatar from email
 	GitCommitAuthorUsername  string `protobuf:"bytes,12,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
 	GitCommitAuthorAvatarUrl string `protobuf:"bytes,13,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
@@ -244,9 +242,6 @@ func (x *CreateVersionRequest) GetDockerImageTag() string {
 func (x *CreateVersionRequest) GetHostname() string {
 	if x != nil {
 		return x.Hostname
-func (x *CreateVersionRequest) GetGitCommitMessage() string {
-	if x != nil {
-		return x.GitCommitMessage
 	}
 	return ""
 }
@@ -254,6 +249,17 @@ func (x *CreateVersionRequest) GetGitCommitMessage() string {
 func (x *CreateVersionRequest) GetKeyspaceId() string {
 	if x != nil {
 		return x.KeyspaceId
+	}
+	return ""
+}
+
+func (x *CreateVersionRequest) GetGitCommitMessage() string {
+	if x != nil {
+		return x.GitCommitMessage
+	}
+	return ""
+}
+
 func (x *CreateVersionRequest) GetGitCommitAuthorName() string {
 	if x != nil {
 		return x.GitCommitAuthorName
@@ -854,7 +860,7 @@ var File_proto_ctrl_v1_version_proto protoreflect.FileDescriptor
 
 const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\"\xaf\x04\n" +
+	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\"\xec\x04\n" +
 	"\x14CreateVersionRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -868,10 +874,9 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\bhostname\x18\t \x01(\tR\bhostname\x12\x1f\n" +
 	"\vkeyspace_id\x18\n" +
 	" \x01(\tR\n" +
-	"keyspaceId\"f\n" +
-	"\x12git_commit_message\x18\t \x01(\tR\x10gitCommitMessage\x123\n" +
-	"\x16git_commit_author_name\x18\n" +
-	" \x01(\tR\x13gitCommitAuthorName\x12;\n" +
+	"keyspaceId\x12,\n" +
+	"\x12git_commit_message\x18\x06 \x01(\tR\x10gitCommitMessage\x123\n" +
+	"\x16git_commit_author_name\x18\v \x01(\tR\x13gitCommitAuthorName\x12;\n" +
 	"\x1agit_commit_author_username\x18\f \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
 	"\x1cgit_commit_author_avatar_url\x18\r \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
 	"\x14git_commit_timestamp\x18\x0e \x01(\x03R\x12gitCommitTimestamp\"f\n" +
