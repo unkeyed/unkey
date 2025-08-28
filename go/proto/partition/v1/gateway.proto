@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package partition.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1";
+
+// GatewayConfig contains all configuration needed for a hostname
+// including deployment metadata and middleware configurations
+message GatewayConfig {
+  // Routing configuration
+  bool is_enabled = 1;
+
+  // Deployment information
+  string deployment_id = 2;
+  string workspace_id = 3;
+  string project_id = 4;
+  string environment = 5;
+
+  repeated VM vms = 6;
+
+  // Middleware configurations
+  AuthConfig auth_config = 10;
+  ValidationConfig validation_config = 11;
+
+  // Deployment metadata
+  string git_commit_sha = 20;
+  string git_branch = 21;
+}
+
+message VM {
+  string id = 1;
+  string region = 2;
+}
+
+// Authentication middleware configuration
+message AuthConfig {
+  bool require_api_key = 1;
+  string keyspace_id = 2;
+  bool allow_anonymous = 3;
+  bool enabled = 4;
+}
+
+// Request validation middleware configuration
+message ValidationConfig {
+  bool enabled = 1;
+  string openapi_spec = 2;
+}

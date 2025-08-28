@@ -1,17 +1,148 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
 type HelloResponse struct {
 	Message   string    `json:"message"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type DebugResponse struct {
+	Method      string            `json:"method"`
+	URL         string            `json:"url"`
+	Proto       string            `json:"proto"`
+	Headers     map[string]string `json:"headers"`
+	RawBody     string            `json:"raw_body"`
+	ContentType string            `json:"content_type"`
+	UserAgent   string            `json:"user_agent"`
+	RemoteAddr  string            `json:"remote_addr"`
+}
+
+type HealthResponse struct {
+	Status    string    `json:"status"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type GreetingResponse struct {
+	Greeting   string    `json:"greeting"`
+	UserName   string    `json:"user_name"`
+	Timestamp  time.Time `json:"timestamp"`
+	APIVersion string    `json:"api_version"`
+}
+
+type Account struct {
+	ID               string                 `json:"id"`
+	EmailAddress     string                 `json:"email_address"`
+	FullName         string                 `json:"full_name"`
+	AccountType      string                 `json:"account_type"`
+	Status           string                 `json:"status"`
+	SubscriptionTier string                 `json:"subscription_tier"`
+	CreatedTimestamp time.Time              `json:"created_timestamp"`
+	LastModified     time.Time              `json:"last_modified"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type CreateAccountRequest struct {
+	EmailAddress     string `json:"email_address"`
+	FullName         string `json:"full_name"`
+	AccountType      string `json:"account_type,omitempty"`
+	SubscriptionTier string `json:"subscription_tier,omitempty"`
+	PhoneNumber      string `json:"phone_number"`
+	TermsAccepted    bool   `json:"terms_accepted"`
+	MarketingConsent bool   `json:"marketing_consent,omitempty"`
+}
+
+type UpdateAccountRequest struct {
+	EmailAddress     *string `json:"email_address,omitempty"`
+	FullName         *string `json:"full_name,omitempty"`
+	AccountType      *string `json:"account_type,omitempty"`
+	Status           *string `json:"status,omitempty"`
+	SubscriptionTier *string `json:"subscription_tier,omitempty"`
+	PhoneNumber      *string `json:"phone_number,omitempty"`
+	MarketingConsent *bool   `json:"marketing_consent,omitempty"`
+}
+
+type AccountListResponse struct {
+	Accounts      []Account `json:"accounts"`
+	NextPageToken string    `json:"next_page_token,omitempty"`
+	TotalCount    int       `json:"total_count,omitempty"`
+}
+
+type PermissionsResponse struct {
+	Permissions   []string `json:"permissions"`
+	InheritedFrom *string  `json:"inherited_from,omitempty"`
+}
+
+type Error struct {
+	Message   string    `json:"message"`
+	ErrorCode string    `json:"error_code"`
+	RequestID string    `json:"request_id"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type ValidationError struct {
+	Message   string             `json:"message"`
+	Details   []ValidationDetail `json:"details"`
+	RequestID string             `json:"request_id"`
+}
+
+type ValidationDetail struct {
+	Field string `json:"field"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
+}
+
+var (
+	accountStore = make(map[string]*Account)
+	accountMutex sync.RWMutex
+	accountIDPattern = regexp.MustCompile(`^acc_[a-zA-Z0-9]{20}$`)
+)
+
+func generateAccountID() string {
+	bytes := make([]byte, 10)
+	rand.Read(bytes)
+	return "acc_" + hex.EncodeToString(bytes)
+}
+
+func generateRequestID() string {
+	bytes := make([]byte, 8)
+	rand.Read(bytes)
+	return "req_" + hex.EncodeToString(bytes)
+}
+
+func respondWithError(w http.ResponseWriter, statusCode int, errorCode, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(Error{
+		Message:   message,
+		ErrorCode: errorCode,
+		RequestID: generateRequestID(),
+		Timestamp: time.Now().UTC(),
+	})
+}
+
+func respondWithValidationError(w http.ResponseWriter, message string, details []ValidationDetail) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(ValidationError{
+		Message:   message,
+		Details:   details,
+		RequestID: generateRequestID(),
+	})
 }
 
 func main() {
@@ -29,6 +160,42 @@ func main() {
 		fmt.Fprint(w, "OK")
 	})
 
+	// Debug endpoint - dumps request headers and body
+	mux.HandleFunc("/v1/debug", func(w http.ResponseWriter, r *http.Request) {
+		// Read body
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+			return
+		}
+		defer r.Body.Close()
+
+		// Convert headers to map
+		headers := make(map[string]string)
+		for key, values := range r.Header {
+			// Join multiple values with comma
+			headers[key] = strings.Join(values, ", ")
+		}
+
+		response := DebugResponse{
+			Method:      r.Method,
+			URL:         r.URL.String(),
+			Proto:       r.Proto,
+			Headers:     headers,
+			RawBody:     string(bodyBytes),
+			ContentType: r.Header.Get("Content-Type"),
+			UserAgent:   r.Header.Get("User-Agent"),
+			RemoteAddr:  r.RemoteAddr,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cookie", "123=123")
+		w.Header().Set("X-Custom-Header", "CustomValue")
+		w.Header().Set("X-Custom-Header", "CustomValue")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	})
+
 	// Hello endpoint
 	mux.HandleFunc("/v1/hello", func(w http.ResponseWriter, r *http.Request) {
 		response := HelloResponse{
@@ -39,6 +206,406 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(response)
+	})
+
+	mux.HandleFunc("/v1/timeout", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Second * 35)
+	})
+
+	mux.HandleFunc("/v1/protected", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+
+		if auth == "" || auth != "Bearer 123" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// V2 API Endpoints
+	// Health endpoint
+	mux.HandleFunc("/v2/health", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			respondWithError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
+			return
+		}
+		
+		response := HealthResponse{
+			Status:    "healthy",
+			Timestamp: time.Now().UTC(),
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	})
+	
+	// Greeting endpoint
+	mux.HandleFunc("/v2/greeting", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			respondWithError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
+			return
+		}
+		
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			respondWithError(w, http.StatusBadRequest, "MISSING_PARAMETER", "Missing or invalid name parameter")
+			return
+		}
+		
+		response := GreetingResponse{
+			Greeting:   fmt.Sprintf("Hello, %s!", name),
+			UserName:   name,
+			Timestamp:  time.Now().UTC(),
+			APIVersion: "2.0.0",
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	})
+	
+	// Accounts endpoints
+	mux.HandleFunc("/v2/accounts", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			// Get all accounts
+			pageSize := 20
+			if ps := r.URL.Query().Get("page_size"); ps != "" {
+				if size, err := strconv.Atoi(ps); err == nil && size >= 1 && size <= 50 {
+					pageSize = size
+				}
+			}
+			
+			pageToken := r.URL.Query().Get("page_token")
+			status := r.URL.Query().Get("status")
+			
+			accountMutex.RLock()
+			accounts := make([]Account, 0)
+			for _, acc := range accountStore {
+				if status != "" && acc.Status != status {
+					continue
+				}
+				accounts = append(accounts, *acc)
+			}
+			accountMutex.RUnlock()
+			
+			// Simple pagination - in production would use proper cursor
+			start := 0
+			if pageToken != "" {
+				if idx, err := strconv.Atoi(pageToken); err == nil {
+					start = idx
+				}
+			}
+			
+			end := start + pageSize
+			if end > len(accounts) {
+				end = len(accounts)
+			}
+			
+			var nextPageToken string
+			if end < len(accounts) {
+				nextPageToken = strconv.Itoa(end)
+			}
+			
+			response := AccountListResponse{
+				Accounts:      accounts[start:end],
+				NextPageToken: nextPageToken,
+				TotalCount:    len(accounts),
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+			
+		case http.MethodPost:
+			// Create account
+			var req CreateAccountRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				respondWithError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+				return
+			}
+			
+			// Validate required fields
+			var validationErrors []ValidationDetail
+			
+			if req.EmailAddress == "" || !strings.Contains(req.EmailAddress, "@") {
+				validationErrors = append(validationErrors, ValidationDetail{
+					Field: "email_address",
+					Error: "Must be a valid email address",
+					Code:  "INVALID_EMAIL",
+				})
+			}
+			
+			if req.FullName == "" || len(req.FullName) < 2 || len(req.FullName) > 100 {
+				validationErrors = append(validationErrors, ValidationDetail{
+					Field: "full_name",
+					Error: "Must be between 2 and 100 characters",
+					Code:  "INVALID_NAME",
+				})
+			}
+			
+			if req.PhoneNumber == "" || !strings.HasPrefix(req.PhoneNumber, "+") {
+				validationErrors = append(validationErrors, ValidationDetail{
+					Field: "phone_number",
+					Error: "Must be a valid phone number with country code",
+					Code:  "INVALID_PHONE",
+				})
+			}
+			
+			if !req.TermsAccepted {
+				validationErrors = append(validationErrors, ValidationDetail{
+					Field: "terms_accepted",
+					Error: "Terms must be accepted",
+					Code:  "TERMS_NOT_ACCEPTED",
+				})
+			}
+			
+			if len(validationErrors) > 0 {
+				respondWithValidationError(w, "Validation failed", validationErrors)
+				return
+			}
+			
+			// Check for duplicate email
+			accountMutex.RLock()
+			for _, acc := range accountStore {
+				if acc.EmailAddress == req.EmailAddress {
+					accountMutex.RUnlock()
+					respondWithError(w, http.StatusConflict, "ACCOUNT_EXISTS", "Account already exists")
+					return
+				}
+			}
+			accountMutex.RUnlock()
+			
+			// Set defaults
+			if req.AccountType == "" {
+				req.AccountType = "standard"
+			}
+			if req.SubscriptionTier == "" {
+				req.SubscriptionTier = "free"
+			}
+			
+			// Create account
+			account := &Account{
+				ID:               generateAccountID(),
+				EmailAddress:     req.EmailAddress,
+				FullName:         req.FullName,
+				AccountType:      req.AccountType,
+				Status:           "active",
+				SubscriptionTier: req.SubscriptionTier,
+				CreatedTimestamp: time.Now().UTC(),
+				LastModified:     time.Now().UTC(),
+				Metadata: map[string]interface{}{
+					"source":           "api",
+					"marketing_consent": req.MarketingConsent,
+					"phone_number":      req.PhoneNumber,
+				},
+			}
+			
+			accountMutex.Lock()
+			accountStore[account.ID] = account
+			accountMutex.Unlock()
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(account)
+			
+		default:
+			respondWithError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
+		}
+	})
+	
+	// Account by ID endpoints
+	mux.HandleFunc("/v2/accounts/", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/v2/accounts/")
+		parts := strings.Split(path, "/")
+		
+		if len(parts) == 0 || parts[0] == "" {
+			respondWithError(w, http.StatusNotFound, "NOT_FOUND", "Not found")
+			return
+		}
+		
+		accountID := parts[0]
+		
+		// Validate account ID format
+		if !accountIDPattern.MatchString(accountID) {
+			respondWithError(w, http.StatusBadRequest, "INVALID_ACCOUNT_ID", "Invalid account ID format")
+			return
+		}
+		
+		// Handle permissions endpoint
+		if len(parts) > 1 && parts[1] == "permissions" {
+			if r.Method != http.MethodGet {
+				respondWithError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
+				return
+			}
+			
+			accountMutex.RLock()
+			account, exists := accountStore[accountID]
+			accountMutex.RUnlock()
+			
+			if !exists {
+				respondWithError(w, http.StatusNotFound, "ACCOUNT_NOT_FOUND", "Account not found")
+				return
+			}
+			
+			// Mock permissions based on account type
+			var permissions []string
+			var inheritedFrom *string
+			
+			switch account.AccountType {
+			case "premium":
+				permissions = []string{"read", "write", "delete", "admin", "billing"}
+				roleType := "premium_role"
+				inheritedFrom = &roleType
+			case "standard":
+				permissions = []string{"read", "write"}
+				roleType := "standard_role"
+				inheritedFrom = &roleType
+			case "basic":
+				permissions = []string{"read"}
+				roleType := "basic_role"
+				inheritedFrom = &roleType
+			}
+			
+			response := PermissionsResponse{
+				Permissions:   permissions,
+				InheritedFrom: inheritedFrom,
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		
+		// Handle account CRUD operations
+		switch r.Method {
+		case http.MethodGet:
+			accountMutex.RLock()
+			account, exists := accountStore[accountID]
+			accountMutex.RUnlock()
+			
+			if !exists {
+				respondWithError(w, http.StatusNotFound, "ACCOUNT_NOT_FOUND", "Account not found")
+				return
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(account)
+			
+		case http.MethodPatch:
+			var req UpdateAccountRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				respondWithError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+				return
+			}
+			
+			accountMutex.Lock()
+			account, exists := accountStore[accountID]
+			if !exists {
+				accountMutex.Unlock()
+				respondWithError(w, http.StatusNotFound, "ACCOUNT_NOT_FOUND", "Account not found")
+				return
+			}
+			
+			// Validate and apply updates
+			var validationErrors []ValidationDetail
+			
+			if req.EmailAddress != nil {
+				if !strings.Contains(*req.EmailAddress, "@") {
+					validationErrors = append(validationErrors, ValidationDetail{
+						Field: "email_address",
+						Error: "Must be a valid email address",
+						Code:  "INVALID_EMAIL",
+					})
+				} else {
+					account.EmailAddress = *req.EmailAddress
+				}
+			}
+			
+			if req.FullName != nil {
+				if len(*req.FullName) < 2 || len(*req.FullName) > 100 {
+					validationErrors = append(validationErrors, ValidationDetail{
+						Field: "full_name",
+						Error: "Must be between 2 and 100 characters",
+						Code:  "INVALID_NAME",
+					})
+				} else {
+					account.FullName = *req.FullName
+				}
+			}
+			
+			if req.Status != nil && (*req.Status == "pending") {
+				validationErrors = append(validationErrors, ValidationDetail{
+					Field: "status",
+					Error: "Cannot set status to pending",
+					Code:  "INVALID_STATUS",
+				})
+			}
+			
+			if len(validationErrors) > 0 {
+				accountMutex.Unlock()
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				json.NewEncoder(w).Encode(ValidationError{
+					Message:   "Invalid update data",
+					Details:   validationErrors,
+					RequestID: generateRequestID(),
+				})
+				return
+			}
+			
+			// Apply other updates
+			if req.AccountType != nil {
+				account.AccountType = *req.AccountType
+			}
+			if req.Status != nil {
+				account.Status = *req.Status
+			}
+			if req.SubscriptionTier != nil {
+				account.SubscriptionTier = *req.SubscriptionTier
+			}
+			if req.PhoneNumber != nil {
+				if account.Metadata == nil {
+					account.Metadata = make(map[string]interface{})
+				}
+				account.Metadata["phone_number"] = *req.PhoneNumber
+			}
+			if req.MarketingConsent != nil {
+				if account.Metadata == nil {
+					account.Metadata = make(map[string]interface{})
+				}
+				account.Metadata["marketing_consent"] = *req.MarketingConsent
+			}
+			
+			account.LastModified = time.Now().UTC()
+			accountMutex.Unlock()
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(account)
+			
+		case http.MethodDelete:
+			accountMutex.Lock()
+			_, exists := accountStore[accountID]
+			if !exists {
+				accountMutex.Unlock()
+				respondWithError(w, http.StatusNotFound, "ACCOUNT_NOT_FOUND", "Account not found")
+				return
+			}
+			
+			delete(accountStore, accountID)
+			accountMutex.Unlock()
+			
+			w.WriteHeader(http.StatusNoContent)
+			
+		default:
+			respondWithError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
+		}
 	})
 
 	// OpenAPI spec endpoint - VERSION 2 (Breaking Changes)

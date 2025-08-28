@@ -113,6 +113,10 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//FindAcmeUserByWorkspaceID
+	//
+	//  SELECT id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
+	FindAcmeUserByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -175,6 +179,14 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error)
+	//FindDomainByDomain
+	//
+	//  SELECT id, workspace_id, project_id, domain, type, subdomain_config, created_at, updated_at FROM domains WHERE domain = ?
+	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
+	//FindDomainChallengeByToken
+	//
+	//  SELECT id, workspace_id, domain_id, token, authorization, status, type, created_at, updated_at, expires_at FROM domain_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	FindDomainChallengeByToken(ctx context.Context, db DBTX, arg FindDomainChallengeByTokenParams) (DomainChallenge, error)
 	//FindHostnameRoutesByDeploymentId
 	//
 	//  SELECT
@@ -732,6 +744,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, db DBTX, id string) (sql.Result, error)
+	//InsertAcmeUser
+	//
+	//
+	//  INSERT INTO acme_users (workspace_id, encrypted_key, created_at)
+	//  VALUES (?,?,?)
+	InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) (int64, error)
 	//InsertApi
 	//
 	//  INSERT INTO apis (
@@ -897,6 +915,53 @@ type Querier interface {
 	//      error_message = VALUES(error_message),
 	//      created_at = VALUES(created_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
+	//InsertDomain
+	//
+	//  INSERT INTO domains (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      domain,
+	//      type,
+	//      subdomain_config,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      project_id = VALUES(project_id),
+	//      type = VALUES(type),
+	//      subdomain_config = VALUES(subdomain_config),
+	//      updated_at = ?
+	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
+	//InsertDomainChallenge
+	//
+	//  INSERT INTO domain_challenges (
+	//      workspace_id,
+	//      domain_id,
+	//      token,
+	//      authorization,
+	//      status,
+	//      created_at,
+	//      updated_at,
+	//      expires_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDomainChallenge(ctx context.Context, db DBTX, arg InsertDomainChallengeParams) error
 	//InsertHostnameRoute
 	//
 	//  INSERT INTO hostname_routes (
@@ -1228,6 +1293,13 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListExecutableChallenges
+	//
+	//  SELECT dc.id, dc.workspace_id, domain FROM domain_challenges dc
+	//  JOIN domains d ON dc.domain_id = d.id
+	//  WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+	//  ORDER BY d.created_at ASC
+	ListExecutableChallenges(ctx context.Context, db DBTX) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1540,6 +1612,10 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//UpdateAcmeUserRegistrationURI
+	//
+	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
+	UpdateAcmeUserRegistrationURI(ctx context.Context, db DBTX, arg UpdateAcmeUserRegistrationURIParams) error
 	//UpdateApiDeleteProtection
 	//
 	//  UPDATE apis
@@ -1582,6 +1658,28 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
+	//UpdateDomainChallengeExpiresAt
+	//
+	//  UPDATE domain_challenges SET expires_at = ? WHERE domain_id = ?
+	UpdateDomainChallengeExpiresAt(ctx context.Context, db DBTX, arg UpdateDomainChallengeExpiresAtParams) error
+	//UpdateDomainChallengePending
+	//
+	//  UPDATE domain_challenges
+	//  SET status = ?, token = ?, authorization = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateDomainChallengePending(ctx context.Context, db DBTX, arg UpdateDomainChallengePendingParams) error
+	//UpdateDomainChallengeStatus
+	//
+	//  UPDATE domain_challenges
+	//  SET status = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateDomainChallengeStatus(ctx context.Context, db DBTX, arg UpdateDomainChallengeStatusParams) error
+	//UpdateDomainChallengeTryClaiming
+	//
+	//  UPDATE domain_challenges
+	//  SET status = ?, updated_at = ?
+	//  WHERE domain_id = ? AND status = 'waiting'
+	UpdateDomainChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateDomainChallengeTryClaimingParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
