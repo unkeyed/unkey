@@ -22,7 +22,7 @@ const workspaceSchema = z.object({
     .min(3, "Workspace slug must be at least 3 characters")
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
-      /^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/,
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
     ),
 });
@@ -179,10 +179,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
               prefix="app.unkey.com/"
               maxLength={64}
               onChange={(evt) => {
-                // Mark slug as manually edited when user changes it
-                if (evt.currentTarget.value) {
-                  setSlugManuallyEdited(true);
-                }
+                const v = evt.currentTarget.value;
+                setSlugManuallyEdited(v.length > 0);
               }}
             />
           </div>
