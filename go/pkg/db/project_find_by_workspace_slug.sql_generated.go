@@ -10,10 +10,9 @@ import (
 )
 
 const findProjectByWorkspaceSlug = `-- name: FindProjectByWorkspaceSlug :one
-SELECT 
+SELECT
     id,
     workspace_id,
-    partition_id,
     name,
     slug,
     git_repository_url,
@@ -21,7 +20,7 @@ SELECT
     delete_protection,
     created_at,
     updated_at
-FROM projects 
+FROM projects
 WHERE workspace_id = ? AND slug = ?
 `
 
@@ -35,7 +34,6 @@ type FindProjectByWorkspaceSlugParams struct {
 //	SELECT
 //	    id,
 //	    workspace_id,
-//	    partition_id,
 //	    name,
 //	    slug,
 //	    git_repository_url,
@@ -51,7 +49,6 @@ func (q *Queries) FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg F
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
-		&i.PartitionID,
 		&i.Name,
 		&i.Slug,
 		&i.GitRepositoryUrl,

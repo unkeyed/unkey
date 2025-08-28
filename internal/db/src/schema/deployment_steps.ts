@@ -21,7 +21,7 @@ export const deploymentSteps = mysqlTable(
       "failed",
     ]).notNull(),
     message: varchar("message", { length: 1024 }).notNull(),
-    createdAt: bigint("crated_at", { mode: "number" }).notNull(),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.deploymentId, table.status] }),

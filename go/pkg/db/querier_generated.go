@@ -113,6 +113,14 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//FindAcmeChallengeByToken
+	//
+	//  SELECT id, workspace_id, domain_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
+	//FindAcmeUserByWorkspaceID
+	//
+	//  SELECT id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
+	FindAcmeUserByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -124,38 +132,16 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
-	//FindBuildById
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      deployment_id,
-	//      rootfs_image_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      status,
-	//      build_tool,
-	//      error_message,
-	//      started_at,
-	//      completed_at,
-	//      created_at,
-	//      updated_at
-	//  FROM `builds`
-	//  WHERE id = ?
-	FindBuildById(ctx context.Context, db DBTX, id string) (Build, error)
 	//FindDeploymentById
 	//
 	//  SELECT
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      environment,
-	//      build_id,
-	//      rootfs_image_id,
+	//      environment_id,
 	//      git_commit_sha,
 	//      git_branch,
-	//      config_snapshot,
+	//      runtime_config,
 	//      openapi_spec,
 	//      status,
 	//      created_at,
@@ -169,27 +155,29 @@ type Querier interface {
 	//      deployment_id,
 	//      status,
 	//      message,
-	//      error_message,
 	//      created_at
 	//  FROM deployment_steps
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
-	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error)
-	//FindHostnameRoutesByDeploymentId
+	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error)
+	//FindDomainByDomain
+	//
+	//  SELECT id, workspace_id, project_id, deployment_id, domain, type, created_at, updated_at FROM domains WHERE domain = ?
+	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
+	//FindDomainsByDeploymentId
 	//
 	//  SELECT
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      hostname,
+	//      domain,
 	//      deployment_id,
-	//      is_enabled,
 	//      created_at,
 	//      updated_at
-	//  FROM hostname_routes
+	//  FROM domains
 	//  WHERE deployment_id = ? AND is_enabled = true
 	//  ORDER BY created_at ASC
-	FindHostnameRoutesByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]HostnameRoute, error)
+	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -301,28 +289,6 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
-	//FindLatestBuildByDeploymentId
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      deployment_id,
-	//      rootfs_image_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      status,
-	//      build_tool,
-	//      error_message,
-	//      started_at,
-	//      completed_at,
-	//      created_at,
-	//      updated_at
-	//  FROM `builds`
-	//  WHERE deployment_id = ?
-	//  ORDER BY created_at DESC
-	//  LIMIT 1
-	FindLatestBuildByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (Build, error)
 	//FindLiveApiByID
 	//
 	//  SELECT apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
@@ -598,7 +564,6 @@ type Querier interface {
 	//  SELECT
 	//      id,
 	//      workspace_id,
-	//      partition_id,
 	//      name,
 	//      slug,
 	//      git_repository_url,
@@ -614,7 +579,6 @@ type Querier interface {
 	//  SELECT
 	//      id,
 	//      workspace_id,
-	//      partition_id,
 	//      name,
 	//      slug,
 	//      git_repository_url,
@@ -732,6 +696,36 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, db DBTX, id string) (sql.Result, error)
+	//InsertAcmeChallenge
+	//
+	//  INSERT INTO acme_challenges (
+	//      workspace_id,
+	//      domain_id,
+	//      token,
+	//      authorization,
+	//      status,
+	//      challenge_type,
+	//      created_at,
+	//      updated_at,
+	//      expires_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAcmeChallenge(ctx context.Context, db DBTX, arg InsertAcmeChallengeParams) error
+	//InsertAcmeUser
+	//
+	//
+	//  INSERT INTO acme_users (workspace_id, encrypted_key, created_at)
+	//  VALUES (?,?,?)
+	InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) (int64, error)
 	//InsertApi
 	//
 	//  INSERT INTO apis (
@@ -814,60 +808,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
-	//InsertBuild
-	//
-	//  INSERT INTO builds (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      deployment_id,
-	//      rootfs_image_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      status,
-	//      build_tool,
-	//      error_message,
-	//      started_at,
-	//      completed_at,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      NULL,
-	//      NULL,
-	//      NULL,
-	//      'pending',
-	//      'docker',
-	//      NULL,
-	//      NULL,
-	//      NULL,
-	//      ?,
-	//      NULL
-	//  )
-	InsertBuild(ctx context.Context, db DBTX, arg InsertBuildParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      environment,
-	//      build_id,
-	//      rootfs_image_id,
+	//      environment_id,
 	//      git_commit_sha,
 	//      git_branch,
-	//      config_snapshot,
+	//      runtime_config,
 	//      openapi_spec,
 	//      status,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -887,31 +843,39 @@ type Querier interface {
 	//      deployment_id,
 	//      status,
 	//      message,
-	//      error_message,
 	//      created_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      message = VALUES(message),
-	//      error_message = VALUES(error_message),
 	//      created_at = VALUES(created_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
-	//InsertHostnameRoute
+	//InsertDomain
 	//
-	//  INSERT INTO hostname_routes (
+	//  INSERT INTO domains (
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      hostname,
-	//      deployment_id,
-	//      is_enabled,
-	//      created_at,
-	//      updated_at
+	//      domain,
+	//      type,
+	//      subdomain_config,
+	//      created_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
-	//  )
-	InsertHostnameRoute(ctx context.Context, db DBTX, arg InsertHostnameRouteParams) error
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      project_id = VALUES(project_id),
+	//      type = VALUES(type),
+	//      subdomain_config = VALUES(subdomain_config),
+	//      updated_at = ?
+	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -1102,7 +1066,6 @@ type Querier interface {
 	//  INSERT INTO projects (
 	//      id,
 	//      workspace_id,
-	//      partition_id,
 	//      name,
 	//      slug,
 	//      git_repository_url,
@@ -1111,7 +1074,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
 	//InsertRatelimitNamespace
@@ -1228,6 +1191,13 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListExecutableChallenges
+	//
+	//  SELECT dc.id, dc.workspace_id, domain FROM acme_challenges dc
+	//  JOIN domains d ON dc.domain_id = d.id
+	//  WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+	//  ORDER BY d.created_at ASC
+	ListExecutableChallenges(ctx context.Context, db DBTX) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1540,36 +1510,38 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//UpdateACmeChallengePending
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, token = ?, authorization = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateACmeChallengePending(ctx context.Context, db DBTX, arg UpdateACmeChallengePendingParams) error
+	//UpdateAcmeChallengeExpiresAt
+	//
+	//  UPDATE acme_challenges SET expires_at = ? WHERE id = ?
+	UpdateAcmeChallengeExpiresAt(ctx context.Context, db DBTX, arg UpdateAcmeChallengeExpiresAtParams) error
+	//UpdateAcmeChallengeStatus
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateAcmeChallengeStatus(ctx context.Context, db DBTX, arg UpdateAcmeChallengeStatusParams) error
+	//UpdateAcmeChallengeTryClaiming
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, updated_at = ?
+	//  WHERE domain_id = ? AND status = 'waiting'
+	UpdateAcmeChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateAcmeChallengeTryClaimingParams) error
+	//UpdateAcmeUserRegistrationURI
+	//
+	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
+	UpdateAcmeUserRegistrationURI(ctx context.Context, db DBTX, arg UpdateAcmeUserRegistrationURIParams) error
 	//UpdateApiDeleteProtection
 	//
 	//  UPDATE apis
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
-	//UpdateBuildFailed
-	//
-	//  UPDATE builds SET
-	//      status = 'failed',
-	//      completed_at = ?,
-	//      error_message = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateBuildFailed(ctx context.Context, db DBTX, arg UpdateBuildFailedParams) error
-	//UpdateBuildStatus
-	//
-	//  UPDATE builds SET
-	//      status = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateBuildStatus(ctx context.Context, db DBTX, arg UpdateBuildStatusParams) error
-	//UpdateBuildSucceeded
-	//
-	//  UPDATE builds SET
-	//      status = 'succeeded',
-	//      completed_at = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateBuildSucceeded(ctx context.Context, db DBTX, arg UpdateBuildSucceededParams) error
 	//UpdateDeploymentOpenapiSpec
 	//
 	//  UPDATE deployments

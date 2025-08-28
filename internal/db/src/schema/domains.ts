@@ -6,9 +6,11 @@ export const domains = mysqlTable(
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 256 }).notNull(),
+    projectId: varchar("project_id", { length: 256 }),
+    deploymentId: varchar("deployment_id", { length: 256 }),
 
-    domain: varchar("hostname", { length: 256 }).notNull(),
+
+    domain: varchar("domain", { length: 256 }).notNull(),
     type: mysqlEnum("type", ["custom", "wildcard"]).notNull(),
     ...lifecycleDates,
   },

@@ -1,8 +1,10 @@
 package ctrl
 
 import (
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
 type Config struct {
@@ -24,8 +26,9 @@ type Config struct {
 	// --- Database configuration ---
 
 	// DatabasePrimary is the primary database connection string for read and write operations
-	DatabasePrimary string
-	DatabaseHydra   string
+	DatabasePrimary   string
+	DatabasePartition string
+	DatabaseHydra     string
 
 	// --- OpenTelemetry configuration ---
 
@@ -46,8 +49,24 @@ type Config struct {
 	SPIFFESocketPath string
 
 	Clock clock.Clock
+
+	// --- Vault Configuration ---
+	VaultMasterKeys []string
+	VaultS3         *storage.S3Config
 }
 
 func (c Config) Validate() error {
+	if c.VaultS3 != nil {
+		err := assert.All(
+			assert.NotEmpty(c.VaultS3.S3URL, "vault s3 url is empty"),
+			assert.NotEmpty(c.VaultS3.S3Bucket, "vault s3 bucket is empty"),
+			assert.NotEmpty(c.VaultS3.S3AccessKeyID, "vault s3 access key id is empty"),
+			assert.NotEmpty(c.VaultS3.S3AccessKeySecret, "vault s3 secret access key is empty"),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

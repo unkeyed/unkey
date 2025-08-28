@@ -10,10 +10,9 @@ import (
 )
 
 const findProjectById = `-- name: FindProjectById :one
-SELECT 
+SELECT
     id,
     workspace_id,
-    partition_id,
     name,
     slug,
     git_repository_url,
@@ -21,7 +20,7 @@ SELECT
     delete_protection,
     created_at,
     updated_at
-FROM projects 
+FROM projects
 WHERE id = ?
 `
 
@@ -30,7 +29,6 @@ WHERE id = ?
 //	SELECT
 //	    id,
 //	    workspace_id,
-//	    partition_id,
 //	    name,
 //	    slug,
 //	    git_repository_url,
@@ -46,7 +44,6 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Proj
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
-		&i.PartitionID,
 		&i.Name,
 		&i.Slug,
 		&i.GitRepositoryUrl,

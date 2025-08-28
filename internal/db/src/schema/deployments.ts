@@ -14,7 +14,7 @@ export const deployments = mysqlTable(
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: varchar("environment", { length: 256 }).notNull(),
+    environmentId: varchar("environment_id", { length: 256 }).notNull(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),

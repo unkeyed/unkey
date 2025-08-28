@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const insertDeploymentStep = `-- name: InsertDeploymentStep :exec
@@ -15,22 +14,19 @@ INSERT INTO deployment_steps (
     deployment_id,
     status,
     message,
-    error_message,
     created_at
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?
 )
 ON DUPLICATE KEY UPDATE
     message = VALUES(message),
-    error_message = VALUES(error_message),
     created_at = VALUES(created_at)
 `
 
 type InsertDeploymentStepParams struct {
 	DeploymentID string                `db:"deployment_id"`
 	Status       DeploymentStepsStatus `db:"status"`
-	Message      sql.NullString        `db:"message"`
-	ErrorMessage sql.NullString        `db:"error_message"`
+	Message      string                `db:"message"`
 	CreatedAt    int64                 `db:"created_at"`
 }
 
@@ -40,21 +36,18 @@ type InsertDeploymentStepParams struct {
 //	    deployment_id,
 //	    status,
 //	    message,
-//	    error_message,
 //	    created_at
 //	) VALUES (
-//	    ?, ?, ?, ?, ?
+//	    ?, ?, ?, ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    message = VALUES(message),
-//	    error_message = VALUES(error_message),
 //	    created_at = VALUES(created_at)
 func (q *Queries) InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error {
 	_, err := db.ExecContext(ctx, insertDeploymentStep,
 		arg.DeploymentID,
 		arg.Status,
 		arg.Message,
-		arg.ErrorMessage,
 		arg.CreatedAt,
 	)
 	return err

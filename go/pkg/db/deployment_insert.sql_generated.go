@@ -16,12 +16,10 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     id,
     workspace_id,
     project_id,
-    environment,
-    build_id,
-    rootfs_image_id,
+    environment_id,
     git_commit_sha,
     git_branch,
-    config_snapshot,
+    runtime_config,
     openapi_spec,
     status,
     created_at,
@@ -38,26 +36,22 @@ VALUES (
     ?,
     ?,
     ?,
-    ?,
-    ?,
     ?
 )
 `
 
 type InsertDeploymentParams struct {
-	ID             string                 `db:"id"`
-	WorkspaceID    string                 `db:"workspace_id"`
-	ProjectID      string                 `db:"project_id"`
-	Environment    DeploymentsEnvironment `db:"environment"`
-	BuildID        sql.NullString         `db:"build_id"`
-	RootfsImageID  string                 `db:"rootfs_image_id"`
-	GitCommitSha   sql.NullString         `db:"git_commit_sha"`
-	GitBranch      sql.NullString         `db:"git_branch"`
-	ConfigSnapshot json.RawMessage        `db:"config_snapshot"`
-	OpenapiSpec    sql.NullString         `db:"openapi_spec"`
-	Status         DeploymentsStatus      `db:"status"`
-	CreatedAt      int64                  `db:"created_at"`
-	UpdatedAt      sql.NullInt64          `db:"updated_at"`
+	ID            string            `db:"id"`
+	WorkspaceID   string            `db:"workspace_id"`
+	ProjectID     string            `db:"project_id"`
+	EnvironmentID string            `db:"environment_id"`
+	GitCommitSha  sql.NullString    `db:"git_commit_sha"`
+	GitBranch     sql.NullString    `db:"git_branch"`
+	RuntimeConfig json.RawMessage   `db:"runtime_config"`
+	OpenapiSpec   sql.NullString    `db:"openapi_spec"`
+	Status        DeploymentsStatus `db:"status"`
+	CreatedAt     int64             `db:"created_at"`
+	UpdatedAt     sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertDeployment
@@ -66,20 +60,16 @@ type InsertDeploymentParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
-//	    environment,
-//	    build_id,
-//	    rootfs_image_id,
+//	    environment_id,
 //	    git_commit_sha,
 //	    git_branch,
-//	    config_snapshot,
+//	    runtime_config,
 //	    openapi_spec,
 //	    status,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -97,12 +87,10 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
-		arg.Environment,
-		arg.BuildID,
-		arg.RootfsImageID,
+		arg.EnvironmentID,
 		arg.GitCommitSha,
 		arg.GitBranch,
-		arg.ConfigSnapshot,
+		arg.RuntimeConfig,
 		arg.OpenapiSpec,
 		arg.Status,
 		arg.CreatedAt,

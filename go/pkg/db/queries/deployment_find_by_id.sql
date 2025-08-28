@@ -1,14 +1,12 @@
 -- name: FindDeploymentById :one
-SELECT 
+SELECT
     id,
     workspace_id,
     project_id,
-    environment,
-    build_id,
-    rootfs_image_id,
+    environment_id,
     git_commit_sha,
     git_branch,
-    config_snapshot,
+    runtime_config,
     openapi_spec,
     status,
     created_at,

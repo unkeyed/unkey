@@ -11,6 +11,7 @@ export const acmeChallenges = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     domainId: varchar("domain_id", { length: 256 }).notNull(),
     token: varchar("token", { length: 256 }).notNull(),
+    challengeType: mysqlEnum("challenge_type", ["HTTP-01", "DNS-01"]).notNull(),
     authorization: varchar("authorization", { length: 256 }).notNull(),
     status: mysqlEnum("status", ["waiting", "pending", "verified", "failed"]).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
