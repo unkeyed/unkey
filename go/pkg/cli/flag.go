@@ -12,6 +12,7 @@ var (
 	ErrValidationFailed  = errors.New("validation failed")
 	ErrInvalidBoolValue  = errors.New("invalid boolean value")
 	ErrInvalidIntValue   = errors.New("invalid integer value")
+	ErrInvalidInt64Value = errors.New("invalid int64 value")
 	ErrInvalidFloatValue = errors.New("invalid float value")
 )
 
@@ -150,6 +151,38 @@ func (f *IntFlag) Value() int { return f.value }
 // HasValue returns true if the flag has a non-zero value or came from environment
 func (f *IntFlag) HasValue() bool { return f.value != 0 || f.hasEnvValue }
 
+// Int64Flag represents an int64 command line flag
+type Int64Flag struct {
+	baseFlag
+	value       int64 // Current value
+	hasEnvValue bool  // Track if value came from environment
+}
+
+// Parse sets the flag value from a string
+func (f *Int64Flag) Parse(value string) error {
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidInt64Value, value)
+	}
+
+	// Run validation if provided
+	if f.validate != nil {
+		if err := f.validate(value); err != nil {
+			return newValidationError(f.name, err)
+		}
+	}
+
+	f.value = parsed
+	f.set = true
+	return nil
+}
+
+// Value returns the current int64 value
+func (f *Int64Flag) Value() int64 { return f.value }
+
+// HasValue returns true if the flag has a non-zero value or came from environment
+func (f *Int64Flag) HasValue() bool { return f.value != 0 || f.hasEnvValue }
+
 // FloatFlag represents a float64 command line flag
 type FloatFlag struct {
 	baseFlag
@@ -240,6 +273,8 @@ func Required() FlagOption {
 			flag.required = true
 		case *IntFlag:
 			flag.required = true
+		case *Int64Flag:
+			flag.required = true
 		case *FloatFlag:
 			flag.required = true
 		case *StringSliceFlag:
@@ -258,6 +293,8 @@ func EnvVar(envVar string) FlagOption {
 			flag.envVar = envVar
 		case *IntFlag:
 			flag.envVar = envVar
+		case *Int64Flag:
+			flag.envVar = envVar
 		case *FloatFlag:
 			flag.envVar = envVar
 		case *StringSliceFlag:
@@ -275,6 +312,8 @@ func Validate(fn ValidateFunc) FlagOption {
 		case *BoolFlag:
 			flag.validate = fn
 		case *IntFlag:
+			flag.validate = fn
+		case *Int64Flag:
 			flag.validate = fn
 		case *FloatFlag:
 			flag.validate = fn
@@ -306,6 +345,12 @@ func Default(value any) FlagOption {
 				flag.value = v
 			} else {
 				err = fmt.Errorf("default value for int flag '%s' must be int, got %T", flag.name, value)
+			}
+		case *Int64Flag:
+			if v, ok := value.(int64); ok {
+				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for int64 flag '%s' must be int64, got %T", flag.name, value)
 			}
 		case *FloatFlag:
 			if v, ok := value.(float64); ok {
@@ -508,6 +553,46 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 				}
 			}
 			flag.value = flag.parseCommaSeparated(envValue)
+			flag.hasEnvValue = true
+			// Don't mark as explicitly set - this is from environment
+		}
+	}
+
+	return flag
+}
+
+// Int64 creates a new int64 flag with optional configuration
+func Int64(name, usage string, opts ...FlagOption) *Int64Flag {
+	flag := &Int64Flag{
+		baseFlag: baseFlag{
+			name:     name,
+			usage:    usage,
+			required: false, // Default to not required
+		},
+		value: 0, // Default to zero
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(flag)
+	}
+
+	// Check environment variable for default value if specified
+	if flag.envVar != "" {
+		if envValue := os.Getenv(flag.envVar); envValue != "" {
+			parsed, err := strconv.ParseInt(envValue, 10, 64)
+			if err != nil {
+				Exit(fmt.Sprintf("Environment variable error: invalid int64 value in %s=%q: %v",
+					flag.envVar, envValue, err), 1)
+			}
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
+			}
+			flag.value = parsed
 			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
 		}

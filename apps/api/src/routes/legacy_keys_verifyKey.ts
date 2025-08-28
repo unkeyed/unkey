@@ -1,6 +1,8 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
+import { DisabledWorkspaceError, MissingRatelimitError } from "@/pkg/keys/service";
 import { createRoute, z } from "@hono/zod-openapi";
+import { SchemaError } from "@unkey/error";
 
 const route = createRoute({
   deprecated: true,
@@ -155,7 +157,20 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     const { keyService } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, { key, apiId });
+
     if (err) {
+      switch (true) {
+        case err instanceof SchemaError || err instanceof MissingRatelimitError:
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: err.message,
+          });
+        case err instanceof DisabledWorkspaceError:
+          throw new UnkeyApiError({
+            code: "FORBIDDEN",
+            message: "workspace is disabled",
+          });
+      }
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
         message: err.message,

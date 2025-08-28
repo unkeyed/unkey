@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "66125fd8-4e0f-4388-a524-e9afb1d90917",
+  "id": "88a1691a-f40b-497a-ae77-dbf5265dd6b5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -286,10 +286,6 @@
         }
       },
       "uniqueConstraints": {
-        "unique_name_per_workspace_idx": {
-          "name": "unique_name_per_workspace_idx",
-          "columns": ["workspace_id", "name"]
-        },
         "unique_slug_per_workspace_idx": {
           "name": "unique_slug_per_workspace_idx",
           "columns": ["workspace_id", "slug"]
@@ -2458,6 +2454,68 @@
       },
       "uniqueConstraints": {}
     },
+    "acme_users": {
+      "name": "acme_users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "encrypted_key": {
+          "name": "encrypted_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration_uri": {
+          "name": "registration_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "domain_idx": {
+          "name": "domain_idx",
+          "columns": ["workspace_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "acme_users_id": {
+          "name": "acme_users_id",
+          "columns": ["id"]
+        }
+      },
+      "uniqueConstraints": {}
+    },
     "hostname_routes": {
       "name": "hostname_routes",
       "columns": {
@@ -2550,73 +2608,141 @@
       },
       "uniqueConstraints": {}
     },
+    "domain_challenges": {
+      "name": "domain_challenges",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "domain_id": {
+          "name": "domain_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "authorization": {
+          "name": "authorization",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('waiting','pending','verified','failed','expired')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "type": {
+          "name": "type",
+          "type": "enum('http-01','dns-01','tls-alpn-01')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'http-01'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "bigint unsigned",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "domainIdWorkspaceId_idx": {
+          "name": "domainIdWorkspaceId_idx",
+          "columns": ["domain_id", "workspace_id"],
+          "isUnique": true
+        },
+        "domain_status_idx": {
+          "name": "domain_status_idx",
+          "columns": ["status"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "domain_challenges_id": {
+          "name": "domain_challenges_id",
+          "columns": ["id"]
+        }
+      },
+      "uniqueConstraints": {}
+    },
     "domains": {
       "name": "domains",
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(256)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "workspace_id": {
           "name": "workspace_id",
-          "type": "varchar(256)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "project_id": {
           "name": "project_id",
-          "type": "varchar(256)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "hostname": {
-          "name": "hostname",
-          "type": "varchar(256)",
+        "domain": {
+          "name": "domain",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "is_custom_domain": {
-          "name": "is_custom_domain",
-          "type": "boolean",
+        "type": {
+          "name": "type",
+          "type": "enum('custom','generated')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": false
-        },
-        "certificate_id": {
-          "name": "certificate_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "verification_status": {
-          "name": "verification_status",
-          "type": "enum('pending','verified','failed','expired')",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "'pending'"
-        },
-        "verification_token": {
-          "name": "verification_token",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "verification_method": {
-          "name": "verification_method",
-          "type": "enum('dns_txt','dns_cname','file_upload','automatic')",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "default": "'generated'"
         },
         "subdomain_config": {
           "name": "subdomain_config",
@@ -2651,20 +2777,10 @@
           "columns": ["project_id"],
           "isUnique": false
         },
-        "hostname_idx": {
-          "name": "hostname_idx",
-          "columns": ["hostname"],
+        "domain_idx": {
+          "name": "domain_idx",
+          "columns": ["domain"],
           "isUnique": true
-        },
-        "verification_status_idx": {
-          "name": "verification_status_idx",
-          "columns": ["verification_status"],
-          "isUnique": false
-        },
-        "certificate_idx": {
-          "name": "certificate_idx",
-          "columns": ["certificate_id"],
-          "isUnique": false
         }
       },
       "foreignKeys": {},

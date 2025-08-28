@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS `unkey`;
-USE `unkey`;
-
 CREATE TABLE `apis` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -47,7 +44,7 @@ CREATE TABLE `permissions` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`slug`,`workspace_id`)
+	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
 CREATE TABLE `roles` (
@@ -159,7 +156,7 @@ CREATE TABLE `ratelimit_namespaces` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `ratelimit_namespaces_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`)
+	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
 CREATE TABLE `ratelimit_overrides` (
@@ -233,8 +230,8 @@ CREATE TABLE `ratelimits` (
 	`duration` bigint NOT NULL,
 	`auto_apply` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`name`,`key_id`),
-	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`name`,`identity_id`)
+	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`key_id`,`name`),
+	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`identity_id`,`name`)
 );
 
 CREATE TABLE `quota` (
@@ -322,7 +319,6 @@ CREATE TABLE `projects` (
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
-
 CREATE TABLE `rootfs_images` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -359,8 +355,7 @@ CREATE TABLE `deployment_steps` (
 	`message` text,
 	`error_message` text,
 	`created_at` bigint NOT NULL,
-	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`deployment_id`, `status`),
-	INDEX `idx_deployment_id_created_at` (`deployment_id`, `created_at`)
+	CONSTRAINT `deployment_steps_deployment_id_status_pk` PRIMARY KEY(`deployment_id`,`status`)
 );
 
 CREATE TABLE `deployments` (
@@ -380,6 +375,16 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)
 );
 
+CREATE TABLE `acme_users` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`encrypted_key` text NOT NULL,
+	`registration_uri` text,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
+);
+
 CREATE TABLE `hostname_routes` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -393,36 +398,43 @@ CREATE TABLE `hostname_routes` (
 	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
 );
 
+CREATE TABLE `domain_challenges` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`domain_id` varchar(255) NOT NULL,
+	`token` varchar(255),
+	`authorization` varchar(255),
+	`status` enum('waiting','pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
+	`type` enum('http-01','dns-01','tls-alpn-01') NOT NULL DEFAULT 'http-01',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	`expires_at` bigint unsigned,
+	CONSTRAINT `domain_challenges_id` PRIMARY KEY(`id`),
+	CONSTRAINT `domainIdWorkspaceId_idx` UNIQUE(`domain_id`,`workspace_id`)
+);
+
 CREATE TABLE `domains` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`hostname` varchar(256) NOT NULL,
-	`is_custom_domain` boolean NOT NULL DEFAULT false,
-	`certificate_id` varchar(256),
-	`verification_status` enum('pending','verified','failed','expired') DEFAULT 'pending',
-	`verification_token` varchar(256),
-	`verification_method` enum('dns_txt','dns_cname','file_upload','automatic'),
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`domain` varchar(255) NOT NULL,
+	`type` enum('custom','generated') NOT NULL DEFAULT 'generated',
 	`subdomain_config` json,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
-	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+	CONSTRAINT `domain_idx` UNIQUE(`domain`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
-CREATE INDEX `workspace_id_idx` ON `permissions` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
+CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
-CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
-CREATE INDEX `workspace_id_id_deleted_idx` ON `identities` (`workspace_id`, `id`, `deleted`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
-CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
-CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
@@ -441,14 +453,16 @@ CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);
 CREATE INDEX `project_idx` ON `builds` (`project_id`);
 CREATE INDEX `status_idx` ON `builds` (`status`);
 CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);
+CREATE INDEX `idx_deployment_id_created_at` ON `deployment_steps` (`deployment_id`,`created_at`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
+CREATE INDEX `environment_idx` ON `deployments` (`environment`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `rootfs_image_idx` ON `deployments` (`rootfs_image_id`);
+CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);
 CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);
 CREATE INDEX `deployment_idx` ON `hostname_routes` (`deployment_id`);
+CREATE INDEX `domain_status_idx` ON `domain_challenges` (`status`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
-CREATE INDEX `verification_status_idx` ON `domains` (`verification_status`);
-CREATE INDEX `certificate_idx` ON `domains` (`certificate_id`);
