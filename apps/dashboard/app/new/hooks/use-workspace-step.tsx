@@ -19,7 +19,7 @@ const workspaceSchema = z.object({
   slug: z
     .string()
     .trim()
-    .min(3, "Workspace slug is required")
+    .min(3, "Workspace slug must be at least 3 characters")
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
       /^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/,
