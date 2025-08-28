@@ -1,7 +1,7 @@
 "use client";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { ProjectDetailsExpandable } from "./details/project-details-expandables";
 import { ProjectLayoutContext } from "./layout-provider";
 import { ProjectNavigation } from "./navigations/project-navigation";
@@ -23,11 +23,16 @@ type ProjectLayoutProps = {
 };
 
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
-  const tableDistanceToTopRef = useRef(0);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleDistanceToTop = useCallback((distanceToTop: number) => {
-    tableDistanceToTopRef.current = distanceToTop;
+    setTableDistanceToTop(distanceToTop);
+    if (distanceToTop !== 0) {
+      setTimeout(() => {
+        setIsDetailsOpen(true);
+      }, 200);
+    }
   }, []);
 
   const contextValue = {
@@ -65,7 +70,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable
-            tableDistanceToTop={tableDistanceToTopRef.current}
+            tableDistanceToTop={tableDistanceToTop}
             isOpen={isDetailsOpen}
             onClose={() => setIsDetailsOpen(false)}
           />
