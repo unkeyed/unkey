@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-acme/lego/v4/challenge"
-	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -58,12 +57,6 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 		p.logger.Error("failed to store challenge", "error", err, "domain", domain, "token", token)
 		return fmt.Errorf("failed to store challenge: %w", err)
 	}
-
-	p.logger.Info("HTTP-01 challenge stored successfully",
-		"domain", domain,
-		"token", token,
-		"expected_path", fmt.Sprintf("http://%s%s", domain, http01.ChallengePath(token)),
-	)
 
 	// Give the database time to replicate before Let's Encrypt tries to validate
 	time.Sleep(2 * time.Second)

@@ -16,8 +16,6 @@ func (s *Service) HandleCertificateVerification(
 ) (*connect.Response[ctrlv1.HandleCertificateVerificationResponse], error) {
 	res := connect.NewResponse(&ctrlv1.HandleCertificateVerificationResponse{})
 
-	s.logger.Info("Handling certificate verification", "domain", req.Msg.GetDomain(), "token", req.Msg.GetToken())
-
 	domain, err := db.Query.FindDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -44,8 +42,6 @@ func (s *Service) HandleCertificateVerification(
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("challenge hasn't been issued yet"))
 	}
 
-	s.logger.Info("Found domain and challenge", "domain", domain.ID, "challenge", challenge.ID)
 	res.Msg.Token = challenge.Authorization.String
-
 	return res, nil
 }

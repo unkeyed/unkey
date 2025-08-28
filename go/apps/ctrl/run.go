@@ -297,7 +297,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Starting cert worker")
 
 		err = hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
-			challenges, err := db.Query.ListWaitingChallenges(ctx, database.RO())
+			challenges, err := db.Query.ListExecutableChallenges(ctx, database.RO())
 			if err != nil {
 				logger.Error("Failed to start workflow", "error", err)
 				return err

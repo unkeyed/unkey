@@ -1293,6 +1293,13 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListExecutableChallenges
+	//
+	//  SELECT dc.id, dc.workspace_id, domain FROM domain_challenges dc
+	//  JOIN domains d ON dc.domain_id = d.id
+	//  WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+	//  ORDER BY d.created_at ASC
+	ListExecutableChallenges(ctx context.Context, db DBTX) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1549,12 +1556,6 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
-	//ListWaitingChallenges
-	//
-	//  SELECT dc.id, dc.workspace_id, domain FROM domain_challenges dc
-	//  JOIN domains d ON dc.domain_id = d.id
-	//  WHERE dc.status = 'waiting' ORDER BY d.created_at ASC
-	ListWaitingChallenges(ctx context.Context, db DBTX) ([]ListWaitingChallengesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -1657,6 +1658,10 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
+	//UpdateDomainChallengeExpiresAt
+	//
+	//  UPDATE domain_challenges SET expires_at = ? WHERE domain_id = ?
+	UpdateDomainChallengeExpiresAt(ctx context.Context, db DBTX, arg UpdateDomainChallengeExpiresAtParams) error
 	//UpdateDomainChallengePending
 	//
 	//  UPDATE domain_challenges

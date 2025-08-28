@@ -106,7 +106,7 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			return EncryptedCertificate{}, err
 		}
 
-		shouldRenew := db.IsNotFound(err)
+		shouldRenew := !db.IsNotFound(err)
 		var certificates *certificate.Resource
 		if shouldRenew {
 			resp, err := w.vault.Decrypt(stepCtx, &vaultv1.DecryptRequest{
@@ -123,7 +123,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 				Certificate: []byte(currCert.Certificate),
 			}, true, false, "")
 		} else {
-			// The challenge provider is already configured on the ACME client
 			certificates, err = w.acmeClient.Certificate.Obtain(certificate.ObtainRequest{
 				Domains: []string{req.Domain},
 				Bundle:  true,
@@ -154,7 +153,7 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to store cert in vaults", "error", err)
+		w.logger.Error("failed to get and store certs in vault", "error", err)
 		return err
 	}
 
@@ -170,7 +169,18 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to store cert in vaults", "error", err)
+		w.logger.Error("failed to store cert in vault", "error", err)
+		return err
+	}
+
+	err = hydra.StepVoid(ctx, "set-expires-at", func(stepCtx context.Context) error {
+		return db.Query.UpdateDomainChallengeExpiresAt(stepCtx, w.db.RW(), db.UpdateDomainChallengeExpiresAtParams{
+			ExpiresAt: sql.NullInt64{Valid: true, Int64: cert.ExpiresAt},
+			DomainID:  dom.ID,
+		})
+	})
+	if err != nil {
+		w.logger.Error("failed to store expires at", "error", err)
 		return err
 	}
 
