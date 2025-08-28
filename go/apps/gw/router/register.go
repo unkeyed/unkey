@@ -2,7 +2,6 @@ package router
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gw/router/acme_challenge"
@@ -10,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/gw/server"
 	"github.com/unkeyed/unkey/go/apps/gw/services/auth"
 	"github.com/unkeyed/unkey/go/apps/gw/services/proxy"
+	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 )
 
 // ServerType indicates which type of server to configure
@@ -83,12 +83,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 
 	// Health check endpoint - only on main domain
 	mux.HandleFunc("/unkey/_internal/liveness", func(w http.ResponseWriter, r *http.Request) {
-		// Extract host without port
-		host := r.Host
-		if idx := strings.Index(host, ":"); idx != -1 {
-			host = host[:idx]
-		}
-
+		host := routing.ExtractHostname(r)
 		if svc.MainDomain != "" && host != svc.MainDomain {
 			http.NotFound(w, r)
 			return
