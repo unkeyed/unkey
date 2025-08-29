@@ -30,7 +30,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   useEffect(() => {
-    trpcUtil.deploy.envs.getEnvs.prefetch({
+    trpcUtil.deploy.project.envs.getEnvs.prefetch({
       projectId,
     });
   }, [trpcUtil, projectId]);
@@ -43,7 +43,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
       if (distanceToTop !== 0) {
         try {
           // Only proceed if prefetch succeeds
-          await trpcUtil.deploy.project.details.prefetch({
+          await trpcUtil.deploy.project.activeDeployment.details.prefetch({
             deploymentId: FAKE_DEPLOYMENT_ID,
           });
 

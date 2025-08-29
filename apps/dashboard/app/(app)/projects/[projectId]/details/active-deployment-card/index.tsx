@@ -42,7 +42,7 @@ export function ActiveDeploymentCard() {
 
   // Get the cached deployment details
   const trpcUtil = trpc.useUtils();
-  const deploymentDetails = trpcUtil.deploy.project.details.getData({
+  const deploymentDetails = trpcUtil.deploy.project.activeDeployment.details.getData({
     deploymentId: activeDeploymentId,
   });
 

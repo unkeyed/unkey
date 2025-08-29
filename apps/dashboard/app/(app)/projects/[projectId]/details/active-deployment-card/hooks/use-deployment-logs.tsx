@@ -59,7 +59,7 @@ export function useDeploymentLogs({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch logs via tRPC
-  const { data: logsData, isLoading } = trpc.deploy.project.buildLogs.useQuery({
+  const { data: logsData, isLoading } = trpc.deploy.project.activeDeployment.buildLogs.useQuery({
     deploymentId,
   });
 

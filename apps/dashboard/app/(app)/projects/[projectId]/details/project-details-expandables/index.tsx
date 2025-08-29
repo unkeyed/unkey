@@ -19,7 +19,7 @@ export const ProjectDetailsExpandable = ({
   activeDeploymentId,
 }: ProjectDetailsExpandableProps) => {
   const trpcUtil = trpc.useUtils();
-  const details = trpcUtil.deploy.project.details.getData({
+  const details = trpcUtil.deploy.project.activeDeployment.details.getData({
     deploymentId: activeDeploymentId,
   });
 

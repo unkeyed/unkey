@@ -1,7 +1,7 @@
+import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/getEnvs";
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import type { EnvVar } from "./hooks/use-env-var";
 
 type EnvVarRowProps = {
   envVar: EnvVar;

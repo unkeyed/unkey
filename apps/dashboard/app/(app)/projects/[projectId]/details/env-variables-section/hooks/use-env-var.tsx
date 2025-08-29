@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import type { EnvVar } from "@/lib/trpc/routers/deploy/envs/getEnvs";
+import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/getEnvs";
 import { useCallback, useEffect, useState } from "react";
 
 type UseEnvVarsProps = {
@@ -13,7 +13,7 @@ export function useEnvVars({ environment, projectId }: UseEnvVarsProps) {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const trpcUtil = trpc.useUtils();
 
-  const allEnvVars = trpcUtil.deploy.envs.getEnvs.getData({
+  const allEnvVars = trpcUtil.deploy.project.envs.getEnvs.getData({
     projectId,
   });
 
