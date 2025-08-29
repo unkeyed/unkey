@@ -20,12 +20,13 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const [name, setName] = useState(workspace.name);
 
   const formSchema = z.object({
-    workspaceId: z.string(),
     workspaceName: z
       .string()
       .trim()
       .min(3, { message: "Workspace name must be at least 3 characters long" })
-      .max(50, { message: "Workspace name must be less than 50 characters long" }),
+      .max(50, {
+        message: "Workspace name must be less than 50 characters long",
+      }),
   });
 
   const {
@@ -37,7 +38,6 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
-      workspaceId: workspace.id,
       workspaceName: name,
     },
   });
@@ -62,14 +62,16 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       return toast.error("Please provide a different name before saving.");
     }
 
-    await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
+    await updateName.mutateAsync({ name: values.workspaceName });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} id="workspace-name-form">
       <SettingCard
         title={"Workspace Name"}
-        description={"Not customer-facing. Choose a name that is easy to recognize."}
+        description={
+          "Not customer-facing. Choose a name that is easy to recognize."
+        }
         border="top"
         className="border-b-1"
         contentWidth="w-full lg:w-[420px]"
@@ -91,7 +93,10 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             variant="primary"
             size="lg"
             disabled={
-              updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
+              updateName.isLoading ||
+              isSubmitting ||
+              !isValid ||
+              watch("workspaceName") === name
             }
             loading={updateName.isLoading || isSubmitting}
           >

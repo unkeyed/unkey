@@ -13,16 +13,9 @@ export const changeWorkspaceName = t.procedure
         .string()
         .min(3, "Workspace names must contain at least 3 characters")
         .max(50, "Workspace names must contain less than 50 characters"),
-      workspaceId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
-    if (input.workspaceId !== ctx.workspace.id) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Invalid workspace ID",
-      });
-    }
     await db
       .transaction(async (tx) => {
         await tx
@@ -30,7 +23,7 @@ export const changeWorkspaceName = t.procedure
           .set({
             name: input.name,
           })
-          .where(eq(schema.workspaces.id, input.workspaceId))
+          .where(eq(schema.workspaces.id, ctx.workspace.id))
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
