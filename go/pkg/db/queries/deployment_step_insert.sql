@@ -7,7 +7,12 @@ INSERT INTO deployment_steps (
     message,
     created_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?
+    sqlc.arg(workspace_id),
+    sqlc.arg(project_id),
+    sqlc.arg(deployment_id),
+    sqlc.arg(status),
+    sqlc.arg(message),
+    sqlc.arg(created_at)
 )
 ON DUPLICATE KEY UPDATE
     message = VALUES(message),
