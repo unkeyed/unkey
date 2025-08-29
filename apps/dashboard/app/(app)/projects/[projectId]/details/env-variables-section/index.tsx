@@ -47,6 +47,8 @@ export function EnvironmentVariablesSection({
     }
   };
 
+  const showPlusButton = isExpanded && !editingId && !isAddingNew;
+
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
       {/* Header */}
@@ -58,16 +60,17 @@ export function EnvironmentVariablesSection({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isExpanded && !editingId && !isAddingNew && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={startAdding}
-              className="size-7 text-gray-9 hover:text-gray-11"
-            >
-              <Plus className="!size-3" />
-            </Button>
-          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={startAdding}
+            className={cn(
+              "size-7 text-gray-9 hover:text-gray-11",
+              showPlusButton ? "visible" : "invisible",
+            )}
+          >
+            <Plus className="!size-3" />
+          </Button>
           <Button size="icon" variant="ghost" onClick={toggleExpanded}>
             <ChevronDown
               className={cn(

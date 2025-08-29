@@ -86,7 +86,7 @@ export default function ProjectDetails() {
   return (
     <div
       className={cn(
-        "flex justify-center transition-all duration-300 ease-in-out pb-20",
+        "flex justify-center transition-all duration-300 ease-in-out pb-20 px-8",
         isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
       )}
     >

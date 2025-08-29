@@ -21,7 +21,7 @@ export const ProjectDetailsExpandable = ({
     <div className="flex">
       <div
         className={cn(
-          "fixed right-0 bg-gray-1 border-l border-grayA-4 w-[360px] overflow-hidden z-50",
+          "fixed right-0 bg-gray-1 border-l border-grayA-4 w-[360px] overflow-hidden z-50 pb-8",
           "transition-all duration-300 ease-out",
           "shadow-md",
           isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
@@ -80,7 +80,14 @@ export const ProjectDetailsExpandable = ({
                 <div className="flex flex-col gap-1">
                   <span className="text-accent-12 font-medium text-sm">dashboard</span>
                   <div className="gap-2 items-center flex">
-                    <span className="text-gray-9 text-sm">api.gateway.com</span>
+                    <a
+                      href="https://api.gateway.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-9 text-sm hover:underline"
+                    >
+                      api.gateway.com
+                    </a>
                     <InfoTooltip
                       position={{
                         side: "bottom",
@@ -93,7 +100,14 @@ export const ProjectDetailsExpandable = ({
                               className="text-xs font-medium flex items-center gap-1.5"
                             >
                               <div className="w-1 h-1 bg-gray-8 rounded-full" />
-                              {region}
+                              <a
+                                href={`https://${region}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                              >
+                                {region}
+                              </a>
                             </div>
                           ))}
                         </div>

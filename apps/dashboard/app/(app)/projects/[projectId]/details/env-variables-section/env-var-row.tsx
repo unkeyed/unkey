@@ -1,6 +1,6 @@
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { EnvVar } from "./hooks/use-env-var";
 
 type EnvVarRowProps = {
@@ -24,6 +24,13 @@ export function EnvVarRow({
   const [editValue, setEditValue] = useState(envVar.value);
   const [isValueVisible, setIsValueVisible] = useState(false);
 
+  // Make value visible when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      setIsValueVisible(true);
+    }
+  }, [isEditing]);
+
   const handleSave = () => {
     if (!editKey.trim() || !editValue.trim()) {
       return;
@@ -34,18 +41,19 @@ export function EnvVarRow({
   const handleCancel = () => {
     setEditKey(envVar.key);
     setEditValue(envVar.value);
+    setIsValueVisible(false);
     onCancel();
   };
 
   if (isEditing) {
     return (
-      <div className="w-full flex px-4 py-3 bg-gray-2">
-        <div className="w-fit flex gap-2 items-center">
+      <div className="w-full flex px-4 py-3 bg-gray-2 h-12">
+        <div className="w-fit flex gap-2 items-center font-mono">
           <Input
             value={editKey}
             onChange={(e) => setEditKey(e.target.value)}
             placeholder="Variable name"
-            className="min-h-[32px] text-xs w-48"
+            className="min-h-[32px] text-xs w-48 "
             autoFocus
           />
           <span className="text-gray-9 text-xs px-1">=</span>
@@ -54,7 +62,7 @@ export function EnvVarRow({
             onChange={(e) => setEditValue(e.target.value)}
             placeholder="Variable value"
             className="min-h-[32px] text-xs flex-1"
-            type={envVar.isSecret && !isValueVisible ? "password" : "text"}
+            type="text"
           />
         </div>
         <div className="flex items-center gap-2 ml-auto">
@@ -75,7 +83,7 @@ export function EnvVarRow({
   }
 
   return (
-    <div className="w-full px-4 py-3 flex items-center hover:bg-gray-2 transition-colors border-b border-gray-4 last:border-b-0">
+    <div className="w-full px-4 py-3 flex items-center hover:bg-gray-2 transition-colors border-b border-gray-4 last:border-b-0 h-12">
       <div className="flex items-center flex-1 min-w-0">
         <div className="text-gray-12 font-medium text-xs font-mono w-48 truncate">{envVar.key}</div>
         <span className="text-gray-9 text-xs px-2">=</span>

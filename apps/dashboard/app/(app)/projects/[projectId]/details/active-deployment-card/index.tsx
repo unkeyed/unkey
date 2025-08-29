@@ -301,12 +301,12 @@ export function ActiveDeploymentCard({
                       key={`${log.message}-${index}`}
                       className={cn(
                         "font-mono text-xs flex gap-6 items-center text-[11px] leading-7 font-medium",
-                        "transition-all duration-300 ease-out",
+                        "transition-all duration-300 ease-out text-grayA-12 ",
                         isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
                         log.level === "warning"
-                          ? "bg-warningA-3"
+                          ? "bg-gradient-to-r from-warningA-3 to-warningA-1 text-warningA-12"
                           : log.level === "error"
-                            ? "bg-errorA-5"
+                            ? "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12"
                             : "",
                       )}
                       style={{
@@ -314,8 +314,10 @@ export function ActiveDeploymentCard({
                       }}
                     >
                       <span className="text-grayA-9 pl-3">{log.timestamp}</span>
-                      {log.level && <span className="font-bold">[{log.level.toUpperCase()}]</span>}
-                      <span className="text-grayA-12 pr-3">{log.message}</span>
+                      {log.level && (
+                        <span className="font-medium">[{log.level.toUpperCase()}]</span>
+                      )}
+                      <span className="pr-3">{log.message}</span>
                     </div>
                   ))}
                 </div>
