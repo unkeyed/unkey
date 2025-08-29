@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAuth } from "@/lib/auth";
+import { getAuthWithRedirect } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -26,7 +26,7 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const { orgId } = await getAuth();
+  const { orgId } = await getAuthWithRedirect();
   const identity = await db.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.identityId),
     with: {

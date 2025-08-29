@@ -8,7 +8,7 @@
  * 4. The user is redirected to create their API
  */
 
-import { getAuth } from "@/lib/auth";
+import { getAuthWithRedirect } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
 import { newId } from "@unkey/id";
@@ -17,7 +17,7 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const { orgId } = await getAuth();
+  const { orgId } = await getAuthWithRedirect();
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { eq, isNull, and }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),

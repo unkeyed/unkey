@@ -19,7 +19,7 @@ export const upsertPermission = t.procedure
   .input(
     z.object({
       name: nameSchema,
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const workspaceId = ctx.workspace.id;

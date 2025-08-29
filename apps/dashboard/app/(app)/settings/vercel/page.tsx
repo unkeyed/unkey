@@ -6,7 +6,7 @@
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
-import { getAuth } from "@/lib/auth";
+import { getAuthWithRedirect } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { Gear } from "@unkey/icons";
@@ -26,7 +26,7 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const { orgId } = await getAuth();
+  const { orgId } = await getAuthWithRedirect();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
