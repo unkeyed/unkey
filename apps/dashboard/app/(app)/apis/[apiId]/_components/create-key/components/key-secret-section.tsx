@@ -1,6 +1,7 @@
 "use client";
 
 import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleInfo } from "@unkey/icons";
 import { Code, CopyButton, VisibleButton } from "@unkey/ui";
 import { useState } from "react";
@@ -29,12 +30,12 @@ export const KeySecretSection = ({
       : "*".repeat(split.at(0)?.length ?? 0);
 
   const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.verifyKey' \\
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.com"
+  }/v2/keys.verifyKey' \\
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -H 'Content-Type: application/json' \\
   -d '{
-    "key": "${keyValue}",
-    "apiId": "${apiId}"
+    "key": "${keyValue}"
   }'`;
 
   return (
@@ -68,6 +69,29 @@ export const KeySecretSection = ({
         >
           {showKeyInSnippet ? snippet : snippet.replace(keyValue, maskedKey)}
         </Code>
+        <Alert variant="warn">
+          <div className="flex items-start mb-1 gap-2">
+            <CircleInfo size="lg-regular" aria-hidden="true" className="flex-shrink-0" />
+            <div>
+              <AlertTitle className="mb-1">Root Key Required</AlertTitle>
+              <AlertDescription className="text-gray-12">
+                To verify keys, you'll need a root key with{" "}
+                <code className="bg-gray-3 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
+                <code className="bg-gray-3 px-1 rounded text-xs">api.{apiId}.verify_key</code>{" "}
+                permission.
+                <br />
+                <a
+                  href="https://www.unkey.com/docs/security/root-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-info-11 hover:underline"
+                >
+                  Learn more about root keys
+                </a>
+              </AlertDescription>
+            </div>
+          </div>
+        </Alert>
       </div>
     </div>
   );
