@@ -26,7 +26,6 @@ export type NavItem = {
   items?: NavItem[];
   loadMoreAction?: boolean;
   showSubItems?: boolean;
-  soloActiveItems?: boolean;
 };
 
 const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
