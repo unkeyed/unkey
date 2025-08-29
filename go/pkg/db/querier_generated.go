@@ -1362,93 +1362,89 @@ type Querier interface {
 	ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error)
 	//ListLiveKeysByKeyAuthID
 	//
-	//  SELECT
-	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
-	//      i.id as identity_table_id,
-	//      i.external_id as identity_external_id,
-	//      i.meta as identity_meta,
-	//      ek.encrypted as encrypted_key,
-	//      ek.encryption_key_id as encryption_key_id,
-	//      -- Roles with both IDs and names (sorted by name)
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', r.id,
-	//                  'name', r.name,
-	//                  'description', r.description
-	//              )
-	//          )
-	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id
-	//          ORDER BY r.name),
-	//          JSON_ARRAY()
-	//      ) as roles,
-	//      -- Direct permissions attached to the key (sorted by slug)
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', p.id,
-	//                  'name', p.name,
-	//                  'slug', p.slug,
-	//                  'description', p.description
-	//              )
-	//          )
-	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id
-	//          ORDER BY p.slug),
-	//          JSON_ARRAY()
-	//      ) as permissions,
-	//      -- Permissions from roles (sorted by slug)
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', p.id,
-	//                  'name', p.name,
-	//                  'slug', p.slug,
-	//                  'description', p.description
-	//              )
-	//          )
-	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id
-	//          ORDER BY p.slug),
-	//          JSON_ARRAY()
-	//      ) as role_permissions,
-	//      -- Rate limits
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl
-	//          WHERE rl.key_id = k.id OR rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
+	//  SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
+	//         i.id                 as identity_table_id,
+	//         i.external_id        as identity_external_id,
+	//         i.meta               as identity_meta,
+	//         ek.encrypted         as encrypted_key,
+	//         ek.encryption_key_id as encryption_key_id,
+	//         -- Roles with both IDs and names (sorted by name)
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', r.id,
+	//                                         'name', r.name,
+	//                                         'description', r.description
+	//                                 )
+	//                         )
+	//                  FROM keys_roles kr
+	//                           JOIN roles r ON r.id = kr.role_id
+	//                  WHERE kr.key_id = k.id
+	//                  ORDER BY r.name),
+	//                 JSON_ARRAY()
+	//         )                    as roles,
+	//         -- Direct permissions attached to the key (sorted by slug)
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', p.id,
+	//                                         'name', p.name,
+	//                                         'slug', p.slug,
+	//                                         'description', p.description
+	//                                 )
+	//                         )
+	//                  FROM keys_permissions kp
+	//                           JOIN permissions p ON kp.permission_id = p.id
+	//                  WHERE kp.key_id = k.id
+	//                  ORDER BY p.slug),
+	//                 JSON_ARRAY()
+	//         )                    as permissions,
+	//         -- Permissions from roles (sorted by slug)
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', p.id,
+	//                                         'name', p.name,
+	//                                         'slug', p.slug,
+	//                                         'description', p.description
+	//                                 )
+	//                         )
+	//                  FROM keys_roles kr
+	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
+	//                           JOIN permissions p ON rp.permission_id = p.id
+	//                  WHERE kr.key_id = k.id
+	//                  ORDER BY p.slug),
+	//                 JSON_ARRAY()
+	//         )                    as role_permissions,
+	//         -- Rate limits
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(rl_data)
+	//                  FROM (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rl.id, 'name', rl.name, 'key_id', rl.key_id, 'identity_id',
+	//                                                         rl.identity_id, 'limit', rl.`limit`, 'duration', rl.duration,
+	//                                                         'auto_apply', rl.auto_apply = 1)) as rl_data
+	//                        FROM ratelimits rl
+	//                        WHERE rl.key_id = k.id
+	//                        UNION
+	//                        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rl.id, 'name', rl.name, 'key_id', rl.key_id, 'identity_id',
+	//                                                         rl.identity_id, 'limit', rl.`limit`, 'duration', rl.duration,
+	//                                                         'auto_apply', rl.auto_apply = 1)) as rl_data
+	//                        FROM ratelimits rl
+	//                        WHERE rl.identity_id = i.id) combined_rl),
+	//                 JSON_ARRAY()
+	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//           JOIN key_auth ka ON ka.id = k.key_auth_id
+	//           JOIN workspaces ws ON ws.id = k.workspace_id
+	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 	//  WHERE k.key_auth_id = ?
-	//      AND k.workspace_id = ?
-	//      AND k.id >= ?
-	//      AND (
-	//          ? = ''
-	//          OR (i.external_id = ? OR i.id = ?)
-	//      )
-	//      AND k.deleted_at_m IS NULL
-	//      AND ka.deleted_at_m IS NULL
-	//      AND ws.deleted_at_m IS NULL
+	//    AND k.id >= ?
+	//    AND (
+	//      ? = '' OR (i.external_id = ? OR i.id = ?)
+	//    )
+	//    AND k.deleted_at_m IS NULL
+	//    AND ka.deleted_at_m IS NULL
+	//    AND ws.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListLiveKeysByKeyAuthIDParams) ([]ListLiveKeysByKeyAuthIDRow, error)
