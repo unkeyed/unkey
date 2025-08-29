@@ -13,6 +13,7 @@ const nextConfig = {
   experimental: {
     esmExternals: "loose",
   },
+  poweredByHeader: false,
   webpack: (config) => {
     config.cache = Object.freeze({
       type: "memory",
