@@ -155,10 +155,16 @@ export const queryProjects = t.procedure
       // Group hostnames by projectId
       const hostnamesByProject = hostnamesResult.reduce(
         (acc, hostname) => {
-          if (!acc[hostname.projectId]) {
-            acc[hostname.projectId] = [];
+          // Make typescript happy, we already ensure this is the case in the drizzle query
+          const projectId = hostname.projectId;
+          if (!projectId) {
+            return acc;
           }
-          acc[hostname.projectId].push({
+
+          if (!acc[projectId]) {
+            acc[projectId] = [];
+          }
+          acc[projectId].push({
             id: hostname.id,
             hostname: hostname.domain,
           });
