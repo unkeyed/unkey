@@ -16,7 +16,11 @@ func (s *Service) GetDeployment(
 	// Query deployment from database
 	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		s.logger.Error("failed to load deployment", "error", err, "deployment_id", req.Msg.GetDeploymentId())
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment"))
 	}
 
 	// Convert database model to proto

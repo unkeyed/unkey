@@ -289,9 +289,9 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 		err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
 		if err != nil {
-			logger.Error("unable to register deployment workflow: %w", err)
+			logger.Error("unable to register ACME certificate workflow", "error", err)
 			return fmt.Errorf("unable to register deployment workflow: %w", err)
-		}
+
 
 		go func() {
 			logger.Info("Starting cert worker")

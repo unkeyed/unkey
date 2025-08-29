@@ -12,8 +12,9 @@ export const listDeployments = t.procedure
         where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
         orderBy: (table, { desc }) => [desc(table.createdAt)],
         with: {
-          environment: true,
-          project: true,
+        with: {
+          environment: { columns: { slug: true } },
+          project: { columns: { id: true, name: true, slug: true } },
         },
       });
 
