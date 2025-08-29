@@ -20,7 +20,7 @@ SELECT
     created_at,
     updated_at
 FROM domains
-WHERE deployment_id = ? AND is_enabled = true
+WHERE deployment_id = ?
 ORDER BY created_at ASC
 `
 
@@ -45,7 +45,7 @@ type FindDomainsByDeploymentIdRow struct {
 //	    created_at,
 //	    updated_at
 //	FROM domains
-//	WHERE deployment_id = ? AND is_enabled = true
+//	WHERE deployment_id = ?
 //	ORDER BY created_at ASC
 func (q *Queries) FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error) {
 	rows, err := db.QueryContext(ctx, findDomainsByDeploymentId, deploymentID)

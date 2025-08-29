@@ -94,12 +94,12 @@ func convertDbStatusToProto(status string) ctrlv1.DeploymentStatus {
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING
 	case "deploying":
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING
-	case "active":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_ACTIVE
+	case "network":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK
+	case "ready":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY
 	case "failed":
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
-	case "archived":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_ARCHIVED
 	default:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 	}

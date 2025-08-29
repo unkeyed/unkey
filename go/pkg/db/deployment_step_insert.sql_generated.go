@@ -11,12 +11,14 @@ import (
 
 const insertDeploymentStep = `-- name: InsertDeploymentStep :exec
 INSERT INTO deployment_steps (
+    workspace_id,
+    project_id,
     deployment_id,
     status,
     message,
     created_at
 ) VALUES (
-    ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 )
 ON DUPLICATE KEY UPDATE
     message = VALUES(message),
@@ -24,6 +26,8 @@ ON DUPLICATE KEY UPDATE
 `
 
 type InsertDeploymentStepParams struct {
+	WorkspaceID  string                `db:"workspace_id"`
+	ProjectID    string                `db:"project_id"`
 	DeploymentID string                `db:"deployment_id"`
 	Status       DeploymentStepsStatus `db:"status"`
 	Message      string                `db:"message"`
@@ -33,18 +37,22 @@ type InsertDeploymentStepParams struct {
 // InsertDeploymentStep
 //
 //	INSERT INTO deployment_steps (
+//	    workspace_id,
+//	    project_id,
 //	    deployment_id,
 //	    status,
 //	    message,
 //	    created_at
 //	) VALUES (
-//	    ?, ?, ?, ?
+//	    ?, ?, ?, ?, ?, ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    message = VALUES(message),
 //	    created_at = VALUES(created_at)
 func (q *Queries) InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error {
 	_, err := db.ExecContext(ctx, insertDeploymentStep,
+		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.DeploymentID,
 		arg.Status,
 		arg.Message,

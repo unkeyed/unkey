@@ -89,6 +89,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	// Step 2: Log deployment pending
 	err = hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+			WorkspaceID:  req.WorkspaceID,
+			ProjectID:    req.ProjectID,
 			DeploymentID: req.DeploymentID,
 			Status:       "pending",
 			Message:      "Deployment queued and ready to start",
@@ -459,24 +461,25 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
 		primaryHostname := fmt.Sprintf("%s-%s-%s.unkey.app", branch, cleanIdentifier, req.WorkspaceID)
 
-		// Create route entry for primary hostname
-		routeID := uid.New("route")
+		// Create domain entry for primary hostname
+		domainID := uid.New("domain")
 		insertErr := db.Query.InsertDomain(stepCtx, w.db.RW(), db.InsertDomainParams{
-			ID:           routeID,
+			ID:           domainID,
 			WorkspaceID:  req.WorkspaceID,
 			ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
 			Domain:       primaryHostname,
 			DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
 			CreatedAt:    time.Now().UnixMilli(),
 			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			Type:         db.DomainsTypeCustom,
 		})
 		if insertErr != nil {
-			w.logger.Error("failed to create route", "error", insertErr, "hostname", primaryHostname, "deployment_id", req.DeploymentID)
+			w.logger.Error("failed to create domain", "error", insertErr, "doman", primaryHostname, "deployment_id", req.DeploymentID)
 			return nil, fmt.Errorf("failed to create route for hostname %s: %w", primaryHostname, insertErr)
 		}
 
 		hostnames = append(hostnames, primaryHostname)
-		w.logger.Info("primary domain assigned successfully", "hostname", primaryHostname, "deployment_id", req.DeploymentID, "route_id", routeID)
+		w.logger.Info("primary domain assigned successfully", "hostname", primaryHostname, "deployment_id", req.DeploymentID, "domain_id", domainID)
 
 		// Add localhost:port hostname for development
 		w.logger.Info("checking for port mappings", "has_network_info", vmInfo.NetworkInfo != nil, "port_mappings_count", func() int {
@@ -500,6 +503,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
 					CreatedAt:    time.Now().UnixMilli(),
 					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					Type:         db.DomainsTypeCustom,
 				})
 				if insertErr != nil {
 					w.logger.Error("failed to create localhost route", "error", insertErr, "hostname", localhostHostname, "deployment_id", req.DeploymentID)

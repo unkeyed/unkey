@@ -8,5 +8,5 @@ SELECT
     created_at,
     updated_at
 FROM domains
-WHERE deployment_id = ? AND is_enabled = true
+WHERE deployment_id = ?
 ORDER BY created_at ASC;

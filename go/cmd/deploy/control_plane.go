@@ -145,7 +145,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 			}
 
 			// Check for completion
-			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_ACTIVE {
+			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY {
 				return nil
 			}
 		}

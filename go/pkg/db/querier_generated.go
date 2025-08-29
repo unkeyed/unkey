@@ -175,7 +175,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  FROM domains
-	//  WHERE deployment_id = ? AND is_enabled = true
+	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
 	//FindIdentity
@@ -840,12 +840,14 @@ type Querier interface {
 	//InsertDeploymentStep
 	//
 	//  INSERT INTO deployment_steps (
+	//      workspace_id,
+	//      project_id,
 	//      deployment_id,
 	//      status,
 	//      message,
 	//      created_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      message = VALUES(message),

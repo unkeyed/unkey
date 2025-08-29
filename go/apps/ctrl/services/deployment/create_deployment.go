@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -65,12 +66,14 @@ func (s *Service) CreateDeployment(
 		EnvironmentID: req.Msg.GetEnvironmentId(),
 		GitCommitSha:  sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
 		GitBranch:     sql.NullString{String: gitBranch, Valid: true},
+		RuntimeConfig: json.RawMessage("{}"),
 		OpenapiSpec:   sql.NullString{String: "", Valid: false},
 		Status:        "pending",
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
+		s.logger.Error("failed to insert deployment", "error", err.Error())
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

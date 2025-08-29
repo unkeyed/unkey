@@ -290,7 +290,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		switch event.CurrentStatus {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
 			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
-		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_ACTIVE:
+		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
 			// Store deployment but don't print success, wait for polling to complete
 			finalDeployment = event.Deployment
 		}
