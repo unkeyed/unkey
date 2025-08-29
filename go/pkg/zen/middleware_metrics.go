@@ -57,10 +57,8 @@ func redact(in []byte) []byte {
 //	    route,
 //	)
 func WithMetrics(eventBuffer EventBuffer) Middleware {
-
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-
 			start := time.Now()
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)

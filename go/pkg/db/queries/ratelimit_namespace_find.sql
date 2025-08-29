@@ -13,5 +13,5 @@ SELECT *,
                json_array()
        ) as overrides
 FROM `ratelimit_namespaces` ns
-WHERE ns.workspace_id = sqlc.arg(workspace_id) 
+WHERE ns.workspace_id = sqlc.arg(workspace_id)
 AND (ns.id = sqlc.arg(namespace) OR ns.name = sqlc.arg(namespace));

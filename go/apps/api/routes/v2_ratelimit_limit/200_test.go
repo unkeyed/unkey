@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -28,9 +29,57 @@ func TestLimitSuccessfully(t *testing.T) {
 		ClickHouse:              h.ClickHouse,
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:               h.Auditlogs,
 	}
 
 	h.Register(route)
+
+	// Test auto-creation of namespace with audit log
+	t.Run("auto-create namespace with audit log", func(t *testing.T) {
+		// Use a namespace that doesn't exist
+		namespaceName := uid.New("nonexistent")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.create_namespace", "ratelimit.*.limit")
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		req := handler.Request{
+			Namespace:  namespaceName,
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000, // 1 minute in ms
+		}
+
+		// First request should succeed and create the namespace
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.NotNil(t, res.Body)
+		require.True(t, res.Body.Data.Success, "Rate limit should not be exceeded on first request")
+		require.Equal(t, int64(100), res.Body.Data.Limit)
+		require.Equal(t, int64(99), res.Body.Data.Remaining)
+
+		// Verify namespace was created
+		namespace, err := db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        namespaceName,
+		})
+		require.NoError(t, err)
+		require.Equal(t, namespaceName, namespace.Name)
+		require.False(t, namespace.DeletedAtM.Valid, "Namespace should not be deleted")
+
+		// Verify audit log was created for the namespace
+		auditTargets, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), namespace.ID)
+		require.NoError(t, err)
+		require.Len(t, auditTargets, 1, "Should have exactly one audit log entry for the namespace")
+
+		auditTarget := auditTargets[0]
+		require.Equal(t, string(auditlog.RatelimitNamespaceResourceType), auditTarget.AuditLogTarget.Type)
+		require.Equal(t, namespace.ID, auditTarget.AuditLogTarget.ID)
+		require.Equal(t, namespaceName, auditTarget.AuditLogTarget.Name.String)
+		require.Equal(t, string(auditlog.RatelimitNamespaceCreateEvent), auditTarget.AuditLog.Event)
+		require.Contains(t, auditTarget.AuditLog.Display, namespaceName, "Audit log should mention the namespace name")
+	})
 
 	// Test basic rate limiting
 	t.Run("basic rate limiting", func(t *testing.T) {
@@ -102,7 +151,6 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, req.Identifier, row.Identifier)
 		require.Equal(t, res.Body.Data.Success, row.Passed)
 		require.Equal(t, res.Body.Meta.RequestId, row.RequestID)
-
 	})
 
 	// Test with custom cost

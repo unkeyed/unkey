@@ -617,7 +617,7 @@ info:
   version: 2.0.0
   contact:
     name: Unkey Support
-    email: support@unkey.com
+    email: support@unkey.dev
 servers:
   - url: /v2
     description: API v2 (BREAKING CHANGES)

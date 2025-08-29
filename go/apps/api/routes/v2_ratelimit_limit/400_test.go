@@ -25,6 +25,7 @@ func TestBadRequests(t *testing.T) {
 		Logger:                  h.Logger,
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:               h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -104,10 +105,12 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Ratelimit: h.Ratelimit,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		Ratelimit:               h.Ratelimit,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:               h.Auditlogs,
 	}
 
 	h.Register(route)

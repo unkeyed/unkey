@@ -89,6 +89,20 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Request Entity Too Large errors
+			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
+				return s.JSON(http.StatusGone, openapi.GoneErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Resource Gone",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusGone,
+					},
+				})
+
 			// Unauthorized errors
 			case
 				codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
