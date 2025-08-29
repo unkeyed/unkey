@@ -221,7 +221,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if namespace.DeletedAtM.Valid {
 		return fault.New("namespace was deleted",
 			fault.Code(codes.Data.RatelimitNamespace.Gone.URN()),
-			fault.Public("This namespace has been deleted."),
+			fault.Public("This namespace has been deleted. Contact support to restore."),
 		)
 	}
 

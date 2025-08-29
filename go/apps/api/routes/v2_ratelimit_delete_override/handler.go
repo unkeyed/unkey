@@ -54,88 +54,81 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	namespace, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
-		namespace, hit, err := h.RatelimitNamespaceCache.SWR(
-			ctx,
-			cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
-			func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-				result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-				response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
-					return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Namespace:   req.Namespace,
-					})
+	namespace, hit, err := h.RatelimitNamespaceCache.SWR(
+		ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
+		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
+			response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Namespace:   req.Namespace,
 				})
+			})
+			if err != nil {
+				return result, err
+			}
+
+			result = db.FindRatelimitNamespace{
+				ID:                response.ID,
+				WorkspaceID:       response.WorkspaceID,
+				Name:              response.Name,
+				CreatedAtM:        response.CreatedAtM,
+				UpdatedAtM:        response.UpdatedAtM,
+				DeletedAtM:        response.DeletedAtM,
+				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+			}
+
+			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+			if overrideBytes, ok := response.Overrides.([]byte); ok && overrideBytes != nil {
+				err = json.Unmarshal(overrideBytes, &overrides)
 				if err != nil {
 					return result, err
 				}
-
-				result = db.FindRatelimitNamespace{
-					ID:                response.ID,
-					WorkspaceID:       response.WorkspaceID,
-					Name:              response.Name,
-					CreatedAtM:        response.CreatedAtM,
-					UpdatedAtM:        response.UpdatedAtM,
-					DeletedAtM:        response.DeletedAtM,
-					DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-					WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-				}
-
-				overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-				if overrideBytes, ok := response.Overrides.([]byte); ok && overrideBytes != nil {
-					err = json.Unmarshal(overrideBytes, &overrides)
-					if err != nil {
-						return result, err
-					}
-				}
-
-				for _, override := range overrides {
-					result.DirectOverrides[override.Identifier] = override
-					if strings.Contains(override.Identifier, "*") {
-						result.WildcardOverrides = append(result.WildcardOverrides, override)
-					}
-				}
-
-				return result, nil
-			},
-			caches.DefaultFindFirstOp,
-		)
-
-		if err != nil {
-			if db.IsNotFound(err) {
-				return namespace, fault.New("namespace not found",
-					fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-					fault.Internal("namespace not found"),
-					fault.Public("This namespace does not exist."),
-				)
 			}
 
-			return namespace, fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Public("An unexpected error occurred while fetching the namespace."),
-			)
-		}
+			for _, override := range overrides {
+				result.DirectOverrides[override.Identifier] = override
+				if strings.Contains(override.Identifier, "*") {
+					result.WildcardOverrides = append(result.WildcardOverrides, override)
+				}
+			}
 
-		if namespace.DeletedAtM.Valid {
-			return namespace, fault.New("namespace deleted",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace deleted"),
-				fault.Public("This namespace does not exist."),
-			)
-		}
+			return result, nil
+		},
+		caches.DefaultFindFirstOp,
+	)
 
-		if hit == cache.Null {
-			return namespace, fault.New("namespace not found",
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("namespace not found",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 				fault.Internal("namespace not found"),
 				fault.Public("This namespace does not exist."),
 			)
 		}
 
-		return namespace, nil
-	})
-	if err != nil {
-		return err
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while fetching the namespace."),
+		)
+	}
+
+	if namespace.DeletedAtM.Valid {
+		return fault.New("namespace deleted",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("namespace deleted"),
+			fault.Public("This namespace does not exist."),
+		)
+	}
+
+	if hit == cache.Null {
+		return fault.New("namespace not found",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("namespace not found"),
+			fault.Public("This namespace does not exist."),
+		)
 	}
 
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
