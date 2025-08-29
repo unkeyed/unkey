@@ -10,12 +10,12 @@ import (
 )
 
 const findVMById = `-- name: FindVMById :one
-SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
+SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
 `
 
 // FindVMById
 //
-//	SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
+//	SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
 func (q *Queries) FindVMById(ctx context.Context, db DBTX, id string) (Vm, error) {
 	row := db.QueryRowContext(ctx, findVMById, id)
 	var i Vm
@@ -23,14 +23,10 @@ func (q *Queries) FindVMById(ctx context.Context, db DBTX, id string) (Vm, error
 		&i.ID,
 		&i.DeploymentID,
 		&i.MetalHostID,
-		&i.Region,
-		&i.PrivateIp,
-		&i.Port,
+		&i.Address,
 		&i.CpuMillicores,
 		&i.MemoryMb,
 		&i.Status,
-		&i.HealthStatus,
-		&i.LastHeartbeat,
 	)
 	return i, err
 }

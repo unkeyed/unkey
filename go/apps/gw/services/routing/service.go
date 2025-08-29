@@ -133,7 +133,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	// select random VM
 	selectedVM := availableVms[rand.Intn(len(availableVms))]
 
-	fullUrl := fmt.Sprintf("http://%s:%d", selectedVM.PrivateIp.String, selectedVM.Port.Int32)
+	fullUrl := fmt.Sprintf("http://%s", selectedVM.Address.String)
 
 	targetURL, err := url.Parse(fullUrl)
 	if err != nil {

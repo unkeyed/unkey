@@ -329,19 +329,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		vmParams := partitiondb.UpsertVMParams{
 			ID:           createResult.VmId,
 			DeploymentID: req.DeploymentID,
-			Region:       "us-east-1",
-			PrivateIp: sql.NullString{
-				String: "127.0.0.1",
-				Valid:  true,
+			Address: sql.NullString{
+				Valid:  false,
+				String: "",
 			},
-			Port: sql.NullInt32{
-				Int32: hostPort,
-				Valid: true,
-			},
+
 			CpuMillicores: 1000,
 			MemoryMb:      512,
 			Status:        partitiondb.VmsStatusRunning,
-			HealthStatus:  partitiondb.VmsHealthStatusHealthy,
 		}
 
 		if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), vmParams); err != nil {
