@@ -67,18 +67,26 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
        )                    as role_permissions,
        -- Rate limits
        COALESCE(
-               (SELECT JSON_ARRAYAGG(rl_data)
-                FROM (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rl.id, 'name', rl.name, 'key_id', rl.key_id, 'identity_id',
-                                                       rl.identity_id, 'limit', rl.` + "`" + `limit` + "`" + `, 'duration', rl.duration,
-                                                       'auto_apply', rl.auto_apply = 1)) as rl_data
-                      FROM ratelimits rl
-                      WHERE rl.key_id = k.id
-                      UNION
-                      SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rl.id, 'name', rl.name, 'key_id', rl.key_id, 'identity_id',
-                                                       rl.identity_id, 'limit', rl.` + "`" + `limit` + "`" + `, 'duration', rl.duration,
-                                                       'auto_apply', rl.auto_apply = 1)) as rl_data
-                      FROM ratelimits rl
-                      WHERE rl.identity_id = i.id) combined_rl),
+               (SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                       'id', id,
+                                       'name', name,
+                                       'key_id', key_id,
+                                       'identity_id', identity_id,
+                                       'limit', ` + "`" + `limit` + "`" + `,
+                                       'duration', duration,
+                                       'auto_apply', auto_apply = 1
+                               )
+                       )
+                FROM (
+                    SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.` + "`" + `limit` + "`" + `, rl.duration, rl.auto_apply
+                    FROM ratelimits rl
+                    WHERE rl.key_id = k.id
+                    UNION ALL
+                    SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.` + "`" + `limit` + "`" + `, rl.duration, rl.auto_apply
+                    FROM ratelimits rl
+                    WHERE rl.identity_id = i.id
+                ) AS combined_rl),
                JSON_ARRAY()
        )                    AS ratelimits
 FROM ` + "`" + `keys` + "`" + ` k
@@ -198,18 +206,26 @@ type ListLiveKeysByKeyAuthIDRow struct {
 //	       )                    as role_permissions,
 //	       -- Rate limits
 //	       COALESCE(
-//	               (SELECT JSON_ARRAYAGG(rl_data)
-//	                FROM (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rl.id, 'name', rl.name, 'key_id', rl.key_id, 'identity_id',
-//	                                                       rl.identity_id, 'limit', rl.`limit`, 'duration', rl.duration,
-//	                                                       'auto_apply', rl.auto_apply = 1)) as rl_data
-//	                      FROM ratelimits rl
-//	                      WHERE rl.key_id = k.id
-//	                      UNION
-//	                      SELECT JSON_ARRAYAGG(JSON_OBJECT('id', rl.id, 'name', rl.name, 'key_id', rl.key_id, 'identity_id',
-//	                                                       rl.identity_id, 'limit', rl.`limit`, 'duration', rl.duration,
-//	                                                       'auto_apply', rl.auto_apply = 1)) as rl_data
-//	                      FROM ratelimits rl
-//	                      WHERE rl.identity_id = i.id) combined_rl),
+//	               (SELECT JSON_ARRAYAGG(
+//	                               JSON_OBJECT(
+//	                                       'id', id,
+//	                                       'name', name,
+//	                                       'key_id', key_id,
+//	                                       'identity_id', identity_id,
+//	                                       'limit', `limit`,
+//	                                       'duration', duration,
+//	                                       'auto_apply', auto_apply = 1
+//	                               )
+//	                       )
+//	                FROM (
+//	                    SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+//	                    FROM ratelimits rl
+//	                    WHERE rl.key_id = k.id
+//	                    UNION ALL
+//	                    SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+//	                    FROM ratelimits rl
+//	                    WHERE rl.identity_id = i.id
+//	                ) AS combined_rl),
 //	               JSON_ARRAY()
 //	       )                    AS ratelimits
 //	FROM `keys` k
