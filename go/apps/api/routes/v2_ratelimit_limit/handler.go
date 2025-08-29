@@ -163,7 +163,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				CreatedAt:   now,
 			})
 			if err != nil && !db.IsDuplicateKeyError(err) {
-				return db.FindRatelimitNamespace{}, err
+				return result, fault.Wrap(err,
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Public("An unexpected error occurred while creating the namespace."),
+				)
 			}
 
 			if db.IsDuplicateKeyError(err) {
