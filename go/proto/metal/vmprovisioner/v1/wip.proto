@@ -15,10 +15,10 @@ message CreateVmRequestV2 {
   string deployment_id = 2;
 
   // 1024 = 1 vcpu
-  int32 cpu_millicores = 3;
-  int32 memory_bytes = 4;
-  string docker_image_registry = 5  ;
-  optional NetworkSize network_size = 6;
+  uint32 cpu_millicores   = 3;     // millicores, e.g., 1024 = 1 vCPU
+  uint64 memory_bytes     = 4;     // bytes
+  string docker_image     = 5;     // full image ref: registry/repo:tag or digest
+  NetworkSize network_size = 6;    // default: NETWORK_SIZE_UNSPECIFIED
 }
 
 message CreateVmRespomseV2 {

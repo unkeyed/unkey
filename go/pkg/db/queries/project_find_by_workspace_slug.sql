@@ -10,4 +10,5 @@ SELECT
     created_at,
     updated_at
 FROM projects
-WHERE workspace_id = ? AND slug = ?;
+WHERE workspace_id = ? AND slug = ?
+LIMIT 1;
