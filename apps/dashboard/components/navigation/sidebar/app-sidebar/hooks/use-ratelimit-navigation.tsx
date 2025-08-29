@@ -90,7 +90,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         ratelimitsItem.items?.push({
           icon: () => null,
           href: "#load-more-ratelimits",
-          label: "More",
+          label: <div className="font-normal decoration-dotted underline ">More</div>,
           active: false,
           loadMoreAction: true,
         });
