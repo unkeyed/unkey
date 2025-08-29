@@ -13,8 +13,14 @@ export const updateMembership = t.procedure
       role: z.string(),
     }),
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
     try {
+      if (input.orgId !== ctx.workspace?.orgId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid organization ID",
+        });
+      }
       return await authProvider.updateMembership({
         membershipId: input.membershipId,
         role: input.role,

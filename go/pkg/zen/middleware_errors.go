@@ -216,6 +216,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				"requestId", s.RequestID(),
 				"publicMessage", fault.UserFacingMessage(err),
 			)
+
 			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),

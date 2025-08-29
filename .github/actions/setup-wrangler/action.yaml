@@ -8,19 +8,9 @@ inputs:
 
 runs:
   using: "composite"
-  
-  steps:
-    - name: Cache Wrangler
-      uses: actions/cache@v4
-      id: wrangler-cache
-      with:
-        path: ~/.npm
-        key: wrangler-${{ runner.os }}
-        restore-keys: |
-          wrangler-${{ runner.os }}
 
+  steps:
     - name: Install Wrangler
-      if: steps.wrangler-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm i -g wrangler@latest
       env:

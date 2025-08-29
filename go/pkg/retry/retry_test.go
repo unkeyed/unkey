@@ -43,7 +43,7 @@ func TestRetry(t *testing.T) {
 			},
 			expectedCalls: 3,
 			expectedError: true,
-			expectedSleep: 600 * time.Millisecond,
+			expectedSleep: 300 * time.Millisecond, // 100ms + 200ms (no sleep after final attempt)
 		},
 		{
 			name:  "invalid attempts",
@@ -73,7 +73,7 @@ func TestRetry(t *testing.T) {
 			),
 			fn:            failNTimes(3),
 			expectedCalls: 3,
-			expectedSleep: 14 * time.Second,
+			expectedSleep: 5 * time.Second, // 1s + 4s (no sleep after final attempt)
 			expectedError: true,
 		},
 		{
@@ -85,7 +85,7 @@ func TestRetry(t *testing.T) {
 			fn:            failNTimes(3),
 			expectedCalls: 3,
 			expectedError: true,
-			expectedSleep: 3 * time.Second,
+			expectedSleep: 2 * time.Second, // 1s + 1s (no sleep after final attempt)
 		},
 	}
 
@@ -130,5 +130,95 @@ func failNTimes(n int) func() error {
 			return errors.New("temporary error")
 		}
 		return nil
+	}
+}
+
+func TestShouldRetry(t *testing.T) {
+	nonRetryableError := errors.New("non-retryable")
+	retryableError := errors.New("retryable")
+
+	tests := []struct {
+		name          string
+		shouldRetry   func(error) bool
+		errorSequence []error
+		expectedCalls int
+		expectedError error
+		expectedSleep time.Duration
+	}{
+		{
+			name:          "should retry all errors by default",
+			shouldRetry:   nil, // default behavior
+			errorSequence: []error{retryableError, retryableError, nil},
+			expectedCalls: 3,
+			expectedError: nil,
+			expectedSleep: 300 * time.Millisecond, // 100ms + 200ms
+		},
+		{
+			name: "should not retry non-retryable errors",
+			shouldRetry: func(err error) bool {
+				return err != nonRetryableError
+			},
+			errorSequence: []error{nonRetryableError},
+			expectedCalls: 1,
+			expectedError: nonRetryableError,
+			expectedSleep: 0, // no retry, no sleep
+		},
+		{
+			name: "should retry retryable errors but not non-retryable ones",
+			shouldRetry: func(err error) bool {
+				return err != nonRetryableError
+			},
+			errorSequence: []error{retryableError, nonRetryableError},
+			expectedCalls: 2,
+			expectedError: nonRetryableError,
+			expectedSleep: 100 * time.Millisecond, // only one retry before hitting non-retryable
+		},
+		{
+			name: "should eventually succeed after retrying retryable errors",
+			shouldRetry: func(err error) bool {
+				return err != nonRetryableError
+			},
+			errorSequence: []error{retryableError, retryableError, nil},
+			expectedCalls: 3,
+			expectedError: nil,
+			expectedSleep: 300 * time.Millisecond, // 100ms + 200ms
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var retrier *retry
+			if tt.shouldRetry != nil {
+				retrier = New(ShouldRetry(tt.shouldRetry))
+			} else {
+				retrier = New()
+			}
+
+			totalSleep := time.Duration(0)
+			retrier.sleep = func(d time.Duration) {
+				totalSleep += d
+			}
+
+			calls := 0
+			err := retrier.Do(func() error {
+				if calls < len(tt.errorSequence) {
+					err := tt.errorSequence[calls]
+					calls++
+					return err
+				}
+				calls++
+				return nil
+			})
+
+			require.Equal(t, tt.expectedCalls, calls, "unexpected number of calls")
+			require.Equal(t, tt.expectedSleep, totalSleep, "unexpected sleep duration")
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.Equal(t, tt.expectedError, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }
