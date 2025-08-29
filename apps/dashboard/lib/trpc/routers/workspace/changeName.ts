@@ -13,7 +13,7 @@ export const changeWorkspaceName = t.procedure
         .string()
         .min(3, "Workspace names must contain at least 3 characters")
         .max(50, "Workspace names must contain less than 50 characters"),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     await db

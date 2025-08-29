@@ -1,6 +1,7 @@
 import { type InsertPermission, type Permission, and, db, eq, schema } from "@/lib/db";
 
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { env } from "@/lib/env";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -802,6 +803,17 @@ export async function upsertPermissions(
   auditLogs: UnkeyAuditLog[];
 }> {
   return await db.transaction(async (tx) => {
+    // Validate workspace access - allow either user's workspace or system workspace
+    const systemWorkspaceId = env().UNKEY_WORKSPACE_ID;
+    const userWorkspaceId = ctx.workspace?.id;
+
+    if (workspaceId !== systemWorkspaceId && workspaceId !== userWorkspaceId) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Access denied to workspace",
+      });
+    }
+
     const existingPermissions = await tx.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
         and(eq(table.workspaceId, workspaceId), inArray(table.slug, slugs)),

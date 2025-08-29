@@ -69,9 +69,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     <form onSubmit={handleSubmit(onSubmit)} id="workspace-name-form">
       <SettingCard
         title={"Workspace Name"}
-        description={
-          "Not customer-facing. Choose a name that is easy to recognize."
-        }
+        description={"Not customer-facing. Choose a name that is easy to recognize."}
         border="top"
         className="border-b-1"
         contentWidth="w-full lg:w-[420px]"
@@ -93,10 +91,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             variant="primary"
             size="lg"
             disabled={
-              updateName.isLoading ||
-              isSubmitting ||
-              !isValid ||
-              watch("workspaceName") === name
+              updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
             }
             loading={updateName.isLoading || isSubmitting}
           >
