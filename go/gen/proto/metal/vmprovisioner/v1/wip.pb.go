@@ -81,10 +81,10 @@ type CreateVmRequestV2 struct {
 	// please send help
 	DeploymentId string `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	// 1024 = 1 vcpu
-	CpuMillicores int32        `protobuf:"varint,3,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
-	MemoryBytes   int32        `protobuf:"varint,4,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
-	DockerImage   string       `protobuf:"bytes,5,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
-	NetworkSize   *NetworkSize `protobuf:"varint,6,opt,name=network_size,json=networkSize,proto3,enum=metal.vmprovisioner.v1.NetworkSize,oneof" json:"network_size,omitempty"`
+	CpuMillicores uint32      `protobuf:"varint,3,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`                                   // millicores, e.g., 1024 = 1 vCPU
+	MemoryBytes   uint64      `protobuf:"varint,4,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`                                         // bytes
+	DockerImage   string      `protobuf:"bytes,5,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`                                          // full image ref: registry/repo:tag or digest
+	NetworkSize   NetworkSize `protobuf:"varint,6,opt,name=network_size,json=networkSize,proto3,enum=metal.vmprovisioner.v1.NetworkSize" json:"network_size,omitempty"` // default: NETWORK_SIZE_UNSPECIFIED
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -133,14 +133,14 @@ func (x *CreateVmRequestV2) GetDeploymentId() string {
 	return ""
 }
 
-func (x *CreateVmRequestV2) GetCpuMillicores() int32 {
+func (x *CreateVmRequestV2) GetCpuMillicores() uint32 {
 	if x != nil {
 		return x.CpuMillicores
 	}
 	return 0
 }
 
-func (x *CreateVmRequestV2) GetMemoryBytes() int32 {
+func (x *CreateVmRequestV2) GetMemoryBytes() uint64 {
 	if x != nil {
 		return x.MemoryBytes
 	}
@@ -155,8 +155,8 @@ func (x *CreateVmRequestV2) GetDockerImage() string {
 }
 
 func (x *CreateVmRequestV2) GetNetworkSize() NetworkSize {
-	if x != nil && x.NetworkSize != nil {
-		return *x.NetworkSize
+	if x != nil {
+		return x.NetworkSize
 	}
 	return NetworkSize_NETWORK_SIZE_SMALL
 }
@@ -210,15 +210,14 @@ var File_proto_metal_vmprovisioner_v1_wip_proto protoreflect.FileDescriptor
 
 const file_proto_metal_vmprovisioner_v1_wip_proto_rawDesc = "" +
 	"\n" +
-	"&proto/metal/vmprovisioner/v1/wip.proto\x12\x16metal.vmprovisioner.v1\"\x98\x02\n" +
+	"&proto/metal/vmprovisioner/v1/wip.proto\x12\x16metal.vmprovisioner.v1\"\x82\x02\n" +
 	"\x11CreateVmRequestV2\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12#\n" +
 	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12%\n" +
-	"\x0ecpu_millicores\x18\x03 \x01(\x05R\rcpuMillicores\x12!\n" +
-	"\fmemory_bytes\x18\x04 \x01(\x05R\vmemoryBytes\x12!\n" +
-	"\fdocker_image\x18\x05 \x01(\tR\vdockerImage\x12K\n" +
-	"\fnetwork_size\x18\x06 \x01(\x0e2#.metal.vmprovisioner.v1.NetworkSizeH\x00R\vnetworkSize\x88\x01\x01B\x0f\n" +
-	"\r_network_size\".\n" +
+	"\x0ecpu_millicores\x18\x03 \x01(\rR\rcpuMillicores\x12!\n" +
+	"\fmemory_bytes\x18\x04 \x01(\x04R\vmemoryBytes\x12!\n" +
+	"\fdocker_image\x18\x05 \x01(\tR\vdockerImage\x12F\n" +
+	"\fnetwork_size\x18\x06 \x01(\x0e2#.metal.vmprovisioner.v1.NetworkSizeR\vnetworkSize\".\n" +
 	"\x12CreateVmRespomseV2\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress*V\n" +
 	"\vNetworkSize\x12\x16\n" +
@@ -259,7 +258,6 @@ func file_proto_metal_vmprovisioner_v1_wip_proto_init() {
 	if File_proto_metal_vmprovisioner_v1_wip_proto != nil {
 		return
 	}
-	file_proto_metal_vmprovisioner_v1_wip_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

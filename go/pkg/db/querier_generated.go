@@ -593,6 +593,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE workspace_id = ? AND slug = ?
+	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error)
 	//FindRatelimitNamespace
 	//
@@ -862,7 +863,12 @@ type Querier interface {
 	//      message,
 	//      created_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      message = VALUES(message),
@@ -1210,7 +1216,7 @@ type Querier interface {
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListExecutableChallenges
 	//
-	//  SELECT dc.id, dc.workspace_id, domain FROM acme_challenges dc
+	//  SELECT dc.id, dc.workspace_id, d.domain FROM acme_challenges dc
 	//  JOIN domains d ON dc.domain_id = d.id
 	//  WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
 	//  ORDER BY d.created_at ASC

@@ -22,6 +22,7 @@ SELECT
     updated_at
 FROM projects
 WHERE workspace_id = ? AND slug = ?
+LIMIT 1
 `
 
 type FindProjectByWorkspaceSlugParams struct {
@@ -43,6 +44,7 @@ type FindProjectByWorkspaceSlugParams struct {
 //	    updated_at
 //	FROM projects
 //	WHERE workspace_id = ? AND slug = ?
+//	LIMIT 1
 func (q *Queries) FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error) {
 	row := db.QueryRowContext(ctx, findProjectByWorkspaceSlug, arg.WorkspaceID, arg.Slug)
 	var i Project

@@ -18,7 +18,12 @@ INSERT INTO deployment_steps (
     message,
     created_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
 )
 ON DUPLICATE KEY UPDATE
     message = VALUES(message),
@@ -44,7 +49,12 @@ type InsertDeploymentStepParams struct {
 //	    message,
 //	    created_at
 //	) VALUES (
-//	    ?, ?, ?, ?, ?, ?
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    message = VALUES(message),
