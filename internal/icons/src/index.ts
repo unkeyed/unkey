@@ -1,3 +1,5 @@
+export * from "./props";
+
 export * from "./icons/adjust-contrast-3";
 export * from "./icons/arrow-dot-anti-clockwise";
 export * from "./icons/arrow-dotted-rotate-anticlockwise";

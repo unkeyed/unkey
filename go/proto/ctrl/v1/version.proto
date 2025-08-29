@@ -26,21 +26,30 @@ message CreateVersionRequest {
   string workspace_id = 1;
   string project_id = 2;
   string branch = 3;
-  
   // Source information
   SourceType source_type = 4;
-  string git_commit_sha = 5;  // For git sources
-  
+  string git_commit_sha = 5; // For git sources
   // Optional environment override (defaults based on branch)
   string environment_id = 7;
-  
   // Docker image support
-  string docker_image_tag = 8;  // e.g. "ghcr.io/user/app:sha256..."
+  string docker_image_tag = 8; // e.g. "ghcr.io/user/app:sha256..."
+  // Gateway hostname for routing
+  string hostname = 9;
+  // Keyspace ID for authentication
+  string keyspace_id = 10;
+  
+  // Extended git information
+  string git_commit_message = 6;
+  string git_commit_author_name = 11;
+  // TODO: Add GitHub API integration to lookup username/avatar from email
+  string git_commit_author_username = 12;
+  string git_commit_author_avatar_url = 13;
+  int64 git_commit_timestamp = 14; // Unix epoch milliseconds
 }
 
 message CreateVersionResponse {
   string version_id = 1;
-  VersionStatus status = 2;  // Will be PENDING or BUILDING
+  VersionStatus status = 2; // Will be PENDING or BUILDING
 }
 
 message GetVersionRequest {
@@ -51,40 +60,47 @@ message GetVersionResponse {
   Version version = 1;
 }
 
-
 message Version {
   string id = 1;
   string workspace_id = 2;
   string project_id = 3;
   string environment_id = 4;
-  
+
   // Source information
   string git_commit_sha = 5;
   string git_branch = 6;
-  
+
   // Status and lifecycle
   VersionStatus status = 7;
-  string error_message = 8;  // For failed versions
-  
+  string error_message = 8; // For failed versions
+
   // Configuration snapshot (resolved at creation time)
   map<string, string> environment_variables = 9;
-  
+
   // Topology configuration
   Topology topology = 10;
-  
+
   // Timestamps
   int64 created_at = 11;
   int64 updated_at = 12;
-  
+
   // Associated hostnames for this version
   repeated string hostnames = 13;
-  
+
   // Build information
   string rootfs_image_id = 14;
   string build_id = 15;
-  
+
   // Deployment steps
   repeated VersionStep steps = 16;
+  
+  // Extended git information
+  string git_commit_message = 17;
+  string git_commit_author_name = 18;
+  // Removed: email is PII and not stored
+  string git_commit_author_username = 20;
+  string git_commit_author_avatar_url = 21;
+  int64 git_commit_timestamp = 22; // Unix epoch milliseconds
 }
 
 message VersionStep {
@@ -97,12 +113,12 @@ message VersionStep {
 message Topology {
   int32 cpu_millicores = 1;
   int32 memory_mb = 2;
-  
+
   // Regional configuration
   repeated RegionalConfig regions = 3;
-  
+
   // Runtime settings
-  int32 idle_timeout_seconds = 4;  // 0 means no timeout
+  int32 idle_timeout_seconds = 4; // 0 means no timeout
   string health_check_path = 5;
   int32 port = 6;
 }
@@ -116,7 +132,7 @@ message RegionalConfig {
 service VersionService {
   // Create a new version
   rpc CreateVersion(CreateVersionRequest) returns (CreateVersionResponse) {}
-  
+
   // Get version details
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
 }

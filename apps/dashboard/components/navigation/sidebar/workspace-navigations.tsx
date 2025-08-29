@@ -19,7 +19,7 @@ export type NavItem = {
   icon: React.ElementType | null;
   href: string;
   external?: boolean;
-  label: string;
+  label: string | React.ReactNode;
   active?: boolean;
   tag?: React.ReactNode;
   hidden?: boolean;

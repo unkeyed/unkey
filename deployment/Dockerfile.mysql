@@ -5,7 +5,7 @@ COPY deployment/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases
 
 # Copy schemas from their respective packages
 COPY go/pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
-# COPY go/pkg/partition/schema.sql /docker-entrypoint-initdb.d/02-partition-schema.sql
+COPY go/pkg/partition/db/schema.sql /docker-entrypoint-initdb.d/02-partition-schema.sql
 COPY go/pkg/hydra/store/schema.sql /docker-entrypoint-initdb.d/03-hydra-schema.sql
 
 # Copy seed data for local development

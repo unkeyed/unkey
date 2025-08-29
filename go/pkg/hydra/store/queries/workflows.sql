@@ -158,7 +158,8 @@ INSERT INTO cron_jobs (
     created_at, updated_at, last_run_at, next_run_at
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-);
+) ON DUPLICATE KEY UPDATE 
+    cron_spec = sqlc.arg('cron_spec'), enabled = sqlc.arg('enabled'), updated_at = sqlc.arg('updated_at'), next_run_at = sqlc.arg('next_run_at'), last_run_at = sqlc.arg('last_run_at'), next_run_at = sqlc.arg('next_run_at');
 
 -- name: UpdateCronJob :exec
 UPDATE cron_jobs 

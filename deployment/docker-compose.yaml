@@ -17,7 +17,8 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       timeout: 20s
       retries: 10
       start_period: 40s
@@ -25,7 +26,14 @@ services:
   planetscale:
     container_name: planetscale
     image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
-    command: ["-listen-port=3900", "-mysql-dbname=unkey", "-mysql-addr=mysql", "-mysql-max-rows=100000", "-mysql-idle-timeout=1s"]
+    command:
+      [
+        "-listen-port=3900",
+        "-mysql-dbname=unkey",
+        "-mysql-addr=mysql",
+        "-mysql-max-rows=100000",
+        "-mysql-idle-timeout=1s",
+      ]
     depends_on:
       mysql:
         condition: service_healthy
@@ -113,7 +121,19 @@ services:
     volumes:
       - clickhouse:/bitnami/clickhouse
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--host", "localhost", "--user", "default", "--password", "password", "--query", "SELECT 1"]
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--host",
+          "localhost",
+          "--user",
+          "default",
+          "--password",
+          "password",
+          "--query",
+          "SELECT 1",
+        ]
       timeout: 10s
       retries: 10
       start_period: 30s
@@ -151,12 +171,48 @@ services:
       dockerfile: ./apps/api/Dockerfile.dev
     ports:
       - 8787:8787
-    command: ["pnpm", "wrangler", "dev", "--ip=0.0.0.0", "--var=VERSION:1", "--var=DATABASE_HOST:planetscale:3900", "--var=DATABASE_USERNAME:unkey", "--var=DATABASE_PASSWORD:password", "--var=AGENT_URL:http://agent:8080", "--var=AGENT_TOKEN:agent-auth-secret", "--var=EMIT_METRICS_LOGS:false", "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0", "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123", "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070", "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123"]
+    command:
+      [
+        "pnpm",
+        "wrangler",
+        "dev",
+        "--ip=0.0.0.0",
+        "--var=VERSION:1",
+        "--var=DATABASE_HOST:planetscale:3900",
+        "--var=DATABASE_USERNAME:unkey",
+        "--var=DATABASE_PASSWORD:password",
+        "--var=AGENT_URL:http://agent:8080",
+        "--var=AGENT_TOKEN:agent-auth-secret",
+        "--var=EMIT_METRICS_LOGS:false",
+        "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
+        "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
+        "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070",
+        "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123",
+      ]
     depends_on:
       - planetscale
       - agent
       - clickhouse
       - apiv2
+
+  gw:
+    build:
+      context: ../go
+      dockerfile: Dockerfile
+      args:
+        VERSION: "latest"
+    container_name: gw
+    command: ["run", "gw"]
+    ports:
+      - "6060:6060"
+    depends_on:
+      - mysql
+    environment:
+      UNKEY_HTTP_PORT: 6060
+      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+      UNKEY_OTEL: true
+
   ctrl:
     build:
       context: ../go
@@ -175,6 +231,8 @@ services:
       # Database configuration - use existing mysql service
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true"
+      UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
+
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
       UNKEY_METALD_ADDRESS: "http://metald-aio:8080"

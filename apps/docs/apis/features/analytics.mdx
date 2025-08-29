@@ -59,17 +59,17 @@ Here's an example tags for a fictional blog API:
 
 Tags can be added in the request body.
 
-```bash Providing Tags {7-10}
+```bash Providing Tags {6-9}
 curl --request POST \
   --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-  "key": "sk_1234",
-  "tags": [
-    "tag1",
-    "path=/v1/my-resource/123"
-  ]
-}'
+    "key": "sk_1234",
+    "tags": [
+      "tag1",
+      "path=/v1/my-resource/123"
+    ]
+  }'
 ```
 
 
