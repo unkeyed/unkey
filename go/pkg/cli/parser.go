@@ -62,7 +62,17 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 					return subcmd.parse(ctx, args[i+1:])
 				}
 			}
-			// Not a subcommand, treat as regular argument
+
+			if len(c.Commands) > 0 {
+				availableCommands := make([]string, len(c.Commands))
+				for j, cmd := range c.Commands {
+					availableCommands[j] = cmd.Name
+				}
+				return fmt.Errorf("unknown command: %s\nAvailable commands: %s",
+					arg, strings.Join(availableCommands, ", "))
+			}
+
+			// If no subcommands defined, treat as regular argument
 			commandArgs = append(commandArgs, arg)
 			continue
 		}
@@ -75,6 +85,16 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 
 	// Store parsed arguments
 	c.args = commandArgs
+
+	if len(commandArgs) > 0 {
+		availableCommands := make([]string, len(c.Commands))
+		for j, cmd := range c.Commands {
+			availableCommands[j] = cmd.Name
+		}
+		availableFlags := c.getAvailableFlags()
+		return fmt.Errorf("unexpected argument: %s\nAvailable flags: %s",
+			commandArgs[0], availableFlags)
+	}
 
 	// Validate all required flags are present
 	if err := c.validateRequiredFlags(); err != nil {
@@ -123,7 +143,8 @@ func (c *Command) parseFlag(args []string, i *int) error {
 	// Look up the flag
 	flag, exists := c.flagMap[flagName]
 	if !exists {
-		return fmt.Errorf("unknown flag: %s", flagName)
+		availableFlags := c.getAvailableFlags()
+		return fmt.Errorf("unknown flag: %s\nAvailable flags: %s", flagName, availableFlags)
 	}
 
 	// Handle boolean flags specially - they don't require values
@@ -151,7 +172,6 @@ func (c *Command) parseFlag(args []string, i *int) error {
 	return flag.Parse(flagValue)
 }
 
-// validateRequiredFlags checks that all required flags have been set
 func (c *Command) initFlagMap() {
 	if c.flagMap != nil {
 		return
@@ -162,7 +182,7 @@ func (c *Command) initFlagMap() {
 	}
 }
 
-// Replace validateRequiredFlags method with:
+// validateRequiredFlags checks that all required flags have been set
 func (c *Command) validateRequiredFlags() error {
 	for _, flag := range c.Flags {
 		if flag.Required() && !flag.HasValue() {
