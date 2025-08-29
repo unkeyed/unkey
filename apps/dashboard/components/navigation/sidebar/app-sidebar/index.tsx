@@ -24,6 +24,7 @@ import { UsageBanner } from "../usage-banner";
 import { NavItems } from "./components/nav-items";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
 import { useApiNavigation } from "./hooks/use-api-navigation";
+import { useProjectNavigation } from "./hooks/use-projects-navigation";
 import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 
 export function AppSidebar({
@@ -55,19 +56,23 @@ export function AppSidebar({
   const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
     useRatelimitNavigation(apiAddedNavItems);
 
+  const { enhancedNavItems: projectAddedNavItems, loadMore: loadMoreProjects } =
+    useProjectNavigation(ratelimitAddedNavItems);
+
   const handleLoadMore = useCallback(
     (item: NavItem & { loadMoreAction?: boolean }) => {
-      // If this is the ratelimit "load more" item
-      if (item.href === "#load-more-ratelimits") {
+      if (item.href === "#load-more-projects") {
+        loadMoreProjects();
+      } else if (item.href === "#load-more-ratelimits") {
         loadMoreRatelimits();
-      } else {
-        // Default to API loading (existing behavior)
+      } else if (item.href === "#load-more-apis") {
         loadMoreApis();
+      } else {
+        console.error(`Unknown item.href: ${item.href}`);
       }
     },
-    [loadMoreApis, loadMoreRatelimits],
+    [loadMoreApis, loadMoreRatelimits, loadMoreProjects],
   );
-
   const toggleNavItem: NavItem = useMemo(
     () => ({
       label: "Toggle Sidebar",
@@ -111,12 +116,8 @@ export function AppSidebar({
             {state === "collapsed" && (
               <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
             )}
-            {ratelimitAddedNavItems.map((item) => (
-              <NavItems
-                key={item.label as string}
-                item={item}
-                onLoadMore={() => handleLoadMore(item)}
-              />
+            {projectAddedNavItems.map((item) => (
+              <NavItems key={item.label as string} item={item} onLoadMore={handleLoadMore} />
             ))}
           </SidebarMenu>
         </SidebarGroup>
