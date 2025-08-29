@@ -51,7 +51,7 @@ export const getDeploymentDetails = t.procedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
-      projectId: z.string(),
+      deploymentId: z.string(),
     }),
   )
   .output(deploymentDetailsOutputSchema)

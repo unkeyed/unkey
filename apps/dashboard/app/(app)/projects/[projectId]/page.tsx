@@ -1,26 +1,12 @@
-// Updated project details component
+// Updated ProjectDetails component
 "use client";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
-import { ActiveDeploymentCard, type DeploymentStatus } from "./details/active-deployment-card";
+import { ActiveDeploymentCard } from "./details/active-deployment-card";
 import { DomainRow } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
-
-const DEPLOYMENT_DATA = {
-  version: "v_alpha001",
-  description: "Add auth routes + logging",
-  status: "active" as DeploymentStatus,
-  author: {
-    name: "Oz",
-    avatar: "https://avatars.githubusercontent.com/u/138932600?s=48&v=4",
-  },
-  createdAt: "a day ago",
-  branch: "main",
-  commit: "e5f6a7b",
-  image: "unkey:latest",
-};
 
 const DOMAINS = [
   {
@@ -40,7 +26,6 @@ const DOMAINS = [
   },
 ];
 
-// Mock environment variables data
 const PRODUCTION_VARS = [
   {
     id: "1",
@@ -96,7 +81,7 @@ export default function ProjectDetails() {
             icon={<Cloud size="md-regular" className="text-gray-9" />}
             title="Active Deployment"
           />
-          <ActiveDeploymentCard {...DEPLOYMENT_DATA} />
+          <ActiveDeploymentCard />
         </Section>
 
         <Section>
@@ -135,12 +120,7 @@ export default function ProjectDetails() {
   );
 }
 
-type SectionHeaderProps = {
-  icon: ReactNode;
-  title: string;
-};
-
-function SectionHeader({ icon, title }: SectionHeaderProps) {
+function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2.5 py-1.5 px-2">
       {icon}

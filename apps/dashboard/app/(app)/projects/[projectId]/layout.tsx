@@ -23,6 +23,7 @@ type ProjectLayoutProps = {
   children: React.ReactNode;
 };
 
+const FAKE_DEPLOYMENT_ID = "im-a-fake-deployment-id";
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const trpcUtil = trpc.useUtils();
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
@@ -36,7 +37,9 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
       if (distanceToTop !== 0) {
         try {
           // Only proceed if prefetch succeeds
-          await trpcUtil.deploy.project.details.prefetch({ projectId });
+          await trpcUtil.deploy.project.details.prefetch({
+            deploymentId: FAKE_DEPLOYMENT_ID,
+          });
 
           setTimeout(() => {
             setIsDetailsOpen(true);
@@ -47,16 +50,17 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         }
       }
     },
-    [trpcUtil, projectId],
+    [trpcUtil],
   );
 
-  const contextValue = {
-    isDetailsOpen,
-    setIsDetailsOpen,
-  };
-
   return (
-    <ProjectLayoutContext.Provider value={contextValue}>
+    <ProjectLayoutContext.Provider
+      value={{
+        isDetailsOpen,
+        setIsDetailsOpen,
+        activeDeploymentId: FAKE_DEPLOYMENT_ID,
+      }}
+    >
       <div className="h-screen flex flex-col overflow-hidden">
         <ProjectNavigation projectId={projectId} />
         <div className="flex items-center flex-shrink-0">
@@ -88,7 +92,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
             tableDistanceToTop={tableDistanceToTop}
             isOpen={isDetailsOpen}
             onClose={() => setIsDetailsOpen(false)}
-            projectId={projectId}
+            activeDeploymentId={FAKE_DEPLOYMENT_ID}
           />
         </div>
       </div>

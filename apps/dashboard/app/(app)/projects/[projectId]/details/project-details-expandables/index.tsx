@@ -9,17 +9,19 @@ type ProjectDetailsExpandableProps = {
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
-  projectId: string;
+  activeDeploymentId: string;
 };
 
 export const ProjectDetailsExpandable = ({
   tableDistanceToTop,
   isOpen,
   onClose,
-  projectId,
+  activeDeploymentId,
 }: ProjectDetailsExpandableProps) => {
   const trpcUtil = trpc.useUtils();
-  const details = trpcUtil.deploy.project.details.getData({ projectId });
+  const details = trpcUtil.deploy.project.details.getData({
+    deploymentId: activeDeploymentId,
+  });
 
   // Shouldn't happen, because layout handles this case
   if (!details) {

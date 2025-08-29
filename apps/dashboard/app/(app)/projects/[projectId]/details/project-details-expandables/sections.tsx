@@ -1,4 +1,4 @@
-import type { DeploymentDetails } from "@/lib/trpc/routers/deploy/project/deployment/getDeploymentDetails";
+import type { DeploymentDetails } from "@/lib/trpc/routers/deploy/project/deployment/getDetails";
 import {
   Bolt,
   ChartActivity,

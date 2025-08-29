@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type LogEntry = {
   timestamp: string;
@@ -9,7 +10,7 @@ type LogEntry = {
 type LogFilter = "all" | "errors" | "warnings";
 
 type UseDeploymentLogsProps = {
-  logs: LogEntry[];
+  deploymentId: string;
 };
 
 type UseDeploymentLogsReturn = {
@@ -18,7 +19,6 @@ type UseDeploymentLogsReturn = {
   searchTerm: string;
   isExpanded: boolean;
   showFade: boolean;
-
   // Computed
   filteredLogs: LogEntry[];
   logCounts: {
@@ -26,26 +26,62 @@ type UseDeploymentLogsReturn = {
     errors: number;
     warnings: number;
   };
-
+  // Loading state
+  isLoading: boolean;
   // Actions
   setLogFilter: (filter: LogFilter) => void;
   setSearchTerm: (term: string) => void;
-  toggleExpanded: () => void;
+  setExpanded: (expanded: boolean) => void;
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   handleFilterChange: (filter: LogFilter) => void;
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-
   // Refs
   scrollRef: React.RefObject<HTMLDivElement>;
 };
 
-export function useDeploymentLogs({ logs }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
+// Helper function to format timestamp from number to HH:MM:SS.mmm format
+const formatTimestamp = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+  const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+};
+
+export function useDeploymentLogs({
+  deploymentId,
+}: UseDeploymentLogsProps): UseDeploymentLogsReturn {
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [showFade, setShowFade] = useState(true);
-
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch logs via tRPC
+  const { data: logsData, isLoading } = trpc.deploy.project.buildLogs.useQuery({
+    deploymentId,
+  });
+
+  // Transform tRPC logs to match the expected format
+  const logs = useMemo((): LogEntry[] => {
+    if (!logsData?.logs) {
+      return [];
+    }
+
+    return logsData.logs.map((log) => ({
+      timestamp: formatTimestamp(log.timestamp),
+      level: log.level,
+      message: log.message,
+    }));
+  }, [logsData]);
+
+  // Auto-expand when logs are fetched
+  useEffect(() => {
+    if (logsData?.logs && logsData.logs.length > 0) {
+      setIsExpanded(true);
+    }
+  }, [logsData]);
 
   // Calculate log counts
   const logCounts = useMemo(
@@ -88,9 +124,9 @@ export function useDeploymentLogs({ logs }: UseDeploymentLogsProps): UseDeployme
     }
   };
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-    if (isExpanded) {
+  const setExpanded = (expanded: boolean) => {
+    setIsExpanded(expanded);
+    if (!expanded) {
       setTimeout(resetScroll, 50);
     }
   };
@@ -117,19 +153,18 @@ export function useDeploymentLogs({ logs }: UseDeploymentLogsProps): UseDeployme
     searchTerm,
     isExpanded,
     showFade,
-
     // Computed
     filteredLogs,
     logCounts,
-
+    // Loading state
+    isLoading,
     // Actions
     setLogFilter,
     setSearchTerm,
-    toggleExpanded,
+    setExpanded,
     handleScroll,
     handleFilterChange,
     handleSearchChange,
-
     // Refs
     scrollRef,
   };
