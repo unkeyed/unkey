@@ -1836,12 +1836,12 @@ components:
                 error:
                     $ref: "#/components/schemas/BaseError"
             description: |-
-                Error response when the requested resource is no longer available and will not be available again. This occurs when:
-                - The resource has been permanently deleted
-                - The resource existed in the past but is no longer accessible
-                - The resource cannot be restored through the API
+                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
+                - The resource has been marked as deleted but still exists in the database
+                - The resource is intentionally unavailable but could potentially be restored
+                - The resource cannot be restored through the API or dashboard
 
-                This is a permanent condition. To resolve this error, contact support if you need the resource restored.
+                To resolve this error, contact support if you need the resource restored.
         V2RatelimitListOverridesRequestBody:
             additionalProperties: false
             properties:
