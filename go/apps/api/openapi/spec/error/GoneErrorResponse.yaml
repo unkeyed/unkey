@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
+description: |-
+  Error response when the requested resource is no longer available and will not be available again. This occurs when:
+  - The resource has been permanently deleted
+  - The resource existed in the past but is no longer accessible
+  - The resource cannot be restored through the API
+
+  This is a permanent condition. To resolve this error, contact support if you need the resource restored.

@@ -137,6 +137,20 @@ type ForbiddenErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// GoneErrorResponse Error response when the requested resource is no longer available and will not be available again. This occurs when:
+// - The resource has been permanently deleted
+// - The resource existed in the past but is no longer accessible
+// - The resource cannot be restored through the API
+//
+// This is a permanent condition. To resolve this error, contact support if you need the resource restored.
+type GoneErrorResponse struct {
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+	Error BaseError `json:"error"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID

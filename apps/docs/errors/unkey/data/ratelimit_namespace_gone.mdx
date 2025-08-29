@@ -1,0 +1,43 @@
+---
+title: Ratelimit Namespace Gone
+---
+
+## Description
+
+This error occurs when you attempt to use a ratelimit namespace that has been deleted. Once a namespace is deleted, it cannot be restored through the API or dashboard.
+
+## Error Code
+
+`unkey/data/ratelimit_namespace_gone`
+
+## HTTP Status Code
+
+`410 Gone`
+
+## Cause
+
+The ratelimit namespace you're trying to access was previously deleted and is no longer available. This is a permanent deletion and the namespace cannot be recovered.
+
+## Resolution
+
+If you need to use this namespace again, you will need to contact our support team for assistance with namespace restoration.
+
+**Contact Support:** [support@unkey.com](mailto:support@unkey.com)
+
+Please include the following information in your support request:
+- Workspace ID
+- Namespace name
+- Approximate deletion date (if known)
+- Business justification for restoration
+
+## Prevention
+
+To avoid accidentally deleting namespaces:
+- Use workspace permissions to restrict who can delete namespaces
+- Consider implementing a backup or documentation system for critical namespaces
+- Review namespace deletion requests carefully before confirming
+
+## Related
+
+- [Ratelimit Namespace Not Found](/errors/unkey/data/ratelimit_namespace_not_found)
+- [Rate Limiting Documentation](/ratelimiting/introduction)

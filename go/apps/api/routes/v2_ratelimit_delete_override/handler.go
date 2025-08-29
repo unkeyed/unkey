@@ -3,12 +3,15 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/cache"
@@ -23,7 +26,6 @@ import (
 type Request = openapi.V2RatelimitDeleteOverrideRequestBody
 type Response = openapi.V2RatelimitDeleteOverrideResponseBody
 
-// Handler implements zen.Route interface for the v2 ratelimit delete override endpoint
 type Handler struct {
 	Logger                  logging.Logger
 	DB                      db.Database
@@ -32,17 +34,14 @@ type Handler struct {
 	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/ratelimit.deleteOverride"
 }
 
-// Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -55,68 +54,120 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		namespace, err := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Namespace:   req.Namespace,
-		})
+	namespace, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
+		namespace, hit, err := h.RatelimitNamespaceCache.SWR(
+			ctx,
+			cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
+			func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+				result := db.FindRatelimitNamespace{} // nolint:exhaustruct
+				response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+					return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Namespace:   req.Namespace,
+					})
+				})
+				if err != nil {
+					return result, err
+				}
+
+				result = db.FindRatelimitNamespace{
+					ID:                response.ID,
+					WorkspaceID:       response.WorkspaceID,
+					Name:              response.Name,
+					CreatedAtM:        response.CreatedAtM,
+					UpdatedAtM:        response.UpdatedAtM,
+					DeletedAtM:        response.DeletedAtM,
+					DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+					WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+				}
+
+				overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
+				if overrideBytes, ok := response.Overrides.([]byte); ok && overrideBytes != nil {
+					err = json.Unmarshal(overrideBytes, &overrides)
+					if err != nil {
+						return result, err
+					}
+				}
+
+				for _, override := range overrides {
+					result.DirectOverrides[override.Identifier] = override
+					if strings.Contains(override.Identifier, "*") {
+						result.WildcardOverrides = append(result.WildcardOverrides, override)
+					}
+				}
+
+				return result, nil
+			},
+			caches.DefaultFindFirstOp,
+		)
+
 		if err != nil {
 			if db.IsNotFound(err) {
-				return fault.New("namespace not found",
+				return namespace, fault.New("namespace not found",
 					fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 					fault.Internal("namespace not found"),
 					fault.Public("This namespace does not exist."),
 				)
 			}
-			return err
+
+			return namespace, fault.Wrap(err,
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Public("An unexpected error occurred while fetching the namespace."),
+			)
 		}
 
 		if namespace.DeletedAtM.Valid {
-			return fault.New("namespace was deleted",
+			return namespace, fault.New("namespace deleted",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace deleted"),
 				fault.Public("This namespace does not exist."),
 			)
 		}
 
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   namespace.ID,
-				Action:       rbac.DeleteOverride,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.DeleteOverride,
-			}),
-		)))
-		if err != nil {
-			return err
-		}
-		// Check if the override exists before deleting
-		override, overrideErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			NamespaceID: namespace.ID,
-			Identifier:  req.Identifier,
-		})
-
-		if db.IsNotFound(overrideErr) {
-			return fault.New("override not found",
-				fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-				fault.Internal("override not found"),
-				fault.Public("This override does not exist."),
+		if hit == cache.Null {
+			return namespace, fault.New("namespace not found",
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"),
+				fault.Public("This namespace does not exist."),
 			)
 		}
-		if overrideErr != nil {
-			return overrideErr
-		}
 
-		// Perform soft delete by updating the DeletedAt field
+		return namespace, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   namespace.ID,
+			Action:       rbac.DeleteOverride,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Ratelimit,
+			ResourceID:   "*",
+			Action:       rbac.DeleteOverride,
+		}),
+	)))
+	if err != nil {
+		return err
+	}
+
+	override, ok := namespace.DirectOverrides[req.Identifier]
+	if !ok {
+		return fault.New("override not found",
+			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Internal("override not found"),
+			fault.Public("This override does not exist."),
+		)
+	}
+
+	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
 			ID:  override.ID,
 			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
-
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -158,22 +209,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		h.RatelimitNamespaceCache.Remove(ctx,
-			cache.ScopedKey{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Key:         namespace.ID,
-			},
-			cache.ScopedKey{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Key:         namespace.Name,
-			},
-		)
-
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+
+	h.RatelimitNamespaceCache.Remove(
+		ctx,
+		cache.ScopedKey{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Key:         namespace.ID,
+		},
+		cache.ScopedKey{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Key:         namespace.Name,
+		},
+	)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

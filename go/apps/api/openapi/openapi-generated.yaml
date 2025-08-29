@@ -1825,6 +1825,23 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitLimitResponseData"
+        GoneErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource is no longer available and will not be available again. This occurs when:
+                - The resource has been permanently deleted
+                - The resource existed in the past but is no longer accessible
+                - The resource cannot be restored through the API
+
+                This is a permanent condition. To resolve this error, contact support if you need the resource restored.
         V2RatelimitListOverridesRequestBody:
             additionalProperties: false
             properties:
@@ -5775,6 +5792,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "410":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoneErrorResponse'
+                    description: Gone - Namespace has been deleted
                 "500":
                     content:
                         application/json:

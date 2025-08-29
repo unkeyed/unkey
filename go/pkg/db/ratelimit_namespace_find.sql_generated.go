@@ -25,7 +25,7 @@ SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
                json_array()
        ) as overrides
 FROM ` + "`" + `ratelimit_namespaces` + "`" + ` ns
-WHERE ns.workspace_id = ? 
+WHERE ns.workspace_id = ?
 AND (ns.id = ? OR ns.name = ?)
 `
 

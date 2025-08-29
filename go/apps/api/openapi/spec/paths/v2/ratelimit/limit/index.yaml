@@ -115,6 +115,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "410":
+      description: Gone - Namespace has been deleted
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/GoneErrorResponse.yaml"
     "500":
       description: Internal server error
       content:
