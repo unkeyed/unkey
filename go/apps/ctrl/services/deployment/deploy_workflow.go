@@ -469,7 +469,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			Type:         db.DomainsTypeCustom,
 		})
 		if insertErr != nil {
-			w.logger.Error("failed to create domain", "error", insertErr, "doman", primaryHostname, "deployment_id", req.DeploymentID)
+			w.logger.Error("failed to create domain", "error", insertErr, "domain", primaryHostname, "deployment_id", req.DeploymentID)
 			return nil, fmt.Errorf("failed to create route for hostname %s: %w", primaryHostname, insertErr)
 		}
 

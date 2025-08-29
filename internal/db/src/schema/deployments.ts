@@ -39,7 +39,7 @@ export const deployments = mysqlTable(
     openapiSpec: text("openapi_spec"),
 
     // Deployment status
-    status: mysqlEnum("status", ["pending", "building", "deploying", "ready", "failed"])
+    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
       .notNull()
       .default("pending"),
     ...lifecycleDates,

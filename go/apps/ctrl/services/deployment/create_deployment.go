@@ -99,7 +99,7 @@ func (s *Service) CreateDeployment(
 		EnvironmentID:       req.Msg.GetEnvironmentId(),
 		RuntimeConfig:       json.RawMessage("{}"),
 		OpenapiSpec:         sql.NullString{String: "", Valid: false},
-		Status:              "pending",
+		Status:              db.DeploymentsStatusPending,
 		CreatedAt:           now,
 		UpdatedAt:           sql.NullInt64{Int64: now, Valid: true},
 		GitCommitSha:        sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
