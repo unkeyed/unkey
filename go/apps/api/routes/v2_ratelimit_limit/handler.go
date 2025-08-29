@@ -11,6 +11,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
@@ -51,17 +52,6 @@ func (h *Handler) Method() string {
 // Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/ratelimit.limit"
-}
-
-// We don't want to write NULL when not found...
-var writeCache = func(err error) cache.Op {
-	// everything went well and we have a row response
-	if err == nil {
-		return cache.WriteValue
-	}
-
-	// this is a noop in the cache
-	return cache.Noop
 }
 
 // Handle processes the HTTP request
@@ -128,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctx,
 		cacheKey,
 		loader,
-		writeCache,
+		caches.DefaultFindFirstOp,
 	)
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,

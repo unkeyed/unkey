@@ -105,5 +105,13 @@ func TestInsufficientPermissions(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, got: %d, body: %s", res.Status, res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "create_namespace", "Error should mention missing create_namespace permission")
+
+		// Verify the namespace was NOT created
+		ctx := context.Background()
+		_, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Namespace:   nonExistentNamespace,
+		})
+		require.True(t, db.IsNotFound(err), "Namespace should not have been created when user lacks create_namespace permission")
 	})
 }
