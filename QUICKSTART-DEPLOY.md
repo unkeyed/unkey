@@ -10,13 +10,31 @@ This guide will help you get the Unkey deployment platform up and running locall
 
 ## Step 1: Start the Platform
 
-1. Start all services using Docker Compose:
+1. Change to the deployment directory:
 
 ```bash
-docker-compose up metald-aio dashboard ctrl -d
+cd deployment
 ```
 
-2. Wait for all services to be healthy
+2. Create an `.env` file in `apps/dashboard` (use .env.example as a template).
+
+
+3. Start services using Docker Compose:
+
+```bash
+docker compose up metald-aio dashboard ctrl -d
+```
+
+If the dashboard build fails in Docker, run it locally:
+
+```bash
+docker compose up planetscale agent 
+cd apps/dashboard 
+pnpm i
+pnpm dev
+```
+
+4. Wait for all services to be healthy
 
 The platform now uses a Docker backend that creates containers instead of VMs, making it much faster and easier to run locally.
 
