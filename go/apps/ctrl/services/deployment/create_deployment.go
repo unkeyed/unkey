@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,10 +15,18 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
+func trimLength(s string, characters int) string {
+	if len(s) > characters {
+		return s[:characters]
+	}
+	return s
+}
+
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
 ) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+
 	// Validate workspace exists
 	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 	if err != nil {
@@ -54,23 +63,53 @@ func (s *Service) CreateDeployment(
 		}
 	}
 
+	// Validate git commit timestamp if provided (must be Unix epoch milliseconds)
+	if req.Msg.GetGitCommitTimestamp() != 0 {
+		timestamp := req.Msg.GetGitCommitTimestamp()
+		// Reject timestamps that are clearly in seconds format (< 1_000_000_000_000)
+		// This corresponds to January 1, 2001 in milliseconds
+		if timestamp < 1_000_000_000_000 {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
+		}
+		// Also reject future timestamps more than 1 hour ahead (likely invalid)
+		maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
+		if timestamp > maxValidTimestamp {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
+		}
+	}
+
 	// Generate deployment ID
 	deploymentID := uid.New("deployment")
 	now := time.Now().UnixMilli()
 
+	// Sanitize input values before persisting
+	gitCommitSha := req.Msg.GetGitCommitSha()
+	gitCommitMessage := trimLength(req.Msg.GetGitCommitMessage(), 10240)
+	gitCommitAuthorName := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256)
+	gitCommitAuthorUsername := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorUsername()), 256)
+	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
+
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:            deploymentID,
-		WorkspaceID:   req.Msg.GetWorkspaceId(),
-		ProjectID:     req.Msg.GetProjectId(),
-		EnvironmentID: req.Msg.GetEnvironmentId(),
-		GitCommitSha:  sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
-		GitBranch:     sql.NullString{String: gitBranch, Valid: true},
-		RuntimeConfig: json.RawMessage("{}"),
-		OpenapiSpec:   sql.NullString{String: "", Valid: false},
-		Status:        "pending",
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+		ID:                  deploymentID,
+		WorkspaceID:         req.Msg.GetWorkspaceId(),
+		ProjectID:           req.Msg.GetProjectId(),
+		EnvironmentID:       req.Msg.GetEnvironmentId(),
+		RuntimeConfig:       json.RawMessage("{}"),
+		OpenapiSpec:         sql.NullString{String: "", Valid: false},
+		Status:              "pending",
+		CreatedAt:           now,
+		UpdatedAt:           sql.NullInt64{Int64: now, Valid: true},
+		GitCommitSha:        sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
+		GitBranch:           sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:    sql.NullString{String: gitCommitMessage, Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorName: sql.NullString{String: gitCommitAuthorName, Valid: req.Msg.GetGitCommitAuthorName() != ""},
+		// TODO: Use email to lookup GitHub username/avatar via GitHub API instead of persisting PII
+		GitCommitAuthorUsername:  sql.NullString{String: gitCommitAuthorUsername, Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
+		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
+		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
 	})
 	if err != nil {
 		s.logger.Error("failed to insert deployment", "error", err.Error())

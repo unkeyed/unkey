@@ -324,8 +324,13 @@ CREATE TABLE `deployments` (
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`runtime_config` json NOT NULL,
+	`git_commit_message` text,
+	`git_commit_author_name` varchar(256),
+	`git_commit_author_username` varchar(256),
+	`git_commit_author_avatar_url` varchar(512),
+	`git_commit_timestamp` bigint, -- Unix epoch milliseconds
 	`openapi_spec` text,
-	`status` enum('pending','building','deploying','ready','failed') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)

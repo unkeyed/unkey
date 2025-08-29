@@ -196,6 +196,7 @@ const (
 	DeploymentsStatusPending   DeploymentsStatus = "pending"
 	DeploymentsStatusBuilding  DeploymentsStatus = "building"
 	DeploymentsStatusDeploying DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork   DeploymentsStatus = "network"
 	DeploymentsStatusReady     DeploymentsStatus = "ready"
 	DeploymentsStatusFailed    DeploymentsStatus = "failed"
 )
@@ -524,17 +525,22 @@ type AuditLogTarget struct {
 }
 
 type Deployment struct {
-	ID            string            `db:"id"`
-	WorkspaceID   string            `db:"workspace_id"`
-	ProjectID     string            `db:"project_id"`
-	EnvironmentID string            `db:"environment_id"`
-	GitCommitSha  sql.NullString    `db:"git_commit_sha"`
-	GitBranch     sql.NullString    `db:"git_branch"`
-	RuntimeConfig json.RawMessage   `db:"runtime_config"`
-	OpenapiSpec   sql.NullString    `db:"openapi_spec"`
-	Status        DeploymentsStatus `db:"status"`
-	CreatedAt     int64             `db:"created_at"`
-	UpdatedAt     sql.NullInt64     `db:"updated_at"`
+	ID                       string            `db:"id"`
+	WorkspaceID              string            `db:"workspace_id"`
+	ProjectID                string            `db:"project_id"`
+	EnvironmentID            string            `db:"environment_id"`
+	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
+	GitBranch                sql.NullString    `db:"git_branch"`
+	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
+	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
+	GitCommitAuthorName      sql.NullString    `db:"git_commit_author_name"`
+	GitCommitAuthorUsername  sql.NullString    `db:"git_commit_author_username"`
+	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
+	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
+	Status                   DeploymentsStatus `db:"status"`
+	CreatedAt                int64             `db:"created_at"`
+	UpdatedAt                sql.NullInt64     `db:"updated_at"`
 }
 
 type DeploymentStep struct {

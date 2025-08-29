@@ -25,7 +25,7 @@ func (s *Service) GetDeployment(
 		WorkspaceId:          deployment.WorkspaceID,
 		ProjectId:            deployment.ProjectID,
 		EnvironmentId:        deployment.EnvironmentID,
-		Status:               convertDbStatusToProto(string(deployment.Status)),
+		Status:               convertDbStatusToProto(deployment.Status),
 		CreatedAt:            deployment.CreatedAt,
 		GitCommitSha:         "",
 		GitBranch:            "",
@@ -44,6 +44,22 @@ func (s *Service) GetDeployment(
 	}
 	if deployment.GitBranch.Valid {
 		protoDeployment.GitBranch = deployment.GitBranch.String
+	}
+	if deployment.GitCommitMessage.Valid {
+		protoDeployment.GitCommitMessage = deployment.GitCommitMessage.String
+	}
+	if deployment.GitCommitAuthorName.Valid {
+		protoDeployment.GitCommitAuthorName = deployment.GitCommitAuthorName.String
+	}
+	// Email removed to avoid storing PII - TODO: implement GitHub API lookup
+	if deployment.GitCommitAuthorUsername.Valid {
+		protoDeployment.GitCommitAuthorUsername = deployment.GitCommitAuthorUsername.String
+	}
+	if deployment.GitCommitAuthorAvatarUrl.Valid {
+		protoDeployment.GitCommitAuthorAvatarUrl = deployment.GitCommitAuthorAvatarUrl.String
+	}
+	if deployment.GitCommitTimestamp.Valid {
+		protoDeployment.GitCommitTimestamp = deployment.GitCommitTimestamp.Int64
 	}
 	if deployment.UpdatedAt.Valid {
 		protoDeployment.UpdatedAt = deployment.UpdatedAt.Int64
@@ -86,19 +102,19 @@ func (s *Service) GetDeployment(
 	return res, nil
 }
 
-func convertDbStatusToProto(status string) ctrlv1.DeploymentStatus {
+func convertDbStatusToProto(status db.DeploymentsStatus) ctrlv1.DeploymentStatus {
 	switch status {
-	case "pending":
+	case db.DeploymentsStatusPending:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
-	case "building":
+	case db.DeploymentsStatusBuilding:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING
-	case "deploying":
+	case db.DeploymentsStatusDeploying:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING
-	case "network":
+	case db.DeploymentsStatusNetwork:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK
-	case "ready":
+	case db.DeploymentsStatusReady:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY
-	case "failed":
+	case db.DeploymentsStatusFailed:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
 	default:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED

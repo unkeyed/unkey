@@ -148,9 +148,16 @@ type CreateDeploymentRequest struct {
 	// Gateway hostname for routing
 	Hostname string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	// Keyspace ID for authentication
-	KeyspaceId    string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	KeyspaceId string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
+	// Extended git information
+	GitCommitMessage    string `protobuf:"bytes,6,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
+	GitCommitAuthorName string `protobuf:"bytes,11,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
+	// TODO: Add GitHub API integration to lookup username/avatar from email
+	GitCommitAuthorUsername  string `protobuf:"bytes,12,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
+	GitCommitAuthorAvatarUrl string `protobuf:"bytes,13,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
+	GitCommitTimestamp       int64  `protobuf:"varint,14,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *CreateDeploymentRequest) Reset() {
@@ -244,6 +251,41 @@ func (x *CreateDeploymentRequest) GetKeyspaceId() string {
 		return x.KeyspaceId
 	}
 	return ""
+}
+
+func (x *CreateDeploymentRequest) GetGitCommitMessage() string {
+	if x != nil {
+		return x.GitCommitMessage
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetGitCommitAuthorName() string {
+	if x != nil {
+		return x.GitCommitAuthorName
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetGitCommitAuthorUsername() string {
+	if x != nil {
+		return x.GitCommitAuthorUsername
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetGitCommitAuthorAvatarUrl() string {
+	if x != nil {
+		return x.GitCommitAuthorAvatarUrl
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetGitCommitTimestamp() int64 {
+	if x != nil {
+		return x.GitCommitTimestamp
+	}
+	return 0
 }
 
 type CreateDeploymentResponse struct {
@@ -411,9 +453,16 @@ type Deployment struct {
 	RootfsImageId string `protobuf:"bytes,14,opt,name=rootfs_image_id,json=rootfsImageId,proto3" json:"rootfs_image_id,omitempty"`
 	BuildId       string `protobuf:"bytes,15,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
 	// Deployment steps
-	Steps         []*DeploymentStep `protobuf:"bytes,16,rep,name=steps,proto3" json:"steps,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Steps []*DeploymentStep `protobuf:"bytes,16,rep,name=steps,proto3" json:"steps,omitempty"`
+	// Extended git information
+	GitCommitMessage    string `protobuf:"bytes,17,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
+	GitCommitAuthorName string `protobuf:"bytes,18,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
+	// Removed: email is PII and not stored
+	GitCommitAuthorUsername  string `protobuf:"bytes,20,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
+	GitCommitAuthorAvatarUrl string `protobuf:"bytes,21,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
+	GitCommitTimestamp       int64  `protobuf:"varint,22,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Deployment) Reset() {
@@ -556,6 +605,41 @@ func (x *Deployment) GetSteps() []*DeploymentStep {
 		return x.Steps
 	}
 	return nil
+}
+
+func (x *Deployment) GetGitCommitMessage() string {
+	if x != nil {
+		return x.GitCommitMessage
+	}
+	return ""
+}
+
+func (x *Deployment) GetGitCommitAuthorName() string {
+	if x != nil {
+		return x.GitCommitAuthorName
+	}
+	return ""
+}
+
+func (x *Deployment) GetGitCommitAuthorUsername() string {
+	if x != nil {
+		return x.GitCommitAuthorUsername
+	}
+	return ""
+}
+
+func (x *Deployment) GetGitCommitAuthorAvatarUrl() string {
+	if x != nil {
+		return x.GitCommitAuthorAvatarUrl
+	}
+	return ""
+}
+
+func (x *Deployment) GetGitCommitTimestamp() int64 {
+	if x != nil {
+		return x.GitCommitTimestamp
+	}
+	return 0
 }
 
 type DeploymentStep struct {
@@ -776,7 +860,7 @@ var File_proto_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproto/ctrl/v1/deployment.proto\x12\actrl.v1\"\xdd\x02\n" +
+	"\x1eproto/ctrl/v1/deployment.proto\x12\actrl.v1\"\xef\x04\n" +
 	"\x17CreateDeploymentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -790,7 +874,12 @@ const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\bhostname\x18\t \x01(\tR\bhostname\x12\x1f\n" +
 	"\vkeyspace_id\x18\n" +
 	" \x01(\tR\n" +
-	"keyspaceId\"r\n" +
+	"keyspaceId\x12,\n" +
+	"\x12git_commit_message\x18\x06 \x01(\tR\x10gitCommitMessage\x123\n" +
+	"\x16git_commit_author_name\x18\v \x01(\tR\x13gitCommitAuthorName\x12;\n" +
+	"\x1agit_commit_author_username\x18\f \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
+	"\x1cgit_commit_author_avatar_url\x18\r \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
+	"\x14git_commit_timestamp\x18\x0e \x01(\x03R\x12gitCommitTimestamp\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
@@ -799,7 +888,7 @@ const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x15GetDeploymentResponse\x123\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x13.ctrl.v1.DeploymentR\n" +
-	"deployment\"\xcc\x05\n" +
+	"deployment\"\xde\a\n" +
 	"\n" +
 	"Deployment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
@@ -822,7 +911,12 @@ const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\thostnames\x18\r \x03(\tR\thostnames\x12&\n" +
 	"\x0frootfs_image_id\x18\x0e \x01(\tR\rrootfsImageId\x12\x19\n" +
 	"\bbuild_id\x18\x0f \x01(\tR\abuildId\x12-\n" +
-	"\x05steps\x18\x10 \x03(\v2\x17.ctrl.v1.DeploymentStepR\x05steps\x1aG\n" +
+	"\x05steps\x18\x10 \x03(\v2\x17.ctrl.v1.DeploymentStepR\x05steps\x12,\n" +
+	"\x12git_commit_message\x18\x11 \x01(\tR\x10gitCommitMessage\x123\n" +
+	"\x16git_commit_author_name\x18\x12 \x01(\tR\x13gitCommitAuthorName\x12;\n" +
+	"\x1agit_commit_author_username\x18\x14 \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
+	"\x1cgit_commit_author_avatar_url\x18\x15 \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
+	"\x14git_commit_timestamp\x18\x16 \x01(\x03R\x12gitCommitTimestamp\x1aG\n" +
 	"\x19EnvironmentVariablesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x86\x01\n" +

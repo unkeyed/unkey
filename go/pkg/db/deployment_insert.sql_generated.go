@@ -20,6 +20,11 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_sha,
     git_branch,
     runtime_config,
+    git_commit_message,
+    git_commit_author_name,
+    git_commit_author_username,
+    git_commit_author_avatar_url,
+    git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
     status,
     created_at,
@@ -36,22 +41,32 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
     ?
 )
 `
 
 type InsertDeploymentParams struct {
-	ID            string            `db:"id"`
-	WorkspaceID   string            `db:"workspace_id"`
-	ProjectID     string            `db:"project_id"`
-	EnvironmentID string            `db:"environment_id"`
-	GitCommitSha  sql.NullString    `db:"git_commit_sha"`
-	GitBranch     sql.NullString    `db:"git_branch"`
-	RuntimeConfig json.RawMessage   `db:"runtime_config"`
-	OpenapiSpec   sql.NullString    `db:"openapi_spec"`
-	Status        DeploymentsStatus `db:"status"`
-	CreatedAt     int64             `db:"created_at"`
-	UpdatedAt     sql.NullInt64     `db:"updated_at"`
+	ID                       string            `db:"id"`
+	WorkspaceID              string            `db:"workspace_id"`
+	ProjectID                string            `db:"project_id"`
+	EnvironmentID            string            `db:"environment_id"`
+	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
+	GitBranch                sql.NullString    `db:"git_branch"`
+	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
+	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
+	GitCommitAuthorName      sql.NullString    `db:"git_commit_author_name"`
+	GitCommitAuthorUsername  sql.NullString    `db:"git_commit_author_username"`
+	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
+	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
+	Status                   DeploymentsStatus `db:"status"`
+	CreatedAt                int64             `db:"created_at"`
+	UpdatedAt                sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertDeployment
@@ -64,12 +79,22 @@ type InsertDeploymentParams struct {
 //	    git_commit_sha,
 //	    git_branch,
 //	    runtime_config,
+//	    git_commit_message,
+//	    git_commit_author_name,
+//	    git_commit_author_username,
+//	    git_commit_author_avatar_url,
+//	    git_commit_timestamp, -- Unix epoch milliseconds
 //	    openapi_spec,
 //	    status,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -91,6 +116,11 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitSha,
 		arg.GitBranch,
 		arg.RuntimeConfig,
+		arg.GitCommitMessage,
+		arg.GitCommitAuthorName,
+		arg.GitCommitAuthorUsername,
+		arg.GitCommitAuthorAvatarUrl,
+		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
 		arg.Status,
 		arg.CreatedAt,
