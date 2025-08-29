@@ -119,7 +119,6 @@ export function AppSidebar({
     },
     [loadMoreApis, loadMoreRatelimits, loadMoreProjects],
   );
-
   const toggleNavItem: NavItem = useMemo(
     () => ({
       label: "Toggle Sidebar",
