@@ -13,7 +13,7 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const ChevronDown: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize } = sizeMap[size];
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
     <svg
@@ -26,6 +26,7 @@ export const ChevronDown: React.FC<IconProps> = ({ size = "xl-thin", ...props })
       <g fill="currentColor">
         <path
           d="M9,13.5c-.192,0-.384-.073-.53-.22L2.22,7.03c-.293-.293-.293-.768,0-1.061s.768-.293,1.061,0l5.72,5.72,5.72-5.72c.293-.293,.768-.293,1.061,0s.293,.768,0,1.061l-6.25,6.25c-.146,.146-.338,.22-.53,.22Z"
+          strokeWidth={strokeWidth}
           fill="currentColor"
         />
       </g>

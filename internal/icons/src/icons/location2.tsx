@@ -12,19 +12,41 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Bolt: React.FC<IconProps> = ({ size = "xl-thin", filled, ...props }) => {
+export const Location2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
+
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
-      <g>
+      <g fill="currentColor">
+        <circle
+          cx="9"
+          cy="5"
+          fill="none"
+          r="3.25"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <line
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="9"
+          x2="9"
+          y1="13.25"
+          y2="8.25"
+        />
         <path
-          d="m8.597,16.41l5.872-8.265c.118-.166,0-.395-.204-.395h-5.016l.604-5.98c.037-.26-.299-.394-.451-.18L3.531,9.855c-.118.166,0,.395.204.395h5.016l-.604,5.98c-.037.26.299.394.451.18Z"
+          d="M12,12.429c2.507,.315,4.25,1.012,4.25,1.821,0,1.105-3.246,2-7.25,2s-7.25-.895-7.25-2c0-.809,1.743-1.507,4.25-1.821"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"

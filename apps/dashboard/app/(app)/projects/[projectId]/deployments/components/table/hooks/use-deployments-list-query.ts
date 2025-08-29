@@ -90,7 +90,7 @@ export function useDeploymentsListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.deploy.deployment.list.useInfiniteQuery(queryParams, {
+  } = trpc.deploy.project.deployment.list.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: 30_000,
     refetchOnMount: false,

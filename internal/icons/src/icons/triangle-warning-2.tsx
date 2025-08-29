@@ -28,7 +28,7 @@ export const TriangleWarning2: React.FC<IconProps> = ({ size = "xl-thin", ...pro
         <path
           d="m9,8c0-.552.447-1,1-1s1,.448,1,1v4.5c0,.552-.447,1-1,1s-1-.448-1-1v-4.5Z"
           fill="currentColor"
-          strokeWidth="0"
+          strokeWidth={strokeWidth}
         />
         <path
           d="m13.725,16h1.471c1.54,0,2.502-1.667,1.732-3l-5.196-9c-.77-1.333-2.694-1.333-3.464,0L3.072,13c-.77,1.333.192,3,1.732,3h1.471"
@@ -38,7 +38,7 @@ export const TriangleWarning2: React.FC<IconProps> = ({ size = "xl-thin", ...pro
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth="0" />
+        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth={strokeWidth} />
       </g>
     </svg>
   );

@@ -12,9 +12,8 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Connections: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
+export const GridCircle: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
-
   return (
     <svg
       height={pixelSize}
@@ -24,25 +23,41 @@ export const Connections: React.FC<IconProps> = ({ size = "xl-thin", ...props })
       {...props}
     >
       <g fill="currentColor">
-        <polyline
+        <circle
+          cx="5"
+          cy="5"
           fill="none"
-          points="12.625 5.375 9 9 5.375 12.625"
+          r="2.5"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <polyline
+        <circle
+          cx="13"
+          cy="5"
           fill="none"
-          points="12.625 12.625 9 9 5.375 5.375"
+          r="2.5"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <polygon
+        <circle
+          cx="5"
+          cy="13"
           fill="none"
-          points="12.625 5.375 9 1.75 5.375 5.375 1.75 9 5.375 12.625 9 16.25 12.625 12.625 16.25 9 12.625 5.375"
+          r="2.5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx="13"
+          cy="13"
+          fill="none"
+          r="2.5"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"

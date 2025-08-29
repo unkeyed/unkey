@@ -19,19 +19,43 @@ export const CodeCommit: React.FC<IconProps> = ({ size = "xl-thin", ...props }) 
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
-      viewBox="0 0 32 32"
+      viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
-      <g fill="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeMiterlimit="10">
-        <path d="M16 27V31" fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
-        <path
-          d="M16 23C19.866 23 23 19.866 23 16C23 12.134 19.866 9 16 9C12.134 9 9 12.134 9 16C9 19.866 12.134 23 16 23Z"
+      <g fill="currentColor">
+        <line
           fill="none"
           stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="1"
+          x2="5.75"
+          y1="9"
+          y2="9"
+        />
+        <line
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="17"
+          x2="12.25"
+          y1="9"
+          y2="9"
+        />
+        <circle
+          cx="9"
+          cy="9"
+          fill="none"
+          r="3.25"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <path d="M16 1.00012V9.00012" fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
       </g>
     </svg>
   );

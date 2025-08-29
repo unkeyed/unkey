@@ -12,20 +12,28 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Bolt: React.FC<IconProps> = ({ size = "xl-thin", filled, ...props }) => {
+export const DoubleChevronLeft: React.FC<IconProps> = ({ size = "xl-thin", filled, ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
-      <g>
-        <path
-          d="m8.597,16.41l5.872-8.265c.118-.166,0-.395-.204-.395h-5.016l.604-5.98c.037-.26-.299-.394-.451-.18L3.531,9.855c-.118.166,0,.395.204.395h5.016l-.604,5.98c-.037.26.299.394.451.18Z"
+      <g fill="currentColor">
+        <polyline
           fill="none"
+          points="8.25 13.25 4 9 8.25 4.75"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <polyline
+          fill="none"
+          points="13 13.25 8.75 9 13 4.75"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"

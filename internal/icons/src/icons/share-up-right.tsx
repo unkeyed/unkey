@@ -12,19 +12,38 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Bolt: React.FC<IconProps> = ({ size = "xl-thin", filled, ...props }) => {
+export const ShareUpRight: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
   const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
-      <g>
+      <g fill="currentColor">
+        <polyline
+          fill="none"
+          points="10.5 2.75 15.25 2.75 15.25 7.5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <line
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="15.25"
+          x2="9"
+          y1="2.75"
+          y2="9"
+        />
         <path
-          d="m8.597,16.41l5.872-8.265c.118-.166,0-.395-.204-.395h-5.016l.604-5.98c.037-.26-.299-.394-.451-.18L3.531,9.855c-.118.166,0,.395.204.395h5.016l-.604,5.98c-.037.26.299.394.451.18Z"
+          d="M15.25,10.5v2.75c0,1.105-.895,2-2,2H4.75c-1.105,0-2-.895-2-2V4.75c0-1.105,.895-2,2-2h2.75"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
