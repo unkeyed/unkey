@@ -1,11 +1,11 @@
+import { useFilters } from "@/app/(app)/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import { useFilters } from "../../../hooks/use-filters";
 
-export const LogsDateTime = () => {
+export const NamespaceListDateTime = () => {
   const [title, setTitle] = useState<string | null>(null);
   const { filters, updateFilters } = useFilters();
 

@@ -7,7 +7,7 @@ export function ProjectsListNavigation() {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube size="md-medium" className="text-gray-12" />}>
-        <Navbar.Breadcrumbs.Link href="/projects" active className="font-medium">
+        <Navbar.Breadcrumbs.Link href="/projects" active>
           Projects
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
