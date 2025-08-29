@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/ctrl/v1/version.proto
+// source: proto/ctrl/v1/deployment.proto
 
 package ctrlv1
 
@@ -21,69 +21,69 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Version status enum
-type VersionStatus int32
+// Deployment status enum
+type DeploymentStatus int32
 
 const (
-	VersionStatus_VERSION_STATUS_UNSPECIFIED VersionStatus = 0
-	VersionStatus_VERSION_STATUS_PENDING     VersionStatus = 1
-	VersionStatus_VERSION_STATUS_BUILDING    VersionStatus = 2
-	VersionStatus_VERSION_STATUS_DEPLOYING   VersionStatus = 3
-	VersionStatus_VERSION_STATUS_ACTIVE      VersionStatus = 4
-	VersionStatus_VERSION_STATUS_FAILED      VersionStatus = 5
-	VersionStatus_VERSION_STATUS_ARCHIVED    VersionStatus = 6
+	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED DeploymentStatus = 0
+	DeploymentStatus_DEPLOYMENT_STATUS_PENDING     DeploymentStatus = 1
+	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING    DeploymentStatus = 2
+	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING   DeploymentStatus = 3
+	DeploymentStatus_DEPLOYMENT_STATUS_ACTIVE      DeploymentStatus = 4
+	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 5
+	DeploymentStatus_DEPLOYMENT_STATUS_ARCHIVED    DeploymentStatus = 6
 )
 
-// Enum value maps for VersionStatus.
+// Enum value maps for DeploymentStatus.
 var (
-	VersionStatus_name = map[int32]string{
-		0: "VERSION_STATUS_UNSPECIFIED",
-		1: "VERSION_STATUS_PENDING",
-		2: "VERSION_STATUS_BUILDING",
-		3: "VERSION_STATUS_DEPLOYING",
-		4: "VERSION_STATUS_ACTIVE",
-		5: "VERSION_STATUS_FAILED",
-		6: "VERSION_STATUS_ARCHIVED",
+	DeploymentStatus_name = map[int32]string{
+		0: "DEPLOYMENT_STATUS_UNSPECIFIED",
+		1: "DEPLOYMENT_STATUS_PENDING",
+		2: "DEPLOYMENT_STATUS_BUILDING",
+		3: "DEPLOYMENT_STATUS_DEPLOYING",
+		4: "DEPLOYMENT_STATUS_ACTIVE",
+		5: "DEPLOYMENT_STATUS_FAILED",
+		6: "DEPLOYMENT_STATUS_ARCHIVED",
 	}
-	VersionStatus_value = map[string]int32{
-		"VERSION_STATUS_UNSPECIFIED": 0,
-		"VERSION_STATUS_PENDING":     1,
-		"VERSION_STATUS_BUILDING":    2,
-		"VERSION_STATUS_DEPLOYING":   3,
-		"VERSION_STATUS_ACTIVE":      4,
-		"VERSION_STATUS_FAILED":      5,
-		"VERSION_STATUS_ARCHIVED":    6,
+	DeploymentStatus_value = map[string]int32{
+		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
+		"DEPLOYMENT_STATUS_PENDING":     1,
+		"DEPLOYMENT_STATUS_BUILDING":    2,
+		"DEPLOYMENT_STATUS_DEPLOYING":   3,
+		"DEPLOYMENT_STATUS_ACTIVE":      4,
+		"DEPLOYMENT_STATUS_FAILED":      5,
+		"DEPLOYMENT_STATUS_ARCHIVED":    6,
 	}
 )
 
-func (x VersionStatus) Enum() *VersionStatus {
-	p := new(VersionStatus)
+func (x DeploymentStatus) Enum() *DeploymentStatus {
+	p := new(DeploymentStatus)
 	*p = x
 	return p
 }
 
-func (x VersionStatus) String() string {
+func (x DeploymentStatus) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (VersionStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_ctrl_v1_version_proto_enumTypes[0].Descriptor()
+func (DeploymentStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_ctrl_v1_deployment_proto_enumTypes[0].Descriptor()
 }
 
-func (VersionStatus) Type() protoreflect.EnumType {
-	return &file_proto_ctrl_v1_version_proto_enumTypes[0]
+func (DeploymentStatus) Type() protoreflect.EnumType {
+	return &file_proto_ctrl_v1_deployment_proto_enumTypes[0]
 }
 
-func (x VersionStatus) Number() protoreflect.EnumNumber {
+func (x DeploymentStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use VersionStatus.Descriptor instead.
-func (VersionStatus) EnumDescriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use DeploymentStatus.Descriptor instead.
+func (DeploymentStatus) EnumDescriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
-// Source type for version creation
+// Source type for deployment creation
 type SourceType int32
 
 const (
@@ -117,11 +117,11 @@ func (x SourceType) String() string {
 }
 
 func (SourceType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_ctrl_v1_version_proto_enumTypes[1].Descriptor()
+	return file_proto_ctrl_v1_deployment_proto_enumTypes[1].Descriptor()
 }
 
 func (SourceType) Type() protoreflect.EnumType {
-	return &file_proto_ctrl_v1_version_proto_enumTypes[1]
+	return &file_proto_ctrl_v1_deployment_proto_enumTypes[1]
 }
 
 func (x SourceType) Number() protoreflect.EnumNumber {
@@ -130,10 +130,10 @@ func (x SourceType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SourceType.Descriptor instead.
 func (SourceType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{1}
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
-type CreateVersionRequest struct {
+type CreateDeploymentRequest struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	WorkspaceId string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
@@ -153,21 +153,21 @@ type CreateVersionRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateVersionRequest) Reset() {
-	*x = CreateVersionRequest{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[0]
+func (x *CreateDeploymentRequest) Reset() {
+	*x = CreateDeploymentRequest{}
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateVersionRequest) String() string {
+func (x *CreateDeploymentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateVersionRequest) ProtoMessage() {}
+func (*CreateDeploymentRequest) ProtoMessage() {}
 
-func (x *CreateVersionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[0]
+func (x *CreateDeploymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,97 +178,97 @@ func (x *CreateVersionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateVersionRequest.ProtoReflect.Descriptor instead.
-func (*CreateVersionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use CreateDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*CreateDeploymentRequest) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateVersionRequest) GetWorkspaceId() string {
+func (x *CreateDeploymentRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetProjectId() string {
+func (x *CreateDeploymentRequest) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetBranch() string {
+func (x *CreateDeploymentRequest) GetBranch() string {
 	if x != nil {
 		return x.Branch
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetSourceType() SourceType {
+func (x *CreateDeploymentRequest) GetSourceType() SourceType {
 	if x != nil {
 		return x.SourceType
 	}
 	return SourceType_SOURCE_TYPE_UNSPECIFIED
 }
 
-func (x *CreateVersionRequest) GetGitCommitSha() string {
+func (x *CreateDeploymentRequest) GetGitCommitSha() string {
 	if x != nil {
 		return x.GitCommitSha
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetEnvironmentId() string {
+func (x *CreateDeploymentRequest) GetEnvironmentId() string {
 	if x != nil {
 		return x.EnvironmentId
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetDockerImageTag() string {
+func (x *CreateDeploymentRequest) GetDockerImageTag() string {
 	if x != nil {
 		return x.DockerImageTag
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetHostname() string {
+func (x *CreateDeploymentRequest) GetHostname() string {
 	if x != nil {
 		return x.Hostname
 	}
 	return ""
 }
 
-func (x *CreateVersionRequest) GetKeyspaceId() string {
+func (x *CreateDeploymentRequest) GetKeyspaceId() string {
 	if x != nil {
 		return x.KeyspaceId
 	}
 	return ""
 }
 
-type CreateVersionResponse struct {
+type CreateDeploymentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	VersionId     string                 `protobuf:"bytes,1,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
-	Status        VersionStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.VersionStatus" json:"status,omitempty"` // Will be PENDING or BUILDING
+	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	Status        DeploymentStatus       `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.DeploymentStatus" json:"status,omitempty"` // Will be PENDING or BUILDING
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateVersionResponse) Reset() {
-	*x = CreateVersionResponse{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[1]
+func (x *CreateDeploymentResponse) Reset() {
+	*x = CreateDeploymentResponse{}
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateVersionResponse) String() string {
+func (x *CreateDeploymentResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateVersionResponse) ProtoMessage() {}
+func (*CreateDeploymentResponse) ProtoMessage() {}
 
-func (x *CreateVersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[1]
+func (x *CreateDeploymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -279,47 +279,47 @@ func (x *CreateVersionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateVersionResponse.ProtoReflect.Descriptor instead.
-func (*CreateVersionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use CreateDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*CreateDeploymentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateVersionResponse) GetVersionId() string {
+func (x *CreateDeploymentResponse) GetDeploymentId() string {
 	if x != nil {
-		return x.VersionId
+		return x.DeploymentId
 	}
 	return ""
 }
 
-func (x *CreateVersionResponse) GetStatus() VersionStatus {
+func (x *CreateDeploymentResponse) GetStatus() DeploymentStatus {
 	if x != nil {
 		return x.Status
 	}
-	return VersionStatus_VERSION_STATUS_UNSPECIFIED
+	return DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 }
 
-type GetVersionRequest struct {
+type GetDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	VersionId     string                 `protobuf:"bytes,1,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
+	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetVersionRequest) Reset() {
-	*x = GetVersionRequest{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[2]
+func (x *GetDeploymentRequest) Reset() {
+	*x = GetDeploymentRequest{}
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetVersionRequest) String() string {
+func (x *GetDeploymentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetVersionRequest) ProtoMessage() {}
+func (*GetDeploymentRequest) ProtoMessage() {}
 
-func (x *GetVersionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[2]
+func (x *GetDeploymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,40 +330,40 @@ func (x *GetVersionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetVersionRequest.ProtoReflect.Descriptor instead.
-func (*GetVersionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use GetDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*GetDeploymentRequest) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GetVersionRequest) GetVersionId() string {
+func (x *GetDeploymentRequest) GetDeploymentId() string {
 	if x != nil {
-		return x.VersionId
+		return x.DeploymentId
 	}
 	return ""
 }
 
-type GetVersionResponse struct {
+type GetDeploymentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       *Version               `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Deployment    *Deployment            `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetVersionResponse) Reset() {
-	*x = GetVersionResponse{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[3]
+func (x *GetDeploymentResponse) Reset() {
+	*x = GetDeploymentResponse{}
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetVersionResponse) String() string {
+func (x *GetDeploymentResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetVersionResponse) ProtoMessage() {}
+func (*GetDeploymentResponse) ProtoMessage() {}
 
-func (x *GetVersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[3]
+func (x *GetDeploymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,19 +374,19 @@ func (x *GetVersionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetVersionResponse.ProtoReflect.Descriptor instead.
-func (*GetVersionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use GetDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*GetDeploymentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetVersionResponse) GetVersion() *Version {
+func (x *GetDeploymentResponse) GetDeployment() *Deployment {
 	if x != nil {
-		return x.Version
+		return x.Deployment
 	}
 	return nil
 }
 
-type Version struct {
+type Deployment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
@@ -396,8 +396,8 @@ type Version struct {
 	GitCommitSha string `protobuf:"bytes,5,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
 	GitBranch    string `protobuf:"bytes,6,opt,name=git_branch,json=gitBranch,proto3" json:"git_branch,omitempty"`
 	// Status and lifecycle
-	Status       VersionStatus `protobuf:"varint,7,opt,name=status,proto3,enum=ctrl.v1.VersionStatus" json:"status,omitempty"`
-	ErrorMessage string        `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"` // For failed versions
+	Status       DeploymentStatus `protobuf:"varint,7,opt,name=status,proto3,enum=ctrl.v1.DeploymentStatus" json:"status,omitempty"`
+	ErrorMessage string           `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"` // For failed deployments
 	// Configuration snapshot (resolved at creation time)
 	EnvironmentVariables map[string]string `protobuf:"bytes,9,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Topology configuration
@@ -405,32 +405,32 @@ type Version struct {
 	// Timestamps
 	CreatedAt int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt int64 `protobuf:"varint,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	// Associated hostnames for this version
+	// Associated hostnames for this deployment
 	Hostnames []string `protobuf:"bytes,13,rep,name=hostnames,proto3" json:"hostnames,omitempty"`
 	// Build information
 	RootfsImageId string `protobuf:"bytes,14,opt,name=rootfs_image_id,json=rootfsImageId,proto3" json:"rootfs_image_id,omitempty"`
 	BuildId       string `protobuf:"bytes,15,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
 	// Deployment steps
-	Steps         []*VersionStep `protobuf:"bytes,16,rep,name=steps,proto3" json:"steps,omitempty"`
+	Steps         []*DeploymentStep `protobuf:"bytes,16,rep,name=steps,proto3" json:"steps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Version) Reset() {
-	*x = Version{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[4]
+func (x *Deployment) Reset() {
+	*x = Deployment{}
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Version) String() string {
+func (x *Deployment) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Version) ProtoMessage() {}
+func (*Deployment) ProtoMessage() {}
 
-func (x *Version) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[4]
+func (x *Deployment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,124 +441,124 @@ func (x *Version) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Version.ProtoReflect.Descriptor instead.
-func (*Version) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{4}
+// Deprecated: Use Deployment.ProtoReflect.Descriptor instead.
+func (*Deployment) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *Version) GetId() string {
+func (x *Deployment) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *Version) GetWorkspaceId() string {
+func (x *Deployment) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-func (x *Version) GetProjectId() string {
+func (x *Deployment) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
 	}
 	return ""
 }
 
-func (x *Version) GetEnvironmentId() string {
+func (x *Deployment) GetEnvironmentId() string {
 	if x != nil {
 		return x.EnvironmentId
 	}
 	return ""
 }
 
-func (x *Version) GetGitCommitSha() string {
+func (x *Deployment) GetGitCommitSha() string {
 	if x != nil {
 		return x.GitCommitSha
 	}
 	return ""
 }
 
-func (x *Version) GetGitBranch() string {
+func (x *Deployment) GetGitBranch() string {
 	if x != nil {
 		return x.GitBranch
 	}
 	return ""
 }
 
-func (x *Version) GetStatus() VersionStatus {
+func (x *Deployment) GetStatus() DeploymentStatus {
 	if x != nil {
 		return x.Status
 	}
-	return VersionStatus_VERSION_STATUS_UNSPECIFIED
+	return DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 }
 
-func (x *Version) GetErrorMessage() string {
+func (x *Deployment) GetErrorMessage() string {
 	if x != nil {
 		return x.ErrorMessage
 	}
 	return ""
 }
 
-func (x *Version) GetEnvironmentVariables() map[string]string {
+func (x *Deployment) GetEnvironmentVariables() map[string]string {
 	if x != nil {
 		return x.EnvironmentVariables
 	}
 	return nil
 }
 
-func (x *Version) GetTopology() *Topology {
+func (x *Deployment) GetTopology() *Topology {
 	if x != nil {
 		return x.Topology
 	}
 	return nil
 }
 
-func (x *Version) GetCreatedAt() int64 {
+func (x *Deployment) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return 0
 }
 
-func (x *Version) GetUpdatedAt() int64 {
+func (x *Deployment) GetUpdatedAt() int64 {
 	if x != nil {
 		return x.UpdatedAt
 	}
 	return 0
 }
 
-func (x *Version) GetHostnames() []string {
+func (x *Deployment) GetHostnames() []string {
 	if x != nil {
 		return x.Hostnames
 	}
 	return nil
 }
 
-func (x *Version) GetRootfsImageId() string {
+func (x *Deployment) GetRootfsImageId() string {
 	if x != nil {
 		return x.RootfsImageId
 	}
 	return ""
 }
 
-func (x *Version) GetBuildId() string {
+func (x *Deployment) GetBuildId() string {
 	if x != nil {
 		return x.BuildId
 	}
 	return ""
 }
 
-func (x *Version) GetSteps() []*VersionStep {
+func (x *Deployment) GetSteps() []*DeploymentStep {
 	if x != nil {
 		return x.Steps
 	}
 	return nil
 }
 
-type VersionStep struct {
+type DeploymentStep struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
@@ -568,21 +568,21 @@ type VersionStep struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *VersionStep) Reset() {
-	*x = VersionStep{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
+func (x *DeploymentStep) Reset() {
+	*x = DeploymentStep{}
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *VersionStep) String() string {
+func (x *DeploymentStep) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*VersionStep) ProtoMessage() {}
+func (*DeploymentStep) ProtoMessage() {}
 
-func (x *VersionStep) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[5]
+func (x *DeploymentStep) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -593,33 +593,33 @@ func (x *VersionStep) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use VersionStep.ProtoReflect.Descriptor instead.
-func (*VersionStep) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use DeploymentStep.ProtoReflect.Descriptor instead.
+func (*DeploymentStep) Descriptor() ([]byte, []int) {
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *VersionStep) GetStatus() string {
+func (x *DeploymentStep) GetStatus() string {
 	if x != nil {
 		return x.Status
 	}
 	return ""
 }
 
-func (x *VersionStep) GetMessage() string {
+func (x *DeploymentStep) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *VersionStep) GetErrorMessage() string {
+func (x *DeploymentStep) GetErrorMessage() string {
 	if x != nil {
 		return x.ErrorMessage
 	}
 	return ""
 }
 
-func (x *VersionStep) GetCreatedAt() int64 {
+func (x *DeploymentStep) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
@@ -642,7 +642,7 @@ type Topology struct {
 
 func (x *Topology) Reset() {
 	*x = Topology{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -654,7 +654,7 @@ func (x *Topology) String() string {
 func (*Topology) ProtoMessage() {}
 
 func (x *Topology) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[6]
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,7 +667,7 @@ func (x *Topology) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topology.ProtoReflect.Descriptor instead.
 func (*Topology) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{6}
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Topology) GetCpuMillicores() int32 {
@@ -723,7 +723,7 @@ type RegionalConfig struct {
 
 func (x *RegionalConfig) Reset() {
 	*x = RegionalConfig{}
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[7]
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +735,7 @@ func (x *RegionalConfig) String() string {
 func (*RegionalConfig) ProtoMessage() {}
 
 func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_version_proto_msgTypes[7]
+	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +748,7 @@ func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegionalConfig.ProtoReflect.Descriptor instead.
 func (*RegionalConfig) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_version_proto_rawDescGZIP(), []int{7}
+	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RegionalConfig) GetRegion() string {
@@ -772,12 +772,12 @@ func (x *RegionalConfig) GetMaxInstances() int32 {
 	return 0
 }
 
-var File_proto_ctrl_v1_version_proto protoreflect.FileDescriptor
+var File_proto_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
-const file_proto_ctrl_v1_version_proto_rawDesc = "" +
+const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/version.proto\x12\actrl.v1\"\xda\x02\n" +
-	"\x14CreateVersionRequest\x12!\n" +
+	"\x1eproto/ctrl/v1/deployment.proto\x12\actrl.v1\"\xdd\x02\n" +
+	"\x17CreateDeploymentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
@@ -790,17 +790,18 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\bhostname\x18\t \x01(\tR\bhostname\x12\x1f\n" +
 	"\vkeyspace_id\x18\n" +
 	" \x01(\tR\n" +
-	"keyspaceId\"f\n" +
-	"\x15CreateVersionResponse\x12\x1d\n" +
+	"keyspaceId\"r\n" +
+	"\x18CreateDeploymentResponse\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
+	"\x14GetDeploymentRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"L\n" +
+	"\x15GetDeploymentResponse\x123\n" +
 	"\n" +
-	"version_id\x18\x01 \x01(\tR\tversionId\x12.\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x16.ctrl.v1.VersionStatusR\x06status\"2\n" +
-	"\x11GetVersionRequest\x12\x1d\n" +
+	"deployment\x18\x01 \x01(\v2\x13.ctrl.v1.DeploymentR\n" +
+	"deployment\"\xcc\x05\n" +
 	"\n" +
-	"version_id\x18\x01 \x01(\tR\tversionId\"@\n" +
-	"\x12GetVersionResponse\x12*\n" +
-	"\aversion\x18\x01 \x01(\v2\x10.ctrl.v1.VersionR\aversion\"\xc0\x05\n" +
-	"\aVersion\x12\x0e\n" +
+	"Deployment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -808,10 +809,10 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12$\n" +
 	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12\x1d\n" +
 	"\n" +
-	"git_branch\x18\x06 \x01(\tR\tgitBranch\x12.\n" +
-	"\x06status\x18\a \x01(\x0e2\x16.ctrl.v1.VersionStatusR\x06status\x12#\n" +
-	"\rerror_message\x18\b \x01(\tR\ferrorMessage\x12_\n" +
-	"\x15environment_variables\x18\t \x03(\v2*.ctrl.v1.Version.EnvironmentVariablesEntryR\x14environmentVariables\x12-\n" +
+	"git_branch\x18\x06 \x01(\tR\tgitBranch\x121\n" +
+	"\x06status\x18\a \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\x12#\n" +
+	"\rerror_message\x18\b \x01(\tR\ferrorMessage\x12b\n" +
+	"\x15environment_variables\x18\t \x03(\v2-.ctrl.v1.Deployment.EnvironmentVariablesEntryR\x14environmentVariables\x12-\n" +
 	"\btopology\x18\n" +
 	" \x01(\v2\x11.ctrl.v1.TopologyR\btopology\x12\x1d\n" +
 	"\n" +
@@ -820,12 +821,12 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1c\n" +
 	"\thostnames\x18\r \x03(\tR\thostnames\x12&\n" +
 	"\x0frootfs_image_id\x18\x0e \x01(\tR\rrootfsImageId\x12\x19\n" +
-	"\bbuild_id\x18\x0f \x01(\tR\abuildId\x12*\n" +
-	"\x05steps\x18\x10 \x03(\v2\x14.ctrl.v1.VersionStepR\x05steps\x1aG\n" +
+	"\bbuild_id\x18\x0f \x01(\tR\abuildId\x12-\n" +
+	"\x05steps\x18\x10 \x03(\v2\x17.ctrl.v1.DeploymentStepR\x05steps\x1aG\n" +
 	"\x19EnvironmentVariablesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x83\x01\n" +
-	"\vVersionStep\x12\x16\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x86\x01\n" +
+	"\x0eDeploymentStep\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12\x1d\n" +
@@ -841,65 +842,64 @@ const file_proto_ctrl_v1_version_proto_rawDesc = "" +
 	"\x0eRegionalConfig\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12#\n" +
 	"\rmin_instances\x18\x02 \x01(\x05R\fminInstances\x12#\n" +
-	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances*\xd9\x01\n" +
-	"\rVersionStatus\x12\x1e\n" +
-	"\x1aVERSION_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16VERSION_STATUS_PENDING\x10\x01\x12\x1b\n" +
-	"\x17VERSION_STATUS_BUILDING\x10\x02\x12\x1c\n" +
-	"\x18VERSION_STATUS_DEPLOYING\x10\x03\x12\x19\n" +
-	"\x15VERSION_STATUS_ACTIVE\x10\x04\x12\x19\n" +
-	"\x15VERSION_STATUS_FAILED\x10\x05\x12\x1b\n" +
-	"\x17VERSION_STATUS_ARCHIVED\x10\x06*Z\n" +
+	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances*\xf1\x01\n" +
+	"\x10DeploymentStatus\x12!\n" +
+	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
+	"\x1aDEPLOYMENT_STATUS_BUILDING\x10\x02\x12\x1f\n" +
+	"\x1bDEPLOYMENT_STATUS_DEPLOYING\x10\x03\x12\x1c\n" +
+	"\x18DEPLOYMENT_STATUS_ACTIVE\x10\x04\x12\x1c\n" +
+	"\x18DEPLOYMENT_STATUS_FAILED\x10\x05\x12\x1e\n" +
+	"\x1aDEPLOYMENT_STATUS_ARCHIVED\x10\x06*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xab\x01\n" +
-	"\x0eVersionService\x12P\n" +
-	"\rCreateVersion\x12\x1d.ctrl.v1.CreateVersionRequest\x1a\x1e.ctrl.v1.CreateVersionResponse\"\x00\x12G\n" +
-	"\n" +
-	"GetVersion\x12\x1a.ctrl.v1.GetVersionRequest\x1a\x1b.ctrl.v1.GetVersionResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xc0\x01\n" +
+	"\x11DeploymentService\x12Y\n" +
+	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
+	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
-	file_proto_ctrl_v1_version_proto_rawDescOnce sync.Once
-	file_proto_ctrl_v1_version_proto_rawDescData []byte
+	file_proto_ctrl_v1_deployment_proto_rawDescOnce sync.Once
+	file_proto_ctrl_v1_deployment_proto_rawDescData []byte
 )
 
-func file_proto_ctrl_v1_version_proto_rawDescGZIP() []byte {
-	file_proto_ctrl_v1_version_proto_rawDescOnce.Do(func() {
-		file_proto_ctrl_v1_version_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_version_proto_rawDesc), len(file_proto_ctrl_v1_version_proto_rawDesc)))
+func file_proto_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
+	file_proto_ctrl_v1_deployment_proto_rawDescOnce.Do(func() {
+		file_proto_ctrl_v1_deployment_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_deployment_proto_rawDesc), len(file_proto_ctrl_v1_deployment_proto_rawDesc)))
 	})
-	return file_proto_ctrl_v1_version_proto_rawDescData
+	return file_proto_ctrl_v1_deployment_proto_rawDescData
 }
 
-var file_proto_ctrl_v1_version_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_ctrl_v1_version_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_ctrl_v1_version_proto_goTypes = []any{
-	(VersionStatus)(0),            // 0: ctrl.v1.VersionStatus
-	(SourceType)(0),               // 1: ctrl.v1.SourceType
-	(*CreateVersionRequest)(nil),  // 2: ctrl.v1.CreateVersionRequest
-	(*CreateVersionResponse)(nil), // 3: ctrl.v1.CreateVersionResponse
-	(*GetVersionRequest)(nil),     // 4: ctrl.v1.GetVersionRequest
-	(*GetVersionResponse)(nil),    // 5: ctrl.v1.GetVersionResponse
-	(*Version)(nil),               // 6: ctrl.v1.Version
-	(*VersionStep)(nil),           // 7: ctrl.v1.VersionStep
-	(*Topology)(nil),              // 8: ctrl.v1.Topology
-	(*RegionalConfig)(nil),        // 9: ctrl.v1.RegionalConfig
-	nil,                           // 10: ctrl.v1.Version.EnvironmentVariablesEntry
+var file_proto_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_proto_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_ctrl_v1_deployment_proto_goTypes = []any{
+	(DeploymentStatus)(0),            // 0: ctrl.v1.DeploymentStatus
+	(SourceType)(0),                  // 1: ctrl.v1.SourceType
+	(*CreateDeploymentRequest)(nil),  // 2: ctrl.v1.CreateDeploymentRequest
+	(*CreateDeploymentResponse)(nil), // 3: ctrl.v1.CreateDeploymentResponse
+	(*GetDeploymentRequest)(nil),     // 4: ctrl.v1.GetDeploymentRequest
+	(*GetDeploymentResponse)(nil),    // 5: ctrl.v1.GetDeploymentResponse
+	(*Deployment)(nil),               // 6: ctrl.v1.Deployment
+	(*DeploymentStep)(nil),           // 7: ctrl.v1.DeploymentStep
+	(*Topology)(nil),                 // 8: ctrl.v1.Topology
+	(*RegionalConfig)(nil),           // 9: ctrl.v1.RegionalConfig
+	nil,                              // 10: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
-var file_proto_ctrl_v1_version_proto_depIdxs = []int32{
-	1,  // 0: ctrl.v1.CreateVersionRequest.source_type:type_name -> ctrl.v1.SourceType
-	0,  // 1: ctrl.v1.CreateVersionResponse.status:type_name -> ctrl.v1.VersionStatus
-	6,  // 2: ctrl.v1.GetVersionResponse.version:type_name -> ctrl.v1.Version
-	0,  // 3: ctrl.v1.Version.status:type_name -> ctrl.v1.VersionStatus
-	10, // 4: ctrl.v1.Version.environment_variables:type_name -> ctrl.v1.Version.EnvironmentVariablesEntry
-	8,  // 5: ctrl.v1.Version.topology:type_name -> ctrl.v1.Topology
-	7,  // 6: ctrl.v1.Version.steps:type_name -> ctrl.v1.VersionStep
+var file_proto_ctrl_v1_deployment_proto_depIdxs = []int32{
+	1,  // 0: ctrl.v1.CreateDeploymentRequest.source_type:type_name -> ctrl.v1.SourceType
+	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
+	6,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
+	0,  // 3: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
+	10, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	8,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
+	7,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	9,  // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	2,  // 8: ctrl.v1.VersionService.CreateVersion:input_type -> ctrl.v1.CreateVersionRequest
-	4,  // 9: ctrl.v1.VersionService.GetVersion:input_type -> ctrl.v1.GetVersionRequest
-	3,  // 10: ctrl.v1.VersionService.CreateVersion:output_type -> ctrl.v1.CreateVersionResponse
-	5,  // 11: ctrl.v1.VersionService.GetVersion:output_type -> ctrl.v1.GetVersionResponse
+	2,  // 8: ctrl.v1.DeploymentService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
+	4,  // 9: ctrl.v1.DeploymentService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
+	3,  // 10: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	5,  // 11: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
 	10, // [10:12] is the sub-list for method output_type
 	8,  // [8:10] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
@@ -907,27 +907,27 @@ var file_proto_ctrl_v1_version_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_proto_ctrl_v1_version_proto_init() }
-func file_proto_ctrl_v1_version_proto_init() {
-	if File_proto_ctrl_v1_version_proto != nil {
+func init() { file_proto_ctrl_v1_deployment_proto_init() }
+func file_proto_ctrl_v1_deployment_proto_init() {
+	if File_proto_ctrl_v1_deployment_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_version_proto_rawDesc), len(file_proto_ctrl_v1_version_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_deployment_proto_rawDesc), len(file_proto_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_ctrl_v1_version_proto_goTypes,
-		DependencyIndexes: file_proto_ctrl_v1_version_proto_depIdxs,
-		EnumInfos:         file_proto_ctrl_v1_version_proto_enumTypes,
-		MessageInfos:      file_proto_ctrl_v1_version_proto_msgTypes,
+		GoTypes:           file_proto_ctrl_v1_deployment_proto_goTypes,
+		DependencyIndexes: file_proto_ctrl_v1_deployment_proto_depIdxs,
+		EnumInfos:         file_proto_ctrl_v1_deployment_proto_enumTypes,
+		MessageInfos:      file_proto_ctrl_v1_deployment_proto_msgTypes,
 	}.Build()
-	File_proto_ctrl_v1_version_proto = out.File
-	file_proto_ctrl_v1_version_proto_goTypes = nil
-	file_proto_ctrl_v1_version_proto_depIdxs = nil
+	File_proto_ctrl_v1_deployment_proto = out.File
+	file_proto_ctrl_v1_deployment_proto_goTypes = nil
+	file_proto_ctrl_v1_deployment_proto_depIdxs = nil
 }

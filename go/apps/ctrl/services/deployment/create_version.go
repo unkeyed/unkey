@@ -13,10 +13,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func (s *Service) CreateVersion(
+func (s *Service) CreateDeployment(
 	ctx context.Context,
-	req *connect.Request[ctrlv1.CreateVersionRequest],
-) (*connect.Response[ctrlv1.CreateVersionResponse], error) {
+	req *connect.Request[ctrlv1.CreateDeploymentRequest],
+) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
 	// Validate workspace exists
 	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 	if err != nil {
@@ -107,9 +107,9 @@ func (s *Service) CreateVersion(
 			"execution_id", executionID)
 	}
 
-	res := connect.NewResponse(&ctrlv1.CreateVersionResponse{
-		VersionId: deploymentID,
-		Status:    ctrlv1.VersionStatus_VERSION_STATUS_PENDING,
+	res := connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
+		DeploymentId: deploymentID,
+		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	})
 
 	return res, nil

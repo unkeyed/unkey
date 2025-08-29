@@ -4,25 +4,25 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
-// Version status enum
-enum VersionStatus {
-  VERSION_STATUS_UNSPECIFIED = 0;
-  VERSION_STATUS_PENDING = 1;
-  VERSION_STATUS_BUILDING = 2;
-  VERSION_STATUS_DEPLOYING = 3;
-  VERSION_STATUS_ACTIVE = 4;
-  VERSION_STATUS_FAILED = 5;
-  VERSION_STATUS_ARCHIVED = 6;
+// Deployment status enum
+enum DeploymentStatus {
+  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
+  DEPLOYMENT_STATUS_PENDING = 1;
+  DEPLOYMENT_STATUS_BUILDING = 2;
+  DEPLOYMENT_STATUS_DEPLOYING = 3;
+  DEPLOYMENT_STATUS_ACTIVE = 4;
+  DEPLOYMENT_STATUS_FAILED = 5;
+  DEPLOYMENT_STATUS_ARCHIVED = 6;
 }
 
-// Source type for version creation
+// Source type for deployment creation
 enum SourceType {
   SOURCE_TYPE_UNSPECIFIED = 0;
   SOURCE_TYPE_GIT = 1;
   SOURCE_TYPE_CLI_UPLOAD = 2;
 }
 
-message CreateVersionRequest {
+message CreateDeploymentRequest {
   string workspace_id = 1;
   string project_id = 2;
   string branch = 3;
@@ -39,20 +39,20 @@ message CreateVersionRequest {
   string keyspace_id = 10;
 }
 
-message CreateVersionResponse {
-  string version_id = 1;
-  VersionStatus status = 2; // Will be PENDING or BUILDING
+message CreateDeploymentResponse {
+  string deployment_id = 1;
+  DeploymentStatus status = 2; // Will be PENDING or BUILDING
 }
 
-message GetVersionRequest {
-  string version_id = 1;
+message GetDeploymentRequest {
+  string deployment_id = 1;
 }
 
-message GetVersionResponse {
-  Version version = 1;
+message GetDeploymentResponse {
+  Deployment deployment = 1;
 }
 
-message Version {
+message Deployment {
   string id = 1;
   string workspace_id = 2;
   string project_id = 3;
@@ -63,8 +63,8 @@ message Version {
   string git_branch = 6;
 
   // Status and lifecycle
-  VersionStatus status = 7;
-  string error_message = 8; // For failed versions
+  DeploymentStatus status = 7;
+  string error_message = 8; // For failed deployments
 
   // Configuration snapshot (resolved at creation time)
   map<string, string> environment_variables = 9;
@@ -76,7 +76,7 @@ message Version {
   int64 created_at = 11;
   int64 updated_at = 12;
 
-  // Associated hostnames for this version
+  // Associated hostnames for this deployment
   repeated string hostnames = 13;
 
   // Build information
@@ -84,10 +84,10 @@ message Version {
   string build_id = 15;
 
   // Deployment steps
-  repeated VersionStep steps = 16;
+  repeated DeploymentStep steps = 16;
 }
 
-message VersionStep {
+message DeploymentStep {
   string status = 1;
   string message = 2;
   string error_message = 3;
@@ -113,10 +113,10 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
-service VersionService {
-  // Create a new version
-  rpc CreateVersion(CreateVersionRequest) returns (CreateVersionResponse) {}
+service DeploymentService {
+  // Create a new deployment
+  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
-  // Get version details
-  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+  // Get deployment details
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
 }

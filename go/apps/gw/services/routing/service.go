@@ -92,12 +92,12 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 
 // SelectVM picks an available VM from the gateway's VM list using simple round-robin.
 func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
-	if !config.IsEnabled {
-		return nil, fmt.Errorf("gateway %s is disabled", config.DeploymentId)
+	if !config.Deployment.IsEnabled {
+		return nil, fmt.Errorf("gateway %s is disabled", config.Deployment.Id)
 	}
 
 	if len(config.Vms) == 0 {
-		return nil, fmt.Errorf("no VMs available for gateway %s", config.DeploymentId)
+		return nil, fmt.Errorf("no VMs available for gateway %s", config.Deployment.Id)
 	}
 
 	availableVms := make([]db.Vm, 0)
@@ -127,7 +127,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	if len(availableVms) == 0 {
-		return nil, fmt.Errorf("no available VMs for gateway %s", config.DeploymentId)
+		return nil, fmt.Errorf("no available VMs for gateway %s", config.Deployment.Id)
 	}
 
 	// select random VM

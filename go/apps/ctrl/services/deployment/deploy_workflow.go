@@ -57,28 +57,6 @@ type DeployRequest struct {
 	Hostname     string `json:"hostname"`
 }
 
-// BuildInfo holds build metadata from initialization step
-type BuildInfo struct {
-	BuildID     string `json:"build_id"`
-	WorkspaceID string `json:"workspace_id"`
-	ProjectID   string `json:"project_id"`
-	VersionID   string `json:"version_id"`
-	DockerImage string `json:"docker_image"`
-}
-
-// SubmissionResult holds the result of build submission
-type SubmissionResult struct {
-	BuildID   string `json:"build_id"`
-	Submitted bool   `json:"submitted"`
-}
-
-// BuildResult holds the final build outcome
-type BuildResult struct {
-	BuildID  string `json:"build_id"`
-	Status   string `json:"status"`
-	ErrorMsg string `json:"error_message,omitempty"`
-}
-
 // DeploymentResult holds the deployment outcome
 type DeploymentResult struct {
 	DeploymentID string `json:"deployment_id"`
@@ -180,7 +158,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				"docker_image":  req.DockerImage,
 				"exposed_ports": "8080/tcp",
 				"env_vars":      "PORT=8080",
-				"version_id":    req.DeploymentID,
+				"deployment_id": req.DeploymentID,
 				"workspace_id":  req.WorkspaceID,
 				"project_id":    req.ProjectID,
 				"created_by":    "deploy-workflow",
@@ -396,24 +374,23 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Create VM protobuf objects for gateway config
 		vms := []*partitionv1.VM{
 			{
-				Id:     createResult.VmId,
-				Region: "us-east-1", // TODO: make this configurable
+				Id: createResult.VmId,
 			},
 		}
 
 		gatewayConfig := &partitionv1.GatewayConfig{
-			DeploymentId: req.DeploymentID,
-			IsEnabled:    true,
-			Vms:          vms,
+			Deployment: &partitionv1.Deployment{
+				Id:        req.DeploymentID,
+				IsEnabled: true,
+			},
+			Vms: vms,
 		}
 
 		// Only add AuthConfig if we have a KeyspaceID
 		if req.KeyspaceID != "" {
 			gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
-				RequireApiKey:  true,
-				KeyspaceId:     req.KeyspaceID,
-				AllowAnonymous: false,
-				Enabled:        true,
+
+				KeyAuthId: req.KeyspaceID,
 			}
 		}
 
@@ -740,7 +717,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			gatewayConfig.ValidationConfig = &partitionv1.ValidationConfig{}
 		}
 		gatewayConfig.ValidationConfig.OpenapiSpec = openapiSpec
-		gatewayConfig.ValidationConfig.Enabled = true
 
 		// Marshal updated config
 		configBytes, err := proto.Marshal(&gatewayConfig)
