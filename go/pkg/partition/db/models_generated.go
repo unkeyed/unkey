@@ -54,49 +54,6 @@ func (ns NullMetalHostsStatus) Value() (driver.Value, error) {
 	return string(ns.MetalHostsStatus), nil
 }
 
-type VmsHealthStatus string
-
-const (
-	VmsHealthStatusUnknown   VmsHealthStatus = "unknown"
-	VmsHealthStatusHealthy   VmsHealthStatus = "healthy"
-	VmsHealthStatusUnhealthy VmsHealthStatus = "unhealthy"
-)
-
-func (e *VmsHealthStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VmsHealthStatus(s)
-	case string:
-		*e = VmsHealthStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VmsHealthStatus: %T", src)
-	}
-	return nil
-}
-
-type NullVmsHealthStatus struct {
-	VmsHealthStatus VmsHealthStatus
-	Valid           bool // Valid is true if VmsHealthStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVmsHealthStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.VmsHealthStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VmsHealthStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVmsHealthStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VmsHealthStatus), nil
-}
-
 type VmsStatus string
 
 const (
@@ -155,9 +112,10 @@ type Certificate struct {
 }
 
 type Gateway struct {
-	ID       uint64 `db:"id"`
-	Hostname string `db:"hostname"`
-	Config   []byte `db:"config"`
+	ID          uint64 `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
+	Hostname    string `db:"hostname"`
+	Config      []byte `db:"config"`
 }
 
 type MetalHost struct {
@@ -176,15 +134,11 @@ type MetalHost struct {
 }
 
 type Vm struct {
-	ID            string          `db:"id"`
-	DeploymentID  string          `db:"deployment_id"`
-	MetalHostID   sql.NullString  `db:"metal_host_id"`
-	Region        string          `db:"region"`
-	PrivateIp     sql.NullString  `db:"private_ip"`
-	Port          sql.NullInt32   `db:"port"`
-	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMb      int32           `db:"memory_mb"`
-	Status        VmsStatus       `db:"status"`
-	HealthStatus  VmsHealthStatus `db:"health_status"`
-	LastHeartbeat sql.NullInt64   `db:"last_heartbeat"`
+	ID            string         `db:"id"`
+	DeploymentID  string         `db:"deployment_id"`
+	MetalHostID   sql.NullString `db:"metal_host_id"`
+	Address       sql.NullString `db:"address"`
+	CpuMillicores int32          `db:"cpu_millicores"`
+	MemoryMb      int32          `db:"memory_mb"`
+	Status        VmsStatus      `db:"status"`
 }

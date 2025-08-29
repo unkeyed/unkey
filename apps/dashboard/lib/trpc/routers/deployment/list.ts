@@ -12,7 +12,9 @@ export const listDeployments = t.procedure
         where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
         orderBy: (table, { desc }) => [desc(table.createdAt)],
         with: {
-          project: true,
+        with: {
+          environment: { columns: { slug: true } },
+          project: { columns: { id: true, name: true, slug: true } },
         },
       });
 
@@ -22,9 +24,7 @@ export const listDeployments = t.procedure
           status: deployment.status,
           gitCommitSha: deployment.gitCommitSha,
           gitBranch: deployment.gitBranch,
-          environment: deployment.environment,
-          rootfsImageId: deployment.rootfsImageId,
-          buildId: deployment.buildId,
+          environment: deployment.environment.slug,
           createdAt: deployment.createdAt,
           updatedAt: deployment.updatedAt,
           project: deployment.project

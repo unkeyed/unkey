@@ -10,10 +10,10 @@ import (
 )
 
 const findIdentity = `-- name: FindIdentity :one
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at 
-FROM identities 
-WHERE workspace_id = ? 
- AND (external_id = ? OR id = ?) 
+SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+FROM identities
+WHERE workspace_id = ?
+ AND (external_id = ? OR id = ?)
  AND deleted = ?
 `
 

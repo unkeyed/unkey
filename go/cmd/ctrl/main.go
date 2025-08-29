@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
 var Cmd = &cli.Command{
@@ -62,15 +61,17 @@ var Cmd = &cli.Command{
 
 		// Vault Configuration
 		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
-			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
 		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
-			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_URL")),
 		cli.String("vault-s3-bucket", "S3 bucket name",
-			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
 		cli.String("vault-s3-access-key-id", "S3 access key ID",
-			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
-			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 	},
 	Action: action,
 }
@@ -90,16 +91,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		tlsConfig, err = tls.NewFromFiles(tlsCertFile, tlsKeyFile)
 		if err != nil {
 			return cli.Exit("Failed to load TLS configuration: "+err.Error(), 1)
-		}
-	}
-
-	var vaultS3Config *storage.S3Config
-	if cmd.String("vault-s3-url") != "" {
-		vaultS3Config = &storage.S3Config{
-			S3URL:             cmd.String("vault-s3-url"),
-			S3Bucket:          cmd.String("vault-s3-bucket"),
-			S3AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
-			S3AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 		}
 	}
 
@@ -130,7 +121,14 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
-		VaultS3:         vaultS3Config,
+		VaultS3: ctrl.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+		},
+
+		AcmeEnabled: cmd.Bool("acme-enabled"),
 
 		// Common
 		Clock: clock.New(),

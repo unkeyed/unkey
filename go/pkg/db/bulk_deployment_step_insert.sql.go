@@ -9,9 +9,8 @@ import (
 )
 
 // bulkInsertDeploymentStep is the base query for bulk insert
-const bulkInsertDeploymentStep = `INSERT INTO deployment_steps ( deployment_id, status, message, error_message, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkInsertDeploymentStep = `INSERT INTO deployment_steps ( workspace_id, project_id, deployment_id, status, message, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
     message = VALUES(message),
-    error_message = VALUES(error_message),
     created_at = VALUES(created_at)`
 
 // InsertDeploymentSteps performs bulk insert in a single query
@@ -24,7 +23,7 @@ func (q *BulkQueries) InsertDeploymentSteps(ctx context.Context, db DBTX, args [
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDeploymentStep, strings.Join(valueClauses, ", "))
@@ -32,10 +31,11 @@ func (q *BulkQueries) InsertDeploymentSteps(ctx context.Context, db DBTX, args [
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
+		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.Status)
 		allArgs = append(allArgs, arg.Message)
-		allArgs = append(allArgs, arg.ErrorMessage)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 

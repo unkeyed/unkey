@@ -24,23 +24,16 @@ const (
 // GatewayConfig contains all configuration needed for a hostname
 // including deployment metadata and middleware configurations
 type GatewayConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Routing configuration
-	IsEnabled bool `protobuf:"varint,1,opt,name=is_enabled,json=isEnabled,proto3" json:"is_enabled,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Project *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
 	// Deployment information
-	DeploymentId string `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	WorkspaceId  string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId    string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Environment  string `protobuf:"bytes,5,opt,name=environment,proto3" json:"environment,omitempty"`
-	Vms          []*VM  `protobuf:"bytes,6,rep,name=vms,proto3" json:"vms,omitempty"`
+	Deployment *Deployment `protobuf:"bytes,2,opt,name=deployment,proto3" json:"deployment,omitempty"`
+	Vms        []*VM       `protobuf:"bytes,3,rep,name=vms,proto3" json:"vms,omitempty"`
 	// Middleware configurations
-	AuthConfig       *AuthConfig       `protobuf:"bytes,10,opt,name=auth_config,json=authConfig,proto3" json:"auth_config,omitempty"`
-	ValidationConfig *ValidationConfig `protobuf:"bytes,11,opt,name=validation_config,json=validationConfig,proto3" json:"validation_config,omitempty"`
-	// Deployment metadata
-	GitCommitSha  string `protobuf:"bytes,20,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
-	GitBranch     string `protobuf:"bytes,21,opt,name=git_branch,json=gitBranch,proto3" json:"git_branch,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AuthConfig       *AuthConfig       `protobuf:"bytes,4,opt,name=auth_config,json=authConfig,proto3,oneof" json:"auth_config,omitempty"`
+	ValidationConfig *ValidationConfig `protobuf:"bytes,5,opt,name=validation_config,json=validationConfig,proto3,oneof" json:"validation_config,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GatewayConfig) Reset() {
@@ -73,39 +66,18 @@ func (*GatewayConfig) Descriptor() ([]byte, []int) {
 	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GatewayConfig) GetIsEnabled() bool {
+func (x *GatewayConfig) GetProject() *Project {
 	if x != nil {
-		return x.IsEnabled
+		return x.Project
 	}
-	return false
+	return nil
 }
 
-func (x *GatewayConfig) GetDeploymentId() string {
+func (x *GatewayConfig) GetDeployment() *Deployment {
 	if x != nil {
-		return x.DeploymentId
+		return x.Deployment
 	}
-	return ""
-}
-
-func (x *GatewayConfig) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
-}
-
-func (x *GatewayConfig) GetProjectId() string {
-	if x != nil {
-		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *GatewayConfig) GetEnvironment() string {
-	if x != nil {
-		return x.Environment
-	}
-	return ""
+	return nil
 }
 
 func (x *GatewayConfig) GetVms() []*VM {
@@ -129,31 +101,120 @@ func (x *GatewayConfig) GetValidationConfig() *ValidationConfig {
 	return nil
 }
 
-func (x *GatewayConfig) GetGitCommitSha() string {
+type Deployment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	IsEnabled     bool                   `protobuf:"varint,2,opt,name=is_enabled,json=isEnabled,proto3" json:"is_enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Deployment) Reset() {
+	*x = Deployment{}
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Deployment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Deployment) ProtoMessage() {}
+
+func (x *Deployment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[1]
 	if x != nil {
-		return x.GitCommitSha
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Deployment.ProtoReflect.Descriptor instead.
+func (*Deployment) Descriptor() ([]byte, []int) {
+	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Deployment) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
 
-func (x *GatewayConfig) GetGitBranch() string {
+func (x *Deployment) GetIsEnabled() bool {
 	if x != nil {
-		return x.GitBranch
+		return x.IsEnabled
+	}
+	return false
+}
+
+type Project struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	IsEnabled     bool                   `protobuf:"varint,2,opt,name=is_enabled,json=isEnabled,proto3" json:"is_enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Project) Reset() {
+	*x = Project{}
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Project) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Project) ProtoMessage() {}
+
+func (x *Project) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Project.ProtoReflect.Descriptor instead.
+func (*Project) Descriptor() ([]byte, []int) {
+	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Project) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
+}
+
+func (x *Project) GetIsEnabled() bool {
+	if x != nil {
+		return x.IsEnabled
+	}
+	return false
 }
 
 type VM struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Region        string                 `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VM) Reset() {
 	*x = VM{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[1]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +226,7 @@ func (x *VM) String() string {
 func (*VM) ProtoMessage() {}
 
 func (x *VM) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[1]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +239,7 @@ func (x *VM) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VM.ProtoReflect.Descriptor instead.
 func (*VM) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{1}
+	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *VM) GetId() string {
@@ -188,27 +249,17 @@ func (x *VM) GetId() string {
 	return ""
 }
 
-func (x *VM) GetRegion() string {
-	if x != nil {
-		return x.Region
-	}
-	return ""
-}
-
 // Authentication middleware configuration
 type AuthConfig struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	RequireApiKey  bool                   `protobuf:"varint,1,opt,name=require_api_key,json=requireApiKey,proto3" json:"require_api_key,omitempty"`
-	KeyspaceId     string                 `protobuf:"bytes,2,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
-	AllowAnonymous bool                   `protobuf:"varint,3,opt,name=allow_anonymous,json=allowAnonymous,proto3" json:"allow_anonymous,omitempty"`
-	Enabled        bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KeyAuthId     string                 `protobuf:"bytes,1,opt,name=key_auth_id,json=keyAuthId,proto3" json:"key_auth_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuthConfig) Reset() {
 	*x = AuthConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[2]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -220,7 +271,7 @@ func (x *AuthConfig) String() string {
 func (*AuthConfig) ProtoMessage() {}
 
 func (x *AuthConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[2]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -233,49 +284,27 @@ func (x *AuthConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthConfig.ProtoReflect.Descriptor instead.
 func (*AuthConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{2}
+	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *AuthConfig) GetRequireApiKey() bool {
+func (x *AuthConfig) GetKeyAuthId() string {
 	if x != nil {
-		return x.RequireApiKey
-	}
-	return false
-}
-
-func (x *AuthConfig) GetKeyspaceId() string {
-	if x != nil {
-		return x.KeyspaceId
+		return x.KeyAuthId
 	}
 	return ""
-}
-
-func (x *AuthConfig) GetAllowAnonymous() bool {
-	if x != nil {
-		return x.AllowAnonymous
-	}
-	return false
-}
-
-func (x *AuthConfig) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
 }
 
 // Request validation middleware configuration
 type ValidationConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	OpenapiSpec   string                 `protobuf:"bytes,2,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
+	OpenapiSpec   string                 `protobuf:"bytes,1,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ValidationConfig) Reset() {
 	*x = ValidationConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +316,7 @@ func (x *ValidationConfig) String() string {
 func (*ValidationConfig) ProtoMessage() {}
 
 func (x *ValidationConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
+	mi := &file_proto_partition_v1_gateway_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,14 +329,7 @@ func (x *ValidationConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidationConfig.ProtoReflect.Descriptor instead.
 func (*ValidationConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ValidationConfig) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
+	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ValidationConfig) GetOpenapiSpec() string {
@@ -321,36 +343,34 @@ var File_proto_partition_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_proto_partition_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	" proto/partition/v1/gateway.proto\x12\fpartition.v1\"\xa8\x03\n" +
-	"\rGatewayConfig\x12\x1d\n" +
+	" proto/partition/v1/gateway.proto\x12\fpartition.v1\"\xd6\x02\n" +
+	"\rGatewayConfig\x12/\n" +
+	"\aproject\x18\x01 \x01(\v2\x15.partition.v1.ProjectR\aproject\x128\n" +
 	"\n" +
-	"is_enabled\x18\x01 \x01(\bR\tisEnabled\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12!\n" +
-	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"deployment\x18\x02 \x01(\v2\x18.partition.v1.DeploymentR\n" +
+	"deployment\x12\"\n" +
+	"\x03vms\x18\x03 \x03(\v2\x10.partition.v1.VMR\x03vms\x12>\n" +
+	"\vauth_config\x18\x04 \x01(\v2\x18.partition.v1.AuthConfigH\x00R\n" +
+	"authConfig\x88\x01\x01\x12P\n" +
+	"\x11validation_config\x18\x05 \x01(\v2\x1e.partition.v1.ValidationConfigH\x01R\x10validationConfig\x88\x01\x01B\x0e\n" +
+	"\f_auth_configB\x14\n" +
+	"\x12_validation_config\";\n" +
 	"\n" +
-	"project_id\x18\x04 \x01(\tR\tprojectId\x12 \n" +
-	"\venvironment\x18\x05 \x01(\tR\venvironment\x12\"\n" +
-	"\x03vms\x18\x06 \x03(\v2\x10.partition.v1.VMR\x03vms\x129\n" +
-	"\vauth_config\x18\n" +
-	" \x01(\v2\x18.partition.v1.AuthConfigR\n" +
-	"authConfig\x12K\n" +
-	"\x11validation_config\x18\v \x01(\v2\x1e.partition.v1.ValidationConfigR\x10validationConfig\x12$\n" +
-	"\x0egit_commit_sha\x18\x14 \x01(\tR\fgitCommitSha\x12\x1d\n" +
+	"Deployment\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"git_branch\x18\x15 \x01(\tR\tgitBranch\",\n" +
+	"is_enabled\x18\x02 \x01(\bR\tisEnabled\"8\n" +
+	"\aProject\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"is_enabled\x18\x02 \x01(\bR\tisEnabled\"\x14\n" +
 	"\x02VM\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06region\x18\x02 \x01(\tR\x06region\"\x98\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\",\n" +
 	"\n" +
-	"AuthConfig\x12&\n" +
-	"\x0frequire_api_key\x18\x01 \x01(\bR\rrequireApiKey\x12\x1f\n" +
-	"\vkeyspace_id\x18\x02 \x01(\tR\n" +
-	"keyspaceId\x12'\n" +
-	"\x0fallow_anonymous\x18\x03 \x01(\bR\x0eallowAnonymous\x12\x18\n" +
-	"\aenabled\x18\x04 \x01(\bR\aenabled\"O\n" +
-	"\x10ValidationConfig\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
-	"\fopenapi_spec\x18\x02 \x01(\tR\vopenapiSpecB@Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1b\x06proto3"
+	"AuthConfig\x12\x1e\n" +
+	"\vkey_auth_id\x18\x01 \x01(\tR\tkeyAuthId\"5\n" +
+	"\x10ValidationConfig\x12!\n" +
+	"\fopenapi_spec\x18\x01 \x01(\tR\vopenapiSpecB@Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1b\x06proto3"
 
 var (
 	file_proto_partition_v1_gateway_proto_rawDescOnce sync.Once
@@ -364,22 +384,26 @@ func file_proto_partition_v1_gateway_proto_rawDescGZIP() []byte {
 	return file_proto_partition_v1_gateway_proto_rawDescData
 }
 
-var file_proto_partition_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_partition_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_partition_v1_gateway_proto_goTypes = []any{
 	(*GatewayConfig)(nil),    // 0: partition.v1.GatewayConfig
-	(*VM)(nil),               // 1: partition.v1.VM
-	(*AuthConfig)(nil),       // 2: partition.v1.AuthConfig
-	(*ValidationConfig)(nil), // 3: partition.v1.ValidationConfig
+	(*Deployment)(nil),       // 1: partition.v1.Deployment
+	(*Project)(nil),          // 2: partition.v1.Project
+	(*VM)(nil),               // 3: partition.v1.VM
+	(*AuthConfig)(nil),       // 4: partition.v1.AuthConfig
+	(*ValidationConfig)(nil), // 5: partition.v1.ValidationConfig
 }
 var file_proto_partition_v1_gateway_proto_depIdxs = []int32{
-	1, // 0: partition.v1.GatewayConfig.vms:type_name -> partition.v1.VM
-	2, // 1: partition.v1.GatewayConfig.auth_config:type_name -> partition.v1.AuthConfig
-	3, // 2: partition.v1.GatewayConfig.validation_config:type_name -> partition.v1.ValidationConfig
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: partition.v1.GatewayConfig.project:type_name -> partition.v1.Project
+	1, // 1: partition.v1.GatewayConfig.deployment:type_name -> partition.v1.Deployment
+	3, // 2: partition.v1.GatewayConfig.vms:type_name -> partition.v1.VM
+	4, // 3: partition.v1.GatewayConfig.auth_config:type_name -> partition.v1.AuthConfig
+	5, // 4: partition.v1.GatewayConfig.validation_config:type_name -> partition.v1.ValidationConfig
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_proto_partition_v1_gateway_proto_init() }
@@ -387,13 +411,14 @@ func file_proto_partition_v1_gateway_proto_init() {
 	if File_proto_partition_v1_gateway_proto != nil {
 		return
 	}
+	file_proto_partition_v1_gateway_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_partition_v1_gateway_proto_rawDesc), len(file_proto_partition_v1_gateway_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

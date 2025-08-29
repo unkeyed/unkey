@@ -12,37 +12,37 @@ import (
 
 const updateKey = `-- name: UpdateKey :exec
 UPDATE ` + "`" + `keys` + "`" + ` k SET
-    name = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.name 
+    name = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.name
     END,
-    identity_id = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.identity_id 
+    identity_id = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.identity_id
     END,
-    enabled = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.enabled 
+    enabled = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.enabled
     END,
-    meta = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.meta 
+    meta = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.meta
     END,
-    expires = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.expires 
+    expires = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.expires
     END,
-    remaining_requests = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.remaining_requests 
+    remaining_requests = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.remaining_requests
     END,
-    refill_amount = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.refill_amount 
+    refill_amount = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.refill_amount
     END,
-    refill_day = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
-        ELSE k.refill_day 
+    refill_day = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE k.refill_day
     END,
     updated_at_m = ?
 WHERE id = ?

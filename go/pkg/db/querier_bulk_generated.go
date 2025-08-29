@@ -6,14 +6,13 @@ import "context"
 
 // BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
+	InsertAcmeChallenges(ctx context.Context, db DBTX, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
-	InsertBuilds(ctx context.Context, db DBTX, args []InsertBuildParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
-	InsertDomainChallenges(ctx context.Context, db DBTX, args []InsertDomainChallengeParams) error
 	InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
@@ -29,7 +28,6 @@ type BulkQuerier interface {
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
-	InsertHostnameRoutes(ctx context.Context, db DBTX, args []InsertHostnameRouteParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 }
 

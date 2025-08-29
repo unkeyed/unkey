@@ -86,7 +86,8 @@ export type UnkeyAuditLog = {
       | "secret"
       | "project"
       | "identity"
-      | "auditLogBucket";
+      | "auditLogBucket"
+      | "environment";
 
     id: string;
     name?: string;

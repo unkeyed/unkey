@@ -9,6 +9,7 @@ USE `partition_001`;
 -- Contains all middleware configuration (auth, rate limiting, validation, etc.) as protobuf
 CREATE TABLE gateways (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `workspace_id` varchar(255) NOT NULL,
   `hostname` varchar(255) NOT NULL,
   `config` blob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
   PRIMARY KEY (`id`),
@@ -21,14 +22,12 @@ CREATE TABLE vms (
     id VARCHAR(255) NOT NULL PRIMARY KEY,
     deployment_id VARCHAR(255) NOT NULL,
     metal_host_id VARCHAR(255),  -- NULL until assigned to a host
-    region VARCHAR(255) NOT NULL,
-    private_ip VARCHAR(45),      -- NULL until provisioned
-    port INT,                    -- NULL until provisioned
+    -- metalhost ip and port
+    address VARCHAR(255),                    -- NULL until provisioned
     cpu_millicores INT NOT NULL,
     memory_mb INT NOT NULL,
     status ENUM('allocated', 'provisioning', 'starting', 'running', 'stopping', 'stopped', 'failed') NOT NULL,
-    health_status ENUM('unknown', 'healthy', 'unhealthy') NOT NULL DEFAULT 'unknown',
-    last_heartbeat BIGINT,       -- NULL until running
+
 
     INDEX idx_deployment_available (deployment_id, region, status),
     INDEX idx_deployment_health (deployment_id, health_status, last_heartbeat),

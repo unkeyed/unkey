@@ -1,11 +1,16 @@
 package ctrl
 
 import (
-	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
-	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
+
+type S3Config struct {
+	URL             string
+	Bucket          string
+	AccessKeyID     string
+	AccessKeySecret string
+}
 
 type Config struct {
 	// InstanceID is the unique identifier for this instance of the control plane server
@@ -52,21 +57,12 @@ type Config struct {
 
 	// --- Vault Configuration ---
 	VaultMasterKeys []string
-	VaultS3         *storage.S3Config
+	VaultS3         S3Config
+
+	AcmeEnabled bool
 }
 
 func (c Config) Validate() error {
-	if c.VaultS3 != nil {
-		err := assert.All(
-			assert.NotEmpty(c.VaultS3.S3URL, "vault s3 url is empty"),
-			assert.NotEmpty(c.VaultS3.S3Bucket, "vault s3 bucket is empty"),
-			assert.NotEmpty(c.VaultS3.S3AccessKeyID, "vault s3 access key id is empty"),
-			assert.NotEmpty(c.VaultS3.S3AccessKeySecret, "vault s3 secret access key is empty"),
-		)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }

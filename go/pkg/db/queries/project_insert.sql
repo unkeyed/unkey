@@ -2,7 +2,6 @@
 INSERT INTO projects (
     id,
     workspace_id,
-    partition_id,
     name,
     slug,
     git_repository_url,
@@ -11,5 +10,5 @@ INSERT INTO projects (
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
 );

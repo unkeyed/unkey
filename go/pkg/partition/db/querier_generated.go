@@ -25,7 +25,7 @@ type Querier interface {
 	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
 	//FindVMById
 	//
-	//  SELECT id, deployment_id, metal_host_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status, last_heartbeat FROM vms WHERE id = ?
+	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
 	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
 	//InsertCertificate
 	//
@@ -44,17 +44,14 @@ type Querier interface {
 	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
 	//UpsertVM
 	//
-	//  INSERT INTO vms (id, deployment_id, region, private_ip, port, cpu_millicores, memory_mb, status, health_status)
-	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  INSERT INTO vms (id, deployment_id, address, cpu_millicores, memory_mb, status)
+	//  VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//    deployment_id = VALUES(deployment_id),
-	//    region = VALUES(region),
-	//    private_ip = VALUES(private_ip),
-	//    port = VALUES(port),
+	//    address = VALUES(address),
 	//    cpu_millicores = VALUES(cpu_millicores),
 	//    memory_mb = VALUES(memory_mb),
-	//    status = VALUES(status),
-	//    health_status = VALUES(health_status)
+	//    status = VALUES(status)
 	UpsertVM(ctx context.Context, db DBTX, arg UpsertVMParams) error
 }
 

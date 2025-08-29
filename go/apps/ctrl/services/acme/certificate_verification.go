@@ -2,7 +2,6 @@ package acme
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"connectrpc.com/connect"
@@ -25,10 +24,10 @@ func (s *Service) HandleCertificateVerification(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	challenge, err := db.Query.FindDomainChallengeByToken(ctx, s.db.RO(), db.FindDomainChallengeByTokenParams{
+	challenge, err := db.Query.FindAcmeChallengeByToken(ctx, s.db.RO(), db.FindAcmeChallengeByTokenParams{
 		WorkspaceID: domain.WorkspaceID,
 		DomainID:    domain.ID,
-		Token:       sql.NullString{Valid: true, String: req.Msg.GetToken()},
+		Token:       req.Msg.GetToken(),
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -38,10 +37,10 @@ func (s *Service) HandleCertificateVerification(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	if !challenge.Authorization.Valid {
+	if challenge.Authorization == "" {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("challenge hasn't been issued yet"))
 	}
 
-	res.Msg.Token = challenge.Authorization.String
+	res.Msg.Token = challenge.Authorization
 	return res, nil
 }

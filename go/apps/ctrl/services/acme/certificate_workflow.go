@@ -75,9 +75,9 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 	}
 
 	err = hydra.StepVoid(ctx, "claim-challenge", func(stepCtx context.Context) error {
-		return db.Query.UpdateDomainChallengeTryClaiming(stepCtx, w.db.RW(), db.UpdateDomainChallengeTryClaimingParams{
+		return db.Query.UpdateAcmeChallengeTryClaiming(stepCtx, w.db.RW(), db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
-			Status:    db.DomainChallengesStatusPending,
+			Status:    db.AcmeChallengesStatusPending,
 			UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		})
 	})
@@ -92,9 +92,9 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		// B: We have to renew a existing certificate
 		// Regardless we first claim the challenge so that no-other job tries to do the same, this will just annoy acme ratelimits
 		if err != nil {
-			db.Query.UpdateDomainChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateDomainChallengeStatusParams{
+			db.Query.UpdateAcmeChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateAcmeChallengeStatusParams{
 				DomainID:  dom.ID,
-				Status:    db.DomainChallengesStatusFailed,
+				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			w.logger.Error("failed to obtain certificate", "error", err)
@@ -174,9 +174,10 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 	}
 
 	err = hydra.StepVoid(ctx, "set-expires-at", func(stepCtx context.Context) error {
-		return db.Query.UpdateDomainChallengeExpiresAt(stepCtx, w.db.RW(), db.UpdateDomainChallengeExpiresAtParams{
-			ExpiresAt: sql.NullInt64{Valid: true, Int64: cert.ExpiresAt},
-			DomainID:  dom.ID,
+		return db.Query.UpdateAcmeChallengeExpiresAt(stepCtx, w.db.RW(), db.UpdateAcmeChallengeExpiresAtParams{
+			ExpiresAt: cert.ExpiresAt,
+			ID:        0, //        "TODO: I need the challenge id"
+
 		})
 	})
 	if err != nil {

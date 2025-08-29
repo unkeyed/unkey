@@ -10,16 +10,22 @@ import (
 )
 
 const findDeploymentStepsByDeploymentId = `-- name: FindDeploymentStepsByDeploymentId :many
-SELECT 
+SELECT
     deployment_id,
     status,
     message,
-    error_message,
     created_at
-FROM deployment_steps 
+FROM deployment_steps
 WHERE deployment_id = ?
 ORDER BY created_at ASC
 `
+
+type FindDeploymentStepsByDeploymentIdRow struct {
+	DeploymentID string                `db:"deployment_id"`
+	Status       DeploymentStepsStatus `db:"status"`
+	Message      string                `db:"message"`
+	CreatedAt    int64                 `db:"created_at"`
+}
 
 // FindDeploymentStepsByDeploymentId
 //
@@ -27,25 +33,23 @@ ORDER BY created_at ASC
 //	    deployment_id,
 //	    status,
 //	    message,
-//	    error_message,
 //	    created_at
 //	FROM deployment_steps
 //	WHERE deployment_id = ?
 //	ORDER BY created_at ASC
-func (q *Queries) FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error) {
+func (q *Queries) FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error) {
 	rows, err := db.QueryContext(ctx, findDeploymentStepsByDeploymentId, deploymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []DeploymentStep
+	var items []FindDeploymentStepsByDeploymentIdRow
 	for rows.Next() {
-		var i DeploymentStep
+		var i FindDeploymentStepsByDeploymentIdRow
 		if err := rows.Scan(
 			&i.DeploymentID,
 			&i.Status,
 			&i.Message,
-			&i.ErrorMessage,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
