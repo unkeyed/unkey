@@ -24,7 +24,7 @@ type MembersProps = {
 };
 
 export const Members = memo<MembersProps>(({ organization, user, userMembership }) => {
-  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization?.id);
+  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery();
   const memberships = orgMemberships?.data;
   const isAdmin = userMembership?.role === "admin";
   const utils = trpc.useUtils();
@@ -107,7 +107,6 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                   onConfirm={async () => {
                     try {
                       await removeMember.mutateAsync({
-                        orgId: organization.id,
                         membershipId: id,
                       });
                     } catch (error) {

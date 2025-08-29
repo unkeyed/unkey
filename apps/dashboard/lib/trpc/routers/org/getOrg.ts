@@ -1,14 +1,13 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { requireUser, t } from "../../trpc";
+import { requireOrgId, requireUser, t } from "../../trpc";
 
 export const getOrg = t.procedure
   .use(requireUser)
-  .input(z.string())
-  .query(async ({ input: orgId }) => {
+  .use(requireOrgId)
+  .query(async ({ ctx }) => {
     try {
-      return await authProvider.getOrg(orgId);
+      return await authProvider.getOrg(ctx.orgId);
     } catch (error) {
       console.error("Error retrieving org information:", error);
       throw new TRPCError({

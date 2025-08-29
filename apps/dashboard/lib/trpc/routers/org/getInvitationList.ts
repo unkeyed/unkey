@@ -1,21 +1,14 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { requireOrgAdmin, requireUser, t } from "../../trpc";
+import { requireOrgAdmin, requireOrgId, requireUser, t } from "../../trpc";
 
 export const getInvitationList = t.procedure
   .use(requireUser)
   .use(requireOrgAdmin)
-  .input(z.string())
-  .query(async ({ ctx, input: orgId }) => {
+  .use(requireOrgId)
+  .query(async ({ ctx }) => {
     try {
-      if (orgId !== ctx.workspace?.orgId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid organization ID",
-        });
-      }
-      return await authProvider.getInvitationList(orgId);
+      return await authProvider.getInvitationList(ctx.orgId);
     } catch (error) {
       console.error("Error retrieving organization member list:", error);
       throw new TRPCError({

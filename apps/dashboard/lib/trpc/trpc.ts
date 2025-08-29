@@ -45,22 +45,23 @@ export const requireSelf = t.middleware(({ next, ctx, rawInput: userId }) => {
   return next();
 });
 
-export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
-  let orgId: string | undefined;
-
-  // rawInput can be a string with just the orgId, or an object containing the orgId when it passed with other parameters
-  if (typeof rawInput === "string") {
-    orgId = rawInput;
-  } else if (rawInput && typeof rawInput === "object" && "orgId" in rawInput) {
-    orgId = rawInput.orgId as string;
-  }
-
+export const requireOrgId = t.middleware(({ next, ctx }) => {
+  const orgId = ctx.workspace?.orgId;
   if (!orgId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Organization ID is required",
+      message: "Organization ID not found",
     });
   }
+
+  return next({
+    ctx: {
+      orgId,
+    },
+  });
+});
+
+export const requireOrgAdmin = t.middleware(async ({ next, ctx }) => {
   try {
     const isAdmin = ctx.tenant?.role === "admin";
 

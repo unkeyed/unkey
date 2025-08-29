@@ -1,30 +1,24 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireOrgAdmin, requireUser, t } from "../../trpc";
+import { requireOrgAdmin, requireOrgId, requireUser, t } from "../../trpc";
 
 export const inviteMember = t.procedure
   .use(requireUser)
   .use(requireOrgAdmin)
+  .use(requireOrgId)
   .input(
     z.object({
       email: z.string(),
-      orgId: z.string(), // needed for the requireOrgAdmin middleware
       role: z.enum(["basic_member", "admin"]),
     }),
   )
   .mutation(async ({ ctx, input }) => {
     try {
-      if (input.orgId !== ctx.workspace?.orgId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid organization ID",
-        });
-      }
       return await authProvider.inviteMember({
         email: input.email,
         role: input.role,
-        orgId: input.orgId,
+        orgId: ctx.orgId,
       });
     } catch (error) {
       throw new TRPCError({

@@ -44,7 +44,6 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
 
       try {
         await updateMember.mutateAsync({
-          orgId: organization.id,
           membershipId: member.id,
           role: newRole,
         });
