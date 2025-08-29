@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc/client";
 import { Book2, Cube, DoubleChevronRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -8,14 +9,24 @@ type ProjectDetailsExpandableProps = {
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
+  projectId: string;
 };
 
 export const ProjectDetailsExpandable = ({
   tableDistanceToTop,
   isOpen,
   onClose,
+  projectId,
 }: ProjectDetailsExpandableProps) => {
-  const detailSections = createDetailSections();
+  const trpcUtil = trpc.useUtils();
+  const details = trpcUtil.deploy.project.details.getData({ projectId });
+
+  // Shouldn't happen, because layout handles this case
+  if (!details) {
+    return null;
+  }
+
+  const detailSections = createDetailSections(details);
 
   return (
     <div className="flex">

@@ -1,3 +1,4 @@
+import type { DeploymentDetails } from "@/lib/trpc/routers/deploy/project/deployment/getDeploymentDetails";
 import {
   Bolt,
   ChartActivity,
@@ -28,11 +29,10 @@ export type DetailItem = {
 
 export type DetailSection = {
   title: string;
-
   items: DetailItem[];
 };
 
-export const createDetailSections = (): DetailSection[] => [
+export const createDetailSections = (details: DeploymentDetails): DetailSection[] => [
   {
     title: "Active deployment",
     items: [
@@ -41,26 +41,27 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Repository",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">acme</span>/acme
+            <span className="text-gray-12 font-medium">{details.repository.owner}</span>/
+            {details.repository.name}
           </div>
         ),
       },
       {
         icon: <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Branch",
-        content: <span className="text-gray-12 font-medium">main</span>,
+        content: <span className="text-gray-12 font-medium">{details.branch}</span>,
       },
       {
         icon: <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Commit",
-        content: <span className="text-gray-12 font-medium">e5f6a7b</span>,
+        content: <span className="text-gray-12 font-medium">{details.commit}</span>,
       },
       {
         icon: <MessageWriting className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Description",
         content: (
           <div className="truncate max-w-[150px] min-w-0">
-            <span className="text-gray-12 font-medium">Add auth routes + logging</span>
+            <span className="text-gray-12 font-medium">{details.description}</span>
           </div>
         ),
       },
@@ -69,7 +70,7 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Image",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">unkey</span>:latest
+            <span className="text-gray-12 font-medium">{details.image}</span>
           </div>
         ),
       },
@@ -79,11 +80,11 @@ export const createDetailSections = (): DetailSection[] => [
         content: (
           <div className="flex gap-2 items-center">
             <img
-              src="https://avatars.githubusercontent.com/u/138932600?s=48&v=4"
-              alt="Author"
+              src={details.author.avatar}
+              alt={details.author.name}
               className="rounded-full size-5"
             />
-            <span className="font-medium text-grayA-12">Oz</span>
+            <span className="font-medium text-grayA-12">{details.author.name}</span>
           </div>
         ),
       },
@@ -91,7 +92,10 @@ export const createDetailSections = (): DetailSection[] => [
         icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Created",
         content: (
-          <TimestampInfo value={Date.now()} className="font-medium text-grayA-12 text-[13px]" />
+          <TimestampInfo
+            value={details.createdAt}
+            className="font-medium text-grayA-12 text-[13px]"
+          />
         ),
       },
     ],
@@ -104,7 +108,8 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Instances",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">4</span>vm
+            <span className="text-gray-12 font-medium">{details.instances}</span>
+            vm
           </div>
         ),
       },
@@ -114,7 +119,7 @@ export const createDetailSections = (): DetailSection[] => [
         alignment: "start",
         content: (
           <div className="flex flex-wrap gap-1 font-medium">
-            {["eu-west-2", "us-east-1", "ap-southeast-1"].map((region) => (
+            {details.regions.map((region) => (
               <span
                 key={region}
                 className="px-1.5 py-1 bg-grayA-3 rounded text-gray-12 text-xs font-mono"
@@ -130,7 +135,7 @@ export const createDetailSections = (): DetailSection[] => [
         label: "CPU",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">32</span>vCPUs
+            <span className="text-gray-12 font-medium">{details.cpu}</span>vCPUs
           </div>
         ),
       },
@@ -139,7 +144,7 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Memory",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">512</span>mb
+            <span className="text-gray-12 font-medium">{details.memory}</span>mb
           </div>
         ),
       },
@@ -148,7 +153,8 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Storage",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">1024</span>mb
+            <span className="text-gray-12 font-medium">{details.storage}</span>
+            mb
           </div>
         ),
       },
@@ -160,16 +166,19 @@ export const createDetailSections = (): DetailSection[] => [
           <div className="flex flex-col justify-center gap-2">
             <div className="gap-2 items-center flex">
               <Badge variant="success" className="font-medium">
-                GET
+                {details.healthcheck.method}
               </Badge>
               <div className="text-grayA-10">
-                /<span className="text-gray-12 font-medium">health</span>
+                /
+                <span className="text-gray-12 font-medium">
+                  {details.healthcheck.path.replace("/", "")}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-1 text-grayA-10">
               <div>every</div>
               <div>
-                <span className="text-gray-12 font-medium">30</span>s
+                <span className="text-gray-12 font-medium">{details.healthcheck.interval}</span>s
               </div>
             </div>
           </div>
@@ -182,11 +191,12 @@ export const createDetailSections = (): DetailSection[] => [
         content: (
           <div className="text-grayA-10">
             <div>
-              <span className="text-gray-12 font-medium">0</span> to{" "}
-              <span className="text-gray-12 font-medium">5</span> instances
+              <span className="text-gray-12 font-medium">{details.scaling.min}</span> to{" "}
+              <span className="text-gray-12 font-medium">{details.scaling.max}</span> instances
             </div>
             <div className="mt-0.5">
-              at <span className="text-gray-12 font-medium">80%</span> CPU threshold
+              at <span className="text-gray-12 font-medium">{details.scaling.threshold}%</span> CPU
+              threshold
             </div>
           </div>
         ),
@@ -201,7 +211,8 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Image size",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">210</span>mb
+            <span className="text-gray-12 font-medium">{details.imageSize}</span>
+            mb
           </div>
         ),
       },
@@ -210,7 +221,7 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Build time",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">45</span>s
+            <span className="text-gray-12 font-medium">{details.buildTime}</span>s
           </div>
         ),
       },
@@ -218,8 +229,21 @@ export const createDetailSections = (): DetailSection[] => [
         icon: <Bolt className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Build status",
         content: (
-          <Badge variant="success" className="font-medium">
-            Success
+          <Badge
+            variant={
+              details.buildStatus === "success"
+                ? "success"
+                : details.buildStatus === "failed"
+                  ? "error"
+                  : "secondary"
+            }
+            className="font-medium"
+          >
+            {details.buildStatus === "success"
+              ? "Success"
+              : details.buildStatus === "failed"
+                ? "Failed"
+                : "Pending"}
           </Badge>
         ),
       },
@@ -228,7 +252,7 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Base image",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">node</span>:18-alpine
+            <span className="text-gray-12 font-medium">{details.baseImage}</span>
           </div>
         ),
       },
@@ -237,7 +261,7 @@ export const createDetailSections = (): DetailSection[] => [
         label: "Built At",
         content: (
           <TimestampInfo
-            value={Date.now() - 300000}
+            value={details.builtAt}
             className="font-medium text-grayA-12 text-[13px]"
           />
         ),

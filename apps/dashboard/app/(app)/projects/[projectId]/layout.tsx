@@ -1,4 +1,5 @@
 "use client";
+import { trpc } from "@/lib/trpc/client";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useCallback, useState } from "react";
@@ -23,17 +24,31 @@ type ProjectLayoutProps = {
 };
 
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
+  const trpcUtil = trpc.useUtils();
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const handleDistanceToTop = useCallback((distanceToTop: number) => {
-    setTableDistanceToTop(distanceToTop);
-    if (distanceToTop !== 0) {
-      setTimeout(() => {
-        setIsDetailsOpen(true);
-      }, 200);
-    }
-  }, []);
+  // This will be called on mount to determine the offset to top, then it will prefetch project details and mount project details drawer.
+  const handleDistanceToTop = useCallback(
+    async (distanceToTop: number) => {
+      setTableDistanceToTop(distanceToTop);
+
+      if (distanceToTop !== 0) {
+        try {
+          // Only proceed if prefetch succeeds
+          await trpcUtil.deploy.project.details.prefetch({ projectId });
+
+          setTimeout(() => {
+            setIsDetailsOpen(true);
+          }, 200);
+        } catch (error) {
+          console.error("Failed to prefetch project details:", error);
+          // Don't open the drawer if prefetch fails
+        }
+      }
+    },
+    [trpcUtil, projectId],
+  );
 
   const contextValue = {
     isDetailsOpen,
@@ -73,6 +88,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
             tableDistanceToTop={tableDistanceToTop}
             isOpen={isDetailsOpen}
             onClose={() => setIsDetailsOpen(false)}
+            projectId={projectId}
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Cloud, Gear, GridCircle, Layers3 } from "@unkey/icons";
+import { Cloud, GridCircle, Layers3 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -69,12 +69,6 @@ export const ProjectSubNavigation = ({
       label: "Logs",
       icon: Layers3,
       path: `/projects/${projectId}/logs`,
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: Gear,
-      path: `/projects/${projectId}/settings`,
     },
   ];
 
