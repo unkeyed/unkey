@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"

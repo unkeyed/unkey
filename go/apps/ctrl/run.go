@@ -291,12 +291,12 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			logger.Error("unable to register ACME certificate workflow", "error", err)
 			return fmt.Errorf("unable to register deployment workflow: %w", err)
-
+		}
 
 		go func() {
 			logger.Info("Starting cert worker")
 
-			err = hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
+			registerErr := hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
 				challenges, err := db.Query.ListExecutableChallenges(ctx, database.RO())
 				if err != nil {
 					logger.Error("Failed to start workflow", "error", err)
@@ -327,7 +327,7 @@ func Run(ctx context.Context, cfg Config) error {
 				return nil
 			})
 
-			if err != nil {
+			if registerErr != nil {
 				logger.Error("Failed to register daily report cron job", "error", err)
 				return
 			}

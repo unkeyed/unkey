@@ -91,7 +91,7 @@ func (s *service) GetConfig(ctx context.Context, host string) (*partitionv1.Gate
 }
 
 // SelectVM picks an available VM from the gateway's VM list using random selection.
- func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
+func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
 	if !config.Deployment.IsEnabled {
 		return nil, fmt.Errorf("gateway %s is disabled", config.Deployment.Id)
 	}

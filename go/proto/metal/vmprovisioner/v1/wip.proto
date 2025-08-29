@@ -17,7 +17,7 @@ message CreateVmRequestV2 {
   // 1024 = 1 vcpu
   int32 cpu_millicores = 3;
   int32 memory_bytes = 4;
-  string docker_image_registry = 5  ;
+  string docker_image = 5  ;
   optional NetworkSize network_size = 6;
 }
 
