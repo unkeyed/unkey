@@ -4,12 +4,14 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/lmittmann/tint"
 )
 
 var handler slog.Handler
+
 
 func init() {
 	level := slog.LevelInfo
@@ -34,6 +36,31 @@ func SetHandler(h slog.Handler) {
 	handler = h
 }
 
+// logSkip logs with correct source location by skipping wrapper frames
+func logSkip(l *slog.Logger, ctx context.Context, level slog.Level, msg string, args ...any) {
+	if !l.Enabled(ctx, level) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:]) // skip [runtime.Callers, logSkip, wrapper]
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.Add(args...)
+	_ = l.Handler().Handle(ctx, r)
+}
+
+// logAttrs logs with attributes and correct source location
+func logAttrs(l *slog.Logger, ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
+	if !l.Enabled(ctx, level) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:]) // skip [runtime.Callers, logAttrs, wrapper]
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.AddAttrs(attrs...)
+	_ = l.Handler().Handle(ctx, r)
+}
+
+
 // logger implements the Logger interface using Go's standard slog package.
 type logger struct {
 	logger *slog.Logger
@@ -57,9 +84,7 @@ type logger struct {
 //	    Development: false,
 //	})
 func New() Logger {
-
 	l := slog.New(handler)
-
 	return &logger{
 		logger: l,
 	}
@@ -88,42 +113,42 @@ func (l *logger) WithAttrs(attrs ...slog.Attr) Logger {
 
 // Debug logs a message at debug level with key-value pairs.
 func (l *logger) Debug(msg string, args ...any) {
-	l.logger.Debug(msg, args...)
+	logSkip(l.logger, context.Background(), slog.LevelDebug, msg, args...)
 }
 
 // Info logs a message at info level with key-value pairs.
 func (l *logger) Info(msg string, args ...any) {
-	l.logger.Info(msg, args...)
+	logSkip(l.logger, context.Background(), slog.LevelInfo, msg, args...)
 }
 
 // Warn logs a message at warn level with key-value pairs.
 func (l *logger) Warn(msg string, args ...any) {
-	l.logger.Warn(msg, args...)
+	logSkip(l.logger, context.Background(), slog.LevelWarn, msg, args...)
 }
 
 // Error logs a message at error level with key-value pairs.
 func (l *logger) Error(msg string, args ...any) {
-	l.logger.Error(msg, args...)
+	logSkip(l.logger, context.Background(), slog.LevelError, msg, args...)
 }
 
 // ---- Context-aware logging methods ----
 
 // DebugContext logs a message at debug level with context and structured attributes.
 func (l *logger) DebugContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	l.logger.LogAttrs(ctx, slog.LevelDebug, msg, attrs...)
+	logAttrs(l.logger, ctx, slog.LevelDebug, msg, attrs...)
 }
 
 // InfoContext logs a message at info level with context and structured attributes.
 func (l *logger) InfoContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	l.logger.LogAttrs(ctx, slog.LevelInfo, msg, attrs...)
+	logAttrs(l.logger, ctx, slog.LevelInfo, msg, attrs...)
 }
 
 // WarnContext logs a message at warn level with context and structured attributes.
 func (l *logger) WarnContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	l.logger.LogAttrs(ctx, slog.LevelWarn, msg, attrs...)
+	logAttrs(l.logger, ctx, slog.LevelWarn, msg, attrs...)
 }
 
 // ErrorContext logs a message at error level with context and structured attributes.
 func (l *logger) ErrorContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	l.logger.LogAttrs(ctx, slog.LevelError, msg, attrs...)
+	logAttrs(l.logger, ctx, slog.LevelError, msg, attrs...)
 }
