@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"context"
+	"database/sql"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -23,7 +24,7 @@ func (s *Service) GetVersion(
 		Id:                   deployment.ID,
 		WorkspaceId:          deployment.WorkspaceID,
 		ProjectId:            deployment.ProjectID,
-		EnvironmentId:        string(deployment.Environment),
+		EnvironmentId:        deployment.EnvironmentID,
 		Status:               convertDbStatusToProto(string(deployment.Status)),
 		CreatedAt:            deployment.CreatedAt,
 		GitCommitSha:         "",
@@ -47,15 +48,6 @@ func (s *Service) GetVersion(
 	if deployment.UpdatedAt.Valid {
 		protoVersion.UpdatedAt = deployment.UpdatedAt.Int64
 	}
-	if deployment.RootfsImageID != "" {
-		protoVersion.RootfsImageId = deployment.RootfsImageID
-	}
-
-	// Find the latest build for this deployment
-	build, err := db.Query.FindLatestBuildByDeploymentId(ctx, s.db.RO(), deployment.ID)
-	if err == nil {
-		protoVersion.BuildId = build.ID
-	}
 
 	// Fetch deployment steps
 	deploymentSteps, err := db.Query.FindDeploymentStepsByDeploymentId(ctx, s.db.RO(), deployment.ID)
@@ -66,30 +58,23 @@ func (s *Service) GetVersion(
 		protoSteps := make([]*ctrlv1.VersionStep, len(deploymentSteps))
 		for i, step := range deploymentSteps {
 			protoSteps[i] = &ctrlv1.VersionStep{
-				Status:       string(step.Status),
-				CreatedAt:    step.CreatedAt,
-				Message:      "",
-				ErrorMessage: "",
-			}
-			if step.Message.Valid {
-				protoSteps[i].Message = step.Message.String
-			}
-			if step.ErrorMessage.Valid {
-				protoSteps[i].ErrorMessage = step.ErrorMessage.String
+				Status:    string(step.Status),
+				CreatedAt: step.CreatedAt,
+				Message:   step.Message,
 			}
 		}
 		protoVersion.Steps = protoSteps
 	}
 
 	// Fetch routes (hostnames) for this deployment
-	routes, err := db.Query.FindHostnameRoutesByDeploymentId(ctx, s.db.RO(), deployment.ID)
+	routes, err := db.Query.FindDomainsByDeploymentId(ctx, s.db.RO(), sql.NullString{Valid: true, String: req.Msg.GetVersionId()})
 	if err != nil {
-		s.logger.Warn("failed to fetch routes for deployment", "error", err, "deployment_id", deployment.ID)
+		s.logger.Warn("failed to fetch domains for deployment", "error", err, "deployment_id", deployment.ID)
 		// Continue without hostnames rather than failing the entire request
 	} else {
 		hostnames := make([]string, len(routes))
 		for i, route := range routes {
-			hostnames[i] = route.Hostname
+			hostnames[i] = route.Domain
 		}
 		protoVersion.Hostnames = hostnames
 	}

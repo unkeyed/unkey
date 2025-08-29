@@ -115,7 +115,7 @@ type Querier interface {
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	//FindAcmeChallengeByToken
 	//
-	//  SELECT id, workspace_id, domain_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	//  SELECT id, workspace_id, domain_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
 	//FindAcmeUserByWorkspaceID
 	//
@@ -704,7 +704,7 @@ type Querier interface {
 	//      token,
 	//      authorization,
 	//      status,
-	//      challenge_type,
+	//      type,
 	//      created_at,
 	//      updated_at,
 	//      expires_at
@@ -857,9 +857,9 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
+	//      deployment_id,
 	//      domain,
 	//      type,
-	//      subdomain_config,
 	//      created_at
 	//  ) VALUES (
 	//      ?,
@@ -867,13 +867,13 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      CAST(? AS JSON),
+	//      ?,
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE
 	//      workspace_id = VALUES(workspace_id),
 	//      project_id = VALUES(project_id),
+	//      deployment_id = VALUES(deployment_id),
 	//      type = VALUES(type),
-	//      subdomain_config = VALUES(subdomain_config),
 	//      updated_at = ?
 	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
 	//InsertIdentity
@@ -1510,16 +1510,16 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
-	//UpdateACmeChallengePending
-	//
-	//  UPDATE acme_challenges
-	//  SET status = ?, token = ?, authorization = ?, updated_at = ?
-	//  WHERE domain_id = ?
-	UpdateACmeChallengePending(ctx context.Context, db DBTX, arg UpdateACmeChallengePendingParams) error
 	//UpdateAcmeChallengeExpiresAt
 	//
 	//  UPDATE acme_challenges SET expires_at = ? WHERE id = ?
 	UpdateAcmeChallengeExpiresAt(ctx context.Context, db DBTX, arg UpdateAcmeChallengeExpiresAtParams) error
+	//UpdateAcmeChallengePending
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, token = ?, authorization = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateAcmeChallengePending(ctx context.Context, db DBTX, arg UpdateAcmeChallengePendingParams) error
 	//UpdateAcmeChallengeStatus
 	//
 	//  UPDATE acme_challenges

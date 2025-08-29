@@ -53,29 +53,22 @@ func (s *Service) CreateVersion(
 		}
 	}
 
-	// Determine environment (default to preview)
-	// TODO: Add environment field to CreateVersionRequest proto
-	environment := db.DeploymentsEnvironmentPreview
-
 	// Generate deployment ID
 	deploymentID := uid.New("deployment")
 	now := time.Now().UnixMilli()
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:             deploymentID,
-		WorkspaceID:    req.Msg.GetWorkspaceId(),
-		ProjectID:      req.Msg.GetProjectId(),
-		Environment:    environment,
-		BuildID:        sql.NullString{String: "", Valid: false}, // Build creation handled separately
-		RootfsImageID:  "",                                       // Image handling not implemented yet
-		GitCommitSha:   sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
-		GitBranch:      sql.NullString{String: gitBranch, Valid: true},
-		ConfigSnapshot: []byte("{}"), // Configuration snapshot placeholder
-		OpenapiSpec:    sql.NullString{String: "", Valid: false},
-		Status:         "pending",
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Int64: now, Valid: true},
+		ID:            deploymentID,
+		WorkspaceID:   req.Msg.GetWorkspaceId(),
+		ProjectID:     req.Msg.GetProjectId(),
+		EnvironmentID: req.Msg.GetEnvironmentId(),
+		GitCommitSha:  sql.NullString{String: req.Msg.GetGitCommitSha(), Valid: req.Msg.GetGitCommitSha() != ""},
+		GitBranch:     sql.NullString{String: gitBranch, Valid: true},
+		OpenapiSpec:   sql.NullString{String: "", Valid: false},
+		Status:        "pending",
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -85,7 +78,7 @@ func (s *Service) CreateVersion(
 		"deployment_id", deploymentID,
 		"workspace_id", req.Msg.GetWorkspaceId(),
 		"project_id", req.Msg.GetProjectId(),
-		"environment", environment,
+		"environment", req.Msg.GetEnvironmentId(),
 		"docker_image", req.Msg.GetDockerImageTag())
 
 	// Start the deployment workflow directly

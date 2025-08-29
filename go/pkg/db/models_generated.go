@@ -13,48 +13,6 @@ import (
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
-type AcmeChallengesChallengeType string
-
-const (
-	AcmeChallengesChallengeTypeHTTP01 AcmeChallengesChallengeType = "HTTP-01"
-	AcmeChallengesChallengeTypeDNS01  AcmeChallengesChallengeType = "DNS-01"
-)
-
-func (e *AcmeChallengesChallengeType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = AcmeChallengesChallengeType(s)
-	case string:
-		*e = AcmeChallengesChallengeType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for AcmeChallengesChallengeType: %T", src)
-	}
-	return nil
-}
-
-type NullAcmeChallengesChallengeType struct {
-	AcmeChallengesChallengeType AcmeChallengesChallengeType
-	Valid                       bool // Valid is true if AcmeChallengesChallengeType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullAcmeChallengesChallengeType) Scan(value interface{}) error {
-	if value == nil {
-		ns.AcmeChallengesChallengeType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.AcmeChallengesChallengeType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullAcmeChallengesChallengeType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.AcmeChallengesChallengeType), nil
-}
-
 type AcmeChallengesStatus string
 
 const (
@@ -97,6 +55,48 @@ func (ns NullAcmeChallengesStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.AcmeChallengesStatus), nil
+}
+
+type AcmeChallengesType string
+
+const (
+	AcmeChallengesTypeHTTP01 AcmeChallengesType = "HTTP-01"
+	AcmeChallengesTypeDNS01  AcmeChallengesType = "DNS-01"
+)
+
+func (e *AcmeChallengesType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AcmeChallengesType(s)
+	case string:
+		*e = AcmeChallengesType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AcmeChallengesType: %T", src)
+	}
+	return nil
+}
+
+type NullAcmeChallengesType struct {
+	AcmeChallengesType AcmeChallengesType
+	Valid              bool // Valid is true if AcmeChallengesType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAcmeChallengesType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AcmeChallengesType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AcmeChallengesType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAcmeChallengesType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AcmeChallengesType), nil
 }
 
 type ApisAuthType string
@@ -447,16 +447,16 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeChallenge struct {
-	ID            uint64                      `db:"id"`
-	WorkspaceID   string                      `db:"workspace_id"`
-	DomainID      string                      `db:"domain_id"`
-	Token         string                      `db:"token"`
-	ChallengeType AcmeChallengesChallengeType `db:"challenge_type"`
-	Authorization string                      `db:"authorization"`
-	Status        AcmeChallengesStatus        `db:"status"`
-	ExpiresAt     int64                       `db:"expires_at"`
-	CreatedAt     int64                       `db:"created_at"`
-	UpdatedAt     sql.NullInt64               `db:"updated_at"`
+	ID            uint64               `db:"id"`
+	WorkspaceID   string               `db:"workspace_id"`
+	DomainID      string               `db:"domain_id"`
+	Token         string               `db:"token"`
+	Type          AcmeChallengesType   `db:"type"`
+	Authorization string               `db:"authorization"`
+	Status        AcmeChallengesStatus `db:"status"`
+	ExpiresAt     int64                `db:"expires_at"`
+	CreatedAt     int64                `db:"created_at"`
+	UpdatedAt     sql.NullInt64        `db:"updated_at"`
 }
 
 type AcmeUser struct {

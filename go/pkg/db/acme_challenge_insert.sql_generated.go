@@ -17,7 +17,7 @@ INSERT INTO acme_challenges (
     token,
     authorization,
     status,
-    challenge_type,
+    type,
     created_at,
     updated_at,
     expires_at
@@ -35,15 +35,15 @@ INSERT INTO acme_challenges (
 `
 
 type InsertAcmeChallengeParams struct {
-	WorkspaceID   string                      `db:"workspace_id"`
-	DomainID      string                      `db:"domain_id"`
-	Token         string                      `db:"token"`
-	Authorization string                      `db:"authorization"`
-	Status        AcmeChallengesStatus        `db:"status"`
-	ChallengeType AcmeChallengesChallengeType `db:"challenge_type"`
-	CreatedAt     int64                       `db:"created_at"`
-	UpdatedAt     sql.NullInt64               `db:"updated_at"`
-	ExpiresAt     int64                       `db:"expires_at"`
+	WorkspaceID   string               `db:"workspace_id"`
+	DomainID      string               `db:"domain_id"`
+	Token         string               `db:"token"`
+	Authorization string               `db:"authorization"`
+	Status        AcmeChallengesStatus `db:"status"`
+	Type          AcmeChallengesType   `db:"type"`
+	CreatedAt     int64                `db:"created_at"`
+	UpdatedAt     sql.NullInt64        `db:"updated_at"`
+	ExpiresAt     int64                `db:"expires_at"`
 }
 
 // InsertAcmeChallenge
@@ -54,7 +54,7 @@ type InsertAcmeChallengeParams struct {
 //	    token,
 //	    authorization,
 //	    status,
-//	    challenge_type,
+//	    type,
 //	    created_at,
 //	    updated_at,
 //	    expires_at
@@ -76,7 +76,7 @@ func (q *Queries) InsertAcmeChallenge(ctx context.Context, db DBTX, arg InsertAc
 		arg.Token,
 		arg.Authorization,
 		arg.Status,
-		arg.ChallengeType,
+		arg.Type,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.ExpiresAt,

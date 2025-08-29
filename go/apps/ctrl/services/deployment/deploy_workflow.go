@@ -113,34 +113,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "pending",
-			Message:      sql.NullString{String: "Deployment queued and ready to start", Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      "Deployment queued and ready to start",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
 	if err != nil {
 		w.logger.Error("failed to log deployment pending", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 3: Insert build into database
-	err = hydra.StepVoid(ctx, "insert-build", func(stepCtx context.Context) error {
-		w.logger.Info("inserting build into database", "build_id", buildID)
-		insertErr := db.Query.InsertBuild(stepCtx, w.db.RW(), db.InsertBuildParams{
-			ID:           buildID,
-			WorkspaceID:  req.WorkspaceID,
-			ProjectID:    req.ProjectID,
-			DeploymentID: req.DeploymentID,
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-		if insertErr != nil {
-			return fmt.Errorf("failed to create build record: %w", insertErr)
-		}
-		w.logger.Info("build record created successfully", "build_id", buildID)
-		return nil
-	})
-	if err != nil {
-		w.logger.Error("failed to insert build", "error", err, "build_id", buildID)
 		return err
 	}
 
@@ -163,32 +141,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 5: Update build status to running
-	_, err = hydra.Step(ctx, "update-build-running", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("updating build status to running", "build_id", buildID)
-		now := time.Now().UnixMilli()
-		runningErr := db.Query.UpdateBuildStatus(stepCtx, w.db.RW(), db.UpdateBuildStatusParams{
-			ID:     buildID,
-			Status: db.BuildsStatusRunning,
-			Now:    sql.NullInt64{Valid: true, Int64: now},
-		})
-		if runningErr != nil {
-			return nil, fmt.Errorf("failed to update build status to running: %w", runningErr)
-		}
-		return &struct{}{}, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to update build status to running", "error", err, "build_id", buildID)
-		return err
-	}
-
 	// Step 6: Log downloading Docker image
 	err = hydra.StepVoid(ctx, "log-downloading-docker-image", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "downloading_docker_image",
-			Message:      sql.NullString{String: fmt.Sprintf("Downloading Docker image: %s", req.DockerImage), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      fmt.Sprintf("Downloading Docker image: %s", req.DockerImage),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -254,8 +212,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "building_rootfs",
-			Message:      sql.NullString{String: fmt.Sprintf("Building rootfs from Docker image: %s", req.DockerImage), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      fmt.Sprintf("Building rootfs from Docker image: %s", req.DockerImage),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -269,8 +226,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "uploading_rootfs",
-			Message:      sql.NullString{String: "Uploading rootfs image to storage", Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      "Uploading rootfs image to storage",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -279,31 +235,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 10: Update build status to succeeded
-	_, err = hydra.Step(ctx, "update-build-succeeded", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("updating build status to succeeded", "build_id", buildID)
-		successErr := db.Query.UpdateBuildSucceeded(stepCtx, w.db.RW(), db.UpdateBuildSucceededParams{
-			ID:  buildID,
-			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-		if successErr != nil {
-			return nil, fmt.Errorf("failed to update build status to succeeded: %w", successErr)
-		}
-		w.logger.Info("build status updated to succeeded", "build_id", buildID)
-		return &struct{}{}, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to update build status to succeeded", "error", err, "build_id", buildID)
-		return err
-	}
-
 	// Step 11: Log creating VM
 	err = hydra.StepVoid(ctx, "log-creating-vm", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "creating_vm",
-			Message:      sql.NullString{String: fmt.Sprintf("Creating VM for version: %s", req.DeploymentID), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      fmt.Sprintf("Creating VM for version: %s", req.DeploymentID),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -510,8 +447,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "booting_vm",
-			Message:      sql.NullString{String: fmt.Sprintf("VM booted successfully: %s", createResult.VmId), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      fmt.Sprintf("VM booted successfully: %s", createResult.VmId),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -548,13 +484,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		// Create route entry for primary hostname
 		routeID := uid.New("route")
-		insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
+		insertErr := db.Query.InsertDomain(stepCtx, w.db.RW(), db.InsertDomainParams{
 			ID:           routeID,
 			WorkspaceID:  req.WorkspaceID,
-			ProjectID:    req.ProjectID,
-			Hostname:     primaryHostname,
-			DeploymentID: req.DeploymentID,
-			IsEnabled:    true,
+			ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
+			Domain:       primaryHostname,
+			DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
 			CreatedAt:    time.Now().UnixMilli(),
 			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -580,13 +515,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 				// Create route entry for localhost:port
 				localhostRouteID := uid.New("route")
-				insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
+				insertErr := db.Query.InsertDomain(stepCtx, w.db.RW(), db.InsertDomainParams{
 					ID:           localhostRouteID,
 					WorkspaceID:  req.WorkspaceID,
-					ProjectID:    req.ProjectID,
-					Hostname:     localhostHostname,
-					DeploymentID: req.DeploymentID,
-					IsEnabled:    true,
+					ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
+					Domain:       localhostHostname,
+					DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
 					CreatedAt:    time.Now().UnixMilli(),
 					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
@@ -607,66 +541,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "generate-certificates", func(stepCtx context.Context) error {
-		domains := []db.InsertDomainParams{}
-		now := time.Now().UnixMilli()
-		for _, domain := range assignedHostnames {
-			domains = append(domains, db.InsertDomainParams{
-				ID:              uid.New(uid.DomainPrefix),
-				WorkspaceID:     req.WorkspaceID,
-				ProjectID:       req.ProjectID,
-				Domain:          domain,
-				Type:            db.DomainsTypeGenerated,
-				SubdomainConfig: []byte("{}"),
-				CreatedAt:       now,
-				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
-			})
-		}
-
-		if req.Hostname != "" {
-			domainId := uid.New(uid.DomainPrefix)
-			domains = append(domains, db.InsertDomainParams{
-				ID:              domainId,
-				WorkspaceID:     req.WorkspaceID,
-				ProjectID:       req.ProjectID,
-				Domain:          req.Hostname,
-				Type:            db.DomainsTypeCustom,
-				SubdomainConfig: []byte("{}"),
-				CreatedAt:       now,
-				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
-			})
-
-			err = db.Query.InsertDomainChallenge(ctx.Context(), w.db.RW(), db.InsertDomainChallengeParams{
-				WorkspaceID:   req.WorkspaceID,
-				DomainID:      domainId,
-				Token:         sql.NullString{Valid: false, String: ""},
-				Authorization: sql.NullString{Valid: false, String: ""},
-				Status:        db.DomainChallengesStatusWaiting,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
-				ExpiresAt:     sql.NullInt64{Valid: false, Int64: 0},
-			})
-			if err != nil {
-				w.logger.Error("failed to insert domain challenge", "error", err, "deployment_id", req.DeploymentID)
-				return err
-			}
-		}
-
-		if len(domains) > 0 {
-			err = db.BulkQuery.InsertDomains(ctx.Context(), w.db.RW(), domains)
-			if err != nil {
-				w.logger.Error("failed to insert domains", "error", err, "deployment_id", req.DeploymentID)
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		w.logger.Error("failed to insert domains", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
 	// Step 20: Log assigning domains
 	err = hydra.StepVoid(ctx, "log-assigning-domains", func(stepCtx context.Context) error {
 		var message string
@@ -677,9 +551,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
-			Status:       "assigning_domains",
-			Message:      sql.NullString{String: message, Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Status:       db.DeploymentStepsStatusAssigningDomains,
+			Message:      message,
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -688,18 +561,18 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 21: Update version status to active
-	_, err = hydra.Step(ctx, "update-version-active", func(stepCtx context.Context) (*DeploymentResult, error) {
+	// Step 21: Update deployment status to active
+	_, err = hydra.Step(ctx, "update-deployment-active", func(stepCtx context.Context) (*DeploymentResult, error) {
 		completionTime := time.Now().UnixMilli()
 		w.logger.Info("updating deployment status to active", "deployment_id", req.DeploymentID, "completion_time", completionTime)
 		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
-			Status:    db.DeploymentsStatusActive,
+			Status:    db.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
 		})
 		if activeErr != nil {
-			w.logger.Error("failed to update version status to active", "error", activeErr, "deployment_id", req.DeploymentID)
-			return nil, fmt.Errorf("failed to update version status to active: %w", activeErr)
+			w.logger.Error("failed to update deployment status to active", "error", activeErr, "deployment_id", req.DeploymentID)
+			return nil, fmt.Errorf("failed to update deployment status to active: %w", activeErr)
 		}
 
 		w.logger.Info("deployment complete", "deployment_id", req.DeploymentID, "status", "active")
@@ -926,8 +799,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "completed",
-			Message:      sql.NullString{String: "Version deployment completed successfully", Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      "Deployment completed successfully",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})

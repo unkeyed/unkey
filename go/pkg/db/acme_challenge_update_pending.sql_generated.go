@@ -10,13 +10,13 @@ import (
 	"database/sql"
 )
 
-const updateACmeChallengePending = `-- name: UpdateACmeChallengePending :exec
+const updateAcmeChallengePending = `-- name: UpdateAcmeChallengePending :exec
 UPDATE acme_challenges
 SET status = ?, token = ?, authorization = ?, updated_at = ?
 WHERE domain_id = ?
 `
 
-type UpdateACmeChallengePendingParams struct {
+type UpdateAcmeChallengePendingParams struct {
 	Status        AcmeChallengesStatus `db:"status"`
 	Token         string               `db:"token"`
 	Authorization string               `db:"authorization"`
@@ -24,13 +24,13 @@ type UpdateACmeChallengePendingParams struct {
 	DomainID      string               `db:"domain_id"`
 }
 
-// UpdateACmeChallengePending
+// UpdateAcmeChallengePending
 //
 //	UPDATE acme_challenges
 //	SET status = ?, token = ?, authorization = ?, updated_at = ?
 //	WHERE domain_id = ?
-func (q *Queries) UpdateACmeChallengePending(ctx context.Context, db DBTX, arg UpdateACmeChallengePendingParams) error {
-	_, err := db.ExecContext(ctx, updateACmeChallengePending,
+func (q *Queries) UpdateAcmeChallengePending(ctx context.Context, db DBTX, arg UpdateAcmeChallengePendingParams) error {
+	_, err := db.ExecContext(ctx, updateAcmeChallengePending,
 		arg.Status,
 		arg.Token,
 		arg.Authorization,

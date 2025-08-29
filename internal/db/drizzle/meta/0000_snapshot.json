@@ -2519,8 +2519,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "challenge_type": {
-          "name": "challenge_type",
+        "type": {
+          "name": "type",
           "type": "enum('HTTP-01','DNS-01')",
           "primaryKey": false,
           "notNull": true,

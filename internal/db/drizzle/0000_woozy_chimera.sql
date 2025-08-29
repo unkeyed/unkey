@@ -368,7 +368,7 @@ CREATE TABLE `acme_challenges` (
 	`workspace_id` varchar(256) NOT NULL,
 	`domain_id` varchar(256) NOT NULL,
 	`token` varchar(256) NOT NULL,
-	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
+	`type` enum('HTTP-01','DNS-01') NOT NULL,
 	`authorization` varchar(256) NOT NULL,
 	`status` enum('waiting','pending','verified','failed') NOT NULL,
 	`expires_at` bigint NOT NULL,
