@@ -52,6 +52,9 @@ generate:
 	buf generate
 	go generate ./...
 
+generate-builder:
+	buf generate --path proto/deploy/builderd
+
 test: test-unit
 
 test-unit: up

@@ -137,8 +137,6 @@ type NetworkConfig struct {
 
 	// IPv4 Configuration
 	EnableIPv4     bool
-	BridgeIPv4     string
-	VMSubnetIPv4   string
 	DNSServersIPv4 []string
 
 	// IPv6 Configuration
@@ -157,6 +155,7 @@ type NetworkConfig struct {
 	MaxVMsPerBridge   int    // Maximum VMs per bridge before creating new bridge
 	EnableMultiBridge bool   // Enable multiple bridges for scalability
 	BridgePrefix      string // Prefix for multiple bridges (e.g., "metald-br")
+	BridgeCount       int    // Number of bridges (8 or 32 only) - AIDEV-BUSINESS_RULE: Only 8 or 32 allowed
 
 	// Host Protection Configuration
 	EnableHostProtection bool   // Enable host network route protection
@@ -348,8 +347,6 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		Network: NetworkConfig{
 			Enabled:         getEnvBoolOrDefault("UNKEY_METALD_NETWORK_ENABLED"),
 			EnableIPv4:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV4_ENABLED"),
-			BridgeIPv4:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV4", "172.31.0.1/19"),
-			VMSubnetIPv4:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV4", "172.31.0.0/19"),
 			DNSServersIPv4:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV4", "8.8.8.8,8.8.4.4"), ","),
 			EnableIPv6:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV6_ENABLED"),
 			BridgeIPv6:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV6", "fd00::1/64"),
@@ -363,7 +360,8 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			// Production Scalability Defaults
 			MaxVMsPerBridge:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_MAX_VMS_PER_BRIDGE", 1000),
 			EnableMultiBridge: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_MULTI_BRIDGE"),
-			BridgePrefix:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_PREFIX", "metald-br"),
+			BridgePrefix:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_PREFIX", "br-vms"),
+			BridgeCount:       getEnvIntOrDefault("UNKEY_METALD_NETWORK_BRIDGE_COUNT", 8),
 
 			// Host Protection Defaults
 			EnableHostProtection: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_HOST_PROTECTION"),
@@ -394,6 +392,11 @@ func (c *Config) Validate() error {
 	// AIDEV-BUSINESS_RULE: Support Firecracker and Docker backends
 	if c.Backend.Type != types.BackendTypeFirecracker && c.Backend.Type != types.BackendTypeDocker {
 		return fmt.Errorf("only firecracker and docker backends are supported, got: %s", c.Backend.Type)
+	}
+
+	// AIDEV-BUSINESS_RULE: Only 8 or 32 bridges are supported for deterministic allocation
+	if c.Network.BridgeCount != 8 && c.Network.BridgeCount != 32 {
+		return fmt.Errorf("bridge count must be 8 or 32, got: %d", c.Network.BridgeCount)
 	}
 
 	// AIDEV-NOTE: Comprehensive unit tests implemented in config_test.go

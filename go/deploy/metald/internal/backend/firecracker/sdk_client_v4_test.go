@@ -105,7 +105,7 @@ func TestMatchAssets(t *testing.T) {
 		{
 			Type: assetv1.AssetType_ASSET_TYPE_ROOTFS,
 			Labels: map[string]string{
-				"docker_image": "ghcr.io/unkeyed/unkey:latest",
+				"docker_image": "ghcr.io/unkeyed/best-api:v1.1.0",
 			},
 			Required: true,
 		},

@@ -77,13 +77,9 @@ Metald integrates with other Unkey Deploy services:
 
 ## Security
 
-Metald uses an integrated jailer approach with specific capabilities:
-- `CAP_SYS_ADMIN` - Namespace operations
-- `CAP_NET_ADMIN` - Network device creation  
-- `CAP_SYS_CHROOT` - Jail creation
-- Additional capabilities for privilege dropping
+Metald runs as root to manage network namespaces, interfaces, and iptables operations. This is acceptable as metald is designed to be the sole application on dedicated VM hosts. The integrated jailer still drops privileges to specified UID/GID for individual VM processes, ensuring proper isolation.
 
-The `make install` command configures these automatically.
+The `make install` command configures the service with appropriate permissions automatically.
 
 ## Contributing
 

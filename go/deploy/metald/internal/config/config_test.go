@@ -56,19 +56,23 @@ func TestLoadConfig(t *testing.T) {
 					CacheDir: "/opt/metald/assets",
 				},
 				Network: NetworkConfig{
-					Enabled:         true,
-					EnableIPv4:      true,
-					BridgeIPv4:      "10.100.0.1/16",
-					VMSubnetIPv4:    "10.100.0.0/16",
-					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
-					EnableIPv6:      true,
-					BridgeIPv6:      "fd00::1/64",
-					VMSubnetIPv6:    "fd00::/64",
-					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
-					IPv6Mode:        "dual-stack",
-					BridgeName:      "br-vms",
-					EnableRateLimit: true,
-					RateLimitMbps:   1000,
+					Enabled:              true,
+					EnableIPv4:           true,
+					DNSServersIPv4:       []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:           true,
+					BridgeIPv6:           "fd00::1/64",
+					VMSubnetIPv6:         "fd00::/64",
+					DNSServersIPv6:       []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:             "dual-stack",
+					BridgeName:           "br-vms",
+					EnableRateLimit:      true,
+					RateLimitMbps:        1000,
+					MaxVMsPerBridge:      1000,
+					EnableMultiBridge:    true,
+					BridgePrefix:         "br-vms",
+					BridgeCount:          8,
+					EnableHostProtection: true,
+					PrimaryInterface:     "",
 				},
 				TLS: &TLSConfig{
 					Mode:              "spiffe",
@@ -126,19 +130,23 @@ func TestLoadConfig(t *testing.T) {
 					CacheDir: "/opt/metald/assets",
 				},
 				Network: NetworkConfig{
-					Enabled:         true,
-					EnableIPv4:      true,
-					BridgeIPv4:      "10.100.0.1/16",
-					VMSubnetIPv4:    "10.100.0.0/16",
-					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
-					EnableIPv6:      true,
-					BridgeIPv6:      "fd00::1/64",
-					VMSubnetIPv6:    "fd00::/64",
-					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
-					IPv6Mode:        "dual-stack",
-					BridgeName:      "br-vms",
-					EnableRateLimit: true,
-					RateLimitMbps:   1000,
+					Enabled:              true,
+					EnableIPv4:           true,
+					DNSServersIPv4:       []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:           true,
+					BridgeIPv6:           "fd00::1/64",
+					VMSubnetIPv6:         "fd00::/64",
+					DNSServersIPv6:       []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:             "dual-stack",
+					BridgeName:           "br-vms",
+					EnableRateLimit:      true,
+					RateLimitMbps:        1000,
+					MaxVMsPerBridge:      1000,
+					EnableMultiBridge:    true,
+					BridgePrefix:         "br-vms",
+					BridgeCount:          8,
+					EnableHostProtection: true,
+					PrimaryInterface:     "",
 				},
 				TLS: &TLSConfig{
 					Mode:              "spiffe",
@@ -197,19 +205,23 @@ func TestLoadConfig(t *testing.T) {
 					CacheDir: "/opt/metald/assets",
 				},
 				Network: NetworkConfig{
-					Enabled:         true,
-					EnableIPv4:      true,
-					BridgeIPv4:      "10.100.0.1/16",
-					VMSubnetIPv4:    "10.100.0.0/16",
-					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
-					EnableIPv6:      true,
-					BridgeIPv6:      "fd00::1/64",
-					VMSubnetIPv6:    "fd00::/64",
-					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
-					IPv6Mode:        "dual-stack",
-					BridgeName:      "br-vms",
-					EnableRateLimit: true,
-					RateLimitMbps:   1000,
+					Enabled:              true,
+					EnableIPv4:           true,
+					DNSServersIPv4:       []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:           true,
+					BridgeIPv6:           "fd00::1/64",
+					VMSubnetIPv6:         "fd00::/64",
+					DNSServersIPv6:       []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:             "dual-stack",
+					BridgeName:           "br-vms",
+					EnableRateLimit:      true,
+					RateLimitMbps:        1000,
+					MaxVMsPerBridge:      1000,
+					EnableMultiBridge:    true,
+					BridgePrefix:         "br-vms",
+					BridgeCount:          8,
+					EnableHostProtection: true,
+					PrimaryInterface:     "",
 				},
 				TLS: &TLSConfig{
 					Mode:              "spiffe",
@@ -272,19 +284,23 @@ func TestLoadConfig(t *testing.T) {
 					CacheDir: "/opt/metald/assets",
 				},
 				Network: NetworkConfig{
-					Enabled:         true,
-					EnableIPv4:      true,
-					BridgeIPv4:      "10.100.0.1/16",
-					VMSubnetIPv4:    "10.100.0.0/16",
-					DNSServersIPv4:  []string{"8.8.8.8", "8.8.4.4"},
-					EnableIPv6:      true,
-					BridgeIPv6:      "fd00::1/64",
-					VMSubnetIPv6:    "fd00::/64",
-					DNSServersIPv6:  []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
-					IPv6Mode:        "dual-stack",
-					BridgeName:      "br-vms",
-					EnableRateLimit: true,
-					RateLimitMbps:   1000,
+					Enabled:              true,
+					EnableIPv4:           true,
+					DNSServersIPv4:       []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:           true,
+					BridgeIPv6:           "fd00::1/64",
+					VMSubnetIPv6:         "fd00::/64",
+					DNSServersIPv6:       []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:             "dual-stack",
+					BridgeName:           "br-vms",
+					EnableRateLimit:      true,
+					RateLimitMbps:        1000,
+					MaxVMsPerBridge:      1000,
+					EnableMultiBridge:    true,
+					BridgePrefix:         "br-vms",
+					BridgeCount:          8,
+					EnableHostProtection: true,
+					PrimaryInterface:     "",
 				},
 				TLS: &TLSConfig{
 					Mode:              "spiffe",
@@ -297,6 +313,166 @@ func TestLoadConfig(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "valid bridge count 8 via env",
+			envVars: map[string]string{
+				"UNKEY_METALD_NETWORK_BRIDGE_COUNT": "8",
+			},
+			want: &Config{
+				Server: ServerConfig{
+					Port:    "8080",
+					Address: "0.0.0.0",
+				},
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+					Jailer: JailerConfig{
+						UID:           1000,
+						GID:           1000,
+						ChrootBaseDir: "/srv/jailer",
+					},
+				},
+				Billing: BillingConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8081",
+					MockMode: false,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled:                      false,
+					ServiceName:                  "metald",
+					ServiceVersion:               "0.1.0",
+					TracingSamplingRate:          1.0,
+					OTLPEndpoint:                 "localhost:4318",
+					PrometheusEnabled:            true,
+					PrometheusPort:               "9464",
+					PrometheusInterface:          "127.0.0.1",
+					HighCardinalityLabelsEnabled: false,
+				},
+				Database: DatabaseConfig{
+					DataDir: "/opt/metald/data",
+				},
+				AssetManager: AssetManagerConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8083",
+					CacheDir: "/opt/metald/assets",
+				},
+				Network: NetworkConfig{
+					Enabled:              true,
+					EnableIPv4:           true,
+					DNSServersIPv4:       []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:           true,
+					BridgeIPv6:           "fd00::1/64",
+					VMSubnetIPv6:         "fd00::/64",
+					DNSServersIPv6:       []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:             "dual-stack",
+					BridgeName:           "br-vms",
+					EnableRateLimit:      true,
+					RateLimitMbps:        1000,
+					MaxVMsPerBridge:      1000,
+					EnableMultiBridge:    true,
+					BridgePrefix:         "br-vms",
+					BridgeCount:          8,
+					EnableHostProtection: true,
+					PrimaryInterface:     "",
+				},
+				TLS: &TLSConfig{
+					Mode:              "spiffe",
+					CertFile:          "",
+					KeyFile:           "",
+					CAFile:            "",
+					SPIFFESocketPath:  "/var/lib/spire/agent/agent.sock",
+					EnableCertCaching: true,
+					CertCacheTTL:      "5s",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid bridge count 32 via env",
+			envVars: map[string]string{
+				"UNKEY_METALD_NETWORK_BRIDGE_COUNT": "32",
+			},
+			want: &Config{
+				Server: ServerConfig{
+					Port:    "8080",
+					Address: "0.0.0.0",
+				},
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+					Jailer: JailerConfig{
+						UID:           1000,
+						GID:           1000,
+						ChrootBaseDir: "/srv/jailer",
+					},
+				},
+				Billing: BillingConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8081",
+					MockMode: false,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled:                      false,
+					ServiceName:                  "metald",
+					ServiceVersion:               "0.1.0",
+					TracingSamplingRate:          1.0,
+					OTLPEndpoint:                 "localhost:4318",
+					PrometheusEnabled:            true,
+					PrometheusPort:               "9464",
+					PrometheusInterface:          "127.0.0.1",
+					HighCardinalityLabelsEnabled: false,
+				},
+				Database: DatabaseConfig{
+					DataDir: "/opt/metald/data",
+				},
+				AssetManager: AssetManagerConfig{
+					Enabled:  true,
+					Endpoint: "http://localhost:8083",
+					CacheDir: "/opt/metald/assets",
+				},
+				Network: NetworkConfig{
+					Enabled:              true,
+					EnableIPv4:           true,
+					DNSServersIPv4:       []string{"8.8.8.8", "8.8.4.4"},
+					EnableIPv6:           true,
+					BridgeIPv6:           "fd00::1/64",
+					VMSubnetIPv6:         "fd00::/64",
+					DNSServersIPv6:       []string{"2606:4700:4700::1111", "2606:4700:4700::1001"},
+					IPv6Mode:             "dual-stack",
+					BridgeName:           "br-vms",
+					EnableRateLimit:      true,
+					RateLimitMbps:        1000,
+					MaxVMsPerBridge:      1000,
+					EnableMultiBridge:    true,
+					BridgePrefix:         "br-vms",
+					BridgeCount:          32,
+					EnableHostProtection: true,
+					PrimaryInterface:     "",
+				},
+				TLS: &TLSConfig{
+					Mode:              "spiffe",
+					CertFile:          "",
+					KeyFile:           "",
+					CAFile:            "",
+					SPIFFESocketPath:  "/var/lib/spire/agent/agent.sock",
+					EnableCertCaching: true,
+					CertCacheTTL:      "5s",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid bridge count 16 via env",
+			envVars: map[string]string{
+				"UNKEY_METALD_NETWORK_BRIDGE_COUNT": "16",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid bridge count 64 via env",
+			envVars: map[string]string{
+				"UNKEY_METALD_NETWORK_BRIDGE_COUNT": "64",
+			},
+			wantErr: true,
 		},
 	}
 
@@ -421,6 +597,9 @@ func TestConfigValidation(t *testing.T) {
 				OpenTelemetry: OpenTelemetryConfig{
 					Enabled: false,
 				},
+				Network: NetworkConfig{
+					BridgeCount: 8,
+				},
 			},
 			wantErr: false,
 		},
@@ -433,9 +612,12 @@ func TestConfigValidation(t *testing.T) {
 				OpenTelemetry: OpenTelemetryConfig{
 					Enabled: false,
 				},
+				Network: NetworkConfig{
+					BridgeCount: 8,
+				},
 			},
 			wantErr: true,
-			errMsg:  "only firecracker backend is supported",
+			errMsg:  "only firecracker and docker backends are supported",
 		},
 		{
 			name: "otel enabled with valid config",
@@ -448,6 +630,9 @@ func TestConfigValidation(t *testing.T) {
 					TracingSamplingRate: 0.5,
 					OTLPEndpoint:        "localhost:4318",
 					ServiceName:         "test-service",
+				},
+				Network: NetworkConfig{
+					BridgeCount: 8,
 				},
 			},
 			wantErr: false,
@@ -464,9 +649,90 @@ func TestConfigValidation(t *testing.T) {
 					OTLPEndpoint:        "localhost:4318",
 					ServiceName:         "",
 				},
+				Network: NetworkConfig{
+					BridgeCount: 8,
+				},
 			},
 			wantErr: true,
 			errMsg:  "service name is required when OpenTelemetry is enabled",
+		},
+		{
+			name: "valid bridge count 8",
+			config: &Config{
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled: false,
+				},
+				Network: NetworkConfig{
+					BridgeCount: 8,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid bridge count 32",
+			config: &Config{
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled: false,
+				},
+				Network: NetworkConfig{
+					BridgeCount: 32,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid bridge count 16",
+			config: &Config{
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled: false,
+				},
+				Network: NetworkConfig{
+					BridgeCount: 16,
+				},
+			},
+			wantErr: true,
+			errMsg:  "bridge count must be 8 or 32, got: 16",
+		},
+		{
+			name: "invalid bridge count 0",
+			config: &Config{
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled: false,
+				},
+				Network: NetworkConfig{
+					BridgeCount: 0,
+				},
+			},
+			wantErr: true,
+			errMsg:  "bridge count must be 8 or 32, got: 0",
+		},
+		{
+			name: "invalid bridge count 64",
+			config: &Config{
+				Backend: BackendConfig{
+					Type: types.BackendTypeFirecracker,
+				},
+				OpenTelemetry: OpenTelemetryConfig{
+					Enabled: false,
+				},
+				Network: NetworkConfig{
+					BridgeCount: 64,
+				},
+			},
+			wantErr: true,
+			errMsg:  "bridge count must be 8 or 32, got: 64",
 		},
 	}
 
@@ -538,8 +804,6 @@ func compareConfigs(a, b *Config) bool {
 	// Compare Network config
 	if a.Network.Enabled != b.Network.Enabled ||
 		a.Network.EnableIPv4 != b.Network.EnableIPv4 ||
-		a.Network.BridgeIPv4 != b.Network.BridgeIPv4 ||
-		a.Network.VMSubnetIPv4 != b.Network.VMSubnetIPv4 ||
 		!stringSlicesEqual(a.Network.DNSServersIPv4, b.Network.DNSServersIPv4) ||
 		a.Network.EnableIPv6 != b.Network.EnableIPv6 ||
 		a.Network.BridgeIPv6 != b.Network.BridgeIPv6 ||
@@ -548,7 +812,13 @@ func compareConfigs(a, b *Config) bool {
 		a.Network.IPv6Mode != b.Network.IPv6Mode ||
 		a.Network.BridgeName != b.Network.BridgeName ||
 		a.Network.EnableRateLimit != b.Network.EnableRateLimit ||
-		a.Network.RateLimitMbps != b.Network.RateLimitMbps {
+		a.Network.RateLimitMbps != b.Network.RateLimitMbps ||
+		a.Network.MaxVMsPerBridge != b.Network.MaxVMsPerBridge ||
+		a.Network.EnableMultiBridge != b.Network.EnableMultiBridge ||
+		a.Network.BridgePrefix != b.Network.BridgePrefix ||
+		a.Network.BridgeCount != b.Network.BridgeCount ||
+		a.Network.EnableHostProtection != b.Network.EnableHostProtection ||
+		a.Network.PrimaryInterface != b.Network.PrimaryInterface {
 		return false
 	}
 

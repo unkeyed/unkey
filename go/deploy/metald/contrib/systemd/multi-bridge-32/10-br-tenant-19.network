@@ -1,0 +1,11 @@
+[Match]
+Name=br-tenant-19
+
+[Network]
+Description=Metald VM Bridge 19
+Address=172.16.19.1/24
+IPv4Forwarding=yes
+IPMasquerade=ipv4
+ConfigureWithoutCarrier=yes
+DNS=8.8.8.8
+DNS=8.8.4.4

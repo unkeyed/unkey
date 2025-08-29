@@ -2,7 +2,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -58,123 +57,128 @@ type BridgeStats struct {
 
 // NewNetworkMetrics creates a new network metrics collector
 func NewNetworkMetrics(logger *slog.Logger) (*NetworkMetrics, error) {
-	meter := otel.Meter("metald.network")
+	meter := otel.Meter("metald/network",
+		metric.WithInstrumentationVersion("1.0.0"),
+		metric.WithSchemaURL("https://github.com/unkeyed/unkey/go/deploy/metald"),
+	)
 
-	// Initialize all metrics
+	// Initialize bridge capacity metrics
 	bridgeVMCount, err := meter.Int64UpDownCounter(
-		"metald_bridge_vm_count",
-		metric.WithDescription("Current number of VMs per bridge"),
-		metric.WithUnit("1"),
+		"metald_network_bridge_vm_count",
+		metric.WithDescription("Number of VMs currently attached to each bridge"),
+		metric.WithUnit("vm"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	bridgeCapacityRatio, err := meter.Float64Gauge(
-		"metald_bridge_capacity_ratio",
-		metric.WithDescription("Ratio of current VMs to maximum VMs per bridge (0.0-1.0)"),
-		metric.WithUnit("1"),
+		"metald_network_bridge_capacity_ratio",
+		metric.WithDescription("Current VM count as ratio of maximum capacity for each bridge"),
+		metric.WithUnit("ratio"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	bridgeUtilization, err := meter.Int64Histogram(
-		"metald_bridge_utilization_percent",
-		metric.WithDescription("Bridge utilization percentage"),
-		metric.WithUnit("%"),
-		metric.WithExplicitBucketBoundaries(10, 25, 50, 75, 90, 95, 99),
+		"metald_network_bridge_utilization",
+		metric.WithDescription("Distribution of bridge utilization percentages"),
+		metric.WithUnit("percent"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Initialize VM network operation metrics
 	vmNetworkCreateTotal, err := meter.Int64Counter(
-		"metald_vm_network_create_total",
-		metric.WithDescription("Total number of VM network creations"),
-		metric.WithUnit("1"),
+		"metald_network_vm_create_total",
+		metric.WithDescription("Total number of VM network creation attempts"),
+		metric.WithUnit("operations"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	vmNetworkDeleteTotal, err := meter.Int64Counter(
-		"metald_vm_network_delete_total",
-		metric.WithDescription("Total number of VM network deletions"),
-		metric.WithUnit("1"),
+		"metald_network_vm_delete_total",
+		metric.WithDescription("Total number of VM network deletion attempts"),
+		metric.WithUnit("operations"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	vmNetworkErrors, err := meter.Int64Counter(
-		"metald_vm_network_errors_total",
-		metric.WithDescription("Total number of VM network errors"),
-		metric.WithUnit("1"),
+		"metald_network_vm_errors_total",
+		metric.WithDescription("Total number of VM network operation errors"),
+		metric.WithUnit("errors"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Initialize resource leak metrics
 	orphanedTAPDevices, err := meter.Int64UpDownCounter(
-		"metald_orphaned_tap_devices",
-		metric.WithDescription("Number of orphaned TAP devices"),
-		metric.WithUnit("1"),
+		"metald_network_orphaned_tap_devices",
+		metric.WithDescription("Number of orphaned TAP devices detected during cleanup"),
+		metric.WithUnit("devices"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	orphanedVethDevices, err := meter.Int64UpDownCounter(
-		"metald_orphaned_veth_devices",
-		metric.WithDescription("Number of orphaned veth devices"),
-		metric.WithUnit("1"),
+		"metald_network_orphaned_veth_devices",
+		metric.WithDescription("Number of orphaned veth devices detected during cleanup"),
+		metric.WithUnit("devices"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	orphanedNamespaces, err := meter.Int64UpDownCounter(
-		"metald_orphaned_namespaces",
-		metric.WithDescription("Number of orphaned network namespaces"),
-		metric.WithUnit("1"),
+		"metald_network_orphaned_namespaces",
+		metric.WithDescription("Number of orphaned network namespaces detected during cleanup"),
+		metric.WithUnit("namespaces"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Initialize host protection metrics
 	routeHijackDetected, err := meter.Int64Counter(
-		"metald_route_hijack_detected_total",
-		metric.WithDescription("Total number of route hijacking attempts detected"),
-		metric.WithUnit("1"),
+		"metald_network_route_hijack_detected_total",
+		metric.WithDescription("Total number of route hijack attempts detected"),
+		metric.WithUnit("detections"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	routeRecoveryAttempts, err := meter.Int64Counter(
-		"metald_route_recovery_attempts_total",
+		"metald_network_route_recovery_attempts_total",
 		metric.WithDescription("Total number of route recovery attempts"),
-		metric.WithUnit("1"),
+		metric.WithUnit("attempts"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	hostProtectionStatus, err := meter.Int64UpDownCounter(
-		"metald_host_protection_status",
-		metric.WithDescription("Host protection status (1=active, 0=inactive)"),
-		metric.WithUnit("1"),
+		"metald_network_host_protection_status",
+		metric.WithDescription("Host protection system status (1=active, 0=inactive)"),
+		metric.WithUnit("status"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Initialize performance metrics
 	networkSetupDuration, err := meter.Float64Histogram(
 		"metald_network_setup_duration_seconds",
-		metric.WithDescription("Time taken to set up VM networking"),
-		metric.WithUnit("s"),
-		metric.WithExplicitBucketBoundaries(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+		metric.WithDescription("Duration of VM network setup operations"),
+		metric.WithUnit("seconds"),
 	)
 	if err != nil {
 		return nil, err
@@ -182,16 +186,15 @@ func NewNetworkMetrics(logger *slog.Logger) (*NetworkMetrics, error) {
 
 	networkCleanupDuration, err := meter.Float64Histogram(
 		"metald_network_cleanup_duration_seconds",
-		metric.WithDescription("Time taken to clean up VM networking"),
-		metric.WithUnit("s"),
-		metric.WithExplicitBucketBoundaries(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+		metric.WithDescription("Duration of VM network cleanup operations"),
+		metric.WithUnit("seconds"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &NetworkMetrics{
-		logger:                 logger.With("component", "network-metrics"),
+		logger:                 logger,
 		meter:                  meter,
 		bridgeVMCount:          bridgeVMCount,
 		bridgeCapacityRatio:    bridgeCapacityRatio,
@@ -211,262 +214,83 @@ func NewNetworkMetrics(logger *slog.Logger) (*NetworkMetrics, error) {
 	}, nil
 }
 
-// RecordVMNetworkCreate records a VM network creation
+// RecordVMNetworkCreate records a VM network creation event
 func (m *NetworkMetrics) RecordVMNetworkCreate(ctx context.Context, bridgeName string, success bool) {
-	m.vmNetworkCreateTotal.Add(ctx, 1, metric.WithAttributes(
+	attrs := []attribute.KeyValue{
 		attribute.String("bridge", bridgeName),
 		attribute.Bool("success", success),
-	))
+	}
+
+	m.vmNetworkCreateTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
 
 	if success {
-		m.updateBridgeStats(bridgeName, 1)
+		m.updateBridgeStats(bridgeName, 1) // Increment VM count
 	} else {
-		m.vmNetworkErrors.Add(ctx, 1, metric.WithAttributes(
-			attribute.String("operation", "create"),
-			attribute.String("bridge", bridgeName),
-		))
+		m.vmNetworkErrors.Add(ctx, 1, metric.WithAttributes(attrs...))
 	}
 }
 
-// RecordVMNetworkDelete records a VM network deletion
+// RecordVMNetworkDelete records a VM network deletion event
 func (m *NetworkMetrics) RecordVMNetworkDelete(ctx context.Context, bridgeName string, success bool) {
-	m.vmNetworkDeleteTotal.Add(ctx, 1, metric.WithAttributes(
+	attrs := []attribute.KeyValue{
 		attribute.String("bridge", bridgeName),
 		attribute.Bool("success", success),
-	))
+	}
+
+	m.vmNetworkDeleteTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
 
 	if success {
-		m.updateBridgeStats(bridgeName, -1)
+		m.updateBridgeStats(bridgeName, -1) // Decrement VM count
 	} else {
-		m.vmNetworkErrors.Add(ctx, 1, metric.WithAttributes(
-			attribute.String("operation", "delete"),
-			attribute.String("bridge", bridgeName),
-		))
+		m.vmNetworkErrors.Add(ctx, 1, metric.WithAttributes(attrs...))
 	}
 }
 
 // RecordNetworkSetupDuration records the time taken for network setup
 func (m *NetworkMetrics) RecordNetworkSetupDuration(ctx context.Context, duration time.Duration, bridgeName string, success bool) {
-	m.networkSetupDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(
-		attribute.String("bridge", bridgeName),
-		attribute.Bool("success", success),
-	))
+	m.networkSetupDuration.Record(ctx, duration.Seconds(),
+		metric.WithAttributes(
+			attribute.String("bridge", bridgeName),
+			attribute.Bool("success", success),
+		))
 }
 
 // RecordNetworkCleanupDuration records the time taken for network cleanup
 func (m *NetworkMetrics) RecordNetworkCleanupDuration(ctx context.Context, duration time.Duration, bridgeName string, success bool) {
-	m.networkCleanupDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(
-		attribute.String("bridge", bridgeName),
-		attribute.Bool("success", success),
-	))
+	m.networkCleanupDuration.Record(ctx, duration.Seconds(),
+		metric.WithAttributes(
+			attribute.String("bridge", bridgeName),
+			attribute.Bool("success", success),
+		))
 }
 
-// RecordOrphanedResources records counts of orphaned network resources
+// RecordOrphanedResources records orphaned network resources found during cleanup
 func (m *NetworkMetrics) RecordOrphanedResources(ctx context.Context, taps, veths, namespaces int64) {
 	m.orphanedTAPDevices.Add(ctx, taps)
 	m.orphanedVethDevices.Add(ctx, veths)
 	m.orphanedNamespaces.Add(ctx, namespaces)
 }
 
-// RecordRouteHijackDetected records a route hijacking detection
+// RecordRouteHijackDetected records detection of route hijacking attempt
 func (m *NetworkMetrics) RecordRouteHijackDetected(ctx context.Context, hijackedInterface, expectedInterface string) {
-	m.routeHijackDetected.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("hijacked_interface", hijackedInterface),
-		attribute.String("expected_interface", expectedInterface),
-	))
+	m.routeHijackDetected.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("hijacked_interface", hijackedInterface),
+			attribute.String("expected_interface", expectedInterface),
+		))
 }
 
 // RecordRouteRecoveryAttempt records a route recovery attempt
 func (m *NetworkMetrics) RecordRouteRecoveryAttempt(ctx context.Context, success bool) {
-	m.routeRecoveryAttempts.Add(ctx, 1, metric.WithAttributes(
-		attribute.Bool("success", success),
-	))
+	m.routeRecoveryAttempts.Add(ctx, 1,
+		metric.WithAttributes(attribute.Bool("success", success)))
 }
 
-// SetHostProtectionStatus sets the host protection status
+// SetHostProtectionStatus updates the host protection system status
 func (m *NetworkMetrics) SetHostProtectionStatus(ctx context.Context, active bool) {
-	status := int64(0)
+	var status int64
 	if active {
 		status = 1
 	}
 	m.hostProtectionStatus.Add(ctx, status)
 }
-
-// updateBridgeStats updates bridge statistics and capacity metrics
-func (m *NetworkMetrics) updateBridgeStats(bridgeName string, vmCountDelta int64) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	stats, exists := m.bridgeStats[bridgeName]
-	if !exists {
-		stats = &BridgeStats{
-			BridgeName:   bridgeName,
-			VMCount:      0,
-			MaxVMs:       1000, // Default max VMs per bridge
-			CreatedAt:    time.Now(),
-			LastActivity: time.Now(),
-			IsHealthy:    true,
-		}
-		m.bridgeStats[bridgeName] = stats
-	}
-
-	stats.VMCount += vmCountDelta
-	stats.LastActivity = time.Now()
-
-	// Ensure VM count doesn't go negative
-	if stats.VMCount < 0 {
-		stats.VMCount = 0
-	}
-
-	// Update metrics
-	ctx := context.Background()
-	m.bridgeVMCount.Add(ctx, vmCountDelta, metric.WithAttributes(
-		attribute.String("bridge", bridgeName),
-	))
-
-	// Calculate and record capacity ratio
-	ratio := float64(stats.VMCount) / float64(stats.MaxVMs)
-	m.bridgeCapacityRatio.Record(ctx, ratio, metric.WithAttributes(
-		attribute.String("bridge", bridgeName),
-	))
-
-	// Calculate and record utilization percentage
-	utilizationPercent := int64(ratio * 100)
-	m.bridgeUtilization.Record(ctx, utilizationPercent, metric.WithAttributes(
-		attribute.String("bridge", bridgeName),
-	))
-
-	// Log warnings for high utilization
-	if ratio >= 0.9 {
-		m.logger.Warn("bridge approaching capacity",
-			slog.String("bridge", bridgeName),
-			slog.Int64("current_vms", stats.VMCount),
-			slog.Int64("max_vms", stats.MaxVMs),
-			slog.Float64("utilization", ratio),
-		)
-	}
-}
-
-// SetBridgeMaxVMs sets the maximum VMs for a bridge
-func (m *NetworkMetrics) SetBridgeMaxVMs(bridgeName string, maxVMs int64) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	stats, exists := m.bridgeStats[bridgeName]
-	if !exists {
-		stats = &BridgeStats{
-			BridgeName:   bridgeName,
-			VMCount:      0,
-			MaxVMs:       maxVMs,
-			CreatedAt:    time.Now(),
-			LastActivity: time.Now(),
-			IsHealthy:    true,
-		}
-		m.bridgeStats[bridgeName] = stats
-	} else {
-		stats.MaxVMs = maxVMs
-	}
-}
-
-// GetBridgeStats returns current bridge statistics
-func (m *NetworkMetrics) GetBridgeStats() map[string]*BridgeStats {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	// Return a copy to avoid concurrent access issues
-	statsCopy := make(map[string]*BridgeStats)
-	for name, stats := range m.bridgeStats {
-		statsCopy[name] = &BridgeStats{
-			BridgeName:   stats.BridgeName,
-			VMCount:      stats.VMCount,
-			MaxVMs:       stats.MaxVMs,
-			CreatedAt:    stats.CreatedAt,
-			LastActivity: stats.LastActivity,
-			IsHealthy:    stats.IsHealthy,
-			ErrorCount:   stats.ErrorCount,
-		}
-	}
-
-	return statsCopy
-}
-
-// GetBridgeCapacityAlerts returns bridges that are approaching capacity
-func (m *NetworkMetrics) GetBridgeCapacityAlerts() []BridgeCapacityAlert {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	var alerts []BridgeCapacityAlert
-
-	for _, stats := range m.bridgeStats {
-		ratio := float64(stats.VMCount) / float64(stats.MaxVMs)
-
-		var severity AlertSeverity
-		var threshold float64
-
-		switch {
-		case ratio >= 0.95:
-			severity = AlertCritical
-			threshold = 0.95
-		case ratio >= 0.90:
-			severity = AlertWarning
-			threshold = 0.90
-		case ratio >= 0.80:
-			severity = AlertInfo
-			threshold = 0.80
-		default:
-			continue // No alert needed
-		}
-
-		alerts = append(alerts, BridgeCapacityAlert{
-			BridgeName:       stats.BridgeName,
-			CurrentVMs:       stats.VMCount,
-			MaxVMs:           stats.MaxVMs,
-			UtilizationRatio: ratio,
-			Severity:         severity,
-			Threshold:        threshold,
-			Message:          m.formatCapacityAlertMessage(stats, ratio, severity),
-		})
-	}
-
-	return alerts
-}
-
-// formatCapacityAlertMessage creates a human-readable alert message
-func (m *NetworkMetrics) formatCapacityAlertMessage(stats *BridgeStats, ratio float64, severity AlertSeverity) string {
-	utilizationPercent := int(ratio * 100)
-
-	switch severity {
-	case AlertCritical:
-		return fmt.Sprintf("CRITICAL: Bridge %s is at %d%% capacity (%d/%d VMs). Immediate action required!",
-			stats.BridgeName, utilizationPercent, stats.VMCount, stats.MaxVMs)
-	case AlertWarning:
-		return fmt.Sprintf("WARNING: Bridge %s is at %d%% capacity (%d/%d VMs). Consider load balancing or scaling.",
-			stats.BridgeName, utilizationPercent, stats.VMCount, stats.MaxVMs)
-	case AlertInfo:
-		return fmt.Sprintf("INFO: Bridge %s utilization is %d%% (%d/%d VMs). Monitor for continued growth.",
-			stats.BridgeName, utilizationPercent, stats.VMCount, stats.MaxVMs)
-	default:
-		return fmt.Sprintf("Bridge %s utilization: %d%% (%d/%d VMs)",
-			stats.BridgeName, utilizationPercent, stats.VMCount, stats.MaxVMs)
-	}
-}
-
-// BridgeCapacityAlert represents a bridge capacity alert
-type BridgeCapacityAlert struct {
-	BridgeName       string        `json:"bridge_name"`
-	CurrentVMs       int64         `json:"current_vms"`
-	MaxVMs           int64         `json:"max_vms"`
-	UtilizationRatio float64       `json:"utilization_ratio"`
-	Severity         AlertSeverity `json:"severity"`
-	Threshold        float64       `json:"threshold"`
-	Message          string        `json:"message"`
-}
-
-// AlertSeverity represents the severity level of an alert
-type AlertSeverity string
-
-const (
-	AlertInfo     AlertSeverity = "info"
-	AlertWarning  AlertSeverity = "warning"
-	AlertCritical AlertSeverity = "critical"
-)
