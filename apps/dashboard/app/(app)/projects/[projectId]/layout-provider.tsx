@@ -8,6 +8,7 @@ type ProjectLayoutContextType = {
   // Must be fetched on the project list screen and passed down to this component.
   // Required by ActiveDeploymentCard and ProjectDetailsExpandable components.
   activeDeploymentId: string;
+  projectId: string;
 };
 
 export const ProjectLayoutContext = createContext<ProjectLayoutContextType | null>(null);

@@ -1,4 +1,3 @@
-// Updated ProjectDetails component
 "use client";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -26,47 +25,8 @@ const DOMAINS = [
   },
 ];
 
-const PRODUCTION_VARS = [
-  {
-    id: "1",
-    key: "DATABASE_URL",
-    value: "postgresql://user:pass@prod.db.com:5432/app",
-    isSecret: true,
-  },
-  {
-    id: "2",
-    key: "API_KEY",
-    value: "sk_prod_1234567890abcdef",
-    isSecret: true,
-  },
-  { id: "3", key: "NODE_ENV", value: "production", isSecret: false },
-  {
-    id: "4",
-    key: "REDIS_URL",
-    value: "redis://prod.redis.com:6379",
-    isSecret: true,
-  },
-  { id: "5", key: "LOG_LEVEL", value: "info", isSecret: false },
-];
-
-const PREVIEW_VARS = [
-  {
-    id: "6",
-    key: "DATABASE_URL",
-    value: "postgresql://user:pass@staging.db.com:5432/app",
-    isSecret: true,
-  },
-  {
-    id: "7",
-    key: "API_KEY",
-    value: "sk_test_abcdef1234567890",
-    isSecret: true,
-  },
-  { id: "8", key: "NODE_ENV", value: "development", isSecret: false },
-];
-
 export default function ProjectDetails() {
-  const { isDetailsOpen } = useProjectLayout();
+  const { isDetailsOpen, projectId } = useProjectLayout();
 
   return (
     <div
@@ -105,13 +65,15 @@ export default function ProjectDetails() {
             <EnvironmentVariablesSection
               icon={<Page2 className="text-gray-9" size="sm-medium" />}
               title="Production"
-              initialVars={PRODUCTION_VARS}
+              projectId={projectId}
+              environment="production"
               initialOpen
             />
             <EnvironmentVariablesSection
               icon={<Page2 className="text-gray-9" size="sm-medium" />}
               title="Preview"
-              initialVars={PREVIEW_VARS}
+              projectId={projectId}
+              environment="preview"
             />
           </div>
         </Section>

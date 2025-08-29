@@ -2,7 +2,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ProjectDetailsExpandable } from "./details/project-details-expandables";
 import { ProjectLayoutContext } from "./layout-provider";
 import { ProjectNavigation } from "./navigations/project-navigation";
@@ -28,6 +28,12 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const trpcUtil = trpc.useUtils();
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  useEffect(() => {
+    trpcUtil.deploy.envs.getEnvs.prefetch({
+      projectId,
+    });
+  }, [trpcUtil, projectId]);
 
   // This will be called on mount to determine the offset to top, then it will prefetch project details and mount project details drawer.
   const handleDistanceToTop = useCallback(
@@ -59,6 +65,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         isDetailsOpen,
         setIsDetailsOpen,
         activeDeploymentId: FAKE_DEPLOYMENT_ID,
+        projectId,
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">

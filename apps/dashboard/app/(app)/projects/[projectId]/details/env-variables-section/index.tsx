@@ -4,12 +4,13 @@ import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { AddEnvVarRow } from "./add-env-var-row";
 import { EnvVarRow } from "./env-var-row";
-import { type EnvVar, useEnvVars } from "./hooks/use-env-var";
+import { useEnvVars } from "./hooks/use-env-var";
 
 type EnvironmentVariablesSectionProps = {
   icon: ReactNode;
   title: string;
-  initialVars: EnvVar[];
+  projectId: string;
+  environment: "production" | "preview" | "development";
   initialOpen?: boolean;
 };
 
@@ -20,9 +21,10 @@ const ANIMATION_STYLES = {
 
 export function EnvironmentVariablesSection({
   icon,
-  title,
-  initialVars,
+  projectId,
+  environment,
   initialOpen,
+  title,
 }: EnvironmentVariablesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(initialOpen);
   const {
@@ -37,7 +39,7 @@ export function EnvironmentVariablesSection({
     cancelEditing,
     startAdding,
     setNewVar,
-  } = useEnvVars({ initialVars });
+  } = useEnvVars({ projectId, environment });
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -52,11 +54,12 @@ export function EnvironmentVariablesSection({
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
       {/* Header */}
+
       <div className={cn("px-4 pt-3 flex justify-between items-center", isExpanded ? "" : "pb-3")}>
         <div className="flex items-center">
           {icon}
           <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
-            {title} ({envVars.length})
+            {title} {envVars.length > 0 ? `(${envVars.length})` : null}{" "}
           </div>
         </div>
         <div className="flex items-center gap-2">

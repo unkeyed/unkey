@@ -1,21 +1,31 @@
-import { useCallback, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
+import type { EnvVar } from "@/lib/trpc/routers/deploy/envs/getEnvs";
+import { useCallback, useEffect, useState } from "react";
 
-export type EnvVar = {
-  id: string;
-  key: string;
-  value: string;
-  isSecret?: boolean;
+type UseEnvVarsProps = {
+  projectId: string;
+  environment: "production" | "preview" | "development";
 };
 
-type UseEnvironmentVariablesProps = {
-  initialVars: EnvVar[];
-};
-
-export function useEnvVars({ initialVars }: UseEnvironmentVariablesProps) {
-  const [envVars, setEnvVars] = useState<EnvVar[]>(initialVars);
+export function useEnvVars({ environment, projectId }: UseEnvVarsProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newVar, setNewVar] = useState({ key: "", value: "", isSecret: false });
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const trpcUtil = trpc.useUtils();
+
+  const allEnvVars = trpcUtil.deploy.envs.getEnvs.getData({
+    projectId,
+  });
+
+  const envVars = allEnvVars?.[environment] || [];
+  const [localEnvVars, setLocalEnvVars] = useState<EnvVar[]>([]);
+
+  // Sync server data with local state when it changes
+  useEffect(() => {
+    if (envVars.length > 0) {
+      setLocalEnvVars(envVars);
+    }
+  }, [envVars]);
 
   const addVariable = useCallback(() => {
     if (!newVar.key.trim() || !newVar.value.trim()) {
@@ -29,18 +39,24 @@ export function useEnvVars({ initialVars }: UseEnvironmentVariablesProps) {
       isSecret: newVar.isSecret,
     };
 
-    setEnvVars((prev) => [...prev, newEnvVar]);
+    setLocalEnvVars((prev) => [...prev, newEnvVar]);
     setNewVar({ key: "", value: "", isSecret: false });
     setIsAddingNew(false);
+
+    // TODO: Call create mutation when available
   }, [newVar]);
 
   const updateVariable = useCallback((id: string, updates: Partial<EnvVar>) => {
-    setEnvVars((prev) => prev.map((env) => (env.id === id ? { ...env, ...updates } : env)));
+    setLocalEnvVars((prev) => prev.map((env) => (env.id === id ? { ...env, ...updates } : env)));
     setEditingId(null);
+
+    // TODO: Call update mutation when available
   }, []);
 
   const deleteVariable = useCallback((id: string) => {
-    setEnvVars((prev) => prev.filter((env) => env.id !== id));
+    setLocalEnvVars((prev) => prev.filter((env) => env.id !== id));
+
+    // TODO: Call delete mutation when available
   }, []);
 
   const startEditing = useCallback((id: string) => {
@@ -60,7 +76,7 @@ export function useEnvVars({ initialVars }: UseEnvironmentVariablesProps) {
   }, []);
 
   return {
-    envVars,
+    envVars: localEnvVars,
     editingId,
     newVar,
     isAddingNew,
