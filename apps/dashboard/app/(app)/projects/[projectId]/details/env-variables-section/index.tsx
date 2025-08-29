@@ -11,7 +11,6 @@ type EnvironmentVariablesSectionProps = {
   title: string;
   projectId: string;
   environment: "production" | "preview" | "development";
-  initialOpen?: boolean;
 };
 
 const ANIMATION_STYLES = {
@@ -23,10 +22,8 @@ export function EnvironmentVariablesSection({
   icon,
   projectId,
   environment,
-  initialOpen,
   title,
 }: EnvironmentVariablesSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(initialOpen);
   const {
     envVars,
     editingId,
@@ -40,6 +37,7 @@ export function EnvironmentVariablesSection({
     startAdding,
     setNewVar,
   } = useEnvVars({ projectId, environment });
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);

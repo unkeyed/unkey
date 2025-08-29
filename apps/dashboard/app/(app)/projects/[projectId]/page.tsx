@@ -67,7 +67,6 @@ export default function ProjectDetails() {
               title="Production"
               projectId={projectId}
               environment="production"
-              initialOpen
             />
             <EnvironmentVariablesSection
               icon={<Page2 className="text-gray-9" size="sm-medium" />}

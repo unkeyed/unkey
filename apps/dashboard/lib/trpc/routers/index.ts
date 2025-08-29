@@ -42,7 +42,7 @@ import { getDeploymentDetails } from "./deploy/project/active-deployment/getDeta
 import { createProject } from "./deploy/project/create";
 import { queryDeployments } from "./deploy/project/deployment/list";
 import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
-import { getEnvs } from "./deploy/project/envs/getEnvs";
+import { getEnvs } from "./deploy/project/envs/list";
 import { queryProjects } from "./deploy/project/list";
 import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";

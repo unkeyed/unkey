@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/getEnvs";
+import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/get";
 import { useCallback, useEffect, useState } from "react";
 
 type UseEnvVarsProps = {

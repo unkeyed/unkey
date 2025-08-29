@@ -1,4 +1,4 @@
-import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/getEnvs";
+import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/get";
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
 import { useEffect, useState } from "react";

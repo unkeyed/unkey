@@ -17,7 +17,7 @@ const environmentVariablesOutputSchema = z.object({
 export type EnvironmentVariables = z.infer<typeof environmentVariablesOutputSchema>;
 export type EnvVar = z.infer<typeof envVarSchema>;
 
-const VARIABLES: EnvironmentVariables = {
+export const VARIABLES: EnvironmentVariables = {
   production: [
     {
       id: "1",
