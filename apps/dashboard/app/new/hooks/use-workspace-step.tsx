@@ -148,7 +148,6 @@ export const useWorkspaceStep = (): OnboardingStep => {
           {/*     </div> */}
           {/*   </div> */}
           {/* </div> */}
-
           {/* Use this 'pt-7' version when implementing profile photo and slug based onboarding*/}
           {/* <div className="space-y-4 pt-7"> */}
           <div className="space-y-4 p-1">
@@ -162,8 +161,9 @@ export const useWorkspaceStep = (): OnboardingStep => {
 
                 // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
                 if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
-                  form.setValue("slug", slugify(evt.currentTarget.value));
-                  form.trigger("slug");
+                  form.setValue("slug", slugify(evt.currentTarget.value), {
+                    shouldValidate: true,
+                  });
                 }
               }}
               required
