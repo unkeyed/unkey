@@ -17,6 +17,7 @@ export const keysOverviewLogsParams = z.object({
   limit: z.number().int(),
   startTime: z.number().int(),
   endTime: z.number().int(),
+  creditSpendMode: z.boolean().optional().default(false),
   outcomes: z
     .array(
       z.object({
@@ -61,7 +62,7 @@ export const keysOverviewLogsParams = z.object({
   sorts: z
     .array(
       z.object({
-        column: z.enum(["time", "valid", "invalid"]),
+        column: z.enum(["time", "valid", "invalid", "spent_credits"]),
         direction: z.enum(["asc", "desc"]),
       }),
     )
@@ -113,6 +114,7 @@ export const rawKeysOverviewLogs = z.object({
   error_count: z.number().int(),
   outcome_counts: z.record(z.string(), z.number().int()),
   tags: z.array(z.string()).optional(),
+  spent_credits: z.number().int().default(0),
 });
 
 export const keysOverviewLogs = rawKeysOverviewLogs.extend({
@@ -194,10 +196,14 @@ export function getKeysOverviewLogs(ch: Querier) {
           .join(" OR ") || "TRUE"
       : "TRUE";
 
+    // Credit spend filtering condition
+    const creditSpendCondition = args.creditSpendMode ? "spent_credits > 0" : "TRUE";
+
     const allowedColumns = new Map([
       ["time", "time"],
       ["valid", "valid_count"],
       ["invalid", "error_count"],
+      ["spent_credits", "spent_credits"],
     ]);
 
     const orderBy =
@@ -272,7 +278,8 @@ WITH
           time,
           key_id,
           tags,
-          outcome
+          outcome,
+          spent_credits
       FROM verifications.raw_key_verifications_v1
       WHERE workspace_id = {workspaceId: String}
           AND key_space_id = {keyspaceId: String}
@@ -283,6 +290,8 @@ WITH
           AND (${outcomeCondition})
           -- Apply dynamic tag filtering
           AND (${tagConditions})
+          -- Apply credit spend mode filtering
+          AND (${creditSpendCondition})
           -- Handle pagination using only time as cursor
           ${cursorCondition}
     ),
@@ -300,7 +309,9 @@ WITH
           -- Count valid verifications
           countIf(outcome = 'VALID') as valid_count,
           -- Count all non-valid verifications
-          countIf(outcome != 'VALID') as error_count
+          countIf(outcome != 'VALID') as error_count,
+          -- Sum total spent credits for this key
+          sum(spent_credits) as spent_credits
       FROM filtered_keys
       GROUP BY key_id
     ),
@@ -323,6 +334,7 @@ WITH
       a.tags,
       a.valid_count,
       a.error_count,
+      a.spent_credits,
       -- Create an array of tuples containing all outcomes and their counts
       -- This will be transformed into an object in the application code
       groupArray((o.outcome, o.count)) as outcome_counts_array
@@ -335,7 +347,8 @@ WITH
       a.last_request_id,
       a.tags,
       a.valid_count,
-      a.error_count
+      a.error_count,
+      a.spent_credits
     -- Sort results with most recent verification first
     ORDER BY ${orderByClause}
     -- Limit results for pagination
@@ -372,6 +385,7 @@ WITH
           tags: result.tags,
           valid_count: result.valid_count,
           error_count: result.error_count,
+          spent_credits: result.spent_credits || 0,
           outcome_counts: outcomeCountsObj,
         };
       }),

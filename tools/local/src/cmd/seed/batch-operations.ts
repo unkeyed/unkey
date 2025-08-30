@@ -36,6 +36,13 @@ export async function insertVerificationEvents(
 
   // Track usage stats for reporting
   const keyUsageCounter = new Map();
+  const creditStats = {
+    totalCreditsSpent: 0,
+    verificationsWith0Credits: 0,
+    verificationsWith1Credit: 0,
+    verificationsWithMultipleCredits: 0,
+    keysWithUsageLimits: sortedKeys.filter((key) => key.hasUsageLimit).length,
+  };
   sortedKeys.forEach((key) => keyUsageCounter.set(key.id, 0));
 
   try {
@@ -63,6 +70,16 @@ export async function insertVerificationEvents(
         // Create the verification event, biasing outcomes based on key properties
         const verificationEvent = biasVerificationOutcome(key, workspaceId, keyAuthId, requestId);
         batchOfVerificationRecords.push(verificationEvent);
+
+        // Track credit statistics
+        creditStats.totalCreditsSpent += verificationEvent.spent_credits;
+        if (verificationEvent.spent_credits === 0) {
+          creditStats.verificationsWith0Credits++;
+        } else if (verificationEvent.spent_credits === 1) {
+          creditStats.verificationsWith1Credit++;
+        } else {
+          creditStats.verificationsWithMultipleCredits++;
+        }
 
         // If needed, create a matching API request
         if (createApiRequestLog) {
@@ -98,13 +115,18 @@ export async function insertVerificationEvents(
       }.`,
     );
 
-    return { keyUsageStats: Object.fromEntries(keyUsageCounter) };
+    return {
+      keyUsageStats: Object.fromEntries(keyUsageCounter),
+      creditStats,
+    };
   } catch (error: unknown) {
     // End progress with a newline
     process.stdout.write("\n");
 
     console.error(
-      `❌ Error inserting data during batch ${progress.batchNumber}: ${(error as { message: string }).message}`,
+      `❌ Error inserting data during batch ${progress.batchNumber}: ${
+        (error as { message: string }).message
+      }`,
     );
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
@@ -189,7 +211,9 @@ export async function insertRatelimitEvents(
     process.stdout.write("\n");
 
     console.error(
-      `❌ Error inserting data during batch ${progress.batchNumber}: ${(error as { message: string }).message}`,
+      `❌ Error inserting data during batch ${progress.batchNumber}: ${
+        (error as { message: string }).message
+      }`,
     );
     console.error("ClickHouse Insert Error Details:", error);
     throw error;
