@@ -16,14 +16,21 @@ This guide will help you get the Unkey deployment platform up and running locall
 cd deployment
 ```
 
-2. Create an `.env` file in `apps/dashboard` (use .env.example as a template).
+2. Create an `.env` file in `apps/dashboard` (use .env.example as a template):
+
+```bash
+cp apps/dashboard/.env.example apps/dashboard/.env
+```
+
+Follow the instructions in .env.example to fill the values.
 
 
 3. Start services using Docker Compose:
 
 ```bash
-docker compose up metald-aio dashboard ctrl -d
+docker compose up -d metald-aio dashboard ctrl
 ```
+
 
 If the dashboard build fails in Docker, run it locally:
 
