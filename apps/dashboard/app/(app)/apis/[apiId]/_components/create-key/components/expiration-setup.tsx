@@ -115,12 +115,15 @@ export const ExpirationSetup = ({
   };
 
   const getInitialTimeValues = () => {
-    // If we have a current expiry date, use it, otherwise use minimum valid date
-    const initialDate = currentExpiryDate || minValidDate;
+    // Safely convert currentExpiryDate to Date object, fallback to minValidDate
+    const initialDate = currentExpiryDate ? new Date(currentExpiryDate) : minValidDate;
+
+    // If conversion failed, use minValidDate
+    const safeInitialDate = Number.isNaN(initialDate.getTime()) ? minValidDate : initialDate;
 
     return {
-      startTime: initialDate.getTime(),
-      endTime: undefined, // Not needed for single date mode
+      startTime: safeInitialDate.getTime(),
+      endTime: undefined,
       since: undefined,
     };
   };
