@@ -153,7 +153,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM `deployments`
 	//  WHERE id = ?
-	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
+	FindDeploymentById(ctx context.Context, db DBTX, id string) (FindDeploymentByIdRow, error)
 	//FindDeploymentStepsByDeploymentId
 	//
 	//  SELECT

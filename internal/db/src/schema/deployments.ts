@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { projects } from "./projects";

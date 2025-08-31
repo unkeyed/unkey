@@ -31,9 +31,8 @@ export const listByProject = t.procedure
         where: (table, { eq }) => eq(table.projectId, input.projectId),
         orderBy: (table, { desc }) => [desc(table.createdAt)],
         with: {
-        with: {
           environment: { columns: { slug: true } },
-          project:     { columns: { id: true, name: true, slug: true } },
+          project: { columns: { id: true, name: true, slug: true } },
         },
       });
 

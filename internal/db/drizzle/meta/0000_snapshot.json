@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "299c6c6a-5b3c-4f0b-b69c-b5fce395acc6",
+  "id": "1c1b2291-b582-4d8f-9bd7-a76d34a8af62",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -83,7 +83,9 @@
       "indexes": {
         "workspace_id_idx": {
           "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         }
       },
@@ -91,13 +93,17 @@
       "compositePrimaryKeys": {
         "apis_id": {
           "name": "apis_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {
         "apis_key_auth_id_unique": {
           "name": "apis_key_auth_id_unique",
-          "columns": ["key_auth_id"]
+          "columns": [
+            "key_auth_id"
+          ]
         }
       }
     },
@@ -153,17 +159,26 @@
       "compositePrimaryKeys": {
         "keys_permissions_key_id_permission_id_workspace_id": {
           "name": "keys_permissions_key_id_permission_id_workspace_id",
-          "columns": ["key_id", "permission_id", "workspace_id"]
+          "columns": [
+            "key_id",
+            "permission_id",
+            "workspace_id"
+          ]
         }
       },
       "uniqueConstraints": {
         "keys_permissions_temp_id_unique": {
           "name": "keys_permissions_temp_id_unique",
-          "columns": ["temp_id"]
+          "columns": [
+            "temp_id"
+          ]
         },
         "key_id_permission_id_idx": {
           "name": "key_id_permission_id_idx",
-          "columns": ["key_id", "permission_id"]
+          "columns": [
+            "key_id",
+            "permission_id"
+          ]
         }
       }
     },
@@ -210,7 +225,10 @@
       "indexes": {
         "unique_key_id_role_id": {
           "name": "unique_key_id_role_id",
-          "columns": ["key_id", "role_id"],
+          "columns": [
+            "key_id",
+            "role_id"
+          ],
           "isUnique": true
         }
       },
@@ -218,7 +236,11 @@
       "compositePrimaryKeys": {
         "keys_roles_role_id_key_id_workspace_id": {
           "name": "keys_roles_role_id_key_id_workspace_id",
-          "columns": ["role_id", "key_id", "workspace_id"]
+          "columns": [
+            "role_id",
+            "key_id",
+            "workspace_id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -282,13 +304,18 @@
       "compositePrimaryKeys": {
         "permissions_id": {
           "name": "permissions_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {
         "unique_slug_per_workspace_idx": {
           "name": "unique_slug_per_workspace_idx",
-          "columns": ["workspace_id", "slug"]
+          "columns": [
+            "workspace_id",
+            "slug"
+          ]
         }
       }
     },
@@ -342,7 +369,9 @@
       "indexes": {
         "workspace_id_idx": {
           "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         }
       },
@@ -350,13 +379,18 @@
       "compositePrimaryKeys": {
         "roles_id": {
           "name": "roles_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {
         "unique_name_per_workspace_idx": {
           "name": "unique_name_per_workspace_idx",
-          "columns": ["name", "workspace_id"]
+          "columns": [
+            "name",
+            "workspace_id"
+          ]
         }
       }
     },
@@ -405,13 +439,20 @@
       "compositePrimaryKeys": {
         "roles_permissions_role_id_permission_id_workspace_id": {
           "name": "roles_permissions_role_id_permission_id_workspace_id",
-          "columns": ["role_id", "permission_id", "workspace_id"]
+          "columns": [
+            "role_id",
+            "permission_id",
+            "workspace_id"
+          ]
         }
       },
       "uniqueConstraints": {
         "unique_tuple_permission_id_role_id": {
           "name": "unique_tuple_permission_id_role_id",
-          "columns": ["permission_id", "role_id"]
+          "columns": [
+            "permission_id",
+            "role_id"
+          ]
         }
       }
     },
@@ -499,7 +540,9 @@
       "compositePrimaryKeys": {
         "key_auth_id": {
           "name": "key_auth_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -554,7 +597,9 @@
       "indexes": {
         "key_id_idx": {
           "name": "key_id_idx",
-          "columns": ["key_id"],
+          "columns": [
+            "key_id"
+          ],
           "isUnique": true
         }
       },
@@ -732,37 +777,52 @@
       "indexes": {
         "hash_idx": {
           "name": "hash_idx",
-          "columns": ["hash"],
+          "columns": [
+            "hash"
+          ],
           "isUnique": true
         },
         "key_auth_id_deleted_at_idx": {
           "name": "key_auth_id_deleted_at_idx",
-          "columns": ["key_auth_id", "deleted_at_m"],
+          "columns": [
+            "key_auth_id",
+            "deleted_at_m"
+          ],
           "isUnique": false
         },
         "idx_keys_on_for_workspace_id": {
           "name": "idx_keys_on_for_workspace_id",
-          "columns": ["for_workspace_id"],
+          "columns": [
+            "for_workspace_id"
+          ],
           "isUnique": false
         },
         "idx_keys_on_workspace_id": {
           "name": "idx_keys_on_workspace_id",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         },
         "owner_id_idx": {
           "name": "owner_id_idx",
-          "columns": ["owner_id"],
+          "columns": [
+            "owner_id"
+          ],
           "isUnique": false
         },
         "identity_id_idx": {
           "name": "identity_id_idx",
-          "columns": ["identity_id"],
+          "columns": [
+            "identity_id"
+          ],
           "isUnique": false
         },
         "deleted_at_idx": {
           "name": "deleted_at_idx",
-          "columns": ["deleted_at_m"],
+          "columns": [
+            "deleted_at_m"
+          ],
           "isUnique": false
         }
       },
@@ -770,7 +830,9 @@
       "compositePrimaryKeys": {
         "keys_id": {
           "name": "keys_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -867,7 +929,11 @@
       "indexes": {
         "project_environment_resource_type_idx": {
           "name": "project_environment_resource_type_idx",
-          "columns": ["project_id", "environment", "resource_type"],
+          "columns": [
+            "project_id",
+            "environment",
+            "resource_type"
+          ],
           "isUnique": true
         }
       },
@@ -875,7 +941,9 @@
       "compositePrimaryKeys": {
         "vercel_bindings_id": {
           "name": "vercel_bindings_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -939,7 +1007,9 @@
       "compositePrimaryKeys": {
         "vercel_integrations_id": {
           "name": "vercel_integrations_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -996,13 +1066,18 @@
       "compositePrimaryKeys": {
         "ratelimit_namespaces_id": {
           "name": "ratelimit_namespaces_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {
         "unique_name_per_workspace_idx": {
           "name": "unique_name_per_workspace_idx",
-          "columns": ["workspace_id", "name"]
+          "columns": [
+            "workspace_id",
+            "name"
+          ]
         }
       }
     },
@@ -1093,13 +1168,18 @@
       "compositePrimaryKeys": {
         "ratelimit_overrides_id": {
           "name": "ratelimit_overrides_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {
         "unique_identifier_per_namespace_idx": {
           "name": "unique_identifier_per_namespace_idx",
-          "columns": ["namespace_id", "identifier"]
+          "columns": [
+            "namespace_id",
+            "identifier"
+          ]
         }
       }
     },
@@ -1229,13 +1309,17 @@
       "compositePrimaryKeys": {
         "workspaces_id": {
           "name": "workspaces_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {
         "workspaces_org_id_unique": {
           "name": "workspaces_org_id_unique",
-          "columns": ["org_id"]
+          "columns": [
+            "org_id"
+          ]
         }
       }
     },
@@ -1283,7 +1367,9 @@
       "compositePrimaryKeys": {
         "key_migration_errors_id": {
           "name": "key_migration_errors_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1353,7 +1439,11 @@
       "indexes": {
         "workspace_id_external_id_deleted_idx": {
           "name": "workspace_id_external_id_deleted_idx",
-          "columns": ["workspace_id", "external_id", "deleted"],
+          "columns": [
+            "workspace_id",
+            "external_id",
+            "deleted"
+          ],
           "isUnique": true
         }
       },
@@ -1361,7 +1451,9 @@
       "compositePrimaryKeys": {
         "identities_id": {
           "name": "identities_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1444,17 +1536,25 @@
       "indexes": {
         "name_idx": {
           "name": "name_idx",
-          "columns": ["name"],
+          "columns": [
+            "name"
+          ],
           "isUnique": false
         },
         "unique_name_per_key_idx": {
           "name": "unique_name_per_key_idx",
-          "columns": ["key_id", "name"],
+          "columns": [
+            "key_id",
+            "name"
+          ],
           "isUnique": true
         },
         "unique_name_per_identity_idx": {
           "name": "unique_name_per_identity_idx",
-          "columns": ["identity_id", "name"],
+          "columns": [
+            "identity_id",
+            "name"
+          ],
           "isUnique": true
         }
       },
@@ -1462,7 +1562,9 @@
       "compositePrimaryKeys": {
         "ratelimits_id": {
           "name": "ratelimits_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1515,7 +1617,9 @@
       "compositePrimaryKeys": {
         "quota_workspace_id": {
           "name": "quota_workspace_id",
-          "columns": ["workspace_id"]
+          "columns": [
+            "workspace_id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1633,32 +1737,44 @@
       "indexes": {
         "workspace_id_idx": {
           "name": "workspace_id_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         },
         "bucket_id_idx": {
           "name": "bucket_id_idx",
-          "columns": ["bucket_id"],
+          "columns": [
+            "bucket_id"
+          ],
           "isUnique": false
         },
         "bucket_idx": {
           "name": "bucket_idx",
-          "columns": ["bucket"],
+          "columns": [
+            "bucket"
+          ],
           "isUnique": false
         },
         "event_idx": {
           "name": "event_idx",
-          "columns": ["event"],
+          "columns": [
+            "event"
+          ],
           "isUnique": false
         },
         "actor_id_idx": {
           "name": "actor_id_idx",
-          "columns": ["actor_id"],
+          "columns": [
+            "actor_id"
+          ],
           "isUnique": false
         },
         "time_idx": {
           "name": "time_idx",
-          "columns": ["time"],
+          "columns": [
+            "time"
+          ],
           "isUnique": false
         }
       },
@@ -1666,7 +1782,9 @@
       "compositePrimaryKeys": {
         "audit_log_id": {
           "name": "audit_log_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1728,7 +1846,10 @@
       "indexes": {
         "unique_name_per_workspace_idx": {
           "name": "unique_name_per_workspace_idx",
-          "columns": ["workspace_id", "name"],
+          "columns": [
+            "workspace_id",
+            "name"
+          ],
           "isUnique": true
         }
       },
@@ -1736,7 +1857,9 @@
       "compositePrimaryKeys": {
         "audit_log_bucket_id": {
           "name": "audit_log_bucket_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1826,17 +1949,23 @@
       "indexes": {
         "bucket": {
           "name": "bucket",
-          "columns": ["bucket"],
+          "columns": [
+            "bucket"
+          ],
           "isUnique": false
         },
         "audit_log_id": {
           "name": "audit_log_id",
-          "columns": ["audit_log_id"],
+          "columns": [
+            "audit_log_id"
+          ],
           "isUnique": false
         },
         "id_idx": {
           "name": "id_idx",
-          "columns": ["id"],
+          "columns": [
+            "id"
+          ],
           "isUnique": false
         }
       },
@@ -1844,7 +1973,10 @@
       "compositePrimaryKeys": {
         "audit_log_target_audit_log_id_id_pk": {
           "name": "audit_log_target_audit_log_id_id_pk",
-          "columns": ["audit_log_id", "id"]
+          "columns": [
+            "audit_log_id",
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1913,7 +2045,10 @@
       "indexes": {
         "environments_workspace_id_slug_idx": {
           "name": "environments_workspace_id_slug_idx",
-          "columns": ["workspace_id", "slug"],
+          "columns": [
+            "workspace_id",
+            "slug"
+          ],
           "isUnique": true
         }
       },
@@ -1921,7 +2056,9 @@
       "compositePrimaryKeys": {
         "environments_id": {
           "name": "environments_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -1998,12 +2135,17 @@
       "indexes": {
         "workspace_idx": {
           "name": "workspace_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         },
         "workspace_slug_idx": {
           "name": "workspace_slug_idx",
-          "columns": ["workspace_id", "slug"],
+          "columns": [
+            "workspace_id",
+            "slug"
+          ],
           "isUnique": true
         }
       },
@@ -2011,7 +2153,9 @@
       "compositePrimaryKeys": {
         "projects_id": {
           "name": "projects_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -2061,6 +2205,48 @@
           "notNull": false,
           "autoincrement": false
         },
+        "git_commit_message": {
+          "name": "git_commit_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "git_commit_author_name": {
+          "name": "git_commit_author_name",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "git_commit_author_email": {
+          "name": "git_commit_author_email",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "git_commit_author_username": {
+          "name": "git_commit_author_username",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "git_commit_author_avatar_url": {
+          "name": "git_commit_author_avatar_url",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "git_commit_timestamp": {
+          "name": "git_commit_timestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "runtime_config": {
           "name": "runtime_config",
           "type": "json",
@@ -2077,7 +2263,7 @@
         },
         "status": {
           "name": "status",
-          "type": "enum('pending','building','deploying','ready','failed')",
+          "type": "enum('pending','building','deploying','network','ready','failed')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -2101,17 +2287,23 @@
       "indexes": {
         "workspace_idx": {
           "name": "workspace_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         },
         "project_idx": {
           "name": "project_idx",
-          "columns": ["project_id"],
+          "columns": [
+            "project_id"
+          ],
           "isUnique": false
         },
         "status_idx": {
           "name": "status_idx",
-          "columns": ["status"],
+          "columns": [
+            "status"
+          ],
           "isUnique": false
         }
       },
@@ -2119,7 +2311,9 @@
       "compositePrimaryKeys": {
         "deployments_id": {
           "name": "deployments_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -2175,7 +2369,10 @@
       "compositePrimaryKeys": {
         "deployment_steps_deployment_id_status_pk": {
           "name": "deployment_steps_deployment_id_status_pk",
-          "columns": ["deployment_id", "status"]
+          "columns": [
+            "deployment_id",
+            "status"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -2229,7 +2426,9 @@
       "indexes": {
         "domain_idx": {
           "name": "domain_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         }
       },
@@ -2237,7 +2436,9 @@
       "compositePrimaryKeys": {
         "acme_users_id": {
           "name": "acme_users_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -2305,12 +2506,16 @@
       "indexes": {
         "workspace_idx": {
           "name": "workspace_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         },
         "project_idx": {
           "name": "project_idx",
-          "columns": ["project_id"],
+          "columns": [
+            "project_id"
+          ],
           "isUnique": false
         }
       },
@@ -2318,7 +2523,9 @@
       "compositePrimaryKeys": {
         "domains_id": {
           "name": "domains_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -2400,7 +2607,9 @@
       "indexes": {
         "workspace_idx": {
           "name": "workspace_idx",
-          "columns": ["workspace_id"],
+          "columns": [
+            "workspace_id"
+          ],
           "isUnique": false
         }
       },
@@ -2408,7 +2617,9 @@
       "compositePrimaryKeys": {
         "acme_challenges_id": {
           "name": "acme_challenges_id",
-          "columns": ["id"]
+          "columns": [
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {}

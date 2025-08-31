@@ -442,8 +442,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitCommitTimestamp:       sql.NullInt64{Int64: tt.request.GetGitCommitTimestamp(), Valid: tt.request.GetGitCommitTimestamp() != 0},
 				RuntimeConfig:            []byte("{}"),
 				OpenapiSpec:              sql.NullString{String: "", Valid: false},
-                Status:                   db.DeploymentsStatusPending,
-                CreatedAt:                1724251845000,
+				Status:                   db.DeploymentsStatusPending,
+				CreatedAt:                1724251845000,
 				UpdatedAt:                sql.NullInt64{Int64: 1724251845000, Valid: true},
 			}
 
