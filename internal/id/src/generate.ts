@@ -28,6 +28,7 @@ const prefixes = {
   auditLogBucket: "buk",
   auditLog: "log",
   fake: "fake",
+  environment: "env",
   project: "proj",
 } as const;
 
