@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
+import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type LogEntry = {
@@ -39,16 +40,6 @@ type UseDeploymentLogsReturn = {
   scrollRef: React.RefObject<HTMLDivElement>;
 };
 
-// Helper function to format timestamp from number to HH:MM:SS.mmm format
-const formatTimestamp = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const seconds = date.getSeconds().toString().padStart(2, "0");
-  const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
-  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
-};
-
 export function useDeploymentLogs({
   deploymentId,
 }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
@@ -70,7 +61,7 @@ export function useDeploymentLogs({
     }
 
     return logsData.logs.map((log) => ({
-      timestamp: formatTimestamp(log.timestamp),
+      timestamp: format(new Date(log.timestamp), "HH:mm:ss.SSS"),
       level: log.level,
       message: log.message,
     }));

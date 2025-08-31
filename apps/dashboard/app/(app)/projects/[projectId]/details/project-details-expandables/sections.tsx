@@ -171,7 +171,7 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
               <div className="text-grayA-10">
                 /
                 <span className="text-gray-12 font-medium">
-                  {details.healthcheck.path.replace("/", "")}
+                  {details.healthcheck.path.replace(/^\/+/, "")}
                 </span>
               </div>
             </div>
