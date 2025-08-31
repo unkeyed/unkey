@@ -179,6 +179,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
+	`slug` varchar(64),
 	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
@@ -193,7 +194,8 @@ CREATE TABLE `workspaces` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `workspaces_id` PRIMARY KEY(`id`),
-	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`)
+	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
+	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`)
 );
 
 CREATE TABLE `key_migration_errors` (
