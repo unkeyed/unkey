@@ -104,13 +104,13 @@ export const queryProjects = t.procedure
         queryConditions.push(
           exists(
             db
-              .select({ projectId: schema.routes.projectId })
-              .from(schema.routes)
+              .select({ projectId: schema.domains.projectId })
+              .from(schema.domains)
               .where(
                 and(
-                  eq(schema.routes.workspaceId, ctx.workspace.id),
-                  eq(schema.routes.projectId, schema.projects.id),
-                  like(schema.routes.hostname, searchValue),
+                  eq(schema.domains.workspaceId, ctx.workspace.id),
+                  eq(schema.domains.projectId, schema.projects.id),
+                  like(schema.domains.domain, searchValue),
                 ),
               ),
           ),
@@ -165,16 +165,16 @@ export const queryProjects = t.procedure
       // Fetch hostnames for all projects - only .unkey.app domains
       const hostnamesResult =
         projectIds.length > 0
-          ? await db.query.routes.findMany({
+          ? await db.query.domains.findMany({
               where: and(
-                eq(schema.routes.workspaceId, ctx.workspace.id),
-                inArray(schema.routes.projectId, projectIds),
-                like(schema.routes.hostname, "%.unkey.app"),
+                eq(schema.domains.workspaceId, ctx.workspace.id),
+                inArray(schema.domains.projectId, projectIds),
+                like(schema.domains.domain, "%.unkey.app"),
               ),
               columns: {
                 id: true,
                 projectId: true,
-                hostname: true,
+                domain: true,
               },
               orderBy: [desc(schema.projects.updatedAt), desc(schema.projects.createdAt)],
             })
@@ -183,12 +183,18 @@ export const queryProjects = t.procedure
       // Group hostnames by projectId
       const hostnamesByProject = hostnamesResult.reduce(
         (acc, hostname) => {
-          if (!acc[hostname.projectId]) {
-            acc[hostname.projectId] = [];
+          // Make typescript happy, we already ensure this is the case in the drizzle query
+          const projectId = hostname.projectId;
+          if (!projectId) {
+            return acc;
           }
-          acc[hostname.projectId].push({
+
+          if (!acc[projectId]) {
+            acc[projectId] = [];
+          }
+          acc[projectId].push({
             id: hostname.id,
-            hostname: hostname.hostname,
+            hostname: hostname.domain,
           });
           return acc;
         },

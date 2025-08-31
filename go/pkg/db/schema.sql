@@ -289,25 +289,22 @@ CREATE TABLE `audit_log_target` (
 	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
 );
 
-CREATE TABLE `partitions` (
+CREATE TABLE `environments` (
 	`id` varchar(256) NOT NULL,
-	`name` varchar(256) NOT NULL,
-	`description` text,
-	`aws_account_id` varchar(256) NOT NULL,
-	`region` varchar(256) NOT NULL,
-	`ip_v4_address` varchar(15),
-	`ip_v6_address` varchar(39),
-	`status` enum('active','draining','inactive') NOT NULL DEFAULT 'active',
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`slug` varchar(256) NOT NULL,
+	`description` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `partitions_id` PRIMARY KEY(`id`)
+	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
+	CONSTRAINT `environments_workspace_id_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
 CREATE TABLE `projects` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`partition_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`git_repository_url` varchar(500),
@@ -319,65 +316,35 @@ CREATE TABLE `projects` (
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
-CREATE TABLE `rootfs_images` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`s3_bucket` varchar(256) NOT NULL,
-	`s3_key` varchar(500) NOT NULL,
-	`size_bytes` bigint NOT NULL,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `rootfs_images_id` PRIMARY KEY(`id`)
-);
-
-CREATE TABLE `builds` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`deployment_id` varchar(256) NOT NULL,
-	`rootfs_image_id` varchar(256),
-	`git_commit_sha` varchar(40),
-	`git_branch` varchar(256),
-	`status` enum('pending','running','succeeded','failed','cancelled') NOT NULL DEFAULT 'pending',
-	`build_tool` enum('docker','depot','custom') NOT NULL DEFAULT 'docker',
-	`error_message` text,
-	`started_at` bigint,
-	`completed_at` bigint,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
-);
-
-CREATE TABLE `deployment_steps` (
-	`deployment_id` varchar(256) NOT NULL,
-	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
-	`message` text,
-	`error_message` text,
-	`created_at` bigint NOT NULL,
-	CONSTRAINT `deployment_steps_deployment_id_status_pk` PRIMARY KEY(`deployment_id`,`status`)
-);
-
 CREATE TABLE `deployments` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`environment` enum('production','preview') NOT NULL DEFAULT 'preview',
-	`build_id` varchar(256),
-	`rootfs_image_id` varchar(256) NOT NULL,
+	`environment_id` varchar(256) NOT NULL,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
 	`git_commit_author_name` varchar(256),
+	`git_commit_author_email` varchar(256),
 	`git_commit_author_username` varchar(256),
 	`git_commit_author_avatar_url` varchar(512),
-	`git_commit_timestamp` bigint, -- Unix epoch milliseconds
-	`config_snapshot` json NOT NULL,
+	`git_commit_timestamp` bigint,
+	`runtime_config` json NOT NULL,
 	`openapi_spec` text,
-	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `deployment_steps` (
+	`deployment_id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
+	`message` varchar(1024) NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `deployment_steps_deployment_id_status_pk` PRIMARY KEY(`deployment_id`,`status`)
 );
 
 CREATE TABLE `acme_users` (
@@ -390,45 +357,30 @@ CREATE TABLE `acme_users` (
 	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `hostname_routes` (
+CREATE TABLE `domains` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`hostname` varchar(256) NOT NULL,
-	`deployment_id` varchar(256) NOT NULL,
-	`is_enabled` boolean NOT NULL DEFAULT true,
+	`project_id` varchar(256),
+	`deployment_id` varchar(256),
+	`domain` varchar(256) NOT NULL,
+	`type` enum('custom','wildcard') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `hostname_routes_id` PRIMARY KEY(`id`),
-	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+	CONSTRAINT `domains_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `domain_challenges` (
+CREATE TABLE `acme_challenges` (
 	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(255) NOT NULL,
-	`domain_id` varchar(255) NOT NULL,
-	`token` varchar(255),
-	`authorization` varchar(255),
-	`status` enum('waiting','pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
-	`type` enum('http-01','dns-01','tls-alpn-01') NOT NULL DEFAULT 'http-01',
+	`workspace_id` varchar(256) NOT NULL,
+	`domain_id` varchar(256) NOT NULL,
+	`token` varchar(256) NOT NULL,
+	`type` enum('HTTP-01','DNS-01') NOT NULL,
+	`authorization` varchar(256) NOT NULL,
+	`status` enum('waiting','pending','verified','failed') NOT NULL,
+	`expires_at` bigint NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	`expires_at` bigint unsigned,
-	CONSTRAINT `domain_challenges_id` PRIMARY KEY(`id`),
-	CONSTRAINT `domainIdWorkspaceId_idx` UNIQUE(`domain_id`,`workspace_id`)
-);
-
-CREATE TABLE `domains` (
-	`id` varchar(255) NOT NULL,
-	`workspace_id` varchar(255) NOT NULL,
-	`project_id` varchar(255) NOT NULL,
-	`domain` varchar(255) NOT NULL,
-	`type` enum('custom','generated') NOT NULL DEFAULT 'generated',
-	`subdomain_config` json,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
-	CONSTRAINT `domain_idx` UNIQUE(`domain`)
+	CONSTRAINT `acme_challenges_id` PRIMARY KEY(`id`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
@@ -449,25 +401,11 @@ CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
-CREATE INDEX `status_idx` ON `partitions` (`status`);
 CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
-CREATE INDEX `partition_idx` ON `projects` (`partition_id`);
-CREATE INDEX `workspace_idx` ON `rootfs_images` (`workspace_id`);
-CREATE INDEX `project_idx` ON `rootfs_images` (`project_id`);
-CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);
-CREATE INDEX `project_idx` ON `builds` (`project_id`);
-CREATE INDEX `status_idx` ON `builds` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);
-CREATE INDEX `idx_deployment_id_created_at` ON `deployment_steps` (`deployment_id`,`created_at`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
-CREATE INDEX `environment_idx` ON `deployments` (`environment`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `deployments` (`rootfs_image_id`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
-CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);
-CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);
-CREATE INDEX `deployment_idx` ON `hostname_routes` (`deployment_id`);
-CREATE INDEX `domain_status_idx` ON `domain_challenges` (`status`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
+CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
