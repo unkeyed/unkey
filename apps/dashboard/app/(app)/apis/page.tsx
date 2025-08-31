@@ -3,7 +3,7 @@
 import { Navbar } from "@/components/navigation/navbar";
 import { Nodes } from "@unkey/icons";
 import { useSearchParams } from "next/navigation";
-import { ApiListClient } from "./_components/api-list-client";
+import { ApiListWrapper } from "./_components/api-list-wrapper";
 import { CreateApiButton } from "./_components/create-api-button";
 
 export default function ApisOverviewPage() {
@@ -22,7 +22,7 @@ export default function ApisOverviewPage() {
           <CreateApiButton key="createApi" defaultOpen={isNewApi} />
         </Navbar.Actions>
       </Navbar>
-      <ApiListClient />
+      <ApiListWrapper />
     </div>
   );
 }
