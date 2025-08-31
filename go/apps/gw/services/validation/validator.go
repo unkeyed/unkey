@@ -42,7 +42,7 @@ func New(config Config) (*Service, error) {
 // Validate implements the Validator interface.
 func (s *Service) Validate(ctx context.Context, sess *server.Session, config *partitionv1.GatewayConfig) error {
 	// Skip validation if not enabled
-	if config.ValidationConfig == nil || !config.ValidationConfig.Enabled {
+	if config.ValidationConfig == nil {
 		return nil
 	}
 
@@ -50,7 +50,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	if config.ValidationConfig.OpenapiSpec == "" {
 		s.logger.Warn("validation enabled but no OpenAPI spec configured",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.DeploymentId,
+			"deploymentId", config.Deployment.Id,
 		)
 		return nil
 	}
@@ -60,11 +60,11 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	defer span.End()
 
 	// Get or create validator for this spec
-	v, err := s.getOrCreateValidator(ctx, config.DeploymentId, config.ValidationConfig.OpenapiSpec)
+	v, err := s.getOrCreateValidator(ctx, config.Deployment.Id, config.ValidationConfig.OpenapiSpec)
 	if err != nil {
 		s.logger.Error("failed to get validator",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.DeploymentId,
+			"deploymentId", config.Deployment.Id,
 			"error", err.Error(),
 		)
 		// Don't fail the request if we can't create a validator
@@ -79,7 +79,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	if valid {
 		s.logger.Debug("request validation passed",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.DeploymentId,
+			"deploymentId", config.Deployment.Id,
 			"method", req.Method,
 			"path", req.URL.Path,
 		)
@@ -91,7 +91,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 
 	s.logger.Warn("request validation failed",
 		"requestId", sess.RequestID(),
-		"deploymentId", config.DeploymentId,
+		"deploymentId", config.Deployment.Id,
 		"method", req.Method,
 		"path", req.URL.Path,
 		"errors", len(validationErr.Errors),

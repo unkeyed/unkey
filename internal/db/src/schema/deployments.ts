@@ -1,8 +1,9 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
-import { builds } from "./builds";
+import { deploymentSteps } from "./deployment_steps";
+import { environments } from "./environments";
 import { projects } from "./projects";
-import { rootfsImages } from "./rootfs_images";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const deployments = mysqlTable(
@@ -13,11 +14,7 @@ export const deployments = mysqlTable(
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environment: mysqlEnum("environment", ["production", "preview"]).notNull().default("preview"),
-
-    // Build information
-    buildId: varchar("build_id", { length: 256 }),
-    rootfsImageId: varchar("rootfs_image_id", { length: 256 }).notNull(),
+    environmentId: varchar("environment_id", { length: 256 }).notNull(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
@@ -30,12 +27,11 @@ export const deployments = mysqlTable(
     gitCommitTimestamp: bigint("git_commit_timestamp", { mode: "number" }), // Unix epoch milliseconds
 
     // Immutable configuration snapshot
-    configSnapshot: json("config_snapshot")
+    runtimeConfig: json("runtime_config")
       .$type<{
-        // Resolved environment variables
-        envVariables: Record<string, string>;
-        // Any other configuration captured at version creation
-        metadata?: Record<string, unknown>;
+        regions: Array<{ region: string; vmCount: number }>;
+        cpus: number;
+        memory: number;
       }>()
       .notNull(),
 
@@ -43,46 +39,31 @@ export const deployments = mysqlTable(
     openapiSpec: text("openapi_spec"),
 
     // Deployment status
-    status: mysqlEnum("status", [
-      "pending",
-      "building",
-      "deploying",
-      "active",
-      "failed",
-      "archived",
-    ])
+    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
       .notNull()
       .default("pending"),
-
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
-    updatedAt: bigint("updated_at", { mode: "number" }),
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
     projectIdx: index("project_idx").on(table.projectId),
-    environmentIdx: index("environment_idx").on(table.environment),
     statusIdx: index("status_idx").on(table.status),
-    rootfsImageIdx: index("rootfs_image_idx").on(table.rootfsImageId),
   }),
 );
 
-export const deploymentsRelations = relations(deployments, ({ one }) => ({
+export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [deployments.workspaceId],
     references: [workspaces.id],
+  }),
+  environment: one(environments, {
+    fields: [deployments.environmentId],
+    references: [environments.id],
   }),
   project: one(projects, {
     fields: [deployments.projectId],
     references: [projects.id],
   }),
-  build: one(builds, {
-    fields: [deployments.buildId],
-    references: [builds.id],
-  }),
-  rootfsImage: one(rootfsImages, {
-    fields: [deployments.rootfsImageId],
-    references: [rootfsImages.id],
-  }),
-  // routes: many(routes),
-  // hostnames: many(hostnames),
+
+  steps: many(deploymentSteps),
 }));

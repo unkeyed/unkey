@@ -70,13 +70,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
+	if len(cfg.VaultMasterKeys) > 0 {
 		vaultStorage, err := storage.NewS3(storage.S3Config{
 			Logger:            logger,
-			S3URL:             cfg.VaultS3.S3URL,
-			S3Bucket:          cfg.VaultS3.S3Bucket,
-			S3AccessKeyID:     cfg.VaultS3.S3AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.S3AccessKeySecret,
+			S3URL:             cfg.VaultS3.URL,
+			S3Bucket:          cfg.VaultS3.Bucket,
+			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create vault storage: %w", err)
@@ -197,7 +197,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the service handlers with interceptors
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewVersionServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
+	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
@@ -257,82 +257,82 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
-		DB:          database,
-		Logger:      logger,
-		Vault:       vaultSvc,
-		WorkspaceID: "unkey",
-	})
-	if err != nil {
-		logger.Error("Failed to create ACME user", "error", err)
-		return fmt.Errorf("failed to create ACME user: %w", err)
-	}
+	if cfg.AcmeEnabled {
+		acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
+			DB:          database,
+			Logger:      logger,
+			Vault:       vaultSvc,
+			WorkspaceID: "unkey",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create ACME user: %w", err)
+		}
 
-	// Set up our custom HTTP-01 challenge provider on the ACME client
-	httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
-		DB:     database,
-		Logger: logger,
-	})
-	err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
-	if err != nil {
-		logger.Error("failed to set HTTP-01 provider", "error", err)
-		return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
-	}
+		// Set up our custom HTTP-01 challenge provider on the ACME client
+		httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
+			DB:     database,
+			Logger: logger,
+		})
+		err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
+		if err != nil {
+			logger.Error("failed to set HTTP-01 provider", "error", err)
+			return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
+		}
 
-	// Register deployment workflow with Hydra worker
-	acmeWorkflows := acme.NewCertificateChallenge(acme.CertificateChallengeConfig{
-		DB:          database,
-		PartitionDB: partitionDB,
-		Logger:      logger,
-		AcmeClient:  acmeClient,
-		Vault:       vaultSvc,
-	})
-	err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
-	if err != nil {
-		logger.Error("unable to register deployment workflow: %w", err)
-		return fmt.Errorf("unable to register deployment workflow: %w", err)
-	}
+		// Register deployment workflow with Hydra worker
+		acmeWorkflows := acme.NewCertificateChallenge(acme.CertificateChallengeConfig{
+			DB:          database,
+			PartitionDB: partitionDB,
+			Logger:      logger,
+			AcmeClient:  acmeClient,
+			Vault:       vaultSvc,
+		})
+		err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
+		if err != nil {
+			logger.Error("unable to register ACME certificate workflow", "error", err)
+			return fmt.Errorf("unable to register deployment workflow: %w", err)
+		}
 
-	go func() {
-		logger.Info("Starting cert worker")
+		go func() {
+			logger.Info("Starting cert worker")
 
-		err = hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
-			challenges, err := db.Query.ListExecutableChallenges(ctx, database.RO())
-			if err != nil {
-				logger.Error("Failed to start workflow", "error", err)
-				return err
-			}
-
-			logger.Info("Starting certificate challenges", "count", len(challenges))
-
-			for _, challenge := range challenges {
-				executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
-					acme.CertificateChallengeRequest{
-						ID:          challenge.ID,
-						WorkspaceID: challenge.WorkspaceID,
-						Domain:      challenge.Domain,
-					},
-					hydra.WithMaxAttempts(24),
-					hydra.WithTimeout(25*time.Hour),
-					hydra.WithRetryBackoff(1*time.Hour),
-				)
+			registerErr := hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
+				challenges, err := db.Query.ListExecutableChallenges(ctx, database.RO())
 				if err != nil {
 					logger.Error("Failed to start workflow", "error", err)
-					continue
+					return err
 				}
 
-				logger.Info("Workflow started", "executionID", executionID)
+				logger.Info("Starting certificate challenges", "count", len(challenges))
+
+				for _, challenge := range challenges {
+					executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
+						acme.CertificateChallengeRequest{
+							ID:          challenge.ID,
+							WorkspaceID: challenge.WorkspaceID,
+							Domain:      challenge.Domain,
+						},
+						hydra.WithMaxAttempts(24),
+						hydra.WithTimeout(25*time.Hour),
+						hydra.WithRetryBackoff(1*time.Hour),
+					)
+					if err != nil {
+						logger.Error("Failed to start workflow", "error", err)
+						continue
+					}
+
+					logger.Info("Workflow started", "executionID", executionID)
+				}
+
+				return nil
+			})
+
+			if registerErr != nil {
+				logger.Error("Failed to register daily report cron job", "error", err)
+				return
 			}
-
-			return nil
-		})
-
-		if err != nil {
-			logger.Error("Failed to register daily report cron job", "error", err)
-			return
-		}
-	}()
-
+		}()
+	}
 	// Start Hydra worker
 	go func() {
 		logger.Info("Starting Hydra workflow worker")
