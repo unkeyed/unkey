@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package metald.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
+
+message DeploymentRequest {
+    string deployment_id = 1;
+
+    string image = 2;
+
+    int32 instance_count = 3;
+    int32 cpu = 4;
+    int64 memory_size_mib = 5;
+
+    // reserve room to add options
+    reserved 6, 7, 8, 9, 10;
+}
+
+message PrepareDeploymentRequest {
+    DeploymentRequest deployment = 1;
+}
+
+message PrepareDeploymentResponse {
+    repeated string vm_ids = 1;
+}
+
+message UpdateDeploymentRequest {
+    DeploymentRequest deployment = 1;
+}
+message UpdateDeploymentResponse {
+    repeated string vm_ids = 1;
+}
+
+message DeleteDeploymentRequest {
+    string deployment_id = 1;
+}
+
+message DeleteDeploymentResponse {}
+
+message GetDeploymentRequest {
+    string deployment_id = 1;
+}
+message GetDeploymentResponse {
+    string deployment_id = 1;
+
+    message Instances {
+        string id = 1;
+        string host_port_pair = 2;
+    }
+
+    repeated Instances instances = 2;
+}

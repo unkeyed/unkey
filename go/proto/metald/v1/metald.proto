@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package metald.v1;
+
+import "metald/v1/vm.proto";
+import "metald/v1/deployment.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
+
+// VmService provides unified VM management across different hypervisor backends
+service VmService {
+  // PrepareDeployment
+  rpc PrepareDeployment(PrepareDeploymentRequest) returns (PrepareDeploymentResponse);
+
+  // UpdateDeployment
+  rpc UpdateDeployment(UpdateDeploymentRequest) returns (UpdateDeploymentResponse);
+
+  // DeleteDeployment
+  rpc DeleteDeployment(DeleteDeploymentRequest) returns (DeleteDeploymentResponse);
+
+  // GetDeployment
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
+
+  // CreateVm creates a new virtual machine instance
+  rpc CreateVm(CreateVmRequest) returns (CreateVmResponse);
+
+  // DeleteVm removes a virtual machine instance
+  rpc DeleteVm(DeleteVmRequest) returns (DeleteVmResponse);
+
+  // BootVm starts a created virtual machine
+  rpc BootVm(BootVmRequest) returns (BootVmResponse);
+
+  // ShutdownVm gracefully stops a running virtual machine
+  rpc ShutdownVm(ShutdownVmRequest) returns (ShutdownVmResponse);
+
+  // PauseVm pauses a running virtual machine
+  rpc PauseVm(PauseVmRequest) returns (PauseVmResponse);
+
+  // ResumeVm resumes a paused virtual machine
+  rpc ResumeVm(ResumeVmRequest) returns (ResumeVmResponse);
+
+  // RebootVm restarts a running virtual machine
+  rpc RebootVm(RebootVmRequest) returns (RebootVmResponse);
+
+  // GetVmInfo retrieves virtual machine status and configuration
+  rpc GetVmInfo(GetVmInfoRequest) returns (GetVmInfoResponse);
+
+  // ListVms lists all virtual machines managed by this service
+  rpc ListVms(ListVmsRequest) returns (ListVmsResponse);
+}
