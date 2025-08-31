@@ -282,17 +282,17 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 	ui.PrintSuccess(fmt.Sprintf("Deployment created: %s", deploymentId))
 
-	// Track final version for completion info
-	var finalVersion *ctrlv1.Version
+	// Track final deployment for completion info
+	var finalDeployment *ctrlv1.Deployment
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
 		switch event.CurrentStatus {
-		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
-			return handleVersionFailure(controlPlane, event.Version, ui)
-		case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-			// Store version but don't print success, wait for polling to complete
-			finalVersion = event.Version
+		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
+			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
+		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
+			// Store deployment but don't print success, wait for polling to complete
+			finalDeployment = event.Deployment
 		}
 		return nil
 	}
@@ -310,11 +310,11 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Print final success message only after all polling is complete
-	if finalVersion != nil {
+	if finalDeployment != nil {
 		ui.CompleteCurrentStep(MsgDeploymentStepCompleted, true)
 		ui.PrintSuccess(MsgDeploymentCompleted)
 		fmt.Printf("\n")
-		printCompletionInfo(finalVersion)
+		printCompletionInfo(finalDeployment)
 		fmt.Printf("\n")
 	}
 
@@ -357,8 +357,8 @@ func handleStepUpdate(event DeploymentStepEvent, ui *UI) error {
 	return nil
 }
 
-func handleVersionFailure(controlPlane *ControlPlaneClient, version *ctrlv1.Version, ui *UI) error {
-	errorMsg := controlPlane.getFailureMessage(version)
+func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {
+	errorMsg := controlPlane.getFailureMessage(deployment)
 	ui.CompleteCurrentStep(MsgDeploymentFailed, false)
 	ui.PrintError(MsgDeploymentFailed)
 	ui.PrintErrorDetails(errorMsg)
@@ -386,22 +386,22 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 	fmt.Printf("\n")
 }
 
-func printCompletionInfo(version *ctrlv1.Version) {
-	if version == nil || version.GetId() == "" {
+func printCompletionInfo(deployment *ctrlv1.Deployment) {
+	if deployment == nil || deployment.GetId() == "" {
 		fmt.Printf("✓ Deployment completed\n")
 		return
 	}
 
 	fmt.Println()
 	fmt.Println(CompletionTitle)
-	fmt.Printf("  %s: %s\n", CompletionDeploymentID, version.GetId())
+	fmt.Printf("  %s: %s\n", CompletionDeploymentID, deployment.GetId())
 	fmt.Printf("  %s: %s\n", CompletionStatus, CompletionReady)
 	fmt.Printf("  %s: %s\n", CompletionEnvironment, DefaultEnvironment)
 
 	fmt.Println()
 	fmt.Println(CompletionDomains)
 
-	hostnames := version.GetHostnames()
+	hostnames := deployment.GetHostnames()
 	if len(hostnames) > 0 {
 		for _, hostname := range hostnames {
 			if strings.HasPrefix(hostname, LocalhostPrefix) {
