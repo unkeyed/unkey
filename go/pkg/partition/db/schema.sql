@@ -29,12 +29,7 @@ CREATE TABLE vms (
     status ENUM('allocated', 'provisioning', 'starting', 'running', 'stopping', 'stopped', 'failed') NOT NULL,
 
 
-    INDEX idx_deployment_available (deployment_id, region, status),
-    INDEX idx_deployment_health (deployment_id, health_status, last_heartbeat),
-    INDEX idx_host_id (metal_host_id),
-    INDEX idx_region (region),
-    INDEX idx_status (status),
-    UNIQUE KEY unique_ip_port (private_ip, port)
+    UNIQUE KEY unique_address (address)
 );
 
 -- Metal host instances running metald
