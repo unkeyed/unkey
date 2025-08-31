@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
+import { MembersTanStack } from "./members-tanstack";
 
 export function TeamPageClient({ team }: { team: boolean }) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
@@ -51,6 +52,9 @@ export function TeamPageClient({ team }: { team: boolean }) {
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
 
+  // Toggle to test TanStack DB implementation
+  const [useTanStack, setUseTanStack] = useState(false);
+
   // make typescript happy
   if (!user || !organization || !userMemberships || !currentOrgMembership) {
     return null;
@@ -74,6 +78,16 @@ export function TeamPageClient({ team }: { team: boolean }) {
     );
 
     actions.push(<InviteButton key="invite-button" user={user} organization={organization} />);
+
+    actions.push(
+      <Button
+        key="tanstack-toggle"
+        variant={useTanStack ? "default" : "outline"}
+        onClick={() => setUseTanStack(!useTanStack)}
+      >
+        {useTanStack ? "Using TanStack DB" : "Using tRPC"}
+      </Button>,
+    );
   }
 
   if (!team) {
@@ -98,7 +112,15 @@ export function TeamPageClient({ team }: { team: boolean }) {
       {isLoading ? (
         <Loading />
       ) : tab === "members" ? (
-        <Members organization={organization} user={user} userMembership={currentOrgMembership} />
+        useTanStack ? (
+          <MembersTanStack
+            organization={organization}
+            user={user}
+            userMembership={currentOrgMembership}
+          />
+        ) : (
+          <Members organization={organization} user={user} userMembership={currentOrgMembership} />
+        )
       ) : (
         <Invitations organization={organization} user={user} />
       )}

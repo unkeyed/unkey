@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { SearchField } from "./filter";
+import { IdentitiesWrapper } from "./identities-wrapper";
 import { Navigation } from "./navigation";
 import { Row } from "./row";
 
@@ -43,25 +44,27 @@ export default async function Page(props: Props) {
   }
 
   return (
-    <div>
-      <Navigation />
-      <PageContent>
-        <SearchField />
-        <div className="flex flex-col gap-8 mb-20 mt-8">
-          <Suspense
-            fallback={
-              <Empty>
-                <Empty.Title>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                </Empty.Title>
-              </Empty>
-            }
-          >
-            <Results search={search ?? ""} limit={limit ?? DEFAULT_LIMIT} />
-          </Suspense>
-        </div>
-      </PageContent>
-    </div>
+    <IdentitiesWrapper>
+      <div>
+        <Navigation />
+        <PageContent>
+          <SearchField />
+          <div className="flex flex-col gap-8 mb-20 mt-8">
+            <Suspense
+              fallback={
+                <Empty>
+                  <Empty.Title>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </Empty.Title>
+                </Empty>
+              }
+            >
+              <Results search={search ?? ""} limit={limit ?? DEFAULT_LIMIT} />
+            </Suspense>
+          </div>
+        </PageContent>
+      </div>
+    </IdentitiesWrapper>
   );
 }
 

@@ -1,10 +1,10 @@
 "use client";
-import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
 import {
   type NavItem,
   createWorkspaceNavigation,
 } from "@/components/navigation/sidebar/workspace-navigations";
+import { WorkspaceSwitcherWrapper } from "@/components/navigation/sidebar/workspace-switcher-wrapper";
 import {
   Sidebar,
   SidebarContent,
@@ -95,7 +95,7 @@ export function AppSidebar({
           isCollapsed ? "justify-center" : "items-center justify-between gap-4",
         )}
       >
-        <WorkspaceSwitcher workspace={props.workspace} />
+        <WorkspaceSwitcherWrapper workspace={props.workspace} />
         {state !== "collapsed" && !isMobile && (
           <button type="button" onClick={toggleSidebar}>
             <SidebarLeftHide className="text-gray-8" size="xl-medium" />
