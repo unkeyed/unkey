@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package metal.vmprovisioner.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1;vmprovisionerv1";
+
+
+// from our call, ian
+// lmk what you think, it's not hooked up yet and we can change it as you wish.
+message CreateVmRequestV2 {
+  string vm_id = 1;
+  // I know you want this elsewhere but I really don't understand what you want me to do.
+  // cause just defining it as `message DeploymentId string` doesn't make anything better.
+  // please send help
+  string deployment_id = 2;
+
+  // 1024 = 1 vcpu
+  uint32 cpu_millicores   = 3;     // millicores, e.g., 1024 = 1 vCPU
+  uint64 memory_bytes     = 4;     // bytes
+  string docker_image     = 5;     // full image ref: registry/repo:tag or digest
+  NetworkSize network_size = 6;    // default: NETWORK_SIZE_UNSPECIFIED
+}
+
+message CreateVmRespomseV2 {
+  // metalhost_ip:port
+  string address = 1;
+
+ // can't figure out the damn import path
+ // VmState state = 2;
+
+}
+
+enum NetworkSize {
+  // These are made up
+  NETWORK_SIZE_SMALL = 0;
+  NETWORK_SIZE_MEDIUM = 1;
+  NETWORK_SIZE_LARGE = 2;
+}

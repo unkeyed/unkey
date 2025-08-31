@@ -45,11 +45,11 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	}
 
 	// Update the existing challenge record with the token and authorization
-	err = db.Query.UpdateDomainChallengePending(ctx, p.db.RW(), db.UpdateDomainChallengePendingParams{
+	err = db.Query.UpdateAcmeChallengePending(ctx, p.db.RW(), db.UpdateAcmeChallengePendingParams{
 		DomainID:      dom.ID,
-		Status:        db.DomainChallengesStatusPending,
-		Token:         sql.NullString{String: token, Valid: true},
-		Authorization: sql.NullString{String: keyAuth, Valid: true},
+		Status:        db.AcmeChallengesStatusPending,
+		Token:         token,
+		Authorization: keyAuth,
 		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	})
 
@@ -75,9 +75,9 @@ func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	}
 
 	// Update the challenge status to mark it as verified
-	err = db.Query.UpdateDomainChallengeStatus(ctx, p.db.RW(), db.UpdateDomainChallengeStatusParams{
+	err = db.Query.UpdateAcmeChallengeStatus(ctx, p.db.RW(), db.UpdateAcmeChallengeStatusParams{
 		DomainID:  dom.ID,
-		Status:    db.DomainChallengesStatusVerified,
+		Status:    db.AcmeChallengesStatusVerified,
 		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 
