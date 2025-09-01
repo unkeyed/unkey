@@ -170,7 +170,7 @@ message VmInfo {
   // Metadata
   map<string, string> metadata = 7;
 
-  // deployment_id instance is attached to
+  // deployment_id vm is attached to
   string deployment_id = 8;
 }
 

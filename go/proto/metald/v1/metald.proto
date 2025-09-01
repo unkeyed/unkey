@@ -8,9 +8,14 @@ import "metald/v1/deployment.proto";
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
 
 // VmService provides unified VM management across different hypervisor backends
-service VmService {
-  // PrepareDeployment
-  rpc PrepareDeployment(PrepareDeploymentRequest) returns (PrepareDeploymentResponse);
+service MetaldService {
+  //
+  // Deployment related RPCs
+  // These endpoints are most used by the control-plane side of things
+  //
+
+  // CreateDeployment
+  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse);
 
   // UpdateDeployment
   rpc UpdateDeployment(UpdateDeploymentRequest) returns (UpdateDeploymentResponse);
@@ -21,10 +26,15 @@ service VmService {
   // GetDeployment
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
 
-  // CreateVm creates a new virtual machine instance
+  //
+  // VMM related RPCs
+  // These endpoints are mostly for use by metald itself, builder, and assetmanagerd.
+  //
+
+  // CreateVm creates a new virtual machine
   rpc CreateVm(CreateVmRequest) returns (CreateVmResponse);
 
-  // DeleteVm removes a virtual machine instance
+  // DeleteVm removes a virtual machine
   rpc DeleteVm(DeleteVmRequest) returns (DeleteVmResponse);
 
   // BootVm starts a created virtual machine

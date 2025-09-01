@@ -1239,7 +1239,7 @@ type VmInfo struct {
 	ModifiedTimestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=modified_timestamp,json=modifiedTimestamp,proto3" json:"modified_timestamp,omitempty"`
 	// Metadata
 	Metadata map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// deployment_id instance is attached to
+	// deployment_id vm is attached to
 	DeploymentId  string `protobuf:"bytes,8,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
