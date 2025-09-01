@@ -8,7 +8,7 @@ import "metald/v1/deployment.proto";
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
 
 // VmService provides unified VM management across different hypervisor backends
-service MetaldService {
+service VmService {
   //
   // Deployment related RPCs
   // These endpoints are most used by the control-plane side of things
