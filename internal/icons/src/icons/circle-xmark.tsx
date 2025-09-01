@@ -10,11 +10,11 @@
  * https://nucleoapp.com/license
  */
 import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const Connections: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
-
+export const CircleXMark: React.FC<IconProps> = ({ size, filled, ...props }) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
   return (
     <svg
       height={pixelSize}
@@ -24,29 +24,37 @@ export const Connections: React.FC<IconProps> = ({ size = "xl-thin", ...props })
       {...props}
     >
       <g fill="currentColor">
-        <polyline
+        <circle
+          cx="9"
+          cy="9"
           fill="none"
-          points="12.625 5.375 9 9 5.375 12.625"
+          r="7.25"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <polyline
+        <line
           fill="none"
-          points="12.625 12.625 9 9 5.375 5.375"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
+          x1="6.25"
+          x2="11.75"
+          y1="6.25"
+          y2="11.75"
         />
-        <polygon
+        <line
           fill="none"
-          points="12.625 5.375 9 1.75 5.375 5.375 1.75 9 5.375 12.625 9 16.25 12.625 12.625 16.25 9 12.625 5.375"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
+          x1="11.75"
+          x2="6.25"
+          y1="6.25"
+          y2="11.75"
         />
       </g>
     </svg>
