@@ -32,7 +32,7 @@ type Handler struct {
 	DB       db.Database
 	Keys     keys.KeyService
 	Vault    *vault.Service
-	ApiCache cache.Cache[string, db.FindLiveApiByIDRow]
+	ApiCache cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -89,19 +89,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, hit, err := h.ApiCache.SWR(ctx, req.ApiId, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
 	}, caches.DefaultFindFirstOp)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api does not exist"),
-				fault.Public("The requested API does not exist or has been deleted."),
-			)
-		}
-
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
@@ -109,10 +100,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if hit == cache.Null {
+	if hit == cache.Null || db.IsNotFound(err) {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+			fault.Internal("api not found"),
+			fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -120,7 +112,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 

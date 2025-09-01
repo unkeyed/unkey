@@ -88,7 +88,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// TODO: We should actually check if the user has permission to set/remove roles.
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -104,6 +103,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	keyData := db.ToKeyData(key)
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		auditLogs := []auditlog.AuditLog{}
@@ -294,17 +295,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Ratelimits != nil {
-			existingRatelimits, err := db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
-			if err != nil && !db.IsNotFound(err) {
-				return fault.Wrap(err,
-					fault.Internal("unable to fetch ratelimits"),
-					fault.Public("Failed to retrieve key ratelimits."),
-				)
-			}
-
 			// Create map of existing ratelimits by name
-			existingRatelimitMap := make(map[string]db.ListRatelimitsByKeyIDRow)
-			for _, rl := range existingRatelimits {
+			existingRatelimitMap := make(map[string]db.RatelimitInfo)
+			for _, rl := range keyData.Ratelimits {
+				if rl.IdentityID.Valid {
+					continue
+				}
+
 				existingRatelimitMap[rl.Name] = rl
 			}
 
@@ -316,7 +313,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Delete ratelimits that are not in the new list
 			rateLimitsToDelete := []string{}
-			for _, existingRL := range existingRatelimits {
+			for _, existingRL := range keyData.Ratelimits {
+				if existingRL.IdentityID.Valid {
+					continue
+				}
+
 				if _, exists := newRatelimitMap[existingRL.Name]; !exists {
 					rateLimitsToDelete = append(rateLimitsToDelete, existingRL.ID)
 				}

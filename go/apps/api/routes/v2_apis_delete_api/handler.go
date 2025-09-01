@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -73,17 +74,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-			)
-		}
+	api, hit, err := h.Caches.LiveApiByID.SWR(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
+	}, caches.DefaultFindFirstOp)
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if hit == cache.Null || db.IsNotFound(err) {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -92,14 +96,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -157,7 +153,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Caches.LiveApiByID.SetNull(ctx, req.ApiId)
+	h.Caches.LiveApiByID.SetNull(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

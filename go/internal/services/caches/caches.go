@@ -23,7 +23,7 @@ type Caches struct {
 
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
-	LiveApiByID cache.Cache[string, db.FindLiveApiByIDRow]
+	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -89,7 +89,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	liveApiByID, err := cache.New(cache.Config[string, db.FindLiveApiByIDRow]{
+	liveApiByID, err := cache.New(cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
 		Fresh:    10 * time.Second,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,

@@ -12,9 +12,11 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
@@ -38,6 +40,7 @@ type Handler struct {
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	Vault     *vault.Service
+	ApiCache  cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -54,20 +57,17 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.createKey")
 
-	// 1. Authentication
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -84,40 +84,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The specified API was not found."),
-			)
-		}
-
+	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
+	}, caches.DefaultFindFirstOp)
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve API information."),
 		)
 	}
 
-	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if hit == cache.Null || db.IsNotFound(err) {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
+			fault.Internal("api not found"),
+			fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+	// Check if API belongs to the authorized workspace
+	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("wrong workspace",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -157,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keyAuth.StoreEncryptedKeys {
+		if !api.KeyAuth.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
