@@ -30,6 +30,7 @@ export const ROOT_KEY_MESSAGES = {
     DISMISS: "Dismiss",
     LOADING: "Loading...",
     SELECT_PERMISSIONS: "Select Permissions...",
+    EDIT_PERMISSIONS: "Edit Permissions...",
     NO_RESULTS: "No results found",
     FROM_APIS: "From APIs",
     ALL_SET: "All set! You can now create another key or explore the docs to learn more",
