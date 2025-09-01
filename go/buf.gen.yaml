@@ -1,10 +1,8 @@
 version: v2
 plugins:
-  - remote: buf.build/protocolbuffers/go   
+  - remote: buf.build/protocolbuffers/go:v1.36.8
     out: gen
     opt: paths=source_relative
-  - remote: buf.build/connectrpc/go:v1.16.2
+  - remote: buf.build/connectrpc/go:v1.18.1
     out: gen
     opt: paths=source_relative
- 
-   

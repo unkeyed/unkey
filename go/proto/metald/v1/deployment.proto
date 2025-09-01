@@ -9,9 +9,9 @@ message DeploymentRequest {
 
     string image = 2;
 
-    int32 instance_count = 3;
-    int32 cpu = 4;
-    int64 memory_size_mib = 5;
+    uint32 instance_count = 3;
+    uint32 cpu = 4;
+    uint64 memory_size_mib = 5;
 
     // reserve room to add options
     reserved 6, 7, 8, 9, 10;
@@ -44,10 +44,11 @@ message GetDeploymentRequest {
 message GetDeploymentResponse {
     string deployment_id = 1;
 
-    message Instances {
+    message Instance {
         string id = 1;
-        string host_port_pair = 2;
+        string host = 2;
+        uint32 port = 3;
     }
 
-    repeated Instances instances = 2;
+    repeated Instance instances = 2;
 }
