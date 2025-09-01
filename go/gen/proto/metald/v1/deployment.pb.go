@@ -25,9 +25,9 @@ type DeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	Image         string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
-	InstanceCount int32                  `protobuf:"varint,3,opt,name=instance_count,json=instanceCount,proto3" json:"instance_count,omitempty"`
-	Cpu           int32                  `protobuf:"varint,4,opt,name=cpu,proto3" json:"cpu,omitempty"`
-	MemorySizeMib int64                  `protobuf:"varint,5,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
+	InstanceCount uint32                 `protobuf:"varint,3,opt,name=instance_count,json=instanceCount,proto3" json:"instance_count,omitempty"`
+	Cpu           uint32                 `protobuf:"varint,4,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	MemorySizeMib uint64                 `protobuf:"varint,5,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -76,21 +76,21 @@ func (x *DeploymentRequest) GetImage() string {
 	return ""
 }
 
-func (x *DeploymentRequest) GetInstanceCount() int32 {
+func (x *DeploymentRequest) GetInstanceCount() uint32 {
 	if x != nil {
 		return x.InstanceCount
 	}
 	return 0
 }
 
-func (x *DeploymentRequest) GetCpu() int32 {
+func (x *DeploymentRequest) GetCpu() uint32 {
 	if x != nil {
 		return x.Cpu
 	}
 	return 0
 }
 
-func (x *DeploymentRequest) GetMemorySizeMib() int64 {
+func (x *DeploymentRequest) GetMemorySizeMib() uint64 {
 	if x != nil {
 		return x.MemorySizeMib
 	}
@@ -398,9 +398,9 @@ func (x *GetDeploymentRequest) GetDeploymentId() string {
 }
 
 type GetDeploymentResponse struct {
-	state         protoimpl.MessageState             `protogen:"open.v1"`
-	DeploymentId  string                             `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Instances     []*GetDeploymentResponse_Instances `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
+	state         protoimpl.MessageState            `protogen:"open.v1"`
+	DeploymentId  string                            `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	Instances     []*GetDeploymentResponse_Instance `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -442,35 +442,36 @@ func (x *GetDeploymentResponse) GetDeploymentId() string {
 	return ""
 }
 
-func (x *GetDeploymentResponse) GetInstances() []*GetDeploymentResponse_Instances {
+func (x *GetDeploymentResponse) GetInstances() []*GetDeploymentResponse_Instance {
 	if x != nil {
 		return x.Instances
 	}
 	return nil
 }
 
-type GetDeploymentResponse_Instances struct {
+type GetDeploymentResponse_Instance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	HostPortPair  string                 `protobuf:"bytes,2,opt,name=host_port_pair,json=hostPortPair,proto3" json:"host_port_pair,omitempty"`
+	Host          string                 `protobuf:"bytes,2,opt,name=host,proto3" json:"host,omitempty"`
+	Port          uint32                 `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetDeploymentResponse_Instances) Reset() {
-	*x = GetDeploymentResponse_Instances{}
+func (x *GetDeploymentResponse_Instance) Reset() {
+	*x = GetDeploymentResponse_Instance{}
 	mi := &file_metald_v1_deployment_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetDeploymentResponse_Instances) String() string {
+func (x *GetDeploymentResponse_Instance) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetDeploymentResponse_Instances) ProtoMessage() {}
+func (*GetDeploymentResponse_Instance) ProtoMessage() {}
 
-func (x *GetDeploymentResponse_Instances) ProtoReflect() protoreflect.Message {
+func (x *GetDeploymentResponse_Instance) ProtoReflect() protoreflect.Message {
 	mi := &file_metald_v1_deployment_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -482,23 +483,30 @@ func (x *GetDeploymentResponse_Instances) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetDeploymentResponse_Instances.ProtoReflect.Descriptor instead.
-func (*GetDeploymentResponse_Instances) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetDeploymentResponse_Instance.ProtoReflect.Descriptor instead.
+func (*GetDeploymentResponse_Instance) Descriptor() ([]byte, []int) {
 	return file_metald_v1_deployment_proto_rawDescGZIP(), []int{8, 0}
 }
 
-func (x *GetDeploymentResponse_Instances) GetId() string {
+func (x *GetDeploymentResponse_Instance) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *GetDeploymentResponse_Instances) GetHostPortPair() string {
+func (x *GetDeploymentResponse_Instance) GetHost() string {
 	if x != nil {
-		return x.HostPortPair
+		return x.Host
 	}
 	return ""
+}
+
+func (x *GetDeploymentResponse_Instance) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
 }
 
 var File_metald_v1_deployment_proto protoreflect.FileDescriptor
@@ -509,9 +517,9 @@ const file_metald_v1_deployment_proto_rawDesc = "" +
 	"\x11DeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12%\n" +
-	"\x0einstance_count\x18\x03 \x01(\x05R\rinstanceCount\x12\x10\n" +
-	"\x03cpu\x18\x04 \x01(\x05R\x03cpu\x12&\n" +
-	"\x0fmemory_size_mib\x18\x05 \x01(\x03R\rmemorySizeMibJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"\x0einstance_count\x18\x03 \x01(\rR\rinstanceCount\x12\x10\n" +
+	"\x03cpu\x18\x04 \x01(\rR\x03cpu\x12&\n" +
+	"\x0fmemory_size_mib\x18\x05 \x01(\x04R\rmemorySizeMibJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"J\x04\b\n" +
 	"\x10\v\"X\n" +
 	"\x18PrepareDeploymentRequest\x12<\n" +
@@ -532,11 +540,12 @@ const file_metald_v1_deployment_proto_rawDesc = "" +
 	"\x14GetDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\xc9\x01\n" +
 	"\x15GetDeploymentResponse\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12H\n" +
-	"\tinstances\x18\x02 \x03(\v2*.metald.v1.GetDeploymentResponse.InstancesR\tinstances\x1aA\n" +
-	"\tInstances\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
-	"\x0ehost_port_pair\x18\x02 \x01(\tR\fhostPortPairB:Z8github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1b\x06proto3"
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12G\n" +
+	"\tinstances\x18\x02 \x03(\v2).metald.v1.GetDeploymentResponse.InstanceR\tinstances\x1aB\n" +
+	"\bInstance\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04host\x18\x02 \x01(\tR\x04host\x12\x12\n" +
+	"\x04port\x18\x03 \x01(\rR\x04portB:Z8github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1b\x06proto3"
 
 var (
 	file_metald_v1_deployment_proto_rawDescOnce sync.Once
@@ -552,21 +561,21 @@ func file_metald_v1_deployment_proto_rawDescGZIP() []byte {
 
 var file_metald_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_metald_v1_deployment_proto_goTypes = []any{
-	(*DeploymentRequest)(nil),               // 0: metald.v1.DeploymentRequest
-	(*PrepareDeploymentRequest)(nil),        // 1: metald.v1.PrepareDeploymentRequest
-	(*PrepareDeploymentResponse)(nil),       // 2: metald.v1.PrepareDeploymentResponse
-	(*UpdateDeploymentRequest)(nil),         // 3: metald.v1.UpdateDeploymentRequest
-	(*UpdateDeploymentResponse)(nil),        // 4: metald.v1.UpdateDeploymentResponse
-	(*DeleteDeploymentRequest)(nil),         // 5: metald.v1.DeleteDeploymentRequest
-	(*DeleteDeploymentResponse)(nil),        // 6: metald.v1.DeleteDeploymentResponse
-	(*GetDeploymentRequest)(nil),            // 7: metald.v1.GetDeploymentRequest
-	(*GetDeploymentResponse)(nil),           // 8: metald.v1.GetDeploymentResponse
-	(*GetDeploymentResponse_Instances)(nil), // 9: metald.v1.GetDeploymentResponse.Instances
+	(*DeploymentRequest)(nil),              // 0: metald.v1.DeploymentRequest
+	(*PrepareDeploymentRequest)(nil),       // 1: metald.v1.PrepareDeploymentRequest
+	(*PrepareDeploymentResponse)(nil),      // 2: metald.v1.PrepareDeploymentResponse
+	(*UpdateDeploymentRequest)(nil),        // 3: metald.v1.UpdateDeploymentRequest
+	(*UpdateDeploymentResponse)(nil),       // 4: metald.v1.UpdateDeploymentResponse
+	(*DeleteDeploymentRequest)(nil),        // 5: metald.v1.DeleteDeploymentRequest
+	(*DeleteDeploymentResponse)(nil),       // 6: metald.v1.DeleteDeploymentResponse
+	(*GetDeploymentRequest)(nil),           // 7: metald.v1.GetDeploymentRequest
+	(*GetDeploymentResponse)(nil),          // 8: metald.v1.GetDeploymentResponse
+	(*GetDeploymentResponse_Instance)(nil), // 9: metald.v1.GetDeploymentResponse.Instance
 }
 var file_metald_v1_deployment_proto_depIdxs = []int32{
 	0, // 0: metald.v1.PrepareDeploymentRequest.deployment:type_name -> metald.v1.DeploymentRequest
 	0, // 1: metald.v1.UpdateDeploymentRequest.deployment:type_name -> metald.v1.DeploymentRequest
-	9, // 2: metald.v1.GetDeploymentResponse.instances:type_name -> metald.v1.GetDeploymentResponse.Instances
+	9, // 2: metald.v1.GetDeploymentResponse.instances:type_name -> metald.v1.GetDeploymentResponse.Instance
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name

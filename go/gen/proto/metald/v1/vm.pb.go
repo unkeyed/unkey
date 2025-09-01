@@ -9,6 +9,7 @@ package metaldv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -243,7 +244,7 @@ type ListVmsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Vms           []*VmInfo              `protobuf:"bytes,1,rep,name=vms,proto3" json:"vms,omitempty"`
 	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	TotalCount    int32                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	TotalCount    int64                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -292,7 +293,7 @@ func (x *ListVmsResponse) GetNextPageToken() string {
 	return ""
 }
 
-func (x *ListVmsResponse) GetTotalCount() int32 {
+func (x *ListVmsResponse) GetTotalCount() int64 {
 	if x != nil {
 		return x.TotalCount
 	}
@@ -354,19 +355,71 @@ func (x *CreateVmRequest) GetConfig() *VmConfig {
 	return nil
 }
 
+type Endpoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Endpoint) Reset() {
+	*x = Endpoint{}
+	mi := &file_metald_v1_vm_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Endpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Endpoint) ProtoMessage() {}
+
+func (x *Endpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_metald_v1_vm_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Endpoint.ProtoReflect.Descriptor instead.
+func (*Endpoint) Descriptor() ([]byte, []int) {
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Endpoint) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *Endpoint) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
 type CreateVmResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Current VM state after creation
 	State VmState `protobuf:"varint,1,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
-	// host:ip pair
-	HostPortPair  string `protobuf:"bytes,2,opt,name=host_port_pair,json=hostPortPair,proto3" json:"host_port_pair,omitempty"`
+	// Endpoint is the host:port pair
+	Endpoint      *Endpoint `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateVmResponse) Reset() {
 	*x = CreateVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[4]
+	mi := &file_metald_v1_vm_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -378,7 +431,7 @@ func (x *CreateVmResponse) String() string {
 func (*CreateVmResponse) ProtoMessage() {}
 
 func (x *CreateVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[4]
+	mi := &file_metald_v1_vm_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -391,7 +444,7 @@ func (x *CreateVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVmResponse.ProtoReflect.Descriptor instead.
 func (*CreateVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{4}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreateVmResponse) GetState() VmState {
@@ -401,11 +454,11 @@ func (x *CreateVmResponse) GetState() VmState {
 	return VmState_VM_STATE_UNSPECIFIED
 }
 
-func (x *CreateVmResponse) GetHostPortPair() string {
+func (x *CreateVmResponse) GetEndpoint() *Endpoint {
 	if x != nil {
-		return x.HostPortPair
+		return x.Endpoint
 	}
-	return ""
+	return nil
 }
 
 type DeleteVmRequest struct {
@@ -419,7 +472,7 @@ type DeleteVmRequest struct {
 
 func (x *DeleteVmRequest) Reset() {
 	*x = DeleteVmRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[5]
+	mi := &file_metald_v1_vm_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -431,7 +484,7 @@ func (x *DeleteVmRequest) String() string {
 func (*DeleteVmRequest) ProtoMessage() {}
 
 func (x *DeleteVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[5]
+	mi := &file_metald_v1_vm_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -444,7 +497,7 @@ func (x *DeleteVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVmRequest.ProtoReflect.Descriptor instead.
 func (*DeleteVmRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{5}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteVmRequest) GetVmId() string {
@@ -470,7 +523,7 @@ type DeleteVmResponse struct {
 
 func (x *DeleteVmResponse) Reset() {
 	*x = DeleteVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[6]
+	mi := &file_metald_v1_vm_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -482,7 +535,7 @@ func (x *DeleteVmResponse) String() string {
 func (*DeleteVmResponse) ProtoMessage() {}
 
 func (x *DeleteVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[6]
+	mi := &file_metald_v1_vm_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -495,7 +548,7 @@ func (x *DeleteVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVmResponse.ProtoReflect.Descriptor instead.
 func (*DeleteVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{6}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteVmResponse) GetSuccess() bool {
@@ -514,7 +567,7 @@ type BootVmRequest struct {
 
 func (x *BootVmRequest) Reset() {
 	*x = BootVmRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[7]
+	mi := &file_metald_v1_vm_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +579,7 @@ func (x *BootVmRequest) String() string {
 func (*BootVmRequest) ProtoMessage() {}
 
 func (x *BootVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[7]
+	mi := &file_metald_v1_vm_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +592,7 @@ func (x *BootVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootVmRequest.ProtoReflect.Descriptor instead.
 func (*BootVmRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{7}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BootVmRequest) GetVmId() string {
@@ -559,7 +612,7 @@ type BootVmResponse struct {
 
 func (x *BootVmResponse) Reset() {
 	*x = BootVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[8]
+	mi := &file_metald_v1_vm_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -571,7 +624,7 @@ func (x *BootVmResponse) String() string {
 func (*BootVmResponse) ProtoMessage() {}
 
 func (x *BootVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[8]
+	mi := &file_metald_v1_vm_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -584,7 +637,7 @@ func (x *BootVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootVmResponse.ProtoReflect.Descriptor instead.
 func (*BootVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{8}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BootVmResponse) GetSuccess() bool {
@@ -614,7 +667,7 @@ type ShutdownVmRequest struct {
 
 func (x *ShutdownVmRequest) Reset() {
 	*x = ShutdownVmRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[9]
+	mi := &file_metald_v1_vm_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +679,7 @@ func (x *ShutdownVmRequest) String() string {
 func (*ShutdownVmRequest) ProtoMessage() {}
 
 func (x *ShutdownVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[9]
+	mi := &file_metald_v1_vm_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +692,7 @@ func (x *ShutdownVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownVmRequest.ProtoReflect.Descriptor instead.
 func (*ShutdownVmRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{9}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ShutdownVmRequest) GetVmId() string {
@@ -673,7 +726,7 @@ type ShutdownVmResponse struct {
 
 func (x *ShutdownVmResponse) Reset() {
 	*x = ShutdownVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[10]
+	mi := &file_metald_v1_vm_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +738,7 @@ func (x *ShutdownVmResponse) String() string {
 func (*ShutdownVmResponse) ProtoMessage() {}
 
 func (x *ShutdownVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[10]
+	mi := &file_metald_v1_vm_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +751,7 @@ func (x *ShutdownVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownVmResponse.ProtoReflect.Descriptor instead.
 func (*ShutdownVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{10}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ShutdownVmResponse) GetSuccess() bool {
@@ -724,7 +777,7 @@ type PauseVmRequest struct {
 
 func (x *PauseVmRequest) Reset() {
 	*x = PauseVmRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[11]
+	mi := &file_metald_v1_vm_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -736,7 +789,7 @@ func (x *PauseVmRequest) String() string {
 func (*PauseVmRequest) ProtoMessage() {}
 
 func (x *PauseVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[11]
+	mi := &file_metald_v1_vm_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -749,7 +802,7 @@ func (x *PauseVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseVmRequest.ProtoReflect.Descriptor instead.
 func (*PauseVmRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{11}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PauseVmRequest) GetVmId() string {
@@ -769,7 +822,7 @@ type PauseVmResponse struct {
 
 func (x *PauseVmResponse) Reset() {
 	*x = PauseVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[12]
+	mi := &file_metald_v1_vm_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -781,7 +834,7 @@ func (x *PauseVmResponse) String() string {
 func (*PauseVmResponse) ProtoMessage() {}
 
 func (x *PauseVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[12]
+	mi := &file_metald_v1_vm_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +847,7 @@ func (x *PauseVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseVmResponse.ProtoReflect.Descriptor instead.
 func (*PauseVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{12}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *PauseVmResponse) GetSuccess() bool {
@@ -820,7 +873,7 @@ type ResumeVmRequest struct {
 
 func (x *ResumeVmRequest) Reset() {
 	*x = ResumeVmRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[13]
+	mi := &file_metald_v1_vm_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -832,7 +885,7 @@ func (x *ResumeVmRequest) String() string {
 func (*ResumeVmRequest) ProtoMessage() {}
 
 func (x *ResumeVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[13]
+	mi := &file_metald_v1_vm_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -845,7 +898,7 @@ func (x *ResumeVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeVmRequest.ProtoReflect.Descriptor instead.
 func (*ResumeVmRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{13}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ResumeVmRequest) GetVmId() string {
@@ -865,7 +918,7 @@ type ResumeVmResponse struct {
 
 func (x *ResumeVmResponse) Reset() {
 	*x = ResumeVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[14]
+	mi := &file_metald_v1_vm_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -877,7 +930,7 @@ func (x *ResumeVmResponse) String() string {
 func (*ResumeVmResponse) ProtoMessage() {}
 
 func (x *ResumeVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[14]
+	mi := &file_metald_v1_vm_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +943,7 @@ func (x *ResumeVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeVmResponse.ProtoReflect.Descriptor instead.
 func (*ResumeVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{14}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ResumeVmResponse) GetSuccess() bool {
@@ -918,7 +971,7 @@ type RebootVmRequest struct {
 
 func (x *RebootVmRequest) Reset() {
 	*x = RebootVmRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[15]
+	mi := &file_metald_v1_vm_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -930,7 +983,7 @@ func (x *RebootVmRequest) String() string {
 func (*RebootVmRequest) ProtoMessage() {}
 
 func (x *RebootVmRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[15]
+	mi := &file_metald_v1_vm_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -943,7 +996,7 @@ func (x *RebootVmRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebootVmRequest.ProtoReflect.Descriptor instead.
 func (*RebootVmRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{15}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RebootVmRequest) GetVmId() string {
@@ -970,7 +1023,7 @@ type RebootVmResponse struct {
 
 func (x *RebootVmResponse) Reset() {
 	*x = RebootVmResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[16]
+	mi := &file_metald_v1_vm_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -982,7 +1035,7 @@ func (x *RebootVmResponse) String() string {
 func (*RebootVmResponse) ProtoMessage() {}
 
 func (x *RebootVmResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[16]
+	mi := &file_metald_v1_vm_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -995,7 +1048,7 @@ func (x *RebootVmResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebootVmResponse.ProtoReflect.Descriptor instead.
 func (*RebootVmResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{16}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RebootVmResponse) GetSuccess() bool {
@@ -1021,7 +1074,7 @@ type GetVmInfoRequest struct {
 
 func (x *GetVmInfoRequest) Reset() {
 	*x = GetVmInfoRequest{}
-	mi := &file_metald_v1_vm_proto_msgTypes[17]
+	mi := &file_metald_v1_vm_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1033,7 +1086,7 @@ func (x *GetVmInfoRequest) String() string {
 func (*GetVmInfoRequest) ProtoMessage() {}
 
 func (x *GetVmInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[17]
+	mi := &file_metald_v1_vm_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1046,7 +1099,7 @@ func (x *GetVmInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVmInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetVmInfoRequest) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{17}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetVmInfoRequest) GetVmId() string {
@@ -1070,7 +1123,7 @@ type GetVmInfoResponse struct {
 
 func (x *GetVmInfoResponse) Reset() {
 	*x = GetVmInfoResponse{}
-	mi := &file_metald_v1_vm_proto_msgTypes[18]
+	mi := &file_metald_v1_vm_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1135,7 @@ func (x *GetVmInfoResponse) String() string {
 func (*GetVmInfoResponse) ProtoMessage() {}
 
 func (x *GetVmInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[18]
+	mi := &file_metald_v1_vm_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1148,7 @@ func (x *GetVmInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVmInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetVmInfoResponse) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{18}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetVmInfoResponse) GetVmId() string {
@@ -1137,8 +1190,8 @@ type VmMetrics struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// CPU usage percentage (0-100)
 	CpuUsagePercent float64 `protobuf:"fixed64,1,opt,name=cpu_usage_percent,json=cpuUsagePercent,proto3" json:"cpu_usage_percent,omitempty"`
-	// Memory usage in bytes
-	MemoryUsageBytes int64 `protobuf:"varint,2,opt,name=memory_usage_bytes,json=memoryUsageBytes,proto3" json:"memory_usage_bytes,omitempty"`
+	// Memory usage in MiB
+	MemoryUsageMib uint64 `protobuf:"varint,2,opt,name=memory_usage_mib,json=memoryUsageMib,proto3" json:"memory_usage_mib,omitempty"`
 	// Network I/O statistics
 	NetworkStats *NetworkStats `protobuf:"bytes,3,opt,name=network_stats,json=networkStats,proto3" json:"network_stats,omitempty"`
 	// Storage I/O statistics
@@ -1151,7 +1204,7 @@ type VmMetrics struct {
 
 func (x *VmMetrics) Reset() {
 	*x = VmMetrics{}
-	mi := &file_metald_v1_vm_proto_msgTypes[19]
+	mi := &file_metald_v1_vm_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1163,7 +1216,7 @@ func (x *VmMetrics) String() string {
 func (*VmMetrics) ProtoMessage() {}
 
 func (x *VmMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[19]
+	mi := &file_metald_v1_vm_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1176,7 +1229,7 @@ func (x *VmMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VmMetrics.ProtoReflect.Descriptor instead.
 func (*VmMetrics) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{19}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *VmMetrics) GetCpuUsagePercent() float64 {
@@ -1186,9 +1239,9 @@ func (x *VmMetrics) GetCpuUsagePercent() float64 {
 	return 0
 }
 
-func (x *VmMetrics) GetMemoryUsageBytes() int64 {
+func (x *VmMetrics) GetMemoryUsageMib() uint64 {
 	if x != nil {
-		return x.MemoryUsageBytes
+		return x.MemoryUsageMib
 	}
 	return 0
 }
@@ -1219,11 +1272,11 @@ type VmInfo struct {
 	VmId  string                 `protobuf:"bytes,1,opt,name=vm_id,json=vmId,proto3" json:"vm_id,omitempty"`
 	State VmState                `protobuf:"varint,2,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
 	// Basic config info (subset of full config)
-	VcpuCount       int32 `protobuf:"varint,3,opt,name=vcpu_count,json=vcpuCount,proto3" json:"vcpu_count,omitempty"`
-	MemorySizeBytes int64 `protobuf:"varint,4,opt,name=memory_size_bytes,json=memorySizeBytes,proto3" json:"memory_size_bytes,omitempty"`
+	VcpuCount     int32  `protobuf:"varint,3,opt,name=vcpu_count,json=vcpuCount,proto3" json:"vcpu_count,omitempty"`
+	MemorySizeMib uint64 `protobuf:"varint,4,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	// Creation and modification timestamps
-	CreatedTimestamp  int64 `protobuf:"varint,5,opt,name=created_timestamp,json=createdTimestamp,proto3" json:"created_timestamp,omitempty"`
-	ModifiedTimestamp int64 `protobuf:"varint,6,opt,name=modified_timestamp,json=modifiedTimestamp,proto3" json:"modified_timestamp,omitempty"`
+	CreatedTimestamp  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_timestamp,json=createdTimestamp,proto3" json:"created_timestamp,omitempty"`
+	ModifiedTimestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=modified_timestamp,json=modifiedTimestamp,proto3" json:"modified_timestamp,omitempty"`
 	// Metadata
 	Metadata map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Customer identifier
@@ -1234,7 +1287,7 @@ type VmInfo struct {
 
 func (x *VmInfo) Reset() {
 	*x = VmInfo{}
-	mi := &file_metald_v1_vm_proto_msgTypes[20]
+	mi := &file_metald_v1_vm_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1246,7 +1299,7 @@ func (x *VmInfo) String() string {
 func (*VmInfo) ProtoMessage() {}
 
 func (x *VmInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[20]
+	mi := &file_metald_v1_vm_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1259,7 +1312,7 @@ func (x *VmInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VmInfo.ProtoReflect.Descriptor instead.
 func (*VmInfo) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{20}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *VmInfo) GetVmId() string {
@@ -1283,25 +1336,25 @@ func (x *VmInfo) GetVcpuCount() int32 {
 	return 0
 }
 
-func (x *VmInfo) GetMemorySizeBytes() int64 {
+func (x *VmInfo) GetMemorySizeMib() uint64 {
 	if x != nil {
-		return x.MemorySizeBytes
+		return x.MemorySizeMib
 	}
 	return 0
 }
 
-func (x *VmInfo) GetCreatedTimestamp() int64 {
+func (x *VmInfo) GetCreatedTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedTimestamp
 	}
-	return 0
+	return nil
 }
 
-func (x *VmInfo) GetModifiedTimestamp() int64 {
+func (x *VmInfo) GetModifiedTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ModifiedTimestamp
 	}
-	return 0
+	return nil
 }
 
 func (x *VmInfo) GetMetadata() map[string]string {
@@ -1334,7 +1387,7 @@ type CpuConfig struct {
 
 func (x *CpuConfig) Reset() {
 	*x = CpuConfig{}
-	mi := &file_metald_v1_vm_proto_msgTypes[21]
+	mi := &file_metald_v1_vm_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1399,7 @@ func (x *CpuConfig) String() string {
 func (*CpuConfig) ProtoMessage() {}
 
 func (x *CpuConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[21]
+	mi := &file_metald_v1_vm_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1412,7 @@ func (x *CpuConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CpuConfig.ProtoReflect.Descriptor instead.
 func (*CpuConfig) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{21}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CpuConfig) GetVcpuCount() int32 {
@@ -1401,7 +1454,7 @@ type CpuTopology struct {
 
 func (x *CpuTopology) Reset() {
 	*x = CpuTopology{}
-	mi := &file_metald_v1_vm_proto_msgTypes[22]
+	mi := &file_metald_v1_vm_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1413,7 +1466,7 @@ func (x *CpuTopology) String() string {
 func (*CpuTopology) ProtoMessage() {}
 
 func (x *CpuTopology) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[22]
+	mi := &file_metald_v1_vm_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1426,7 +1479,7 @@ func (x *CpuTopology) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CpuTopology.ProtoReflect.Descriptor instead.
 func (*CpuTopology) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{22}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CpuTopology) GetSockets() int32 {
@@ -1466,7 +1519,7 @@ type MemoryConfig struct {
 
 func (x *MemoryConfig) Reset() {
 	*x = MemoryConfig{}
-	mi := &file_metald_v1_vm_proto_msgTypes[23]
+	mi := &file_metald_v1_vm_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1478,7 +1531,7 @@ func (x *MemoryConfig) String() string {
 func (*MemoryConfig) ProtoMessage() {}
 
 func (x *MemoryConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[23]
+	mi := &file_metald_v1_vm_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1491,7 +1544,7 @@ func (x *MemoryConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryConfig.ProtoReflect.Descriptor instead.
 func (*MemoryConfig) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{23}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *MemoryConfig) GetSizeBytes() int64 {
@@ -1538,7 +1591,7 @@ type BootConfig struct {
 
 func (x *BootConfig) Reset() {
 	*x = BootConfig{}
-	mi := &file_metald_v1_vm_proto_msgTypes[24]
+	mi := &file_metald_v1_vm_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1550,7 +1603,7 @@ func (x *BootConfig) String() string {
 func (*BootConfig) ProtoMessage() {}
 
 func (x *BootConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[24]
+	mi := &file_metald_v1_vm_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1563,7 +1616,7 @@ func (x *BootConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootConfig.ProtoReflect.Descriptor instead.
 func (*BootConfig) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{24}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *BootConfig) GetKernelPath() string {
@@ -1610,7 +1663,7 @@ type ConsoleConfig struct {
 
 func (x *ConsoleConfig) Reset() {
 	*x = ConsoleConfig{}
-	mi := &file_metald_v1_vm_proto_msgTypes[25]
+	mi := &file_metald_v1_vm_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1622,7 +1675,7 @@ func (x *ConsoleConfig) String() string {
 func (*ConsoleConfig) ProtoMessage() {}
 
 func (x *ConsoleConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_metald_v1_vm_proto_msgTypes[25]
+	mi := &file_metald_v1_vm_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1635,7 +1688,7 @@ func (x *ConsoleConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsoleConfig.ProtoReflect.Descriptor instead.
 func (*ConsoleConfig) Descriptor() ([]byte, []int) {
-	return file_metald_v1_vm_proto_rawDescGZIP(), []int{25}
+	return file_metald_v1_vm_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ConsoleConfig) GetEnabled() bool {
@@ -1670,7 +1723,7 @@ var File_metald_v1_vm_proto protoreflect.FileDescriptor
 
 const file_metald_v1_vm_proto_rawDesc = "" +
 	"\n" +
-	"\x12metald/v1/vm.proto\x12\tmetald.v1\x1a\x17metald/v1/network.proto\x1a\x17metald/v1/storage.proto\"\xaf\x02\n" +
+	"\x12metald/v1/vm.proto\x12\tmetald.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17metald/v1/network.proto\x1a\x17metald/v1/storage.proto\"\xaf\x02\n" +
 	"\bVmConfig\x12\x10\n" +
 	"\x03cpu\x18\x01 \x01(\x05R\x03cpu\x12\x16\n" +
 	"\x06memory\x18\x02 \x01(\x03R\x06memory\x12\x12\n" +
@@ -1690,14 +1743,17 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\x0fListVmsResponse\x12#\n" +
 	"\x03vms\x18\x01 \x03(\v2\x11.metald.v1.VmInfoR\x03vms\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
-	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\"S\n" +
 	"\x0fCreateVmRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12+\n" +
-	"\x06config\x18\x02 \x01(\v2\x13.metald.v1.VmConfigR\x06config\"b\n" +
+	"\x06config\x18\x02 \x01(\v2\x13.metald.v1.VmConfigR\x06config\"2\n" +
+	"\bEndpoint\x12\x12\n" +
+	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
+	"\x04port\x18\x02 \x01(\rR\x04port\"m\n" +
 	"\x10CreateVmResponse\x12(\n" +
-	"\x05state\x18\x01 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\x12$\n" +
-	"\x0ehost_port_pair\x18\x02 \x01(\tR\fhostPortPair\"<\n" +
+	"\x05state\x18\x01 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\x12/\n" +
+	"\bendpoint\x18\x02 \x01(\v2\x13.metald.v1.EndpointR\bendpoint\"<\n" +
 	"\x0fDeleteVmRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\",\n" +
@@ -1741,21 +1797,21 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\fbackend_info\x18\x05 \x03(\v2-.metald.v1.GetVmInfoResponse.BackendInfoEntryR\vbackendInfo\x1a>\n" +
 	"\x10BackendInfoEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x84\x02\n" +
 	"\tVmMetrics\x12*\n" +
-	"\x11cpu_usage_percent\x18\x01 \x01(\x01R\x0fcpuUsagePercent\x12,\n" +
-	"\x12memory_usage_bytes\x18\x02 \x01(\x03R\x10memoryUsageBytes\x12<\n" +
+	"\x11cpu_usage_percent\x18\x01 \x01(\x01R\x0fcpuUsagePercent\x12(\n" +
+	"\x10memory_usage_mib\x18\x02 \x01(\x04R\x0ememoryUsageMib\x12<\n" +
 	"\rnetwork_stats\x18\x03 \x01(\v2\x17.metald.v1.NetworkStatsR\fnetworkStats\x12<\n" +
 	"\rstorage_stats\x18\x04 \x01(\v2\x17.metald.v1.StorageStatsR\fstorageStats\x12%\n" +
-	"\x0euptime_seconds\x18\x05 \x01(\x03R\ruptimeSeconds\"\x89\x03\n" +
+	"\x0euptime_seconds\x18\x05 \x01(\x03R\ruptimeSeconds\"\xbd\x03\n" +
 	"\x06VmInfo\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\x12\x1d\n" +
 	"\n" +
-	"vcpu_count\x18\x03 \x01(\x05R\tvcpuCount\x12*\n" +
-	"\x11memory_size_bytes\x18\x04 \x01(\x03R\x0fmemorySizeBytes\x12+\n" +
-	"\x11created_timestamp\x18\x05 \x01(\x03R\x10createdTimestamp\x12-\n" +
-	"\x12modified_timestamp\x18\x06 \x01(\x03R\x11modifiedTimestamp\x12;\n" +
+	"vcpu_count\x18\x03 \x01(\x05R\tvcpuCount\x12&\n" +
+	"\x0fmemory_size_mib\x18\x04 \x01(\x04R\rmemorySizeMib\x12G\n" +
+	"\x11created_timestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x10createdTimestamp\x12I\n" +
+	"\x12modified_timestamp\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x11modifiedTimestamp\x12;\n" +
 	"\bmetadata\x18\a \x03(\v2\x1f.metald.v1.VmInfo.MetadataEntryR\bmetadata\x12\x1f\n" +
 	"\vcustomer_id\x18\b \x01(\tR\n" +
 	"customerId\x1a;\n" +
@@ -1821,73 +1877,78 @@ func file_metald_v1_vm_proto_rawDescGZIP() []byte {
 }
 
 var file_metald_v1_vm_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_metald_v1_vm_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_metald_v1_vm_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_metald_v1_vm_proto_goTypes = []any{
-	(VmState)(0),               // 0: metald.v1.VmState
-	(*VmConfig)(nil),           // 1: metald.v1.VmConfig
-	(*ListVmsRequest)(nil),     // 2: metald.v1.ListVmsRequest
-	(*ListVmsResponse)(nil),    // 3: metald.v1.ListVmsResponse
-	(*CreateVmRequest)(nil),    // 4: metald.v1.CreateVmRequest
-	(*CreateVmResponse)(nil),   // 5: metald.v1.CreateVmResponse
-	(*DeleteVmRequest)(nil),    // 6: metald.v1.DeleteVmRequest
-	(*DeleteVmResponse)(nil),   // 7: metald.v1.DeleteVmResponse
-	(*BootVmRequest)(nil),      // 8: metald.v1.BootVmRequest
-	(*BootVmResponse)(nil),     // 9: metald.v1.BootVmResponse
-	(*ShutdownVmRequest)(nil),  // 10: metald.v1.ShutdownVmRequest
-	(*ShutdownVmResponse)(nil), // 11: metald.v1.ShutdownVmResponse
-	(*PauseVmRequest)(nil),     // 12: metald.v1.PauseVmRequest
-	(*PauseVmResponse)(nil),    // 13: metald.v1.PauseVmResponse
-	(*ResumeVmRequest)(nil),    // 14: metald.v1.ResumeVmRequest
-	(*ResumeVmResponse)(nil),   // 15: metald.v1.ResumeVmResponse
-	(*RebootVmRequest)(nil),    // 16: metald.v1.RebootVmRequest
-	(*RebootVmResponse)(nil),   // 17: metald.v1.RebootVmResponse
-	(*GetVmInfoRequest)(nil),   // 18: metald.v1.GetVmInfoRequest
-	(*GetVmInfoResponse)(nil),  // 19: metald.v1.GetVmInfoResponse
-	(*VmMetrics)(nil),          // 20: metald.v1.VmMetrics
-	(*VmInfo)(nil),             // 21: metald.v1.VmInfo
-	(*CpuConfig)(nil),          // 22: metald.v1.CpuConfig
-	(*CpuTopology)(nil),        // 23: metald.v1.CpuTopology
-	(*MemoryConfig)(nil),       // 24: metald.v1.MemoryConfig
-	(*BootConfig)(nil),         // 25: metald.v1.BootConfig
-	(*ConsoleConfig)(nil),      // 26: metald.v1.ConsoleConfig
-	nil,                        // 27: metald.v1.VmConfig.MetadataEntry
-	nil,                        // 28: metald.v1.GetVmInfoResponse.BackendInfoEntry
-	nil,                        // 29: metald.v1.VmInfo.MetadataEntry
-	nil,                        // 30: metald.v1.CpuConfig.FeaturesEntry
-	nil,                        // 31: metald.v1.MemoryConfig.BackingEntry
-	nil,                        // 32: metald.v1.BootConfig.BootOptionsEntry
-	(*NetworkStats)(nil),       // 33: metald.v1.NetworkStats
-	(*StorageStats)(nil),       // 34: metald.v1.StorageStats
+	(VmState)(0),                  // 0: metald.v1.VmState
+	(*VmConfig)(nil),              // 1: metald.v1.VmConfig
+	(*ListVmsRequest)(nil),        // 2: metald.v1.ListVmsRequest
+	(*ListVmsResponse)(nil),       // 3: metald.v1.ListVmsResponse
+	(*CreateVmRequest)(nil),       // 4: metald.v1.CreateVmRequest
+	(*Endpoint)(nil),              // 5: metald.v1.Endpoint
+	(*CreateVmResponse)(nil),      // 6: metald.v1.CreateVmResponse
+	(*DeleteVmRequest)(nil),       // 7: metald.v1.DeleteVmRequest
+	(*DeleteVmResponse)(nil),      // 8: metald.v1.DeleteVmResponse
+	(*BootVmRequest)(nil),         // 9: metald.v1.BootVmRequest
+	(*BootVmResponse)(nil),        // 10: metald.v1.BootVmResponse
+	(*ShutdownVmRequest)(nil),     // 11: metald.v1.ShutdownVmRequest
+	(*ShutdownVmResponse)(nil),    // 12: metald.v1.ShutdownVmResponse
+	(*PauseVmRequest)(nil),        // 13: metald.v1.PauseVmRequest
+	(*PauseVmResponse)(nil),       // 14: metald.v1.PauseVmResponse
+	(*ResumeVmRequest)(nil),       // 15: metald.v1.ResumeVmRequest
+	(*ResumeVmResponse)(nil),      // 16: metald.v1.ResumeVmResponse
+	(*RebootVmRequest)(nil),       // 17: metald.v1.RebootVmRequest
+	(*RebootVmResponse)(nil),      // 18: metald.v1.RebootVmResponse
+	(*GetVmInfoRequest)(nil),      // 19: metald.v1.GetVmInfoRequest
+	(*GetVmInfoResponse)(nil),     // 20: metald.v1.GetVmInfoResponse
+	(*VmMetrics)(nil),             // 21: metald.v1.VmMetrics
+	(*VmInfo)(nil),                // 22: metald.v1.VmInfo
+	(*CpuConfig)(nil),             // 23: metald.v1.CpuConfig
+	(*CpuTopology)(nil),           // 24: metald.v1.CpuTopology
+	(*MemoryConfig)(nil),          // 25: metald.v1.MemoryConfig
+	(*BootConfig)(nil),            // 26: metald.v1.BootConfig
+	(*ConsoleConfig)(nil),         // 27: metald.v1.ConsoleConfig
+	nil,                           // 28: metald.v1.VmConfig.MetadataEntry
+	nil,                           // 29: metald.v1.GetVmInfoResponse.BackendInfoEntry
+	nil,                           // 30: metald.v1.VmInfo.MetadataEntry
+	nil,                           // 31: metald.v1.CpuConfig.FeaturesEntry
+	nil,                           // 32: metald.v1.MemoryConfig.BackingEntry
+	nil,                           // 33: metald.v1.BootConfig.BootOptionsEntry
+	(*NetworkStats)(nil),          // 34: metald.v1.NetworkStats
+	(*StorageStats)(nil),          // 35: metald.v1.StorageStats
+	(*timestamppb.Timestamp)(nil), // 36: google.protobuf.Timestamp
 }
 var file_metald_v1_vm_proto_depIdxs = []int32{
-	26, // 0: metald.v1.VmConfig.console:type_name -> metald.v1.ConsoleConfig
-	27, // 1: metald.v1.VmConfig.metadata:type_name -> metald.v1.VmConfig.MetadataEntry
+	27, // 0: metald.v1.VmConfig.console:type_name -> metald.v1.ConsoleConfig
+	28, // 1: metald.v1.VmConfig.metadata:type_name -> metald.v1.VmConfig.MetadataEntry
 	0,  // 2: metald.v1.ListVmsRequest.state_filter:type_name -> metald.v1.VmState
-	21, // 3: metald.v1.ListVmsResponse.vms:type_name -> metald.v1.VmInfo
+	22, // 3: metald.v1.ListVmsResponse.vms:type_name -> metald.v1.VmInfo
 	1,  // 4: metald.v1.CreateVmRequest.config:type_name -> metald.v1.VmConfig
 	0,  // 5: metald.v1.CreateVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 6: metald.v1.BootVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 7: metald.v1.ShutdownVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 8: metald.v1.PauseVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 9: metald.v1.ResumeVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 10: metald.v1.RebootVmResponse.state:type_name -> metald.v1.VmState
-	1,  // 11: metald.v1.GetVmInfoResponse.config:type_name -> metald.v1.VmConfig
-	0,  // 12: metald.v1.GetVmInfoResponse.state:type_name -> metald.v1.VmState
-	20, // 13: metald.v1.GetVmInfoResponse.metrics:type_name -> metald.v1.VmMetrics
-	28, // 14: metald.v1.GetVmInfoResponse.backend_info:type_name -> metald.v1.GetVmInfoResponse.BackendInfoEntry
-	33, // 15: metald.v1.VmMetrics.network_stats:type_name -> metald.v1.NetworkStats
-	34, // 16: metald.v1.VmMetrics.storage_stats:type_name -> metald.v1.StorageStats
-	0,  // 17: metald.v1.VmInfo.state:type_name -> metald.v1.VmState
-	29, // 18: metald.v1.VmInfo.metadata:type_name -> metald.v1.VmInfo.MetadataEntry
-	23, // 19: metald.v1.CpuConfig.topology:type_name -> metald.v1.CpuTopology
-	30, // 20: metald.v1.CpuConfig.features:type_name -> metald.v1.CpuConfig.FeaturesEntry
-	31, // 21: metald.v1.MemoryConfig.backing:type_name -> metald.v1.MemoryConfig.BackingEntry
-	32, // 22: metald.v1.BootConfig.boot_options:type_name -> metald.v1.BootConfig.BootOptionsEntry
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	5,  // 6: metald.v1.CreateVmResponse.endpoint:type_name -> metald.v1.Endpoint
+	0,  // 7: metald.v1.BootVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 8: metald.v1.ShutdownVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 9: metald.v1.PauseVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 10: metald.v1.ResumeVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 11: metald.v1.RebootVmResponse.state:type_name -> metald.v1.VmState
+	1,  // 12: metald.v1.GetVmInfoResponse.config:type_name -> metald.v1.VmConfig
+	0,  // 13: metald.v1.GetVmInfoResponse.state:type_name -> metald.v1.VmState
+	21, // 14: metald.v1.GetVmInfoResponse.metrics:type_name -> metald.v1.VmMetrics
+	29, // 15: metald.v1.GetVmInfoResponse.backend_info:type_name -> metald.v1.GetVmInfoResponse.BackendInfoEntry
+	34, // 16: metald.v1.VmMetrics.network_stats:type_name -> metald.v1.NetworkStats
+	35, // 17: metald.v1.VmMetrics.storage_stats:type_name -> metald.v1.StorageStats
+	0,  // 18: metald.v1.VmInfo.state:type_name -> metald.v1.VmState
+	36, // 19: metald.v1.VmInfo.created_timestamp:type_name -> google.protobuf.Timestamp
+	36, // 20: metald.v1.VmInfo.modified_timestamp:type_name -> google.protobuf.Timestamp
+	30, // 21: metald.v1.VmInfo.metadata:type_name -> metald.v1.VmInfo.MetadataEntry
+	24, // 22: metald.v1.CpuConfig.topology:type_name -> metald.v1.CpuTopology
+	31, // 23: metald.v1.CpuConfig.features:type_name -> metald.v1.CpuConfig.FeaturesEntry
+	32, // 24: metald.v1.MemoryConfig.backing:type_name -> metald.v1.MemoryConfig.BackingEntry
+	33, // 25: metald.v1.BootConfig.boot_options:type_name -> metald.v1.BootConfig.BootOptionsEntry
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_metald_v1_vm_proto_init() }
@@ -1903,7 +1964,7 @@ func file_metald_v1_vm_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metald_v1_vm_proto_rawDesc), len(file_metald_v1_vm_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   32,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
