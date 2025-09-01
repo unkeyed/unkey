@@ -37,9 +37,12 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { getDeploymentBuildLogs } from "./deploy/project/active-deployment/getBuildLogs";
+import { getDeploymentDetails } from "./deploy/project/active-deployment/getDetails";
 import { createProject } from "./deploy/project/create";
 import { queryDeployments } from "./deploy/project/deployment/list";
 import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
+import { getEnvs } from "./deploy/project/envs/list";
 import { queryProjects } from "./deploy/project/list";
 import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";
@@ -313,10 +316,17 @@ export const router = t.router({
     project: t.router({
       list: queryProjects,
       create: createProject,
-    }),
-    deployment: t.router({
-      list: queryDeployments,
-      search: deploymentListLlmSearch,
+      activeDeployment: t.router({
+        details: getDeploymentDetails,
+        buildLogs: getDeploymentBuildLogs,
+      }),
+      envs: t.router({
+        getEnvs,
+      }),
+      deployment: t.router({
+        list: queryDeployments,
+        search: deploymentListLlmSearch,
+      }),
     }),
   }),
   deployment: deploymentRouter,
