@@ -71,7 +71,7 @@ message CreateVmResponse {
   VmState state = 1;
 
   // Endpoint is the host:port pair
-    Endpoint endpoint = 2;
+  Endpoint endpoint = 2;
 }
 
 message DeleteVmRequest {
@@ -86,7 +86,6 @@ message DeleteVmResponse { bool success = 1; }
 message BootVmRequest { string vm_id = 1; }
 
 message BootVmResponse {
-  bool success = 1;
   VmState state = 2;
 }
 
@@ -101,21 +100,18 @@ message ShutdownVmRequest {
 }
 
 message ShutdownVmResponse {
-  bool success = 1;
   VmState state = 2;
 }
 
 message PauseVmRequest { string vm_id = 1; }
 
 message PauseVmResponse {
-  bool success = 1;
   VmState state = 2;
 }
 
 message ResumeVmRequest { string vm_id = 1; }
 
 message ResumeVmResponse {
-  bool success = 1;
   VmState state = 2;
 }
 
@@ -127,7 +123,6 @@ message RebootVmRequest {
 }
 
 message RebootVmResponse {
-  bool success = 1;
   VmState state = 2;
 }
 
@@ -175,8 +170,8 @@ message VmInfo {
   // Metadata
   map<string, string> metadata = 7;
 
-  // Customer identifier
-  string customer_id = 8;
+  // deployment_id instance is attached to
+  string deployment_id = 8;
 }
 
 message CpuConfig {
@@ -200,17 +195,11 @@ message CpuTopology {
 }
 
 message MemoryConfig {
-  // Memory size in bytes
-  int64 size_bytes = 1;
-
-  // Whether memory hotplug is enabled
-  bool hotplug_enabled = 2;
-
-  // Maximum memory size for hotplug (bytes)
-  int64 max_size_bytes = 3;
+  // Memory size in MiB
+  int64 memory_size_mib = 1;
 
   // Memory backing options (hugepages, etc.)
-  map<string, string> backing = 4;
+  map<string, string> backing = 2;
 }
 
 message BootConfig {
