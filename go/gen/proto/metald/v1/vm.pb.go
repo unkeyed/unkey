@@ -604,7 +604,6 @@ func (x *BootVmRequest) GetVmId() string {
 
 type BootVmResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	State         VmState                `protobuf:"varint,2,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -638,13 +637,6 @@ func (x *BootVmResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use BootVmResponse.ProtoReflect.Descriptor instead.
 func (*BootVmResponse) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *BootVmResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
 }
 
 func (x *BootVmResponse) GetState() VmState {
@@ -718,7 +710,6 @@ func (x *ShutdownVmRequest) GetTimeoutSeconds() int32 {
 
 type ShutdownVmResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	State         VmState                `protobuf:"varint,2,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -752,13 +743,6 @@ func (x *ShutdownVmResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ShutdownVmResponse.ProtoReflect.Descriptor instead.
 func (*ShutdownVmResponse) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ShutdownVmResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
 }
 
 func (x *ShutdownVmResponse) GetState() VmState {
@@ -814,7 +798,6 @@ func (x *PauseVmRequest) GetVmId() string {
 
 type PauseVmResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	State         VmState                `protobuf:"varint,2,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -848,13 +831,6 @@ func (x *PauseVmResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PauseVmResponse.ProtoReflect.Descriptor instead.
 func (*PauseVmResponse) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *PauseVmResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
 }
 
 func (x *PauseVmResponse) GetState() VmState {
@@ -910,7 +886,6 @@ func (x *ResumeVmRequest) GetVmId() string {
 
 type ResumeVmResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	State         VmState                `protobuf:"varint,2,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -944,13 +919,6 @@ func (x *ResumeVmResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ResumeVmResponse.ProtoReflect.Descriptor instead.
 func (*ResumeVmResponse) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *ResumeVmResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
 }
 
 func (x *ResumeVmResponse) GetState() VmState {
@@ -1015,7 +983,6 @@ func (x *RebootVmRequest) GetForce() bool {
 
 type RebootVmResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	State         VmState                `protobuf:"varint,2,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1049,13 +1016,6 @@ func (x *RebootVmResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RebootVmResponse.ProtoReflect.Descriptor instead.
 func (*RebootVmResponse) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *RebootVmResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
 }
 
 func (x *RebootVmResponse) GetState() VmState {
@@ -1279,8 +1239,8 @@ type VmInfo struct {
 	ModifiedTimestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=modified_timestamp,json=modifiedTimestamp,proto3" json:"modified_timestamp,omitempty"`
 	// Metadata
 	Metadata map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Customer identifier
-	CustomerId    string `protobuf:"bytes,8,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	// deployment_id instance is attached to
+	DeploymentId  string `protobuf:"bytes,8,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1364,9 +1324,9 @@ func (x *VmInfo) GetMetadata() map[string]string {
 	return nil
 }
 
-func (x *VmInfo) GetCustomerId() string {
+func (x *VmInfo) GetDeploymentId() string {
 	if x != nil {
-		return x.CustomerId
+		return x.DeploymentId
 	}
 	return ""
 }
@@ -1505,14 +1465,10 @@ func (x *CpuTopology) GetThreadsPerCore() int32 {
 
 type MemoryConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Memory size in bytes
-	SizeBytes int64 `protobuf:"varint,1,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	// Whether memory hotplug is enabled
-	HotplugEnabled bool `protobuf:"varint,2,opt,name=hotplug_enabled,json=hotplugEnabled,proto3" json:"hotplug_enabled,omitempty"`
-	// Maximum memory size for hotplug (bytes)
-	MaxSizeBytes int64 `protobuf:"varint,3,opt,name=max_size_bytes,json=maxSizeBytes,proto3" json:"max_size_bytes,omitempty"`
+	// Memory size in MiB
+	MemorySizeMib int64 `protobuf:"varint,1,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	// Memory backing options (hugepages, etc.)
-	Backing       map[string]string `protobuf:"bytes,4,rep,name=backing,proto3" json:"backing,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Backing       map[string]string `protobuf:"bytes,2,rep,name=backing,proto3" json:"backing,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1547,23 +1503,9 @@ func (*MemoryConfig) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{24}
 }
 
-func (x *MemoryConfig) GetSizeBytes() int64 {
+func (x *MemoryConfig) GetMemorySizeMib() int64 {
 	if x != nil {
-		return x.SizeBytes
-	}
-	return 0
-}
-
-func (x *MemoryConfig) GetHotplugEnabled() bool {
-	if x != nil {
-		return x.HotplugEnabled
-	}
-	return false
-}
-
-func (x *MemoryConfig) GetMaxSizeBytes() int64 {
-	if x != nil {
-		return x.MaxSizeBytes
+		return x.MemorySizeMib
 	}
 	return 0
 }
@@ -1760,32 +1702,27 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\x10DeleteVmResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"$\n" +
 	"\rBootVmRequest\x12\x13\n" +
-	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"T\n" +
-	"\x0eBootVmResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12(\n" +
+	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\":\n" +
+	"\x0eBootVmResponse\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\"g\n" +
 	"\x11ShutdownVmRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\x12'\n" +
-	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\"X\n" +
-	"\x12ShutdownVmResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12(\n" +
+	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\">\n" +
+	"\x12ShutdownVmResponse\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\"%\n" +
 	"\x0ePauseVmRequest\x12\x13\n" +
-	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"U\n" +
-	"\x0fPauseVmResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12(\n" +
+	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\";\n" +
+	"\x0fPauseVmResponse\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\"&\n" +
 	"\x0fResumeVmRequest\x12\x13\n" +
-	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"V\n" +
-	"\x10ResumeVmResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12(\n" +
+	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"<\n" +
+	"\x10ResumeVmResponse\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\"<\n" +
 	"\x0fRebootVmRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12\x14\n" +
-	"\x05force\x18\x02 \x01(\bR\x05force\"V\n" +
-	"\x10RebootVmResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12(\n" +
+	"\x05force\x18\x02 \x01(\bR\x05force\"<\n" +
+	"\x10RebootVmResponse\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\"'\n" +
 	"\x10GetVmInfoRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\"\xc1\x02\n" +
@@ -1803,7 +1740,7 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\x10memory_usage_mib\x18\x02 \x01(\x04R\x0ememoryUsageMib\x12<\n" +
 	"\rnetwork_stats\x18\x03 \x01(\v2\x17.metald.v1.NetworkStatsR\fnetworkStats\x12<\n" +
 	"\rstorage_stats\x18\x04 \x01(\v2\x17.metald.v1.StorageStatsR\fstorageStats\x12%\n" +
-	"\x0euptime_seconds\x18\x05 \x01(\x03R\ruptimeSeconds\"\xbd\x03\n" +
+	"\x0euptime_seconds\x18\x05 \x01(\x03R\ruptimeSeconds\"\xc1\x03\n" +
 	"\x06VmInfo\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12(\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\x12\x1d\n" +
@@ -1812,9 +1749,8 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\x0fmemory_size_mib\x18\x04 \x01(\x04R\rmemorySizeMib\x12G\n" +
 	"\x11created_timestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x10createdTimestamp\x12I\n" +
 	"\x12modified_timestamp\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x11modifiedTimestamp\x12;\n" +
-	"\bmetadata\x18\a \x03(\v2\x1f.metald.v1.VmInfo.MetadataEntryR\bmetadata\x12\x1f\n" +
-	"\vcustomer_id\x18\b \x01(\tR\n" +
-	"customerId\x1a;\n" +
+	"\bmetadata\x18\a \x03(\v2\x1f.metald.v1.VmInfo.MetadataEntryR\bmetadata\x12#\n" +
+	"\rdeployment_id\x18\b \x01(\tR\fdeploymentId\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x81\x02\n" +
@@ -1830,13 +1766,10 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\vCpuTopology\x12\x18\n" +
 	"\asockets\x18\x01 \x01(\x05R\asockets\x12(\n" +
 	"\x10cores_per_socket\x18\x02 \x01(\x05R\x0ecoresPerSocket\x12(\n" +
-	"\x10threads_per_core\x18\x03 \x01(\x05R\x0ethreadsPerCore\"\xf8\x01\n" +
-	"\fMemoryConfig\x12\x1d\n" +
-	"\n" +
-	"size_bytes\x18\x01 \x01(\x03R\tsizeBytes\x12'\n" +
-	"\x0fhotplug_enabled\x18\x02 \x01(\bR\x0ehotplugEnabled\x12$\n" +
-	"\x0emax_size_bytes\x18\x03 \x01(\x03R\fmaxSizeBytes\x12>\n" +
-	"\abacking\x18\x04 \x03(\v2$.metald.v1.MemoryConfig.BackingEntryR\abacking\x1a:\n" +
+	"\x10threads_per_core\x18\x03 \x01(\x05R\x0ethreadsPerCore\"\xb2\x01\n" +
+	"\fMemoryConfig\x12&\n" +
+	"\x0fmemory_size_mib\x18\x01 \x01(\x03R\rmemorySizeMib\x12>\n" +
+	"\abacking\x18\x02 \x03(\v2$.metald.v1.MemoryConfig.BackingEntryR\abacking\x1a:\n" +
 	"\fBackingEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfa\x01\n" +

@@ -513,15 +513,13 @@ var File_metald_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_metald_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x1ametald/v1/deployment.proto\x12\tmetald.v1\"\xcd\x01\n" +
+	"\x1ametald/v1/deployment.proto\x12\tmetald.v1\"\xaf\x01\n" +
 	"\x11DeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12%\n" +
 	"\x0einstance_count\x18\x03 \x01(\rR\rinstanceCount\x12\x10\n" +
 	"\x03cpu\x18\x04 \x01(\rR\x03cpu\x12&\n" +
-	"\x0fmemory_size_mib\x18\x05 \x01(\x04R\rmemorySizeMibJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"J\x04\b\n" +
-	"\x10\v\"X\n" +
+	"\x0fmemory_size_mib\x18\x05 \x01(\x04R\rmemorySizeMib\"X\n" +
 	"\x18PrepareDeploymentRequest\x12<\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x1c.metald.v1.DeploymentRequestR\n" +
