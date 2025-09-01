@@ -14,11 +14,11 @@ message DeploymentRequest {
     uint64 memory_size_mib = 5;
 }
 
-message PrepareDeploymentRequest {
+message CreateaDeploymentRequest {
     DeploymentRequest deployment = 1;
 }
 
-message PrepareDeploymentResponse {
+message CreateDeploymentResponse {
     repeated string vm_ids = 1;
 }
 
@@ -38,13 +38,15 @@ message DeleteDeploymentResponse {}
 message GetDeploymentRequest {
     string deployment_id = 1;
 }
+
 message GetDeploymentResponse {
     string deployment_id = 1;
 
     message Instance {
         string id = 1;
         string host = 2;
-        uint32 port = 3;
+        string state = 3;
+        uint32 port = 4;
     }
 
     repeated Instance instances = 2;
