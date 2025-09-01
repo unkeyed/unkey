@@ -4,6 +4,7 @@ package metald.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
 
+import "google/protobuf/timestamp.proto";
 import "metald/v1/network.proto";
 import "metald/v1/storage.proto";
 
@@ -52,7 +53,7 @@ message ListVmsRequest {
 message ListVmsResponse {
   repeated VmInfo vms = 1;
   string next_page_token = 2;
-  int32 total_count = 3;
+  int64 total_count = 3;
 }
 
 // Request/Response messages
@@ -64,12 +65,13 @@ message CreateVmRequest {
   VmConfig config = 2;
 }
 
+message Endpoint { string host = 1; uint32 port = 2;}
 message CreateVmResponse {
   // Current VM state after creation
   VmState state = 1;
 
-  // host:ip pair
-  string host_port_pair = 2;
+  // Endpoint is the host:port pair
+    Endpoint endpoint = 2;
 }
 
 message DeleteVmRequest {
@@ -164,11 +166,11 @@ message VmInfo {
 
   // Basic config info (subset of full config)
   int32 vcpu_count = 3;
-  int64 memory_size_bytes = 4;
+  uint64 memory_size_bytes = 4;
 
   // Creation and modification timestamps
-  int64 created_timestamp = 5;
-  int64 modified_timestamp = 6;
+  google.protobuf.Timestamp created_timestamp = 5;
+  google.protobuf.Timestamp modified_timestamp = 6;
 
   // Metadata
   map<string, string> metadata = 7;
