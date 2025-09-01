@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const { orgId } = await getAuthOrRedirect();
   if (!orgId) {
-    return redirect("/new");
+    redirect("/new");
   }
   const ws = await db.query.workspaces.findFirst({
     where: (table, { eq, isNull, and }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),

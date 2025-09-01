@@ -27,7 +27,7 @@ export default async function Layout({ children }: LayoutProps) {
   });
 
   if (!workspace) {
-    return redirect("/new");
+    redirect("/new");
   }
 
   return (

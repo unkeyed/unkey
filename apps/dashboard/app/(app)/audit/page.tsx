@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 export default async function AuditPage() {
   const { orgId } = await getAuthOrRedirect();
   if (!orgId) {
-    return redirect("/new");
+    redirect("/new");
   }
   const { workspace, members } = await getWorkspace(orgId);
 

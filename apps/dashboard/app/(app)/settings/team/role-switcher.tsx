@@ -56,7 +56,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
           role: validatedRole.data,
         });
 
-        setRole(newRole);
+        setRole(validatedRole.data);
       } catch (err) {
         console.error(err);
       }

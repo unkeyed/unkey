@@ -28,7 +28,7 @@ type Props = {
 export default async function Page(props: Props) {
   const { orgId } = await getAuthOrRedirect();
   if (!orgId) {
-    return redirect("/new");
+    redirect("/new");
   }
   const identity = await db.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.identityId),

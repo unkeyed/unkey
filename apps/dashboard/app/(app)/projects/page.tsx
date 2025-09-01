@@ -8,7 +8,7 @@ import { ProjectsClient } from "./projects-client";
 export default async function ProjectsPage() {
   const { orgId } = await getAuthOrRedirect();
   if (!orgId) {
-    return redirect("/new");
+    redirect("/new");
   }
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),

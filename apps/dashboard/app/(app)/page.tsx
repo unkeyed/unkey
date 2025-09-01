@@ -10,7 +10,7 @@ export default async function TenantOverviewPage() {
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!workspace) {
-    return redirect("/new");
+    redirect("/new");
   }
-  return redirect("/apis");
+  redirect("/apis");
 }

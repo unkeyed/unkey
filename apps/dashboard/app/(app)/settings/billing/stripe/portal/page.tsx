@@ -14,7 +14,7 @@ export default async function StripeRedirect() {
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
-    return redirect("/new");
+    redirect("/new");
   }
   const e = stripeEnv();
   if (!e) {

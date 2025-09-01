@@ -9,7 +9,7 @@ export const updateMembership = t.procedure
   .use(requireOrgAdmin)
   .input(
     z.object({
-      membershipId: z.string(),
+      membershipId: z.string().min(1),
       role: z.enum(["basic_member", "admin"]),
     }),
   )

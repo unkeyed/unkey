@@ -99,7 +99,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
   const workspace = await getData();
 
   if (!workspace) {
-    return redirect("/new");
+    redirect("/new");
   }
 
   if (props.search) {
