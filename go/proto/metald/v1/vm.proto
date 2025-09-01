@@ -147,8 +147,8 @@ message VmMetrics {
   // CPU usage percentage (0-100)
   double cpu_usage_percent = 1;
 
-  // Memory usage in bytes
-  int64 memory_usage_bytes = 2;
+  // Memory usage in MiB
+  uint64 memory_usage_mib = 2;
 
   // Network I/O statistics
   NetworkStats network_stats = 3;
@@ -166,7 +166,7 @@ message VmInfo {
 
   // Basic config info (subset of full config)
   int32 vcpu_count = 3;
-  uint64 memory_size_bytes = 4;
+  uint64 memory_size_mib = 4;
 
   // Creation and modification timestamps
   google.protobuf.Timestamp created_timestamp = 5;
