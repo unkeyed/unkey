@@ -19,6 +19,9 @@ export const workspaces = mysqlTable("workspaces", {
   orgId: varchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
 
+  // slug is used for the workspace URL
+  slug: varchar("slug", { length: 64 }).unique(),
+
   // Deployment platform - which partition this workspace deploys to
   partitionId: varchar("partition_id", { length: 256 }),
 

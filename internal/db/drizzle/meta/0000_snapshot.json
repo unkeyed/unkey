@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "1c1b2291-b582-4d8f-9bd7-a76d34a8af62",
+  "id": "feb5640a-c169-40c0-a711-90db24af469e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -1127,6 +1127,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "partition_id": {
           "name": "partition_id",
           "type": "varchar(256)",
@@ -1236,6 +1243,10 @@
         "workspaces_org_id_unique": {
           "name": "workspaces_org_id_unique",
           "columns": ["org_id"]
+        },
+        "workspaces_slug_unique": {
+          "name": "workspaces_slug_unique",
+          "columns": ["slug"]
         }
       }
     },
