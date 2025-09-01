@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getAuthWithRedirect } from "../auth";
+import { getAuthOrRedirect } from "../auth";
 import { deleteCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE } from "./types";
@@ -11,7 +11,7 @@ export async function requireAuth(): Promise<{
   userId: string | null;
   orgId: string | null;
 }> {
-  const authResult = await getAuthWithRedirect();
+  const authResult = await getAuthOrRedirect();
   if (!authResult.userId) {
     redirect("/auth/sign-in");
   }

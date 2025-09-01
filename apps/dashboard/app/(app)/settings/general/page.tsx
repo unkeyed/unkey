@@ -1,4 +1,4 @@
-import { getAuthWithRedirect } from "@/lib/auth";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { WorkspaceNavbar } from "../workspace-navbar";
@@ -12,7 +12,7 @@ import { UpdateWorkspaceName } from "./update-workspace-name";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const { orgId } = await getAuthWithRedirect();
+  const { orgId } = await getAuthOrRedirect();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),

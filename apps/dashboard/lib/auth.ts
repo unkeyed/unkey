@@ -26,7 +26,7 @@ type GetAuthResult = {
  * @returns Authentication result containing userId and orgId if authenticated, null values otherwise
  * @throws Redirects to sign-in or organization/workspace creation pages if requirements aren't met
  */
-export async function getAuthWithRedirect(req?: NextRequest): Promise<GetAuthResult> {
+export async function getAuthOrRedirect(req?: NextRequest): Promise<GetAuthResult> {
   const authResult = await getBaseAuth(req);
   if (!authResult.userId) {
     redirect("/auth/sign-in");
@@ -51,7 +51,7 @@ export async function getAuthWithRedirect(req?: NextRequest): Promise<GetAuthRes
  * @throws Redirects to sign-in page if user is not authenticated or not found
  */
 export async function getCurrentUser(): Promise<AuthenticatedUser> {
-  const { userId, orgId, impersonator, role } = await getAuthWithRedirect();
+  const { userId, orgId, impersonator, role } = await getAuthOrRedirect();
 
   const user = await auth.getUser(userId); // getAuth will redirect if there's no userId
   if (!user) {

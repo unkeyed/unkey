@@ -1,7 +1,7 @@
 import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { getAuthWithRedirect } from "@/lib/auth";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
@@ -13,7 +13,7 @@ interface LayoutProps {
 }
 
 export default async function Layout({ children }: LayoutProps) {
-  const { orgId, impersonator } = await getAuthWithRedirect();
+  const { orgId, impersonator } = await getAuthOrRedirect();
 
   const isImpersonator = !!impersonator;
   const workspace = await db.query.workspaces.findFirst({

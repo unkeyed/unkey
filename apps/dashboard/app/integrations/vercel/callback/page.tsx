@@ -3,7 +3,7 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-import { getAuthWithRedirect } from "@/lib/auth";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { Code, Empty } from "@unkey/ui";
@@ -33,7 +33,7 @@ export default async function Page(props: Props) {
     return <div>no next</div>;
   }
 
-  const { orgId } = await getAuthWithRedirect();
+  const { orgId } = await getAuthOrRedirect();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {

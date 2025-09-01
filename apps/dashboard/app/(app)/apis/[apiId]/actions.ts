@@ -1,4 +1,4 @@
-import { getAuthWithRedirect } from "@/lib/auth";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { and, db, eq, isNull } from "@/lib/db";
 import { getAllKeys } from "@/lib/trpc/routers/api/keys/query-api-keys/get-all-keys";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
@@ -23,7 +23,7 @@ export type ApiLayoutData = {
 };
 
 export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<ApiLayoutData> => {
-  const { orgId } = await getAuthWithRedirect();
+  const { orgId } = await getAuthOrRedirect();
   if (!apiId || !orgId) {
     console.error("fetchApiLayoutDataFromDb: apiId or orgId is missing");
     notFound();

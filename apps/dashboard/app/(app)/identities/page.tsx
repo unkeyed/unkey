@@ -1,7 +1,7 @@
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAuthWithRedirect } from "@/lib/auth";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
@@ -29,7 +29,7 @@ export default async function Page(props: Props) {
     .withDefault(DEFAULT_LIMIT)
     .parse(props.searchParams.limit ?? DEFAULT_LIMIT.toString());
 
-  const { orgId } = await getAuthWithRedirect();
+  const { orgId } = await getAuthOrRedirect();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.orgId, orgId),
   });
@@ -66,7 +66,7 @@ export default async function Page(props: Props) {
 }
 
 const Results: React.FC<{ search: string; limit: number }> = async (props) => {
-  const { orgId } = await getAuthWithRedirect();
+  const { orgId } = await getAuthOrRedirect();
   const getData = cache(
     async () =>
       db.query.workspaces.findFirst({
