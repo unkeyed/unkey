@@ -13,7 +13,7 @@ import { Gear } from "@unkey/icons";
 import { Button, Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { Client } from "./client";
 
@@ -27,6 +27,9 @@ type Props = {
 
 export default async function Page(props: Props) {
   const { orgId } = await getAuthOrRedirect();
+  if (!orgId) {
+    return redirect("/new");
+  }
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {

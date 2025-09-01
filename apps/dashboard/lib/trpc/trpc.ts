@@ -49,7 +49,7 @@ export const requireOrgId = t.middleware(({ next, ctx }) => {
   const orgId = ctx.workspace?.orgId;
   if (!orgId) {
     throw new TRPCError({
-      code: "BAD_REQUEST",
+      code: "NOT_FOUND",
       message: "Organization ID not found",
     });
   }

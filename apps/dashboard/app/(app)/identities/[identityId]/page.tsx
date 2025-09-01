@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -27,6 +27,9 @@ type Props = {
 
 export default async function Page(props: Props) {
   const { orgId } = await getAuthOrRedirect();
+  if (!orgId) {
+    return redirect("/new");
+  }
   const identity = await db.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.identityId),
     with: {

@@ -5,8 +5,12 @@ import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
 
 import { getAuthOrRedirect } from "@/lib/auth";
+import { redirect } from "next/navigation";
 export default async function AuditPage() {
   const { orgId } = await getAuthOrRedirect();
+  if (!orgId) {
+    return redirect("/new");
+  }
   const { workspace, members } = await getWorkspace(orgId);
 
   return (

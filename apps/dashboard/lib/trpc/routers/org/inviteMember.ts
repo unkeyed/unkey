@@ -5,8 +5,8 @@ import { requireOrgAdmin, requireOrgId, requireUser, t } from "../../trpc";
 
 export const inviteMember = t.procedure
   .use(requireUser)
-  .use(requireOrgAdmin)
   .use(requireOrgId)
+  .use(requireOrgAdmin)
   .input(
     z.object({
       email: z.string(),

@@ -5,12 +5,12 @@ import { requireOrgAdmin, requireOrgId, requireUser, t } from "../../trpc";
 
 export const updateMembership = t.procedure
   .use(requireUser)
-  .use(requireOrgAdmin)
   .use(requireOrgId)
+  .use(requireOrgAdmin)
   .input(
     z.object({
       membershipId: z.string(),
-      role: z.string(),
+      role: z.enum(["basic_member", "admin"]),
     }),
   )
   .mutation(async ({ input }) => {

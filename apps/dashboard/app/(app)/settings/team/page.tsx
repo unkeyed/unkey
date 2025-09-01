@@ -1,5 +1,6 @@
 import { getAuthOrRedirect } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { TeamPageClient } from "./client";
 
@@ -7,6 +8,9 @@ export const revalidate = 0;
 
 export default async function SettingTeamPage() {
   const { orgId } = await getAuthOrRedirect();
+  if (!orgId) {
+    return redirect("/new");
+  }
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: { quotas: true },

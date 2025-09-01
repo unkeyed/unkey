@@ -4,7 +4,7 @@ import type { AuthenticatedUser } from "@/lib/auth/types";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
-type GetAuthResult = {
+export type GetAuthResult = {
   userId: string;
   orgId: string;
   role: string;

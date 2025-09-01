@@ -5,11 +5,11 @@ import { requireOrgAdmin, requireOrgId, requireUser, t } from "../../trpc";
 
 export const revokeInvitation = t.procedure
   .use(requireUser)
-  .use(requireOrgAdmin)
   .use(requireOrgId)
+  .use(requireOrgAdmin)
   .input(
     z.object({
-      invitationId: z.string(),
+      invitationId: z.string().min(1),
     }),
   )
   .mutation(async ({ input }) => {
