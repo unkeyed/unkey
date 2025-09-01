@@ -12,9 +12,6 @@ message DeploymentRequest {
     uint32 instance_count = 3;
     uint32 cpu = 4;
     uint64 memory_size_mib = 5;
-
-    // reserve room to add options
-    reserved 6, 7, 8, 9, 10;
 }
 
 message PrepareDeploymentRequest {
