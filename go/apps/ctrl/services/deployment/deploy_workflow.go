@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/git"
@@ -27,12 +27,12 @@ type DeployWorkflow struct {
 	db           db.Database
 	partitionDB  db.Database
 	logger       logging.Logger
-	metaldClient vmprovisionerv1connect.VmServiceClient
+	metaldClient metaldv1connect.VmServiceClient
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(database db.Database, partitionDB db.Database,
-	logger logging.Logger, metaldClient vmprovisionerv1connect.VmServiceClient,
+	logger logging.Logger, metaldClient metaldv1connect.VmServiceClient,
 ) *DeployWorkflow {
 	return &DeployWorkflow{
 		db:           database,
@@ -73,21 +73,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		"project_id", req.ProjectID,
 		"hostname", req.Hostname)
 
-	// Step 1: Generate build ID
-	buildID, err := hydra.Step(ctx, "generate-build-id", func(stepCtx context.Context) (string, error) {
-		id := uid.New(uid.BuildPrefix)
-		w.logger.Info("generated build ID", "build_id", id)
-		return id, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to generate build ID", "error", err)
-		return err
-	}
-
-	w.logger.Info("proceeding with build", "build_id", buildID)
-
 	// Step 2: Log deployment pending
-	err = hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
+	err := hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			WorkspaceID:  req.WorkspaceID,
 			ProjectID:    req.ProjectID,
@@ -121,113 +108,33 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 6: Log downloading Docker image
-	err = hydra.StepVoid(ctx, "log-downloading-docker-image", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "downloading_docker_image",
-			Message:      fmt.Sprintf("Downloading Docker image: %s", req.DockerImage),
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log downloading Docker image", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
 	// Step 7: Create VM (network call to metald)
-	createResult, err := hydra.Step(ctx, "metald-create-vm", func(stepCtx context.Context) (*vmprovisionerv1.CreateVmResponse, error) {
-		w.logger.Info("creating VM for deployment", "deployment_id", req.DeploymentID, "docker_image", req.DockerImage, "workspace_id", req.WorkspaceID, "project_id", req.ProjectID)
-
-		// Create VM configuration for Docker backend
-		vmConfig := &vmprovisionerv1.VmConfig{
-			Cpu: &vmprovisionerv1.CpuConfig{
-				VcpuCount: 1,
-			},
-			Memory: &vmprovisionerv1.MemoryConfig{
-				SizeBytes: 536870912, // 512MB
-			},
-			Boot: &vmprovisionerv1.BootConfig{
-				KernelPath: "/boot/vmlinux",
-				InitrdPath: "/boot/initrd",
-				KernelArgs: "console=ttyS0 quiet",
-			},
-			Storage: []*vmprovisionerv1.StorageDevice{{
-				Id:   "root",
-				Path: "/dev/vda",
-			}},
-			Metadata: map[string]string{
-				"docker_image":  req.DockerImage,
-				"exposed_ports": "8080/tcp",
-				"env_vars":      "PORT=8080",
-				"deployment_id": req.DeploymentID,
-				"workspace_id":  req.WorkspaceID,
-				"project_id":    req.ProjectID,
-				"created_by":    "deploy-workflow",
-			},
-		}
+	prepareDeployment, err := hydra.Step(ctx, "metald-prepare-deployment", func(stepCtx context.Context) (*metaldv1.PrepareDeploymentResponse, error) {
+		w.logger.Info("preparing deployment", "deployment_id", req.DeploymentID, "docker_image", req.DockerImage, "workspace_id", req.WorkspaceID, "project_id", req.ProjectID)
 
 		// Make real metald CreateVm call
-		resp, err := w.metaldClient.CreateVm(stepCtx, connect.NewRequest(&vmprovisionerv1.CreateVmRequest{
-			Config: vmConfig,
+		resp, err := w.metaldClient.PrepareDeployment(stepCtx, connect.NewRequest(&metaldv1.PrepareDeploymentRequest{
+			Deployment: &metaldv1.DeploymentRequest{
+				DeploymentId:  req.DeploymentID,
+				Image:         req.DockerImage,
+				InstanceCount: 1,
+				Cpu:           1,
+				MemorySizeMib: 1024,
+			},
 		}))
 		if err != nil {
-			w.logger.Error("metald CreateVm call failed", "error", err, "docker_image", req.DockerImage)
+			w.logger.Error("metald PrepareDeployment call failed", "error", err, "docker_image", req.DockerImage)
 			return nil, fmt.Errorf("failed to create VM: %w", err)
 		}
-
-		w.logger.Info("VM created successfully", "vm_id", resp.Msg.VmId, "state", resp.Msg.State.String(), "docker_image", req.DockerImage)
 
 		return resp.Msg, nil
 	})
 	if err != nil {
-		w.logger.Error("VM creation failed", "error", err, "deployment_id", req.DeploymentID)
+		w.logger.Error("Deployment preparation failed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	w.logger.Info("VM creation completed", "vm_id", createResult.VmId, "state", createResult.State.String())
-
-	// Step 8: Log building rootfs
-	err = hydra.StepVoid(ctx, "log-building-rootfs", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "building_rootfs",
-			Message:      fmt.Sprintf("Building rootfs from Docker image: %s", req.DockerImage),
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log building rootfs", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 9: Log uploading rootfs
-	err = hydra.StepVoid(ctx, "log-uploading-rootfs", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "uploading_rootfs",
-			Message:      "Uploading rootfs image to storage",
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log uploading rootfs", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 11: Log creating VM
-	err = hydra.StepVoid(ctx, "log-creating-vm", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "creating_vm",
-			Message:      fmt.Sprintf("Creating VM for version: %s", req.DeploymentID),
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log creating VM", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
+	w.logger.Info("Deployment preparation issued", "vm_ids", prepareDeployment.GetVmIds())
 
 	// Step 12: Update version status to deploying
 	_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
@@ -248,23 +155,17 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Step 13: Skip VM status polling for Docker backend (VM is immediately ready)
-	w.logger.Info("skipping VM status polling for Docker backend", "vm_id", createResult.VmId)
+	_, err = hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) (*metaldv1.GetDeploymentResponse, error) {
 
-	// Step 14: Boot VM (network call to metald)
-	_, err = hydra.Step(ctx, "metald-boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
-		w.logger.Info("booting VM", "vm_id", createResult.VmId)
-
-		// Make real metald BootVm call
-		resp, err := w.metaldClient.BootVm(stepCtx, connect.NewRequest(&vmprovisionerv1.BootVmRequest{
-			VmId: createResult.VmId,
+		resp, err := w.metaldClient.GetDeployment(stepCtx, connect.NewRequest(&metaldv1.GetDeploymentRequest{
+			DeploymentId: req.DeploymentID,
 		}))
 		if err != nil {
-			w.logger.Error("metald BootVm call failed", "error", err, "vm_id", createResult.VmId)
-			return nil, fmt.Errorf("failed to boot VM: %w", err)
+			w.logger.Error("metald GetDeployment call failed", "error", err, "deployment_id", req.DeploymentID)
+			return nil, fmt.Errorf("failed to get deployment: %w", err)
 		}
 
-		if !resp.Msg.Success {
+		if !resp.Msg.Instances[0] {
 			w.logger.Error("VM boot was not successful", "vm_id", createResult.VmId, "state", resp.Msg.State.String())
 			return nil, fmt.Errorf("VM boot was not successful, state: %s", resp.Msg.State.String())
 		}
@@ -280,10 +181,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	w.logger.Info("VM boot completed successfully", "vm_id", createResult.VmId)
 
 	// Step 15: Get VM info to retrieve port mappings
-	vmInfo, err := hydra.Step(ctx, "metald-get-vm-info", func(stepCtx context.Context) (*vmprovisionerv1.GetVmInfoResponse, error) {
+	vmInfo, err := hydra.Step(ctx, "metald-get-vm-info", func(stepCtx context.Context) (*metaldv1connect.GetVmInfoResponse, error) {
 		w.logger.Info("getting VM info for port mappings", "vm_id", createResult.VmId)
 
-		resp, err := w.metaldClient.GetVmInfo(stepCtx, connect.NewRequest(&vmprovisionerv1.GetVmInfoRequest{
+		resp, err := w.metaldClient.GetVmInfo(stepCtx, connect.NewRequest(&metaldv1connect.GetVmInfoRequest{
 			VmId: createResult.VmId,
 		}))
 		if err != nil {
