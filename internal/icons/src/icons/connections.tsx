@@ -19,29 +19,33 @@ export const Connections: React.FC<IconProps> = ({ size = "xl-thin", ...props })
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
-      <g fill="currentColor" strokeLinecap="square" strokeLinejoin="miter" strokeMiterlimit="10">
-        <path
-          d="M9 23L23 9"
+      <g fill="currentColor">
+        <polyline
           fill="none"
+          points="12.625 5.375 9 9 5.375 12.625"
           stroke="currentColor"
-          strokeLinecap="butt"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <path
-          d="M9 9L23 23"
+        <polyline
           fill="none"
+          points="12.625 12.625 9 9 5.375 5.375"
           stroke="currentColor"
-          strokeLinecap="butt"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <path
-          d="M30.1421 16L16 1.85785L1.85786 16L16 30.1421L30.1421 16Z"
+        <polygon
           fill="none"
+          points="12.625 5.375 9 1.75 5.375 5.375 1.75 9 5.375 12.625 9 16.25 12.625 12.625 16.25 9 12.625 5.375"
           stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
       </g>

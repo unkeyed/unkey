@@ -7,9 +7,9 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 // Layout constants
-const BASE_PADDING = 12; // 12px base padding
+const BASE_PADDING = 8; // 8px base padding
 const ICON_SPACE = 36; // 36px total space for icons
-const PREFIX_BUFFER = 1; // 4px gap after prefix
+const PREFIX_BUFFER = 1; // 1px gap after prefix
 
 const inputVariants = cva(
   "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12",
@@ -109,7 +109,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {prefix && (
           <span
             ref={prefixRef}
-            className="absolute left-3 flex items-center pointer-events-none text-[13px] leading-5 opacity-40 select-none z-10"
+            className="absolute left-2 flex items-center pointer-events-none text-[13px] leading-5 opacity-40 select-none z-10"
           >
             {prefix}
           </span>
@@ -127,11 +127,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         />
 
         {/* Right Icon */}
-        {rightIcon && (
-          <div className="absolute right-3 flex items-center pointer-events-none z-10">
-            {rightIcon}
-          </div>
-        )}
+        {rightIcon && <div className="absolute right-3 flex items-center z-10">{rightIcon}</div>}
       </div>
     );
   },
