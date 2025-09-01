@@ -13,6 +13,9 @@ import {
   toast,
 } from "@unkey/ui";
 import { memo, useState } from "react";
+import { z } from "zod";
+
+const roleSchema = z.enum(["admin", "basic_member"]);
 
 type RoleSwitcherProps = {
   member: { id: string; role: string };
@@ -41,11 +44,16 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       if (!organization) {
         return;
       }
+      const validatedRole = roleSchema.safeParse(newRole);
+      if (!validatedRole.success) {
+        toast.error("Invalid role selected");
+        return;
+      }
 
       try {
         await updateMember.mutateAsync({
           membershipId: member.id,
-          role: newRole,
+          role: validatedRole.data,
         });
 
         setRole(newRole);
