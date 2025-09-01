@@ -14,7 +14,7 @@ message DeploymentRequest {
     uint64 memory_size_mib = 5;
 }
 
-message CreateaDeploymentRequest {
+message CreateDeploymentRequest {
     DeploymentRequest deployment = 1;
 }
 
