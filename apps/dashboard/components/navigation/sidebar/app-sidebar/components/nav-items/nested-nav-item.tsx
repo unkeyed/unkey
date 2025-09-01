@@ -1,3 +1,4 @@
+"use client";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -21,9 +22,11 @@ import { getButtonStyles } from "./utils";
 export const NestedNavItem = ({
   item,
   onLoadMore,
+  onToggleCollapse,
   depth = 0,
   maxDepth = 1,
   isSubItem = false,
+  forceCollapsed = false,
 }: NavProps & {
   depth?: number;
   maxDepth?: number;
@@ -34,67 +37,120 @@ export const NestedNavItem = ({
   const showParentLoader = useDelayLoader(parentIsPending);
   const router = useRouter();
   const pathname = usePathname();
+
   const [subPending, setSubPending] = useState<Record<string, boolean>>({});
   const [isOpen, setIsOpen] = useState(false);
   const [isChildrenOpen, setIsChildrenOpen] = useState(false);
+  const [userManuallyCollapsed, setUserManuallyCollapsed] = useState(false);
+  const [childrenUserManuallyCollapsed, setChildrenUserManuallyCollapsed] = useState(false);
 
   const Icon = item.icon;
   const hasChildren = item.items && item.items.length > 0;
+
+  // Force collapse when forceCollapsed prop changes
+  useLayoutEffect(() => {
+    if (forceCollapsed && isOpen) {
+      setIsOpen(false);
+      setUserManuallyCollapsed(true);
+    }
+  }, [forceCollapsed, isOpen]);
 
   useLayoutEffect(() => {
     if (!hasChildren || !pathname) {
       return;
     }
-
     const hasMatchingChild = item.items?.some(
       (subItem) =>
         subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
     );
-
-    setIsChildrenOpen(!!hasMatchingChild);
-
+    // Only auto-open children if user hasn't manually collapsed them
+    if (!childrenUserManuallyCollapsed) {
+      setIsChildrenOpen(!!hasMatchingChild);
+    }
     if (typeof item.label === "string") {
       const itemPath = `/${slugify(item.label, {
         lower: true,
         replacement: "-",
       })}`;
-
-      if (pathname.startsWith(itemPath)) {
+      // Only auto-open parent if user hasn't manually collapsed it AND not force collapsed
+      if (pathname.startsWith(itemPath) && !userManuallyCollapsed && !forceCollapsed) {
         setIsOpen(true);
       }
     }
-  }, [pathname, item.items, item.label, hasChildren]);
+  }, [
+    pathname,
+    item.items,
+    item.label,
+    hasChildren,
+    userManuallyCollapsed,
+    childrenUserManuallyCollapsed,
+    forceCollapsed,
+  ]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
     // If the item has children, toggle the open state
     if (sidebar.open && hasChildren && !isSubItem) {
       e.preventDefault();
-      setIsOpen((prev) => !prev);
+      const newOpenState = !isOpen;
+
+      setIsOpen(newOpenState);
+      // Track user preference - if they're closing it, mark as manually collapsed
+      setUserManuallyCollapsed(!newOpenState);
+      // Call the toggle collapse callback
+      if (onToggleCollapse) {
+        onToggleCollapse(item, newOpenState);
+      }
+      // If we're closing, don't navigate
       if (isOpen) {
         return;
       }
     }
 
-    // If the item has a href, navigate to it
     if (item.href) {
-      if (item.external) {
-        // For external links, open in new tab
-        window.open(item.href, "_blank");
-      } else {
-        // Show loading state ONLY for parent
-        startParentTransition(() => {
-          router.push(item.href);
-        });
+      startParentTransition(() => {
+        item.external ? window.open(item.href, "_blank") : router.push(item.href);
+      });
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (isSubItem) {
+      setIsChildrenOpen(open);
+      // Track user preference for children
+      setChildrenUserManuallyCollapsed(!open);
+    } else {
+      setIsOpen(open);
+      // Track user preference for parent
+      setUserManuallyCollapsed(!open);
+      // Call the toggle collapse callback when state changes
+      if (onToggleCollapse) {
+        onToggleCollapse(item, open);
       }
     }
   };
+
+  // Reset user preferences when pathname changes to a different section
+  // This allows auto-opening to work again when navigating to different areas
+  useLayoutEffect(() => {
+    if (!pathname || typeof item.label !== "string") {
+      return;
+    }
+    const itemPath = `/${slugify(item.label, {
+      lower: true,
+      replacement: "-",
+    })}`;
+    // If we've navigated away from this section entirely, reset user preferences
+    if (!pathname.startsWith(itemPath)) {
+      setUserManuallyCollapsed(false);
+      setChildrenUserManuallyCollapsed(false);
+    }
+  }, [pathname, item.label]);
 
   // Render a sub-item, potentially recursively if it has children
   const renderSubItem = (subItem: NavItem, index: number) => {
     const SubIcon = subItem.icon;
     const isLoadMoreButton = subItem.loadMoreAction === true;
     const hasChildren = subItem.items && subItem.items.length > 0;
-
     // If this subitem has children and is not at max depth, render it as another NestedNavItem
     if (hasChildren && depth < maxDepth) {
       return (
@@ -102,27 +158,26 @@ export const NestedNavItem = ({
           <NestedNavItem
             item={subItem}
             onLoadMore={onLoadMore}
+            onToggleCollapse={onToggleCollapse}
             depth={depth + 1}
             maxDepth={maxDepth}
             isSubItem={true}
+            forceCollapsed={forceCollapsed}
           />
         </SidebarMenuSubItem>
       );
     }
-
     // Otherwise render as a regular sub-item
     const handleSubItemClick = () => {
       if (isLoadMoreButton && onLoadMore) {
         onLoadMore(subItem);
         return;
       }
-
       if (!subItem.external && subItem.href) {
         // Track loading state for this specific sub-item
         const updatedPending = { ...subPending };
         updatedPending[subItem.label as string] = true;
         setSubPending(updatedPending);
-
         // Use a separate transition for sub-items
         // This prevents parent from showing loader
         const subItemTransition = () => {
@@ -134,12 +189,10 @@ export const NestedNavItem = ({
             setSubPending(resetPending);
           }, 300);
         };
-
         // Execute transition without affecting parent's isPending state
         subItemTransition();
       }
     };
-
     return (
       <SidebarMenuSubItem key={subItem.label?.toString() ?? index}>
         <NavLink
@@ -171,7 +224,7 @@ export const NestedNavItem = ({
     <Collapsible
       asChild
       open={isSubItem ? isChildrenOpen : isOpen}
-      onOpenChange={isSubItem ? setIsChildrenOpen : setIsOpen}
+      onOpenChange={handleOpenChange}
       className="group/collapsible"
     >
       <SidebarMenuItem>
@@ -195,7 +248,7 @@ export const NestedNavItem = ({
               <CaretRight
                 className={cn(
                   "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
-                  isOpen ? "rotate-90" : "rotate-0",
+                  (isSubItem ? isChildrenOpen : isOpen) ? "rotate-90" : "rotate-0",
                 )}
                 size="sm-bold"
               />
