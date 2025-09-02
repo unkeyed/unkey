@@ -7,4 +7,4 @@ ON DUPLICATE KEY UPDATE
   cpu_millicores = VALUES(cpu_millicores),
   memory_mb = VALUES(memory_mb),
   status = VALUES(status)
-  ;
+;

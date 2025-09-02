@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
+	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel"
@@ -171,7 +171,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	httpClient.Timeout = 30 * time.Second
 
-	metaldClient := vmprovisionerv1connect.NewVmServiceClient(
+	metaldClient := metaldv1connect.NewVmServiceClient(
 		httpClient,
 		cfg.MetaldAddress,
 		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
