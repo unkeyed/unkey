@@ -185,7 +185,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				instances[instance.Id] = instance
 				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
 					allReady = false
-					w.logger.Error("VM is not ready", "vm_id", instance.Id, "state", instance.State)
+					w.logger.Debug("VM not ready", "vm_id", instance.Id, "state", instance.State)
 				}
 			}
 
