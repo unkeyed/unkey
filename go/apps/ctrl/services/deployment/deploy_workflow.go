@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -25,6 +23,7 @@ import (
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
 type DeployWorkflow struct {
 	db           db.Database
+	partitionDB  db.Database
 	logger       logging.Logger
 	metaldClient metaldv1connect.VmServiceClient
 }
@@ -35,6 +34,7 @@ func NewDeployWorkflow(database db.Database, partitionDB db.Database,
 ) *DeployWorkflow {
 	return &DeployWorkflow{
 		db:           database,
+		partitionDB:  partitionDB,
 		logger:       logger,
 		metaldClient: metaldClient,
 	}
@@ -84,27 +84,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	})
 	if err != nil {
 		w.logger.Error("failed to log deployment pending", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 3: Insert build into database
-	err = hydra.StepVoid(ctx, "insert-build", func(stepCtx context.Context) error {
-		w.logger.Info("inserting build into database", "build_id", buildID)
-		insertErr := db.Query.InsertBuild(stepCtx, w.db.RW(), db.InsertBuildParams{
-			ID:           buildID,
-			WorkspaceID:  req.WorkspaceID,
-			ProjectID:    req.ProjectID,
-			DeploymentID: req.DeploymentID,
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-		if insertErr != nil {
-			return fmt.Errorf("failed to create build record: %w", insertErr)
-		}
-		w.logger.Info("build record created successfully", "build_id", buildID)
-		return nil
-	})
-	if err != nil {
-		w.logger.Error("failed to insert build", "error", err, "build_id", buildID)
 		return err
 	}
 

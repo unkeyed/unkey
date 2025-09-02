@@ -137,63 +137,59 @@ func (c *Client) copyMetadataFilesForAssets(ctx context.Context, vmID string, co
 	// When using asset manager, only rootfs files are copied, but we need metadata files too
 	// This function finds the original metadata files and copies them to the jailer root
 
-	for _, disk := range config.GetStorage() {
-		if !disk.GetIsRootDevice() || disk.GetPath() == "" {
-			continue
+	disk := config.GetStorage()
+	if !disk.GetIsRootDevice() || disk.GetPath() == "" {
+	}
+
+	// Find the original rootfs path before asset preparation
+	originalRootfsPath := disk.GetPath()
+
+	// Check if this disk was replaced by an asset
+	var preparedRootfsPath string
+	for _, path := range preparedPaths {
+		if strings.HasSuffix(path, ".ext4") || strings.HasSuffix(path, ".img") {
+			preparedRootfsPath = path
+			break
 		}
+	}
 
-		// Find the original rootfs path before asset preparation
-		originalRootfsPath := disk.GetPath()
+	if preparedRootfsPath == "" {
+		// No rootfs asset found, skip metadata copying
+	}
 
-		// Check if this disk was replaced by an asset
-		var preparedRootfsPath string
-		for _, path := range preparedPaths {
-			if strings.HasSuffix(path, ".ext4") || strings.HasSuffix(path, ".img") {
-				preparedRootfsPath = path
-				break
-			}
-		}
+	// Look for metadata file alongside the original rootfs
+	originalDir := filepath.Dir(originalRootfsPath)
+	originalBaseName := strings.TrimSuffix(filepath.Base(originalRootfsPath), filepath.Ext(originalRootfsPath))
+	metadataSrcPath := filepath.Join(originalDir, originalBaseName+".metadata.json")
 
-		if preparedRootfsPath == "" {
-			// No rootfs asset found, skip metadata copying
-			continue
-		}
+	// Check if metadata file exists
+	if _, err := os.Stat(metadataSrcPath); os.IsNotExist(err) {
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found for asset",
+			slog.String("vm_id", vmID),
+			slog.String("original_rootfs", originalRootfsPath),
+			slog.String("expected_metadata", metadataSrcPath),
+		)
+	}
 
-		// Look for metadata file alongside the original rootfs
-		originalDir := filepath.Dir(originalRootfsPath)
-		originalBaseName := strings.TrimSuffix(filepath.Base(originalRootfsPath), filepath.Ext(originalRootfsPath))
-		metadataSrcPath := filepath.Join(originalDir, originalBaseName+".metadata.json")
+	// Copy metadata file to jailer root with the same base name as the prepared rootfs
+	preparedBaseName := strings.TrimSuffix(filepath.Base(preparedRootfsPath), filepath.Ext(preparedRootfsPath))
+	metadataDstPath := filepath.Join(jailerRoot, preparedBaseName+".metadata.json")
 
-		// Check if metadata file exists
-		if _, err := os.Stat(metadataSrcPath); os.IsNotExist(err) {
-			c.logger.LogAttrs(ctx, slog.LevelDebug, "no metadata file found for asset",
-				slog.String("vm_id", vmID),
-				slog.String("original_rootfs", originalRootfsPath),
-				slog.String("expected_metadata", metadataSrcPath),
-			)
-			continue
-		}
-
-		// Copy metadata file to jailer root with the same base name as the prepared rootfs
-		preparedBaseName := strings.TrimSuffix(filepath.Base(preparedRootfsPath), filepath.Ext(preparedRootfsPath))
-		metadataDstPath := filepath.Join(jailerRoot, preparedBaseName+".metadata.json")
-
-		if err := copyFileWithOwnership(metadataSrcPath, metadataDstPath, int(c.jailerConfig.UID), int(c.jailerConfig.GID)); err != nil {
-			c.logger.WarnContext(ctx, "failed to copy metadata file",
-				slog.String("vm_id", vmID),
-				slog.String("src", metadataSrcPath),
-				slog.String("dst", metadataDstPath),
-				slog.String("error", err.Error()),
-			)
-			return fmt.Errorf("failed to copy metadata file %s: %w", metadataSrcPath, err)
-		}
-
-		c.logger.InfoContext(ctx, "copied metadata file for asset",
+	if err := copyFileWithOwnership(metadataSrcPath, metadataDstPath, int(c.jailerConfig.UID), int(c.jailerConfig.GID)); err != nil {
+		c.logger.WarnContext(ctx, "failed to copy metadata file",
 			slog.String("vm_id", vmID),
 			slog.String("src", metadataSrcPath),
 			slog.String("dst", metadataDstPath),
+			slog.String("error", err.Error()),
 		)
+		return fmt.Errorf("failed to copy metadata file %s: %w", metadataSrcPath, err)
 	}
+
+	c.logger.InfoContext(ctx, "copied metadata file for asset",
+		slog.String("vm_id", vmID),
+		slog.String("src", metadataSrcPath),
+		slog.String("dst", metadataDstPath),
+	)
 
 	return nil
 }

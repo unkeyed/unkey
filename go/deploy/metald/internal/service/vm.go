@@ -44,6 +44,13 @@ func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *
 	}
 }
 
+// CreateDeployment allocates a network, generates IDs etc
+func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[metaldv1.CreateDeploymentRequest]) (*connect.Response[metaldv1.CreateDeploymentResponse], error) {
+	return connect.NewResponse(&metaldv1.CreateDeploymentResponse{
+		VmIds: []string{"a"},
+	}), nil
+}
+
 // CreateVm creates a new VM instance
 func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.CreateVmRequest]) (*connect.Response[metaldv1.CreateVmResponse], error) {
 	ctx, span := s.tracer.Start(ctx, "metald.vm.create",
@@ -105,9 +112,12 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 		slog.String("network_cidr", network.BaseNetwork),
 	)
 
-	// ip, ipErr := s.queries.AllocateIP(ctx, &database.AllocateIPParams{
-	// 	VmID: string,
-	// })
+	ip, ipErr := s.queries.AllocateIP(ctx, database.AllocateIPParams{
+		VmID: req.Msg.GetVmId(),
+	})
+	if ipErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to allocate IP for vm: %w", ipErr))
+	}
 
 	// Create VM using backend (config is already in unified format)
 	start := time.Now()
@@ -143,8 +153,11 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	}
 
 	return connect.NewResponse(&metaldv1.CreateVmResponse{
-		HostPortPair: "0.0.0.0:9999",
-		State:        metaldv1.VmState_VM_STATE_CREATED,
+		Endpoint: &metaldv1.Endpoint{
+			Host: ip.IpAddr,
+			Port: 35428,
+		},
+		State: metaldv1.VmState_VM_STATE_CREATED,
 	}), nil
 }
 
@@ -276,8 +289,7 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 	}
 
 	return connect.NewResponse(&metaldv1.BootVmResponse{
-		Success: true,
-		State:   metaldv1.VmState_VM_STATE_RUNNING,
+		State: metaldv1.VmState_VM_STATE_RUNNING,
 	}), nil
 }
 
@@ -342,8 +354,7 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 	}
 
 	return connect.NewResponse(&metaldv1.ShutdownVmResponse{
-		Success: true,
-		State:   metaldv1.VmState_VM_STATE_SHUTDOWN,
+		State: metaldv1.VmState_VM_STATE_SHUTDOWN,
 	}), nil
 }
 
@@ -374,8 +385,7 @@ func (s *VMService) PauseVm(ctx context.Context, req *connect.Request[metaldv1.P
 	)
 
 	return connect.NewResponse(&metaldv1.PauseVmResponse{
-		Success: true,
-		State:   metaldv1.VmState_VM_STATE_PAUSED,
+		State: metaldv1.VmState_VM_STATE_PAUSED,
 	}), nil
 }
 
@@ -406,8 +416,7 @@ func (s *VMService) ResumeVm(ctx context.Context, req *connect.Request[metaldv1.
 	)
 
 	return connect.NewResponse(&metaldv1.ResumeVmResponse{
-		Success: true,
-		State:   metaldv1.VmState_VM_STATE_RUNNING,
+		State: metaldv1.VmState_VM_STATE_RUNNING,
 	}), nil
 }
 
@@ -438,8 +447,7 @@ func (s *VMService) RebootVm(ctx context.Context, req *connect.Request[metaldv1.
 	)
 
 	return connect.NewResponse(&metaldv1.RebootVmResponse{
-		Success: true,
-		State:   metaldv1.VmState_VM_STATE_RUNNING,
+		State: metaldv1.VmState_VM_STATE_RUNNING,
 	}), nil
 }
 

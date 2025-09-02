@@ -20,10 +20,10 @@ enum VmState {
 // Unified VM configuration that works across different hypervisors
 message VmConfig {
   // CPU configuration
-  int32 cpu = 1;
+  uint32 vcpu_count = 1;
 
   // Memory configuration
-  int64 memory = 2;
+  uint64 memory_size_mib = 2;
 
   // Boot configuration
   string boot = 3;
@@ -34,11 +34,14 @@ message VmConfig {
   // Console configuration
   ConsoleConfig console = 5;
 
-  // Metadata and labels
-  map<string, string> metadata = 6;
+  // Storage configuration
+  StorageDevice storage = 6;
 
   // VM Identifier
   string id = 7;
+
+  // Metadata and labels
+  map<string, string> metadata = 8;
 }
 
 message ListVmsRequest {
@@ -53,7 +56,7 @@ message ListVmsRequest {
 message ListVmsResponse {
   repeated VmInfo vms = 1;
   string next_page_token = 2;
-  int64 total_count = 3;
+  uint64 total_count = 3;
 }
 
 // Request/Response messages
@@ -65,7 +68,11 @@ message CreateVmRequest {
   VmConfig config = 2;
 }
 
-message Endpoint { string host = 1; uint32 port = 2;}
+message Endpoint {
+    string host = 1;
+    uint32 port = 2;
+}
+
 message CreateVmResponse {
   // Current VM state after creation
   VmState state = 1;

@@ -17,16 +17,16 @@ import (
 func (c *Client) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
 	ctx, span := c.tracer.Start(ctx, "metald.firecracker.create_vm",
 		trace.WithAttributes(
-			attribute.Int("vcpus", int(config.GetCpu())),
-			attribute.Int64("memory_bytes", config.GetMemory()),
+			attribute.Int("vcpus", int(config.GetVcpuCount())),
+			attribute.Int64("memory_bytes", int64(config.GetMemorySizeMib())),
 		),
 	)
 	defer span.End()
 
 	c.logger.LogAttrs(ctx, slog.LevelInfo, "creating VM",
 		slog.String("vm_id", config.GetId()),
-		slog.Int("vcpus", int(config.GetCpu())),
-		slog.Int64("memory_bytes", config.GetMemory()),
+		slog.Int("vcpus", int(config.GetVcpuCount())),
+		slog.Int64("memory_bytes", int64(config.GetMemorySizeMib())),
 	)
 
 	// Create VM directory

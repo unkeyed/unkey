@@ -121,7 +121,7 @@ func (c *Client) buildSDKConfig(
 			KernelImagePath: kernelPath,
 			KernelArgs:      kernelArgs,
 			MachineCfg: models.MachineConfiguration{
-				VcpuCount:  sdk.Int64(int64(config.GetCpu())),
+				VcpuCount:  sdk.Int64(int64(config.GetVcpuCount())),
 				MemSizeMib: sdk.Int64(536870912),
 				Smt:        sdk.Bool(false),
 			},
@@ -138,7 +138,7 @@ func (c *Client) buildSDKConfig(
 			KernelImagePath: kernelPath,
 			KernelArgs:      kernelArgs,
 			MachineCfg: models.MachineConfiguration{
-				VcpuCount:  sdk.Int64(int64(config.GetCpu())),
+				VcpuCount:  sdk.Int64(int64(config.GetVcpuCount())),
 				MemSizeMib: sdk.Int64(536870912),
 				Smt:        sdk.Bool(false),
 			},

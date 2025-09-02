@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/assetmanager"
-	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/docker"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/firecracker"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/billing"
@@ -229,19 +228,19 @@ func main() {
 
 		backend = sdkClient
 	case types.BackendTypeDocker:
-		// AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
-		logger.Info("initializing Docker backend for development")
+		// // AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
+		// logger.Info("initializing Docker backend for development")
 
-		dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
-		if err != nil {
-			logger.Error("failed to create Docker backend",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
+		// dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
+		// if err != nil {
+		// 	logger.Error("failed to create Docker backend",
+		// 		slog.String("error", err.Error()),
+		// 	)
+		// 	os.Exit(1)
+		// }
 
-		backend = dockerClient
-		logger.Info("Docker backend initialized successfully")
+		// backend = dockerClient
+		// logger.Info("Docker backend initialized successfully")
 	default:
 		logger.Error("unsupported backend type",
 			slog.String("backend", string(cfg.Backend.Type)),

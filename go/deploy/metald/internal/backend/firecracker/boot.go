@@ -101,31 +101,29 @@ func (c *Client) BootVM(ctx context.Context, vmID string) error {
 func (c *Client) prepareVMBootMetadata(ctx context.Context, vmID string, vm *VM) (*builderv1.ImageMetadata, error) {
 	var metadata *builderv1.ImageMetadata
 
-	for _, disk := range vm.Config.GetStorage() {
-		if disk.GetIsRootDevice() {
-			// Use chroot path for metadata loading since assets are copied there
-			jailerRoot := filepath.Join(c.jailerConfig.ChrootBaseDir, "firecracker", vmID, "root")
-			chrootRootfsPath := filepath.Join(jailerRoot, "rootfs.ext4")
+	disk := vm.Config.GetStorage()
+	if disk.GetIsRootDevice() {
+		// Use chroot path for metadata loading since assets are copied there
+		jailerRoot := filepath.Join(c.jailerConfig.ChrootBaseDir, "firecracker", vmID, "root")
+		chrootRootfsPath := filepath.Join(jailerRoot, "rootfs.ext4")
 
-			m, metadataErr := c.loadContainerMetadata(ctx, chrootRootfsPath)
-			if metadataErr != nil {
-				return nil, fmt.Errorf("failed to load container metadata: %w", metadataErr)
+		m, metadataErr := c.loadContainerMetadata(ctx, chrootRootfsPath)
+		if metadataErr != nil {
+			return nil, fmt.Errorf("failed to load container metadata: %w", metadataErr)
+		}
+
+		if m != nil {
+			metadata = m
+
+			// Create /container.cmd file for metald-init
+			if cmdFileErr := c.createContainerCmdFile(ctx, vmID, metadata); cmdFileErr != nil {
+				return nil, fmt.Errorf("failed to create container.cmd file: %w", cmdFileErr)
 			}
 
-			if m != nil {
-				metadata = m
-
-				// Create /container.cmd file for metald-init
-				if cmdFileErr := c.createContainerCmdFile(ctx, vmID, metadata); cmdFileErr != nil {
-					return nil, fmt.Errorf("failed to create container.cmd file: %w", cmdFileErr)
-				}
-
-				c.logger.LogAttrs(ctx, slog.LevelInfo, "loaded metadata for VM boot",
-					slog.String("vm_id", vmID),
-					slog.String("metadata", metadata.String()),
-				)
-				break
-			}
+			c.logger.LogAttrs(ctx, slog.LevelInfo, "loaded metadata for VM boot",
+				slog.String("vm_id", vmID),
+				slog.String("metadata", metadata.String()),
+			)
 		}
 	}
 
