@@ -30,6 +30,9 @@ export default async function Page(props: Props) {
     .parse(props.searchParams.limit ?? DEFAULT_LIMIT.toString());
 
   const { orgId } = await getAuthOrRedirect();
+  if (!orgId) {
+    redirect("/new");
+  }
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.orgId, orgId),
   });
