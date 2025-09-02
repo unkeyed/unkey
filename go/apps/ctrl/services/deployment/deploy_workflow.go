@@ -114,7 +114,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			Deployment: &metaldv1.DeploymentRequest{
 				DeploymentId:  req.DeploymentID,
 				Image:         req.DockerImage,
-				InstanceCount: 1,
+				VmCount:       1,
 				Cpu:           1,
 				MemorySizeMib: 1024,
 			},
@@ -152,9 +152,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	createdVMs, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*metaldv1.GetDeploymentResponse_Instance, error) {
+	createdVMs, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*metaldv1.GetDeploymentResponse_Vm, error) {
 
-		instances := make(map[string]*metaldv1.GetDeploymentResponse_Instance)
+		instances := make(map[string]*metaldv1.GetDeploymentResponse_Vm)
 
 		for i := range 300 {
 			time.Sleep(time.Second)
@@ -170,7 +170,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			allReady := true
-			for _, instance := range resp.Msg.Instances {
+			for _, instance := range resp.Msg.GetVms() {
 				known, ok := instances[instance.Id]
 				if !ok || known.State != instance.State {
 					partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), partitiondb.UpsertVMParams{
@@ -183,14 +183,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					})
 				}
 				instances[instance.Id] = instance
-				if instance.State != "running" {
+				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
 					allReady = false
 					w.logger.Error("VM is not ready", "vm_id", instance.Id, "state", instance.State)
 				}
 			}
 
 			if allReady {
-				return resp.Msg.GetInstances(), nil
+				return resp.Msg.GetVms(), nil
 			}
 
 		}
