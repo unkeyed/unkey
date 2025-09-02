@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/partition/v1/gateway.proto
+// source: partition/v1/gateway.proto
 
 package partitionv1
 
@@ -38,7 +38,7 @@ type GatewayConfig struct {
 
 func (x *GatewayConfig) Reset() {
 	*x = GatewayConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[0]
+	mi := &file_partition_v1_gateway_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *GatewayConfig) String() string {
 func (*GatewayConfig) ProtoMessage() {}
 
 func (x *GatewayConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[0]
+	mi := &file_partition_v1_gateway_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *GatewayConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GatewayConfig.ProtoReflect.Descriptor instead.
 func (*GatewayConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{0}
+	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GatewayConfig) GetProject() *Project {
@@ -111,7 +111,7 @@ type Deployment struct {
 
 func (x *Deployment) Reset() {
 	*x = Deployment{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[1]
+	mi := &file_partition_v1_gateway_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +123,7 @@ func (x *Deployment) String() string {
 func (*Deployment) ProtoMessage() {}
 
 func (x *Deployment) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[1]
+	mi := &file_partition_v1_gateway_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +136,7 @@ func (x *Deployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Deployment.ProtoReflect.Descriptor instead.
 func (*Deployment) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{1}
+	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Deployment) GetId() string {
@@ -163,7 +163,7 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[2]
+	mi := &file_partition_v1_gateway_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[2]
+	mi := &file_partition_v1_gateway_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *Project) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Project.ProtoReflect.Descriptor instead.
 func (*Project) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{2}
+	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Project) GetId() string {
@@ -214,7 +214,7 @@ type VM struct {
 
 func (x *VM) Reset() {
 	*x = VM{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
+	mi := &file_partition_v1_gateway_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -226,7 +226,7 @@ func (x *VM) String() string {
 func (*VM) ProtoMessage() {}
 
 func (x *VM) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[3]
+	mi := &file_partition_v1_gateway_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -239,7 +239,7 @@ func (x *VM) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VM.ProtoReflect.Descriptor instead.
 func (*VM) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
+	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *VM) GetId() string {
@@ -259,7 +259,7 @@ type AuthConfig struct {
 
 func (x *AuthConfig) Reset() {
 	*x = AuthConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[4]
+	mi := &file_partition_v1_gateway_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -271,7 +271,7 @@ func (x *AuthConfig) String() string {
 func (*AuthConfig) ProtoMessage() {}
 
 func (x *AuthConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[4]
+	mi := &file_partition_v1_gateway_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -284,7 +284,7 @@ func (x *AuthConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthConfig.ProtoReflect.Descriptor instead.
 func (*AuthConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{4}
+	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AuthConfig) GetKeyAuthId() string {
@@ -304,7 +304,7 @@ type ValidationConfig struct {
 
 func (x *ValidationConfig) Reset() {
 	*x = ValidationConfig{}
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[5]
+	mi := &file_partition_v1_gateway_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -316,7 +316,7 @@ func (x *ValidationConfig) String() string {
 func (*ValidationConfig) ProtoMessage() {}
 
 func (x *ValidationConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_partition_v1_gateway_proto_msgTypes[5]
+	mi := &file_partition_v1_gateway_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -329,7 +329,7 @@ func (x *ValidationConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidationConfig.ProtoReflect.Descriptor instead.
 func (*ValidationConfig) Descriptor() ([]byte, []int) {
-	return file_proto_partition_v1_gateway_proto_rawDescGZIP(), []int{5}
+	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ValidationConfig) GetOpenapiSpec() string {
@@ -339,11 +339,11 @@ func (x *ValidationConfig) GetOpenapiSpec() string {
 	return ""
 }
 
-var File_proto_partition_v1_gateway_proto protoreflect.FileDescriptor
+var File_partition_v1_gateway_proto protoreflect.FileDescriptor
 
-const file_proto_partition_v1_gateway_proto_rawDesc = "" +
+const file_partition_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	" proto/partition/v1/gateway.proto\x12\fpartition.v1\"\xd6\x02\n" +
+	"\x1apartition/v1/gateway.proto\x12\fpartition.v1\"\xd6\x02\n" +
 	"\rGatewayConfig\x12/\n" +
 	"\aproject\x18\x01 \x01(\v2\x15.partition.v1.ProjectR\aproject\x128\n" +
 	"\n" +
@@ -373,19 +373,19 @@ const file_proto_partition_v1_gateway_proto_rawDesc = "" +
 	"\fopenapi_spec\x18\x01 \x01(\tR\vopenapiSpecB@Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1b\x06proto3"
 
 var (
-	file_proto_partition_v1_gateway_proto_rawDescOnce sync.Once
-	file_proto_partition_v1_gateway_proto_rawDescData []byte
+	file_partition_v1_gateway_proto_rawDescOnce sync.Once
+	file_partition_v1_gateway_proto_rawDescData []byte
 )
 
-func file_proto_partition_v1_gateway_proto_rawDescGZIP() []byte {
-	file_proto_partition_v1_gateway_proto_rawDescOnce.Do(func() {
-		file_proto_partition_v1_gateway_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_partition_v1_gateway_proto_rawDesc), len(file_proto_partition_v1_gateway_proto_rawDesc)))
+func file_partition_v1_gateway_proto_rawDescGZIP() []byte {
+	file_partition_v1_gateway_proto_rawDescOnce.Do(func() {
+		file_partition_v1_gateway_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_partition_v1_gateway_proto_rawDesc), len(file_partition_v1_gateway_proto_rawDesc)))
 	})
-	return file_proto_partition_v1_gateway_proto_rawDescData
+	return file_partition_v1_gateway_proto_rawDescData
 }
 
-var file_proto_partition_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_proto_partition_v1_gateway_proto_goTypes = []any{
+var file_partition_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_partition_v1_gateway_proto_goTypes = []any{
 	(*GatewayConfig)(nil),    // 0: partition.v1.GatewayConfig
 	(*Deployment)(nil),       // 1: partition.v1.Deployment
 	(*Project)(nil),          // 2: partition.v1.Project
@@ -393,7 +393,7 @@ var file_proto_partition_v1_gateway_proto_goTypes = []any{
 	(*AuthConfig)(nil),       // 4: partition.v1.AuthConfig
 	(*ValidationConfig)(nil), // 5: partition.v1.ValidationConfig
 }
-var file_proto_partition_v1_gateway_proto_depIdxs = []int32{
+var file_partition_v1_gateway_proto_depIdxs = []int32{
 	2, // 0: partition.v1.GatewayConfig.project:type_name -> partition.v1.Project
 	1, // 1: partition.v1.GatewayConfig.deployment:type_name -> partition.v1.Deployment
 	3, // 2: partition.v1.GatewayConfig.vms:type_name -> partition.v1.VM
@@ -406,27 +406,27 @@ var file_proto_partition_v1_gateway_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_proto_partition_v1_gateway_proto_init() }
-func file_proto_partition_v1_gateway_proto_init() {
-	if File_proto_partition_v1_gateway_proto != nil {
+func init() { file_partition_v1_gateway_proto_init() }
+func file_partition_v1_gateway_proto_init() {
+	if File_partition_v1_gateway_proto != nil {
 		return
 	}
-	file_proto_partition_v1_gateway_proto_msgTypes[0].OneofWrappers = []any{}
+	file_partition_v1_gateway_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_partition_v1_gateway_proto_rawDesc), len(file_proto_partition_v1_gateway_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_partition_v1_gateway_proto_rawDesc), len(file_partition_v1_gateway_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_partition_v1_gateway_proto_goTypes,
-		DependencyIndexes: file_proto_partition_v1_gateway_proto_depIdxs,
-		MessageInfos:      file_proto_partition_v1_gateway_proto_msgTypes,
+		GoTypes:           file_partition_v1_gateway_proto_goTypes,
+		DependencyIndexes: file_partition_v1_gateway_proto_depIdxs,
+		MessageInfos:      file_partition_v1_gateway_proto_msgTypes,
 	}.Build()
-	File_proto_partition_v1_gateway_proto = out.File
-	file_proto_partition_v1_gateway_proto_goTypes = nil
-	file_proto_partition_v1_gateway_proto_depIdxs = nil
+	File_partition_v1_gateway_proto = out.File
+	file_partition_v1_gateway_proto_goTypes = nil
+	file_partition_v1_gateway_proto_depIdxs = nil
 }

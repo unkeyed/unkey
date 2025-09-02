@@ -1,0 +1,232 @@
+syntax = "proto3";
+
+package metald.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
+
+import "google/protobuf/timestamp.proto";
+import "metald/v1/network.proto";
+import "metald/v1/storage.proto";
+
+// VM lifecycle states
+enum VmState {
+  VM_STATE_UNSPECIFIED = 0;
+  VM_STATE_CREATED = 1;
+  VM_STATE_RUNNING = 2;
+  VM_STATE_PAUSED = 3;
+  VM_STATE_SHUTDOWN = 4;
+}
+
+// Unified VM configuration that works across different hypervisors
+message VmConfig {
+  // CPU configuration
+  int32 cpu = 1;
+
+  // Memory configuration
+  int64 memory = 2;
+
+  // Boot configuration
+  string boot = 3;
+
+  // Network configuration
+  string network_config = 4;
+
+  // Console configuration
+  ConsoleConfig console = 5;
+
+  // Metadata and labels
+  map<string, string> metadata = 6;
+
+  // VM Identifier
+  string id = 7;
+}
+
+message ListVmsRequest {
+  // Optional filter by state
+  repeated VmState state_filter = 1;
+
+  // Pagination
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListVmsResponse {
+  repeated VmInfo vms = 1;
+  string next_page_token = 2;
+  int64 total_count = 3;
+}
+
+// Request/Response messages
+message CreateVmRequest {
+  // Generated unique identifier for the VM
+  string vm_id = 1;
+
+  // VM configuration
+  VmConfig config = 2;
+}
+
+message Endpoint { string host = 1; uint32 port = 2;}
+message CreateVmResponse {
+  // Current VM state after creation
+  VmState state = 1;
+
+  // Endpoint is the host:port pair
+  Endpoint endpoint = 2;
+}
+
+message DeleteVmRequest {
+  string vm_id = 1;
+
+  // Whether to force deletion even if VM is running
+  bool force = 2;
+}
+
+message DeleteVmResponse { bool success = 1; }
+
+message BootVmRequest { string vm_id = 1; }
+
+message BootVmResponse {
+  VmState state = 2;
+}
+
+message ShutdownVmRequest {
+  string vm_id = 1;
+
+  // Whether to force shutdown (vs graceful)
+  bool force = 2;
+
+  // Timeout for graceful shutdown (seconds)
+  int32 timeout_seconds = 3;
+}
+
+message ShutdownVmResponse {
+  VmState state = 2;
+}
+
+message PauseVmRequest { string vm_id = 1; }
+
+message PauseVmResponse {
+  VmState state = 2;
+}
+
+message ResumeVmRequest { string vm_id = 1; }
+
+message ResumeVmResponse {
+  VmState state = 2;
+}
+
+message RebootVmRequest {
+  string vm_id = 1;
+
+  // Whether to force reboot (vs graceful)
+  bool force = 2;
+}
+
+message RebootVmResponse {
+  VmState state = 2;
+}
+
+message GetVmInfoRequest { string vm_id = 1; }
+
+message GetVmInfoResponse {
+  string vm_id = 1;
+  VmConfig config = 2;
+  VmState state = 3;
+  VmMetrics metrics = 4;
+
+  // Backend-specific information
+  map<string, string> backend_info = 5;
+}
+
+message VmMetrics {
+  // CPU usage percentage (0-100)
+  double cpu_usage_percent = 1;
+
+  // Memory usage in MiB
+  uint64 memory_usage_mib = 2;
+
+  // Network I/O statistics
+  NetworkStats network_stats = 3;
+
+  // Storage I/O statistics
+  StorageStats storage_stats = 4;
+
+  // VM uptime in seconds
+  int64 uptime_seconds = 5;
+}
+
+message VmInfo {
+  string vm_id = 1;
+  VmState state = 2;
+
+  // Basic config info (subset of full config)
+  int32 vcpu_count = 3;
+  uint64 memory_size_mib = 4;
+
+  // Creation and modification timestamps
+  google.protobuf.Timestamp created_timestamp = 5;
+  google.protobuf.Timestamp modified_timestamp = 6;
+
+  // Metadata
+  map<string, string> metadata = 7;
+
+  // deployment_id vm is attached to
+  string deployment_id = 8;
+}
+
+message CpuConfig {
+  // Number of virtual CPUs to allocate at boot
+  int32 vcpu_count = 1;
+
+  // Maximum number of virtual CPUs (for hotplug)
+  int32 max_vcpu_count = 2;
+
+  // CPU topology (optional)
+  CpuTopology topology = 3;
+
+  // CPU features and model (backend-specific)
+  map<string, string> features = 4;
+}
+
+message CpuTopology {
+  int32 sockets = 1;
+  int32 cores_per_socket = 2;
+  int32 threads_per_core = 3;
+}
+
+message MemoryConfig {
+  // Memory size in MiB
+  int64 memory_size_mib = 1;
+
+  // Memory backing options (hugepages, etc.)
+  map<string, string> backing = 2;
+}
+
+message BootConfig {
+  // Path to kernel image
+  string kernel_path = 1;
+
+  // Path to initial ramdisk (optional)
+  string initrd_path = 2;
+
+  // Kernel command line arguments
+  string kernel_args = 3;
+
+  // Boot order and options
+  map<string, string> boot_options = 4;
+}
+
+
+message ConsoleConfig {
+  // Whether console is enabled
+  bool enabled = 1;
+
+  // Console output destination (file path, pty, etc.)
+  string output = 2;
+
+  // Console input source (optional)
+  string input = 3;
+
+  // Console type (serial, virtio-console, etc.)
+  string console_type = 4;
+}

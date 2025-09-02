@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/ctrl/v1/deployment.proto
+// source: ctrl/v1/deployment.proto
 
 package ctrlv1
 
@@ -67,11 +67,11 @@ func (x DeploymentStatus) String() string {
 }
 
 func (DeploymentStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_ctrl_v1_deployment_proto_enumTypes[0].Descriptor()
+	return file_ctrl_v1_deployment_proto_enumTypes[0].Descriptor()
 }
 
 func (DeploymentStatus) Type() protoreflect.EnumType {
-	return &file_proto_ctrl_v1_deployment_proto_enumTypes[0]
+	return &file_ctrl_v1_deployment_proto_enumTypes[0]
 }
 
 func (x DeploymentStatus) Number() protoreflect.EnumNumber {
@@ -80,7 +80,7 @@ func (x DeploymentStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DeploymentStatus.Descriptor instead.
 func (DeploymentStatus) EnumDescriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
 // Source type for deployment creation
@@ -117,11 +117,11 @@ func (x SourceType) String() string {
 }
 
 func (SourceType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_ctrl_v1_deployment_proto_enumTypes[1].Descriptor()
+	return file_ctrl_v1_deployment_proto_enumTypes[1].Descriptor()
 }
 
 func (SourceType) Type() protoreflect.EnumType {
-	return &file_proto_ctrl_v1_deployment_proto_enumTypes[1]
+	return &file_ctrl_v1_deployment_proto_enumTypes[1]
 }
 
 func (x SourceType) Number() protoreflect.EnumNumber {
@@ -130,7 +130,7 @@ func (x SourceType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SourceType.Descriptor instead.
 func (SourceType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
 type CreateDeploymentRequest struct {
@@ -162,7 +162,7 @@ type CreateDeploymentRequest struct {
 
 func (x *CreateDeploymentRequest) Reset() {
 	*x = CreateDeploymentRequest{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[0]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -174,7 +174,7 @@ func (x *CreateDeploymentRequest) String() string {
 func (*CreateDeploymentRequest) ProtoMessage() {}
 
 func (x *CreateDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[0]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -187,7 +187,7 @@ func (x *CreateDeploymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*CreateDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateDeploymentRequest) GetWorkspaceId() string {
@@ -298,7 +298,7 @@ type CreateDeploymentResponse struct {
 
 func (x *CreateDeploymentResponse) Reset() {
 	*x = CreateDeploymentResponse{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[1]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +310,7 @@ func (x *CreateDeploymentResponse) String() string {
 func (*CreateDeploymentResponse) ProtoMessage() {}
 
 func (x *CreateDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[1]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +323,7 @@ func (x *CreateDeploymentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDeploymentResponse.ProtoReflect.Descriptor instead.
 func (*CreateDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateDeploymentResponse) GetDeploymentId() string {
@@ -349,7 +349,7 @@ type GetDeploymentRequest struct {
 
 func (x *GetDeploymentRequest) Reset() {
 	*x = GetDeploymentRequest{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[2]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +361,7 @@ func (x *GetDeploymentRequest) String() string {
 func (*GetDeploymentRequest) ProtoMessage() {}
 
 func (x *GetDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[2]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +374,7 @@ func (x *GetDeploymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*GetDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetDeploymentRequest) GetDeploymentId() string {
@@ -393,7 +393,7 @@ type GetDeploymentResponse struct {
 
 func (x *GetDeploymentResponse) Reset() {
 	*x = GetDeploymentResponse{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[3]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -405,7 +405,7 @@ func (x *GetDeploymentResponse) String() string {
 func (*GetDeploymentResponse) ProtoMessage() {}
 
 func (x *GetDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[3]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -418,7 +418,7 @@ func (x *GetDeploymentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeploymentResponse.ProtoReflect.Descriptor instead.
 func (*GetDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetDeploymentResponse) GetDeployment() *Deployment {
@@ -467,7 +467,7 @@ type Deployment struct {
 
 func (x *Deployment) Reset() {
 	*x = Deployment{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[4]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +479,7 @@ func (x *Deployment) String() string {
 func (*Deployment) ProtoMessage() {}
 
 func (x *Deployment) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[4]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +492,7 @@ func (x *Deployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Deployment.ProtoReflect.Descriptor instead.
 func (*Deployment) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Deployment) GetId() string {
@@ -654,7 +654,7 @@ type DeploymentStep struct {
 
 func (x *DeploymentStep) Reset() {
 	*x = DeploymentStep{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[5]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -666,7 +666,7 @@ func (x *DeploymentStep) String() string {
 func (*DeploymentStep) ProtoMessage() {}
 
 func (x *DeploymentStep) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[5]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -679,7 +679,7 @@ func (x *DeploymentStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentStep.ProtoReflect.Descriptor instead.
 func (*DeploymentStep) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeploymentStep) GetStatus() string {
@@ -726,7 +726,7 @@ type Topology struct {
 
 func (x *Topology) Reset() {
 	*x = Topology{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[6]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -738,7 +738,7 @@ func (x *Topology) String() string {
 func (*Topology) ProtoMessage() {}
 
 func (x *Topology) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[6]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -751,7 +751,7 @@ func (x *Topology) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topology.ProtoReflect.Descriptor instead.
 func (*Topology) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Topology) GetCpuMillicores() int32 {
@@ -807,7 +807,7 @@ type RegionalConfig struct {
 
 func (x *RegionalConfig) Reset() {
 	*x = RegionalConfig{}
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[7]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -819,7 +819,7 @@ func (x *RegionalConfig) String() string {
 func (*RegionalConfig) ProtoMessage() {}
 
 func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_deployment_proto_msgTypes[7]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -832,7 +832,7 @@ func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegionalConfig.ProtoReflect.Descriptor instead.
 func (*RegionalConfig) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_deployment_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RegionalConfig) GetRegion() string {
@@ -856,11 +856,11 @@ func (x *RegionalConfig) GetMaxInstances() int32 {
 	return 0
 }
 
-var File_proto_ctrl_v1_deployment_proto protoreflect.FileDescriptor
+var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
-const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
+const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproto/ctrl/v1/deployment.proto\x12\actrl.v1\"\xef\x04\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xef\x04\n" +
 	"\x17CreateDeploymentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -955,20 +955,20 @@ const file_proto_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
-	file_proto_ctrl_v1_deployment_proto_rawDescOnce sync.Once
-	file_proto_ctrl_v1_deployment_proto_rawDescData []byte
+	file_ctrl_v1_deployment_proto_rawDescOnce sync.Once
+	file_ctrl_v1_deployment_proto_rawDescData []byte
 )
 
-func file_proto_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
-	file_proto_ctrl_v1_deployment_proto_rawDescOnce.Do(func() {
-		file_proto_ctrl_v1_deployment_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_deployment_proto_rawDesc), len(file_proto_ctrl_v1_deployment_proto_rawDesc)))
+func file_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
+	file_ctrl_v1_deployment_proto_rawDescOnce.Do(func() {
+		file_ctrl_v1_deployment_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)))
 	})
-	return file_proto_ctrl_v1_deployment_proto_rawDescData
+	return file_ctrl_v1_deployment_proto_rawDescData
 }
 
-var file_proto_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_ctrl_v1_deployment_proto_goTypes = []any{
+var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),            // 0: ctrl.v1.DeploymentStatus
 	(SourceType)(0),                  // 1: ctrl.v1.SourceType
 	(*CreateDeploymentRequest)(nil),  // 2: ctrl.v1.CreateDeploymentRequest
@@ -981,7 +981,7 @@ var file_proto_ctrl_v1_deployment_proto_goTypes = []any{
 	(*RegionalConfig)(nil),           // 9: ctrl.v1.RegionalConfig
 	nil,                              // 10: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
-var file_proto_ctrl_v1_deployment_proto_depIdxs = []int32{
+var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	1,  // 0: ctrl.v1.CreateDeploymentRequest.source_type:type_name -> ctrl.v1.SourceType
 	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
 	6,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
@@ -1001,27 +1001,27 @@ var file_proto_ctrl_v1_deployment_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_proto_ctrl_v1_deployment_proto_init() }
-func file_proto_ctrl_v1_deployment_proto_init() {
-	if File_proto_ctrl_v1_deployment_proto != nil {
+func init() { file_ctrl_v1_deployment_proto_init() }
+func file_ctrl_v1_deployment_proto_init() {
+	if File_ctrl_v1_deployment_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_deployment_proto_rawDesc), len(file_proto_ctrl_v1_deployment_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_ctrl_v1_deployment_proto_goTypes,
-		DependencyIndexes: file_proto_ctrl_v1_deployment_proto_depIdxs,
-		EnumInfos:         file_proto_ctrl_v1_deployment_proto_enumTypes,
-		MessageInfos:      file_proto_ctrl_v1_deployment_proto_msgTypes,
+		GoTypes:           file_ctrl_v1_deployment_proto_goTypes,
+		DependencyIndexes: file_ctrl_v1_deployment_proto_depIdxs,
+		EnumInfos:         file_ctrl_v1_deployment_proto_enumTypes,
+		MessageInfos:      file_ctrl_v1_deployment_proto_msgTypes,
 	}.Build()
-	File_proto_ctrl_v1_deployment_proto = out.File
-	file_proto_ctrl_v1_deployment_proto_goTypes = nil
-	file_proto_ctrl_v1_deployment_proto_depIdxs = nil
+	File_ctrl_v1_deployment_proto = out.File
+	file_ctrl_v1_deployment_proto_goTypes = nil
+	file_ctrl_v1_deployment_proto_depIdxs = nil
 }
