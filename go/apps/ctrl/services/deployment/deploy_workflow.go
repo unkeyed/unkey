@@ -109,7 +109,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	deployment, err := hydra.Step(ctx, "metald-create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
 		w.logger.Info("creating deployment", "deployment_id", req.DeploymentID, "docker_image", req.DockerImage, "workspace_id", req.WorkspaceID, "project_id", req.ProjectID)
 
-		// Make real metald CreateVm call
+		// Call metald CreateDeployment
 		resp, err := w.metaldClient.CreateDeployment(stepCtx, connect.NewRequest(&metaldv1.CreateDeploymentRequest{
 			Deployment: &metaldv1.DeploymentRequest{
 				DeploymentId:  req.DeploymentID,
@@ -119,6 +119,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				MemorySizeMib: 1024,
 			},
 		}))
+		if err != nil {
+			w.logger.Error("metald CreateDeployment call failed", "error", err, "docker_image", req.DockerImage)
+			return nil, fmt.Errorf("failed to create deployment: %w", err)
+		}
+
+		return resp.Msg, nil
+	})
 		if err != nil {
 			w.logger.Error("metald PrepareDeployment call failed", "error", err, "docker_image", req.DockerImage)
 			return nil, fmt.Errorf("failed to create VM: %w", err)
@@ -173,15 +180,17 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			for _, instance := range resp.Msg.GetVms() {
 				known, ok := instances[instance.Id]
 				if !ok || known.State != instance.State {
-					partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), partitiondb.UpsertVMParams{
-						ID:            instance.Id,
-						DeploymentID:  req.DeploymentID,
-						Address:       sql.NullString{Valid: true, String: fmt.Sprintf("%s:%d", instance.Host, instance.Port)},
-						CpuMillicores: 1000,                           // TODO
-						MemoryMb:      1000,                           // TODO
-						Status:        partitiondb.VmsStatusAllocated, // TODO
-					})
-				}
+          if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), partitiondb.UpsertVMParams{
+              ID:            instance.Id,
+              DeploymentID:  req.DeploymentID,
+              Address:       sql.NullString{Valid: true, String: fmt.Sprintf("%s:%d", instance.Host, instance.Port)},
+              CpuMillicores: 1000,                           // TODO derive from spec
+              MemoryMb:      1024,                           // TODO derive from spec
+              Status:        partitiondb.VmsStatusAllocated, // TODO
+          }); err != nil {
+              w.logger.Error("failed to upsert VM", "error", err, "vm_id", instance.Id)
+              return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
+          }
 				instances[instance.Id] = instance
 				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
 					allReady = false
@@ -194,7 +203,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 		}
-		return nil, fmt.Errorf("Deployment never became ready")
+		return nil, fmt.Errorf("deployment never became ready")
 	})
 
 	err = hydra.StepVoid(ctx, "create-gateway-config", func(stepCtx context.Context) error {
