@@ -24,9 +24,9 @@ var File_metald_v1_metald_proto protoreflect.FileDescriptor
 
 const file_metald_v1_metald_proto_rawDesc = "" +
 	"\n" +
-	"\x16metald/v1/metald.proto\x12\tmetald.v1\x1a\x12metald/v1/vm.proto\x1a\x1ametald/v1/deployment.proto2\xe3\a\n" +
-	"\tVmService\x12^\n" +
-	"\x11PrepareDeployment\x12#.metald.v1.PrepareDeploymentRequest\x1a$.metald.v1.PrepareDeploymentResponse\x12[\n" +
+	"\x16metald/v1/metald.proto\x12\tmetald.v1\x1a\x12metald/v1/vm.proto\x1a\x1ametald/v1/deployment.proto2\xe0\a\n" +
+	"\tVmService\x12[\n" +
+	"\x10CreateDeployment\x12\".metald.v1.CreateDeploymentRequest\x1a#.metald.v1.CreateDeploymentResponse\x12[\n" +
 	"\x10UpdateDeployment\x12\".metald.v1.UpdateDeploymentRequest\x1a#.metald.v1.UpdateDeploymentResponse\x12[\n" +
 	"\x10DeleteDeployment\x12\".metald.v1.DeleteDeploymentRequest\x1a#.metald.v1.DeleteDeploymentResponse\x12R\n" +
 	"\rGetDeployment\x12\x1f.metald.v1.GetDeploymentRequest\x1a .metald.v1.GetDeploymentResponse\x12C\n" +
@@ -42,35 +42,35 @@ const file_metald_v1_metald_proto_rawDesc = "" +
 	"\aListVms\x12\x19.metald.v1.ListVmsRequest\x1a\x1a.metald.v1.ListVmsResponseB:Z8github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1b\x06proto3"
 
 var file_metald_v1_metald_proto_goTypes = []any{
-	(*PrepareDeploymentRequest)(nil),  // 0: metald.v1.PrepareDeploymentRequest
-	(*UpdateDeploymentRequest)(nil),   // 1: metald.v1.UpdateDeploymentRequest
-	(*DeleteDeploymentRequest)(nil),   // 2: metald.v1.DeleteDeploymentRequest
-	(*GetDeploymentRequest)(nil),      // 3: metald.v1.GetDeploymentRequest
-	(*CreateVmRequest)(nil),           // 4: metald.v1.CreateVmRequest
-	(*DeleteVmRequest)(nil),           // 5: metald.v1.DeleteVmRequest
-	(*BootVmRequest)(nil),             // 6: metald.v1.BootVmRequest
-	(*ShutdownVmRequest)(nil),         // 7: metald.v1.ShutdownVmRequest
-	(*PauseVmRequest)(nil),            // 8: metald.v1.PauseVmRequest
-	(*ResumeVmRequest)(nil),           // 9: metald.v1.ResumeVmRequest
-	(*RebootVmRequest)(nil),           // 10: metald.v1.RebootVmRequest
-	(*GetVmInfoRequest)(nil),          // 11: metald.v1.GetVmInfoRequest
-	(*ListVmsRequest)(nil),            // 12: metald.v1.ListVmsRequest
-	(*PrepareDeploymentResponse)(nil), // 13: metald.v1.PrepareDeploymentResponse
-	(*UpdateDeploymentResponse)(nil),  // 14: metald.v1.UpdateDeploymentResponse
-	(*DeleteDeploymentResponse)(nil),  // 15: metald.v1.DeleteDeploymentResponse
-	(*GetDeploymentResponse)(nil),     // 16: metald.v1.GetDeploymentResponse
-	(*CreateVmResponse)(nil),          // 17: metald.v1.CreateVmResponse
-	(*DeleteVmResponse)(nil),          // 18: metald.v1.DeleteVmResponse
-	(*BootVmResponse)(nil),            // 19: metald.v1.BootVmResponse
-	(*ShutdownVmResponse)(nil),        // 20: metald.v1.ShutdownVmResponse
-	(*PauseVmResponse)(nil),           // 21: metald.v1.PauseVmResponse
-	(*ResumeVmResponse)(nil),          // 22: metald.v1.ResumeVmResponse
-	(*RebootVmResponse)(nil),          // 23: metald.v1.RebootVmResponse
-	(*GetVmInfoResponse)(nil),         // 24: metald.v1.GetVmInfoResponse
-	(*ListVmsResponse)(nil),           // 25: metald.v1.ListVmsResponse
+	(*CreateDeploymentRequest)(nil),  // 0: metald.v1.CreateDeploymentRequest
+	(*UpdateDeploymentRequest)(nil),  // 1: metald.v1.UpdateDeploymentRequest
+	(*DeleteDeploymentRequest)(nil),  // 2: metald.v1.DeleteDeploymentRequest
+	(*GetDeploymentRequest)(nil),     // 3: metald.v1.GetDeploymentRequest
+	(*CreateVmRequest)(nil),          // 4: metald.v1.CreateVmRequest
+	(*DeleteVmRequest)(nil),          // 5: metald.v1.DeleteVmRequest
+	(*BootVmRequest)(nil),            // 6: metald.v1.BootVmRequest
+	(*ShutdownVmRequest)(nil),        // 7: metald.v1.ShutdownVmRequest
+	(*PauseVmRequest)(nil),           // 8: metald.v1.PauseVmRequest
+	(*ResumeVmRequest)(nil),          // 9: metald.v1.ResumeVmRequest
+	(*RebootVmRequest)(nil),          // 10: metald.v1.RebootVmRequest
+	(*GetVmInfoRequest)(nil),         // 11: metald.v1.GetVmInfoRequest
+	(*ListVmsRequest)(nil),           // 12: metald.v1.ListVmsRequest
+	(*CreateDeploymentResponse)(nil), // 13: metald.v1.CreateDeploymentResponse
+	(*UpdateDeploymentResponse)(nil), // 14: metald.v1.UpdateDeploymentResponse
+	(*DeleteDeploymentResponse)(nil), // 15: metald.v1.DeleteDeploymentResponse
+	(*GetDeploymentResponse)(nil),    // 16: metald.v1.GetDeploymentResponse
+	(*CreateVmResponse)(nil),         // 17: metald.v1.CreateVmResponse
+	(*DeleteVmResponse)(nil),         // 18: metald.v1.DeleteVmResponse
+	(*BootVmResponse)(nil),           // 19: metald.v1.BootVmResponse
+	(*ShutdownVmResponse)(nil),       // 20: metald.v1.ShutdownVmResponse
+	(*PauseVmResponse)(nil),          // 21: metald.v1.PauseVmResponse
+	(*ResumeVmResponse)(nil),         // 22: metald.v1.ResumeVmResponse
+	(*RebootVmResponse)(nil),         // 23: metald.v1.RebootVmResponse
+	(*GetVmInfoResponse)(nil),        // 24: metald.v1.GetVmInfoResponse
+	(*ListVmsResponse)(nil),          // 25: metald.v1.ListVmsResponse
 }
 var file_metald_v1_metald_proto_depIdxs = []int32{
-	0,  // 0: metald.v1.VmService.PrepareDeployment:input_type -> metald.v1.PrepareDeploymentRequest
+	0,  // 0: metald.v1.VmService.CreateDeployment:input_type -> metald.v1.CreateDeploymentRequest
 	1,  // 1: metald.v1.VmService.UpdateDeployment:input_type -> metald.v1.UpdateDeploymentRequest
 	2,  // 2: metald.v1.VmService.DeleteDeployment:input_type -> metald.v1.DeleteDeploymentRequest
 	3,  // 3: metald.v1.VmService.GetDeployment:input_type -> metald.v1.GetDeploymentRequest
@@ -83,7 +83,7 @@ var file_metald_v1_metald_proto_depIdxs = []int32{
 	10, // 10: metald.v1.VmService.RebootVm:input_type -> metald.v1.RebootVmRequest
 	11, // 11: metald.v1.VmService.GetVmInfo:input_type -> metald.v1.GetVmInfoRequest
 	12, // 12: metald.v1.VmService.ListVms:input_type -> metald.v1.ListVmsRequest
-	13, // 13: metald.v1.VmService.PrepareDeployment:output_type -> metald.v1.PrepareDeploymentResponse
+	13, // 13: metald.v1.VmService.CreateDeployment:output_type -> metald.v1.CreateDeploymentResponse
 	14, // 14: metald.v1.VmService.UpdateDeployment:output_type -> metald.v1.UpdateDeploymentResponse
 	15, // 15: metald.v1.VmService.DeleteDeployment:output_type -> metald.v1.DeleteDeploymentResponse
 	16, // 16: metald.v1.VmService.GetDeployment:output_type -> metald.v1.GetDeploymentResponse

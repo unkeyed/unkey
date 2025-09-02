@@ -33,9 +33,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// VmServicePrepareDeploymentProcedure is the fully-qualified name of the VmService's
-	// PrepareDeployment RPC.
-	VmServicePrepareDeploymentProcedure = "/metald.v1.VmService/PrepareDeployment"
+	// VmServiceCreateDeploymentProcedure is the fully-qualified name of the VmService's
+	// CreateDeployment RPC.
+	VmServiceCreateDeploymentProcedure = "/metald.v1.VmService/CreateDeployment"
 	// VmServiceUpdateDeploymentProcedure is the fully-qualified name of the VmService's
 	// UpdateDeployment RPC.
 	VmServiceUpdateDeploymentProcedure = "/metald.v1.VmService/UpdateDeployment"
@@ -66,17 +66,17 @@ const (
 
 // VmServiceClient is a client for the metald.v1.VmService service.
 type VmServiceClient interface {
-	// PrepareDeployment
-	PrepareDeployment(context.Context, *connect.Request[v1.PrepareDeploymentRequest]) (*connect.Response[v1.PrepareDeploymentResponse], error)
+	// CreateDeployment
+	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// UpdateDeployment
 	UpdateDeployment(context.Context, *connect.Request[v1.UpdateDeploymentRequest]) (*connect.Response[v1.UpdateDeploymentResponse], error)
 	// DeleteDeployment
 	DeleteDeployment(context.Context, *connect.Request[v1.DeleteDeploymentRequest]) (*connect.Response[v1.DeleteDeploymentResponse], error)
 	// GetDeployment
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
-	// CreateVm creates a new virtual machine instance
+	// CreateVm creates a new virtual machine
 	CreateVm(context.Context, *connect.Request[v1.CreateVmRequest]) (*connect.Response[v1.CreateVmResponse], error)
-	// DeleteVm removes a virtual machine instance
+	// DeleteVm removes a virtual machine
 	DeleteVm(context.Context, *connect.Request[v1.DeleteVmRequest]) (*connect.Response[v1.DeleteVmResponse], error)
 	// BootVm starts a created virtual machine
 	BootVm(context.Context, *connect.Request[v1.BootVmRequest]) (*connect.Response[v1.BootVmResponse], error)
@@ -105,10 +105,10 @@ func NewVmServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...c
 	baseURL = strings.TrimRight(baseURL, "/")
 	vmServiceMethods := v1.File_metald_v1_metald_proto.Services().ByName("VmService").Methods()
 	return &vmServiceClient{
-		prepareDeployment: connect.NewClient[v1.PrepareDeploymentRequest, v1.PrepareDeploymentResponse](
+		createDeployment: connect.NewClient[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse](
 			httpClient,
-			baseURL+VmServicePrepareDeploymentProcedure,
-			connect.WithSchema(vmServiceMethods.ByName("PrepareDeployment")),
+			baseURL+VmServiceCreateDeploymentProcedure,
+			connect.WithSchema(vmServiceMethods.ByName("CreateDeployment")),
 			connect.WithClientOptions(opts...),
 		),
 		updateDeployment: connect.NewClient[v1.UpdateDeploymentRequest, v1.UpdateDeploymentResponse](
@@ -188,24 +188,24 @@ func NewVmServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...c
 
 // vmServiceClient implements VmServiceClient.
 type vmServiceClient struct {
-	prepareDeployment *connect.Client[v1.PrepareDeploymentRequest, v1.PrepareDeploymentResponse]
-	updateDeployment  *connect.Client[v1.UpdateDeploymentRequest, v1.UpdateDeploymentResponse]
-	deleteDeployment  *connect.Client[v1.DeleteDeploymentRequest, v1.DeleteDeploymentResponse]
-	getDeployment     *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	createVm          *connect.Client[v1.CreateVmRequest, v1.CreateVmResponse]
-	deleteVm          *connect.Client[v1.DeleteVmRequest, v1.DeleteVmResponse]
-	bootVm            *connect.Client[v1.BootVmRequest, v1.BootVmResponse]
-	shutdownVm        *connect.Client[v1.ShutdownVmRequest, v1.ShutdownVmResponse]
-	pauseVm           *connect.Client[v1.PauseVmRequest, v1.PauseVmResponse]
-	resumeVm          *connect.Client[v1.ResumeVmRequest, v1.ResumeVmResponse]
-	rebootVm          *connect.Client[v1.RebootVmRequest, v1.RebootVmResponse]
-	getVmInfo         *connect.Client[v1.GetVmInfoRequest, v1.GetVmInfoResponse]
-	listVms           *connect.Client[v1.ListVmsRequest, v1.ListVmsResponse]
+	createDeployment *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
+	updateDeployment *connect.Client[v1.UpdateDeploymentRequest, v1.UpdateDeploymentResponse]
+	deleteDeployment *connect.Client[v1.DeleteDeploymentRequest, v1.DeleteDeploymentResponse]
+	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
+	createVm         *connect.Client[v1.CreateVmRequest, v1.CreateVmResponse]
+	deleteVm         *connect.Client[v1.DeleteVmRequest, v1.DeleteVmResponse]
+	bootVm           *connect.Client[v1.BootVmRequest, v1.BootVmResponse]
+	shutdownVm       *connect.Client[v1.ShutdownVmRequest, v1.ShutdownVmResponse]
+	pauseVm          *connect.Client[v1.PauseVmRequest, v1.PauseVmResponse]
+	resumeVm         *connect.Client[v1.ResumeVmRequest, v1.ResumeVmResponse]
+	rebootVm         *connect.Client[v1.RebootVmRequest, v1.RebootVmResponse]
+	getVmInfo        *connect.Client[v1.GetVmInfoRequest, v1.GetVmInfoResponse]
+	listVms          *connect.Client[v1.ListVmsRequest, v1.ListVmsResponse]
 }
 
-// PrepareDeployment calls metald.v1.VmService.PrepareDeployment.
-func (c *vmServiceClient) PrepareDeployment(ctx context.Context, req *connect.Request[v1.PrepareDeploymentRequest]) (*connect.Response[v1.PrepareDeploymentResponse], error) {
-	return c.prepareDeployment.CallUnary(ctx, req)
+// CreateDeployment calls metald.v1.VmService.CreateDeployment.
+func (c *vmServiceClient) CreateDeployment(ctx context.Context, req *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
+	return c.createDeployment.CallUnary(ctx, req)
 }
 
 // UpdateDeployment calls metald.v1.VmService.UpdateDeployment.
@@ -270,17 +270,17 @@ func (c *vmServiceClient) ListVms(ctx context.Context, req *connect.Request[v1.L
 
 // VmServiceHandler is an implementation of the metald.v1.VmService service.
 type VmServiceHandler interface {
-	// PrepareDeployment
-	PrepareDeployment(context.Context, *connect.Request[v1.PrepareDeploymentRequest]) (*connect.Response[v1.PrepareDeploymentResponse], error)
+	// CreateDeployment
+	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// UpdateDeployment
 	UpdateDeployment(context.Context, *connect.Request[v1.UpdateDeploymentRequest]) (*connect.Response[v1.UpdateDeploymentResponse], error)
 	// DeleteDeployment
 	DeleteDeployment(context.Context, *connect.Request[v1.DeleteDeploymentRequest]) (*connect.Response[v1.DeleteDeploymentResponse], error)
 	// GetDeployment
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
-	// CreateVm creates a new virtual machine instance
+	// CreateVm creates a new virtual machine
 	CreateVm(context.Context, *connect.Request[v1.CreateVmRequest]) (*connect.Response[v1.CreateVmResponse], error)
-	// DeleteVm removes a virtual machine instance
+	// DeleteVm removes a virtual machine
 	DeleteVm(context.Context, *connect.Request[v1.DeleteVmRequest]) (*connect.Response[v1.DeleteVmResponse], error)
 	// BootVm starts a created virtual machine
 	BootVm(context.Context, *connect.Request[v1.BootVmRequest]) (*connect.Response[v1.BootVmResponse], error)
@@ -305,10 +305,10 @@ type VmServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewVmServiceHandler(svc VmServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	vmServiceMethods := v1.File_metald_v1_metald_proto.Services().ByName("VmService").Methods()
-	vmServicePrepareDeploymentHandler := connect.NewUnaryHandler(
-		VmServicePrepareDeploymentProcedure,
-		svc.PrepareDeployment,
-		connect.WithSchema(vmServiceMethods.ByName("PrepareDeployment")),
+	vmServiceCreateDeploymentHandler := connect.NewUnaryHandler(
+		VmServiceCreateDeploymentProcedure,
+		svc.CreateDeployment,
+		connect.WithSchema(vmServiceMethods.ByName("CreateDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
 	vmServiceUpdateDeploymentHandler := connect.NewUnaryHandler(
@@ -385,8 +385,8 @@ func NewVmServiceHandler(svc VmServiceHandler, opts ...connect.HandlerOption) (s
 	)
 	return "/metald.v1.VmService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case VmServicePrepareDeploymentProcedure:
-			vmServicePrepareDeploymentHandler.ServeHTTP(w, r)
+		case VmServiceCreateDeploymentProcedure:
+			vmServiceCreateDeploymentHandler.ServeHTTP(w, r)
 		case VmServiceUpdateDeploymentProcedure:
 			vmServiceUpdateDeploymentHandler.ServeHTTP(w, r)
 		case VmServiceDeleteDeploymentProcedure:
@@ -420,8 +420,8 @@ func NewVmServiceHandler(svc VmServiceHandler, opts ...connect.HandlerOption) (s
 // UnimplementedVmServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedVmServiceHandler struct{}
 
-func (UnimplementedVmServiceHandler) PrepareDeployment(context.Context, *connect.Request[v1.PrepareDeploymentRequest]) (*connect.Response[v1.PrepareDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metald.v1.VmService.PrepareDeployment is not implemented"))
+func (UnimplementedVmServiceHandler) CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metald.v1.VmService.CreateDeployment is not implemented"))
 }
 
 func (UnimplementedVmServiceHandler) UpdateDeployment(context.Context, *connect.Request[v1.UpdateDeploymentRequest]) (*connect.Response[v1.UpdateDeploymentResponse], error) {

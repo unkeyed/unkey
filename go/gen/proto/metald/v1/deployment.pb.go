@@ -25,7 +25,7 @@ type DeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	Image         string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
-	InstanceCount uint32                 `protobuf:"varint,3,opt,name=instance_count,json=instanceCount,proto3" json:"instance_count,omitempty"`
+	VmCount       uint32                 `protobuf:"varint,3,opt,name=vm_count,json=vmCount,proto3" json:"vm_count,omitempty"`
 	Cpu           uint32                 `protobuf:"varint,4,opt,name=cpu,proto3" json:"cpu,omitempty"`
 	MemorySizeMib uint64                 `protobuf:"varint,5,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -76,9 +76,9 @@ func (x *DeploymentRequest) GetImage() string {
 	return ""
 }
 
-func (x *DeploymentRequest) GetInstanceCount() uint32 {
+func (x *DeploymentRequest) GetVmCount() uint32 {
 	if x != nil {
-		return x.InstanceCount
+		return x.VmCount
 	}
 	return 0
 }
@@ -97,27 +97,27 @@ func (x *DeploymentRequest) GetMemorySizeMib() uint64 {
 	return 0
 }
 
-type PrepareDeploymentRequest struct {
+type CreateDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Deployment    *DeploymentRequest     `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PrepareDeploymentRequest) Reset() {
-	*x = PrepareDeploymentRequest{}
+func (x *CreateDeploymentRequest) Reset() {
+	*x = CreateDeploymentRequest{}
 	mi := &file_metald_v1_deployment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PrepareDeploymentRequest) String() string {
+func (x *CreateDeploymentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PrepareDeploymentRequest) ProtoMessage() {}
+func (*CreateDeploymentRequest) ProtoMessage() {}
 
-func (x *PrepareDeploymentRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateDeploymentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metald_v1_deployment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -129,39 +129,39 @@ func (x *PrepareDeploymentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PrepareDeploymentRequest.ProtoReflect.Descriptor instead.
-func (*PrepareDeploymentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*CreateDeploymentRequest) Descriptor() ([]byte, []int) {
 	return file_metald_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *PrepareDeploymentRequest) GetDeployment() *DeploymentRequest {
+func (x *CreateDeploymentRequest) GetDeployment() *DeploymentRequest {
 	if x != nil {
 		return x.Deployment
 	}
 	return nil
 }
 
-type PrepareDeploymentResponse struct {
+type CreateDeploymentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	VmIds         []string               `protobuf:"bytes,1,rep,name=vm_ids,json=vmIds,proto3" json:"vm_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PrepareDeploymentResponse) Reset() {
-	*x = PrepareDeploymentResponse{}
+func (x *CreateDeploymentResponse) Reset() {
+	*x = CreateDeploymentResponse{}
 	mi := &file_metald_v1_deployment_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PrepareDeploymentResponse) String() string {
+func (x *CreateDeploymentResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PrepareDeploymentResponse) ProtoMessage() {}
+func (*CreateDeploymentResponse) ProtoMessage() {}
 
-func (x *PrepareDeploymentResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateDeploymentResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metald_v1_deployment_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -173,12 +173,12 @@ func (x *PrepareDeploymentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PrepareDeploymentResponse.ProtoReflect.Descriptor instead.
-func (*PrepareDeploymentResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*CreateDeploymentResponse) Descriptor() ([]byte, []int) {
 	return file_metald_v1_deployment_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *PrepareDeploymentResponse) GetVmIds() []string {
+func (x *CreateDeploymentResponse) GetVmIds() []string {
 	if x != nil {
 		return x.VmIds
 	}
@@ -398,9 +398,9 @@ func (x *GetDeploymentRequest) GetDeploymentId() string {
 }
 
 type GetDeploymentResponse struct {
-	state         protoimpl.MessageState            `protogen:"open.v1"`
-	DeploymentId  string                            `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Instances     []*GetDeploymentResponse_Instance `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	DeploymentId  string                      `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	Vms           []*GetDeploymentResponse_Vm `protobuf:"bytes,2,rep,name=vms,proto3" json:"vms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -442,36 +442,37 @@ func (x *GetDeploymentResponse) GetDeploymentId() string {
 	return ""
 }
 
-func (x *GetDeploymentResponse) GetInstances() []*GetDeploymentResponse_Instance {
+func (x *GetDeploymentResponse) GetVms() []*GetDeploymentResponse_Vm {
 	if x != nil {
-		return x.Instances
+		return x.Vms
 	}
 	return nil
 }
 
-type GetDeploymentResponse_Instance struct {
+type GetDeploymentResponse_Vm struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Host          string                 `protobuf:"bytes,2,opt,name=host,proto3" json:"host,omitempty"`
-	Port          uint32                 `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
+	State         VmState                `protobuf:"varint,3,opt,name=state,proto3,enum=metald.v1.VmState" json:"state,omitempty"`
+	Port          uint32                 `protobuf:"varint,4,opt,name=port,proto3" json:"port,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetDeploymentResponse_Instance) Reset() {
-	*x = GetDeploymentResponse_Instance{}
+func (x *GetDeploymentResponse_Vm) Reset() {
+	*x = GetDeploymentResponse_Vm{}
 	mi := &file_metald_v1_deployment_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetDeploymentResponse_Instance) String() string {
+func (x *GetDeploymentResponse_Vm) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetDeploymentResponse_Instance) ProtoMessage() {}
+func (*GetDeploymentResponse_Vm) ProtoMessage() {}
 
-func (x *GetDeploymentResponse_Instance) ProtoReflect() protoreflect.Message {
+func (x *GetDeploymentResponse_Vm) ProtoReflect() protoreflect.Message {
 	mi := &file_metald_v1_deployment_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -483,26 +484,33 @@ func (x *GetDeploymentResponse_Instance) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetDeploymentResponse_Instance.ProtoReflect.Descriptor instead.
-func (*GetDeploymentResponse_Instance) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetDeploymentResponse_Vm.ProtoReflect.Descriptor instead.
+func (*GetDeploymentResponse_Vm) Descriptor() ([]byte, []int) {
 	return file_metald_v1_deployment_proto_rawDescGZIP(), []int{8, 0}
 }
 
-func (x *GetDeploymentResponse_Instance) GetId() string {
+func (x *GetDeploymentResponse_Vm) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *GetDeploymentResponse_Instance) GetHost() string {
+func (x *GetDeploymentResponse_Vm) GetHost() string {
 	if x != nil {
 		return x.Host
 	}
 	return ""
 }
 
-func (x *GetDeploymentResponse_Instance) GetPort() uint32 {
+func (x *GetDeploymentResponse_Vm) GetState() VmState {
+	if x != nil {
+		return x.State
+	}
+	return VmState_VM_STATE_UNSPECIFIED
+}
+
+func (x *GetDeploymentResponse_Vm) GetPort() uint32 {
 	if x != nil {
 		return x.Port
 	}
@@ -513,18 +521,18 @@ var File_metald_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_metald_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x1ametald/v1/deployment.proto\x12\tmetald.v1\"\xaf\x01\n" +
+	"\x1ametald/v1/deployment.proto\x12\tmetald.v1\x1a\x12metald/v1/vm.proto\"\xa3\x01\n" +
 	"\x11DeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x14\n" +
-	"\x05image\x18\x02 \x01(\tR\x05image\x12%\n" +
-	"\x0einstance_count\x18\x03 \x01(\rR\rinstanceCount\x12\x10\n" +
+	"\x05image\x18\x02 \x01(\tR\x05image\x12\x19\n" +
+	"\bvm_count\x18\x03 \x01(\rR\avmCount\x12\x10\n" +
 	"\x03cpu\x18\x04 \x01(\rR\x03cpu\x12&\n" +
-	"\x0fmemory_size_mib\x18\x05 \x01(\x04R\rmemorySizeMib\"X\n" +
-	"\x18PrepareDeploymentRequest\x12<\n" +
+	"\x0fmemory_size_mib\x18\x05 \x01(\x04R\rmemorySizeMib\"W\n" +
+	"\x17CreateDeploymentRequest\x12<\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x1c.metald.v1.DeploymentRequestR\n" +
-	"deployment\"2\n" +
-	"\x19PrepareDeploymentResponse\x12\x15\n" +
+	"deployment\"1\n" +
+	"\x18CreateDeploymentResponse\x12\x15\n" +
 	"\x06vm_ids\x18\x01 \x03(\tR\x05vmIds\"W\n" +
 	"\x17UpdateDeploymentRequest\x12<\n" +
 	"\n" +
@@ -536,14 +544,15 @@ const file_metald_v1_deployment_proto_rawDesc = "" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1a\n" +
 	"\x18DeleteDeploymentResponse\";\n" +
 	"\x14GetDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\xc9\x01\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\xdb\x01\n" +
 	"\x15GetDeploymentResponse\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12G\n" +
-	"\tinstances\x18\x02 \x03(\v2).metald.v1.GetDeploymentResponse.InstanceR\tinstances\x1aB\n" +
-	"\bInstance\x12\x0e\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x125\n" +
+	"\x03vms\x18\x02 \x03(\v2#.metald.v1.GetDeploymentResponse.VmR\x03vms\x1af\n" +
+	"\x02Vm\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04host\x18\x02 \x01(\tR\x04host\x12\x12\n" +
-	"\x04port\x18\x03 \x01(\rR\x04portB:Z8github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1b\x06proto3"
+	"\x04host\x18\x02 \x01(\tR\x04host\x12(\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x12.metald.v1.VmStateR\x05state\x12\x12\n" +
+	"\x04port\x18\x04 \x01(\rR\x04portB:Z8github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1b\x06proto3"
 
 var (
 	file_metald_v1_deployment_proto_rawDescOnce sync.Once
@@ -559,26 +568,28 @@ func file_metald_v1_deployment_proto_rawDescGZIP() []byte {
 
 var file_metald_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_metald_v1_deployment_proto_goTypes = []any{
-	(*DeploymentRequest)(nil),              // 0: metald.v1.DeploymentRequest
-	(*PrepareDeploymentRequest)(nil),       // 1: metald.v1.PrepareDeploymentRequest
-	(*PrepareDeploymentResponse)(nil),      // 2: metald.v1.PrepareDeploymentResponse
-	(*UpdateDeploymentRequest)(nil),        // 3: metald.v1.UpdateDeploymentRequest
-	(*UpdateDeploymentResponse)(nil),       // 4: metald.v1.UpdateDeploymentResponse
-	(*DeleteDeploymentRequest)(nil),        // 5: metald.v1.DeleteDeploymentRequest
-	(*DeleteDeploymentResponse)(nil),       // 6: metald.v1.DeleteDeploymentResponse
-	(*GetDeploymentRequest)(nil),           // 7: metald.v1.GetDeploymentRequest
-	(*GetDeploymentResponse)(nil),          // 8: metald.v1.GetDeploymentResponse
-	(*GetDeploymentResponse_Instance)(nil), // 9: metald.v1.GetDeploymentResponse.Instance
+	(*DeploymentRequest)(nil),        // 0: metald.v1.DeploymentRequest
+	(*CreateDeploymentRequest)(nil),  // 1: metald.v1.CreateDeploymentRequest
+	(*CreateDeploymentResponse)(nil), // 2: metald.v1.CreateDeploymentResponse
+	(*UpdateDeploymentRequest)(nil),  // 3: metald.v1.UpdateDeploymentRequest
+	(*UpdateDeploymentResponse)(nil), // 4: metald.v1.UpdateDeploymentResponse
+	(*DeleteDeploymentRequest)(nil),  // 5: metald.v1.DeleteDeploymentRequest
+	(*DeleteDeploymentResponse)(nil), // 6: metald.v1.DeleteDeploymentResponse
+	(*GetDeploymentRequest)(nil),     // 7: metald.v1.GetDeploymentRequest
+	(*GetDeploymentResponse)(nil),    // 8: metald.v1.GetDeploymentResponse
+	(*GetDeploymentResponse_Vm)(nil), // 9: metald.v1.GetDeploymentResponse.Vm
+	(VmState)(0),                     // 10: metald.v1.VmState
 }
 var file_metald_v1_deployment_proto_depIdxs = []int32{
-	0, // 0: metald.v1.PrepareDeploymentRequest.deployment:type_name -> metald.v1.DeploymentRequest
-	0, // 1: metald.v1.UpdateDeploymentRequest.deployment:type_name -> metald.v1.DeploymentRequest
-	9, // 2: metald.v1.GetDeploymentResponse.instances:type_name -> metald.v1.GetDeploymentResponse.Instance
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: metald.v1.CreateDeploymentRequest.deployment:type_name -> metald.v1.DeploymentRequest
+	0,  // 1: metald.v1.UpdateDeploymentRequest.deployment:type_name -> metald.v1.DeploymentRequest
+	9,  // 2: metald.v1.GetDeploymentResponse.vms:type_name -> metald.v1.GetDeploymentResponse.Vm
+	10, // 3: metald.v1.GetDeploymentResponse.Vm.state:type_name -> metald.v1.VmState
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_metald_v1_deployment_proto_init() }
@@ -586,6 +597,7 @@ func file_metald_v1_deployment_proto_init() {
 	if File_metald_v1_deployment_proto != nil {
 		return
 	}
+	file_metald_v1_vm_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
