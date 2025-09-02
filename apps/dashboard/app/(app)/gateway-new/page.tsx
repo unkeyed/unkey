@@ -28,6 +28,7 @@ export default async function Page() {
     await db.insert(schema.workspaces).values({
       id,
       name: "Personal Workspace",
+      slug: "personal-workspace",
       orgId,
       betaFeatures: {},
       features: {},
