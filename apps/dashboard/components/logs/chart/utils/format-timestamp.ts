@@ -3,7 +3,7 @@ import { format, fromUnixTime } from "date-fns";
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
   const date = new Date(timestamp);
-  return format(date, "MMM dd, h:mma").toUpperCase();
+  return format(date, "MMM dd, h:mm a").toUpperCase();
 };
 
 export const formatTimestampForChart = (
@@ -14,21 +14,21 @@ export const formatTimestampForChart = (
 
   switch (granularity) {
     case "perMinute":
-      return format(localDate, "HH:mm:ss");
+      return format(localDate, "h:mm:ss a");
     case "per5Minutes":
     case "per15Minutes":
     case "per30Minutes":
-      return format(localDate, "HH:mm");
+      return format(localDate, "h:mm a");
     case "perHour":
     case "per2Hours":
     case "per4Hours":
     case "per6Hours":
-      return format(localDate, "MMM d, HH:mm");
+      return format(localDate, "MMM d, h:mm a");
     case "perDay":
       return format(localDate, "MMM d");
 
     case "per12Hours":
-      return format(localDate, "MMM d, HH:mm");
+      return format(localDate, "MMM d, h:mm a");
     case "per3Days":
       return format(localDate, "MMM d");
     case "perWeek":
@@ -52,5 +52,5 @@ const isUnixMicro = (unix: string | number): boolean => {
 
 export const formatTimestampTooltip = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return format(date, "MMM dd HH:mm:ss");
+  return format(date, "MMM dd h:mm:ss a");
 };

@@ -9,9 +9,11 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
@@ -40,6 +42,7 @@ type OverviewBarChartProps = {
   labels: ChartLabels;
   tooltipItems?: ChartTooltipItem[];
   onMount?: (distanceToTop: number) => void;
+  granularity?: string;
 };
 
 export function OverviewBarChart({
@@ -52,6 +55,7 @@ export function OverviewBarChart({
   labels,
   tooltipItems = [],
   onMount,
+  granularity,
 }: OverviewBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
@@ -251,8 +255,15 @@ export function OverviewBarChart({
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
-                        //@ts-expect-error safe to ignore for now
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
+                        createTimeIntervalFormatter(
+                          data,
+                          "HH:mm",
+                          granularity as CompoundTimeseriesGranularity | undefined,
+                        )(
+                          tooltipPayload as Parameters<
+                            ReturnType<typeof createTimeIntervalFormatter>
+                          >[0],
+                        )
                       }
                     />
                   );

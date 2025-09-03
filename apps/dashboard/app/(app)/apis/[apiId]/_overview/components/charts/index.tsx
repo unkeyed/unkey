@@ -19,13 +19,14 @@ export const KeysOverviewLogsCharts = ({
     timeseries: verificationTimeseries,
     isLoading: verificationIsLoading,
     isError: verificationIsError,
+    granularity: verificationGranularity,
   } = useFetchVerificationTimeseries(apiId);
 
   const {
     timeseries: activeKeysTimeseries,
     isLoading: activeKeysIsLoading,
     isError: activeKeysIsError,
-    granularity,
+    granularity: activeKeysGranularity,
   } = useFetchActiveKeysTimeseries(apiId);
 
   const handleSelectionChange = ({
@@ -40,8 +41,8 @@ export const KeysOverviewLogsCharts = ({
     );
 
     let adjustedEnd = end;
-    if (start === end && granularity) {
-      adjustedEnd = end + getTimeBufferForGranularity(granularity);
+    if (start === end && verificationGranularity) {
+      adjustedEnd = end + getTimeBufferForGranularity(verificationGranularity);
     }
     updateFilters([
       ...activeFilters,
@@ -100,6 +101,7 @@ export const KeysOverviewLogsCharts = ({
             secondaryKey: "error",
           }}
           tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
+          granularity={verificationGranularity}
         />
       </div>
       <div className="w-full md:w-1/2 max-md:h-72">
@@ -111,6 +113,7 @@ export const KeysOverviewLogsCharts = ({
           onSelectionChange={handleSelectionChange}
           config={keysChartConfig}
           labels={keysChartLabels}
+          granularity={activeKeysGranularity}
         />
       </div>
     </div>

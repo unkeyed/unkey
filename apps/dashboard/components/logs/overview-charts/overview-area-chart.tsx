@@ -1,4 +1,5 @@
 "use client";
+
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import {
@@ -8,8 +9,10 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@unkey/ui/src/lib/utils";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
+
 import {
   Area,
   AreaChart,
@@ -46,6 +49,7 @@ export interface TimeseriesAreaChartProps {
   isError?: boolean;
   enableSelection?: boolean;
   labels: TimeseriesChartLabels;
+  granularity?: string;
 }
 
 export const OverviewAreaChart = ({
@@ -56,6 +60,7 @@ export const OverviewAreaChart = ({
   isError,
   enableSelection = false,
   labels,
+  granularity,
 }: TimeseriesAreaChartProps) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
@@ -242,8 +247,15 @@ export const OverviewAreaChart = ({
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
-                        //@ts-expect-error safe to leave as is for now
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
+                        createTimeIntervalFormatter(
+                          data,
+                          "HH:mm",
+                          granularity as CompoundTimeseriesGranularity | undefined,
+                        )(
+                          tooltipPayload as Parameters<
+                            ReturnType<typeof createTimeIntervalFormatter>
+                          >[0],
+                        )
                       }
                     />
                   );
