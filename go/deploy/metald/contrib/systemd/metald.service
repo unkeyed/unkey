@@ -1,19 +1,14 @@
 [Unit]
 Description=Metald VM Management Service
 Documentation=https://github.com/unkeyed/unkey/go/deploy/metald
-After=network.target
+After=network.target spire-agent.service assetmanagerd.service
 Wants=network.target
+Requires=spire-agent.service assetmanagerd.service
 
 [Service]
 Type=simple
-# AIDEV-NOTE: metald runs as root to manage network namespaces, interfaces, and iptables.
-# This is acceptable as metald is the sole application on dedicated VM hosts.
-# The jailer still drops privileges to specified UID/GID for VM processes.
 User=root
 Group=root
-# AIDEV-NOTE: WorkingDirectory removed - metald doesn't require a specific working directory
-# Create required directories (no + prefix needed since already running as root)
-ExecStartPre=/usr/bin/mkdir -p /run/netns
 ExecStartPre=/usr/bin/mkdir -p /opt/metald/sockets
 ExecStartPre=/usr/bin/mkdir -p /opt/metald/logs
 ExecStartPre=/usr/bin/mkdir -p /opt/metald/assets
@@ -62,15 +57,12 @@ Environment=UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
 Environment=UNKEY_METALD_TLS_MODE=spiffe
 Environment=UNKEY_METALD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
 
+# Network bridge configuration
+# AIDEV-BUSINESS_RULE: Metald reads bridge count from environment to know available bridges
+
 # Resource limits
 LimitNOFILE=65536
 LimitNPROC=4096
-
-# Linux capabilities - not needed when running as root
-# AIDEV-NOTE: Running as root provides all necessary capabilities for network management
-# AmbientCapabilities removed - root has all capabilities
-# CapabilityBoundingSet removed - root has all capabilities
-# ReadWritePaths removed - no namespace protection is used
 
 [Install]
 WantedBy=multi-user.target
