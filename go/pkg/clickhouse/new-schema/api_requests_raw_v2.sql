@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS metrics.raw_api_requests_v1(
+CREATE TABLE raw_api_requests_v1(
     request_id String,
     -- unix milli
     time Int64,
@@ -38,8 +38,8 @@ ENGINE = MergeTree()
 ORDER BY (workspace_id, time, request_id)
 ;
 
-ALTER TABLE metrics.raw_api_requests_v1
-    ADD INDEX IF NOT EXISTS idx_workspace_time (workspace_id, time) TYPE minmax GRANULARITY 1;
+ALTER TABLE raw_api_requests_v1
+    ADD INDEX idx_workspace_time (workspace_id, time) TYPE minmax GRANULARITY 1;
 
-ALTER TABLE metrics.raw_api_requests_v1
-    ADD INDEX IF NOT EXISTS idx_request_id (request_id) TYPE minmax GRANULARITY 1;
+ALTER TABLE raw_api_requests_v1
+    ADD INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 1;
