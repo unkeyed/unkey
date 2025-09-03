@@ -38,10 +38,12 @@ func New(database db.Database, partitionDB db.Database, logger logging.Logger) *
 func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetRouteRequest]) (*connect.Response[ctrlv1.SetRouteResponse], error) {
 	hostname := req.Msg.GetHostname()
 	versionID := req.Msg.GetVersionId()
+	workspaceID := req.Msg.GetWorkspaceId()
 
 	s.logger.InfoContext(ctx, "setting route",
 		slog.String("hostname", hostname),
 		slog.String("version_id", versionID),
+		slog.String("workspace_id", workspaceID),
 	)
 
 	// Get current route to capture what we're switching from
@@ -74,6 +76,18 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
+	}
+
+	// AIDEV-SECURITY: Verify workspace authorization if workspace_id is provided
+	// This prevents cross-tenant access when called through rollback or other authenticated endpoints
+	if workspaceID != "" && deployment.WorkspaceID != workspaceID {
+		s.logger.ErrorContext(ctx, "workspace authorization failed in SetRoute",
+			slog.String("requested_workspace_id", workspaceID),
+			slog.String("deployment_workspace_id", deployment.WorkspaceID),
+			slog.String("deployment_id", versionID),
+		)
+		return nil, connect.NewError(connect.CodeNotFound, 
+			fmt.Errorf("deployment not found: %s", versionID))
 	}
 
 	if deployment.Status != "ready" {
@@ -139,8 +153,8 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to marshal gateway config: %w", err))
 	}
 
-	// Get workspace ID from deployment
-	workspaceID := deployment.WorkspaceID
+	// Get workspace ID from deployment for audit logging
+	deploymentWorkspaceID := deployment.WorkspaceID
 
 	// Upsert the gateway configuration
 	err = partitiondb.Query.UpsertGateway(ctx, s.partitionDB.RW(), partitiondb.UpsertGatewayParams{
@@ -151,7 +165,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 		s.logger.ErrorContext(ctx, "failed to upsert gateway",
 			slog.String("hostname", hostname),
 			slog.String("version_id", versionID),
-			slog.String("workspace_id", workspaceID),
+			slog.String("workspace_id", deploymentWorkspaceID),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update routing: %w", err))
@@ -227,11 +241,57 @@ func (s *Service) ListRoutes(ctx context.Context, req *connect.Request[ctrlv1.Li
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
 	hostname := req.Msg.GetHostname()
 	targetVersionID := req.Msg.GetTargetVersionId()
+	workspaceID := req.Msg.GetWorkspaceId()
 
 	s.logger.InfoContext(ctx, "initiating rollback",
 		slog.String("hostname", hostname),
 		slog.String("target_version_id", targetVersionID),
+		slog.String("workspace_id", workspaceID),
 	)
+
+	// Validate workspace ID is provided
+	if workspaceID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, 
+			fmt.Errorf("workspace_id is required for authorization"))
+	}
+
+	// Verify workspace exists
+	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), workspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("workspace not found: %s", workspaceID))
+		}
+		s.logger.ErrorContext(ctx, "failed to find workspace",
+			slog.String("workspace_id", workspaceID),
+			slog.String("error", err.Error()),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to verify workspace: %w", err))
+	}
+
+	// Get the target deployment and verify it belongs to the workspace
+	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), targetVersionID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", targetVersionID))
+		}
+		s.logger.ErrorContext(ctx, "failed to get deployment",
+			slog.String("version_id", targetVersionID),
+			slog.String("error", err.Error()),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
+	}
+
+	// AIDEV-SECURITY: Verify workspace ownership - prevent cross-tenant rollbacks
+	if deployment.WorkspaceID != workspaceID {
+		s.logger.ErrorContext(ctx, "workspace authorization failed",
+			slog.String("requested_workspace_id", workspaceID),
+			slog.String("deployment_workspace_id", deployment.WorkspaceID),
+			slog.String("deployment_id", targetVersionID),
+		)
+		return nil, connect.NewError(connect.CodeNotFound, 
+			fmt.Errorf("deployment not found: %s", targetVersionID))
+	}
 
 	// Get current route to capture what we're rolling back from
 	getCurrentReq := &ctrlv1.GetRouteRequest{Hostname: hostname}
@@ -245,11 +305,12 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		previousVersionID = getCurrentResp.Msg.Route.VersionId
 	}
 
-	// Use SetRoute to perform the actual routing change
+	// Use SetRoute to perform the actual routing change - pass workspace context
 	setRouteReq := &ctrlv1.SetRouteRequest{
-		Hostname:  hostname,
-		VersionId: targetVersionID,
-		Weight:    100, // Full cutover for rollback
+		Hostname:    hostname,
+		VersionId:   targetVersionID,
+		Weight:      100, // Full cutover for rollback
+		WorkspaceId: workspaceID, // Pass workspace for validation
 	}
 
 	setRouteResp, err := s.SetRoute(ctx, connect.NewRequest(setRouteReq))
