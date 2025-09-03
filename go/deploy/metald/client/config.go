@@ -4,13 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
-
-// AIDEV-NOTE: Configuration file support for VM templates and custom configurations
-// This allows users to define VM configurations in JSON/YAML files for reuse
 
 // VMConfigFile represents a VM configuration that can be loaded from/saved to a file
 type VMConfigFile struct {
@@ -123,37 +119,11 @@ func LoadVMConfigFromFile(filename string) (*VMConfigFile, error) {
 	return &config, nil
 }
 
-// SaveVMConfigToFile saves a VM configuration to a JSON file
-func SaveVMConfigToFile(config *VMConfigFile, filename string) error {
-	// Create directory if it doesn't exist
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", dir, err)
-	}
-
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(filename, data, 0644); err != nil {
-		return fmt.Errorf("failed to write config file %s: %w", filename, err)
-	}
-
-	return nil
-}
-
 // ToVMConfig converts a VMConfigFile to a protobuf VmConfig
 func (c *VMConfigFile) ToVMConfig() (*vmprovisionerv1.VmConfig, error) {
 	var builder *VMConfigBuilder
 
-	// Start with template if specified
-	if c.Template != "" {
-		template := VMTemplate(c.Template)
-		builder = NewVMConfigFromTemplate(template)
-	} else {
-		builder = NewVMConfigBuilder()
-	}
+	builder = NewVMConfigBuilder()
 
 	// Override with specific configuration
 	builder.WithCPU(c.CPU.VCPUCount, c.CPU.MaxVCPUCount)
@@ -322,43 +292,4 @@ func formatNetworkMode(mode vmprovisionerv1.NetworkMode) string {
 	default:
 		return "dual_stack"
 	}
-}
-
-// GetBuiltinConfigPath returns the path to a built-in configuration file
-func GetBuiltinConfigPath(name string) string {
-	return filepath.Join("configs", fmt.Sprintf("%s.json", name))
-}
-
-// CreateBuiltinConfigs creates built-in configuration files for common templates
-func CreateBuiltinConfigs(configDir string) error {
-	templates := map[string]VMTemplate{
-		"minimal":     TemplateMinimal,
-		"standard":    TemplateStandard,
-		"high-cpu":    TemplateHighCPU,
-		"high-memory": TemplateHighMemory,
-		"development": TemplateDevelopment,
-	}
-
-	descriptions := map[string]string{
-		"minimal":     "Minimal VM configuration with basic resources for lightweight workloads",
-		"standard":    "Standard VM configuration with balanced CPU and memory for general workloads",
-		"high-cpu":    "High-CPU VM configuration optimized for compute-intensive workloads",
-		"high-memory": "High-memory VM configuration optimized for memory-intensive workloads",
-		"development": "Development VM configuration with extra resources and development tools",
-	}
-
-	for name, template := range templates {
-		builder := NewVMConfigFromTemplate(template)
-		config := builder.Build()
-
-		configFile := FromVMConfig(config, name, descriptions[name])
-		configFile.Template = string(template)
-
-		filename := filepath.Join(configDir, fmt.Sprintf("%s.json", name))
-		if err := SaveVMConfigToFile(configFile, filename); err != nil {
-			return fmt.Errorf("failed to create config file %s: %w", filename, err)
-		}
-	}
-
-	return nil
 }

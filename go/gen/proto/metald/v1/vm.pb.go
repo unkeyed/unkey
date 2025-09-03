@@ -82,19 +82,21 @@ func (VmState) EnumDescriptor() ([]byte, []int) {
 type VmConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// CPU configuration
-	Cpu int32 `protobuf:"varint,1,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	VcpuCount uint32 `protobuf:"varint,1,opt,name=vcpu_count,json=vcpuCount,proto3" json:"vcpu_count,omitempty"`
 	// Memory configuration
-	Memory int64 `protobuf:"varint,2,opt,name=memory,proto3" json:"memory,omitempty"`
+	MemorySizeMib uint64 `protobuf:"varint,2,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	// Boot configuration
 	Boot string `protobuf:"bytes,3,opt,name=boot,proto3" json:"boot,omitempty"`
 	// Network configuration
 	NetworkConfig string `protobuf:"bytes,4,opt,name=network_config,json=networkConfig,proto3" json:"network_config,omitempty"`
 	// Console configuration
 	Console *ConsoleConfig `protobuf:"bytes,5,opt,name=console,proto3" json:"console,omitempty"`
-	// Metadata and labels
-	Metadata map[string]string `protobuf:"bytes,6,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Storage configuration
+	Storage *StorageDevice `protobuf:"bytes,6,opt,name=storage,proto3" json:"storage,omitempty"`
 	// VM Identifier
-	Id            string `protobuf:"bytes,7,opt,name=id,proto3" json:"id,omitempty"`
+	Id string `protobuf:"bytes,7,opt,name=id,proto3" json:"id,omitempty"`
+	// Metadata and labels
+	Metadata      map[string]string `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,16 +131,16 @@ func (*VmConfig) Descriptor() ([]byte, []int) {
 	return file_metald_v1_vm_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *VmConfig) GetCpu() int32 {
+func (x *VmConfig) GetVcpuCount() uint32 {
 	if x != nil {
-		return x.Cpu
+		return x.VcpuCount
 	}
 	return 0
 }
 
-func (x *VmConfig) GetMemory() int64 {
+func (x *VmConfig) GetMemorySizeMib() uint64 {
 	if x != nil {
-		return x.Memory
+		return x.MemorySizeMib
 	}
 	return 0
 }
@@ -164,9 +166,9 @@ func (x *VmConfig) GetConsole() *ConsoleConfig {
 	return nil
 }
 
-func (x *VmConfig) GetMetadata() map[string]string {
+func (x *VmConfig) GetStorage() *StorageDevice {
 	if x != nil {
-		return x.Metadata
+		return x.Storage
 	}
 	return nil
 }
@@ -176,6 +178,13 @@ func (x *VmConfig) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *VmConfig) GetMetadata() map[string]string {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
 }
 
 type ListVmsRequest struct {
@@ -244,7 +253,7 @@ type ListVmsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Vms           []*VmInfo              `protobuf:"bytes,1,rep,name=vms,proto3" json:"vms,omitempty"`
 	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	TotalCount    int64                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	TotalCount    uint64                 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -293,7 +302,7 @@ func (x *ListVmsResponse) GetNextPageToken() string {
 	return ""
 }
 
-func (x *ListVmsResponse) GetTotalCount() int64 {
+func (x *ListVmsResponse) GetTotalCount() uint64 {
 	if x != nil {
 		return x.TotalCount
 	}
@@ -1665,15 +1674,17 @@ var File_metald_v1_vm_proto protoreflect.FileDescriptor
 
 const file_metald_v1_vm_proto_rawDesc = "" +
 	"\n" +
-	"\x12metald/v1/vm.proto\x12\tmetald.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17metald/v1/network.proto\x1a\x17metald/v1/storage.proto\"\xaf\x02\n" +
-	"\bVmConfig\x12\x10\n" +
-	"\x03cpu\x18\x01 \x01(\x05R\x03cpu\x12\x16\n" +
-	"\x06memory\x18\x02 \x01(\x03R\x06memory\x12\x12\n" +
+	"\x12metald/v1/vm.proto\x12\tmetald.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17metald/v1/network.proto\x1a\x17metald/v1/storage.proto\"\x80\x03\n" +
+	"\bVmConfig\x12\x1d\n" +
+	"\n" +
+	"vcpu_count\x18\x01 \x01(\rR\tvcpuCount\x12&\n" +
+	"\x0fmemory_size_mib\x18\x02 \x01(\x04R\rmemorySizeMib\x12\x12\n" +
 	"\x04boot\x18\x03 \x01(\tR\x04boot\x12%\n" +
 	"\x0enetwork_config\x18\x04 \x01(\tR\rnetworkConfig\x122\n" +
-	"\aconsole\x18\x05 \x01(\v2\x18.metald.v1.ConsoleConfigR\aconsole\x12=\n" +
-	"\bmetadata\x18\x06 \x03(\v2!.metald.v1.VmConfig.MetadataEntryR\bmetadata\x12\x0e\n" +
-	"\x02id\x18\a \x01(\tR\x02id\x1a;\n" +
+	"\aconsole\x18\x05 \x01(\v2\x18.metald.v1.ConsoleConfigR\aconsole\x122\n" +
+	"\astorage\x18\x06 \x01(\v2\x18.metald.v1.StorageDeviceR\astorage\x12\x0e\n" +
+	"\x02id\x18\a \x01(\tR\x02id\x12=\n" +
+	"\bmetadata\x18\b \x03(\v2!.metald.v1.VmConfig.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x83\x01\n" +
@@ -1685,7 +1696,7 @@ const file_metald_v1_vm_proto_rawDesc = "" +
 	"\x0fListVmsResponse\x12#\n" +
 	"\x03vms\x18\x01 \x03(\v2\x11.metald.v1.VmInfoR\x03vms\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
-	"\vtotal_count\x18\x03 \x01(\x03R\n" +
+	"\vtotal_count\x18\x03 \x01(\x04R\n" +
 	"totalCount\"S\n" +
 	"\x0fCreateVmRequest\x12\x13\n" +
 	"\x05vm_id\x18\x01 \x01(\tR\x04vmId\x12+\n" +
@@ -1846,42 +1857,44 @@ var file_metald_v1_vm_proto_goTypes = []any{
 	nil,                           // 31: metald.v1.CpuConfig.FeaturesEntry
 	nil,                           // 32: metald.v1.MemoryConfig.BackingEntry
 	nil,                           // 33: metald.v1.BootConfig.BootOptionsEntry
-	(*NetworkStats)(nil),          // 34: metald.v1.NetworkStats
-	(*StorageStats)(nil),          // 35: metald.v1.StorageStats
-	(*timestamppb.Timestamp)(nil), // 36: google.protobuf.Timestamp
+	(*StorageDevice)(nil),         // 34: metald.v1.StorageDevice
+	(*NetworkStats)(nil),          // 35: metald.v1.NetworkStats
+	(*StorageStats)(nil),          // 36: metald.v1.StorageStats
+	(*timestamppb.Timestamp)(nil), // 37: google.protobuf.Timestamp
 }
 var file_metald_v1_vm_proto_depIdxs = []int32{
 	27, // 0: metald.v1.VmConfig.console:type_name -> metald.v1.ConsoleConfig
-	28, // 1: metald.v1.VmConfig.metadata:type_name -> metald.v1.VmConfig.MetadataEntry
-	0,  // 2: metald.v1.ListVmsRequest.state_filter:type_name -> metald.v1.VmState
-	22, // 3: metald.v1.ListVmsResponse.vms:type_name -> metald.v1.VmInfo
-	1,  // 4: metald.v1.CreateVmRequest.config:type_name -> metald.v1.VmConfig
-	0,  // 5: metald.v1.CreateVmResponse.state:type_name -> metald.v1.VmState
-	5,  // 6: metald.v1.CreateVmResponse.endpoint:type_name -> metald.v1.Endpoint
-	0,  // 7: metald.v1.BootVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 8: metald.v1.ShutdownVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 9: metald.v1.PauseVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 10: metald.v1.ResumeVmResponse.state:type_name -> metald.v1.VmState
-	0,  // 11: metald.v1.RebootVmResponse.state:type_name -> metald.v1.VmState
-	1,  // 12: metald.v1.GetVmInfoResponse.config:type_name -> metald.v1.VmConfig
-	0,  // 13: metald.v1.GetVmInfoResponse.state:type_name -> metald.v1.VmState
-	21, // 14: metald.v1.GetVmInfoResponse.metrics:type_name -> metald.v1.VmMetrics
-	29, // 15: metald.v1.GetVmInfoResponse.backend_info:type_name -> metald.v1.GetVmInfoResponse.BackendInfoEntry
-	34, // 16: metald.v1.VmMetrics.network_stats:type_name -> metald.v1.NetworkStats
-	35, // 17: metald.v1.VmMetrics.storage_stats:type_name -> metald.v1.StorageStats
-	0,  // 18: metald.v1.VmInfo.state:type_name -> metald.v1.VmState
-	36, // 19: metald.v1.VmInfo.created_timestamp:type_name -> google.protobuf.Timestamp
-	36, // 20: metald.v1.VmInfo.modified_timestamp:type_name -> google.protobuf.Timestamp
-	30, // 21: metald.v1.VmInfo.metadata:type_name -> metald.v1.VmInfo.MetadataEntry
-	24, // 22: metald.v1.CpuConfig.topology:type_name -> metald.v1.CpuTopology
-	31, // 23: metald.v1.CpuConfig.features:type_name -> metald.v1.CpuConfig.FeaturesEntry
-	32, // 24: metald.v1.MemoryConfig.backing:type_name -> metald.v1.MemoryConfig.BackingEntry
-	33, // 25: metald.v1.BootConfig.boot_options:type_name -> metald.v1.BootConfig.BootOptionsEntry
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	34, // 1: metald.v1.VmConfig.storage:type_name -> metald.v1.StorageDevice
+	28, // 2: metald.v1.VmConfig.metadata:type_name -> metald.v1.VmConfig.MetadataEntry
+	0,  // 3: metald.v1.ListVmsRequest.state_filter:type_name -> metald.v1.VmState
+	22, // 4: metald.v1.ListVmsResponse.vms:type_name -> metald.v1.VmInfo
+	1,  // 5: metald.v1.CreateVmRequest.config:type_name -> metald.v1.VmConfig
+	0,  // 6: metald.v1.CreateVmResponse.state:type_name -> metald.v1.VmState
+	5,  // 7: metald.v1.CreateVmResponse.endpoint:type_name -> metald.v1.Endpoint
+	0,  // 8: metald.v1.BootVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 9: metald.v1.ShutdownVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 10: metald.v1.PauseVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 11: metald.v1.ResumeVmResponse.state:type_name -> metald.v1.VmState
+	0,  // 12: metald.v1.RebootVmResponse.state:type_name -> metald.v1.VmState
+	1,  // 13: metald.v1.GetVmInfoResponse.config:type_name -> metald.v1.VmConfig
+	0,  // 14: metald.v1.GetVmInfoResponse.state:type_name -> metald.v1.VmState
+	21, // 15: metald.v1.GetVmInfoResponse.metrics:type_name -> metald.v1.VmMetrics
+	29, // 16: metald.v1.GetVmInfoResponse.backend_info:type_name -> metald.v1.GetVmInfoResponse.BackendInfoEntry
+	35, // 17: metald.v1.VmMetrics.network_stats:type_name -> metald.v1.NetworkStats
+	36, // 18: metald.v1.VmMetrics.storage_stats:type_name -> metald.v1.StorageStats
+	0,  // 19: metald.v1.VmInfo.state:type_name -> metald.v1.VmState
+	37, // 20: metald.v1.VmInfo.created_timestamp:type_name -> google.protobuf.Timestamp
+	37, // 21: metald.v1.VmInfo.modified_timestamp:type_name -> google.protobuf.Timestamp
+	30, // 22: metald.v1.VmInfo.metadata:type_name -> metald.v1.VmInfo.MetadataEntry
+	24, // 23: metald.v1.CpuConfig.topology:type_name -> metald.v1.CpuTopology
+	31, // 24: metald.v1.CpuConfig.features:type_name -> metald.v1.CpuConfig.FeaturesEntry
+	32, // 25: metald.v1.MemoryConfig.backing:type_name -> metald.v1.MemoryConfig.BackingEntry
+	33, // 26: metald.v1.BootConfig.boot_options:type_name -> metald.v1.BootConfig.BootOptionsEntry
+	27, // [27:27] is the sub-list for method output_type
+	27, // [27:27] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_metald_v1_vm_proto_init() }

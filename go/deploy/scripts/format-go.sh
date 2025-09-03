@@ -25,7 +25,7 @@ echo "Processing Go file: ${file_path}"
 
 # Step 1: Format with gofmt
 echo "Running gofmt..."
-if gofmt -w "${file_path}"; then
+if gofumpt -w "${file_path}"; then
     echo "✓ gofmt completed"
 else
     echo "✗ gofmt failed"

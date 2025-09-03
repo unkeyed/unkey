@@ -12,10 +12,10 @@ import (
 
 // CustomerContext holds customer information extracted from authentication
 type CustomerContext struct {
-	CustomerID  string
-	TenantID    string
-	UserID      string
-	WorkspaceID string
+	UserID        string
+	TenantID      string
+	ProjectID     string
+	EnvironmentID string
 }
 
 // AuthenticationInterceptor validates API requests and enforces customer isolation
@@ -56,10 +56,14 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 
 			// Extract requested tenant ID from header and validate access
 			requestedTenantID := req.Header().Get("X-Tenant-ID")
+			requestedProjectID := req.Header().Get("X-Project-ID")
+			requestedEnvironmentID := req.Header().Get("X-Environment-ID")
 			logger.LogAttrs(ctx, slog.LevelInfo, "checking tenant access",
 				slog.String("procedure", req.Spec().Procedure),
-				slog.String("user_id", customerCtx.CustomerID),
+				slog.String("user_id", customerCtx.UserID),
 				slog.String("requested_tenant", requestedTenantID),
+				slog.String("requested_project", requestedProjectID),
+				slog.String("requested_environment", requestedEnvironmentID),
 			)
 
 			if requestedTenantID != "" {
@@ -67,7 +71,7 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 				if err := validateTenantAccess(ctx, customerCtx, requestedTenantID); err != nil {
 					logger.LogAttrs(ctx, slog.LevelWarn, "tenant access denied",
 						slog.String("procedure", req.Spec().Procedure),
-						slog.String("user_id", customerCtx.CustomerID),
+						slog.String("user_id", customerCtx.UserID),
 						slog.String("requested_tenant", requestedTenantID),
 						slog.String("error", err.Error()),
 					)
@@ -75,7 +79,7 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 				}
 				logger.LogAttrs(ctx, slog.LevelInfo, "tenant access granted",
 					slog.String("procedure", req.Spec().Procedure),
-					slog.String("user_id", customerCtx.CustomerID),
+					slog.String("user_id", customerCtx.UserID),
 					slog.String("requested_tenant", requestedTenantID),
 				)
 			}
@@ -86,7 +90,7 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 			// Log authenticated request
 			logger.LogAttrs(ctx, slog.LevelDebug, "authenticated request",
 				slog.String("procedure", req.Spec().Procedure),
-				slog.String("customer_id", customerCtx.CustomerID),
+				slog.String("user_id", customerCtx.UserID),
 				slog.String("tenant_id", customerCtx.TenantID),
 			)
 
@@ -98,10 +102,8 @@ func AuthenticationInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc
 // validateToken validates the API token and returns customer context
 // TODO: Replace with your actual authentication mechanism (JWT, API keys, etc.)
 func validateToken(ctx context.Context, token string) (*CustomerContext, error) {
-	_ = ctx // Will be used for auth service calls in production
-	// DEVELOPMENT MODE: Extract customer_id from token directly
-	// Format: "dev_customer_<customer_id>" for development
-	// Production should validate against your auth service
+	_ = ctx
+	//
 
 	// Development mode: Accept simple bearer tokens
 	if strings.HasPrefix(token, "dev_user_") {
@@ -111,25 +113,10 @@ func validateToken(ctx context.Context, token string) (*CustomerContext, error) 
 		}
 
 		return &CustomerContext{
-			CustomerID:  userID,
-			TenantID:    "", // Tenant determined by X-Tenant-ID header
-			UserID:      userID,
-			WorkspaceID: "dev_workspace",
-		}, nil
-	}
-
-	// Legacy support for old dev_customer_ format
-	if strings.HasPrefix(token, "dev_customer_") {
-		customerID := strings.TrimPrefix(token, "dev_customer_")
-		if customerID == "" {
-			return nil, fmt.Errorf("invalid development token format")
-		}
-
-		return &CustomerContext{
-			CustomerID:  customerID,
-			TenantID:    customerID, // Use customer ID as tenant ID for legacy
-			UserID:      customerID,
-			WorkspaceID: "dev_workspace",
+			UserID:        userID,
+			TenantID:      "", // Tenant determined by X-Tenant-ID header
+			ProjectID:     userID,
+			EnvironmentID: userID,
 		}, nil
 	}
 
@@ -142,11 +129,11 @@ func validateToken(ctx context.Context, token string) (*CustomerContext, error) 
 func addCustomerContextToBaggage(ctx context.Context, customerCtx *CustomerContext) context.Context {
 	// Create baggage with customer context
 	bag, err := baggage.Parse(fmt.Sprintf(
-		"customer_id=%s,tenant_id=%s,user_id=%s,workspace_id=%s",
-		customerCtx.CustomerID,
-		customerCtx.TenantID,
+		"user_id=%s,project_id=%s,tenant_id=%s,environment_id=%s",
 		customerCtx.UserID,
-		customerCtx.WorkspaceID,
+		customerCtx.ProjectID,
+		customerCtx.TenantID,
+		customerCtx.EnvironmentID,
 	))
 	if err != nil {
 		// Log error but continue - baggage is for observability, not security
@@ -159,15 +146,48 @@ func addCustomerContextToBaggage(ctx context.Context, customerCtx *CustomerConte
 	return baggage.ContextWithBaggage(ctx, bag)
 }
 
-// ExtractCustomerID extracts customer ID from request context
-func ExtractCustomerID(ctx context.Context) (string, error) {
+// ExtractTenantID extracts tenant ID from request context
+func ExtractTenantID(ctx context.Context) (string, error) {
 	if requestBaggage := baggage.FromContext(ctx); len(requestBaggage.Members()) > 0 {
-		customerID := requestBaggage.Member("customer_id").Value()
-		if customerID != "" {
-			return customerID, nil
+		tenantID := requestBaggage.Member("tenant_id").Value()
+		if tenantID != "" {
+			return tenantID, nil
 		}
 	}
-	return "", fmt.Errorf("customer_id not found in context")
+	return "", fmt.Errorf("tenant_id not found in context")
+}
+
+// ExtractEnvironmentID extracts tenant ID from request context
+func ExtractEnvironmentID(ctx context.Context) (string, error) {
+	if requestBaggage := baggage.FromContext(ctx); len(requestBaggage.Members()) > 0 {
+		environmentID := requestBaggage.Member("environment_id").Value()
+		if environmentID != "" {
+			return environmentID, nil
+		}
+	}
+	return "", fmt.Errorf("environment_id not found in context")
+}
+
+// ExtractProjectID extracts project ID from request context
+func ExtractProjectID(ctx context.Context) (string, error) {
+	if requestBaggage := baggage.FromContext(ctx); len(requestBaggage.Members()) > 0 {
+		projectID := requestBaggage.Member("project_id").Value()
+		if projectID != "" {
+			return projectID, nil
+		}
+	}
+	return "", fmt.Errorf("project_id not found in context")
+}
+
+// ExtractUserID extracts tenant ID from request context
+func ExtractUserID(ctx context.Context) (string, error) {
+	if requestBaggage := baggage.FromContext(ctx); len(requestBaggage.Members()) > 0 {
+		userID := requestBaggage.Member("user_id").Value()
+		if userID != "" {
+			return userID, nil
+		}
+	}
+	return "", fmt.Errorf("tenant_id not found in context")
 }
 
 // validateTenantAccess validates that the authenticated user can access the requested tenant
@@ -176,7 +196,8 @@ func validateTenantAccess(ctx context.Context, customerCtx *CustomerContext, req
 
 	// In development mode, allow any authenticated user to access any tenant
 	// TODO: In production, implement proper tenant-user relationship checks
-	// This should query a tenant membership service or database
+	// This should query a tenant membership service or database using ctx for timeouts/tracing
+	_ = ctx // Will be used for database queries in production implementation
 
 	// For now, basic validation that tenant ID is not empty
 	if requestedTenantID == "" {
@@ -185,8 +206,8 @@ func validateTenantAccess(ctx context.Context, customerCtx *CustomerContext, req
 
 	// Development: Simple access control for demonstration
 	// Block access to "restricted-tenant" unless user is "admin-user"
-	if requestedTenantID == "restricted-tenant" && customerCtx.CustomerID != "admin-user" {
-		return fmt.Errorf("access denied: user %s cannot access restricted tenant", customerCtx.CustomerID)
+	if requestedTenantID == "restricted-tenant" && customerCtx.UserID != "admin-user" {
+		return fmt.Errorf("access denied: user %s cannot access restricted tenant", customerCtx.UserID)
 	}
 
 	// In production, this would check:
@@ -199,37 +220,4 @@ func validateTenantAccess(ctx context.Context, customerCtx *CustomerContext, req
 	// return tenantService.ValidateUserAccess(customerCtx.CustomerID, requestedTenantID)
 
 	return nil // Allow all other access in development
-}
-
-// validateVMOwnership validates that the customer owns the specified VM
-func (s *VMService) validateVMOwnership(ctx context.Context, vmID string) error {
-	// Extract customer ID from authenticated context
-	customerID, err := ExtractCustomerID(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeUnauthenticated, err)
-	}
-
-	// Get VM from database
-	vm, err := s.vmRepo.GetVMWithContext(ctx, vmID)
-	if err != nil {
-		s.logger.LogAttrs(ctx, slog.LevelWarn, "vm not found during ownership validation",
-			slog.String("vm_id", vmID),
-			slog.String("customer_id", customerID),
-		)
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("VM not found: %s", vmID))
-	}
-
-	// Validate ownership
-	if vm.CustomerID != customerID {
-		s.logger.LogAttrs(ctx, slog.LevelWarn, "SECURITY: unauthorized vm access attempt",
-			slog.String("vm_id", vmID),
-			slog.String("requesting_customer", customerID),
-			slog.String("vm_owner", vm.CustomerID),
-			slog.String("action", "access_denied"),
-		)
-		return connect.NewError(connect.CodePermissionDenied,
-			fmt.Errorf("access denied: VM not owned by customer"))
-	}
-
-	return nil
 }
