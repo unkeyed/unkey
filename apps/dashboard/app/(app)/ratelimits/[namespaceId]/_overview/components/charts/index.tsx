@@ -32,7 +32,7 @@ export const RatelimitOverviewLogsCharts = ({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
 
     let adjustedEnd = end;
@@ -102,6 +102,7 @@ export const RatelimitOverviewLogsCharts = ({
           isError={isError}
           enableSelection
           onSelectionChange={handleSelectionChange}
+          granularity={granularity}
           config={{
             success: {
               label: "Passed",

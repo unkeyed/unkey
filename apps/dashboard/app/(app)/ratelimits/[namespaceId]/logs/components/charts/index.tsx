@@ -12,7 +12,8 @@ export function RatelimitLogsChart({
 }) {
   const { namespaceId } = useRatelimitLogsContext();
   const { filters, updateFilters } = useFilters();
-  const { timeseries, isLoading, isError, granularity } = useFetchRatelimitTimeseries(namespaceId);
+  const { timeseries, isLoading, isError, granularity } =
+    useFetchRatelimitTimeseries(namespaceId);
 
   const handleSelectionChange = ({
     start,
@@ -22,7 +23,7 @@ export function RatelimitLogsChart({
     end: number;
   }) => {
     const activeFilters = filters.filter(
-      (f) => !["startTime", "endTime", "since"].includes(f.field),
+      (f) => !["startTime", "endTime", "since"].includes(f.field)
     );
 
     let adjustedEnd = end;
@@ -67,6 +68,7 @@ export function RatelimitLogsChart({
       isLoading={isLoading}
       isError={isError}
       enableSelection
+      granularity={granularity}
     />
   );
 }
