@@ -12,6 +12,9 @@ message SetRouteRequest {
   
   // Optional: for blue-green deployments
   int32 weight = 3;  // 0-100, defaults to 100 for full cutover
+  
+  // Required for authorization (when called via rollback)
+  string workspace_id = 4;
 }
 
 message SetRouteResponse {
@@ -70,6 +73,7 @@ message Route {
 message RollbackRequest {
   string hostname = 1;
   string target_version_id = 2;
+  string workspace_id = 3;  // Required for authorization
 }
 
 message RollbackResponse {

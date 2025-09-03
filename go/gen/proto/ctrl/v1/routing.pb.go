@@ -27,7 +27,9 @@ type SetRouteRequest struct {
 	Hostname  string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	VersionId string                 `protobuf:"bytes,2,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
 	// Optional: for blue-green deployments
-	Weight        int32 `protobuf:"varint,3,opt,name=weight,proto3" json:"weight,omitempty"` // 0-100, defaults to 100 for full cutover
+	Weight int32 `protobuf:"varint,3,opt,name=weight,proto3" json:"weight,omitempty"` // 0-100, defaults to 100 for full cutover
+	// Required for authorization (when called via rollback)
+	WorkspaceId   string `protobuf:"bytes,4,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -81,6 +83,13 @@ func (x *SetRouteRequest) GetWeight() int32 {
 		return x.Weight
 	}
 	return 0
+}
+
+func (x *SetRouteRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
 }
 
 type SetRouteResponse struct {
@@ -501,6 +510,7 @@ type RollbackRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Hostname        string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	TargetVersionId string                 `protobuf:"bytes,2,opt,name=target_version_id,json=targetVersionId,proto3" json:"target_version_id,omitempty"`
+	WorkspaceId     string                 `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"` // Required for authorization
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -545,6 +555,13 @@ func (x *RollbackRequest) GetHostname() string {
 func (x *RollbackRequest) GetTargetVersionId() string {
 	if x != nil {
 		return x.TargetVersionId
+	}
+	return ""
+}
+
+func (x *RollbackRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
 	}
 	return ""
 }
@@ -613,12 +630,13 @@ var File_ctrl_v1_routing_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_routing_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/routing.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"d\n" +
+	"\x15ctrl/v1/routing.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x87\x01\n" +
 	"\x0fSetRouteRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1d\n" +
 	"\n" +
 	"version_id\x18\x02 \x01(\tR\tversionId\x12\x16\n" +
-	"\x06weight\x18\x03 \x01(\x05R\x06weight\"\x81\x01\n" +
+	"\x06weight\x18\x03 \x01(\x05R\x06weight\x12!\n" +
+	"\fworkspace_id\x18\x04 \x01(\tR\vworkspaceId\"\x81\x01\n" +
 	"\x10SetRouteResponse\x12.\n" +
 	"\x13previous_version_id\x18\x01 \x01(\tR\x11previousVersionId\x12=\n" +
 	"\feffective_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAt\"-\n" +
@@ -657,10 +675,11 @@ const file_ctrl_v1_routing_proto_rawDesc = "" +
 	"updated_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12'\n" +
 	"\x0fhas_certificate\x18\v \x01(\bR\x0ehasCertificate\x12P\n" +
-	"\x16certificate_expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x14certificateExpiresAt\"Y\n" +
+	"\x16certificate_expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x14certificateExpiresAt\"|\n" +
 	"\x0fRollbackRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12*\n" +
-	"\x11target_version_id\x18\x02 \x01(\tR\x0ftargetVersionId\"\xa7\x01\n" +
+	"\x11target_version_id\x18\x02 \x01(\tR\x0ftargetVersionId\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\xa7\x01\n" +
 	"\x10RollbackResponse\x12.\n" +
 	"\x13previous_version_id\x18\x01 \x01(\tR\x11previousVersionId\x12$\n" +
 	"\x0enew_version_id\x18\x02 \x01(\tR\fnewVersionId\x12=\n" +

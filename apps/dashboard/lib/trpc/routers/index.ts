@@ -43,6 +43,7 @@ import { listDeployments } from "./deployment/list";
 import { searchDeployments } from "./deployment/llm-search";
 import { listDomains } from "./domains/list";
 import { listEnvironments } from "./environment/list";
+import { rollback } from "./rollback";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -329,6 +330,9 @@ export const router = t.router({
   }),
   environmentVariables: t.router({
     list: getEnvs,
+  }),
+  deploy: t.router({
+    rollback: rollback,
   }),
 });
 
