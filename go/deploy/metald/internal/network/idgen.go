@@ -8,7 +8,7 @@ import (
 )
 
 // IDGenerator generates short, unique IDs for network devices
-// AIDEV-NOTE: Network interface names in Linux are limited to 15 characters,
+// Network interface names in Linux are limited to 15 characters,
 // so we generate 8-character IDs to leave room for prefixes like "tap-", "vh-", etc.
 type IDGenerator struct {
 	mu        sync.Mutex
@@ -30,7 +30,7 @@ func (g *IDGenerator) GenerateNetworkID() (string, error) {
 	defer g.mu.Unlock()
 
 	// Try up to 10 times to generate a unique ID
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		// Generate 4 random bytes (8 hex characters)
 		bytes := make([]byte, 4)
 		if _, err := rand.Read(bytes); err != nil {
@@ -62,8 +62,7 @@ type NetworkDeviceNames struct {
 	ID        string // 8-character internal ID
 	Namespace string // Network namespace name (no length limit)
 	TAP       string // TAP device name (15 char limit)
-	VethHost  string // Host-side veth name (15 char limit)
-	VethNS    string // Namespace-side veth name (15 char limit)
+	Bridge    string // Bridge name (15 char limit)
 }
 
 // GenerateDeviceNames creates a consistent set of network device names
@@ -72,7 +71,6 @@ func GenerateDeviceNames(networkID string) *NetworkDeviceNames {
 		ID:        networkID,
 		Namespace: fmt.Sprintf("ns_vm_%s", networkID),
 		TAP:       fmt.Sprintf("tap_%s", networkID), // 12 chars
-		VethHost:  fmt.Sprintf("vh_%s", networkID),  // 10 chars
-		VethNS:    fmt.Sprintf("vn_%s", networkID),  // 10 chars
+		Bridge:    fmt.Sprintf("br-%s", networkID),
 	}
 }

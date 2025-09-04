@@ -13,10 +13,14 @@ import (
 
 // TenantContext holds tenant authentication information extracted from request headers.
 type TenantContext struct {
-	// TenantID is the unique identifier for the tenant.
+	// TenantID is the unique identifier for the tenant/customer.
 	TenantID string
-	// CustomerID is the unique identifier for the customer.
-	CustomerID string
+	// ProjectID is the unique identifier for the project.
+	ProjectID string
+	// EnvironmentID is the environment within the project
+	EnvironmentID string
+	// UserID is the user ID making the request
+	UserID string
 	// AuthToken is the authentication token provided in the request.
 	AuthToken string
 }
@@ -24,7 +28,12 @@ type TenantContext struct {
 // contextKey is a private type for context keys to avoid collisions.
 type contextKey string
 
-const tenantContextKey contextKey = "tenant_auth"
+const (
+	tenantContextKey      contextKey = "tenant_id"
+	projectContextKey     contextKey = "project_id"
+	environmentContextKey contextKey = "environment_id"
+	userContextKey        contextKey = "user_id"
+)
 
 // WithTenantContext adds tenant authentication context to the context.
 func WithTenantContext(ctx context.Context, auth TenantContext) context.Context {
@@ -48,7 +57,7 @@ func NewTenantAuthInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
-			// AIDEV-NOTE: Panic recovery in tenant auth interceptor prevents auth failures from crashing the service
+			// Panic recovery in tenant auth interceptor prevents auth failures from crashing the service
 			defer func() {
 				if r := recover(); r != nil {
 					if options.Logger != nil {
@@ -68,7 +77,9 @@ func NewTenantAuthInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 
 			// Extract tenant information from headers
 			tenantID := req.Header().Get("X-Tenant-ID")
-			customerID := req.Header().Get("X-Customer-ID")
+			projectID := req.Header().Get("X-Project-ID")
+			environmentID := req.Header().Get("X-Environment-ID")
+			userID := req.Header().Get("X-User-ID")
 			authToken := req.Header().Get("Authorization")
 
 			// Log request with tenant info if logger is available
@@ -77,16 +88,20 @@ func NewTenantAuthInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 					slog.String("service", options.ServiceName),
 					slog.String("procedure", req.Spec().Procedure),
 					slog.String("tenant_id", tenantID),
-					slog.String("customer_id", customerID),
+					slog.String("project_id", projectID),
+					slog.String("environment_id", environmentID),
+					slog.String("user_id", userID),
 					slog.Bool("has_auth_token", authToken != ""),
 				)
 			}
 
 			// Add tenant context to the request context
 			tenantCtx := TenantContext{
-				TenantID:   tenantID,
-				CustomerID: customerID,
-				AuthToken:  authToken,
+				TenantID:      tenantID,
+				ProjectID:     projectID,
+				EnvironmentID: environmentID,
+				UserID:        userID,
+				AuthToken:     authToken,
 			}
 			ctx = WithTenantContext(ctx, tenantCtx)
 
@@ -94,7 +109,9 @@ func NewTenantAuthInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 			if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
 				span.SetAttributes(
 					attribute.String("tenant.id", tenantID),
-					attribute.String("tenant.customer_id", customerID),
+					attribute.String("tenant.project_id", projectID),
+					attribute.String("tenant.environment_id", environmentID),
+					attribute.String("user.id", userID),
 					attribute.Bool("tenant.authenticated", tenantID != ""),
 				)
 			}
@@ -114,21 +131,19 @@ func NewTenantAuthInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				}
 			}
 
+			// THIS IS PROBABLY WHERE UNKEY OR SOMETHING DOES AUTH LOL
+
 			// Log successful tenant authentication
 			if options.Logger != nil && tenantID != "" {
 				options.Logger.LogAttrs(ctx, slog.LevelDebug, "tenant authenticated",
 					slog.String("service", options.ServiceName),
 					slog.String("tenant_id", tenantID),
-					slog.String("customer_id", customerID),
+					slog.String("project_id", projectID),
+					slog.String("environment_id", environmentID),
+					slog.String("user_id", userID),
 					slog.String("procedure", req.Spec().Procedure),
 				)
 			}
-
-			// AIDEV-TODO: Add actual token validation logic here when auth service is available
-			// This would involve:
-			// 1. Validating the auth token with an auth service
-			// 2. Checking tenant permissions for the requested procedure
-			// 3. Potentially caching validation results for performance
 
 			return next(ctx, req)
 		}

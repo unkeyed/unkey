@@ -13,21 +13,20 @@ import (
 	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
 )
 
-// AIDEV-NOTE: CLI tool demonstrating metald client usage with SPIFFE integration
-// This provides a command-line interface for VM operations with proper tenant isolation
-
 func main() {
 	var (
-		serverAddr   = flag.String("server", getEnvOrDefault("UNKEY_METALD_SERVER_ADDRESS", "https://localhost:8080"), "metald server address")
-		userID       = flag.String("user", getEnvOrDefault("UNKEY_METALD_USER_ID", "cli-user"), "user ID for authentication")
-		tenantID     = flag.String("tenant", getEnvOrDefault("UNKEY_METALD_TENANT_ID", "cli-tenant"), "tenant ID for data scoping")
-		tlsMode      = flag.String("tls-mode", getEnvOrDefault("UNKEY_METALD_TLS_MODE", "spiffe"), "TLS mode: disabled, file, or spiffe")
-		spiffeSocket = flag.String("spiffe-socket", getEnvOrDefault("UNKEY_METALD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"), "SPIFFE agent socket path")
-		tlsCert      = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
-		tlsKey       = flag.String("tls-key", "", "TLS key file (for file mode)")
-		tlsCA        = flag.String("tls-ca", "", "TLS CA file (for file mode)")
-		timeout      = flag.Duration("timeout", 30*time.Second, "request timeout")
-		jsonOutput   = flag.Bool("json", false, "output results as JSON")
+		serverAddr    = flag.String("server", getEnvOrDefault("UNKEY_METALD_SERVER_ADDRESS", "https://localhost:8080"), "metald server address")
+		userID        = flag.String("user", getEnvOrDefault("UNKEY_METALD_USER_ID", "cli-user"), "user ID for authentication")
+		tenantID      = flag.String("tenant", getEnvOrDefault("UNKEY_METALD_TENANT_ID", "cli-tenant"), "tenant ID for data scoping")
+		projectID     = flag.String("project-id", getEnvOrDefault("UNKEY_METALD_PROJECT_ID", "metald-cli-test"), "project ID for data scoping")
+		environmentID = flag.String("environment-id", getEnvOrDefault("UNKEY_METALD_ENVIRONMENT_ID", "development"), "environment ID for data scoping")
+		tlsMode       = flag.String("tls-mode", getEnvOrDefault("UNKEY_METALD_TLS_MODE", "spiffe"), "TLS mode: disabled, file, or spiffe")
+		spiffeSocket  = flag.String("spiffe-socket", getEnvOrDefault("UNKEY_METALD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"), "SPIFFE agent socket path")
+		tlsCert       = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
+		tlsKey        = flag.String("tls-key", "", "TLS key file (for file mode)")
+		tlsCA         = flag.String("tls-ca", "", "TLS CA file (for file mode)")
+		timeout       = flag.Duration("timeout", 30*time.Second, "request timeout")
+		jsonOutput    = flag.Bool("json", false, "output results as JSON")
 
 		// VM configuration options
 		configFile  = flag.String("config", "", "path to VM configuration file (JSON)")
@@ -51,6 +50,8 @@ func main() {
 		ServerAddress:    *serverAddr,
 		UserID:           *userID,
 		TenantID:         *tenantID,
+		ProjectID:        *projectID,
+		EnvironmentID:    *environmentID,
 		TLSMode:          *tlsMode,
 		SPIFFESocketPath: *spiffeSocket,
 		TLSCertFile:      *tlsCert,
@@ -192,13 +193,7 @@ func createVMConfig(options VMConfigOptions) (*vmprovisionerv1.VmConfig, error) 
 		return configFile.ToVMConfig()
 	}
 
-	// Start with template
-	templateName := options.Template
-	if templateName == "" {
-		templateName = "standard"
-	}
-	template := client.VMTemplate(templateName)
-	builder := client.NewVMConfigFromTemplate(template)
+	builder := client.NewVMConfigBuilder()
 
 	// Apply Docker image configuration if specified
 	if options.DockerImage != "" {
@@ -275,15 +270,32 @@ func handleCreate(ctx context.Context, metaldClient *client.Client, options VMCo
 		log.Fatalf("Failed to create VM: %v", err)
 	}
 
+	// Fetch VM info to get IP address
+	var ipAddress string
+	vmInfo, err := metaldClient.GetVMInfo(ctx, resp.VMID)
+	if err != nil {
+		// Don't fail on network info error, just log it
+		fmt.Fprintf(os.Stderr, "Warning: Could not fetch IP address: %v\n", err)
+	} else if vmInfo.NetworkInfo != nil {
+		ipAddress = vmInfo.NetworkInfo.IpAddress
+	}
+
 	if jsonOutput {
-		outputJSON(map[string]any{
+		result := map[string]any{
 			"vm_id": resp.VMID,
 			"state": resp.State.String(),
-		})
+		}
+		if ipAddress != "" {
+			result["ip_address"] = ipAddress
+		}
+		outputJSON(result)
 	} else {
 		fmt.Printf("VM created successfully:\n")
 		fmt.Printf("  VM ID: %s\n", resp.VMID)
 		fmt.Printf("  State: %s\n", resp.State.String())
+		if ipAddress != "" {
+			fmt.Printf("  IP Address: %s\n", ipAddress)
+		}
 	}
 }
 
@@ -577,19 +589,39 @@ func handleCreateAndBoot(ctx context.Context, metaldClient *client.Client, optio
 		log.Fatalf("Failed to boot VM: %v", err)
 	}
 
+	// Wait a moment for VM to boot and get IP address
+	time.Sleep(3 * time.Second)
+
+	// Fetch VM info to get IP address
+	var ipAddress string
+	vmInfo, err := metaldClient.GetVMInfo(ctx, createResp.VMID)
+	if err != nil {
+		// Don't fail on network info error, just log it
+		fmt.Fprintf(os.Stderr, "Warning: Could not fetch IP address: %v\n", err)
+	} else if vmInfo.NetworkInfo != nil {
+		ipAddress = vmInfo.NetworkInfo.IpAddress
+	}
+
 	if jsonOutput {
-		outputJSON(map[string]any{
+		result := map[string]any{
 			"vm_id":        createResp.VMID,
 			"create_state": createResp.State.String(),
 			"boot_success": bootResp.Success,
 			"boot_state":   bootResp.State.String(),
-		})
+		}
+		if ipAddress != "" {
+			result["ip_address"] = ipAddress
+		}
+		outputJSON(result)
 	} else {
 		fmt.Printf("VM created and booted successfully:\n")
 		fmt.Printf("  VM ID: %s\n", createResp.VMID)
 		fmt.Printf("  Create State: %s\n", createResp.State.String())
 		fmt.Printf("  Boot Success: %v\n", bootResp.Success)
 		fmt.Printf("  Boot State: %s\n", bootResp.State.String())
+		if ipAddress != "" {
+			fmt.Printf("  IP Address: %s\n", ipAddress)
+		}
 	}
 }
 
