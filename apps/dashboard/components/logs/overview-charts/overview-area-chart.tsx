@@ -2,6 +2,7 @@
 
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { formatTooltipTimestamp } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -9,8 +10,11 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
+import {
+  type CompoundTimeseriesGranularity,
+  getTimeBufferForGranularity,
+} from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import { useState } from "react";
 import {
   Area,
@@ -24,50 +28,6 @@ import {
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-
-// Helper function to format tooltip timestamps based on granularity and data span
-const formatTooltipTimestamp = (
-  timestamp: number | string,
-  granularity?: string,
-  data?: TimeseriesData[],
-) => {
-  const date = new Date(timestamp);
-
-  // If we have data, check if it spans multiple days
-  if (data && data.length > 1) {
-    const firstDay = new Date(data[0].originalTimestamp);
-    const lastDay = new Date(data[data.length - 1].originalTimestamp);
-
-    // Check if the data spans multiple calendar days
-    const firstDayStr = firstDay.toDateString();
-    const lastDayStr = lastDay.toDateString();
-
-    if (firstDayStr !== lastDayStr) {
-      // Data spans multiple days, always show date + time
-      return format(date, "MMM dd, h:mm a");
-    }
-  }
-
-  // For granularities less than 12 hours on same day, show only time
-  if (
-    granularity &&
-    [
-      "perMinute",
-      "per5Minutes",
-      "per15Minutes",
-      "per30Minutes",
-      "perHour",
-      "per2Hours",
-      "per4Hours",
-      "per6Hours",
-    ].includes(granularity)
-  ) {
-    return format(date, "h:mm a");
-  }
-
-  // For granularities 12 hours or more, show date + time
-  return format(date, "MMM dd, h:mm a");
-};
 
 export type ChartMetric = {
   key: string;
@@ -94,7 +54,20 @@ export type Granularity =
   | "per4Hours"
   | "per6Hours"
   | "per12Hours"
-  | "perDay";
+  | "perDay"
+  | "per3Days"
+  | "perWeek"
+  | "perMonth"
+  | "perYear"
+  | undefined;
+
+// Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
+const getGranularityBuffer = (granularity: Granularity): number => {
+  if (!granularity || granularity === "perYear") {
+    return 60000; // 1 minute fallback
+  }
+  return getTimeBufferForGranularity(granularity as CompoundTimeseriesGranularity);
+};
 
 export interface TimeseriesAreaChartProps {
   data?: TimeseriesData[];
@@ -309,6 +282,7 @@ export const OverviewAreaChart = ({
                         const currentPayload = tooltipPayload[0].payload;
                         const currentTimestamp = currentPayload.originalTimestamp;
 
+                        // Handle missing data
                         if (!data?.length) {
                           return (
                             <div className="px-4">
@@ -319,13 +293,8 @@ export const OverviewAreaChart = ({
                           );
                         }
 
-                        // Find position in the data array
-                        const currentIndex = data.findIndex(
-                          (item) => item?.originalTimestamp === currentTimestamp,
-                        );
-
-                        // If this is the last item or not found, just show current timestamp
-                        if (currentIndex === -1 || currentIndex >= data.length - 1) {
+                        // Handle single timestamp case
+                        if (data.length === 1) {
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
@@ -335,36 +304,95 @@ export const OverviewAreaChart = ({
                           );
                         }
 
-                        // Get the next point in the sequence for interval display
-                        const nextPoint = data[currentIndex + 1];
-                        if (!nextPoint) {
+                        // Normalize timestamps to numeric for robust comparison
+                        const currentTimestampNumeric =
+                          typeof currentTimestamp === "number"
+                            ? currentTimestamp
+                            : +new Date(currentTimestamp);
+
+                        // Find position in the data array using numeric comparison
+                        const currentIndex = data.findIndex((item) => {
+                          if (!item?.originalTimestamp) {
+                            return false;
+                          }
+                          const itemTimestamp =
+                            typeof item.originalTimestamp === "number"
+                              ? item.originalTimestamp
+                              : +new Date(item.originalTimestamp);
+                          return itemTimestamp === currentTimestampNumeric;
+                        });
+
+                        // If not found, fallback to single timestamp display
+                        if (currentIndex === -1) {
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
+                                {formatTooltipTimestamp(currentTimestampNumeric, granularity, data)}
                               </span>
                             </div>
                           );
                         }
 
-                        // Format both timestamps - considers both granularity and data span
+                        // Compute interval end timestamp
+                        let intervalEndTimestamp: number;
+
+                        // If this is the last item, compute interval end using granularity
+                        if (currentIndex >= data.length - 1) {
+                          const inferredGranularityMs = granularity
+                            ? getGranularityBuffer(granularity)
+                            : data.length > 1
+                              ? Math.abs(
+                                  (typeof data[1].originalTimestamp === "number"
+                                    ? data[1].originalTimestamp
+                                    : +new Date(data[1].originalTimestamp)) -
+                                    (typeof data[0].originalTimestamp === "number"
+                                      ? data[0].originalTimestamp
+                                      : +new Date(data[0].originalTimestamp)),
+                                )
+                              : 60000; // 1 minute fallback
+                          intervalEndTimestamp = currentTimestampNumeric + inferredGranularityMs;
+                        } else {
+                          // Use next data point's timestamp
+                          const nextPoint = data[currentIndex + 1];
+                          if (!nextPoint?.originalTimestamp) {
+                            // Fallback to single timestamp if next point is invalid
+                            return (
+                              <div className="px-4">
+                                <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+                                  {formatTooltipTimestamp(
+                                    currentTimestampNumeric,
+                                    granularity,
+                                    data,
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          }
+                          intervalEndTimestamp =
+                            typeof nextPoint.originalTimestamp === "number"
+                              ? nextPoint.originalTimestamp
+                              : +new Date(nextPoint.originalTimestamp);
+                        }
+
+                        // Format both timestamps using normalized numeric values
                         const formattedCurrentTimestamp = formatTooltipTimestamp(
-                          currentTimestamp,
+                          currentTimestampNumeric,
                           granularity,
                           data,
                         );
                         const formattedNextTimestamp = formatTooltipTimestamp(
-                          nextPoint.originalTimestamp,
+                          intervalEndTimestamp,
                           granularity,
                           data,
                         );
 
-                        // Get timezone abbreviation
+                        // Get timezone abbreviation from the actual point date for correct DST handling
+                        const pointDate = new Date(currentTimestampNumeric);
                         const timezone =
                           new Intl.DateTimeFormat("en-US", {
                             timeZoneName: "short",
                           })
-                            .formatToParts(new Date())
+                            .formatToParts(pointDate)
                             .find((part) => part.type === "timeZoneName")?.value || "";
 
                         // Return formatted interval with timezone info

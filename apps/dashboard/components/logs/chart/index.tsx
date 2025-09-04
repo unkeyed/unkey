@@ -33,7 +33,7 @@ type TimeseriesData = {
 
 type ChartMouseEvent = {
   activeLabel?: string | number;
-  activePayload?: Array<{
+  activePayload?: ReadonlyArray<{
     payload: TimeseriesData;
   }>;
 };
@@ -199,9 +199,9 @@ export function LogsTimeseriesBarChart({
                     labelFormatter={(_, payload) =>
                       createTimeIntervalFormatter(
                         data,
-                        "HH:mm",
+                        undefined,
                         granularity,
-                      )(payload as TimeseriesData[])
+                      )((payload ?? []).map((p) => (p as { payload: TimeseriesData }).payload))
                     }
                   />
                 );
