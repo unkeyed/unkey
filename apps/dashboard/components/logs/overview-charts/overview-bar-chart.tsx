@@ -9,18 +9,10 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ReferenceArea,
-  ResponsiveContainer,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
@@ -30,7 +22,7 @@ import type { Selection, TimeseriesData } from "./types";
 const formatTooltipTimestamp = (
   timestamp: number | string,
   granularity?: string,
-  data?: TimeseriesData[]
+  data?: TimeseriesData[],
 ) => {
   const date = new Date(timestamp);
 
@@ -156,10 +148,7 @@ export function OverviewBarChart({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [
-        selection.startTimestamp,
-        selection.endTimestamp,
-      ].sort((a, b) => a - b);
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
 
       onSelectionChange({ start, end });
     }
@@ -180,28 +169,23 @@ export function OverviewBarChart({
 
   // Calculate totals based on the provided keys
   const totalCount = (data ?? []).reduce(
-    (acc, crr) =>
-      acc +
-      (crr[labels.primaryKey] as number) +
-      (crr[labels.secondaryKey] as number),
-    0
+    (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
+    0,
   );
   const primaryCount = (data ?? []).reduce(
     (acc, crr) => acc + (crr[labels.primaryKey] as number),
-    0
+    0,
   );
   const secondaryCount = (data ?? []).reduce(
     (acc, crr) => acc + (crr[labels.secondaryKey] as number),
-    0
+    0,
   );
 
   return (
     <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">
-            {labels.title}
-          </div>
+          <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {formatNumber(totalCount)}
           </div>
@@ -211,9 +195,7 @@ export function OverviewBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">
-                {labels.primaryLabel}
-              </div>
+              <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
               {formatNumber(primaryCount)}
@@ -222,9 +204,7 @@ export function OverviewBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">
-                {labels.secondaryLabel}
-              </div>
+              <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
               {formatNumber(secondaryCount)}
@@ -263,11 +243,7 @@ export function OverviewBarChart({
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (
-                    !active ||
-                    !payload?.length ||
-                    payload?.[0]?.payload.total === 0
-                  ) {
+                  if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
                     return null;
                   }
                   return (
@@ -284,9 +260,7 @@ export function OverviewBarChart({
                                 <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                   All
                                 </span>
-                                <span className="capitalize text-accent-12 text-xs">
-                                  Total
-                                </span>
+                                <span className="capitalize text-accent-12 text-xs">Total</span>
                               </div>
                               <div className="ml-auto">
                                 <span className="font-mono tabular-nums text-accent-12">
@@ -314,9 +288,7 @@ export function OverviewBarChart({
                                 </div>
                                 <div className="ml-auto">
                                   <span className="font-mono tabular-nums text-accent-12">
-                                    {formatNumber(
-                                      payload[0]?.payload?.[item.dataKey]
-                                    )}
+                                    {formatNumber(payload[0]?.payload?.[item.dataKey])}
                                   </span>
                                 </div>
                               </div>
@@ -331,18 +303,13 @@ export function OverviewBarChart({
                         }
 
                         const currentPayload = tooltipPayload[0].payload;
-                        const currentTimestamp =
-                          currentPayload.originalTimestamp;
+                        const currentTimestamp = currentPayload.originalTimestamp;
 
                         if (!data?.length) {
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(
-                                  currentTimestamp,
-                                  granularity,
-                                  data
-                                )}
+                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
                               </span>
                             </div>
                           );
@@ -350,22 +317,15 @@ export function OverviewBarChart({
 
                         // Find position in the data array
                         const currentIndex = data.findIndex(
-                          (item) => item?.originalTimestamp === currentTimestamp
+                          (item) => item?.originalTimestamp === currentTimestamp,
                         );
 
                         // If this is the last item or not found, just show current timestamp
-                        if (
-                          currentIndex === -1 ||
-                          currentIndex >= data.length - 1
-                        ) {
+                        if (currentIndex === -1 || currentIndex >= data.length - 1) {
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(
-                                  currentTimestamp,
-                                  granularity,
-                                  data
-                                )}
+                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
                               </span>
                             </div>
                           );
@@ -377,27 +337,22 @@ export function OverviewBarChart({
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(
-                                  currentTimestamp,
-                                  granularity,
-                                  data
-                                )}
+                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
                               </span>
                             </div>
                           );
                         }
 
                         // Format both timestamps - considers both granularity and data span
-                        const formattedCurrentTimestamp =
-                          formatTooltipTimestamp(
-                            currentTimestamp,
-                            granularity,
-                            data
-                          );
+                        const formattedCurrentTimestamp = formatTooltipTimestamp(
+                          currentTimestamp,
+                          granularity,
+                          data,
+                        );
                         const formattedNextTimestamp = formatTooltipTimestamp(
                           nextPoint.originalTimestamp,
                           granularity,
-                          data
+                          data,
                         );
 
                         // Get timezone abbreviation
@@ -406,15 +361,13 @@ export function OverviewBarChart({
                             timeZoneName: "short",
                           })
                             .formatToParts(new Date())
-                            .find((part) => part.type === "timeZoneName")
-                            ?.value || "";
+                            .find((part) => part.type === "timeZoneName")?.value || "";
 
                         // Return formatted interval with timezone info
                         return (
                           <div className="px-4">
                             <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                              {formattedCurrentTimestamp} -{" "}
-                              {formattedNextTimestamp} ({timezone})
+                              {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezone})
                             </span>
                           </div>
                         );
@@ -424,12 +377,7 @@ export function OverviewBarChart({
                 }}
               />
               {Object.keys(config).map((key) => (
-                <Bar
-                  key={key}
-                  dataKey={key}
-                  stackId="a"
-                  fill={config[key].color}
-                />
+                <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
               ))}
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
@@ -457,7 +405,7 @@ export function OverviewBarChart({
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now()
+              data.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10 text-center">

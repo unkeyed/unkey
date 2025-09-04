@@ -11,13 +11,7 @@ import { formatNumber } from "@/lib/fmt";
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  ReferenceArea,
-  ResponsiveContainer,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 import { createTimeIntervalFormatter } from "../overview-charts/utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
@@ -25,8 +19,8 @@ import { calculateTimePoints } from "./utils/calculate-timepoints";
 import { formatTimestampLabel } from "./utils/format-timestamp";
 
 type Selection = {
-  start: string | number;
-  end: string | number;
+  start: string | number | undefined;
+  end: string | number | undefined;
   startTimestamp?: number;
   endTimestamp?: number;
 };
@@ -35,6 +29,13 @@ type TimeseriesData = {
   originalTimestamp: number;
   total: number;
   [key: string]: unknown;
+};
+
+type ChartMouseEvent = {
+  activeLabel?: string | number;
+  activePayload?: Array<{
+    payload: TimeseriesData;
+  }>;
 };
 
 type LogsTimeseriesBarChartProps = {
@@ -61,7 +62,10 @@ export function LogsTimeseriesBarChart({
   granularity,
 }: LogsTimeseriesBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+  const [selection, setSelection] = useState<Selection>({
+    start: undefined,
+    end: undefined,
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
@@ -71,8 +75,7 @@ export function LogsTimeseriesBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
-  const handleMouseDown = (e: any) => {
+  const handleMouseDown = (e: ChartMouseEvent) => {
     if (!enableSelection) {
       return;
     }
@@ -85,8 +88,7 @@ export function LogsTimeseriesBarChart({
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
-  const handleMouseMove = (e: any) => {
+  const handleMouseMove = (e: ChartMouseEvent) => {
     if (!enableSelection) {
       return;
     }
@@ -109,15 +111,12 @@ export function LogsTimeseriesBarChart({
         return;
       }
 
-      const [start, end] = [
-        selection.startTimestamp,
-        selection.endTimestamp,
-      ].sort((a, b) => a - b);
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
-      start: "",
-      end: "",
+      start: undefined,
+      end: undefined,
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
@@ -137,20 +136,15 @@ export function LogsTimeseriesBarChart({
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now()
-            ).map((time, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <div key={i} className="z-10">
+              data.at(-1)?.originalTimestamp ?? Date.now(),
+            ).map((time) => (
+              <div key={time.getTime()} className="z-10">
                 {formatTimestampLabel(time)}
               </div>
             ))
           : null}
       </div>
-      <ResponsiveContainer
-        width="100%"
-        height={height}
-        className="border-b border-gray-4"
-      >
+      <ResponsiveContainer width="100%" height={height} className="border-b border-gray-4">
         <ChartContainer config={config}>
           <BarChart
             data={data}
@@ -172,11 +166,7 @@ export function LogsTimeseriesBarChart({
                 strokeOpacity: 0.7,
               }}
               content={({ active, payload, label }) => {
-                if (
-                  !active ||
-                  !payload?.length ||
-                  payload?.[0]?.payload.total === 0
-                ) {
+                if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
                   return null;
                 }
 
@@ -194,9 +184,7 @@ export function LogsTimeseriesBarChart({
                               <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                 All
                               </span>
-                              <span className="capitalize text-accent-12 text-xs">
-                                Total
-                              </span>
+                              <span className="capitalize text-accent-12 text-xs">Total</span>
                             </div>
                             <div className="ml-auto">
                               <span className="font-mono tabular-nums text-accent-12">
@@ -212,20 +200,15 @@ export function LogsTimeseriesBarChart({
                       createTimeIntervalFormatter(
                         data,
                         "HH:mm",
-                        granularity
-                      )(payload as any)
+                        granularity,
+                      )(payload as TimeseriesData[])
                     }
                   />
                 );
               }}
             />
             {Object.keys(config).map((key) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                stackId="a"
-                fill={config[key].color}
-              />
+              <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
             ))}
             {enableSelection && selection.start && selection.end && (
               <ReferenceArea
