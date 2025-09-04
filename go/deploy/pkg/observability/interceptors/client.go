@@ -57,8 +57,11 @@ func NewClientTenantForwardingInterceptor(logger *slog.Logger) connect.UnaryInte
 				if tenantCtx.TenantID != "" {
 					req.Header().Set("X-Tenant-ID", tenantCtx.TenantID)
 				}
-				if tenantCtx.CustomerID != "" {
-					req.Header().Set("X-Customer-ID", tenantCtx.CustomerID)
+				if tenantCtx.ProjectID != "" {
+					req.Header().Set("X-Project-ID", tenantCtx.ProjectID)
+				}
+				if tenantCtx.EnvironmentID != "" {
+					req.Header().Set("X-Environment-ID", tenantCtx.EnvironmentID)
 				}
 				if tenantCtx.AuthToken != "" {
 					req.Header().Set("Authorization", tenantCtx.AuthToken)
@@ -66,7 +69,8 @@ func NewClientTenantForwardingInterceptor(logger *slog.Logger) connect.UnaryInte
 
 				logger.LogAttrs(ctx, slog.LevelDebug, "forwarding tenant context",
 					slog.String("tenant_id", tenantCtx.TenantID),
-					slog.String("customer_id", tenantCtx.CustomerID),
+					slog.String("project_id", tenantCtx.ProjectID),
+					slog.String("environment_id", tenantCtx.EnvironmentID),
 					slog.String("procedure", req.Spec().Procedure),
 				)
 			}
@@ -105,7 +109,8 @@ func NewClientMetricsInterceptor(serviceName string, logger *slog.Logger) connec
 			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
 				span.SetAttributes(
 					attribute.String("tenant.id", tenantCtx.TenantID),
-					attribute.String("tenant.customer_id", tenantCtx.CustomerID),
+					attribute.String("tenant.project_id", tenantCtx.ProjectID),
+					attribute.String("tenant.environment_id", tenantCtx.EnvironmentID),
 				)
 			}
 

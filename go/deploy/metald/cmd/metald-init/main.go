@@ -44,7 +44,7 @@ func main() {
 	log.SetPrefix("[init] ")
 
 	// AIDEV-NOTE: Write debug file with secure permissions
-	os.WriteFile("/init.started", []byte(fmt.Sprintf("Started at %s\n", time.Now())), 0600)
+	os.WriteFile("/init.started", []byte(fmt.Sprintf("Started at %s\n", time.Now())), 0o600)
 
 	// AIDEV-NOTE: Mount /proc filesystem so we can read kernel command line
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
@@ -119,7 +119,7 @@ func main() {
 	// AIDEV-NOTE: Write debug info with secure permissions
 	debugInfo := fmt.Sprintf("Command: %s\nArgs: %v\nEnv count: %d\nWorking dir: %s\n",
 		command, commandArgs, len(os.Environ()), os.Getenv("PWD"))
-	os.WriteFile("/init.command", []byte(debugInfo), 0600)
+	os.WriteFile("/init.command", []byte(debugInfo), 0o600)
 
 	// AIDEV-NOTE: Load container environment configuration for complete runtime replication
 	containerEnv, err := loadContainerEnvironment()
@@ -206,7 +206,7 @@ func parseKernelCmdline() map[string]string {
 	}
 
 	// Parse space-separated key=value pairs
-	for _, param := range strings.Fields(string(cmdline)) {
+	for param := range strings.FieldsSeq(string(cmdline)) {
 		if strings.Contains(param, "=") {
 			parts := strings.SplitN(param, "=", 2)
 			params[parts[0]] = parts[1]
@@ -445,7 +445,7 @@ func createCommonDirectories() {
 	}
 
 	for _, dir := range commonDirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			log.Printf("warning: failed to create directory %s: %v", dir, err)
 		} else {
 			log.Printf("ensured directory exists: %s", dir)
@@ -598,13 +598,13 @@ Options:
 
 Environment:
   The init process reads kernel command line parameters from /proc/cmdline:
-  
+
   env.KEY=VALUE    Set environment variable KEY to VALUE
   workdir=/path    Change working directory to /path
-  
+
 Example:
   %s -- nginx -g "daemon off;"
-  
+
   With kernel cmdline: env.NGINX_PORT=8080 workdir=/app
 `, binaryName, binaryName, binaryName)
 	fmt.Print(help)

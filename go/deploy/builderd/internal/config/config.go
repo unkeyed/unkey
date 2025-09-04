@@ -37,6 +37,7 @@ type BuilderConfig struct {
 	RootfsOutputDir     string        `yaml:"rootfs_output_dir"`
 	WorkspaceDir        string        `yaml:"workspace_dir"`
 	CleanupInterval     time.Duration `yaml:"cleanup_interval"`
+	UsePipelineExecutor bool          `yaml:"use_pipeline_executor"` // Feature flag for step-based execution
 }
 
 // StorageConfig holds storage backend configuration
@@ -165,6 +166,7 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			RootfsOutputDir:     getEnvOrDefault("UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR", "/opt/builderd/rootfs"),
 			WorkspaceDir:        getEnvOrDefault("UNKEY_BUILDERD_WORKSPACE_DIR", "/opt/builderd/workspace"),
 			CleanupInterval:     getEnvDurationOrDefault("UNKEY_BUILDERD_CLEANUP_INTERVAL", 1*time.Hour),
+			UsePipelineExecutor: getEnvBoolOrDefault("UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR", false),
 		},
 		Storage: StorageConfig{ //nolint:exhaustruct // S3Config and GCSConfig are optional backend-specific configs
 			Backend:        getEnvOrDefault("UNKEY_BUILDERD_STORAGE_BACKEND", "local"),

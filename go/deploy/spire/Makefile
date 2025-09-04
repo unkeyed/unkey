@@ -2,7 +2,7 @@
 # Installs SPIRE server and agent as systemd services
 
 # Variables
-SPIRE_VERSION ?= 1.12.2
+SPIRE_VERSION ?= 1.13.0
 SPIRE_ARCH ?= linux-amd64-musl
 SPIRE_URL = https://github.com/spiffe/spire/releases/download/v$(SPIRE_VERSION)/spire-$(SPIRE_VERSION)-$(SPIRE_ARCH).tar.gz
 SPIRE_INSTALL_DIR = /opt/spire

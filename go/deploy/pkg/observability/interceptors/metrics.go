@@ -127,7 +127,8 @@ func NewMetricsInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
 				span.SetAttributes(
 					attribute.String("tenant.id", tenantCtx.TenantID),
-					attribute.String("tenant.customer_id", tenantCtx.CustomerID),
+					// attribute.String("tenant.project_id", tenantCtx.ProjectID),
+					// attribute.String("tenant.environment_id", tenantCtx.EnvironmentID),
 				)
 			}
 
@@ -181,7 +182,7 @@ func NewMetricsInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						err = connect.NewError(connect.CodeInternal, fmt.Errorf("handler panic: %v", r))
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("metrics handler panic: %v", r))
 						span.RecordError(err)
 					}
 				}()

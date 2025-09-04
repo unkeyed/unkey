@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/ctrl/v1/routing.proto
+// source: ctrl/v1/routing.proto
 
 package ctrlv1
 
@@ -34,7 +34,7 @@ type SetRouteRequest struct {
 
 func (x *SetRouteRequest) Reset() {
 	*x = SetRouteRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[0]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *SetRouteRequest) String() string {
 func (*SetRouteRequest) ProtoMessage() {}
 
 func (x *SetRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[0]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *SetRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRouteRequest.ProtoReflect.Descriptor instead.
 func (*SetRouteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SetRouteRequest) GetHostname() string {
@@ -93,7 +93,7 @@ type SetRouteResponse struct {
 
 func (x *SetRouteResponse) Reset() {
 	*x = SetRouteResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[1]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +105,7 @@ func (x *SetRouteResponse) String() string {
 func (*SetRouteResponse) ProtoMessage() {}
 
 func (x *SetRouteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[1]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,7 +118,7 @@ func (x *SetRouteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRouteResponse.ProtoReflect.Descriptor instead.
 func (*SetRouteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SetRouteResponse) GetPreviousVersionId() string {
@@ -144,7 +144,7 @@ type GetRouteRequest struct {
 
 func (x *GetRouteRequest) Reset() {
 	*x = GetRouteRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[2]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +156,7 @@ func (x *GetRouteRequest) String() string {
 func (*GetRouteRequest) ProtoMessage() {}
 
 func (x *GetRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[2]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +169,7 @@ func (x *GetRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRouteRequest.ProtoReflect.Descriptor instead.
 func (*GetRouteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetRouteRequest) GetHostname() string {
@@ -188,7 +188,7 @@ type GetRouteResponse struct {
 
 func (x *GetRouteResponse) Reset() {
 	*x = GetRouteResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[3]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +200,7 @@ func (x *GetRouteResponse) String() string {
 func (*GetRouteResponse) ProtoMessage() {}
 
 func (x *GetRouteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[3]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +213,7 @@ func (x *GetRouteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRouteResponse.ProtoReflect.Descriptor instead.
 func (*GetRouteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRouteResponse) GetRoute() *Route {
@@ -239,7 +239,7 @@ type ListRoutesRequest struct {
 
 func (x *ListRoutesRequest) Reset() {
 	*x = ListRoutesRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[4]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +251,7 @@ func (x *ListRoutesRequest) String() string {
 func (*ListRoutesRequest) ProtoMessage() {}
 
 func (x *ListRoutesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[4]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +264,7 @@ func (x *ListRoutesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutesRequest.ProtoReflect.Descriptor instead.
 func (*ListRoutesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListRoutesRequest) GetWorkspaceId() string {
@@ -319,7 +319,7 @@ type ListRoutesResponse struct {
 
 func (x *ListRoutesResponse) Reset() {
 	*x = ListRoutesResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[5]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +331,7 @@ func (x *ListRoutesResponse) String() string {
 func (*ListRoutesResponse) ProtoMessage() {}
 
 func (x *ListRoutesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[5]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +344,7 @@ func (x *ListRoutesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutesResponse.ProtoReflect.Descriptor instead.
 func (*ListRoutesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListRoutesResponse) GetRoutes() []*Route {
@@ -384,7 +384,7 @@ type Route struct {
 
 func (x *Route) Reset() {
 	*x = Route{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[6]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -396,7 +396,7 @@ func (x *Route) String() string {
 func (*Route) ProtoMessage() {}
 
 func (x *Route) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[6]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -409,7 +409,7 @@ func (x *Route) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Route.ProtoReflect.Descriptor instead.
 func (*Route) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Route) GetHostname() string {
@@ -507,7 +507,7 @@ type RollbackRequest struct {
 
 func (x *RollbackRequest) Reset() {
 	*x = RollbackRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[7]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +519,7 @@ func (x *RollbackRequest) String() string {
 func (*RollbackRequest) ProtoMessage() {}
 
 func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[7]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +532,7 @@ func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
 func (*RollbackRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RollbackRequest) GetHostname() string {
@@ -560,7 +560,7 @@ type RollbackResponse struct {
 
 func (x *RollbackResponse) Reset() {
 	*x = RollbackResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[8]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -572,7 +572,7 @@ func (x *RollbackResponse) String() string {
 func (*RollbackResponse) ProtoMessage() {}
 
 func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[8]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -585,7 +585,7 @@ func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
 func (*RollbackResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RollbackResponse) GetPreviousVersionId() string {
@@ -609,11 +609,11 @@ func (x *RollbackResponse) GetEffectiveAt() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_proto_ctrl_v1_routing_proto protoreflect.FileDescriptor
+var File_ctrl_v1_routing_proto protoreflect.FileDescriptor
 
-const file_proto_ctrl_v1_routing_proto_rawDesc = "" +
+const file_ctrl_v1_routing_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/routing.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"d\n" +
+	"\x15ctrl/v1/routing.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"d\n" +
 	"\x0fSetRouteRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1d\n" +
 	"\n" +
@@ -673,19 +673,19 @@ const file_proto_ctrl_v1_routing_proto_rawDesc = "" +
 	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
-	file_proto_ctrl_v1_routing_proto_rawDescOnce sync.Once
-	file_proto_ctrl_v1_routing_proto_rawDescData []byte
+	file_ctrl_v1_routing_proto_rawDescOnce sync.Once
+	file_ctrl_v1_routing_proto_rawDescData []byte
 )
 
-func file_proto_ctrl_v1_routing_proto_rawDescGZIP() []byte {
-	file_proto_ctrl_v1_routing_proto_rawDescOnce.Do(func() {
-		file_proto_ctrl_v1_routing_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_routing_proto_rawDesc), len(file_proto_ctrl_v1_routing_proto_rawDesc)))
+func file_ctrl_v1_routing_proto_rawDescGZIP() []byte {
+	file_ctrl_v1_routing_proto_rawDescOnce.Do(func() {
+		file_ctrl_v1_routing_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ctrl_v1_routing_proto_rawDesc), len(file_ctrl_v1_routing_proto_rawDesc)))
 	})
-	return file_proto_ctrl_v1_routing_proto_rawDescData
+	return file_ctrl_v1_routing_proto_rawDescData
 }
 
-var file_proto_ctrl_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_ctrl_v1_routing_proto_goTypes = []any{
+var file_ctrl_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ctrl_v1_routing_proto_goTypes = []any{
 	(*SetRouteRequest)(nil),       // 0: ctrl.v1.SetRouteRequest
 	(*SetRouteResponse)(nil),      // 1: ctrl.v1.SetRouteResponse
 	(*GetRouteRequest)(nil),       // 2: ctrl.v1.GetRouteRequest
@@ -697,7 +697,7 @@ var file_proto_ctrl_v1_routing_proto_goTypes = []any{
 	(*RollbackResponse)(nil),      // 8: ctrl.v1.RollbackResponse
 	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
 }
-var file_proto_ctrl_v1_routing_proto_depIdxs = []int32{
+var file_ctrl_v1_routing_proto_depIdxs = []int32{
 	9,  // 0: ctrl.v1.SetRouteResponse.effective_at:type_name -> google.protobuf.Timestamp
 	6,  // 1: ctrl.v1.GetRouteResponse.route:type_name -> ctrl.v1.Route
 	6,  // 2: ctrl.v1.ListRoutesResponse.routes:type_name -> ctrl.v1.Route
@@ -720,26 +720,26 @@ var file_proto_ctrl_v1_routing_proto_depIdxs = []int32{
 	0,  // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_proto_ctrl_v1_routing_proto_init() }
-func file_proto_ctrl_v1_routing_proto_init() {
-	if File_proto_ctrl_v1_routing_proto != nil {
+func init() { file_ctrl_v1_routing_proto_init() }
+func file_ctrl_v1_routing_proto_init() {
+	if File_ctrl_v1_routing_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_routing_proto_rawDesc), len(file_proto_ctrl_v1_routing_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_routing_proto_rawDesc), len(file_ctrl_v1_routing_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_ctrl_v1_routing_proto_goTypes,
-		DependencyIndexes: file_proto_ctrl_v1_routing_proto_depIdxs,
-		MessageInfos:      file_proto_ctrl_v1_routing_proto_msgTypes,
+		GoTypes:           file_ctrl_v1_routing_proto_goTypes,
+		DependencyIndexes: file_ctrl_v1_routing_proto_depIdxs,
+		MessageInfos:      file_ctrl_v1_routing_proto_msgTypes,
 	}.Build()
-	File_proto_ctrl_v1_routing_proto = out.File
-	file_proto_ctrl_v1_routing_proto_goTypes = nil
-	file_proto_ctrl_v1_routing_proto_depIdxs = nil
+	File_ctrl_v1_routing_proto = out.File
+	file_ctrl_v1_routing_proto_goTypes = nil
+	file_ctrl_v1_routing_proto_depIdxs = nil
 }
