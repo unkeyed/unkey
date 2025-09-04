@@ -31,6 +31,7 @@ SELECT
   identity_id,
   key_id,
   outcome,
+  tags,
   count(*) as count,
   avgState (latency) as latency_avg,
   quantilesTDigestState (0.75) (latency) as latency_p75,
@@ -44,4 +45,5 @@ GROUP BY
   identity_id,
   key_id,
   outcome,
+  tags,
   time;
