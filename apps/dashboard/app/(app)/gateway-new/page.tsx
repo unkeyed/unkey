@@ -8,6 +8,7 @@
  * 4. The user is redirected to create their API
  */
 
+import { randomInt } from "node:crypto";
 import { getAuth } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
@@ -28,7 +29,7 @@ export default async function Page() {
     await db.insert(schema.workspaces).values({
       id,
       name: "Personal Workspace",
-      slug: "personal-workspace",
+      slug: `personal-workspace-${randomInt(100000)}`,
       orgId,
       betaFeatures: {},
       features: {},

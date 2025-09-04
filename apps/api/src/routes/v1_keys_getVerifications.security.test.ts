@@ -75,7 +75,7 @@ test("cannot read keys from a different workspace", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const workspaceId = newId("workspace");
-  const name = randomUUID();
+  const name = `Test-${randomUUID()}`;
   await h.db.primary.insert(schema.workspaces).values({
     id: workspaceId,
     orgId: randomUUID(),
