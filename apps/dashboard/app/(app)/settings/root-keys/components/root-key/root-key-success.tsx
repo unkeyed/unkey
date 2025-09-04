@@ -1,6 +1,6 @@
 "use client";
 
-import { SecretKey } from "@/app/(app)/apis/[apiId]/_components/create-key/components/secret-key";
+import { SecretKey } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/secret-key";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Check, CircleInfo, Key2 } from "@unkey/icons";
 import { Dialog, DialogContent } from "@unkey/ui";

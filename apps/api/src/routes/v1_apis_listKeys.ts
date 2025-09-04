@@ -140,15 +140,18 @@ export const registerV1ApisListKeys = (app: App) =>
 
     let identity: Identity | undefined = undefined;
     if (externalId) {
-      const { val, err } = await cache.identityByExternalId.swr(externalId, async () => {
-        return db.readonly.query.identities.findFirst({
-          where: (table, { and, eq }) =>
-            and(
-              eq(table.externalId, externalId),
-              eq(table.workspaceId, auth.authorizedWorkspaceId),
-            ),
-        });
-      });
+      const { val, err } = await cache.identityByExternalId.swr(
+        `${auth.authorizedWorkspaceId}:${externalId}`,
+        async () => {
+          return db.readonly.query.identities.findFirst({
+            where: (table, { and, eq }) =>
+              and(
+                eq(table.externalId, externalId),
+                eq(table.workspaceId, auth.authorizedWorkspaceId),
+              ),
+          });
+        },
+      );
       if (err) {
         throw new UnkeyApiError({
           code: "INTERNAL_SERVER_ERROR",

@@ -1,4 +1,4 @@
-import type { KeysOverviewQueryTimeseriesPayload } from "@/app/(app)/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
+import type { KeysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import {

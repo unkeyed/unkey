@@ -354,11 +354,15 @@ STEP INTERVAL 1 MONTH`,
 
     if (filters.externalId) {
       const { val: identity, err: getIdentityError } = await cache.identityByExternalId.swr(
-        filters.externalId,
-        async (externalId: string) => {
+        `${auth.authorizedWorkspaceId}:${filters.externalId}`,
+        async () => {
           return (
             (await db.readonly.query.identities.findFirst({
-              where: (table, { eq }) => eq(table.externalId, externalId),
+              where: (table, { and, eq }) =>
+                and(
+                  eq(table.workspaceId, auth.authorizedWorkspaceId),
+                  eq(table.externalId, filters.externalId!),
+                ),
             })) ?? null
           );
         },

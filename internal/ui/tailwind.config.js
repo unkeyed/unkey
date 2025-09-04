@@ -48,7 +48,7 @@ export default {
 const getColor = (colorVar, { opacityVariable, opacityValue }) => {
   // For alpha colors, we need to extract the alpha from the variable itself
   // to avoid the syntax error in the generated CSS
-  const alphaColors = ["grayA", "errorA", "successA", "warningA", "orangeA"];
+  const alphaColors = ["grayA", "errorA", "successA", "warningA", "orangeA", "infoA"];
   if (alphaColors.some((color) => colorVar.includes(color))) {
     return `hsla(var(--${colorVar.replace("--", "")}))`;
   }
@@ -67,6 +67,7 @@ function generateRadixColors() {
     "gray",
     "grayA",
     "info",
+    "infoA",
     "success",
     "successA", // Added tealA
     "orange",

@@ -1,5 +1,6 @@
-import { Earth, Github } from "@unkey/icons";
+import { Earth } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { RepoDisplay } from "./repo-display";
 
 type RegionBadgesProps = {
   regions: string[];
@@ -41,12 +42,10 @@ export const RegionBadges = ({ regions, repository }: RegionBadgesProps) => {
         </InfoTooltip>
       )}
       {repository && (
-        <InfoTooltip content={repository} asChild>
-          <div className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] flex items-center gap-1.5 max-w-[130px]">
-            <Github size="lg-medium" className="shrink-0" />
-            <span className="truncate">{repository}</span>
-          </div>
-        </InfoTooltip>
+        <RepoDisplay
+          url={repository}
+          className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
+        />
       )}
     </div>
   );

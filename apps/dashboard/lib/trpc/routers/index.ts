@@ -38,6 +38,8 @@ import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { createProject } from "./deploy/project/create";
+import { queryDeployments } from "./deploy/project/deployment/list";
+import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
 import { queryProjects } from "./deploy/project/list";
 import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";
@@ -113,6 +115,7 @@ import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
+import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -192,6 +195,7 @@ export const router = t.router({
   }),
   workspace: t.router({
     create: createWorkspace,
+    getCurrent: getCurrentWorkspace,
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
@@ -311,6 +315,10 @@ export const router = t.router({
     project: t.router({
       list: queryProjects,
       create: createProject,
+    }),
+    deployment: t.router({
+      list: queryDeployments,
+      search: deploymentListLlmSearch,
     }),
   }),
   deployment: deploymentRouter,

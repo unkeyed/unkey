@@ -1,4 +1,4 @@
-import type { AllOperatorsUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
+import type { AllOperatorsUrlValue } from "@/app/(app)/[workspace]/apis/[apiId]/_overview/filters.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { type SQL, db, like, or } from "@/lib/db";
 import { TRPCError } from "@trpc/server";

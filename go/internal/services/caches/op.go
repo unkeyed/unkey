@@ -1,10 +1,8 @@
 package caches
 
 import (
-	"database/sql"
-	"errors"
-
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
 // DefaultFindFirstOp returns the appropriate cache operation based on the sql error
@@ -14,7 +12,7 @@ func DefaultFindFirstOp(err error) cache.Op {
 		return cache.WriteValue
 	}
 
-	if errors.Is(err, sql.ErrNoRows) {
+	if db.IsNotFound(err) {
 		// the response is empty, we need to store that the row does not exist
 		return cache.WriteNull
 	}

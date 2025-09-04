@@ -40,13 +40,14 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures">,
+  workspace: Pick<Workspace, "features" | "betaFeatures" | "id">,
   segments: string[],
 ) => {
+  const basePath = `/${workspace.id}`;
   return [
     {
       icon: Nodes,
-      href: "/apis",
+      href: `${basePath}/apis`,
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
