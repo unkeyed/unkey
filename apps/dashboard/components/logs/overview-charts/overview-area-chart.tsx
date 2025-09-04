@@ -84,6 +84,18 @@ export type TimeseriesChartLabels = {
   reverse?: boolean;
 };
 
+export type Granularity =
+  | "perMinute"
+  | "per5Minutes"
+  | "per15Minutes"
+  | "per30Minutes"
+  | "perHour"
+  | "per2Hours"
+  | "per4Hours"
+  | "per6Hours"
+  | "per12Hours"
+  | "perDay";
+
 export interface TimeseriesAreaChartProps {
   data?: TimeseriesData[];
   config: ChartConfig;
@@ -92,7 +104,7 @@ export interface TimeseriesAreaChartProps {
   isError?: boolean;
   enableSelection?: boolean;
   labels: TimeseriesChartLabels;
-  granularity?: string;
+  granularity?: Granularity;
 }
 
 export const OverviewAreaChart = ({

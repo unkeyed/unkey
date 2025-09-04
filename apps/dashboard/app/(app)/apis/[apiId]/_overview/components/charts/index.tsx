@@ -32,17 +32,19 @@ export const KeysOverviewLogsCharts = ({
   const handleSelectionChange = ({
     start,
     end,
+    granularity,
   }: {
     start: number;
     end: number;
+    granularity?: typeof verificationGranularity;
   }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );
 
     let adjustedEnd = end;
-    if (start === end && verificationGranularity) {
-      adjustedEnd = end + getTimeBufferForGranularity(verificationGranularity);
+    if (start === end && granularity) {
+      adjustedEnd = end + getTimeBufferForGranularity(granularity);
     }
     updateFilters([
       ...activeFilters,
@@ -91,7 +93,12 @@ export const KeysOverviewLogsCharts = ({
           isError={verificationIsError}
           enableSelection
           onMount={onMount}
-          onSelectionChange={handleSelectionChange}
+          onSelectionChange={(selection) =>
+            handleSelectionChange({
+              ...selection,
+              granularity: verificationGranularity,
+            })
+          }
           config={createOutcomeChartConfig()}
           labels={{
             title: "REQUESTS",
@@ -110,7 +117,12 @@ export const KeysOverviewLogsCharts = ({
           isLoading={activeKeysIsLoading}
           isError={activeKeysIsError}
           enableSelection
-          onSelectionChange={handleSelectionChange}
+          onSelectionChange={(selection) =>
+            handleSelectionChange({
+              ...selection,
+              granularity: activeKeysGranularity,
+            })
+          }
           config={keysChartConfig}
           labels={keysChartLabels}
           granularity={activeKeysGranularity}

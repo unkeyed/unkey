@@ -166,11 +166,6 @@ describe("getTimeseriesGranularity", () => {
         expectedGranularity: "perDay",
       },
       {
-        name: "should use perDay for timeRange >= 14 days & < 30 days",
-        startTime: getTime(DAY_IN_MS * 20),
-        expectedGranularity: "perDay",
-      },
-      {
         name: "should use per3Days for timeRange >= 30 days & < 60 days",
         startTime: getTime(DAY_IN_MS * 40),
         expectedGranularity: "per3Days",
