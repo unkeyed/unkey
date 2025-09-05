@@ -1,5 +1,4 @@
-import { execa } from "execa";
-import { GenericContainer, Network, type StartedTestContainer } from "testcontainers";
+import { GenericContainer, Network, type StartedTestContainer, Wait } from "testcontainers";
 import type { TaskContext } from "vitest";
 
 export class ClickHouseContainer {
@@ -31,25 +30,21 @@ export class ClickHouseContainer {
   ): Promise<ClickHouseContainer> {
     const network = await new Network().start();
 
-    const container = await new GenericContainer("bitnami/clickhouse:latest")
+    const container = await new GenericContainer("unkey-clickhouse:latest")
       .withEnvironment({
         CLICKHOUSE_ADMIN_USER: ClickHouseContainer.username,
         CLICKHOUSE_ADMIN_PASSWORD: ClickHouseContainer.password,
       })
       .withNetworkMode(network.getName())
       .withExposedPorts(8123, 9000)
+      .withWaitStrategy(Wait.forLogMessage("** Starting ClickHouse **"))
       .start();
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     if (!opts?.keepContainer) {
       t.onTestFinished(async () => {
         await container.stop();
       });
     }
-
-    const dsn = `tcp://${ClickHouseContainer.username}:${
-      ClickHouseContainer.password
-    }@localhost:${container.getMappedPort(9000)}`;
-
-    await execa("goose", ["-dir=./schema", "clickhouse", dsn, "up"]);
 
     return new ClickHouseContainer(container);
   }

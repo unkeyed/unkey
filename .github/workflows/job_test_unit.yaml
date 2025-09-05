@@ -15,12 +15,6 @@ jobs:
         run: |
           sudo chmod 666 /var/run/docker.sock
           docker version
-      - name: Install goose
-        run: |
-          wget -qO- https://github.com/pressly/goose/releases/download/v3.20.0/goose_linux_x86_64 > /tmp/goose
-          chmod +x /tmp/goose
-          sudo mv /tmp/goose /usr/local/bin/goose
-          goose --version
       - name: Setup Node
         uses: ./.github/actions/setup-node
         with:

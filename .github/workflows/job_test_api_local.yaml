@@ -30,8 +30,6 @@ jobs:
         uses: ./.github/actions/setup-go
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install Goose
-        run: go install github.com/pressly/goose/v3/cmd/goose@latest
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...
         env:
@@ -42,12 +40,6 @@ jobs:
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
           CI: 1
-      - name: Migrate ClickHouse
-        run: goose up
-        env:
-          GOOSE_DRIVER: clickhouse
-          GOOSE_DBSTRING: "tcp://default:password@127.0.0.1:9000"
-          GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts --bail=1
         working-directory: apps/api
