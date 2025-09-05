@@ -41,45 +41,6 @@ func NewClientTracePropagationInterceptor(logger *slog.Logger) connect.UnaryInte
 	}
 }
 
-// NewClientTenantForwardingInterceptor creates a ConnectRPC interceptor that forwards
-// tenant context from incoming requests to outgoing RPC requests. This ensures tenant
-// isolation is maintained across service boundaries.
-//
-// AIDEV-NOTE: This interceptor extracts tenant information from the request context
-// (previously stored by the server-side tenant auth interceptor) and adds it as
-// headers to outgoing requests.
-func NewClientTenantForwardingInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			// Extract tenant context from the incoming request context
-			if tenantCtx, ok := TenantFromContext(ctx); ok {
-				// Forward tenant headers to the outgoing request
-				if tenantCtx.TenantID != "" {
-					req.Header().Set("X-Tenant-ID", tenantCtx.TenantID)
-				}
-				if tenantCtx.ProjectID != "" {
-					req.Header().Set("X-Project-ID", tenantCtx.ProjectID)
-				}
-				if tenantCtx.EnvironmentID != "" {
-					req.Header().Set("X-Environment-ID", tenantCtx.EnvironmentID)
-				}
-				if tenantCtx.AuthToken != "" {
-					req.Header().Set("Authorization", tenantCtx.AuthToken)
-				}
-
-				logger.LogAttrs(ctx, slog.LevelDebug, "forwarding tenant context",
-					slog.String("tenant_id", tenantCtx.TenantID),
-					slog.String("project_id", tenantCtx.ProjectID),
-					slog.String("environment_id", tenantCtx.EnvironmentID),
-					slog.String("procedure", req.Spec().Procedure),
-				)
-			}
-
-			return next(ctx, req)
-		}
-	}
-}
-
 // NewClientMetricsInterceptor creates a ConnectRPC interceptor for client-side metrics.
 // It creates spans for outgoing RPC calls and tracks their duration and status.
 //
@@ -104,15 +65,6 @@ func NewClientMetricsInterceptor(serviceName string, logger *slog.Logger) connec
 				),
 			)
 			defer span.End()
-
-			// Add tenant info to span if available
-			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-				span.SetAttributes(
-					attribute.String("tenant.id", tenantCtx.TenantID),
-					attribute.String("tenant.project_id", tenantCtx.ProjectID),
-					attribute.String("tenant.environment_id", tenantCtx.EnvironmentID),
-				)
-			}
 
 			// Execute the RPC call
 			resp, err := next(ctx, req)
@@ -143,6 +95,5 @@ func NewDefaultClientInterceptors(serviceName string, logger *slog.Logger) []con
 	return []connect.UnaryInterceptorFunc{
 		NewClientTracePropagationInterceptor(logger),
 		NewClientMetricsInterceptor(serviceName, logger),
-		NewClientTenantForwardingInterceptor(logger),
 	}
 }
