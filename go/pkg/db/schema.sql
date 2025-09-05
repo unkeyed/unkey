@@ -411,3 +411,4 @@ CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
+
