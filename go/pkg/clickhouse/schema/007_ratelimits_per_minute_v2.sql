@@ -7,12 +7,14 @@ CREATE TABLE ratelimits_per_minute_v2 (
   total Int64,
   latency_avg AggregateFunction (avg, Float64),
   latency_p75 AggregateFunction (quantilesTDigest (0.75), Float64),
-  latency_p99 AggregateFunction (quantilesTDigest (0.99), Float64)
+  latency_p99 AggregateFunction (quantilesTDigest (0.99), Float64),
+  INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
-  toYYYYMM (time)
+  toYYYYMMDD (time)
 ORDER BY
-  (workspace_id, namespace_id, time, identifier) TTL time + INTERVAL 7 DAY DELETE SETTINGS index_granularity = 8192;
+  (workspace_id, namespace_id, time, identifier)
+TTL time + INTERVAL 7 DAY DELETE;
 
 CREATE MATERIALIZED VIEW ratelimits_per_minute_mv_v2 TO ratelimits_per_minute_v2 AS
 SELECT
@@ -30,5 +32,5 @@ FROM
 GROUP BY
   workspace_id,
   namespace_id,
-  identifier,
-  time;
+  time,
+  identifier;

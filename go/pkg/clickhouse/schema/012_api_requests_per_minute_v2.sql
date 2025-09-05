@@ -7,17 +7,22 @@ CREATE TABLE api_requests_per_minute_v2 (
   -- Upper case HTTP method
   -- Examples: "GET", "POST", "PUT", "DELETE"
   method LowCardinality (String),
-  count Int64
+  count Int64,
+  INDEX idx_host (host) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_path (path) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_method (method) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = SummingMergeTree ()
+PARTITION BY toYYYYMMDD(time)
 ORDER BY
   (
     workspace_id,
     time,
-    host,
-    path,
     response_status,
-    method
-  );
+    host,
+    method,
+    path
+  )
+TTL time + INTERVAL 7 DAY DELETE;
 
 CREATE MATERIALIZED VIEW api_requests_per_minute_mv_v2 TO api_requests_per_minute_v2 AS
 SELECT

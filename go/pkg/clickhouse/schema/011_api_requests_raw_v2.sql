@@ -1,7 +1,7 @@
 CREATE TABLE api_requests_raw_v2 (
   request_id String,
   -- unix milli
-  time Int64,
+  time Int64 CODEC(Delta, LZ4),
   workspace_id String,
   host String,
   -- Upper case HTTP method
@@ -22,10 +22,13 @@ CREATE TABLE api_requests_raw_v2 (
   user_agent String,
   ip_address String,
   region LowCardinality (String),
-  INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 1,
+  INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
+PARTITION BY toYYYYMMDD(fromUnixTimestamp64Milli(time))
 ORDER BY
-  (workspace_id, time, request_id);
+  (workspace_id, time, request_id)
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
+SETTINGS non_replicated_deduplication_window = 10000;
 
 -- Temporary materialized view to sync new writes from v1 to v2 during migration
 -- This ensures zero-downtime migration by duplicating all new inserts

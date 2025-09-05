@@ -17,7 +17,7 @@ SELECT
   toYear (time) AS year,
   toMonth (time) AS month
 FROM
-  verifications.key_verifications_per_month_v2
+  key_verifications_per_month_v2
 WHERE
   outcome = 'VALID'
 GROUP BY

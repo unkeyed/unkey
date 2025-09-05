@@ -7,17 +7,22 @@ CREATE TABLE api_requests_per_day_v2 (
   -- Upper case HTTP method
   -- Examples: "GET", "POST", "PUT", "DELETE"
   method LowCardinality (String),
-  count Int64
+  count Int64,
+  INDEX idx_host (host) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_path (path) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_method (method) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = SummingMergeTree ()
+PARTITION BY toYYYYMM(time)
 ORDER BY
   (
     workspace_id,
     time,
-    host,
-    path,
     response_status,
-    method
-  );
+    host,
+    method,
+    path
+  )
+TTL time + INTERVAL 100 DAY DELETE;
 
 CREATE MATERIALIZED VIEW api_requests_per_day_mv_v2 TO api_requests_per_day_v2 AS
 SELECT
@@ -26,10 +31,10 @@ SELECT
   response_status,
   host,
   method,
-  count(*) as count,
-  toStartOfDay (fromUnixTimestamp64Milli (time)) AS time
+  sum(count) as count,
+  toStartOfDay(time) AS time
 FROM
-  api_requests_raw_v2
+  api_requests_per_hour_v2
 GROUP BY
   workspace_id,
   path,

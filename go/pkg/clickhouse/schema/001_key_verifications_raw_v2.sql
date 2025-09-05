@@ -23,7 +23,6 @@ CREATE TABLE key_verifications_raw_v2
   -- - "DISABLED
   outcome LowCardinality(String),
 
-
   tags Array(String) DEFAULT [],
 
   -- The number of credits spent on this verification
@@ -33,11 +32,14 @@ CREATE TABLE key_verifications_raw_v2
   -- Latency in milliseconds for this verification
   latency Float64,
 
-  INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 10000
+  INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(time))
-ORDER BY (workspace_id, time, key_space_id, identity_id, key_id)
+PARTITION BY toYYYYMMDD(fromUnixTimestamp64Milli(time))
+ORDER BY (workspace_id, time, key_space_id, outcome)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
 SETTINGS non_replicated_deduplication_window = 10000
 ;

@@ -7,12 +7,16 @@ CREATE TABLE key_verifications_per_day_v2 (
   outcome LowCardinality (String),
   tags Array(String),
   count Int64,
+  spent_credits Int64,
   latency_avg AggregateFunction (avg, Float64),
   latency_p75 AggregateFunction (quantilesTDigest (0.75), Float64),
-  latency_p99 AggregateFunction (quantilesTDigest (0.99), Float64)
+  latency_p99 AggregateFunction (quantilesTDigest (0.99), Float64),
+  INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = AggregatingMergeTree ()
 PARTITION BY
-  toYYYYMM (time)
+  toYYYYMMDD (time)
 ORDER BY
   (
     workspace_id,
@@ -20,9 +24,11 @@ ORDER BY
     key_space_id,
     identity_id,
     key_id,
-    tags,
-    outcome
-  ) TTL time + INTERVAL 100 DAY DELETE SETTINGS index_granularity = 8192;
+    outcome,
+    tags
+  )
+TTL time + INTERVAL 100 DAY DELETE
+  ;
 
 CREATE MATERIALIZED VIEW key_verifications_per_day_mv_v2 TO key_verifications_per_day_v2 AS
 SELECT
@@ -32,18 +38,20 @@ SELECT
   key_id,
   outcome,
   tags,
-  count(*) as count,
-  avgState (latency) as latency_avg,
-  quantilesTDigestState (0.75) (latency) as latency_p75,
-  quantilesTDigestState (0.99) (latency) as latency_p99,
-  toStartOfDay (fromUnixTimestamp64Milli (time)) AS time
+  sum(count) as count,
+  sum(spent_credits) as spent_credits,
+  avgMergeState(latency_avg) as latency_avg,
+  quantilesTDigestMergeState(0.75)(latency_p75) as latency_p75,
+  quantilesTDigestMergeState(0.99)(latency_p99) as latency_p99,
+  toStartOfDay(time) AS time
 FROM
-  key_verifications_raw_v2
+  key_verifications_per_hour_v2
 GROUP BY
   workspace_id,
+  time,
   key_space_id,
   identity_id,
   key_id,
   outcome,
-  tags,
-  time;
+  tags
+;

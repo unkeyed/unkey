@@ -2,7 +2,7 @@
 
 To change a schema, just edit a table in the schema folder.
 Afterwards generate a migration file using atlas.
-Make sure docker is running, so atla can use it to generate migrations.
+Make sure docker is running, so atlas can use it to generate migrations.
 
 ```bash
 cd go/pkg/clickhouse

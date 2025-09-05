@@ -2,7 +2,6 @@ package array
 
 import (
 	"math/rand"
-	"time"
 )
 
 // Random returns a uniformly selected element from the provided slice.
@@ -140,12 +139,4 @@ func Random[T any](slice []T) T {
 		panic("cannot select random element from empty slice")
 	}
 	return slice[rand.Intn(len(slice))]
-}
-
-func init() {
-	// Seed the global random number generator with current nanosecond timestamp to ensure
-	// different behavior across program runs. The nanosecond precision provides sufficient
-	// entropy for typical testing and simulation use cases without requiring external
-	// entropy sources or cryptographic seeding.
-	rand.Seed(time.Now().UnixNano())
 }
