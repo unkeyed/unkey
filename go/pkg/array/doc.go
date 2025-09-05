@@ -80,8 +80,8 @@
 //
 // [Random] uses Go's global random number generator, which is protected by a mutex internally.
 // Under extremely high concurrency (thousands of goroutines), this mutex may become a bottleneck.
-// For such scenarios, consider using per-goroutine random number generators with [RandomWithRNG]
-// if added to the package in the future.
+// For such scenarios, consider per-goroutine random number generators or a package-level helper,
+// if added in the future.
 //
 // # Error Handling
 //

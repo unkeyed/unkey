@@ -9,7 +9,7 @@ import (
 // https://cs.opensource.google/go/x/perf/+/2f7363a0:internal/stats/sample.go;l=237
 func percentile(data []float64, p float64) float64 {
 	if len(data) == 0 {
-		return 0.0
+		return math.NaN()
 	}
 
 	sort.Float64s(data)

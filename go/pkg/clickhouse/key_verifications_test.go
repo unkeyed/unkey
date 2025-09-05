@@ -34,10 +34,9 @@ func TestKeyVerifications(t *testing.T) {
 	t.Logf("workspace: %s", workspaceID)
 	numRecords := 1_000_000
 
-	// Time range: between now and 1 year ago
-	endTime := time.Now()
-	startTime := endTime.Add(-3 * 24 * time.Hour)
-
+ 	// Time range: between now and 3 days ago
+ 	endTime := time.Now()
+ 	startTime := endTime.Add(-3 * 24 * time.Hour)
 	// Generate realistic test parameters
 	numKeys := max(1, min(numRecords/100, 1000))
 	numKeySpaces := max(1, min(numRecords/1000, 100))
@@ -188,7 +187,7 @@ func TestKeyVerifications(t *testing.T) {
 		for _, identityID := range identities[:10] {
 
 			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
-				if v.KeyID == identityID {
+				if v.IdentityID == identityID {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc

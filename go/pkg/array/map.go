@@ -150,8 +150,8 @@ package array
 //	result := array.Map(validData, func(d Data) Result { return d.Transform() })
 func Map[T any, R any](arr []T, fn func(T) R) []R {
 	result := make([]R, len(arr))
-	for i, v := range arr {
-		result[i] = fn(v)
+	for i := range arr {
+		result[i] = fn(arr[i])
 	}
 	return result
 }

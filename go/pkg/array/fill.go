@@ -12,8 +12,8 @@ package array
 // allocation strategy ensures predictable memory usage and optimal garbage collection behavior.
 //
 // Parameters:
-//   - length: The number of elements to create. Must be non-negative. Zero returns an empty slice.
-//     Negative values return an empty slice following Go's make() convention.
+//   - length: The number of elements to create. Zero returns an empty slice.
+//     Negative values return an empty slice (note: this differs from make(), which panics).
 //   - generator: Function called once per element to produce the value for that position. The function
 //     should be lightweight and deterministic where possible. If the generator panics, Fill propagates
 //     the panic. Generator functions that perform I/O or other blocking operations will impact performance

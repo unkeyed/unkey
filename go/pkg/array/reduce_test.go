@@ -33,14 +33,14 @@ func TestReduce(t *testing.T) {
 
 	t.Run("finds minimum value", func(t *testing.T) {
 		values := []int{5, 3, 8, 1, 9, 2, 7}
-		min := Reduce(values, func(acc, val int) int {
+		minVal := Reduce(values, func(acc, val int) int {
 			if val < acc {
 				return val
 			}
 			return acc
 		}, math.MaxInt)
 
-		require.Equal(t, 1, min)
+		require.Equal(t, 1, minVal)
 	})
 
 	t.Run("concatenates strings", func(t *testing.T) {
@@ -344,14 +344,14 @@ func ExampleReduce() {
 
 func ExampleReduce_findMax() {
 	values := []float64{3.14, 2.71, 4.67, 1.41}
-	max := Reduce(values, func(acc, val float64) float64 {
+	maxVal := Reduce(values, func(acc, val float64) float64 {
 		if val > acc {
 			return val
 		}
 		return acc
 	}, math.Inf(-1))
 
-	fmt.Printf("Maximum: %.2f\n", max)
+	fmt.Printf("Maximum: %.2f\n", maxVal)
 	// Output: Maximum: 4.67
 }
 
