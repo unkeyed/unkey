@@ -7,7 +7,7 @@ CREATE TABLE api_requests_per_minute_v2 (
   -- Upper case HTTP method
   -- Examples: "GET", "POST", "PUT", "DELETE"
   method LowCardinality (String),
-  count Int64,
+  count SimpleAggregateFunction(sum, Int64),
   INDEX idx_host (host) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_path (path) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_method (method) TYPE bloom_filter GRANULARITY 1

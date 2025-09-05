@@ -85,18 +85,21 @@ func TestKeyVerifications(t *testing.T) {
 	})
 	t.Logf("Generated %d verifications in %s", len(verifications), time.Since(t0))
 
-	t0 = time.Now()
+	batchSize := 100_000
+	for i := 0; i < len(verifications); i += batchSize {
+		t0 = time.Now()
 
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO key_verifications_raw_v2")
-	require.NoError(t, err)
-
-	for _, row := range verifications {
-		err = batch.AppendStruct(&row)
+		batch, err := conn.PrepareBatch(ctx, "INSERT INTO key_verifications_raw_v2")
 		require.NoError(t, err)
+
+		for _, row := range verifications[i:min(i+batchSize, len(verifications))] {
+			err = batch.AppendStruct(&row)
+			require.NoError(t, err)
+		}
+		err = batch.Send()
+		require.NoError(t, err)
+		t.Logf("Inserted %d verifications in %s", batch.Rows(), time.Since(t0))
 	}
-	err = batch.Send()
-	require.NoError(t, err)
-	t.Logf("Inserted %d verifications in %s", batch.Rows(), time.Since(t0))
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		rawCount := uint64(0)
@@ -334,5 +337,23 @@ func TestKeyVerifications(t *testing.T) {
 			}
 
 		}
+	})
+
+	t.Run("billing per workspace is correct", func(t *testing.T) {
+		t.Parallel()
+		billableVerifications := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			if v.Outcome == "VALID" {
+				acc += 1
+			}
+			return acc
+		}, int64(0))
+
+		var queried int64
+		err = conn.QueryRow(ctx, "SELECT sum(count) FROM billable_verifications_per_month_v2 WHERE workspace_id = ?;", workspaceID).Scan(&queried)
+
+		require.NoError(t, err)
+
+		require.Equal(t, billableVerifications, queried)
+
 	})
 }
