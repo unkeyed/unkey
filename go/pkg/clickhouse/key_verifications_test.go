@@ -184,7 +184,7 @@ func TestKeyVerifications(t *testing.T) {
 		for _, identityID := range identities[:10] {
 
 			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
-				if v.KeyID == identityID {
+				if v.IdentityID == identityID {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
