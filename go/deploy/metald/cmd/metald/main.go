@@ -337,9 +337,6 @@ func main() {
 	// Get default interceptors (tenant auth, metrics, logging)
 	sharedInterceptors := interceptors.NewDefaultInterceptors("metald", interceptorOpts...)
 
-	// Add authentication interceptor first (before tenant auth)
-	interceptorList = append(interceptorList, service.AuthenticationInterceptor(logger))
-
 	// Add shared interceptors (convert UnaryInterceptorFunc to Interceptor)
 	for _, interceptor := range sharedInterceptors {
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))

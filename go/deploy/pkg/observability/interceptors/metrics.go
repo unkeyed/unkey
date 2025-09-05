@@ -123,16 +123,6 @@ func NewMetricsInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				),
 			)
 
-			// Add tenant info to span if available
-			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-				span.SetAttributes(
-					attribute.String("tenant.id", tenantCtx.TenantID),
-					// attribute.String("tenant.project_id", tenantCtx.ProjectID),
-					// attribute.String("tenant.environment_id", tenantCtx.EnvironmentID),
-				)
-			}
-
-			// AIDEV-NOTE: Critical panic recovery in metrics interceptor - preserves existing errors
 			defer func() {
 				if r := recover(); r != nil {
 					// Log panic with optional stack trace
@@ -233,11 +223,6 @@ func NewMetricsInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				attrs := []attribute.KeyValue{
 					attribute.String("rpc.method", procedure),
 					attribute.String("rpc.status", statusCode),
-				}
-
-				// Add tenant attribute if available
-				if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-					attrs = append(attrs, attribute.String("tenant.id", tenantCtx.TenantID))
 				}
 
 				// Increment request counter
