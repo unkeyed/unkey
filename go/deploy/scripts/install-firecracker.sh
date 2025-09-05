@@ -1,11 +1,10 @@
 #!/bin/bash
 # Install or uninstall Firecracker and Jailer from GitHub releases
-# AIDEV-NOTE: Installs both firecracker and jailer binaries which are required for production deployments
 
 set -euo pipefail
 
 # Configuration
-FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-v1.12.1}"
+FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-v1.13.0}"
 ARCH="${ARCH:-x86_64}"
 INSTALL_DIR="/usr/local/bin"
 

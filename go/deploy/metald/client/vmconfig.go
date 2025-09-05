@@ -186,8 +186,8 @@ func (b *VMConfigBuilder) AddIPv6OnlyNetwork(id string) *VMConfigBuilder {
 
 // AddNetworkWithCustomConfig adds a network interface with custom IPv4/IPv6 configuration
 func (b *VMConfigBuilder) AddNetworkWithCustomConfig(id, interfaceType string, mode vmprovisionerv1.NetworkMode,
-	ipv4Config *vmprovisionerv1.IPv4Config, ipv6Config *vmprovisionerv1.IPv6Config) *VMConfigBuilder {
-
+	ipv4Config *vmprovisionerv1.IPv4Config, ipv6Config *vmprovisionerv1.IPv6Config,
+) *VMConfigBuilder {
 	if interfaceType == "" {
 		interfaceType = "virtio-net"
 	}
@@ -334,71 +334,6 @@ const (
 	// TemplateDevelopment creates a VM suitable for development work
 	TemplateDevelopment VMTemplate = "development"
 )
-
-// NewVMConfigFromTemplate creates a VM configuration builder from a predefined template
-func NewVMConfigFromTemplate(template VMTemplate) *VMConfigBuilder {
-	builder := NewVMConfigBuilder()
-
-	switch template {
-	case TemplateMinimal:
-		builder.WithCPU(1, 2).
-			WithMemoryMB(512, 1024, false). // 512MB, max 1GB
-			WithDefaultBoot("console=ttyS0 reboot=k panic=1 pci=off nomodeset").
-			AddRootStorage("/opt/vm-assets/minimal-rootfs.ext4").
-			AddDefaultNetwork().
-			WithDefaultConsole("/tmp/minimal-vm-console.log").
-			AddMetadata("template", "minimal").
-			AddMetadata("purpose", "lightweight")
-
-	case TemplateStandard:
-		builder.WithCPU(2, 4).
-			WithMemoryGB(2, 8, true). // 2GB, max 8GB, hotplug enabled
-			WithDefaultBoot("console=ttyS0 reboot=k panic=1 pci=off").
-			AddRootStorage("/opt/vm-assets/rootfs.ext4").
-			AddDefaultNetwork().
-			WithDefaultConsole("/tmp/standard-vm-console.log").
-			AddMetadata("template", "standard").
-			AddMetadata("purpose", "general")
-
-	case TemplateHighCPU:
-		builder.WithCPU(8, 16).
-			WithMemoryGB(4, 16, true). // 4GB, max 16GB
-			WithDefaultBoot("console=ttyS0 reboot=k panic=1 pci=off").
-			AddRootStorage("/opt/vm-assets/rootfs.ext4").
-			AddDefaultNetwork().
-			WithDefaultConsole("/tmp/high-cpu-vm-console.log").
-			AddMetadata("template", "high-cpu").
-			AddMetadata("purpose", "compute-intensive")
-
-	case TemplateHighMemory:
-		builder.WithCPU(4, 8).
-			WithMemoryGB(16, 64, true). // 16GB, max 64GB
-			WithDefaultBoot("console=ttyS0 reboot=k panic=1 pci=off").
-			AddRootStorage("/opt/vm-assets/rootfs.ext4").
-			AddDefaultNetwork().
-			WithDefaultConsole("/tmp/high-memory-vm-console.log").
-			AddMetadata("template", "high-memory").
-			AddMetadata("purpose", "memory-intensive")
-
-	case TemplateDevelopment:
-		builder.WithCPU(4, 8).
-			WithMemoryGB(8, 32, true). // 8GB, max 32GB
-			WithDefaultBoot("console=ttyS0 reboot=k panic=1 pci=off").
-			AddRootStorage("/opt/vm-assets/dev-rootfs.ext4").
-			AddDataStorage("workspace", "/opt/vm-assets/dev-workspace.ext4", false).
-			AddDefaultNetwork().
-			WithDefaultConsole("/tmp/dev-vm-console.log").
-			AddMetadata("template", "development").
-			AddMetadata("purpose", "development").
-			AddMetadata("environment", "dev")
-
-	default:
-		// Return standard template for unknown templates
-		return NewVMConfigFromTemplate(TemplateStandard)
-	}
-
-	return builder
-}
 
 // ForDockerImage configures the VM for running a specific Docker image
 func (b *VMConfigBuilder) ForDockerImage(imageName string) *VMConfigBuilder {

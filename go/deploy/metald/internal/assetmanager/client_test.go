@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"testing"
 
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/config"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 )
 
 func TestNewClient(t *testing.T) {

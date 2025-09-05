@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
 )
 
-// AIDEV-NOTE: Metald client with SPIFFE/SPIRE socket integration and tenant isolation
 // This client provides a high-level interface for metald VM operations with proper authentication
 
 // Config holds the configuration for the metald client
@@ -25,6 +24,12 @@ type Config struct {
 
 	// TenantID is the tenant identifier for data scoping
 	TenantID string
+
+	// ProjectID identifies the tenants project
+	ProjectID string
+
+	// EnvironmentID identifies the environment within the project
+	EnvironmentID string
 
 	// TLS configuration
 	TLSMode           string        // "disabled", "file", or "spiffe"
@@ -41,11 +46,12 @@ type Config struct {
 
 // Client provides a high-level interface to metald services
 type Client struct {
-	vmService   vmprovisionerv1connect.VmServiceClient
-	tlsProvider tls.Provider
-	userID      string
-	tenantID    string
-	serverAddr  string
+	vmService     vmprovisionerv1connect.VmServiceClient
+	tlsProvider   tls.Provider
+	tenantID      string
+	projectID     string
+	environmentID string
+	serverAddr    string
 }
 
 // New creates a new metald client with SPIFFE/SPIRE integration
@@ -86,9 +92,10 @@ func New(ctx context.Context, config Config) (*Client, error) {
 
 	// Add authentication and tenant isolation transport
 	httpClient.Transport = &tenantTransport{
-		Base:     httpClient.Transport,
-		UserID:   config.UserID,
-		TenantID: config.TenantID,
+		Base:          httpClient.Transport,
+		ProjectID:     config.ProjectID,
+		TenantID:      config.TenantID,
+		EnvironmentID: config.EnvironmentID,
 	}
 
 	// Create ConnectRPC client
@@ -98,11 +105,12 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	)
 
 	return &Client{
-		vmService:   vmService,
-		tlsProvider: tlsProvider,
-		userID:      config.UserID,
-		tenantID:    config.TenantID,
-		serverAddr:  config.ServerAddress,
+		vmService:     vmService,
+		tlsProvider:   tlsProvider,
+		tenantID:      config.TenantID,
+		projectID:     config.ProjectID,
+		environmentID: config.EnvironmentID,
+		serverAddr:    config.ServerAddress,
 	}, nil
 }
 
@@ -118,9 +126,9 @@ func (c *Client) Close() error {
 func (c *Client) CreateVM(ctx context.Context, req *CreateVMRequest) (*CreateVMResponse, error) {
 	// Convert to protobuf request
 	pbReq := &vmprovisionerv1.CreateVmRequest{
-		VmId:       req.VMID,
-		Config:     req.Config,
-		CustomerId: c.userID,
+		VmId:     req.VMID,
+		Config:   req.Config,
+		TenantId: c.tenantID,
 	}
 
 	resp, err := c.vmService.CreateVm(ctx, connect.NewRequest(pbReq))
@@ -290,9 +298,10 @@ func (c *Client) GetServerAddress() string {
 
 // tenantTransport adds authentication and tenant isolation headers to all requests
 type tenantTransport struct {
-	Base     http.RoundTripper
-	UserID   string
-	TenantID string
+	Base          http.RoundTripper
+	EnvironmentID string
+	ProjectID     string
+	TenantID      string
 }
 
 func (t *tenantTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -305,10 +314,12 @@ func (t *tenantTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Set Authorization header with development token format
 	// AIDEV-BUSINESS_RULE: In development, use "dev_user_<id>" format
 	// TODO: Update to proper JWT tokens in production
-	req2.Header.Set("Authorization", fmt.Sprintf("Bearer dev_user_%s", t.UserID))
+	req2.Header.Set("Authorization", fmt.Sprintf("Bearer dev_user_%s", t.TenantID))
 
 	// Also set X-Tenant-ID header for tenant identification
 	req2.Header.Set("X-Tenant-ID", t.TenantID)
+	req2.Header.Set("X-Project-ID", t.ProjectID)
+	req2.Header.Set("X-Environment-ID", t.EnvironmentID)
 
 	// Use the base transport, or default if nil
 	base := t.Base
