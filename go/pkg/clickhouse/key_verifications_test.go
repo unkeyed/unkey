@@ -217,25 +217,25 @@ func TestKeyVerifications(t *testing.T) {
 				continue
 			}
 			tag := usedTags[0]
-			count := array.Reduce(verifications, func(acc int, v schema.KeyVerificationV2) int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
 				if slices.Contains(v.Tags, tag) {
-					acc += 1
+					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
 
-			}, 0)
+			}, map[string]int{})
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
+					for outcome, count := range countByOutcome {
+						require.EventuallyWithT(t, func(c *assert.CollectT) {
 
-					require.EventuallyWithT(t, func(c *assert.CollectT) {
-
-						queried := int64(0)
-						err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND tag = ? AND outcome = ?;", table, workspaceID, tag).Scan(&queried)
-						require.NoError(c, err)
-						require.Equal(c, count, int(queried))
-					}, time.Minute, time.Second)
-
+							queried := int64(0)
+							err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table, workspaceID, tag, outcome).Scan(&queried)
+							require.NoError(c, err)
+							require.Equal(c, count, int(queried))
+						}, time.Minute, time.Second)
+					}
 				})
 			}
 		}
