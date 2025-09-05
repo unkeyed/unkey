@@ -4,7 +4,7 @@ import { createClient } from "@clickhouse/client-web";
 const CHUNK_SIZE_HOURS = 6; // Process 6 hours at a time
 const CHUNK_SIZE_MS = CHUNK_SIZE_HOURS * 60 * 60 * 1000;
 const MIGRATION_START = new Date("2023-05-01T00:00:00Z");
-const MIGRATION_END = new Date("2025-05-18T00:00:00Z");
+const MIGRATION_END = new Date("2025-10-01T00:00:00Z");
 
 async function main() {
   const ch = createClient({
