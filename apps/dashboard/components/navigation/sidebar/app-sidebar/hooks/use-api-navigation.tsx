@@ -91,8 +91,7 @@ export const useApiNavigation = (baseNavItems: NavItem[], workspaceSlug: string)
       if (hasNextPage) {
         apisItem.items?.push({
           icon: () => null,
-          href: "#load-more",
-          //@ts-expect-error will fix that later
+          href: "#load-more-apis",
           label: <div className="font-normal decoration-dotted underline ">More</div>,
           active: false,
           loadMoreAction: true,

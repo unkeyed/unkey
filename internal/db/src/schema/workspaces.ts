@@ -2,11 +2,9 @@ import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
-import { deployments } from "./deployments";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
-import { partitions } from "./partitions";
 import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
@@ -123,11 +121,5 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   identities: many(identities),
   quotas: one(quotas),
 
-  // Deployment platform relations (no foreign keys enforced)
-  partition: one(partitions),
   projects: many(projects),
-  // environments: many(environments),
-  deployments: many(deployments),
-  // hostnames: many(hostnames),
-  // certificates: many(certificates),
 }));

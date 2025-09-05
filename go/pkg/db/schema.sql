@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS `unkey`;
-USE `unkey`;
-
 CREATE TABLE `apis` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -47,7 +44,7 @@ CREATE TABLE `permissions` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`slug`,`workspace_id`)
+	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
 CREATE TABLE `roles` (
@@ -159,7 +156,7 @@ CREATE TABLE `ratelimit_namespaces` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `ratelimit_namespaces_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`)
+	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
 CREATE TABLE `ratelimit_overrides` (
@@ -182,6 +179,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
+	`slug` varchar(64),
 	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
@@ -196,7 +194,8 @@ CREATE TABLE `workspaces` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	CONSTRAINT `workspaces_id` PRIMARY KEY(`id`),
-	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`)
+	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
+	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`)
 );
 
 CREATE TABLE `key_migration_errors` (
@@ -233,8 +232,8 @@ CREATE TABLE `ratelimits` (
 	`duration` bigint NOT NULL,
 	`auto_apply` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`name`,`key_id`),
-	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`name`,`identity_id`)
+	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`key_id`,`name`),
+	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`identity_id`,`name`)
 );
 
 CREATE TABLE `quota` (
@@ -292,25 +291,22 @@ CREATE TABLE `audit_log_target` (
 	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
 );
 
-CREATE TABLE `partitions` (
+CREATE TABLE `environments` (
 	`id` varchar(256) NOT NULL,
-	`name` varchar(256) NOT NULL,
-	`description` text,
-	`aws_account_id` varchar(256) NOT NULL,
-	`region` varchar(256) NOT NULL,
-	`ip_v4_address` varchar(15),
-	`ip_v6_address` varchar(39),
-	`status` enum('active','draining','inactive') NOT NULL DEFAULT 'active',
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`slug` varchar(256) NOT NULL,
+	`description` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `partitions_id` PRIMARY KEY(`id`)
+	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
+	CONSTRAINT `environments_workspace_id_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
 CREATE TABLE `projects` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`partition_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`git_repository_url` varchar(500),
@@ -322,107 +318,82 @@ CREATE TABLE `projects` (
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
-
-CREATE TABLE `rootfs_images` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`s3_bucket` varchar(256) NOT NULL,
-	`s3_key` varchar(500) NOT NULL,
-	`size_bytes` bigint NOT NULL,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `rootfs_images_id` PRIMARY KEY(`id`)
-);
-
-CREATE TABLE `builds` (
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`deployment_id` varchar(256) NOT NULL,
-	`rootfs_image_id` varchar(256),
-	`git_commit_sha` varchar(40),
-	`git_branch` varchar(256),
-	`status` enum('pending','running','succeeded','failed','cancelled') NOT NULL DEFAULT 'pending',
-	`build_tool` enum('docker','depot','custom') NOT NULL DEFAULT 'docker',
-	`error_message` text,
-	`started_at` bigint,
-	`completed_at` bigint,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `builds_id` PRIMARY KEY(`id`)
-);
-
-CREATE TABLE `deployment_steps` (
-	`deployment_id` varchar(256) NOT NULL,
-	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
-	`message` text,
-	`error_message` text,
-	`created_at` bigint NOT NULL,
-	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`deployment_id`, `status`),
-	INDEX `idx_deployment_id_created_at` (`deployment_id`, `created_at`)
-);
-
 CREATE TABLE `deployments` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`environment` enum('production','preview') NOT NULL DEFAULT 'preview',
-	`build_id` varchar(256),
-	`rootfs_image_id` varchar(256) NOT NULL,
+	`environment_id` varchar(256) NOT NULL,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
-	`config_snapshot` json NOT NULL,
+	`git_commit_message` text,
+	`git_commit_author_name` varchar(256),
+	`git_commit_author_email` varchar(256),
+	`git_commit_author_username` varchar(256),
+	`git_commit_author_avatar_url` varchar(512),
+	`git_commit_timestamp` bigint,
+	`runtime_config` json NOT NULL,
 	`openapi_spec` text,
-	`status` enum('pending','building','deploying','active','failed','archived') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `hostname_routes` (
-	`id` varchar(256) NOT NULL,
+CREATE TABLE `deployment_steps` (
+	`deployment_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`hostname` varchar(256) NOT NULL,
-	`deployment_id` varchar(256) NOT NULL,
-	`is_enabled` boolean NOT NULL DEFAULT true,
+	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
+	`message` varchar(1024) NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `deployment_steps_deployment_id_status_pk` PRIMARY KEY(`deployment_id`,`status`)
+);
+
+CREATE TABLE `acme_users` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`encrypted_key` text NOT NULL,
+	`registration_uri` text,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `hostname_routes_id` PRIMARY KEY(`id`),
-	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
 );
 
 CREATE TABLE `domains` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`hostname` varchar(256) NOT NULL,
-	`is_custom_domain` boolean NOT NULL DEFAULT false,
-	`certificate_id` varchar(256),
-	`verification_status` enum('pending','verified','failed','expired') DEFAULT 'pending',
-	`verification_token` varchar(256),
-	`verification_method` enum('dns_txt','dns_cname','file_upload','automatic'),
-	`subdomain_config` json,
+	`project_id` varchar(256),
+	`deployment_id` varchar(256),
+	`domain` varchar(256) NOT NULL,
+	`type` enum('custom','wildcard') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
-	CONSTRAINT `hostname_idx` UNIQUE(`hostname`)
+	CONSTRAINT `domains_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `acme_challenges` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`domain_id` varchar(256) NOT NULL,
+	`token` varchar(256) NOT NULL,
+	`type` enum('HTTP-01','DNS-01') NOT NULL,
+	`authorization` varchar(256) NOT NULL,
+	`status` enum('waiting','pending','verified','failed') NOT NULL,
+	`expires_at` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `acme_challenges_id` PRIMARY KEY(`id`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
-CREATE INDEX `workspace_id_idx` ON `permissions` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
+CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
-CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
-CREATE INDEX `workspace_id_id_deleted_idx` ON `identities` (`workspace_id`, `id`, `deleted`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
-CREATE INDEX `identity_id_idx` ON `ratelimits` (`identity_id`);
-CREATE INDEX `key_id_idx` ON `ratelimits` (`key_id`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
@@ -432,23 +403,11 @@ CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
-CREATE INDEX `status_idx` ON `partitions` (`status`);
 CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
-CREATE INDEX `partition_idx` ON `projects` (`partition_id`);
-CREATE INDEX `workspace_idx` ON `rootfs_images` (`workspace_id`);
-CREATE INDEX `project_idx` ON `rootfs_images` (`project_id`);
-CREATE INDEX `workspace_idx` ON `builds` (`workspace_id`);
-CREATE INDEX `project_idx` ON `builds` (`project_id`);
-CREATE INDEX `status_idx` ON `builds` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `builds` (`rootfs_image_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
-CREATE INDEX `rootfs_image_idx` ON `deployments` (`rootfs_image_id`);
-CREATE INDEX `workspace_idx` ON `hostname_routes` (`workspace_id`);
-CREATE INDEX `project_idx` ON `hostname_routes` (`project_id`);
-CREATE INDEX `deployment_idx` ON `hostname_routes` (`deployment_id`);
+CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
-CREATE INDEX `verification_status_idx` ON `domains` (`verification_status`);
-CREATE INDEX `certificate_idx` ON `domains` (`certificate_id`);
+CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
