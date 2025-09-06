@@ -80,7 +80,6 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
       await createInvitation.mutateAsync({
         email: values.email,
         role: values.role,
-        orgId: user.orgId,
       });
     } catch (error) {
       console.error("Failed to create invitation:", error);

@@ -1,4 +1,4 @@
-import { getAuth } from "@/lib/auth";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -15,8 +15,10 @@ import { Shell } from "./components/shell";
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
-  const { orgId } = await getAuth();
-
+  const { orgId } = await getAuthOrRedirect();
+  if (!orgId) {
+    redirect("/new");
+  }
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
@@ -25,7 +27,7 @@ export default async function BillingPage() {
   });
 
   if (!workspace) {
-    return redirect("/new");
+    redirect("/new");
   }
   const e = stripeEnv();
   if (!e) {

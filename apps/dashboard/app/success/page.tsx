@@ -58,7 +58,7 @@ export default async function SuccessPage(props: Props) {
 
     if (!ws) {
       console.warn("Workspace not found");
-      return redirect("/new");
+      redirect("/new");
     }
 
     const customer = await stripe.customers.retrieve(session.customer as string);
