@@ -60,5 +60,6 @@ export function transformKeysFilters(
     outcomes,
     cursorTime: params.cursor ?? null,
     sorts,
+    creditSpendMode: params.creditSpendMode ?? false,
   };
 }

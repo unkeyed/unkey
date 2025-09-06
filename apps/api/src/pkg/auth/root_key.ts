@@ -63,6 +63,7 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
       region: c.req.cf?.region,
       request_id: c.get("requestId"),
       tags: [],
+      spent_credits: 0, // Root key verifications don't consume credits
     }),
   );
 

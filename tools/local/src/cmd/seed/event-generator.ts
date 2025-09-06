@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import { createHash } from "node:crypto";
 import {
   generateMetadata,
   generateRandomApiRequest,
@@ -31,6 +31,7 @@ export type VerificationEvent = {
   tags: string[];
   outcome: string;
   identity_id: string;
+  spent_credits: number;
 };
 
 export type RatelimitEvent = {
@@ -78,7 +79,7 @@ export function selectKeyWithNormalDistribution(keys: KeyInfo[]): KeyInfo {
  * Generates a hash for a key
  */
 export function generateKeyHash(keyContent: string): string {
-  return crypto.createHash("sha256").update(keyContent).digest("hex");
+  return createHash("sha256").update(keyContent).digest("hex");
 }
 
 /**
@@ -174,6 +175,9 @@ export function generateVerificationEvent(
   // Optionally include identity_id (30% of the time)
   const identityId = Math.random() < 0.3 ? `ident_${generateRandomString(24)}` : "";
 
+  // Default spent_credits to 0 - will be set by biasVerificationOutcome based on key properties
+  const spent_credits = 0;
+
   return {
     request_id: generatedRequestId,
     time,
@@ -184,7 +188,32 @@ export function generateVerificationEvent(
     tags,
     outcome,
     identity_id: identityId,
+    spent_credits,
   };
+}
+
+/**
+ * Calculates credit cost for a verification event
+ */
+function calculateCreditCost(key: KeyInfo, outcome: string): number {
+  // Rule 3: If request is rejected, cost should be 0
+  if (outcome !== "VALID") {
+    return 0;
+  }
+
+  // Only calculate cost if key has usage limits (remaining enabled)
+  if (!key.hasUsageLimit) {
+    return 0;
+  }
+
+  // Rule 1: Default cost is 1 credit
+  // Rule 2: 15% of VALID verifications should have cost > 1 (2-5 credits)
+  // Since we only get here for VALID outcomes, we can apply the 15% rule directly
+  if (Math.random() < 0.15) {
+    return 2 + Math.floor(Math.random() * 4); // Random between 2-5
+  }
+
+  return 1;
 }
 
 /**
@@ -217,6 +246,9 @@ export function biasVerificationOutcome(
   else {
     verificationEvent = generateVerificationEvent(workspaceId, keyAuthId, key.id, requestId);
   }
+
+  // Calculate and set the credit cost based on the outcome and key properties
+  verificationEvent.spent_credits = calculateCreditCost(key, verificationEvent.outcome);
 
   return verificationEvent;
 }
