@@ -67,6 +67,7 @@ export function RatelimitLogsChart({
       isLoading={isLoading}
       isError={isError}
       enableSelection
+      granularity={granularity}
     />
   );
 }
