@@ -1,69 +1,51 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { Button, CopyButton, Input, SettingCard, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
 import { SettingsClientSkeleton } from "./skeleton";
+import { useLiveQuery, eq } from "@tanstack/react-db";
+import { collection } from "@/lib/collections";
 
 type Props = {
   namespaceId: string;
 };
 
 export const SettingsClient = ({ namespaceId }: Props) => {
-  const trpcUtils = trpc.useUtils();
   const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
-    namespaceId,
-    includeOverrides: false,
-  });
 
-  const [namespaceName, setNamespaceName] = useState(data?.namespace.name || "");
 
+
+  const { data } = useLiveQuery(q => q.from({ namespace: collection.ratelimitNamespaces }).where(({ namespace }) => eq(namespace.id, namespaceId)))
+
+  const namespace = data.at(0)
+
+  const [namespaceName, setNamespaceName] = useState<string | null>(null);
   useEffect(() => {
-    if (data?.namespace.name && namespaceName === "") {
-      setNamespaceName(data.namespace.name);
+    if (namespaceName === null && namespace) {
+      setNamespaceName(namespace.name);
     }
-  }, [data?.namespace.name, namespaceName]);
 
-  const updateNameMutation = trpc.ratelimit.namespace.update.name.useMutation({
-    onSuccess() {
-      toast.success("Your namespace name has been renamed!");
-      trpcUtils.ratelimit.namespace.query.invalidate();
-      trpcUtils.ratelimit.namespace.queryDetails.invalidate();
-      setIsUpdating(false);
-    },
-    onError(err) {
-      toast.error("Failed to update namespace name", {
-        description: err.message,
-      });
-      setIsUpdating(false);
-    },
-  });
+  }, [namespace, namespaceName]);
 
   const handleUpdateName = async () => {
-    if (!data?.namespace) {
+    if (!namespace) {
       return;
     }
 
-    if (namespaceName === data.namespace.name || !namespaceName) {
+    if (namespaceName === namespace.name || !namespaceName) {
       return toast.error("Please provide a different name before saving.");
     }
 
-    setIsUpdating(true);
-    await updateNameMutation.mutateAsync({
-      name: namespaceName,
-      namespaceId: data.namespace.id,
-    });
+    collection.ratelimitNamespaces.update(namespace.id, draft => { draft.name = namespaceName })
+
   };
 
-  if (!data || isLoading) {
+  if (!namespace) {
     return <SettingsClientSkeleton />;
   }
 
-  const { namespace } = data;
   return (
     <>
       <div className="py-3 w-full flex items-center justify-center">
@@ -94,7 +76,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                 >
                   <Input
                     placeholder="Namespace name"
-                    value={namespaceName}
+                    value={namespaceName ?? ""}
                     className="min-w-[16rem] items-end h-9"
                     onChange={(e) => setNamespaceName(e.target.value)}
                   />
@@ -103,8 +85,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                     className="h-full px-3.5 rounded-lg"
                     size="lg"
                     variant="primary"
-                    loading={isUpdating}
-                    disabled={isUpdating || namespaceName === namespace.name || !namespaceName}
+                    disabled={namespaceName === namespace.name || !namespaceName}
                   >
                     Save
                   </Button>

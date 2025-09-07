@@ -84,7 +84,7 @@ export function AppSidebar({
   const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
     useApiNavigation(baseNavItems);
 
-  const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
+  const { enhancedNavItems: ratelimitAddedNavItems } =
     useRatelimitNavigation(apiAddedNavItems);
 
   const { enhancedNavItems: projectAddedNavItems, loadMore: loadMoreProjects } =
@@ -105,7 +105,6 @@ export function AppSidebar({
     (item: NavItem & { loadMoreAction?: boolean }) => {
       const loadMoreMap = {
         "#load-more-projects": loadMoreProjects,
-        "#load-more-ratelimits": loadMoreRatelimits,
         "#load-more-apis": loadMoreApis,
       };
 
@@ -117,7 +116,7 @@ export function AppSidebar({
         console.error(`Unknown load more action for href: ${item.href}`);
       }
     },
-    [loadMoreApis, loadMoreRatelimits, loadMoreProjects],
+    [loadMoreApis, loadMoreProjects],
   );
   const toggleNavItem: NavItem = useMemo(
     () => ({

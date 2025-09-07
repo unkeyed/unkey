@@ -92,7 +92,7 @@ import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { queryRatelimitWorkspaceDetails } from "./ratelimit/query-namespace-details";
-import { queryRatelimitNamespaces } from "./ratelimit/query-namespaces";
+import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -261,8 +261,8 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      list: listRatelimitNamespaces,
       queryRatelimitLastUsed,
-      query: queryRatelimitNamespaces,
       queryDetails: queryRatelimitWorkspaceDetails,
       search: searchNamespace,
       create: createNamespace,

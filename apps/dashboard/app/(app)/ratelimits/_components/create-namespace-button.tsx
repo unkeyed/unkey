@@ -11,6 +11,7 @@ import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { collection } from "@/lib/collections";
 
 const formSchema = z.object({
   name: z
@@ -31,7 +32,6 @@ export const CreateNamespaceButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { ratelimit } = trpc.useUtils();
 
   const {
     register,
@@ -48,7 +48,6 @@ export const CreateNamespaceButton = ({
     async onSuccess(res) {
       router.refresh();
       await revalidate("/ratelimits");
-      ratelimit.namespace.query.invalidate();
       router.push(`/ratelimits/${res.id}`);
       toast.success("Your Namespace has been created");
       setIsOpen(false);
@@ -59,7 +58,11 @@ export const CreateNamespaceButton = ({
   });
 
   const onSubmit = (values: FormValues) => {
-    create.mutate(values);
+    collection.ratelimitNamespaces.insert({
+      id: new Date().toISOString(),
+      name: values.name,
+    })
+    setIsOpen(false)
   };
 
   return (
