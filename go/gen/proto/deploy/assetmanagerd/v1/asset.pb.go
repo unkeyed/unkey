@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/deploy/assetmanagerd/v1/asset.proto
+// source: deploy/assetmanagerd/v1/asset.proto
 
 package assetmanagerdv1
 
@@ -60,11 +60,11 @@ func (x AssetType) String() string {
 }
 
 func (AssetType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes[0].Descriptor()
+	return file_deploy_assetmanagerd_v1_asset_proto_enumTypes[0].Descriptor()
 }
 
 func (AssetType) Type() protoreflect.EnumType {
-	return &file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes[0]
+	return &file_deploy_assetmanagerd_v1_asset_proto_enumTypes[0]
 }
 
 func (x AssetType) Number() protoreflect.EnumNumber {
@@ -73,7 +73,7 @@ func (x AssetType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AssetType.Descriptor instead.
 func (AssetType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{0}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{0}
 }
 
 type AssetStatus int32
@@ -115,11 +115,11 @@ func (x AssetStatus) String() string {
 }
 
 func (AssetStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes[1].Descriptor()
+	return file_deploy_assetmanagerd_v1_asset_proto_enumTypes[1].Descriptor()
 }
 
 func (AssetStatus) Type() protoreflect.EnumType {
-	return &file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes[1]
+	return &file_deploy_assetmanagerd_v1_asset_proto_enumTypes[1]
 }
 
 func (x AssetStatus) Number() protoreflect.EnumNumber {
@@ -128,7 +128,7 @@ func (x AssetStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AssetStatus.Descriptor instead.
 func (AssetStatus) EnumDescriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{1}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{1}
 }
 
 type StorageBackend int32
@@ -170,11 +170,11 @@ func (x StorageBackend) String() string {
 }
 
 func (StorageBackend) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes[2].Descriptor()
+	return file_deploy_assetmanagerd_v1_asset_proto_enumTypes[2].Descriptor()
 }
 
 func (StorageBackend) Type() protoreflect.EnumType {
-	return &file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes[2]
+	return &file_deploy_assetmanagerd_v1_asset_proto_enumTypes[2]
 }
 
 func (x StorageBackend) Number() protoreflect.EnumNumber {
@@ -183,7 +183,7 @@ func (x StorageBackend) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use StorageBackend.Descriptor instead.
 func (StorageBackend) EnumDescriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{2}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{2}
 }
 
 type Asset struct {
@@ -213,7 +213,7 @@ type Asset struct {
 
 func (x *Asset) Reset() {
 	*x = Asset{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[0]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -225,7 +225,7 @@ func (x *Asset) String() string {
 func (*Asset) ProtoMessage() {}
 
 func (x *Asset) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[0]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -238,7 +238,7 @@ func (x *Asset) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Asset.ProtoReflect.Descriptor instead.
 func (*Asset) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{0}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Asset) GetId() string {
@@ -359,7 +359,7 @@ type UploadAssetRequest struct {
 
 func (x *UploadAssetRequest) Reset() {
 	*x = UploadAssetRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[1]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -371,7 +371,7 @@ func (x *UploadAssetRequest) String() string {
 func (*UploadAssetRequest) ProtoMessage() {}
 
 func (x *UploadAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[1]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -384,7 +384,7 @@ func (x *UploadAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAssetRequest.ProtoReflect.Descriptor instead.
 func (*UploadAssetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{1}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UploadAssetRequest) GetData() isUploadAssetRequest_Data {
@@ -444,7 +444,7 @@ type UploadAssetMetadata struct {
 
 func (x *UploadAssetMetadata) Reset() {
 	*x = UploadAssetMetadata{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[2]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -456,7 +456,7 @@ func (x *UploadAssetMetadata) String() string {
 func (*UploadAssetMetadata) ProtoMessage() {}
 
 func (x *UploadAssetMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[2]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +469,7 @@ func (x *UploadAssetMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAssetMetadata.ProtoReflect.Descriptor instead.
 func (*UploadAssetMetadata) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{2}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UploadAssetMetadata) GetName() string {
@@ -537,7 +537,7 @@ type UploadAssetResponse struct {
 
 func (x *UploadAssetResponse) Reset() {
 	*x = UploadAssetResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[3]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +549,7 @@ func (x *UploadAssetResponse) String() string {
 func (*UploadAssetResponse) ProtoMessage() {}
 
 func (x *UploadAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[3]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +562,7 @@ func (x *UploadAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAssetResponse.ProtoReflect.Descriptor instead.
 func (*UploadAssetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{3}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UploadAssetResponse) GetAsset() *Asset {
@@ -593,7 +593,7 @@ type RegisterAssetRequest struct {
 
 func (x *RegisterAssetRequest) Reset() {
 	*x = RegisterAssetRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[4]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -605,7 +605,7 @@ func (x *RegisterAssetRequest) String() string {
 func (*RegisterAssetRequest) ProtoMessage() {}
 
 func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[4]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +618,7 @@ func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterAssetRequest.ProtoReflect.Descriptor instead.
 func (*RegisterAssetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{4}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RegisterAssetRequest) GetName() string {
@@ -707,7 +707,7 @@ type RegisterAssetResponse struct {
 
 func (x *RegisterAssetResponse) Reset() {
 	*x = RegisterAssetResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[5]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -719,7 +719,7 @@ func (x *RegisterAssetResponse) String() string {
 func (*RegisterAssetResponse) ProtoMessage() {}
 
 func (x *RegisterAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[5]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +732,7 @@ func (x *RegisterAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterAssetResponse.ProtoReflect.Descriptor instead.
 func (*RegisterAssetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{5}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RegisterAssetResponse) GetAsset() *Asset {
@@ -753,7 +753,7 @@ type GetAssetRequest struct {
 
 func (x *GetAssetRequest) Reset() {
 	*x = GetAssetRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[6]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -765,7 +765,7 @@ func (x *GetAssetRequest) String() string {
 func (*GetAssetRequest) ProtoMessage() {}
 
 func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[6]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -778,7 +778,7 @@ func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetRequest.ProtoReflect.Descriptor instead.
 func (*GetAssetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{6}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetAssetRequest) GetId() string {
@@ -806,7 +806,7 @@ type GetAssetResponse struct {
 
 func (x *GetAssetResponse) Reset() {
 	*x = GetAssetResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[7]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -818,7 +818,7 @@ func (x *GetAssetResponse) String() string {
 func (*GetAssetResponse) ProtoMessage() {}
 
 func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[7]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -831,7 +831,7 @@ func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAssetResponse.ProtoReflect.Descriptor instead.
 func (*GetAssetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{7}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetAssetResponse) GetAsset() *Asset {
@@ -865,7 +865,7 @@ type ListAssetsRequest struct {
 
 func (x *ListAssetsRequest) Reset() {
 	*x = ListAssetsRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[8]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -877,7 +877,7 @@ func (x *ListAssetsRequest) String() string {
 func (*ListAssetsRequest) ProtoMessage() {}
 
 func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[8]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +890,7 @@ func (x *ListAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAssetsRequest.ProtoReflect.Descriptor instead.
 func (*ListAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{8}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListAssetsRequest) GetType() AssetType {
@@ -938,7 +938,7 @@ type ListAssetsResponse struct {
 
 func (x *ListAssetsResponse) Reset() {
 	*x = ListAssetsResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[9]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -950,7 +950,7 @@ func (x *ListAssetsResponse) String() string {
 func (*ListAssetsResponse) ProtoMessage() {}
 
 func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[9]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -963,7 +963,7 @@ func (x *ListAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAssetsResponse.ProtoReflect.Descriptor instead.
 func (*ListAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{9}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListAssetsResponse) GetAssets() []*Asset {
@@ -991,7 +991,7 @@ type AcquireAssetRequest struct {
 
 func (x *AcquireAssetRequest) Reset() {
 	*x = AcquireAssetRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[10]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1003,7 +1003,7 @@ func (x *AcquireAssetRequest) String() string {
 func (*AcquireAssetRequest) ProtoMessage() {}
 
 func (x *AcquireAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[10]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1016,7 +1016,7 @@ func (x *AcquireAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcquireAssetRequest.ProtoReflect.Descriptor instead.
 func (*AcquireAssetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{10}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AcquireAssetRequest) GetAssetId() string {
@@ -1050,7 +1050,7 @@ type AcquireAssetResponse struct {
 
 func (x *AcquireAssetResponse) Reset() {
 	*x = AcquireAssetResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[11]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1062,7 +1062,7 @@ func (x *AcquireAssetResponse) String() string {
 func (*AcquireAssetResponse) ProtoMessage() {}
 
 func (x *AcquireAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[11]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1075,7 +1075,7 @@ func (x *AcquireAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcquireAssetResponse.ProtoReflect.Descriptor instead.
 func (*AcquireAssetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{11}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AcquireAssetResponse) GetAsset() *Asset {
@@ -1101,7 +1101,7 @@ type ReleaseAssetRequest struct {
 
 func (x *ReleaseAssetRequest) Reset() {
 	*x = ReleaseAssetRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[12]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1113,7 +1113,7 @@ func (x *ReleaseAssetRequest) String() string {
 func (*ReleaseAssetRequest) ProtoMessage() {}
 
 func (x *ReleaseAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[12]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1126,7 +1126,7 @@ func (x *ReleaseAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseAssetRequest.ProtoReflect.Descriptor instead.
 func (*ReleaseAssetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{12}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ReleaseAssetRequest) GetLeaseId() string {
@@ -1145,7 +1145,7 @@ type ReleaseAssetResponse struct {
 
 func (x *ReleaseAssetResponse) Reset() {
 	*x = ReleaseAssetResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[13]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1157,7 +1157,7 @@ func (x *ReleaseAssetResponse) String() string {
 func (*ReleaseAssetResponse) ProtoMessage() {}
 
 func (x *ReleaseAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[13]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1170,7 +1170,7 @@ func (x *ReleaseAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseAssetResponse.ProtoReflect.Descriptor instead.
 func (*ReleaseAssetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{13}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ReleaseAssetResponse) GetAsset() *Asset {
@@ -1190,7 +1190,7 @@ type DeleteAssetRequest struct {
 
 func (x *DeleteAssetRequest) Reset() {
 	*x = DeleteAssetRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[14]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1202,7 +1202,7 @@ func (x *DeleteAssetRequest) String() string {
 func (*DeleteAssetRequest) ProtoMessage() {}
 
 func (x *DeleteAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[14]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1215,7 +1215,7 @@ func (x *DeleteAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAssetRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAssetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{14}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteAssetRequest) GetId() string {
@@ -1242,7 +1242,7 @@ type DeleteAssetResponse struct {
 
 func (x *DeleteAssetResponse) Reset() {
 	*x = DeleteAssetResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[15]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1254,7 +1254,7 @@ func (x *DeleteAssetResponse) String() string {
 func (*DeleteAssetResponse) ProtoMessage() {}
 
 func (x *DeleteAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[15]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1267,7 +1267,7 @@ func (x *DeleteAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAssetResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAssetResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{15}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteAssetResponse) GetDeleted() bool {
@@ -1298,7 +1298,7 @@ type GarbageCollectRequest struct {
 
 func (x *GarbageCollectRequest) Reset() {
 	*x = GarbageCollectRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[16]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1310,7 +1310,7 @@ func (x *GarbageCollectRequest) String() string {
 func (*GarbageCollectRequest) ProtoMessage() {}
 
 func (x *GarbageCollectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[16]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1323,7 +1323,7 @@ func (x *GarbageCollectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GarbageCollectRequest.ProtoReflect.Descriptor instead.
 func (*GarbageCollectRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{16}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GarbageCollectRequest) GetMaxAgeSeconds() int64 {
@@ -1357,7 +1357,7 @@ type GarbageCollectResponse struct {
 
 func (x *GarbageCollectResponse) Reset() {
 	*x = GarbageCollectResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[17]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1369,7 +1369,7 @@ func (x *GarbageCollectResponse) String() string {
 func (*GarbageCollectResponse) ProtoMessage() {}
 
 func (x *GarbageCollectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[17]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1382,7 +1382,7 @@ func (x *GarbageCollectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GarbageCollectResponse.ProtoReflect.Descriptor instead.
 func (*GarbageCollectResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{17}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GarbageCollectResponse) GetDeletedAssets() []*Asset {
@@ -1410,7 +1410,7 @@ type PrepareAssetsRequest struct {
 
 func (x *PrepareAssetsRequest) Reset() {
 	*x = PrepareAssetsRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[18]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1422,7 +1422,7 @@ func (x *PrepareAssetsRequest) String() string {
 func (*PrepareAssetsRequest) ProtoMessage() {}
 
 func (x *PrepareAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[18]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1435,7 +1435,7 @@ func (x *PrepareAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareAssetsRequest.ProtoReflect.Descriptor instead.
 func (*PrepareAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{18}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *PrepareAssetsRequest) GetAssetIds() []string {
@@ -1468,7 +1468,7 @@ type PrepareAssetsResponse struct {
 
 func (x *PrepareAssetsResponse) Reset() {
 	*x = PrepareAssetsResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[19]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1480,7 +1480,7 @@ func (x *PrepareAssetsResponse) String() string {
 func (*PrepareAssetsResponse) ProtoMessage() {}
 
 func (x *PrepareAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[19]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1493,7 +1493,7 @@ func (x *PrepareAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareAssetsResponse.ProtoReflect.Descriptor instead.
 func (*PrepareAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{19}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PrepareAssetsResponse) GetAssetPaths() map[string]string {
@@ -1523,7 +1523,7 @@ type QueryAssetsRequest struct {
 
 func (x *QueryAssetsRequest) Reset() {
 	*x = QueryAssetsRequest{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[20]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1535,7 +1535,7 @@ func (x *QueryAssetsRequest) String() string {
 func (*QueryAssetsRequest) ProtoMessage() {}
 
 func (x *QueryAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[20]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1548,7 +1548,7 @@ func (x *QueryAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAssetsRequest.ProtoReflect.Descriptor instead.
 func (*QueryAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{20}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *QueryAssetsRequest) GetType() AssetType {
@@ -1615,7 +1615,7 @@ type BuildOptions struct {
 
 func (x *BuildOptions) Reset() {
 	*x = BuildOptions{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[21]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1627,7 +1627,7 @@ func (x *BuildOptions) String() string {
 func (*BuildOptions) ProtoMessage() {}
 
 func (x *BuildOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[21]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1640,7 +1640,7 @@ func (x *BuildOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildOptions.ProtoReflect.Descriptor instead.
 func (*BuildOptions) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{21}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *BuildOptions) GetEnableAutoBuild() bool {
@@ -1698,7 +1698,7 @@ type QueryAssetsResponse struct {
 
 func (x *QueryAssetsResponse) Reset() {
 	*x = QueryAssetsResponse{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[22]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1710,7 +1710,7 @@ func (x *QueryAssetsResponse) String() string {
 func (*QueryAssetsResponse) ProtoMessage() {}
 
 func (x *QueryAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[22]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1723,7 +1723,7 @@ func (x *QueryAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAssetsResponse.ProtoReflect.Descriptor instead.
 func (*QueryAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{22}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *QueryAssetsResponse) GetAssets() []*Asset {
@@ -1761,7 +1761,7 @@ type BuildInfo struct {
 
 func (x *BuildInfo) Reset() {
 	*x = BuildInfo{}
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[23]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1773,7 +1773,7 @@ func (x *BuildInfo) String() string {
 func (*BuildInfo) ProtoMessage() {}
 
 func (x *BuildInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[23]
+	mi := &file_deploy_assetmanagerd_v1_asset_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1786,7 +1786,7 @@ func (x *BuildInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildInfo.ProtoReflect.Descriptor instead.
 func (*BuildInfo) Descriptor() ([]byte, []int) {
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{23}
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *BuildInfo) GetBuildId() string {
@@ -1824,11 +1824,11 @@ func (x *BuildInfo) GetAssetId() string {
 	return ""
 }
 
-var File_proto_deploy_assetmanagerd_v1_asset_proto protoreflect.FileDescriptor
+var File_deploy_assetmanagerd_v1_asset_proto protoreflect.FileDescriptor
 
-const file_proto_deploy_assetmanagerd_v1_asset_proto_rawDesc = "" +
+const file_deploy_assetmanagerd_v1_asset_proto_rawDesc = "" +
 	"\n" +
-	")proto/deploy/assetmanagerd/v1/asset.proto\x12\x17deploy.assetmanagerd.v1\"\x89\x05\n" +
+	"#deploy/assetmanagerd/v1/asset.proto\x12\x17deploy.assetmanagerd.v1\"\x89\x05\n" +
 	"\x05Asset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x126\n" +
@@ -2013,20 +2013,20 @@ const file_proto_deploy_assetmanagerd_v1_asset_proto_rawDesc = "" +
 	"\vQueryAssets\x12+.deploy.assetmanagerd.v1.QueryAssetsRequest\x1a,.deploy.assetmanagerd.v1.QueryAssetsResponseBOZMgithub.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1;assetmanagerdv1b\x06proto3"
 
 var (
-	file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescOnce sync.Once
-	file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescData []byte
+	file_deploy_assetmanagerd_v1_asset_proto_rawDescOnce sync.Once
+	file_deploy_assetmanagerd_v1_asset_proto_rawDescData []byte
 )
 
-func file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP() []byte {
-	file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescOnce.Do(func() {
-		file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_deploy_assetmanagerd_v1_asset_proto_rawDesc), len(file_proto_deploy_assetmanagerd_v1_asset_proto_rawDesc)))
+func file_deploy_assetmanagerd_v1_asset_proto_rawDescGZIP() []byte {
+	file_deploy_assetmanagerd_v1_asset_proto_rawDescOnce.Do(func() {
+		file_deploy_assetmanagerd_v1_asset_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_deploy_assetmanagerd_v1_asset_proto_rawDesc), len(file_deploy_assetmanagerd_v1_asset_proto_rawDesc)))
 	})
-	return file_proto_deploy_assetmanagerd_v1_asset_proto_rawDescData
+	return file_deploy_assetmanagerd_v1_asset_proto_rawDescData
 }
 
-var file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
-var file_proto_deploy_assetmanagerd_v1_asset_proto_goTypes = []any{
+var file_deploy_assetmanagerd_v1_asset_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_deploy_assetmanagerd_v1_asset_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_deploy_assetmanagerd_v1_asset_proto_goTypes = []any{
 	(AssetType)(0),                 // 0: deploy.assetmanagerd.v1.AssetType
 	(AssetStatus)(0),               // 1: deploy.assetmanagerd.v1.AssetStatus
 	(StorageBackend)(0),            // 2: deploy.assetmanagerd.v1.StorageBackend
@@ -2062,7 +2062,7 @@ var file_proto_deploy_assetmanagerd_v1_asset_proto_goTypes = []any{
 	nil,                            // 32: deploy.assetmanagerd.v1.QueryAssetsRequest.LabelSelectorEntry
 	nil,                            // 33: deploy.assetmanagerd.v1.BuildOptions.BuildLabelsEntry
 }
-var file_proto_deploy_assetmanagerd_v1_asset_proto_depIdxs = []int32{
+var file_deploy_assetmanagerd_v1_asset_proto_depIdxs = []int32{
 	0,  // 0: deploy.assetmanagerd.v1.Asset.type:type_name -> deploy.assetmanagerd.v1.AssetType
 	1,  // 1: deploy.assetmanagerd.v1.Asset.status:type_name -> deploy.assetmanagerd.v1.AssetStatus
 	2,  // 2: deploy.assetmanagerd.v1.Asset.backend:type_name -> deploy.assetmanagerd.v1.StorageBackend
@@ -2118,12 +2118,12 @@ var file_proto_deploy_assetmanagerd_v1_asset_proto_depIdxs = []int32{
 	0,  // [0:28] is the sub-list for field type_name
 }
 
-func init() { file_proto_deploy_assetmanagerd_v1_asset_proto_init() }
-func file_proto_deploy_assetmanagerd_v1_asset_proto_init() {
-	if File_proto_deploy_assetmanagerd_v1_asset_proto != nil {
+func init() { file_deploy_assetmanagerd_v1_asset_proto_init() }
+func file_deploy_assetmanagerd_v1_asset_proto_init() {
+	if File_deploy_assetmanagerd_v1_asset_proto != nil {
 		return
 	}
-	file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes[1].OneofWrappers = []any{
+	file_deploy_assetmanagerd_v1_asset_proto_msgTypes[1].OneofWrappers = []any{
 		(*UploadAssetRequest_Metadata)(nil),
 		(*UploadAssetRequest_Chunk)(nil),
 	}
@@ -2131,18 +2131,18 @@ func file_proto_deploy_assetmanagerd_v1_asset_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_deploy_assetmanagerd_v1_asset_proto_rawDesc), len(file_proto_deploy_assetmanagerd_v1_asset_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_deploy_assetmanagerd_v1_asset_proto_rawDesc), len(file_deploy_assetmanagerd_v1_asset_proto_rawDesc)),
 			NumEnums:      3,
 			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_deploy_assetmanagerd_v1_asset_proto_goTypes,
-		DependencyIndexes: file_proto_deploy_assetmanagerd_v1_asset_proto_depIdxs,
-		EnumInfos:         file_proto_deploy_assetmanagerd_v1_asset_proto_enumTypes,
-		MessageInfos:      file_proto_deploy_assetmanagerd_v1_asset_proto_msgTypes,
+		GoTypes:           file_deploy_assetmanagerd_v1_asset_proto_goTypes,
+		DependencyIndexes: file_deploy_assetmanagerd_v1_asset_proto_depIdxs,
+		EnumInfos:         file_deploy_assetmanagerd_v1_asset_proto_enumTypes,
+		MessageInfos:      file_deploy_assetmanagerd_v1_asset_proto_msgTypes,
 	}.Build()
-	File_proto_deploy_assetmanagerd_v1_asset_proto = out.File
-	file_proto_deploy_assetmanagerd_v1_asset_proto_goTypes = nil
-	file_proto_deploy_assetmanagerd_v1_asset_proto_depIdxs = nil
+	File_deploy_assetmanagerd_v1_asset_proto = out.File
+	file_deploy_assetmanagerd_v1_asset_proto_goTypes = nil
+	file_deploy_assetmanagerd_v1_asset_proto_depIdxs = nil
 }

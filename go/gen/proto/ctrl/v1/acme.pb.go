@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/ctrl/v1/acme.proto
+// source: ctrl/v1/acme.proto
 
 package ctrlv1
 
@@ -32,7 +32,7 @@ type HandleCertificateVerificationRequest struct {
 
 func (x *HandleCertificateVerificationRequest) Reset() {
 	*x = HandleCertificateVerificationRequest{}
-	mi := &file_proto_ctrl_v1_acme_proto_msgTypes[0]
+	mi := &file_ctrl_v1_acme_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *HandleCertificateVerificationRequest) String() string {
 func (*HandleCertificateVerificationRequest) ProtoMessage() {}
 
 func (x *HandleCertificateVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_acme_proto_msgTypes[0]
+	mi := &file_ctrl_v1_acme_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *HandleCertificateVerificationRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use HandleCertificateVerificationRequest.ProtoReflect.Descriptor instead.
 func (*HandleCertificateVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_acme_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_acme_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *HandleCertificateVerificationRequest) GetDomain() string {
@@ -83,7 +83,7 @@ type HandleCertificateVerificationResponse struct {
 
 func (x *HandleCertificateVerificationResponse) Reset() {
 	*x = HandleCertificateVerificationResponse{}
-	mi := &file_proto_ctrl_v1_acme_proto_msgTypes[1]
+	mi := &file_ctrl_v1_acme_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +95,7 @@ func (x *HandleCertificateVerificationResponse) String() string {
 func (*HandleCertificateVerificationResponse) ProtoMessage() {}
 
 func (x *HandleCertificateVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_acme_proto_msgTypes[1]
+	mi := &file_ctrl_v1_acme_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +108,7 @@ func (x *HandleCertificateVerificationResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use HandleCertificateVerificationResponse.ProtoReflect.Descriptor instead.
 func (*HandleCertificateVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_acme_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_acme_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *HandleCertificateVerificationResponse) GetToken() string {
@@ -118,11 +118,11 @@ func (x *HandleCertificateVerificationResponse) GetToken() string {
 	return ""
 }
 
-var File_proto_ctrl_v1_acme_proto protoreflect.FileDescriptor
+var File_ctrl_v1_acme_proto protoreflect.FileDescriptor
 
-const file_proto_ctrl_v1_acme_proto_rawDesc = "" +
+const file_ctrl_v1_acme_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/ctrl/v1/acme.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"T\n" +
+	"\x12ctrl/v1/acme.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"T\n" +
 	"$HandleCertificateVerificationRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05token\x18\x02 \x01(\tR\x05token\"=\n" +
@@ -132,23 +132,23 @@ const file_proto_ctrl_v1_acme_proto_rawDesc = "" +
 	"\x1dHandleCertificateVerification\x12-.ctrl.v1.HandleCertificateVerificationRequest\x1a..ctrl.v1.HandleCertificateVerificationResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
-	file_proto_ctrl_v1_acme_proto_rawDescOnce sync.Once
-	file_proto_ctrl_v1_acme_proto_rawDescData []byte
+	file_ctrl_v1_acme_proto_rawDescOnce sync.Once
+	file_ctrl_v1_acme_proto_rawDescData []byte
 )
 
-func file_proto_ctrl_v1_acme_proto_rawDescGZIP() []byte {
-	file_proto_ctrl_v1_acme_proto_rawDescOnce.Do(func() {
-		file_proto_ctrl_v1_acme_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_acme_proto_rawDesc), len(file_proto_ctrl_v1_acme_proto_rawDesc)))
+func file_ctrl_v1_acme_proto_rawDescGZIP() []byte {
+	file_ctrl_v1_acme_proto_rawDescOnce.Do(func() {
+		file_ctrl_v1_acme_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ctrl_v1_acme_proto_rawDesc), len(file_ctrl_v1_acme_proto_rawDesc)))
 	})
-	return file_proto_ctrl_v1_acme_proto_rawDescData
+	return file_ctrl_v1_acme_proto_rawDescData
 }
 
-var file_proto_ctrl_v1_acme_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_ctrl_v1_acme_proto_goTypes = []any{
+var file_ctrl_v1_acme_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ctrl_v1_acme_proto_goTypes = []any{
 	(*HandleCertificateVerificationRequest)(nil),  // 0: ctrl.v1.HandleCertificateVerificationRequest
 	(*HandleCertificateVerificationResponse)(nil), // 1: ctrl.v1.HandleCertificateVerificationResponse
 }
-var file_proto_ctrl_v1_acme_proto_depIdxs = []int32{
+var file_ctrl_v1_acme_proto_depIdxs = []int32{
 	0, // 0: ctrl.v1.AcmeService.HandleCertificateVerification:input_type -> ctrl.v1.HandleCertificateVerificationRequest
 	1, // 1: ctrl.v1.AcmeService.HandleCertificateVerification:output_type -> ctrl.v1.HandleCertificateVerificationResponse
 	1, // [1:2] is the sub-list for method output_type
@@ -158,26 +158,26 @@ var file_proto_ctrl_v1_acme_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_proto_ctrl_v1_acme_proto_init() }
-func file_proto_ctrl_v1_acme_proto_init() {
-	if File_proto_ctrl_v1_acme_proto != nil {
+func init() { file_ctrl_v1_acme_proto_init() }
+func file_ctrl_v1_acme_proto_init() {
+	if File_ctrl_v1_acme_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_acme_proto_rawDesc), len(file_proto_ctrl_v1_acme_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_acme_proto_rawDesc), len(file_ctrl_v1_acme_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_ctrl_v1_acme_proto_goTypes,
-		DependencyIndexes: file_proto_ctrl_v1_acme_proto_depIdxs,
-		MessageInfos:      file_proto_ctrl_v1_acme_proto_msgTypes,
+		GoTypes:           file_ctrl_v1_acme_proto_goTypes,
+		DependencyIndexes: file_ctrl_v1_acme_proto_depIdxs,
+		MessageInfos:      file_ctrl_v1_acme_proto_msgTypes,
 	}.Build()
-	File_proto_ctrl_v1_acme_proto = out.File
-	file_proto_ctrl_v1_acme_proto_goTypes = nil
-	file_proto_ctrl_v1_acme_proto_depIdxs = nil
+	File_ctrl_v1_acme_proto = out.File
+	file_ctrl_v1_acme_proto_goTypes = nil
+	file_ctrl_v1_acme_proto_depIdxs = nil
 }

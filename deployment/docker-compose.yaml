@@ -225,7 +225,7 @@ services:
       - "7091:7091"
     depends_on:
       - mysql
-      - metald-aio
+      # - metald-aio
       - otel
       - s3
     environment:
@@ -286,38 +286,44 @@ services:
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
   # Unkey Deploy Services - All-in-one development container with all 4 services
-  metald-aio:
-    build:
-      context: ../go
-      dockerfile: deploy/Dockerfile.dev
-    platform: linux/amd64
-    container_name: metald-aio
-    hostname: metald-aio
-    privileged: true # Required for systemd
-    volumes:
-      # Mount Docker socket for metald Docker backend
-      - /var/run/docker.sock:/var/run/docker.sock
-      # Persistent storage for development
-      - metald-aio-data:/opt
-      # Systemd requires these mounts
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    ports:
-      # Only expose metald port (agent already uses 8080)
-      - "8090:8080" # metald
-    depends_on:
-      - otel
-    environment:
-      # Development environment
-      - UNKEY_ENVIRONMENT=development
-      - UNKEY_LOG_LEVEL=debug
-      # Docker backend configuration
-      - UNKEY_METALD_BACKEND=docker
-      - UNKEY_METALD_DOCKER_HOST=unix:///var/run/docker.sock
-      # Service discovery (internal container ports)
-      - UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
-      - UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-      - UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
-      - UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
+  #
+  #############################################################################
+  # This doesn't run right now while we change the protos and get metald into a
+  # happy state again.
+  #############################################################################
+  #
+  # metald-aio:
+  #   build:
+  #     context: ../go
+  #     dockerfile: deploy/Dockerfile.dev
+  #   platform: linux/amd64
+  #   container_name: metald-aio
+  #   hostname: metald-aio
+  #   privileged: true # Required for systemd
+  #   volumes:
+  #     # Mount Docker socket for metald Docker backend
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     # Persistent storage for development
+  #     - metald-aio-data:/opt
+  #     # Systemd requires these mounts
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   ports:
+  #     # Only expose metald port (agent already uses 8080)
+  #     - "8090:8080" # metald
+  #   depends_on:
+  #     - otel
+  #   environment:
+  #     # Development environment
+  #     - UNKEY_ENVIRONMENT=development
+  #     - UNKEY_LOG_LEVEL=debug
+  #     # Docker backend configuration
+  #     - UNKEY_METALD_BACKEND=docker
+  #     - UNKEY_METALD_DOCKER_HOST=unix:///var/run/docker.sock
+  #     # Service discovery (internal container ports)
+  #     - UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
+  #     - UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
+  #     - UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
+  #     - UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
 volumes:
   mysql:
   clickhouse:
