@@ -34,7 +34,7 @@ export default async function Page(props: Props) {
     redirect("/new");
   }
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.orgId, orgId),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
 
   if (!workspace) {
@@ -68,7 +68,7 @@ export default async function Page(props: Props) {
   );
 }
 
-const Results: React.FC<{ search: string; limit: number }> = async (props) => {
+async function Results(props: { search: string; limit: number }) {
   const { orgId } = await getAuthOrRedirect();
   const getData = cache(
     async () =>
@@ -150,4 +150,4 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
       ) : null}
     </>
   );
-};
+}

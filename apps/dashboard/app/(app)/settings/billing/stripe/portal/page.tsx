@@ -10,7 +10,6 @@ export const dynamic = "force-dynamic";
 export default async function StripeRedirect() {
   const { orgId } = await getAuthOrRedirect();
 
-  // early return if no orgId
   if (!orgId) {
     redirect("/new");
   }
@@ -61,5 +60,5 @@ export default async function StripeRedirect() {
     customer: ws.stripeCustomerId,
     return_url: `${baseUrl}/success`,
   });
-  return redirect(url);
+  redirect(url);
 }

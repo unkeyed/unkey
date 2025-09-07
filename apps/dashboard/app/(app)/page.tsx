@@ -12,6 +12,7 @@ export default async function TenantOverviewPage() {
   }
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    columns: { id: true },
   });
   if (!workspace) {
     redirect("/new");
