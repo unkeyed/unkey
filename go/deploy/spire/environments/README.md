@@ -6,9 +6,9 @@ This directory contains SPIRE configurations for each environment, implementing 
 
 Each environment has its own trust domain to ensure complete cryptographic isolation:
 
-- **Development**: `spiffe://development.unkey.app`
-- **Canary**: `spiffe://canary.unkey.app`
-- **Production**: `spiffe://prod.unkey.app`
+- **Development**: `spiffe://development.unkey.cloud`
+- **Canary**: `spiffe://canary.unkey.cloud`
+- **Production**: `spiffe://production.unkey.cloud`
 
 ## Why Separate Trust Domains?
 
@@ -59,9 +59,9 @@ Services keep the same logical names across environments:
 - `assetmanagerd`
 
 The full SPIFFE ID includes the environment via trust domain:
-- Dev: `spiffe://development.unkey.app/service/metald`
-- Prod: `spiffe://prod.unkey.app/service/metald`
+- Dev: `spiffe://development.unkey.cloud/service/metald`
+- Prod: `spiffe://production.unkey.cloud/service/metald`
 
 ## Note on DNS
 
-The trust domains (dev.unkey.app, prod.unkey.app) do **NOT** need to be real DNS names. They are just identifiers used within SPIFFE/SPIRE.
+The trust domains (dev.unkey.cloud, production.unkey.cloud) do **NOT** need to be real DNS names. They are just identifiers used within SPIFFE/SPIRE.
