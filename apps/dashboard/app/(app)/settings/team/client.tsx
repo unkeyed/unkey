@@ -28,7 +28,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
     });
 
   const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(
-    user?.orgId || "",
+    undefined,
     {
       enabled: !!user,
     },

@@ -20,12 +20,13 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   const [name, setName] = useState(workspace.name);
 
   const formSchema = z.object({
-    workspaceId: z.string(),
     workspaceName: z
       .string()
       .trim()
       .min(3, { message: "Workspace name must be at least 3 characters long" })
-      .max(50, { message: "Workspace name must be less than 50 characters long" }),
+      .max(50, {
+        message: "Workspace name must be less than 50 characters long",
+      }),
   });
 
   const {
@@ -37,7 +38,6 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
-      workspaceId: workspace.id,
       workspaceName: name,
     },
   });
@@ -62,7 +62,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       return toast.error("Please provide a different name before saving.");
     }
 
-    await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
+    await updateName.mutateAsync({ name: values.workspaceName });
   };
 
   return (
@@ -75,7 +75,6 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">
-          <input type="hidden" name="workspaceId" value={workspace.id} />
           <label htmlFor="workspaceName" className="hidden sr-only">
             Workspace Name
           </label>

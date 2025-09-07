@@ -1,18 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getAuth } from "../auth";
+import { type GetAuthResult, getAuthOrRedirect } from "../auth";
 import { deleteCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE } from "./types";
 
 // Helper function for ensuring a signed-in user
-export async function requireAuth(): Promise<{ userId: string | null; orgId: string | null }> {
-  const authResult = await getAuth();
-  if (!authResult.userId) {
-    redirect("/auth/sign-in");
-  }
-  return authResult;
+export async function requireAuth(): Promise<GetAuthResult> {
+  return getAuthOrRedirect();
 }
 
 // Helper to check invite email matches
