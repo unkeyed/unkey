@@ -62,20 +62,15 @@ export function parseTimestamp(timestamp: string | number | Date): number {
   const isNegative = timestampNum < 0;
   const absoluteTimestamp = Math.abs(timestampNum);
 
-  // Compute digit count by converting absolute integer part to string and stripping non-digits
-  const integerPart = Math.floor(absoluteTimestamp);
-  const digitString = integerPart.toString().replace(/\D/g, "");
-  const digitCount = digitString.length;
-
-  // Convert to milliseconds based on digit count ranges
+  // Convert to milliseconds based on numeric magnitude thresholds
   let timestampMs: number;
-  if (digitCount >= 19) {
+  if (absoluteTimestamp >= 1e18) {
     // Nanoseconds - divide by 1e6 to get milliseconds
     timestampMs = Math.floor(absoluteTimestamp / 1e6);
-  } else if (digitCount >= 16) {
+  } else if (absoluteTimestamp >= 1e15) {
     // Microseconds - divide by 1e3 to get milliseconds
     timestampMs = Math.floor(absoluteTimestamp / 1e3);
-  } else if (digitCount >= 13) {
+  } else if (absoluteTimestamp >= 1e12) {
     // Milliseconds - no scaling needed
     timestampMs = absoluteTimestamp;
   } else {
