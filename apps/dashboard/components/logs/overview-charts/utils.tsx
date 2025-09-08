@@ -2,6 +2,9 @@ import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/gra
 import { format } from "date-fns";
 import type { TimeseriesData } from "./types";
 
+// Default time buffer for granularity fallbacks (1 minute)
+export const DEFAULT_TIME_BUFFER_MS = 60_000;
+
 // Define types for tooltip payload structure
 type TooltipPayloadItem = {
   payload?: {

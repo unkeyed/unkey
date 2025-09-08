@@ -22,9 +22,7 @@ import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-
-// Default time buffer for granularity fallbacks (1 minute)
-const DEFAULT_TIME_BUFFER_MS = 60_000;
+import { DEFAULT_TIME_BUFFER_MS } from "./utils";
 
 type ChartTooltipItem = {
   label: string;

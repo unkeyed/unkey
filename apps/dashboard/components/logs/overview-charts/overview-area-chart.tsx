@@ -29,6 +29,7 @@ import {
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
+import { DEFAULT_TIME_BUFFER_MS } from "./utils";
 
 export type ChartMetric = {
   key: string;
@@ -50,9 +51,13 @@ export type Granularity = CompoundTimeseriesGranularity | undefined;
 // Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
 const getGranularityBuffer = (granularity: Granularity): number => {
   if (!granularity) {
-    return 60000; // 1 minute fallback
+    return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
   }
-  return getTimeBufferForGranularity(granularity);
+  try {
+    return getTimeBufferForGranularity(granularity);
+  } catch {
+    return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
+  }
 };
 
 export interface TimeseriesAreaChartProps {
@@ -340,7 +345,7 @@ export const OverviewAreaChart = ({
                                       ? data[0].originalTimestamp
                                       : +new Date(data[0].originalTimestamp)),
                                 )
-                              : 60000; // 1 minute fallback
+                              : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
                           intervalEndTimestamp = currentTimestampNumeric + inferredGranularityMs;
                         } else {
                           // Use next data point's timestamp
