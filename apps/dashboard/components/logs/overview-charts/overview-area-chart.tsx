@@ -16,7 +16,7 @@ import {
   getTimeBufferForGranularity,
 } from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -77,6 +77,21 @@ export const OverviewAreaChart = ({
   granularity,
 }: TimeseriesAreaChartProps) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  // Precompute timestamp-to-index map for O(1) lookups during hover/tooltip
+  const timestampToIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    data.forEach((item, index) => {
+      if (item?.originalTimestamp) {
+        const normalizedTimestamp =
+          typeof item.originalTimestamp === "number"
+            ? item.originalTimestamp
+            : +new Date(item.originalTimestamp);
+        map.set(normalizedTimestamp, index);
+      }
+    });
+    return map;
+  }, [data]);
 
   const labelsWithDefaults = {
     ...labels,
@@ -295,17 +310,8 @@ export const OverviewAreaChart = ({
                             ? currentTimestamp
                             : +new Date(currentTimestamp);
 
-                        // Find position in the data array using numeric comparison
-                        const currentIndex = data.findIndex((item) => {
-                          if (!item?.originalTimestamp) {
-                            return false;
-                          }
-                          const itemTimestamp =
-                            typeof item.originalTimestamp === "number"
-                              ? item.originalTimestamp
-                              : +new Date(item.originalTimestamp);
-                          return itemTimestamp === currentTimestampNumeric;
-                        });
+                        // Find position in the data array using O(1) map lookup
+                        const currentIndex = timestampToIndexMap.get(currentTimestampNumeric) ?? -1;
 
                         // If not found, fallback to single timestamp display
                         if (currentIndex === -1) {
