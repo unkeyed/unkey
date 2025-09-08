@@ -38,7 +38,7 @@ generate-sql:
 	@rm -rf ./internal/db/out
 	@cd internal/db && pnpm drizzle-kit generate --schema=src/schema/index.ts --dialect=mysql --out=out --name=init --breakpoints=false
 	@echo "\n" >> ./internal/db/out/0000_init.sql
-	@cp ./internal/db/out/0000_init.sql ./go/pkg/db/schema.sql
+	@cat ./internal/db/out/0000_init.sql >> ./go/pkg/db/schema.sql
 
 	@rm -rf ./internal/db/out
 
