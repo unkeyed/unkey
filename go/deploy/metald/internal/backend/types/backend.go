@@ -4,11 +4,10 @@ import (
 	"context"
 	"time"
 
-	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 )
 
 // Backend defines the interface for hypervisor backends
-// AIDEV-NOTE: This interface abstracts VM operations for all hypervisor types
 type Backend interface {
 	// CreateVM creates a new VM instance with the given configuration
 	CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error)
@@ -46,9 +45,8 @@ type Backend interface {
 
 // VMInfo contains VM state and configuration information
 type VMInfo struct {
-	Config      *metaldv1.VmConfig
-	State       metaldv1.VmState
-	NetworkInfo *metaldv1.VmNetworkInfo // Optional network information
+	Config *metaldv1.VmConfig
+	State  metaldv1.VmState
 }
 
 // ListableVMInfo represents VM information for listing operations

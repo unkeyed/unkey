@@ -9,7 +9,7 @@ export const listByEnvironment = t.procedure
   .input(
     z.object({
       projectId: z.string(),
-      environment: z.enum(["production", "preview"]),
+      environmentId: z.string(),
     }),
   )
   .query(async ({ input, ctx }) => {
@@ -30,7 +30,7 @@ export const listByEnvironment = t.procedure
       // Get all deployments for this project and environment
       const deployments = await db.query.deployments.findMany({
         where: (table, { eq, and }) =>
-          and(eq(table.projectId, input.projectId), eq(table.environment, input.environment)),
+          and(eq(table.projectId, input.projectId), eq(table.environmentId, input.environmentId)),
         orderBy: (table, { desc }) => [desc(table.createdAt)],
       });
 

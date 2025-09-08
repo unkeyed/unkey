@@ -1,21 +1,18 @@
 package network
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sync"
-	"time"
 )
 
-// AIDEV-NOTE: Port allocator manages host port allocation for container port mapping
-// This prevents port conflicts between VMs and provides dynamic port allocation
-
-// PortMapping represents a mapping from container port to host port
+// PortMapping represents a mapping from VM port to host port
 type PortMapping struct {
-	ContainerPort int    `json:"container_port"`
-	HostPort      int    `json:"host_port"`
-	Protocol      string `json:"protocol"` // tcp or udp
-	VMID          string `json:"vm_id"`
+	VMPort   int    `json:"vm_port"`
+	HostPort int    `json:"host_port"`
+	Protocol string `json:"protocol"` // tcp or udp
+	VMID     string `json:"vm_id"`
 }
 
 // PortAllocator manages host port allocation for VMs
@@ -28,9 +25,6 @@ type PortAllocator struct {
 	allocated map[int]bool             // host port -> allocated
 	vmPorts   map[string][]PortMapping // VM ID -> port mappings
 	portToVM  map[int]string           // host port -> VM ID
-
-	// Random number generator for port selection
-	rng *rand.Rand
 
 	mu sync.Mutex
 }
@@ -50,7 +44,6 @@ func NewPortAllocator(minPort, maxPort int) *PortAllocator {
 		allocated: make(map[int]bool),
 		vmPorts:   make(map[string][]PortMapping),
 		portToVM:  make(map[int]string),
-		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -71,9 +64,14 @@ func (p *PortAllocator) AllocatePort(vmID string, containerPort int, protocol st
 		maxAttempts = 1000 // Limit attempts to avoid long search times
 	}
 
-	// Try random ports first
+	// Try random ports first using crypto/rand for security
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		hostPort := p.minPort + p.rng.Intn(portRange)
+		randomOffset, err := rand.Int(rand.Reader, big.NewInt(int64(portRange)))
+		if err != nil {
+			// If crypto/rand fails, fall through to sequential search
+			break
+		}
+		hostPort := p.minPort + int(randomOffset.Int64())
 		if !p.allocated[hostPort] {
 			return p.doAllocatePort(vmID, hostPort, containerPort, protocol)
 		}
@@ -114,12 +112,12 @@ func (p *PortAllocator) AllocateSpecificPort(vmID string, hostPort, containerPor
 }
 
 // doAllocatePort performs the actual port allocation (internal helper)
-func (p *PortAllocator) doAllocatePort(vmID string, hostPort, containerPort int, protocol string) (int, error) {
+func (p *PortAllocator) doAllocatePort(vmID string, hostPort, vmPort int, protocol string) (int, error) {
 	// Check for conflicting mapping for same VM
 	if mappings, exists := p.vmPorts[vmID]; exists {
 		for _, mapping := range mappings {
-			if mapping.ContainerPort == containerPort && mapping.Protocol == protocol {
-				return 0, fmt.Errorf("VM %s already has mapping for %s:%d", vmID, protocol, containerPort)
+			if mapping.VMPort == vmPort && mapping.Protocol == protocol {
+				return 0, fmt.Errorf("VM %s already has mapping for %s:%d", vmID, protocol, vmPort)
 			}
 		}
 	}
@@ -130,10 +128,10 @@ func (p *PortAllocator) doAllocatePort(vmID string, hostPort, containerPort int,
 
 	// Create mapping
 	mapping := PortMapping{
-		ContainerPort: containerPort,
-		HostPort:      hostPort,
-		Protocol:      protocol,
-		VMID:          vmID,
+		VMPort:   vmPort,
+		HostPort: hostPort,
+		Protocol: protocol,
+		VMID:     vmID,
 	}
 
 	// Add to VM's port list

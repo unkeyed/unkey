@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
 
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
@@ -64,6 +64,39 @@ describe("bad request", () => {
     });
 
     expect(res.status).toEqual(400);
+  });
+});
+
+describe("disabled workspace", () => {
+  test("returns 403", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+    });
+    await h.db.primary
+      .update(schema.workspaces)
+      .set({
+        enabled: false,
+      })
+      .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));
+
+    const res = await h.post<any, ErrorResponse>({
+      url: "/v1/keys/verify",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key: key,
+      },
+    });
+
+    expect(res.status).toEqual(403);
   });
 });
 

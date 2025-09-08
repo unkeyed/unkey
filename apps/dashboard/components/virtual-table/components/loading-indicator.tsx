@@ -83,14 +83,18 @@ export const LoadMoreFooter = ({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out"
+      className="fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out pointer-events-none"
       style={{
         opacity: shouldShow ? 1 : 0,
-        pointerEvents: shouldShow ? "auto" : "none",
         animation: isOpen ? "slideUpFromBottom 0.3s ease-out" : undefined,
       }}
     >
-      <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm mb-5 transition-all duration-200 hover:shadow-lg">
+      <div
+        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm mb-5 transition-all duration-200 hover:shadow-lg ${
+          shouldShow ? "pointer-events-auto" : "pointer-events-none"
+        }`}
+        aria-hidden={!shouldShow}
+      >
         <div className="flex flex-col w-full">
           {/* Header content */}
           {headerContent && (

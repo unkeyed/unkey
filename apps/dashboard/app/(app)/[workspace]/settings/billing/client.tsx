@@ -102,10 +102,7 @@ export const Client: React.FC<Props> = (props) => {
 
   return (
     <div>
-      <WorkspaceNavbar
-        workspace={props.workspace}
-        activePage={{ href: "billing", text: "Billing" }}
-      />
+      <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
       <Shell>
         {props.subscription ? (
           <SubscriptionStatus

@@ -57,10 +57,7 @@ export default async function Page(props: Props) {
 
   return (
     <div>
-      <Navigation
-        identityId={props.params.identityId}
-        workspaceSlug={identity.workspace.slug ?? ""}
-      />
+      <Navigation identityId={props.params.identityId} />
       <PageContent>
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">
@@ -156,13 +153,13 @@ export default async function Page(props: Props) {
                       )}
                     </TableCell>
                     <LastUsed
-                      workspaceId={key.workspaceId}
+                      workspaceId={identity.workspace?.id}
                       keySpaceId={key.keyAuthId}
                       keyId={key.id}
                     />
                     <TableCell className="flex justify-end">
                       <Link
-                        href={`/${key.workspaceId}/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}
+                        href={`/${identity.workspace?.slug ?? ""}/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}
                       >
                         <Button variant="ghost" shape="square">
                           <ChevronRight />

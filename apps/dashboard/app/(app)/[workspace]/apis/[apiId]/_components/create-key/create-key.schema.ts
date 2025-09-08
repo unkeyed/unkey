@@ -32,9 +32,9 @@ export const keyPrefixSchema = z
   })
   .refine(
     (val) => {
-      return !val || /^[a-zA-Z0-9]/.test(val);
+      return !val || /^[a-zA-Z0-9_]+$/.test(val);
     },
-    { message: "Prefix must start with a letter or number" },
+    { message: "Prefix can only contain letters, numbers, and underscores" },
   )
   .optional();
 

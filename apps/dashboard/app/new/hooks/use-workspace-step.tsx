@@ -16,13 +16,14 @@ const workspaceSchema = z.object({
     .trim()
     .min(3, "Workspace name is required")
     .max(50, "Workspace name must be 50 characters or less"),
-  workspaceUrl: z
+  slug: z
     .string()
-    .min(3, "Workspace URL is required")
-    .max(64, "Workspace URL must be 64 characters or less")
+    .trim()
+    .min(3, "Workspace slug must be at least 3 characters")
+    .max(64, "Workspace slug must be 64 characters or less")
     .regex(
-      /^(?!-)[a-z0-9-]+(?<!-)$/,
-      "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
     ),
 });
 
@@ -104,7 +105,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     }
     createWorkspace.mutateAsync({
       name: data.workspaceName,
-      slug: data.workspaceUrl.toLowerCase(),
+      slug: data.slug.toLowerCase(),
     });
   };
 
@@ -147,7 +148,6 @@ export const useWorkspaceStep = (): OnboardingStep => {
           {/*     </div> */}
           {/*   </div> */}
           {/* </div> */}
-
           {/* Use this 'pt-7' version when implementing profile photo and slug based onboarding*/}
           {/* <div className="space-y-4 pt-7"> */}
           <div className="space-y-4 p-1">
@@ -156,13 +156,14 @@ export const useWorkspaceStep = (): OnboardingStep => {
               placeholder="Enter workspace name"
               label="Workspace name"
               onBlur={(evt) => {
-                const currentSlug = form.getValues("workspaceUrl");
-                const isSlugDirty = form.formState.dirtyFields.workspaceUrl;
+                const currentSlug = form.getValues("slug");
+                const isSlugDirty = form.formState.dirtyFields.slug;
 
                 // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
                 if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
-                  form.setValue("workspaceUrl", slugify(evt.currentTarget.value));
-                  form.trigger("workspaceUrl");
+                  form.setValue("slug", slugify(evt.currentTarget.value), {
+                    shouldValidate: true,
+                  });
                 }
               }}
               required
@@ -170,18 +171,16 @@ export const useWorkspaceStep = (): OnboardingStep => {
               disabled={isLoading || workspaceCreated}
             />
             <FormInput
-              {...form.register("workspaceUrl")}
+              {...form.register("slug")}
               placeholder="enter-a-handle"
               label="Workspace URL handle"
               required
-              error={form.formState.errors.workspaceUrl?.message}
+              error={form.formState.errors.slug?.message}
               prefix="app.unkey.com/"
               maxLength={64}
               onChange={(evt) => {
-                // Mark slug as manually edited when user changes it
-                if (evt.currentTarget.value) {
-                  setSlugManuallyEdited(true);
-                }
+                const v = evt.currentTarget.value;
+                setSlugManuallyEdited(v.length > 0);
               }}
             />
           </div>
@@ -215,7 +214,7 @@ const slugify = (text: string): string => {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special chars except letters, numbers, spaces, and hyphens
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except lowercase letters, numbers, spaces, and hyphens
     .replace(/\s+/g, "-") // Replace spaces with hyphens
     .replace(/-+/g, "-") // Replace multiple hyphens with single
     .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens

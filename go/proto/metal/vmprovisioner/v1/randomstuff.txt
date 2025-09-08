@@ -1,0 +1,13 @@
+Metald receives a CreateVMRequest, in it is the customer_id, workspace_id, and environment_id. The combination of those three hashed with FNV should yield a stable identifier that's prefixed by "br" and remains < 15 characters. That identifier should then become the name of a network bridge.
+
+The action taken should be to check if the bridge name exists
+
+# Create bridge for subnet 172.16.0.0/29
+sudo ip link add br-t0-sub0 type bridge
+sudo ip addr add 172.16.0.1/29 dev br-t0-sub0
+sudo ip link set dev br-t0-sub0 up
+
+# Create TAPs for first subnet (5 VMs max in /29)
+sudo ip tuntap add dev tap0-s0-vm1 mode tap
+sudo ip link set dev tap0-s0-vm1 master br-t0-sub0
+sudo ip link set dev tap0-s0-vm1 up

@@ -29,9 +29,8 @@ export default function SettingsPage(props: Props) {
           href: `/${workspace?.slug}/apis/${apiId}/settings`,
           text: "Settings",
         }}
-        workspaceSlug={workspace?.slug ?? ""}
       />
-      <SettingsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
+      <SettingsClient apiId={apiId} />
     </div>
   );
 }

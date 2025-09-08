@@ -25,6 +25,9 @@ const (
 	// SystemUser indicates errors caused by user inputs or client behavior.
 	SystemUser System = "user"
 
+	// SystemGateway indicates errors caused by gateway issues.
+	SystemGateway System = "gateway"
+
 	// SystemUnkey indicates errors originating from Unkey's internal systems.
 	SystemUnkey System = "unkey"
 
@@ -44,6 +47,30 @@ const (
 
 	// CategoryUserBadRequest represents invalid user input errors.
 	CategoryUserBadRequest Category = "bad_request"
+
+	// CategoryNotFound represents resource not found errors.
+	CategoryNotFound Category = "not_found"
+
+	// CategoryBadGateway represents errors related to upstream server unavailability.
+	CategoryBadGateway Category = "bad_gateway"
+
+	// CategoryServiceUnavailable represents backend service unavailable errors.
+	CategoryServiceUnavailable Category = "service_unavailable"
+
+	// CategoryGatewayTimeout represents upstream server timeout errors.
+	CategoryGatewayTimeout Category = "gateway_timeout"
+
+	// CategoryUnauthorized represents authentication required or failed errors.
+	CategoryUnauthorized Category = "unauthorized"
+
+	// CategoryForbidden represents authorization/permission denied errors.
+	CategoryForbidden Category = "forbidden"
+
+	// CategoryRateLimited represents rate limit exceeded errors.
+	CategoryRateLimited Category = "rate_limited"
+
+	// CategoryInternalServerError represents internal server errors.
+	CategoryInternalServerError Category = "internal_server_error"
 
 	// Unkey categories
 
