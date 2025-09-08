@@ -11,10 +11,6 @@ export default function ApisOverviewPage() {
   const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
 
-  if (workspace && !isLoading) {
-    router.replace(`/${workspace.slug}/apis`);
-  }
-
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
 

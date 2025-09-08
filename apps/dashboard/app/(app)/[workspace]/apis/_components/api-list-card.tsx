@@ -4,17 +4,16 @@ import { StatsTimeseriesBarChart } from "@/components/stats-card/components/char
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { formatNumber } from "@/lib/fmt";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Key, ProgressBar } from "@unkey/icons";
 import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
-
 type Props = {
   api: ApiOverview;
-  workspaceSlug: string;
 };
 
-export const ApiListCard = ({ api, workspaceSlug }: Props) => {
+export const ApiListCard = ({ api }: Props) => {
   const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
-
+  const { workspace } = useWorkspace();
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
   const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
 
@@ -23,7 +22,7 @@ export const ApiListCard = ({ api, workspaceSlug }: Props) => {
     <StatsCard
       name={api.name}
       secondaryId={api.id}
-      linkPath={`/${workspaceSlug}/apis/${api.id}`}
+      linkPath={`/${workspace?.slug}/apis/${api.id}`}
       chart={
         <StatsTimeseriesBarChart
           data={timeseries}

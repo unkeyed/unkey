@@ -1,22 +1,30 @@
 "use client";
 
 import { Navbar } from "@/components/navigation/navbar";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Fingerprint } from "@unkey/icons";
+import { useRouter } from "next/navigation";
 
 type NavigationProps = {
   readonly identityId: string;
-  readonly workspaceSlug: string;
 };
 
-export function Navigation({ identityId, workspaceSlug }: NavigationProps): JSX.Element {
+export function Navigation({ identityId }: NavigationProps): JSX.Element {
+  const { workspace, isLoading } = useWorkspace();
+  const router = useRouter();
+
+  if (!workspace && !isLoading) {
+    router.replace("/new");
+  }
+
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Fingerprint aria-hidden="true" focusable={false} />}>
-        <Navbar.Breadcrumbs.Link href={`/${encodeURIComponent(workspaceSlug)}/identities`}>
+        <Navbar.Breadcrumbs.Link href={`/${encodeURIComponent(workspace?.slug ?? "")}/identities`}>
           Identities
         </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
-          href={`/${encodeURIComponent(workspaceSlug)}/identities/${encodeURIComponent(identityId)}`}
+          href={`/${encodeURIComponent(workspace?.slug ?? "")}/identities/${encodeURIComponent(identityId)}`}
           className="w-[200px] truncate"
           active
           isIdentifier

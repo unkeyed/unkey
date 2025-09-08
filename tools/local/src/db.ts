@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { task } from "./util";
@@ -25,7 +26,7 @@ export async function prepareDatabase(): Promise<{
         id: ROW_IDS.rootWorkspace,
         orgId: "user_REPLACE_ME",
         name: "Unkey",
-        slug: "unkey-workspace",
+        slug: `unkey-workspace-${randomUUID()}`,
         createdAtM: Date.now(),
         betaFeatures: {},
         features: {},

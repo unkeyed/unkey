@@ -2,6 +2,7 @@
 
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ArrowRight, Check, Key2, Plus } from "@unkey/icons";
 import { Button, InfoTooltip, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -15,7 +16,6 @@ export const KeyCreatedSuccessDialog = ({
   keyData,
   apiId,
   keyspaceId,
-  workspaceSlug,
   onCreateAnother,
 }: {
   isOpen: boolean;
@@ -23,9 +23,9 @@ export const KeyCreatedSuccessDialog = ({
   keyData: { key: string; id: string; name?: string } | null;
   apiId: string;
   keyspaceId?: string | null;
-  workspaceSlug: string;
   onCreateAnother?: () => void;
 }) => {
+  const { workspace } = useWorkspace();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
     "close" | "create-another" | "go-to-details" | null
@@ -91,7 +91,7 @@ export const KeyCreatedSuccessDialog = ({
             });
             return;
           }
-          router.push(`/${workspaceSlug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
+          router.push(`/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
           break;
 
         default:

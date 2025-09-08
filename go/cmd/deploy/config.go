@@ -21,6 +21,7 @@ var (
 
 type Config struct {
 	WorkspaceID string `json:"workspace_id"`
+	KeyspaceID  string `json:"keyspace_id"`
 	ProjectID   string `json:"project_id"`
 	Context     string `json:"context"`
 }
@@ -114,13 +115,13 @@ func writeConfig(configPath string, config *Config) error {
 }
 
 // mergeWithFlags merges config values with command flags, with flags taking precedence
-func (c *Config) mergeWithFlags(workspaceID, projectID, context string) *Config {
+func (c *Config) mergeWithFlags(workspaceID, projectID, keyspaceID, context string) *Config {
 	merged := &Config{
 		WorkspaceID: c.WorkspaceID,
+		KeyspaceID:  c.KeyspaceID,
 		ProjectID:   c.ProjectID,
 		Context:     c.Context,
 	}
-
 	// Flags override config values
 	if workspaceID != "" {
 		merged.WorkspaceID = workspaceID
@@ -128,15 +129,16 @@ func (c *Config) mergeWithFlags(workspaceID, projectID, context string) *Config 
 	if projectID != "" {
 		merged.ProjectID = projectID
 	}
+	if keyspaceID != "" {
+		merged.KeyspaceID = keyspaceID
+	}
 	if context != "" {
 		merged.Context = context
 	}
-
 	// Set default context if empty
 	if merged.Context == "" {
 		merged.Context = "."
 	}
-
 	return merged
 }
 

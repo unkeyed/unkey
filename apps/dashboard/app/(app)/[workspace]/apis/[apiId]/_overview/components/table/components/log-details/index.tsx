@@ -1,6 +1,7 @@
 "use client";
 import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/[workspace]/logs/constants";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
+import { useWorkspace } from "@/providers/workspace-provider";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
@@ -29,7 +30,6 @@ type KeysOverviewLogDetailsProps = {
   log: KeysOverviewLog | null;
   apiId: string;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
-  workspaceSlug: string;
 };
 
 export const KeysOverviewLogDetails = ({
@@ -37,8 +37,8 @@ export const KeysOverviewLogDetails = ({
   log,
   setSelectedLog,
   apiId,
-  workspaceSlug,
 }: KeysOverviewLogDetailsProps) => {
+  const { workspace } = useWorkspace();
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
   if (!log) {
     return null;
@@ -69,7 +69,7 @@ export const KeysOverviewLogDetails = ({
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono underline decoration-dotted"
-        href={`/${workspaceSlug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        href={`/${workspace?.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
       >
         <div className="font-mono font-medium truncate">{log.key_id}</div>
       </Link>

@@ -9,13 +9,15 @@ export default function RolesPage() {
   const { workspace } = useWorkspace();
 
   return (
-    <div>
-      <Navigation workspaceSlug={workspace?.slug ?? ""} />
-      <div className="flex flex-col">
-        <RoleListControls />
-        <RolesListControlCloud />
-        <RolesList />
+    workspace && (
+      <div>
+        <Navigation />
+        <div className="flex flex-col">
+          <RoleListControls />
+          <RolesListControlCloud />
+          <RolesList />
+        </div>
       </div>
-    </div>
+    )
   );
 }

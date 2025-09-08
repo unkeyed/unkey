@@ -42,9 +42,9 @@ type BuildMetrics struct {
 	buildStepErrors   metric.Int64Counter
 	buildStepDuration metric.Float64Histogram
 
-	// Tenant metrics (if high cardinality enabled)
-	tenantBuildsTotal     metric.Int64Counter
-	tenantQuotaViolations metric.Int64Counter
+	// Base asset initialization metrics
+	baseAssetInitRetries  metric.Int64Counter
+	baseAssetInitFailures metric.Int64Counter
 
 	highCardinalityEnabled bool
 	logger                 *slog.Logger
@@ -266,25 +266,23 @@ func NewBuildMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BuildMe
 		return nil, err
 	}
 
-	// Tenant metrics (if enabled)
-	if highCardinalityEnabled {
-		metrics.tenantBuildsTotal, err = meter.Int64Counter(
-			"builderd_tenant_builds_total",
-			metric.WithDescription("Total builds per tenant"),
-			metric.WithUnit("1"),
-		)
-		if err != nil {
-			return nil, err
-		}
+	// Base asset initialization metrics
+	metrics.baseAssetInitRetries, err = meter.Int64Counter(
+		"builderd_base_asset_init_retries_total",
+		metric.WithDescription("Total number of base asset initialization retries"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, err
+	}
 
-		metrics.tenantQuotaViolations, err = meter.Int64Counter(
-			"builderd_tenant_quota_violations_total",
-			metric.WithDescription("Total quota violations per tenant"),
-			metric.WithUnit("1"),
-		)
-		if err != nil {
-			return nil, err
-		}
+	metrics.baseAssetInitFailures, err = meter.Int64Counter(
+		"builderd_base_asset_init_failures_total",
+		metric.WithDescription("Total number of base asset initialization final failures"),
+		metric.WithUnit("1"),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	logger.Info("build metrics initialized",
@@ -307,11 +305,10 @@ func (m *BuildMetrics) RecordBuildStart(ctx context.Context, buildType, sourceTy
 }
 
 // RecordBuildComplete records the completion of a build
-func (m *BuildMetrics) RecordBuildComplete(ctx context.Context, buildType, sourceType, tenantTier string, duration time.Duration, success bool) {
+func (m *BuildMetrics) RecordBuildComplete(ctx context.Context, buildType, sourceType string, duration time.Duration, success bool) {
 	attrs := []attribute.KeyValue{
 		attribute.String("build_type", buildType),
 		attribute.String("source_type", sourceType),
-		attribute.String("tenant_tier", tenantTier),
 		attribute.String("status", func() string {
 			if success {
 				return "success"
@@ -329,11 +326,10 @@ func (m *BuildMetrics) RecordBuildComplete(ctx context.Context, buildType, sourc
 }
 
 // RecordBuildCancellation records a build cancellation
-func (m *BuildMetrics) RecordBuildCancellation(ctx context.Context, buildType, sourceType, tenantTier string) {
+func (m *BuildMetrics) RecordBuildCancellation(ctx context.Context, buildType, sourceType string) {
 	attrs := []attribute.KeyValue{
 		attribute.String("build_type", buildType),
 		attribute.String("source_type", sourceType),
-		attribute.String("tenant_tier", tenantTier),
 	}
 
 	m.buildCancellations.Add(ctx, 1, metric.WithAttributes(attrs...))
@@ -399,34 +395,6 @@ func (m *BuildMetrics) RecordDequeuedBuild(ctx context.Context) {
 	m.queuedBuilds.Add(ctx, -1)
 }
 
-// RecordTenantBuild records a build for a specific tenant (if high cardinality enabled)
-func (m *BuildMetrics) RecordTenantBuild(ctx context.Context, tenantID, buildType string) {
-	if !m.highCardinalityEnabled || m.tenantBuildsTotal == nil {
-		return
-	}
-
-	attrs := []attribute.KeyValue{
-		attribute.String("tenant_id", tenantID),
-		attribute.String("build_type", buildType),
-	}
-
-	m.tenantBuildsTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
-}
-
-// RecordTenantQuotaViolation records a quota violation for a tenant
-func (m *BuildMetrics) RecordTenantQuotaViolation(ctx context.Context, tenantID, quotaType string) {
-	if !m.highCardinalityEnabled || m.tenantQuotaViolations == nil {
-		return
-	}
-
-	attrs := []attribute.KeyValue{
-		attribute.String("tenant_id", tenantID),
-		attribute.String("quota_type", quotaType),
-	}
-
-	m.tenantQuotaViolations.Add(ctx, 1, metric.WithAttributes(attrs...))
-}
-
 // RecordBuildStepStart records the start of a build step
 func (m *BuildMetrics) RecordBuildStepStart(ctx context.Context, stepName, sourceType string) {
 	attrs := []attribute.KeyValue{
@@ -455,4 +423,24 @@ func (m *BuildMetrics) RecordBuildStepComplete(ctx context.Context, stepName, so
 	if !success {
 		m.buildStepErrors.Add(ctx, 1, metric.WithAttributes(attrs...))
 	}
+}
+
+// RecordBaseAssetInitRetry records a retry attempt for base asset initialization
+func (m *BuildMetrics) RecordBaseAssetInitRetry(ctx context.Context, attempt int, reason string) {
+	attrs := []attribute.KeyValue{
+		attribute.Int("attempt", attempt),
+		attribute.String("reason", reason),
+	}
+
+	m.baseAssetInitRetries.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// RecordBaseAssetInitFailure records a final failure of base asset initialization after all retries
+func (m *BuildMetrics) RecordBaseAssetInitFailure(ctx context.Context, totalAttempts int, finalError string) {
+	attrs := []attribute.KeyValue{
+		attribute.Int("total_attempts", totalAttempts),
+		attribute.String("final_error", finalError),
+	}
+
+	m.baseAssetInitFailures.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
