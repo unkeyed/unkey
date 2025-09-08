@@ -2,12 +2,15 @@ import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/gra
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
 import type { TimeseriesData } from "./overview-charts/types";
+import { parseTimestamp } from "./parseTimestamp";
 
 // Default time buffer for granularity fallbacks (1 minute)
 const DEFAULT_TIME_BUFFER_MS = 60_000;
 
 // Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
-const getGranularityBuffer = (granularity?: CompoundTimeseriesGranularity): number => {
+const getGranularityBuffer = (
+  granularity?: CompoundTimeseriesGranularity
+): number => {
   if (!granularity) {
     return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
   }
@@ -24,23 +27,29 @@ const getGranularityBuffer = (granularity?: CompoundTimeseriesGranularity): numb
 export const formatTooltipTimestamp = (
   timestamp: number | string,
   granularity?: CompoundTimeseriesGranularity,
-  data?: TimeseriesData[],
+  data?: TimeseriesData[]
 ): string => {
-  // Parse timestamp to number and handle microsecond timestamps
-  const timestampNum = typeof timestamp === "string" ? Number.parseFloat(timestamp) : timestamp;
+  // Handle null/undefined early
+  if (timestamp == null) {
+    return "";
+  }
 
-  // Detect microseconds by checking if value has 16 digits or is > 1e13
-  const isMicroseconds = timestampNum > 1e13 || timestampNum.toString().length === 16;
+  // Parse timestamp using shared helper
+  const timestampMs = parseTimestamp(timestamp);
 
-  // Convert microseconds to milliseconds if needed
-  const timestampMs = isMicroseconds ? Math.floor(timestampNum / 1000) : timestampNum;
+  // Validate parsed timestamp
+  if (timestampMs === 0 && timestamp !== 0 && timestamp !== "0") {
+    return "";
+  }
 
   const date = new Date(timestampMs);
 
   // If we have data, check if it spans multiple days
   if (data && data.length > 1) {
-    const firstDay = new Date(data[0].originalTimestamp);
-    const lastDay = new Date(data[data.length - 1].originalTimestamp);
+    const firstDay = new Date(parseTimestamp(data[0].originalTimestamp));
+    const lastDay = new Date(
+      parseTimestamp(data[data.length - 1].originalTimestamp)
+    );
 
     // Check if the data spans multiple calendar days
     const firstDayStr = firstDay.toDateString();
@@ -86,7 +95,7 @@ export const formatTooltipInterval = (
   payloadTimestamp: number | string | undefined,
   data: TimeseriesData[],
   granularity?: CompoundTimeseriesGranularity,
-  timestampToIndexMap?: Map<number, number>,
+  timestampToIndexMap?: Map<number, number>
 ) => {
   if (!payloadTimestamp) {
     return "";
@@ -115,17 +124,13 @@ export const formatTooltipInterval = (
   }
 
   // Normalize timestamps to numeric for robust comparison
-  const currentTimestampNumeric =
-    typeof payloadTimestamp === "number" ? payloadTimestamp : +new Date(payloadTimestamp);
+  const currentTimestampNumeric = parseTimestamp(payloadTimestamp);
 
   // Find position in the data array using O(1) map lookup or fallback to linear search
   const currentIndex = timestampToIndexMap
-    ? (timestampToIndexMap.get(currentTimestampNumeric) ?? -1)
+    ? timestampToIndexMap.get(currentTimestampNumeric) ?? -1
     : data.findIndex((item) => {
-        const itemTimestamp =
-          typeof item.originalTimestamp === "number"
-            ? item.originalTimestamp
-            : +new Date(item.originalTimestamp);
+        const itemTimestamp = parseTimestamp(item.originalTimestamp);
         return itemTimestamp === currentTimestampNumeric;
       });
 
@@ -148,15 +153,11 @@ export const formatTooltipInterval = (
     const inferredGranularityMs = granularity
       ? getGranularityBuffer(granularity)
       : data.length > 1
-        ? Math.abs(
-            (typeof data[1].originalTimestamp === "number"
-              ? data[1].originalTimestamp
-              : +new Date(data[1].originalTimestamp)) -
-              (typeof data[0].originalTimestamp === "number"
-                ? data[0].originalTimestamp
-                : +new Date(data[0].originalTimestamp)),
-          )
-        : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
+      ? Math.abs(
+          parseTimestamp(data[1].originalTimestamp) -
+            parseTimestamp(data[0].originalTimestamp)
+        )
+      : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
     intervalEndTimestamp = currentTimestampNumeric + inferredGranularityMs;
   } else {
     // Use next data point's timestamp
@@ -171,19 +172,20 @@ export const formatTooltipInterval = (
         </div>
       );
     }
-    intervalEndTimestamp =
-      typeof nextPoint.originalTimestamp === "number"
-        ? nextPoint.originalTimestamp
-        : +new Date(nextPoint.originalTimestamp);
+    intervalEndTimestamp = parseTimestamp(nextPoint.originalTimestamp);
   }
 
   // Format both timestamps using normalized numeric values
   const formattedCurrentTimestamp = formatTooltipTimestamp(
     currentTimestampNumeric,
     granularity,
-    data,
+    data
   );
-  const formattedNextTimestamp = formatTooltipTimestamp(intervalEndTimestamp, granularity, data);
+  const formattedNextTimestamp = formatTooltipTimestamp(
+    intervalEndTimestamp,
+    granularity,
+    data
+  );
 
   // Get timezone abbreviation from the actual point date for correct DST handling
   const pointDate = new Date(currentTimestampNumeric);

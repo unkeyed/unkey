@@ -4,6 +4,7 @@ import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
+import { parseTimestamp } from "../parseTimestamp";
 import {
   type ChartConfig,
   ChartContainer,
@@ -72,10 +73,7 @@ export const OverviewAreaChart = ({
     const map = new Map<number, number>();
     data.forEach((item, index) => {
       if (item?.originalTimestamp) {
-        const normalizedTimestamp =
-          typeof item.originalTimestamp === "number"
-            ? item.originalTimestamp
-            : +new Date(item.originalTimestamp);
+        const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
         map.set(normalizedTimestamp, index);
       }
     });
@@ -84,7 +82,8 @@ export const OverviewAreaChart = ({
 
   const labelsWithDefaults = {
     ...labels,
-    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
+    showRightSide:
+      labels.showRightSide !== undefined ? labels.showRightSide : true,
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
@@ -122,7 +121,10 @@ export const OverviewAreaChart = ({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+      const [start, end] = [
+        selection.startTimestamp,
+        selection.endTimestamp,
+      ].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -147,7 +149,10 @@ export const OverviewAreaChart = ({
     const values = data.map((d) => d[metric.key] as number);
     const min = data.length > 0 ? Math.min(...values) : 0;
     const max = data.length > 0 ? Math.max(...values) : 0;
-    const avg = data.length > 0 ? values.reduce((sum, val) => sum + val, 0) / data.length : 0;
+    const avg =
+      data.length > 0
+        ? values.reduce((sum, val) => sum + val, 0) / data.length
+        : 0;
 
     ranges[metric.key] = { min, max, avg };
   });
@@ -160,7 +165,7 @@ export const OverviewAreaChart = ({
       <div
         className={cn(
           "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
-          labelsWithDefaults.reverse && "flex-row-reverse",
+          labelsWithDefaults.reverse && "flex-row-reverse"
         )}
       >
         <div className="flex flex-col gap-1 max-md:w-full">
@@ -180,10 +185,10 @@ export const OverviewAreaChart = ({
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
-                  ranges[primaryMetric.key].min,
+                  ranges[primaryMetric.key].min
                 )} - ${primaryMetric.formatter(ranges[primaryMetric.key].max)}`
               : `${formatNumber(
-                  ranges[primaryMetric.key].min,
+                  ranges[primaryMetric.key].min
                 )} - ${formatNumber(ranges[primaryMetric.key].max)}`}
           </div>
         </div>
@@ -193,8 +198,13 @@ export const OverviewAreaChart = ({
             {labelsWithDefaults.metrics.map((metric) => (
               <div key={metric.key} className="flex flex-col gap-1">
                 <div className="flex gap-2 items-center">
-                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
-                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                  <div
+                    className="rounded h-[10px] w-1"
+                    style={{ backgroundColor: metric.color }}
+                  />
+                  <div className="text-accent-10 text-[11px] leading-4">
+                    {metric.label}
+                  </div>
                 </div>
                 <div className="text-accent-12 text-[18px] font-semibold leading-7">
                   {metric.formatter
@@ -228,13 +238,24 @@ export const OverviewAreaChart = ({
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor={metric.color} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={metric.color} stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor={metric.color}
+                      stopOpacity={0.2}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={metric.color}
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 ))}
               </defs>
 
-              <YAxis domain={["auto", (dataMax: number) => dataMax * 1.1]} hide />
+              <YAxis
+                domain={["auto", (dataMax: number) => dataMax * 1.1]}
+                hide
+              />
               <CartesianGrid
                 horizontal
                 vertical={false}
@@ -264,12 +285,13 @@ export const OverviewAreaChart = ({
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) => {
-                        const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                        const payloadTimestamp =
+                          tooltipPayload?.[0]?.payload?.originalTimestamp;
                         return formatTooltipInterval(
                           payloadTimestamp,
                           data || [],
                           granularity,
-                          timestampToIndexMap,
+                          timestampToIndexMap
                         );
                       }}
                     />
@@ -306,7 +328,7 @@ export const OverviewAreaChart = ({
         {data.length > 0
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now(),
+              data.at(-1)?.originalTimestamp ?? Date.now()
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10 text-center">

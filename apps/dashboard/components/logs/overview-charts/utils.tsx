@@ -1,6 +1,7 @@
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
 import type { TimeseriesData } from "./types";
+import { parseTimestamp } from "../parseTimestamp";
 
 // Default time buffer for granularity fallbacks (1 minute)
 export const DEFAULT_TIME_BUFFER_MS = 60_000;
@@ -17,7 +18,10 @@ type TooltipPayloadItem = {
 /**
  * Get appropriate formatted time based on granularity (12-hour format without timezone)
  */
-function formatTimeForGranularity(date: Date, granularity?: CompoundTimeseriesGranularity): string {
+function formatTimeForGranularity(
+  date: Date,
+  granularity?: CompoundTimeseriesGranularity
+): string {
   if (!granularity) {
     return format(date, "h:mma");
   }
@@ -73,7 +77,7 @@ function getTimezoneAbbreviation(date?: Date): string {
 export function createTimeIntervalFormatter(
   data?: TimeseriesData[],
   timeFormat = "HH:mm",
-  granularity?: CompoundTimeseriesGranularity,
+  granularity?: CompoundTimeseriesGranularity
 ) {
   return (tooltipPayload: TooltipPayloadItem[]) => {
     // Basic validation checks
@@ -90,7 +94,7 @@ export function createTimeIntervalFormatter(
     }
 
     // Use granularity-aware format if available, otherwise use provided timeFormat
-    const currentDate = new Date(currentTimestamp);
+    const currentDate = new Date(parseTimestamp(currentTimestamp));
     const formattedCurrentTimestamp = granularity
       ? formatTimeForGranularity(currentDate, granularity)
       : format(currentDate, timeFormat);
@@ -110,13 +114,17 @@ export function createTimeIntervalFormatter(
     }
 
     // Find position in the data array
-    const currentIndex = data.findIndex((item) => item?.originalTimestamp === currentTimestamp);
+    const currentIndex = data.findIndex(
+      (item) => item?.originalTimestamp === currentTimestamp
+    );
 
     // If this is the last item or not found, just show current timestamp
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
       // Use timestamp-aware timezone or fallback to global helper for missing/invalid timestamps
       const fallbackTimezoneAbbr =
-        currentTimestamp && currentDate ? timezoneAbbr : getTimezoneAbbreviation();
+        currentTimestamp && currentDate
+          ? timezoneAbbr
+          : getTimezoneAbbreviation();
 
       return (
         <div className="px-4">
@@ -132,13 +140,15 @@ export function createTimeIntervalFormatter(
     if (!nextPoint) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
+          <span className="font-mono text-accent-9 text-xs px-4">
+            {formattedCurrentTimestamp}
+          </span>
         </div>
       );
     }
 
     // Format the next timestamp with the same format
-    const nextDate = new Date(nextPoint.originalTimestamp);
+    const nextDate = new Date(parseTimestamp(nextPoint.originalTimestamp));
     const formattedNextTimestamp = granularity
       ? formatTimeForGranularity(nextDate, granularity)
       : format(nextDate, timeFormat);
@@ -157,7 +167,8 @@ export function createTimeIntervalFormatter(
     return (
       <div className="px-4">
         <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-          {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezoneDisplay})
+          {formattedCurrentTimestamp} - {formattedNextTimestamp} (
+          {timezoneDisplay})
         </span>
       </div>
     );
