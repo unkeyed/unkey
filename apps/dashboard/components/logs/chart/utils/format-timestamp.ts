@@ -8,7 +8,7 @@ export const formatTimestampLabel = (timestamp: string | number | Date) => {
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: CompoundTimeseriesGranularity
+  granularity: CompoundTimeseriesGranularity,
 ) => {
   const localDate = new Date(value);
 

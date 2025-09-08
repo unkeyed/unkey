@@ -2,8 +2,9 @@
  * Parses timestamp values and converts microsecond timestamps to milliseconds
  * for proper JavaScript Date construction.
  *
- * This helper detects microsecond precision timestamps (>= 16 digits or > 1e13)
- * and automatically converts them to milliseconds by dividing by 1000.
+ * This helper detects timestamp precision based on digit count and converts
+ * to milliseconds: nanoseconds (>=19 digits) ÷ 1e6, microseconds (>=16 digits) ÷ 1e3,
+ * milliseconds (>=13 digits) unchanged, seconds (<13 digits) × 1e3.
  *
  * @param timestamp - The timestamp value as string, number, or Date
  * @returns The timestamp in milliseconds (epoch time)
@@ -13,8 +14,16 @@
  * parseTimestamp(1640995200000) // returns 1640995200000
  *
  * @example
+ * // Nanosecond timestamp (19 digits) - converted to milliseconds
+ * parseTimestamp(1640995200000000000) // returns 1640995200000
+ *
+ * @example
  * // Microsecond timestamp (16 digits) - converted to milliseconds
  * parseTimestamp(1640995200000000) // returns 1640995200000
+ *
+ * @example
+ * // Second timestamp (10 digits) - converted to milliseconds
+ * parseTimestamp(1640995200) // returns 1640995200000
  *
  * @example
  * // String microsecond timestamp
@@ -58,13 +67,21 @@ export function parseTimestamp(timestamp: string | number | Date): number {
   const digitString = integerPart.toString().replace(/\D/g, "");
   const digitCount = digitString.length;
 
-  // Treat as microseconds when digitCount >= 16 or timestampNum > 1e13
-  const isMicroseconds = digitCount >= 16 || absoluteTimestamp > 1e13;
-
-  // Convert microseconds to milliseconds if needed
-  let timestampMs = isMicroseconds
-    ? Math.floor(absoluteTimestamp / 1000)
-    : absoluteTimestamp;
+  // Convert to milliseconds based on digit count ranges
+  let timestampMs: number;
+  if (digitCount >= 19) {
+    // Nanoseconds - divide by 1e6 to get milliseconds
+    timestampMs = Math.floor(absoluteTimestamp / 1e6);
+  } else if (digitCount >= 16) {
+    // Microseconds - divide by 1e3 to get milliseconds
+    timestampMs = Math.floor(absoluteTimestamp / 1e3);
+  } else if (digitCount >= 13) {
+    // Milliseconds - no scaling needed
+    timestampMs = absoluteTimestamp;
+  } else {
+    // Seconds - multiply by 1e3 to get milliseconds
+    timestampMs = absoluteTimestamp * 1e3;
+  }
 
   // Restore sign after conversion
   if (isNegative) {
