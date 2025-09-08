@@ -985,7 +985,6 @@ func (s *Service) QueryAssets(
 			if dockerImage, ok := req.Msg.GetLabelSelector()["docker_image"]; ok && dockerImage != "" {
 				s.logger.InfoContext(ctx, "no rootfs found, triggering automatic build",
 					"docker_image", dockerImage,
-					"tenant_id", buildOpts.GetTenantId(),
 				)
 
 				// Merge labels for the build
@@ -1020,10 +1019,9 @@ func (s *Service) QueryAssets(
 
 				// Trigger build
 				tracer := otel.Tracer("assetmanagerd")
-				buildCtx, buildSpan := tracer.Start(buildCtx, "assetmanagerd.service.trigger_build_with_tenant",
+				buildCtx, buildSpan := tracer.Start(buildCtx, "assetmanagerd.service.trigger_build",
 					trace.WithAttributes(
 						attribute.String("docker.image", dockerImage),
-						attribute.String("tenant.id", buildOpts.GetTenantId()),
 						attribute.StringSlice("build.labels", func() []string {
 							var labelPairs []string
 							for k, v := range buildLabels {
@@ -1033,11 +1031,8 @@ func (s *Service) QueryAssets(
 						}()),
 					),
 				)
-				// AIDEV-NOTE: Extract proper customer ID from tenant context instead of using asset ID
-				tenantID := buildOpts.GetTenantId()
-				customerID := "cli-user" // Default fallback
 
-				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels, tenantID, customerID)
+				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels)
 				if err != nil {
 					buildSpan.RecordError(err)
 					buildSpan.SetStatus(codes.Error, err.Error())
@@ -1065,15 +1060,14 @@ func (s *Service) QueryAssets(
 							buildTimeout = 30 * time.Minute // Default timeout
 						}
 
-						buildCtx, waitSpan := tracer.Start(buildCtx, "assetmanagerd.service.wait_for_build_with_tenant",
+						buildCtx, waitSpan := tracer.Start(buildCtx, "assetmanagerd.service.wait_for_build",
 							trace.WithAttributes(
 								attribute.String("build.id", buildID),
 								attribute.String("docker.image", dockerImage),
-								attribute.String("tenant.id", buildOpts.GetTenantId()),
 								attribute.String("build.timeout", buildTimeout.String()),
 							),
 						)
-						completedBuild, err := s.builderdClient.WaitForBuildWithTenant(buildCtx, buildID, buildTimeout, buildOpts.GetTenantId())
+						completedBuild, err := s.builderdClient.WaitForBuild(buildCtx, buildID, buildTimeout)
 						if err != nil {
 							waitSpan.RecordError(err)
 							waitSpan.SetStatus(codes.Error, err.Error())

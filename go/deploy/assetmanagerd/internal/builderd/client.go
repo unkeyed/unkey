@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1/builderdv1connect"
-	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -94,32 +94,18 @@ func NewClient(cfg *Config, logger *slog.Logger) (*Client, error) {
 // BuildDockerRootfs triggers a docker rootfs build
 func (c *Client) BuildDockerRootfs(ctx context.Context, dockerImage string, labels map[string]string) (string, error) {
 	// AIDEV-NOTE: Implemented builderd client method for automatic builds
-	return c.BuildDockerRootfsWithOptions(ctx, dockerImage, labels, "cli-tenant", "cli-user")
-}
-
-// WaitForBuild waits for a build to complete
-func (c *Client) WaitForBuild(ctx context.Context, buildID string, timeout time.Duration) (*CompletedBuild, error) {
-	// AIDEV-NOTE: Implemented builderd client method for automatic builds
-	return c.WaitForBuildWithTenant(ctx, buildID, timeout, "cli-tenant")
+	return c.BuildDockerRootfsWithOptions(ctx, dockerImage, labels)
 }
 
 // BuildDockerRootfsWithOptions triggers a docker rootfs build with options
-func (c *Client) BuildDockerRootfsWithOptions(ctx context.Context, dockerImage string, labels map[string]string, tenantID string, customerID string) (string, error) {
+func (c *Client) BuildDockerRootfsWithOptions(ctx context.Context, dockerImage string, labels map[string]string) (string, error) {
 	// AIDEV-NOTE: Implemented builderd client method for automatic builds
 	c.logger.InfoContext(ctx, "triggering docker rootfs build",
-		slog.String("docker_image", dockerImage),
-		slog.String("tenant_id", tenantID),
-		slog.String("customer_id", customerID),
-	)
+		slog.String("docker_image", dockerImage))
 
 	// Create build request
 	req := &builderv1.CreateBuildRequest{
 		Config: &builderv1.BuildConfig{
-			Tenant: &builderv1.TenantContext{
-				TenantId:   tenantID,
-				CustomerId: customerID,
-				Tier:       builderv1.TenantTier_TENANT_TIER_FREE,
-			},
 			Source: &builderv1.BuildSource{
 				SourceType: &builderv1.BuildSource_DockerImage{
 					DockerImage: &builderv1.DockerImageSource{
@@ -149,10 +135,7 @@ func (c *Client) BuildDockerRootfsWithOptions(ctx context.Context, dockerImage s
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, c.cfg.Timeout)
 	defer cancel()
 
-	// AIDEV-NOTE: Set tenant headers required by tenant authentication interceptor
 	connectReq := connect.NewRequest(req)
-	connectReq.Header().Set("X-Tenant-ID", tenantID)
-	connectReq.Header().Set("X-Customer-ID", customerID)
 
 	resp, err := c.builderClient.CreateBuild(ctxWithTimeout, connectReq)
 	if err != nil {
@@ -173,12 +156,10 @@ func (c *Client) BuildDockerRootfsWithOptions(ctx context.Context, dockerImage s
 	return buildID, nil
 }
 
-// WaitForBuildWithTenant waits for a build to complete with tenant context
-func (c *Client) WaitForBuildWithTenant(ctx context.Context, buildID string, timeout time.Duration, tenantID string) (*CompletedBuild, error) {
-	// AIDEV-NOTE: Implemented builderd client method for automatic builds
+// WaitForBuild waits for a build to complete
+func (c *Client) WaitForBuild(ctx context.Context, buildID string, timeout time.Duration) (*CompletedBuild, error) {
 	c.logger.InfoContext(ctx, "waiting for build to complete",
 		slog.String("build_id", buildID),
-		slog.String("tenant_id", tenantID),
 		slog.Duration("timeout", timeout),
 	)
 
@@ -200,10 +181,7 @@ func (c *Client) WaitForBuildWithTenant(ctx context.Context, buildID string, tim
 				BuildId: buildID,
 			}
 
-			// AIDEV-NOTE: Set tenant headers for GetBuild request too
 			connectReq := connect.NewRequest(req)
-			connectReq.Header().Set("X-Tenant-ID", tenantID)
-
 			resp, err := c.builderClient.GetBuild(ctxWithTimeout, connectReq)
 			if err != nil {
 				c.logger.WarnContext(ctx, "failed to get build status",
