@@ -18,7 +18,6 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
   } = trpc.api.queryApiKeyDetails.useQuery({
     apiId,
   });
-
   if (isLoading) {
     return <SettingsClientSkeleton />;
   }
@@ -64,16 +63,8 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
             <CopyApiId apiId={api.id} />
           </div>
           <div>
-            <DefaultBytes
-              keyAuth={keyAuthForComponents}
-              apiId={api.id}
-              workspaceId={workspace.id}
-            />
-            <DefaultPrefix
-              keyAuth={keyAuthForComponents}
-              apiId={api.id}
-              workspaceId={workspace.id}
-            />
+            <DefaultBytes keyAuth={keyAuthForComponents} apiId={api.id} />
+            <DefaultPrefix keyAuth={keyAuthForComponents} apiId={api.id} />
           </div>
           <div>
             <UpdateIpWhitelist api={api} workspace={workspaceForComponents} />

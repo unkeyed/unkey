@@ -47,7 +47,7 @@ type SoloModeType = keyof typeof SOLO_MODE_CONFIG;
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  workspace: Workspace & { quotas: Quotas | null  };
+  workspace: Workspace & { quotas: Quotas | null };
 }) {
   const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
@@ -76,15 +76,10 @@ export function AppSidebar({
   }, [currentSoloModeType]);
 
   // Create base navigation items
-  const baseNavItems = useMemo(
-    () => createWorkspaceNavigation(props.workspace, segments),
-    [props.workspace, segments],
-  );
+  const baseNavItems = useMemo(() => createWorkspaceNavigation(segments), [segments]);
 
-  const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } = useApiNavigation(
-    baseNavItems,
-    props.workspace.slug ?? "",
-  );
+  const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
+    useApiNavigation(baseNavItems);
 
   const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
     useRatelimitNavigation(apiAddedNavItems);
@@ -143,7 +138,7 @@ export function AppSidebar({
           isCollapsed ? "justify-center" : "items-center justify-between gap-4",
         )}
       >
-        <WorkspaceSwitcher workspace={props.workspace} />
+        <WorkspaceSwitcher />
         {state !== "collapsed" && !isMobile && (
           <button type="button" onClick={toggleSidebar}>
             <SidebarLeftHide className="text-gray-8" size="xl-medium" />
@@ -151,7 +146,7 @@ export function AppSidebar({
         )}
       </div>
     ),
-    [isCollapsed, props.workspace, state, isMobile, toggleSidebar],
+    [isCollapsed, state, isMobile, toggleSidebar],
   );
 
   const currentSoloConfig = currentSoloModeType ? SOLO_MODE_CONFIG[currentSoloModeType] : null;

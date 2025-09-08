@@ -75,7 +75,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
             {apiList.map((api) => (
-              <ApiListCard api={api} key={api.id} workspaceSlug={workspaceSlug} />
+              <ApiListCard api={api} key={api.id} />
             ))}
           </div>
 
