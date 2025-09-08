@@ -14,7 +14,10 @@ type TooltipPayloadItem = {
 /**
  * Get appropriate formatted time based on granularity (12-hour format without timezone)
  */
-function formatTimeForGranularity(date: Date, granularity?: CompoundTimeseriesGranularity): string {
+function formatTimeForGranularity(
+  date: Date,
+  granularity?: CompoundTimeseriesGranularity
+): string {
   if (!granularity) {
     return format(date, "h:mma");
   }
@@ -48,12 +51,12 @@ function formatTimeForGranularity(date: Date, granularity?: CompoundTimeseriesGr
 /**
  * Get current timezone abbreviation
  */
-function getTimezoneAbbreviation(): string {
+function getTimezoneAbbreviation(date?: Date): string {
   const timezone =
     new Intl.DateTimeFormat("en-US", {
       timeZoneName: "short",
     })
-      .formatToParts(new Date())
+      .formatToParts(date || new Date())
       .find((part) => part.type === "timeZoneName")?.value || "";
   return timezone;
 }
@@ -70,7 +73,7 @@ function getTimezoneAbbreviation(): string {
 export function createTimeIntervalFormatter(
   data?: TimeseriesData[],
   timeFormat = "HH:mm",
-  granularity?: CompoundTimeseriesGranularity,
+  granularity?: CompoundTimeseriesGranularity
 ) {
   return (tooltipPayload: TooltipPayloadItem[]) => {
     // Basic validation checks
@@ -92,26 +95,37 @@ export function createTimeIntervalFormatter(
       ? formatTimeForGranularity(currentDate, granularity)
       : format(currentDate, timeFormat);
 
+    // Precompute timezone abbreviation using the current timestamp for consistency
+    const timezoneAbbr = getTimezoneAbbreviation(currentDate);
+
     // If we don't have necessary data, fallback to displaying just the current point
     if (!currentTimestamp || !data?.length) {
       return (
         <div className="px-4">
           <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-            {formattedCurrentTimestamp} ({getTimezoneAbbreviation()})
+            {formattedCurrentTimestamp} ({timezoneAbbr})
           </span>
         </div>
       );
     }
 
     // Find position in the data array
-    const currentIndex = data.findIndex((item) => item?.originalTimestamp === currentTimestamp);
+    const currentIndex = data.findIndex(
+      (item) => item?.originalTimestamp === currentTimestamp
+    );
 
     // If this is the last item or not found, just show current timestamp
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
+      // Use timestamp-aware timezone or fallback to global helper for missing/invalid timestamps
+      const fallbackTimezoneAbbr =
+        currentTimestamp && currentDate
+          ? getTimezoneAbbreviation(currentDate)
+          : getTimezoneAbbreviation();
+
       return (
         <div className="px-4">
           <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-            {formattedCurrentTimestamp} ({getTimezoneAbbreviation()})
+            {formattedCurrentTimestamp} ({fallbackTimezoneAbbr})
           </span>
         </div>
       );
@@ -122,7 +136,9 @@ export function createTimeIntervalFormatter(
     if (!nextPoint) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
+          <span className="font-mono text-accent-9 text-xs px-4">
+            {formattedCurrentTimestamp}
+          </span>
         </div>
       );
     }
@@ -133,11 +149,22 @@ export function createTimeIntervalFormatter(
       ? formatTimeForGranularity(nextDate, granularity)
       : format(nextDate, timeFormat);
 
+    // Compute timezone abbreviations for both timestamps to handle DST boundaries
+    const startTimezoneAbbr = getTimezoneAbbreviation(currentDate);
+    const endTimezoneAbbr = getTimezoneAbbreviation(nextDate);
+
+    // Format timezone display: single if same, or both with arrow if different
+    const timezoneDisplay =
+      startTimezoneAbbr === endTimezoneAbbr
+        ? startTimezoneAbbr
+        : `${startTimezoneAbbr} → ${endTimezoneAbbr}`;
+
     // Return formatted interval with timezone info
     return (
       <div className="px-4">
         <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-          {formattedCurrentTimestamp} - {formattedNextTimestamp} ({getTimezoneAbbreviation()})
+          {formattedCurrentTimestamp} - {formattedNextTimestamp} (
+          {timezoneDisplay})
         </span>
       </div>
     );
