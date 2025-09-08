@@ -202,91 +202,6 @@ func (InitStrategy) EnumDescriptor() ([]byte, []int) {
 	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{2}
 }
 
-// Multi-tenant context
-type TenantContext struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	TenantId       string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`                                                           // Primary tenant identifier
-	CustomerId     string                 `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`                                                     // Customer within tenant (for billing)
-	OrganizationId string                 `protobuf:"bytes,3,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`                                         // Organization (for enterprise)
-	Tier           TenantTier             `protobuf:"varint,4,opt,name=tier,proto3,enum=deploy.builderd.v1.TenantTier" json:"tier,omitempty"`                                               // Service tier
-	Permissions    []string               `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`                                                                     // Build permissions
-	Metadata       map[string]string      `protobuf:"bytes,6,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Tenant metadata
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *TenantContext) Reset() {
-	*x = TenantContext{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TenantContext) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TenantContext) ProtoMessage() {}
-
-func (x *TenantContext) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TenantContext.ProtoReflect.Descriptor instead.
-func (*TenantContext) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *TenantContext) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
-func (x *TenantContext) GetCustomerId() string {
-	if x != nil {
-		return x.CustomerId
-	}
-	return ""
-}
-
-func (x *TenantContext) GetOrganizationId() string {
-	if x != nil {
-		return x.OrganizationId
-	}
-	return ""
-}
-
-func (x *TenantContext) GetTier() TenantTier {
-	if x != nil {
-		return x.Tier
-	}
-	return TenantTier_TENANT_TIER_UNSPECIFIED
-}
-
-func (x *TenantContext) GetPermissions() []string {
-	if x != nil {
-		return x.Permissions
-	}
-	return nil
-}
-
-func (x *TenantContext) GetMetadata() map[string]string {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
 // Build source types - extensible for future build types
 type BuildSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -302,7 +217,7 @@ type BuildSource struct {
 
 func (x *BuildSource) Reset() {
 	*x = BuildSource{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[1]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -314,7 +229,7 @@ func (x *BuildSource) String() string {
 func (*BuildSource) ProtoMessage() {}
 
 func (x *BuildSource) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[1]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +242,7 @@ func (x *BuildSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildSource.ProtoReflect.Descriptor instead.
 func (*BuildSource) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{1}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *BuildSource) GetSourceType() isBuildSource_SourceType {
@@ -398,7 +313,7 @@ type DockerImageSource struct {
 
 func (x *DockerImageSource) Reset() {
 	*x = DockerImageSource{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[2]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -410,7 +325,7 @@ func (x *DockerImageSource) String() string {
 func (*DockerImageSource) ProtoMessage() {}
 
 func (x *DockerImageSource) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[2]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -423,7 +338,7 @@ func (x *DockerImageSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerImageSource.ProtoReflect.Descriptor instead.
 func (*DockerImageSource) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{2}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *DockerImageSource) GetImageUri() string {
@@ -459,7 +374,7 @@ type DockerAuth struct {
 
 func (x *DockerAuth) Reset() {
 	*x = DockerAuth{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[3]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -471,7 +386,7 @@ func (x *DockerAuth) String() string {
 func (*DockerAuth) ProtoMessage() {}
 
 func (x *DockerAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[3]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -484,7 +399,7 @@ func (x *DockerAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerAuth.ProtoReflect.Descriptor instead.
 func (*DockerAuth) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{3}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DockerAuth) GetUsername() string {
@@ -528,7 +443,7 @@ type GitRepositorySource struct {
 
 func (x *GitRepositorySource) Reset() {
 	*x = GitRepositorySource{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[4]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +455,7 @@ func (x *GitRepositorySource) String() string {
 func (*GitRepositorySource) ProtoMessage() {}
 
 func (x *GitRepositorySource) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[4]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +468,7 @@ func (x *GitRepositorySource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitRepositorySource.ProtoReflect.Descriptor instead.
 func (*GitRepositorySource) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{4}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GitRepositorySource) GetRepositoryUrl() string {
@@ -596,7 +511,7 @@ type GitAuth struct {
 
 func (x *GitAuth) Reset() {
 	*x = GitAuth{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[5]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -608,7 +523,7 @@ func (x *GitAuth) String() string {
 func (*GitAuth) ProtoMessage() {}
 
 func (x *GitAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[5]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -621,7 +536,7 @@ func (x *GitAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitAuth.ProtoReflect.Descriptor instead.
 func (*GitAuth) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{5}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GitAuth) GetUsername() string {
@@ -664,7 +579,7 @@ type ArchiveSource struct {
 
 func (x *ArchiveSource) Reset() {
 	*x = ArchiveSource{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[6]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -676,7 +591,7 @@ func (x *ArchiveSource) String() string {
 func (*ArchiveSource) ProtoMessage() {}
 
 func (x *ArchiveSource) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[6]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -689,7 +604,7 @@ func (x *ArchiveSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveSource.ProtoReflect.Descriptor instead.
 func (*ArchiveSource) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{6}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ArchiveSource) GetArchiveUrl() string {
@@ -727,7 +642,7 @@ type BuildTarget struct {
 
 func (x *BuildTarget) Reset() {
 	*x = BuildTarget{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[7]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -739,7 +654,7 @@ func (x *BuildTarget) String() string {
 func (*BuildTarget) ProtoMessage() {}
 
 func (x *BuildTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[7]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -752,7 +667,7 @@ func (x *BuildTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildTarget.ProtoReflect.Descriptor instead.
 func (*BuildTarget) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{7}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *BuildTarget) GetTargetType() isBuildTarget_TargetType {
@@ -809,7 +724,7 @@ type MicroVMRootfs struct {
 
 func (x *MicroVMRootfs) Reset() {
 	*x = MicroVMRootfs{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[8]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -821,7 +736,7 @@ func (x *MicroVMRootfs) String() string {
 func (*MicroVMRootfs) ProtoMessage() {}
 
 func (x *MicroVMRootfs) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[8]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -834,7 +749,7 @@ func (x *MicroVMRootfs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MicroVMRootfs.ProtoReflect.Descriptor instead.
 func (*MicroVMRootfs) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{8}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *MicroVMRootfs) GetInitStrategy() InitStrategy {
@@ -876,7 +791,7 @@ type ContainerImage struct {
 
 func (x *ContainerImage) Reset() {
 	*x = ContainerImage{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[9]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -888,7 +803,7 @@ func (x *ContainerImage) String() string {
 func (*ContainerImage) ProtoMessage() {}
 
 func (x *ContainerImage) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[9]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -901,7 +816,7 @@ func (x *ContainerImage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerImage.ProtoReflect.Descriptor instead.
 func (*ContainerImage) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{9}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ContainerImage) GetBaseImage() string {
@@ -931,7 +846,7 @@ type RuntimeConfig struct {
 
 func (x *RuntimeConfig) Reset() {
 	*x = RuntimeConfig{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[10]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -943,7 +858,7 @@ func (x *RuntimeConfig) String() string {
 func (*RuntimeConfig) ProtoMessage() {}
 
 func (x *RuntimeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[10]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -956,7 +871,7 @@ func (x *RuntimeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeConfig.ProtoReflect.Descriptor instead.
 func (*RuntimeConfig) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{10}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RuntimeConfig) GetCommand() []string {
@@ -1008,7 +923,7 @@ type OptimizationSettings struct {
 
 func (x *OptimizationSettings) Reset() {
 	*x = OptimizationSettings{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[11]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1020,7 +935,7 @@ func (x *OptimizationSettings) String() string {
 func (*OptimizationSettings) ProtoMessage() {}
 
 func (x *OptimizationSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[11]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1033,7 +948,7 @@ func (x *OptimizationSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OptimizationSettings.ProtoReflect.Descriptor instead.
 func (*OptimizationSettings) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{11}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *OptimizationSettings) GetStripDebugSymbols() bool {
@@ -1094,7 +1009,7 @@ type BuildStrategy struct {
 
 func (x *BuildStrategy) Reset() {
 	*x = BuildStrategy{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[12]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1106,7 +1021,7 @@ func (x *BuildStrategy) String() string {
 func (*BuildStrategy) ProtoMessage() {}
 
 func (x *BuildStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[12]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1119,7 +1034,7 @@ func (x *BuildStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildStrategy.ProtoReflect.Descriptor instead.
 func (*BuildStrategy) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{12}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *BuildStrategy) GetStrategyType() isBuildStrategy_StrategyType {
@@ -1205,7 +1120,7 @@ type DockerExtractStrategy struct {
 
 func (x *DockerExtractStrategy) Reset() {
 	*x = DockerExtractStrategy{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[13]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1217,7 +1132,7 @@ func (x *DockerExtractStrategy) String() string {
 func (*DockerExtractStrategy) ProtoMessage() {}
 
 func (x *DockerExtractStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[13]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1230,7 +1145,7 @@ func (x *DockerExtractStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerExtractStrategy.ProtoReflect.Descriptor instead.
 func (*DockerExtractStrategy) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{13}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DockerExtractStrategy) GetPreserveLayers() bool {
@@ -1267,7 +1182,7 @@ type GoApiStrategy struct {
 
 func (x *GoApiStrategy) Reset() {
 	*x = GoApiStrategy{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[14]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1279,7 +1194,7 @@ func (x *GoApiStrategy) String() string {
 func (*GoApiStrategy) ProtoMessage() {}
 
 func (x *GoApiStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[14]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1292,7 +1207,7 @@ func (x *GoApiStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GoApiStrategy.ProtoReflect.Descriptor instead.
 func (*GoApiStrategy) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{14}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GoApiStrategy) GetGoVersion() string {
@@ -1336,7 +1251,7 @@ type SinatraStrategy struct {
 
 func (x *SinatraStrategy) Reset() {
 	*x = SinatraStrategy{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[15]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1348,7 +1263,7 @@ func (x *SinatraStrategy) String() string {
 func (*SinatraStrategy) ProtoMessage() {}
 
 func (x *SinatraStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[15]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1361,7 +1276,7 @@ func (x *SinatraStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SinatraStrategy.ProtoReflect.Descriptor instead.
 func (*SinatraStrategy) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{15}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SinatraStrategy) GetRubyVersion() string {
@@ -1405,7 +1320,7 @@ type NodejsStrategy struct {
 
 func (x *NodejsStrategy) Reset() {
 	*x = NodejsStrategy{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[16]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1417,7 +1332,7 @@ func (x *NodejsStrategy) String() string {
 func (*NodejsStrategy) ProtoMessage() {}
 
 func (x *NodejsStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[16]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1430,7 +1345,7 @@ func (x *NodejsStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodejsStrategy.ProtoReflect.Descriptor instead.
 func (*NodejsStrategy) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{16}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *NodejsStrategy) GetNodeVersion() string {
@@ -1461,185 +1376,28 @@ func (x *NodejsStrategy) GetEnableProduction() bool {
 	return false
 }
 
-// Tenant-aware resource limits
-type TenantResourceLimits struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Per-build limits
-	MaxMemoryBytes int64 `protobuf:"varint,1,opt,name=max_memory_bytes,json=maxMemoryBytes,proto3" json:"max_memory_bytes,omitempty"`
-	MaxCpuCores    int32 `protobuf:"varint,2,opt,name=max_cpu_cores,json=maxCpuCores,proto3" json:"max_cpu_cores,omitempty"`
-	MaxDiskBytes   int64 `protobuf:"varint,3,opt,name=max_disk_bytes,json=maxDiskBytes,proto3" json:"max_disk_bytes,omitempty"`
-	TimeoutSeconds int32 `protobuf:"varint,4,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
-	// Tenant-wide quotas
-	MaxConcurrentBuilds int32 `protobuf:"varint,5,opt,name=max_concurrent_builds,json=maxConcurrentBuilds,proto3" json:"max_concurrent_builds,omitempty"`   // Concurrent builds per tenant
-	MaxDailyBuilds      int32 `protobuf:"varint,6,opt,name=max_daily_builds,json=maxDailyBuilds,proto3" json:"max_daily_builds,omitempty"`                  // Daily build quota
-	MaxStorageBytes     int64 `protobuf:"varint,7,opt,name=max_storage_bytes,json=maxStorageBytes,proto3" json:"max_storage_bytes,omitempty"`               // Total storage quota
-	MaxBuildTimeMinutes int32 `protobuf:"varint,8,opt,name=max_build_time_minutes,json=maxBuildTimeMinutes,proto3" json:"max_build_time_minutes,omitempty"` // Max time per build
-	// Network restrictions
-	AllowedRegistries    []string `protobuf:"bytes,9,rep,name=allowed_registries,json=allowedRegistries,proto3" json:"allowed_registries,omitempty"`              // Docker registries
-	AllowedGitHosts      []string `protobuf:"bytes,10,rep,name=allowed_git_hosts,json=allowedGitHosts,proto3" json:"allowed_git_hosts,omitempty"`                 // Git hosts
-	AllowExternalNetwork bool     `protobuf:"varint,11,opt,name=allow_external_network,json=allowExternalNetwork,proto3" json:"allow_external_network,omitempty"` // External network access
-	// Security restrictions
-	AllowPrivilegedBuilds bool     `protobuf:"varint,12,opt,name=allow_privileged_builds,json=allowPrivilegedBuilds,proto3" json:"allow_privileged_builds,omitempty"` // Privileged containers
-	BlockedCommands       []string `protobuf:"bytes,13,rep,name=blocked_commands,json=blockedCommands,proto3" json:"blocked_commands,omitempty"`                      // Forbidden commands
-	SandboxLevel          int32    `protobuf:"varint,14,opt,name=sandbox_level,json=sandboxLevel,proto3" json:"sandbox_level,omitempty"`                              // Isolation level (0-3)
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *TenantResourceLimits) Reset() {
-	*x = TenantResourceLimits{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TenantResourceLimits) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TenantResourceLimits) ProtoMessage() {}
-
-func (x *TenantResourceLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TenantResourceLimits.ProtoReflect.Descriptor instead.
-func (*TenantResourceLimits) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *TenantResourceLimits) GetMaxMemoryBytes() int64 {
-	if x != nil {
-		return x.MaxMemoryBytes
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetMaxCpuCores() int32 {
-	if x != nil {
-		return x.MaxCpuCores
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetMaxDiskBytes() int64 {
-	if x != nil {
-		return x.MaxDiskBytes
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetTimeoutSeconds() int32 {
-	if x != nil {
-		return x.TimeoutSeconds
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetMaxConcurrentBuilds() int32 {
-	if x != nil {
-		return x.MaxConcurrentBuilds
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetMaxDailyBuilds() int32 {
-	if x != nil {
-		return x.MaxDailyBuilds
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetMaxStorageBytes() int64 {
-	if x != nil {
-		return x.MaxStorageBytes
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetMaxBuildTimeMinutes() int32 {
-	if x != nil {
-		return x.MaxBuildTimeMinutes
-	}
-	return 0
-}
-
-func (x *TenantResourceLimits) GetAllowedRegistries() []string {
-	if x != nil {
-		return x.AllowedRegistries
-	}
-	return nil
-}
-
-func (x *TenantResourceLimits) GetAllowedGitHosts() []string {
-	if x != nil {
-		return x.AllowedGitHosts
-	}
-	return nil
-}
-
-func (x *TenantResourceLimits) GetAllowExternalNetwork() bool {
-	if x != nil {
-		return x.AllowExternalNetwork
-	}
-	return false
-}
-
-func (x *TenantResourceLimits) GetAllowPrivilegedBuilds() bool {
-	if x != nil {
-		return x.AllowPrivilegedBuilds
-	}
-	return false
-}
-
-func (x *TenantResourceLimits) GetBlockedCommands() []string {
-	if x != nil {
-		return x.BlockedCommands
-	}
-	return nil
-}
-
-func (x *TenantResourceLimits) GetSandboxLevel() int32 {
-	if x != nil {
-		return x.SandboxLevel
-	}
-	return 0
-}
-
 // Main build configuration
 type BuildConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Tenant identification
-	Tenant *TenantContext `protobuf:"bytes,1,opt,name=tenant,proto3" json:"tenant,omitempty"`
 	// What we're building from
-	Source *BuildSource `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	Source *BuildSource `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	// What we're building to
-	Target *BuildTarget `protobuf:"bytes,3,opt,name=target,proto3" json:"target,omitempty"`
+	Target *BuildTarget `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
 	// How to build it
-	Strategy *BuildStrategy `protobuf:"bytes,4,opt,name=strategy,proto3" json:"strategy,omitempty"`
-	// Build constraints (tenant-aware)
-	Limits *TenantResourceLimits `protobuf:"bytes,5,opt,name=limits,proto3" json:"limits,omitempty"`
+	Strategy *BuildStrategy `protobuf:"bytes,3,opt,name=strategy,proto3" json:"strategy,omitempty"`
 	// Build metadata
-	BuildName string            `protobuf:"bytes,6,opt,name=build_name,json=buildName,proto3" json:"build_name,omitempty"`                                                    // Human-readable name
-	Labels    map[string]string `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Custom labels
+	BuildName string            `protobuf:"bytes,4,opt,name=build_name,json=buildName,proto3" json:"build_name,omitempty"`                                                    // Human-readable name
+	Labels    map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Custom labels
 	// Suggested asset ID to use when registering the built artifact
 	// This allows the caller to pre-generate the asset ID
-	SuggestedAssetId string `protobuf:"bytes,8,opt,name=suggested_asset_id,json=suggestedAssetId,proto3" json:"suggested_asset_id,omitempty"`
+	SuggestedAssetId string `protobuf:"bytes,6,opt,name=suggested_asset_id,json=suggestedAssetId,proto3" json:"suggested_asset_id,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *BuildConfig) Reset() {
 	*x = BuildConfig{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[18]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1651,7 +1409,7 @@ func (x *BuildConfig) String() string {
 func (*BuildConfig) ProtoMessage() {}
 
 func (x *BuildConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[18]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1664,14 +1422,7 @@ func (x *BuildConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildConfig.ProtoReflect.Descriptor instead.
 func (*BuildConfig) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *BuildConfig) GetTenant() *TenantContext {
-	if x != nil {
-		return x.Tenant
-	}
-	return nil
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *BuildConfig) GetSource() *BuildSource {
@@ -1691,13 +1442,6 @@ func (x *BuildConfig) GetTarget() *BuildTarget {
 func (x *BuildConfig) GetStrategy() *BuildStrategy {
 	if x != nil {
 		return x.Strategy
-	}
-	return nil
-}
-
-func (x *BuildConfig) GetLimits() *TenantResourceLimits {
-	if x != nil {
-		return x.Limits
 	}
 	return nil
 }
@@ -1737,7 +1481,7 @@ type BuildIsolation struct {
 
 func (x *BuildIsolation) Reset() {
 	*x = BuildIsolation{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[19]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1749,7 +1493,7 @@ func (x *BuildIsolation) String() string {
 func (*BuildIsolation) ProtoMessage() {}
 
 func (x *BuildIsolation) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[19]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1762,7 +1506,7 @@ func (x *BuildIsolation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildIsolation.ProtoReflect.Descriptor instead.
 func (*BuildIsolation) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{19}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *BuildIsolation) GetSandboxId() string {
@@ -1820,7 +1564,7 @@ type ImageMetadata struct {
 
 func (x *ImageMetadata) Reset() {
 	*x = ImageMetadata{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[20]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1832,7 +1576,7 @@ func (x *ImageMetadata) String() string {
 func (*ImageMetadata) ProtoMessage() {}
 
 func (x *ImageMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[20]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1845,7 +1589,7 @@ func (x *ImageMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageMetadata.ProtoReflect.Descriptor instead.
 func (*ImageMetadata) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{20}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ImageMetadata) GetOriginalImage() string {
@@ -1945,7 +1689,7 @@ type BuildMetrics struct {
 
 func (x *BuildMetrics) Reset() {
 	*x = BuildMetrics{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[21]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1957,7 +1701,7 @@ func (x *BuildMetrics) String() string {
 func (*BuildMetrics) ProtoMessage() {}
 
 func (x *BuildMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[21]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1970,7 +1714,7 @@ func (x *BuildMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildMetrics.ProtoReflect.Descriptor instead.
 func (*BuildMetrics) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{21}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *BuildMetrics) GetPullDurationMs() int64 {
@@ -2080,7 +1824,7 @@ type BuildJob struct {
 
 func (x *BuildJob) Reset() {
 	*x = BuildJob{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[22]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2092,7 +1836,7 @@ func (x *BuildJob) String() string {
 func (*BuildJob) ProtoMessage() {}
 
 func (x *BuildJob) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[22]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2105,7 +1849,7 @@ func (x *BuildJob) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildJob.ProtoReflect.Descriptor instead.
 func (*BuildJob) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{22}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *BuildJob) GetBuildId() string {
@@ -2234,7 +1978,7 @@ type StreamBuildLogsResponse struct {
 
 func (x *StreamBuildLogsResponse) Reset() {
 	*x = StreamBuildLogsResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[23]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2246,7 +1990,7 @@ func (x *StreamBuildLogsResponse) String() string {
 func (*StreamBuildLogsResponse) ProtoMessage() {}
 
 func (x *StreamBuildLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[23]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2259,7 +2003,7 @@ func (x *StreamBuildLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamBuildLogsResponse.ProtoReflect.Descriptor instead.
 func (*StreamBuildLogsResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{23}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *StreamBuildLogsResponse) GetTimestamp() *timestamppb.Timestamp {
@@ -2297,167 +2041,6 @@ func (x *StreamBuildLogsResponse) GetMetadata() map[string]string {
 	return nil
 }
 
-// Tenant usage statistics
-type TenantUsageStats struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	ActiveBuilds         int32                  `protobuf:"varint,1,opt,name=active_builds,json=activeBuilds,proto3" json:"active_builds,omitempty"`
-	DailyBuildsUsed      int32                  `protobuf:"varint,2,opt,name=daily_builds_used,json=dailyBuildsUsed,proto3" json:"daily_builds_used,omitempty"`
-	StorageBytesUsed     int64                  `protobuf:"varint,3,opt,name=storage_bytes_used,json=storageBytesUsed,proto3" json:"storage_bytes_used,omitempty"`
-	ComputeMinutesUsed   int64                  `protobuf:"varint,4,opt,name=compute_minutes_used,json=computeMinutesUsed,proto3" json:"compute_minutes_used,omitempty"`
-	BuildsQueued         int32                  `protobuf:"varint,5,opt,name=builds_queued,json=buildsQueued,proto3" json:"builds_queued,omitempty"`
-	BuildsCompletedToday int32                  `protobuf:"varint,6,opt,name=builds_completed_today,json=buildsCompletedToday,proto3" json:"builds_completed_today,omitempty"`
-	BuildsFailedToday    int32                  `protobuf:"varint,7,opt,name=builds_failed_today,json=buildsFailedToday,proto3" json:"builds_failed_today,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *TenantUsageStats) Reset() {
-	*x = TenantUsageStats{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TenantUsageStats) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TenantUsageStats) ProtoMessage() {}
-
-func (x *TenantUsageStats) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TenantUsageStats.ProtoReflect.Descriptor instead.
-func (*TenantUsageStats) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *TenantUsageStats) GetActiveBuilds() int32 {
-	if x != nil {
-		return x.ActiveBuilds
-	}
-	return 0
-}
-
-func (x *TenantUsageStats) GetDailyBuildsUsed() int32 {
-	if x != nil {
-		return x.DailyBuildsUsed
-	}
-	return 0
-}
-
-func (x *TenantUsageStats) GetStorageBytesUsed() int64 {
-	if x != nil {
-		return x.StorageBytesUsed
-	}
-	return 0
-}
-
-func (x *TenantUsageStats) GetComputeMinutesUsed() int64 {
-	if x != nil {
-		return x.ComputeMinutesUsed
-	}
-	return 0
-}
-
-func (x *TenantUsageStats) GetBuildsQueued() int32 {
-	if x != nil {
-		return x.BuildsQueued
-	}
-	return 0
-}
-
-func (x *TenantUsageStats) GetBuildsCompletedToday() int32 {
-	if x != nil {
-		return x.BuildsCompletedToday
-	}
-	return 0
-}
-
-func (x *TenantUsageStats) GetBuildsFailedToday() int32 {
-	if x != nil {
-		return x.BuildsFailedToday
-	}
-	return 0
-}
-
-type QuotaViolation struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	QuotaType     string                 `protobuf:"bytes,1,opt,name=quota_type,json=quotaType,proto3" json:"quota_type,omitempty"` // "concurrent_builds", "daily_builds", etc.
-	CurrentValue  int64                  `protobuf:"varint,2,opt,name=current_value,json=currentValue,proto3" json:"current_value,omitempty"`
-	LimitValue    int64                  `protobuf:"varint,3,opt,name=limit_value,json=limitValue,proto3" json:"limit_value,omitempty"`
-	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *QuotaViolation) Reset() {
-	*x = QuotaViolation{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *QuotaViolation) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*QuotaViolation) ProtoMessage() {}
-
-func (x *QuotaViolation) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use QuotaViolation.ProtoReflect.Descriptor instead.
-func (*QuotaViolation) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *QuotaViolation) GetQuotaType() string {
-	if x != nil {
-		return x.QuotaType
-	}
-	return ""
-}
-
-func (x *QuotaViolation) GetCurrentValue() int64 {
-	if x != nil {
-		return x.CurrentValue
-	}
-	return 0
-}
-
-func (x *QuotaViolation) GetLimitValue() int64 {
-	if x != nil {
-		return x.LimitValue
-	}
-	return 0
-}
-
-func (x *QuotaViolation) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
 // Request/Response messages
 type CreateBuildRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2468,7 +2051,7 @@ type CreateBuildRequest struct {
 
 func (x *CreateBuildRequest) Reset() {
 	*x = CreateBuildRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[26]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2480,7 +2063,7 @@ func (x *CreateBuildRequest) String() string {
 func (*CreateBuildRequest) ProtoMessage() {}
 
 func (x *CreateBuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[26]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2493,7 +2076,7 @@ func (x *CreateBuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBuildRequest.ProtoReflect.Descriptor instead.
 func (*CreateBuildRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{26}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CreateBuildRequest) GetConfig() *BuildConfig {
@@ -2515,7 +2098,7 @@ type CreateBuildResponse struct {
 
 func (x *CreateBuildResponse) Reset() {
 	*x = CreateBuildResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[27]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2527,7 +2110,7 @@ func (x *CreateBuildResponse) String() string {
 func (*CreateBuildResponse) ProtoMessage() {}
 
 func (x *CreateBuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[27]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2540,7 +2123,7 @@ func (x *CreateBuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBuildResponse.ProtoReflect.Descriptor instead.
 func (*CreateBuildResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{27}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CreateBuildResponse) GetBuildId() string {
@@ -2581,7 +2164,7 @@ type GetBuildRequest struct {
 
 func (x *GetBuildRequest) Reset() {
 	*x = GetBuildRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[28]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2593,7 +2176,7 @@ func (x *GetBuildRequest) String() string {
 func (*GetBuildRequest) ProtoMessage() {}
 
 func (x *GetBuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[28]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2606,7 +2189,7 @@ func (x *GetBuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBuildRequest.ProtoReflect.Descriptor instead.
 func (*GetBuildRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{28}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetBuildRequest) GetBuildId() string {
@@ -2632,7 +2215,7 @@ type GetBuildResponse struct {
 
 func (x *GetBuildResponse) Reset() {
 	*x = GetBuildResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[29]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2644,7 +2227,7 @@ func (x *GetBuildResponse) String() string {
 func (*GetBuildResponse) ProtoMessage() {}
 
 func (x *GetBuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[29]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2657,7 +2240,7 @@ func (x *GetBuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBuildResponse.ProtoReflect.Descriptor instead.
 func (*GetBuildResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{29}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetBuildResponse) GetBuild() *BuildJob {
@@ -2669,17 +2252,16 @@ func (x *GetBuildResponse) GetBuild() *BuildJob {
 
 type ListBuildsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"` // Required for filtering
-	StateFilter   []BuildState           `protobuf:"varint,2,rep,packed,name=state_filter,json=stateFilter,proto3,enum=deploy.builderd.v1.BuildState" json:"state_filter,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken     string                 `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	StateFilter   []BuildState           `protobuf:"varint,1,rep,packed,name=state_filter,json=stateFilter,proto3,enum=deploy.builderd.v1.BuildState" json:"state_filter,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListBuildsRequest) Reset() {
 	*x = ListBuildsRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[30]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2691,7 +2273,7 @@ func (x *ListBuildsRequest) String() string {
 func (*ListBuildsRequest) ProtoMessage() {}
 
 func (x *ListBuildsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[30]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2704,14 +2286,7 @@ func (x *ListBuildsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBuildsRequest.ProtoReflect.Descriptor instead.
 func (*ListBuildsRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *ListBuildsRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListBuildsRequest) GetStateFilter() []BuildState {
@@ -2746,7 +2321,7 @@ type ListBuildsResponse struct {
 
 func (x *ListBuildsResponse) Reset() {
 	*x = ListBuildsResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[31]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2758,7 +2333,7 @@ func (x *ListBuildsResponse) String() string {
 func (*ListBuildsResponse) ProtoMessage() {}
 
 func (x *ListBuildsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[31]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2771,7 +2346,7 @@ func (x *ListBuildsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBuildsResponse.ProtoReflect.Descriptor instead.
 func (*ListBuildsResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{31}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListBuildsResponse) GetBuilds() []*BuildJob {
@@ -2798,14 +2373,13 @@ func (x *ListBuildsResponse) GetTotalCount() int32 {
 type CancelBuildRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BuildId       string                 `protobuf:"bytes,1,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"` // For authorization
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CancelBuildRequest) Reset() {
 	*x = CancelBuildRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[32]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2817,7 +2391,7 @@ func (x *CancelBuildRequest) String() string {
 func (*CancelBuildRequest) ProtoMessage() {}
 
 func (x *CancelBuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[32]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2830,19 +2404,12 @@ func (x *CancelBuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelBuildRequest.ProtoReflect.Descriptor instead.
 func (*CancelBuildRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{32}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CancelBuildRequest) GetBuildId() string {
 	if x != nil {
 		return x.BuildId
-	}
-	return ""
-}
-
-func (x *CancelBuildRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
 	}
 	return ""
 }
@@ -2857,7 +2424,7 @@ type CancelBuildResponse struct {
 
 func (x *CancelBuildResponse) Reset() {
 	*x = CancelBuildResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[33]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2869,7 +2436,7 @@ func (x *CancelBuildResponse) String() string {
 func (*CancelBuildResponse) ProtoMessage() {}
 
 func (x *CancelBuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[33]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2882,7 +2449,7 @@ func (x *CancelBuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelBuildResponse.ProtoReflect.Descriptor instead.
 func (*CancelBuildResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{33}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *CancelBuildResponse) GetSuccess() bool {
@@ -2902,15 +2469,14 @@ func (x *CancelBuildResponse) GetState() BuildState {
 type DeleteBuildRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BuildId       string                 `protobuf:"bytes,1,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"` // For authorization
-	Force         bool                   `protobuf:"varint,3,opt,name=force,proto3" json:"force,omitempty"`                      // Delete even if running
+	Force         bool                   `protobuf:"varint,2,opt,name=force,proto3" json:"force,omitempty"` // Delete even if running
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeleteBuildRequest) Reset() {
 	*x = DeleteBuildRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[34]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2922,7 +2488,7 @@ func (x *DeleteBuildRequest) String() string {
 func (*DeleteBuildRequest) ProtoMessage() {}
 
 func (x *DeleteBuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[34]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2935,19 +2501,12 @@ func (x *DeleteBuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBuildRequest.ProtoReflect.Descriptor instead.
 func (*DeleteBuildRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{34}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DeleteBuildRequest) GetBuildId() string {
 	if x != nil {
 		return x.BuildId
-	}
-	return ""
-}
-
-func (x *DeleteBuildRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
 	}
 	return ""
 }
@@ -2968,7 +2527,7 @@ type DeleteBuildResponse struct {
 
 func (x *DeleteBuildResponse) Reset() {
 	*x = DeleteBuildResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[35]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2980,7 +2539,7 @@ func (x *DeleteBuildResponse) String() string {
 func (*DeleteBuildResponse) ProtoMessage() {}
 
 func (x *DeleteBuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[35]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2993,7 +2552,7 @@ func (x *DeleteBuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBuildResponse.ProtoReflect.Descriptor instead.
 func (*DeleteBuildResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{35}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DeleteBuildResponse) GetSuccess() bool {
@@ -3006,15 +2565,14 @@ func (x *DeleteBuildResponse) GetSuccess() bool {
 type StreamBuildLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BuildId       string                 `protobuf:"bytes,1,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"` // For authorization
-	Follow        bool                   `protobuf:"varint,3,opt,name=follow,proto3" json:"follow,omitempty"`                    // Continue streaming new logs
+	Follow        bool                   `protobuf:"varint,2,opt,name=follow,proto3" json:"follow,omitempty"` // Continue streaming new logs
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StreamBuildLogsRequest) Reset() {
 	*x = StreamBuildLogsRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[36]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3026,7 +2584,7 @@ func (x *StreamBuildLogsRequest) String() string {
 func (*StreamBuildLogsRequest) ProtoMessage() {}
 
 func (x *StreamBuildLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[36]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3039,7 +2597,7 @@ func (x *StreamBuildLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamBuildLogsRequest.ProtoReflect.Descriptor instead.
 func (*StreamBuildLogsRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{36}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *StreamBuildLogsRequest) GetBuildId() string {
@@ -3049,122 +2607,11 @@ func (x *StreamBuildLogsRequest) GetBuildId() string {
 	return ""
 }
 
-func (x *StreamBuildLogsRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
 func (x *StreamBuildLogsRequest) GetFollow() bool {
 	if x != nil {
 		return x.Follow
 	}
 	return false
-}
-
-type GetTenantQuotasRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTenantQuotasRequest) Reset() {
-	*x = GetTenantQuotasRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTenantQuotasRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTenantQuotasRequest) ProtoMessage() {}
-
-func (x *GetTenantQuotasRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTenantQuotasRequest.ProtoReflect.Descriptor instead.
-func (*GetTenantQuotasRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *GetTenantQuotasRequest) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
-}
-
-type GetTenantQuotasResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CurrentLimits *TenantResourceLimits  `protobuf:"bytes,1,opt,name=current_limits,json=currentLimits,proto3" json:"current_limits,omitempty"`
-	CurrentUsage  *TenantUsageStats      `protobuf:"bytes,2,opt,name=current_usage,json=currentUsage,proto3" json:"current_usage,omitempty"`
-	Violations    []*QuotaViolation      `protobuf:"bytes,3,rep,name=violations,proto3" json:"violations,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTenantQuotasResponse) Reset() {
-	*x = GetTenantQuotasResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[38]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTenantQuotasResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTenantQuotasResponse) ProtoMessage() {}
-
-func (x *GetTenantQuotasResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[38]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTenantQuotasResponse.ProtoReflect.Descriptor instead.
-func (*GetTenantQuotasResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{38}
-}
-
-func (x *GetTenantQuotasResponse) GetCurrentLimits() *TenantResourceLimits {
-	if x != nil {
-		return x.CurrentLimits
-	}
-	return nil
-}
-
-func (x *GetTenantQuotasResponse) GetCurrentUsage() *TenantUsageStats {
-	if x != nil {
-		return x.CurrentUsage
-	}
-	return nil
-}
-
-func (x *GetTenantQuotasResponse) GetViolations() []*QuotaViolation {
-	if x != nil {
-		return x.Violations
-	}
-	return nil
 }
 
 type GetBuildStatsRequest struct {
@@ -3178,7 +2625,7 @@ type GetBuildStatsRequest struct {
 
 func (x *GetBuildStatsRequest) Reset() {
 	*x = GetBuildStatsRequest{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[39]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3190,7 +2637,7 @@ func (x *GetBuildStatsRequest) String() string {
 func (*GetBuildStatsRequest) ProtoMessage() {}
 
 func (x *GetBuildStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[39]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3203,7 +2650,7 @@ func (x *GetBuildStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBuildStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetBuildStatsRequest) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{39}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetBuildStatsRequest) GetTenantId() string {
@@ -3242,7 +2689,7 @@ type GetBuildStatsResponse struct {
 
 func (x *GetBuildStatsResponse) Reset() {
 	*x = GetBuildStatsResponse{}
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[40]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3254,7 +2701,7 @@ func (x *GetBuildStatsResponse) String() string {
 func (*GetBuildStatsResponse) ProtoMessage() {}
 
 func (x *GetBuildStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[40]
+	mi := &file_deploy_builderd_v1_builder_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3267,7 +2714,7 @@ func (x *GetBuildStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBuildStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetBuildStatsResponse) Descriptor() ([]byte, []int) {
-	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{40}
+	return file_deploy_builderd_v1_builder_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetBuildStatsResponse) GetTotalBuilds() int32 {
@@ -3323,18 +2770,7 @@ var File_deploy_builderd_v1_builder_proto protoreflect.FileDescriptor
 
 const file_deploy_builderd_v1_builder_proto_rawDesc = "" +
 	"\n" +
-	" deploy/builderd/v1/builder.proto\x12\x12deploy.builderd.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd6\x02\n" +
-	"\rTenantContext\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1f\n" +
-	"\vcustomer_id\x18\x02 \x01(\tR\n" +
-	"customerId\x12'\n" +
-	"\x0forganization_id\x18\x03 \x01(\tR\x0eorganizationId\x122\n" +
-	"\x04tier\x18\x04 \x01(\x0e2\x1e.deploy.builderd.v1.TenantTierR\x04tier\x12 \n" +
-	"\vpermissions\x18\x05 \x03(\tR\vpermissions\x12K\n" +
-	"\bmetadata\x18\x06 \x03(\v2/.deploy.builderd.v1.TenantContext.MetadataEntryR\bmetadata\x1a;\n" +
-	"\rMetadataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf9\x01\n" +
+	" deploy/builderd/v1/builder.proto\x12\x12deploy.builderd.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf9\x01\n" +
 	"\vBuildSource\x12J\n" +
 	"\fdocker_image\x18\x01 \x01(\v2%.deploy.builderd.v1.DockerImageSourceH\x00R\vdockerImage\x12P\n" +
 	"\x0egit_repository\x18\x02 \x01(\v2'.deploy.builderd.v1.GitRepositorySourceH\x00R\rgitRepository\x12=\n" +
@@ -3430,33 +2866,15 @@ const file_deploy_builderd_v1_builder_proto_rawDesc = "" +
 	"\fnode_version\x18\x01 \x01(\tR\vnodeVersion\x12'\n" +
 	"\x0fpackage_manager\x18\x02 \x01(\tR\x0epackageManager\x12!\n" +
 	"\fstart_script\x18\x03 \x01(\tR\vstartScript\x12+\n" +
-	"\x11enable_production\x18\x04 \x01(\bR\x10enableProduction\"\x8b\x05\n" +
-	"\x14TenantResourceLimits\x12(\n" +
-	"\x10max_memory_bytes\x18\x01 \x01(\x03R\x0emaxMemoryBytes\x12\"\n" +
-	"\rmax_cpu_cores\x18\x02 \x01(\x05R\vmaxCpuCores\x12$\n" +
-	"\x0emax_disk_bytes\x18\x03 \x01(\x03R\fmaxDiskBytes\x12'\n" +
-	"\x0ftimeout_seconds\x18\x04 \x01(\x05R\x0etimeoutSeconds\x122\n" +
-	"\x15max_concurrent_builds\x18\x05 \x01(\x05R\x13maxConcurrentBuilds\x12(\n" +
-	"\x10max_daily_builds\x18\x06 \x01(\x05R\x0emaxDailyBuilds\x12*\n" +
-	"\x11max_storage_bytes\x18\a \x01(\x03R\x0fmaxStorageBytes\x123\n" +
-	"\x16max_build_time_minutes\x18\b \x01(\x05R\x13maxBuildTimeMinutes\x12-\n" +
-	"\x12allowed_registries\x18\t \x03(\tR\x11allowedRegistries\x12*\n" +
-	"\x11allowed_git_hosts\x18\n" +
-	" \x03(\tR\x0fallowedGitHosts\x124\n" +
-	"\x16allow_external_network\x18\v \x01(\bR\x14allowExternalNetwork\x126\n" +
-	"\x17allow_privileged_builds\x18\f \x01(\bR\x15allowPrivilegedBuilds\x12)\n" +
-	"\x10blocked_commands\x18\r \x03(\tR\x0fblockedCommands\x12#\n" +
-	"\rsandbox_level\x18\x0e \x01(\x05R\fsandboxLevel\"\x88\x04\n" +
-	"\vBuildConfig\x129\n" +
-	"\x06tenant\x18\x01 \x01(\v2!.deploy.builderd.v1.TenantContextR\x06tenant\x127\n" +
-	"\x06source\x18\x02 \x01(\v2\x1f.deploy.builderd.v1.BuildSourceR\x06source\x127\n" +
-	"\x06target\x18\x03 \x01(\v2\x1f.deploy.builderd.v1.BuildTargetR\x06target\x12=\n" +
-	"\bstrategy\x18\x04 \x01(\v2!.deploy.builderd.v1.BuildStrategyR\bstrategy\x12@\n" +
-	"\x06limits\x18\x05 \x01(\v2(.deploy.builderd.v1.TenantResourceLimitsR\x06limits\x12\x1d\n" +
+	"\x11enable_production\x18\x04 \x01(\bR\x10enableProduction\"\x8b\x03\n" +
+	"\vBuildConfig\x127\n" +
+	"\x06source\x18\x01 \x01(\v2\x1f.deploy.builderd.v1.BuildSourceR\x06source\x127\n" +
+	"\x06target\x18\x02 \x01(\v2\x1f.deploy.builderd.v1.BuildTargetR\x06target\x12=\n" +
+	"\bstrategy\x18\x03 \x01(\v2!.deploy.builderd.v1.BuildStrategyR\bstrategy\x12\x1d\n" +
 	"\n" +
-	"build_name\x18\x06 \x01(\tR\tbuildName\x12C\n" +
-	"\x06labels\x18\a \x03(\v2+.deploy.builderd.v1.BuildConfig.LabelsEntryR\x06labels\x12,\n" +
-	"\x12suggested_asset_id\x18\b \x01(\tR\x10suggestedAssetId\x1a9\n" +
+	"build_name\x18\x04 \x01(\tR\tbuildName\x12C\n" +
+	"\x06labels\x18\x05 \x03(\v2+.deploy.builderd.v1.BuildConfig.LabelsEntryR\x06labels\x12,\n" +
+	"\x12suggested_asset_id\x18\x06 \x01(\tR\x10suggestedAssetId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdd\x01\n" +
@@ -3533,22 +2951,7 @@ const file_deploy_builderd_v1_builder_proto_rawDesc = "" +
 	"\bmetadata\x18\x05 \x03(\v29.deploy.builderd.v1.StreamBuildLogsResponse.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xce\x02\n" +
-	"\x10TenantUsageStats\x12#\n" +
-	"\ractive_builds\x18\x01 \x01(\x05R\factiveBuilds\x12*\n" +
-	"\x11daily_builds_used\x18\x02 \x01(\x05R\x0fdailyBuildsUsed\x12,\n" +
-	"\x12storage_bytes_used\x18\x03 \x01(\x03R\x10storageBytesUsed\x120\n" +
-	"\x14compute_minutes_used\x18\x04 \x01(\x03R\x12computeMinutesUsed\x12#\n" +
-	"\rbuilds_queued\x18\x05 \x01(\x05R\fbuildsQueued\x124\n" +
-	"\x16builds_completed_today\x18\x06 \x01(\x05R\x14buildsCompletedToday\x12.\n" +
-	"\x13builds_failed_today\x18\a \x01(\x05R\x11buildsFailedToday\"\x8f\x01\n" +
-	"\x0eQuotaViolation\x12\x1d\n" +
-	"\n" +
-	"quota_type\x18\x01 \x01(\tR\tquotaType\x12#\n" +
-	"\rcurrent_value\x18\x02 \x01(\x03R\fcurrentValue\x12\x1f\n" +
-	"\vlimit_value\x18\x03 \x01(\x03R\n" +
-	"limitValue\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\"M\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"M\n" +
 	"\x12CreateBuildRequest\x127\n" +
 	"\x06config\x18\x01 \x01(\v2\x1f.deploy.builderd.v1.BuildConfigR\x06config\"\xc2\x01\n" +
 	"\x13CreateBuildResponse\x12\x19\n" +
@@ -3562,42 +2965,30 @@ const file_deploy_builderd_v1_builder_proto_rawDesc = "" +
 	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\"F\n" +
 	"\x10GetBuildResponse\x122\n" +
-	"\x05build\x18\x01 \x01(\v2\x1c.deploy.builderd.v1.BuildJobR\x05build\"\xaf\x01\n" +
-	"\x11ListBuildsRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12A\n" +
-	"\fstate_filter\x18\x02 \x03(\x0e2\x1e.deploy.builderd.v1.BuildStateR\vstateFilter\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\x05build\x18\x01 \x01(\v2\x1c.deploy.builderd.v1.BuildJobR\x05build\"\x92\x01\n" +
+	"\x11ListBuildsRequest\x12A\n" +
+	"\fstate_filter\x18\x01 \x03(\x0e2\x1e.deploy.builderd.v1.BuildStateR\vstateFilter\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x04 \x01(\tR\tpageToken\"\x93\x01\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x93\x01\n" +
 	"\x12ListBuildsResponse\x124\n" +
 	"\x06builds\x18\x01 \x03(\v2\x1c.deploy.builderd.v1.BuildJobR\x06builds\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"L\n" +
+	"totalCount\"/\n" +
 	"\x12CancelBuildRequest\x12\x19\n" +
-	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x1b\n" +
-	"\ttenant_id\x18\x02 \x01(\tR\btenantId\"e\n" +
+	"\bbuild_id\x18\x01 \x01(\tR\abuildId\"e\n" +
 	"\x13CancelBuildResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x124\n" +
-	"\x05state\x18\x02 \x01(\x0e2\x1e.deploy.builderd.v1.BuildStateR\x05state\"b\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x1e.deploy.builderd.v1.BuildStateR\x05state\"E\n" +
 	"\x12DeleteBuildRequest\x12\x19\n" +
-	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x1b\n" +
-	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x14\n" +
-	"\x05force\x18\x03 \x01(\bR\x05force\"/\n" +
+	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x14\n" +
+	"\x05force\x18\x02 \x01(\bR\x05force\"/\n" +
 	"\x13DeleteBuildResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"h\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"K\n" +
 	"\x16StreamBuildLogsRequest\x12\x19\n" +
-	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x1b\n" +
-	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x16\n" +
-	"\x06follow\x18\x03 \x01(\bR\x06follow\"5\n" +
-	"\x16GetTenantQuotasRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\"\xf9\x01\n" +
-	"\x17GetTenantQuotasResponse\x12O\n" +
-	"\x0ecurrent_limits\x18\x01 \x01(\v2(.deploy.builderd.v1.TenantResourceLimitsR\rcurrentLimits\x12I\n" +
-	"\rcurrent_usage\x18\x02 \x01(\v2$.deploy.builderd.v1.TenantUsageStatsR\fcurrentUsage\x12B\n" +
-	"\n" +
-	"violations\x18\x03 \x03(\v2\".deploy.builderd.v1.QuotaViolationR\n" +
-	"violations\"\xa5\x01\n" +
+	"\bbuild_id\x18\x01 \x01(\tR\abuildId\x12\x16\n" +
+	"\x06follow\x18\x02 \x01(\bR\x06follow\"\xa5\x01\n" +
 	"\x14GetBuildStatsRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x129\n" +
 	"\n" +
@@ -3634,7 +3025,7 @@ const file_deploy_builderd_v1_builder_proto_rawDesc = "" +
 	"\x19INIT_STRATEGY_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12INIT_STRATEGY_TINI\x10\x01\x12\x18\n" +
 	"\x14INIT_STRATEGY_DIRECT\x10\x02\x12\x18\n" +
-	"\x14INIT_STRATEGY_CUSTOM\x10\x032\xa4\x06\n" +
+	"\x14INIT_STRATEGY_CUSTOM\x10\x032\xb8\x05\n" +
 	"\x0eBuilderService\x12^\n" +
 	"\vCreateBuild\x12&.deploy.builderd.v1.CreateBuildRequest\x1a'.deploy.builderd.v1.CreateBuildResponse\x12U\n" +
 	"\bGetBuild\x12#.deploy.builderd.v1.GetBuildRequest\x1a$.deploy.builderd.v1.GetBuildResponse\x12[\n" +
@@ -3642,8 +3033,7 @@ const file_deploy_builderd_v1_builder_proto_rawDesc = "" +
 	"ListBuilds\x12%.deploy.builderd.v1.ListBuildsRequest\x1a&.deploy.builderd.v1.ListBuildsResponse\x12^\n" +
 	"\vCancelBuild\x12&.deploy.builderd.v1.CancelBuildRequest\x1a'.deploy.builderd.v1.CancelBuildResponse\x12^\n" +
 	"\vDeleteBuild\x12&.deploy.builderd.v1.DeleteBuildRequest\x1a'.deploy.builderd.v1.DeleteBuildResponse\x12l\n" +
-	"\x0fStreamBuildLogs\x12*.deploy.builderd.v1.StreamBuildLogsRequest\x1a+.deploy.builderd.v1.StreamBuildLogsResponse0\x01\x12j\n" +
-	"\x0fGetTenantQuotas\x12*.deploy.builderd.v1.GetTenantQuotasRequest\x1a+.deploy.builderd.v1.GetTenantQuotasResponse\x12d\n" +
+	"\x0fStreamBuildLogs\x12*.deploy.builderd.v1.StreamBuildLogsRequest\x1a+.deploy.builderd.v1.StreamBuildLogsResponse0\x01\x12d\n" +
 	"\rGetBuildStats\x12(.deploy.builderd.v1.GetBuildStatsRequest\x1a).deploy.builderd.v1.GetBuildStatsResponseBEZCgithub.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1;builderdv1b\x06proto3"
 
 var (
@@ -3659,132 +3049,116 @@ func file_deploy_builderd_v1_builder_proto_rawDescGZIP() []byte {
 }
 
 var file_deploy_builderd_v1_builder_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_deploy_builderd_v1_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
+var file_deploy_builderd_v1_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_deploy_builderd_v1_builder_proto_goTypes = []any{
 	(BuildState)(0),                 // 0: deploy.builderd.v1.BuildState
 	(TenantTier)(0),                 // 1: deploy.builderd.v1.TenantTier
 	(InitStrategy)(0),               // 2: deploy.builderd.v1.InitStrategy
-	(*TenantContext)(nil),           // 3: deploy.builderd.v1.TenantContext
-	(*BuildSource)(nil),             // 4: deploy.builderd.v1.BuildSource
-	(*DockerImageSource)(nil),       // 5: deploy.builderd.v1.DockerImageSource
-	(*DockerAuth)(nil),              // 6: deploy.builderd.v1.DockerAuth
-	(*GitRepositorySource)(nil),     // 7: deploy.builderd.v1.GitRepositorySource
-	(*GitAuth)(nil),                 // 8: deploy.builderd.v1.GitAuth
-	(*ArchiveSource)(nil),           // 9: deploy.builderd.v1.ArchiveSource
-	(*BuildTarget)(nil),             // 10: deploy.builderd.v1.BuildTarget
-	(*MicroVMRootfs)(nil),           // 11: deploy.builderd.v1.MicroVMRootfs
-	(*ContainerImage)(nil),          // 12: deploy.builderd.v1.ContainerImage
-	(*RuntimeConfig)(nil),           // 13: deploy.builderd.v1.RuntimeConfig
-	(*OptimizationSettings)(nil),    // 14: deploy.builderd.v1.OptimizationSettings
-	(*BuildStrategy)(nil),           // 15: deploy.builderd.v1.BuildStrategy
-	(*DockerExtractStrategy)(nil),   // 16: deploy.builderd.v1.DockerExtractStrategy
-	(*GoApiStrategy)(nil),           // 17: deploy.builderd.v1.GoApiStrategy
-	(*SinatraStrategy)(nil),         // 18: deploy.builderd.v1.SinatraStrategy
-	(*NodejsStrategy)(nil),          // 19: deploy.builderd.v1.NodejsStrategy
-	(*TenantResourceLimits)(nil),    // 20: deploy.builderd.v1.TenantResourceLimits
-	(*BuildConfig)(nil),             // 21: deploy.builderd.v1.BuildConfig
-	(*BuildIsolation)(nil),          // 22: deploy.builderd.v1.BuildIsolation
-	(*ImageMetadata)(nil),           // 23: deploy.builderd.v1.ImageMetadata
-	(*BuildMetrics)(nil),            // 24: deploy.builderd.v1.BuildMetrics
-	(*BuildJob)(nil),                // 25: deploy.builderd.v1.BuildJob
-	(*StreamBuildLogsResponse)(nil), // 26: deploy.builderd.v1.StreamBuildLogsResponse
-	(*TenantUsageStats)(nil),        // 27: deploy.builderd.v1.TenantUsageStats
-	(*QuotaViolation)(nil),          // 28: deploy.builderd.v1.QuotaViolation
-	(*CreateBuildRequest)(nil),      // 29: deploy.builderd.v1.CreateBuildRequest
-	(*CreateBuildResponse)(nil),     // 30: deploy.builderd.v1.CreateBuildResponse
-	(*GetBuildRequest)(nil),         // 31: deploy.builderd.v1.GetBuildRequest
-	(*GetBuildResponse)(nil),        // 32: deploy.builderd.v1.GetBuildResponse
-	(*ListBuildsRequest)(nil),       // 33: deploy.builderd.v1.ListBuildsRequest
-	(*ListBuildsResponse)(nil),      // 34: deploy.builderd.v1.ListBuildsResponse
-	(*CancelBuildRequest)(nil),      // 35: deploy.builderd.v1.CancelBuildRequest
-	(*CancelBuildResponse)(nil),     // 36: deploy.builderd.v1.CancelBuildResponse
-	(*DeleteBuildRequest)(nil),      // 37: deploy.builderd.v1.DeleteBuildRequest
-	(*DeleteBuildResponse)(nil),     // 38: deploy.builderd.v1.DeleteBuildResponse
-	(*StreamBuildLogsRequest)(nil),  // 39: deploy.builderd.v1.StreamBuildLogsRequest
-	(*GetTenantQuotasRequest)(nil),  // 40: deploy.builderd.v1.GetTenantQuotasRequest
-	(*GetTenantQuotasResponse)(nil), // 41: deploy.builderd.v1.GetTenantQuotasResponse
-	(*GetBuildStatsRequest)(nil),    // 42: deploy.builderd.v1.GetBuildStatsRequest
-	(*GetBuildStatsResponse)(nil),   // 43: deploy.builderd.v1.GetBuildStatsResponse
-	nil,                             // 44: deploy.builderd.v1.TenantContext.MetadataEntry
-	nil,                             // 45: deploy.builderd.v1.RuntimeConfig.EnvironmentEntry
-	nil,                             // 46: deploy.builderd.v1.SinatraStrategy.RackConfigEntry
-	nil,                             // 47: deploy.builderd.v1.BuildConfig.LabelsEntry
-	nil,                             // 48: deploy.builderd.v1.ImageMetadata.LabelsEntry
-	nil,                             // 49: deploy.builderd.v1.ImageMetadata.EnvEntry
-	nil,                             // 50: deploy.builderd.v1.StreamBuildLogsResponse.MetadataEntry
-	(*timestamppb.Timestamp)(nil),   // 51: google.protobuf.Timestamp
+	(*BuildSource)(nil),             // 3: deploy.builderd.v1.BuildSource
+	(*DockerImageSource)(nil),       // 4: deploy.builderd.v1.DockerImageSource
+	(*DockerAuth)(nil),              // 5: deploy.builderd.v1.DockerAuth
+	(*GitRepositorySource)(nil),     // 6: deploy.builderd.v1.GitRepositorySource
+	(*GitAuth)(nil),                 // 7: deploy.builderd.v1.GitAuth
+	(*ArchiveSource)(nil),           // 8: deploy.builderd.v1.ArchiveSource
+	(*BuildTarget)(nil),             // 9: deploy.builderd.v1.BuildTarget
+	(*MicroVMRootfs)(nil),           // 10: deploy.builderd.v1.MicroVMRootfs
+	(*ContainerImage)(nil),          // 11: deploy.builderd.v1.ContainerImage
+	(*RuntimeConfig)(nil),           // 12: deploy.builderd.v1.RuntimeConfig
+	(*OptimizationSettings)(nil),    // 13: deploy.builderd.v1.OptimizationSettings
+	(*BuildStrategy)(nil),           // 14: deploy.builderd.v1.BuildStrategy
+	(*DockerExtractStrategy)(nil),   // 15: deploy.builderd.v1.DockerExtractStrategy
+	(*GoApiStrategy)(nil),           // 16: deploy.builderd.v1.GoApiStrategy
+	(*SinatraStrategy)(nil),         // 17: deploy.builderd.v1.SinatraStrategy
+	(*NodejsStrategy)(nil),          // 18: deploy.builderd.v1.NodejsStrategy
+	(*BuildConfig)(nil),             // 19: deploy.builderd.v1.BuildConfig
+	(*BuildIsolation)(nil),          // 20: deploy.builderd.v1.BuildIsolation
+	(*ImageMetadata)(nil),           // 21: deploy.builderd.v1.ImageMetadata
+	(*BuildMetrics)(nil),            // 22: deploy.builderd.v1.BuildMetrics
+	(*BuildJob)(nil),                // 23: deploy.builderd.v1.BuildJob
+	(*StreamBuildLogsResponse)(nil), // 24: deploy.builderd.v1.StreamBuildLogsResponse
+	(*CreateBuildRequest)(nil),      // 25: deploy.builderd.v1.CreateBuildRequest
+	(*CreateBuildResponse)(nil),     // 26: deploy.builderd.v1.CreateBuildResponse
+	(*GetBuildRequest)(nil),         // 27: deploy.builderd.v1.GetBuildRequest
+	(*GetBuildResponse)(nil),        // 28: deploy.builderd.v1.GetBuildResponse
+	(*ListBuildsRequest)(nil),       // 29: deploy.builderd.v1.ListBuildsRequest
+	(*ListBuildsResponse)(nil),      // 30: deploy.builderd.v1.ListBuildsResponse
+	(*CancelBuildRequest)(nil),      // 31: deploy.builderd.v1.CancelBuildRequest
+	(*CancelBuildResponse)(nil),     // 32: deploy.builderd.v1.CancelBuildResponse
+	(*DeleteBuildRequest)(nil),      // 33: deploy.builderd.v1.DeleteBuildRequest
+	(*DeleteBuildResponse)(nil),     // 34: deploy.builderd.v1.DeleteBuildResponse
+	(*StreamBuildLogsRequest)(nil),  // 35: deploy.builderd.v1.StreamBuildLogsRequest
+	(*GetBuildStatsRequest)(nil),    // 36: deploy.builderd.v1.GetBuildStatsRequest
+	(*GetBuildStatsResponse)(nil),   // 37: deploy.builderd.v1.GetBuildStatsResponse
+	nil,                             // 38: deploy.builderd.v1.RuntimeConfig.EnvironmentEntry
+	nil,                             // 39: deploy.builderd.v1.SinatraStrategy.RackConfigEntry
+	nil,                             // 40: deploy.builderd.v1.BuildConfig.LabelsEntry
+	nil,                             // 41: deploy.builderd.v1.ImageMetadata.LabelsEntry
+	nil,                             // 42: deploy.builderd.v1.ImageMetadata.EnvEntry
+	nil,                             // 43: deploy.builderd.v1.StreamBuildLogsResponse.MetadataEntry
+	(*timestamppb.Timestamp)(nil),   // 44: google.protobuf.Timestamp
 }
 var file_deploy_builderd_v1_builder_proto_depIdxs = []int32{
-	1,  // 0: deploy.builderd.v1.TenantContext.tier:type_name -> deploy.builderd.v1.TenantTier
-	44, // 1: deploy.builderd.v1.TenantContext.metadata:type_name -> deploy.builderd.v1.TenantContext.MetadataEntry
-	5,  // 2: deploy.builderd.v1.BuildSource.docker_image:type_name -> deploy.builderd.v1.DockerImageSource
-	7,  // 3: deploy.builderd.v1.BuildSource.git_repository:type_name -> deploy.builderd.v1.GitRepositorySource
-	9,  // 4: deploy.builderd.v1.BuildSource.archive:type_name -> deploy.builderd.v1.ArchiveSource
-	6,  // 5: deploy.builderd.v1.DockerImageSource.auth:type_name -> deploy.builderd.v1.DockerAuth
-	8,  // 6: deploy.builderd.v1.GitRepositorySource.auth:type_name -> deploy.builderd.v1.GitAuth
-	11, // 7: deploy.builderd.v1.BuildTarget.microvm_rootfs:type_name -> deploy.builderd.v1.MicroVMRootfs
-	12, // 8: deploy.builderd.v1.BuildTarget.container_image:type_name -> deploy.builderd.v1.ContainerImage
-	2,  // 9: deploy.builderd.v1.MicroVMRootfs.init_strategy:type_name -> deploy.builderd.v1.InitStrategy
-	13, // 10: deploy.builderd.v1.MicroVMRootfs.runtime_config:type_name -> deploy.builderd.v1.RuntimeConfig
-	14, // 11: deploy.builderd.v1.MicroVMRootfs.optimization:type_name -> deploy.builderd.v1.OptimizationSettings
-	45, // 12: deploy.builderd.v1.RuntimeConfig.environment:type_name -> deploy.builderd.v1.RuntimeConfig.EnvironmentEntry
-	16, // 13: deploy.builderd.v1.BuildStrategy.docker_extract:type_name -> deploy.builderd.v1.DockerExtractStrategy
-	17, // 14: deploy.builderd.v1.BuildStrategy.go_api:type_name -> deploy.builderd.v1.GoApiStrategy
-	18, // 15: deploy.builderd.v1.BuildStrategy.sinatra:type_name -> deploy.builderd.v1.SinatraStrategy
-	19, // 16: deploy.builderd.v1.BuildStrategy.nodejs:type_name -> deploy.builderd.v1.NodejsStrategy
-	46, // 17: deploy.builderd.v1.SinatraStrategy.rack_config:type_name -> deploy.builderd.v1.SinatraStrategy.RackConfigEntry
-	3,  // 18: deploy.builderd.v1.BuildConfig.tenant:type_name -> deploy.builderd.v1.TenantContext
-	4,  // 19: deploy.builderd.v1.BuildConfig.source:type_name -> deploy.builderd.v1.BuildSource
-	10, // 20: deploy.builderd.v1.BuildConfig.target:type_name -> deploy.builderd.v1.BuildTarget
-	15, // 21: deploy.builderd.v1.BuildConfig.strategy:type_name -> deploy.builderd.v1.BuildStrategy
-	20, // 22: deploy.builderd.v1.BuildConfig.limits:type_name -> deploy.builderd.v1.TenantResourceLimits
-	47, // 23: deploy.builderd.v1.BuildConfig.labels:type_name -> deploy.builderd.v1.BuildConfig.LabelsEntry
-	48, // 24: deploy.builderd.v1.ImageMetadata.labels:type_name -> deploy.builderd.v1.ImageMetadata.LabelsEntry
-	49, // 25: deploy.builderd.v1.ImageMetadata.env:type_name -> deploy.builderd.v1.ImageMetadata.EnvEntry
-	21, // 26: deploy.builderd.v1.BuildJob.config:type_name -> deploy.builderd.v1.BuildConfig
-	0,  // 27: deploy.builderd.v1.BuildJob.state:type_name -> deploy.builderd.v1.BuildState
-	51, // 28: deploy.builderd.v1.BuildJob.created_at:type_name -> google.protobuf.Timestamp
-	51, // 29: deploy.builderd.v1.BuildJob.started_at:type_name -> google.protobuf.Timestamp
-	51, // 30: deploy.builderd.v1.BuildJob.completed_at:type_name -> google.protobuf.Timestamp
-	23, // 31: deploy.builderd.v1.BuildJob.image_metadata:type_name -> deploy.builderd.v1.ImageMetadata
-	24, // 32: deploy.builderd.v1.BuildJob.metrics:type_name -> deploy.builderd.v1.BuildMetrics
-	22, // 33: deploy.builderd.v1.BuildJob.isolation:type_name -> deploy.builderd.v1.BuildIsolation
-	51, // 34: deploy.builderd.v1.StreamBuildLogsResponse.timestamp:type_name -> google.protobuf.Timestamp
-	50, // 35: deploy.builderd.v1.StreamBuildLogsResponse.metadata:type_name -> deploy.builderd.v1.StreamBuildLogsResponse.MetadataEntry
-	21, // 36: deploy.builderd.v1.CreateBuildRequest.config:type_name -> deploy.builderd.v1.BuildConfig
-	0,  // 37: deploy.builderd.v1.CreateBuildResponse.state:type_name -> deploy.builderd.v1.BuildState
-	51, // 38: deploy.builderd.v1.CreateBuildResponse.created_at:type_name -> google.protobuf.Timestamp
-	25, // 39: deploy.builderd.v1.GetBuildResponse.build:type_name -> deploy.builderd.v1.BuildJob
-	0,  // 40: deploy.builderd.v1.ListBuildsRequest.state_filter:type_name -> deploy.builderd.v1.BuildState
-	25, // 41: deploy.builderd.v1.ListBuildsResponse.builds:type_name -> deploy.builderd.v1.BuildJob
-	0,  // 42: deploy.builderd.v1.CancelBuildResponse.state:type_name -> deploy.builderd.v1.BuildState
-	20, // 43: deploy.builderd.v1.GetTenantQuotasResponse.current_limits:type_name -> deploy.builderd.v1.TenantResourceLimits
-	27, // 44: deploy.builderd.v1.GetTenantQuotasResponse.current_usage:type_name -> deploy.builderd.v1.TenantUsageStats
-	28, // 45: deploy.builderd.v1.GetTenantQuotasResponse.violations:type_name -> deploy.builderd.v1.QuotaViolation
-	51, // 46: deploy.builderd.v1.GetBuildStatsRequest.start_time:type_name -> google.protobuf.Timestamp
-	51, // 47: deploy.builderd.v1.GetBuildStatsRequest.end_time:type_name -> google.protobuf.Timestamp
-	25, // 48: deploy.builderd.v1.GetBuildStatsResponse.recent_builds:type_name -> deploy.builderd.v1.BuildJob
-	29, // 49: deploy.builderd.v1.BuilderService.CreateBuild:input_type -> deploy.builderd.v1.CreateBuildRequest
-	31, // 50: deploy.builderd.v1.BuilderService.GetBuild:input_type -> deploy.builderd.v1.GetBuildRequest
-	33, // 51: deploy.builderd.v1.BuilderService.ListBuilds:input_type -> deploy.builderd.v1.ListBuildsRequest
-	35, // 52: deploy.builderd.v1.BuilderService.CancelBuild:input_type -> deploy.builderd.v1.CancelBuildRequest
-	37, // 53: deploy.builderd.v1.BuilderService.DeleteBuild:input_type -> deploy.builderd.v1.DeleteBuildRequest
-	39, // 54: deploy.builderd.v1.BuilderService.StreamBuildLogs:input_type -> deploy.builderd.v1.StreamBuildLogsRequest
-	40, // 55: deploy.builderd.v1.BuilderService.GetTenantQuotas:input_type -> deploy.builderd.v1.GetTenantQuotasRequest
-	42, // 56: deploy.builderd.v1.BuilderService.GetBuildStats:input_type -> deploy.builderd.v1.GetBuildStatsRequest
-	30, // 57: deploy.builderd.v1.BuilderService.CreateBuild:output_type -> deploy.builderd.v1.CreateBuildResponse
-	32, // 58: deploy.builderd.v1.BuilderService.GetBuild:output_type -> deploy.builderd.v1.GetBuildResponse
-	34, // 59: deploy.builderd.v1.BuilderService.ListBuilds:output_type -> deploy.builderd.v1.ListBuildsResponse
-	36, // 60: deploy.builderd.v1.BuilderService.CancelBuild:output_type -> deploy.builderd.v1.CancelBuildResponse
-	38, // 61: deploy.builderd.v1.BuilderService.DeleteBuild:output_type -> deploy.builderd.v1.DeleteBuildResponse
-	26, // 62: deploy.builderd.v1.BuilderService.StreamBuildLogs:output_type -> deploy.builderd.v1.StreamBuildLogsResponse
-	41, // 63: deploy.builderd.v1.BuilderService.GetTenantQuotas:output_type -> deploy.builderd.v1.GetTenantQuotasResponse
-	43, // 64: deploy.builderd.v1.BuilderService.GetBuildStats:output_type -> deploy.builderd.v1.GetBuildStatsResponse
-	57, // [57:65] is the sub-list for method output_type
-	49, // [49:57] is the sub-list for method input_type
-	49, // [49:49] is the sub-list for extension type_name
-	49, // [49:49] is the sub-list for extension extendee
-	0,  // [0:49] is the sub-list for field type_name
+	4,  // 0: deploy.builderd.v1.BuildSource.docker_image:type_name -> deploy.builderd.v1.DockerImageSource
+	6,  // 1: deploy.builderd.v1.BuildSource.git_repository:type_name -> deploy.builderd.v1.GitRepositorySource
+	8,  // 2: deploy.builderd.v1.BuildSource.archive:type_name -> deploy.builderd.v1.ArchiveSource
+	5,  // 3: deploy.builderd.v1.DockerImageSource.auth:type_name -> deploy.builderd.v1.DockerAuth
+	7,  // 4: deploy.builderd.v1.GitRepositorySource.auth:type_name -> deploy.builderd.v1.GitAuth
+	10, // 5: deploy.builderd.v1.BuildTarget.microvm_rootfs:type_name -> deploy.builderd.v1.MicroVMRootfs
+	11, // 6: deploy.builderd.v1.BuildTarget.container_image:type_name -> deploy.builderd.v1.ContainerImage
+	2,  // 7: deploy.builderd.v1.MicroVMRootfs.init_strategy:type_name -> deploy.builderd.v1.InitStrategy
+	12, // 8: deploy.builderd.v1.MicroVMRootfs.runtime_config:type_name -> deploy.builderd.v1.RuntimeConfig
+	13, // 9: deploy.builderd.v1.MicroVMRootfs.optimization:type_name -> deploy.builderd.v1.OptimizationSettings
+	38, // 10: deploy.builderd.v1.RuntimeConfig.environment:type_name -> deploy.builderd.v1.RuntimeConfig.EnvironmentEntry
+	15, // 11: deploy.builderd.v1.BuildStrategy.docker_extract:type_name -> deploy.builderd.v1.DockerExtractStrategy
+	16, // 12: deploy.builderd.v1.BuildStrategy.go_api:type_name -> deploy.builderd.v1.GoApiStrategy
+	17, // 13: deploy.builderd.v1.BuildStrategy.sinatra:type_name -> deploy.builderd.v1.SinatraStrategy
+	18, // 14: deploy.builderd.v1.BuildStrategy.nodejs:type_name -> deploy.builderd.v1.NodejsStrategy
+	39, // 15: deploy.builderd.v1.SinatraStrategy.rack_config:type_name -> deploy.builderd.v1.SinatraStrategy.RackConfigEntry
+	3,  // 16: deploy.builderd.v1.BuildConfig.source:type_name -> deploy.builderd.v1.BuildSource
+	9,  // 17: deploy.builderd.v1.BuildConfig.target:type_name -> deploy.builderd.v1.BuildTarget
+	14, // 18: deploy.builderd.v1.BuildConfig.strategy:type_name -> deploy.builderd.v1.BuildStrategy
+	40, // 19: deploy.builderd.v1.BuildConfig.labels:type_name -> deploy.builderd.v1.BuildConfig.LabelsEntry
+	41, // 20: deploy.builderd.v1.ImageMetadata.labels:type_name -> deploy.builderd.v1.ImageMetadata.LabelsEntry
+	42, // 21: deploy.builderd.v1.ImageMetadata.env:type_name -> deploy.builderd.v1.ImageMetadata.EnvEntry
+	19, // 22: deploy.builderd.v1.BuildJob.config:type_name -> deploy.builderd.v1.BuildConfig
+	0,  // 23: deploy.builderd.v1.BuildJob.state:type_name -> deploy.builderd.v1.BuildState
+	44, // 24: deploy.builderd.v1.BuildJob.created_at:type_name -> google.protobuf.Timestamp
+	44, // 25: deploy.builderd.v1.BuildJob.started_at:type_name -> google.protobuf.Timestamp
+	44, // 26: deploy.builderd.v1.BuildJob.completed_at:type_name -> google.protobuf.Timestamp
+	21, // 27: deploy.builderd.v1.BuildJob.image_metadata:type_name -> deploy.builderd.v1.ImageMetadata
+	22, // 28: deploy.builderd.v1.BuildJob.metrics:type_name -> deploy.builderd.v1.BuildMetrics
+	20, // 29: deploy.builderd.v1.BuildJob.isolation:type_name -> deploy.builderd.v1.BuildIsolation
+	44, // 30: deploy.builderd.v1.StreamBuildLogsResponse.timestamp:type_name -> google.protobuf.Timestamp
+	43, // 31: deploy.builderd.v1.StreamBuildLogsResponse.metadata:type_name -> deploy.builderd.v1.StreamBuildLogsResponse.MetadataEntry
+	19, // 32: deploy.builderd.v1.CreateBuildRequest.config:type_name -> deploy.builderd.v1.BuildConfig
+	0,  // 33: deploy.builderd.v1.CreateBuildResponse.state:type_name -> deploy.builderd.v1.BuildState
+	44, // 34: deploy.builderd.v1.CreateBuildResponse.created_at:type_name -> google.protobuf.Timestamp
+	23, // 35: deploy.builderd.v1.GetBuildResponse.build:type_name -> deploy.builderd.v1.BuildJob
+	0,  // 36: deploy.builderd.v1.ListBuildsRequest.state_filter:type_name -> deploy.builderd.v1.BuildState
+	23, // 37: deploy.builderd.v1.ListBuildsResponse.builds:type_name -> deploy.builderd.v1.BuildJob
+	0,  // 38: deploy.builderd.v1.CancelBuildResponse.state:type_name -> deploy.builderd.v1.BuildState
+	44, // 39: deploy.builderd.v1.GetBuildStatsRequest.start_time:type_name -> google.protobuf.Timestamp
+	44, // 40: deploy.builderd.v1.GetBuildStatsRequest.end_time:type_name -> google.protobuf.Timestamp
+	23, // 41: deploy.builderd.v1.GetBuildStatsResponse.recent_builds:type_name -> deploy.builderd.v1.BuildJob
+	25, // 42: deploy.builderd.v1.BuilderService.CreateBuild:input_type -> deploy.builderd.v1.CreateBuildRequest
+	27, // 43: deploy.builderd.v1.BuilderService.GetBuild:input_type -> deploy.builderd.v1.GetBuildRequest
+	29, // 44: deploy.builderd.v1.BuilderService.ListBuilds:input_type -> deploy.builderd.v1.ListBuildsRequest
+	31, // 45: deploy.builderd.v1.BuilderService.CancelBuild:input_type -> deploy.builderd.v1.CancelBuildRequest
+	33, // 46: deploy.builderd.v1.BuilderService.DeleteBuild:input_type -> deploy.builderd.v1.DeleteBuildRequest
+	35, // 47: deploy.builderd.v1.BuilderService.StreamBuildLogs:input_type -> deploy.builderd.v1.StreamBuildLogsRequest
+	36, // 48: deploy.builderd.v1.BuilderService.GetBuildStats:input_type -> deploy.builderd.v1.GetBuildStatsRequest
+	26, // 49: deploy.builderd.v1.BuilderService.CreateBuild:output_type -> deploy.builderd.v1.CreateBuildResponse
+	28, // 50: deploy.builderd.v1.BuilderService.GetBuild:output_type -> deploy.builderd.v1.GetBuildResponse
+	30, // 51: deploy.builderd.v1.BuilderService.ListBuilds:output_type -> deploy.builderd.v1.ListBuildsResponse
+	32, // 52: deploy.builderd.v1.BuilderService.CancelBuild:output_type -> deploy.builderd.v1.CancelBuildResponse
+	34, // 53: deploy.builderd.v1.BuilderService.DeleteBuild:output_type -> deploy.builderd.v1.DeleteBuildResponse
+	24, // 54: deploy.builderd.v1.BuilderService.StreamBuildLogs:output_type -> deploy.builderd.v1.StreamBuildLogsResponse
+	37, // 55: deploy.builderd.v1.BuilderService.GetBuildStats:output_type -> deploy.builderd.v1.GetBuildStatsResponse
+	49, // [49:56] is the sub-list for method output_type
+	42, // [42:49] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_deploy_builderd_v1_builder_proto_init() }
@@ -3792,16 +3166,16 @@ func file_deploy_builderd_v1_builder_proto_init() {
 	if File_deploy_builderd_v1_builder_proto != nil {
 		return
 	}
-	file_deploy_builderd_v1_builder_proto_msgTypes[1].OneofWrappers = []any{
+	file_deploy_builderd_v1_builder_proto_msgTypes[0].OneofWrappers = []any{
 		(*BuildSource_DockerImage)(nil),
 		(*BuildSource_GitRepository)(nil),
 		(*BuildSource_Archive)(nil),
 	}
-	file_deploy_builderd_v1_builder_proto_msgTypes[7].OneofWrappers = []any{
+	file_deploy_builderd_v1_builder_proto_msgTypes[6].OneofWrappers = []any{
 		(*BuildTarget_MicrovmRootfs)(nil),
 		(*BuildTarget_ContainerImage)(nil),
 	}
-	file_deploy_builderd_v1_builder_proto_msgTypes[12].OneofWrappers = []any{
+	file_deploy_builderd_v1_builder_proto_msgTypes[11].OneofWrappers = []any{
 		(*BuildStrategy_DockerExtract)(nil),
 		(*BuildStrategy_GoApi)(nil),
 		(*BuildStrategy_Sinatra)(nil),
@@ -3813,7 +3187,7 @@ func file_deploy_builderd_v1_builder_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_deploy_builderd_v1_builder_proto_rawDesc), len(file_deploy_builderd_v1_builder_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   48,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
