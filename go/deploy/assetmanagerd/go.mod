@@ -1,6 +1,8 @@
 module github.com/unkeyed/unkey/go/deploy/assetmanagerd
 
-go 1.25.1
+go 1.25
+
+toolchain go1.25.1
 
 require (
 	connectrpc.com/connect v1.18.1

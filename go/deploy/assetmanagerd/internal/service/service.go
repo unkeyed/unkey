@@ -1032,7 +1032,7 @@ func (s *Service) QueryAssets(
 					),
 				)
 
-				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels)
+				buildID, err := s.builderdClient.BuildDockerRootfs(buildCtx, dockerImage, buildLabels)
 				if err != nil {
 					buildSpan.RecordError(err)
 					buildSpan.SetStatus(codes.Error, err.Error())

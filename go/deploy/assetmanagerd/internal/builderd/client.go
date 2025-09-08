@@ -91,14 +91,8 @@ func NewClient(cfg *Config, logger *slog.Logger) (*Client, error) {
 	}, nil
 }
 
-// BuildDockerRootfs triggers a docker rootfs build
+// BuildDockerRootfs triggers a docker rootfs build with options
 func (c *Client) BuildDockerRootfs(ctx context.Context, dockerImage string, labels map[string]string) (string, error) {
-	// AIDEV-NOTE: Implemented builderd client method for automatic builds
-	return c.BuildDockerRootfsWithOptions(ctx, dockerImage, labels)
-}
-
-// BuildDockerRootfsWithOptions triggers a docker rootfs build with options
-func (c *Client) BuildDockerRootfsWithOptions(ctx context.Context, dockerImage string, labels map[string]string) (string, error) {
 	// AIDEV-NOTE: Implemented builderd client method for automatic builds
 	c.logger.InfoContext(ctx, "triggering docker rootfs build",
 		slog.String("docker_image", dockerImage))
