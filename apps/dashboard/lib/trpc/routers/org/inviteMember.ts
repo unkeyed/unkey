@@ -13,8 +13,14 @@ export const inviteMember = t.procedure
       role: z.enum(["basic_member", "admin"]),
     }),
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
     try {
+      if (input.orgId !== ctx.workspace?.orgId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid organization ID",
+        });
+      }
       return await authProvider.inviteMember({
         email: input.email,
         role: input.role,

@@ -34,7 +34,6 @@ export const CreateKeyDialog = ({
   apiId,
   copyIdValue,
   keyspaceDefaults,
-  workspaceSlug,
 }: {
   keyspaceId: string | null;
   apiId: string;
@@ -43,7 +42,6 @@ export const CreateKeyDialog = ({
     prefix?: string;
     bytes?: number;
   } | null;
-  workspaceSlug: string;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -211,7 +209,6 @@ export const CreateKeyDialog = ({
       </FormProvider>
       {/* Success Dialog */}
       <KeyCreatedSuccessDialog
-        workspaceSlug={workspaceSlug}
         apiId={apiId}
         keyspaceId={keyspaceId}
         isOpen={successDialogOpen}

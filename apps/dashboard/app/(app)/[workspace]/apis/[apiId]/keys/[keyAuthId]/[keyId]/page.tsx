@@ -27,7 +27,6 @@ export default function KeyDetailsPage(props: {
           href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`,
           text: "Keys",
         }}
-        workspaceSlug={workspace?.slug ?? ""}
       />
       <KeyDetailsLogsClient apiId={apiId} keyspaceId={keyspaceId} keyId={keyId} />
     </div>

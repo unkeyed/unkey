@@ -26,9 +26,8 @@ export default function ApiPage(props: { params: { apiId: string } }) {
           href: `/${workspace?.slug}/apis/${apiId}`,
           text: "Requests",
         }}
-        workspaceSlug={workspace?.slug ?? ""}
       />
-      <LogsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
+      <LogsClient apiId={apiId} />
     </div>
   );
 }

@@ -1,11 +1,10 @@
 #!/bin/bash
-# AIDEV-NOTE: Service deregistration for SPIRE
 # Deregisters all Unkey services
 
 set -euo pipefail
 
 # Get trust domain from environment or use default
-TRUST_DOMAIN=${TRUST_DOMAIN:-development.unkey.app}
+TRUST_DOMAIN=${TRUST_DOMAIN:-development.unkey.cloud}
 SPIRE_DIR="/opt/spire"
 SOCKET_PATH="/var/lib/spire/server/server.sock"
 
@@ -63,7 +62,6 @@ deregister_service() {
 }
 
 # Deregister all services
-# AIDEV-NOTE: These must match the services registered in register-services.sh
 deregister_service "metald"
 deregister_service "billaged"
 deregister_service "builderd"

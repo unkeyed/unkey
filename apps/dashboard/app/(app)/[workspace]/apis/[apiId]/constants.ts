@@ -1,5 +1,9 @@
-export const navigation = (apiId: string, keyAuthId: string, workspaceSlug: string) => {
-  const base = `/${workspaceSlug}/apis/${apiId}`;
+import { useWorkspace } from "@/providers/workspace-provider";
+
+export const navigation = (apiId: string, keyAuthId: string) => {
+  const { workspace } = useWorkspace();
+
+  const base = `/${workspace?.slug}/apis/${apiId}`;
   return [
     {
       label: "Requests",

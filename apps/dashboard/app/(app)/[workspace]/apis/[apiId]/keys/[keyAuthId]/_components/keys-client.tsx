@@ -7,17 +7,15 @@ import { KeysList } from "./components/table/keys-list";
 export const KeysClient = ({
   keyspaceId,
   apiId,
-  workspaceSlug,
 }: {
   keyspaceId: string;
   apiId: string;
-  workspaceSlug: string;
 }) => {
   return (
     <div className="flex flex-col">
       <KeysListControls keyspaceId={keyspaceId} />
       <KeysListControlCloud />
-      <KeysList apiId={apiId} keyspaceId={keyspaceId} workspaceSlug={workspaceSlug} />
+      <KeysList apiId={apiId} keyspaceId={keyspaceId} />
     </div>
   );
 };

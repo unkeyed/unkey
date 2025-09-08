@@ -26,7 +26,7 @@ func TestNewJailer(t *testing.T) {
 }
 
 func TestSetupChroot(t *testing.T) {
-	// This test requires root or CAP_MKNOD to create device nodes
+	// This test requires root privileges to create device nodes
 	if os.Getuid() != 0 {
 		t.Skip("Test requires root privileges")
 	}
@@ -82,7 +82,7 @@ func TestExecOptions(t *testing.T) {
 }
 
 // TestJoinNetworkNamespace tests network namespace joining
-// This test requires CAP_SYS_ADMIN to create network namespaces
+// This test requires root privileges to create network namespaces
 func TestJoinNetworkNamespace(t *testing.T) {
 	if os.Getuid() != 0 {
 		t.Skip("Test requires root privileges")
