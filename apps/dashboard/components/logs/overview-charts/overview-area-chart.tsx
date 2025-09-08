@@ -79,8 +79,7 @@ export const OverviewAreaChart = ({
 
   const labelsWithDefaults = {
     ...labels,
-    showRightSide:
-      labels.showRightSide !== undefined ? labels.showRightSide : true,
+    showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
@@ -119,10 +118,7 @@ export const OverviewAreaChart = ({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [
-        selection.startTimestamp,
-        selection.endTimestamp,
-      ].sort((a, b) => a - b);
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -147,10 +143,7 @@ export const OverviewAreaChart = ({
     const values = data.map((d) => d[metric.key] as number);
     const min = data.length > 0 ? Math.min(...values) : 0;
     const max = data.length > 0 ? Math.max(...values) : 0;
-    const avg =
-      data.length > 0
-        ? values.reduce((sum, val) => sum + val, 0) / data.length
-        : 0;
+    const avg = data.length > 0 ? values.reduce((sum, val) => sum + val, 0) / data.length : 0;
 
     ranges[metric.key] = { min, max, avg };
   });
@@ -163,7 +156,7 @@ export const OverviewAreaChart = ({
       <div
         className={cn(
           "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
-          labelsWithDefaults.reverse && "flex-row-reverse"
+          labelsWithDefaults.reverse && "flex-row-reverse",
         )}
       >
         <div className="flex flex-col gap-1 max-md:w-full">
@@ -183,10 +176,10 @@ export const OverviewAreaChart = ({
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
-                  ranges[primaryMetric.key].min
+                  ranges[primaryMetric.key].min,
                 )} - ${primaryMetric.formatter(ranges[primaryMetric.key].max)}`
               : `${formatNumber(
-                  ranges[primaryMetric.key].min
+                  ranges[primaryMetric.key].min,
                 )} - ${formatNumber(ranges[primaryMetric.key].max)}`}
           </div>
         </div>
@@ -196,13 +189,8 @@ export const OverviewAreaChart = ({
             {labelsWithDefaults.metrics.map((metric) => (
               <div key={metric.key} className="flex flex-col gap-1">
                 <div className="flex gap-2 items-center">
-                  <div
-                    className="rounded h-[10px] w-1"
-                    style={{ backgroundColor: metric.color }}
-                  />
-                  <div className="text-accent-10 text-[11px] leading-4">
-                    {metric.label}
-                  </div>
+                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
+                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
                 </div>
                 <div className="text-accent-12 text-[18px] font-semibold leading-7">
                   {metric.formatter
@@ -236,24 +224,13 @@ export const OverviewAreaChart = ({
                     x2="0"
                     y2="1"
                   >
-                    <stop
-                      offset="5%"
-                      stopColor={metric.color}
-                      stopOpacity={0.2}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={metric.color}
-                      stopOpacity={0}
-                    />
+                    <stop offset="5%" stopColor={metric.color} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={metric.color} stopOpacity={0} />
                   </linearGradient>
                 ))}
               </defs>
 
-              <YAxis
-                domain={["auto", (dataMax: number) => dataMax * 1.1]}
-                hide
-              />
+              <YAxis domain={["auto", (dataMax: number) => dataMax * 1.1]} hide />
               <CartesianGrid
                 horizontal
                 vertical={false}
@@ -288,19 +265,14 @@ export const OverviewAreaChart = ({
                         }
 
                         const currentPayload = tooltipPayload[0].payload;
-                        const currentTimestamp =
-                          currentPayload.originalTimestamp;
+                        const currentTimestamp = currentPayload.originalTimestamp;
 
                         // Handle missing data
                         if (!data?.length) {
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(
-                                  currentTimestamp,
-                                  granularity,
-                                  data
-                                )}
+                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
                               </span>
                             </div>
                           );
@@ -311,11 +283,7 @@ export const OverviewAreaChart = ({
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(
-                                  currentTimestamp,
-                                  granularity,
-                                  data
-                                )}
+                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
                               </span>
                             </div>
                           );
@@ -344,11 +312,7 @@ export const OverviewAreaChart = ({
                           return (
                             <div className="px-4">
                               <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(
-                                  currentTimestampNumeric,
-                                  granularity,
-                                  data
-                                )}
+                                {formatTooltipTimestamp(currentTimestampNumeric, granularity, data)}
                               </span>
                             </div>
                           );
@@ -362,17 +326,16 @@ export const OverviewAreaChart = ({
                           const inferredGranularityMs = granularity
                             ? getGranularityBuffer(granularity)
                             : data.length > 1
-                            ? Math.abs(
-                                (typeof data[1].originalTimestamp === "number"
-                                  ? data[1].originalTimestamp
-                                  : +new Date(data[1].originalTimestamp)) -
-                                  (typeof data[0].originalTimestamp === "number"
-                                    ? data[0].originalTimestamp
-                                    : +new Date(data[0].originalTimestamp))
-                              )
-                            : 60000; // 1 minute fallback
-                          intervalEndTimestamp =
-                            currentTimestampNumeric + inferredGranularityMs;
+                              ? Math.abs(
+                                  (typeof data[1].originalTimestamp === "number"
+                                    ? data[1].originalTimestamp
+                                    : +new Date(data[1].originalTimestamp)) -
+                                    (typeof data[0].originalTimestamp === "number"
+                                      ? data[0].originalTimestamp
+                                      : +new Date(data[0].originalTimestamp)),
+                                )
+                              : 60000; // 1 minute fallback
+                          intervalEndTimestamp = currentTimestampNumeric + inferredGranularityMs;
                         } else {
                           // Use next data point's timestamp
                           const nextPoint = data[currentIndex + 1];
@@ -384,7 +347,7 @@ export const OverviewAreaChart = ({
                                   {formatTooltipTimestamp(
                                     currentTimestampNumeric,
                                     granularity,
-                                    data
+                                    data,
                                   )}
                                 </span>
                               </div>
@@ -397,16 +360,15 @@ export const OverviewAreaChart = ({
                         }
 
                         // Format both timestamps using normalized numeric values
-                        const formattedCurrentTimestamp =
-                          formatTooltipTimestamp(
-                            currentTimestampNumeric,
-                            granularity,
-                            data
-                          );
+                        const formattedCurrentTimestamp = formatTooltipTimestamp(
+                          currentTimestampNumeric,
+                          granularity,
+                          data,
+                        );
                         const formattedNextTimestamp = formatTooltipTimestamp(
                           intervalEndTimestamp,
                           granularity,
-                          data
+                          data,
                         );
 
                         // Get timezone abbreviation from the actual point date for correct DST handling
@@ -416,15 +378,13 @@ export const OverviewAreaChart = ({
                             timeZoneName: "short",
                           })
                             .formatToParts(pointDate)
-                            .find((part) => part.type === "timeZoneName")
-                            ?.value || "";
+                            .find((part) => part.type === "timeZoneName")?.value || "";
 
                         // Return formatted interval with timezone info
                         return (
                           <div className="px-4">
                             <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                              {formattedCurrentTimestamp} -{" "}
-                              {formattedNextTimestamp} ({timezone})
+                              {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezone})
                             </span>
                           </div>
                         );
@@ -463,7 +423,7 @@ export const OverviewAreaChart = ({
         {data.length > 0
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now()
+              data.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10 text-center">

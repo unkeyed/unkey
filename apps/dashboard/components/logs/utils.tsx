@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import { format } from "date-fns";
 import type { TimeseriesData } from "./overview-charts/types";
 
 /**
@@ -8,20 +8,16 @@ import type { TimeseriesData } from "./overview-charts/types";
 export const formatTooltipTimestamp = (
   timestamp: number | string,
   granularity?: CompoundTimeseriesGranularity,
-  data?: TimeseriesData[]
+  data?: TimeseriesData[],
 ): string => {
   // Parse timestamp to number and handle microsecond timestamps
-  const timestampNum =
-    typeof timestamp === "string" ? parseFloat(timestamp) : timestamp;
+  const timestampNum = typeof timestamp === "string" ? Number.parseFloat(timestamp) : timestamp;
 
   // Detect microseconds by checking if value has 16 digits or is > 1e13
-  const isMicroseconds =
-    timestampNum > 1e13 || timestampNum.toString().length === 16;
+  const isMicroseconds = timestampNum > 1e13 || timestampNum.toString().length === 16;
 
   // Convert microseconds to milliseconds if needed
-  const timestampMs = isMicroseconds
-    ? Math.floor(timestampNum / 1000)
-    : timestampNum;
+  const timestampMs = isMicroseconds ? Math.floor(timestampNum / 1000) : timestampNum;
 
   const date = new Date(timestampMs);
 
