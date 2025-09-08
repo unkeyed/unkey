@@ -327,8 +327,12 @@ export const OverviewAreaChart = ({
       <div className="h-max border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
         {data.length > 0
           ? calculateTimePoints(
-              data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now()
+              data[0]?.originalTimestamp
+                ? parseTimestamp(data[0].originalTimestamp)
+                : Date.now(),
+              data.at(-1)?.originalTimestamp
+                ? parseTimestamp(data.at(-1)!.originalTimestamp)
+                : Date.now()
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10 text-center">
