@@ -114,9 +114,20 @@ export function createTimeIntervalFormatter(
     }
 
     // Find position in the data array
-    const currentIndex = data.findIndex(
-      (item) => item?.originalTimestamp === currentTimestamp
-    );
+    // Normalize both timestamps to numeric epoch values for reliable comparison
+    const normalizedCurrentTimestamp = parseTimestamp(currentTimestamp);
+    const currentIndex = data.findIndex((item) => {
+      if (!item?.originalTimestamp) {
+        return false;
+      }
+      const normalizedItemTimestamp = parseTimestamp(item.originalTimestamp);
+      // Use Number.isNaN to handle NaN cases safely
+      return (
+        !Number.isNaN(normalizedCurrentTimestamp) &&
+        !Number.isNaN(normalizedItemTimestamp) &&
+        normalizedCurrentTimestamp === normalizedItemTimestamp
+      );
+    });
 
     // If this is the last item or not found, just show current timestamp
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
