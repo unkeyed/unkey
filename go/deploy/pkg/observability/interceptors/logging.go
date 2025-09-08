@@ -66,15 +66,6 @@ func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				slog.String("trace_id", traceID),
 			}
 
-			// Add tenant info if available
-			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-				requestAttrs = append(requestAttrs,
-					slog.String("tenant_id", tenantCtx.TenantID),
-					// slog.String("project_id", tenantCtx.ProjectID),
-					// slog.String("environment_id", tenantCtx.EnvironmentID),
-				)
-			}
-
 			// Log request
 			logger.LogAttrs(ctx, slog.LevelInfo, "rpc request started", requestAttrs...)
 
@@ -97,15 +88,6 @@ func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				slog.String("procedure", procedure),
 				slog.Duration("duration", duration),
 				slog.String("trace_id", traceID),
-			}
-
-			// Add tenant info if available
-			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-				responseAttrs = append(responseAttrs,
-					slog.String("tenant_id", tenantCtx.TenantID),
-					// slog.String("project_id", tenantCtx.ProjectID),
-					// slog.String("environment_id", tenantCtx.EnvironmentID),
-				)
 			}
 
 			// Log response based on error status

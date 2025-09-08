@@ -1,11 +1,10 @@
 #!/bin/bash
-# AIDEV-NOTE: Service registration for SPIRE
 # Registers all Unkey services with proper selectors
 
 set -euo pipefail
 
 # Get trust domain from environment or use default
-TRUST_DOMAIN=${TRUST_DOMAIN:-development.unkey.app}
+TRUST_DOMAIN=${TRUST_DOMAIN:-development.unkey.cloud}
 SPIRE_DIR="/opt/spire"
 SOCKET_PATH="/var/lib/spire/server/server.sock"
 
@@ -67,7 +66,6 @@ register_service() {
 }
 
 # Register all services
-# AIDEV-NOTE: Service binaries are installed to /usr/local/bin
 # All services run as their own dedicated user
 register_service "metald" "/usr/local/bin/metald" "root"
 register_service "billaged" "/usr/local/bin/billaged" "billaged"
@@ -75,7 +73,6 @@ register_service "builderd" "/usr/local/bin/builderd" "root"
 register_service "assetmanagerd" "/usr/local/bin/assetmanagerd" "root"
 
 # Register the CLI tools for testing
-# AIDEV-NOTE: The CLI tools run as the current user
 register_service "metald-cli" "/usr/local/bin/metald-cli" "$USER"
 register_service "assetmanagerd-cli" "/usr/local/bin/assetmanagerd-cli" "$USER"
 register_service "billaged-cli" "/usr/local/bin/billaged-cli" "$USER"
