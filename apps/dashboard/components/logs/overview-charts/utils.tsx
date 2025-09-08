@@ -49,7 +49,7 @@ function formatTimeForGranularity(date: Date, granularity?: CompoundTimeseriesGr
 }
 
 /**
- * Get current timezone abbreviation
+ * Get timezone abbreviation for a given date
  */
 function getTimezoneAbbreviation(date?: Date): string {
   const timezone =
@@ -116,9 +116,7 @@ export function createTimeIntervalFormatter(
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
       // Use timestamp-aware timezone or fallback to global helper for missing/invalid timestamps
       const fallbackTimezoneAbbr =
-        currentTimestamp && currentDate
-          ? getTimezoneAbbreviation(currentDate)
-          : getTimezoneAbbreviation();
+        currentTimestamp && currentDate ? timezoneAbbr : getTimezoneAbbreviation();
 
       return (
         <div className="px-4">
@@ -146,7 +144,7 @@ export function createTimeIntervalFormatter(
       : format(nextDate, timeFormat);
 
     // Compute timezone abbreviations for both timestamps to handle DST boundaries
-    const startTimezoneAbbr = getTimezoneAbbreviation(currentDate);
+    const startTimezoneAbbr = timezoneAbbr;
     const endTimezoneAbbr = getTimezoneAbbreviation(nextDate);
 
     // Format timezone display: single if same, or both with arrow if different
