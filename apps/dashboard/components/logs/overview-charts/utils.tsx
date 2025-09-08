@@ -76,7 +76,7 @@ function getTimezoneAbbreviation(date?: Date): string {
  */
 export function createTimeIntervalFormatter(
   data?: TimeseriesData[],
-  timeFormat = "HH:mm",
+  timeFormat = "h:mm a",
   granularity?: CompoundTimeseriesGranularity
 ) {
   return (tooltipPayload: TooltipPayloadItem[]) => {
