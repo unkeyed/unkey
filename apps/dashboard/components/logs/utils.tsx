@@ -7,6 +7,11 @@ import { parseTimestamp } from "./parseTimestamp";
 // Default time buffer for granularity fallbacks (1 minute)
 const DEFAULT_TIME_BUFFER_MS = 60_000;
 
+// Singleton DateTimeFormat for timezone abbreviation extraction
+const TZ_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZoneName: "short",
+});
+
 // Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
 const getGranularityBuffer = (
   granularity?: CompoundTimeseriesGranularity
@@ -195,11 +200,9 @@ export const formatTooltipInterval = (
   // Get timezone abbreviation from the actual point date for correct DST handling
   const pointDate = new Date(currentTimestampNumeric);
   const timezone =
-    new Intl.DateTimeFormat("en-US", {
-      timeZoneName: "short",
-    })
-      .formatToParts(pointDate)
-      .find((part) => part.type === "timeZoneName")?.value || "";
+    TZ_FORMATTER.formatToParts(pointDate).find(
+      (part) => part.type === "timeZoneName"
+    )?.value || "";
 
   // Return formatted interval with timezone info
   return (
