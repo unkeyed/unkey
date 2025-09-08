@@ -30,6 +30,7 @@ const (
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"
+	GatewayPrefix            Prefix = "gw"
 	WorkerPrefix             Prefix = "wkr"
 	CronJobPrefix            Prefix = "cron"
 	KeyEncryptionKeyPrefix   Prefix = "kek"
@@ -43,6 +44,8 @@ const (
 	VersionPrefix     Prefix = "v"
 	BuildPrefix       Prefix = "build"
 	RootfsImagePrefix Prefix = "img"
+	DomainPrefix      Prefix = "dom"
+	DeploymentPrefix  Prefix = "d"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a

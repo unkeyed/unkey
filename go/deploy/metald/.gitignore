@@ -85,3 +85,5 @@ storage/
 scratch/
 rootfs/
 workspace/
+
+sqlc/networks-seed.sql

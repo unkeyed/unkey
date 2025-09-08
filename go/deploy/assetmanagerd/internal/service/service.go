@@ -11,12 +11,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/builderd"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/registry"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/storage"
-	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -1037,11 +1036,6 @@ func (s *Service) QueryAssets(
 				// AIDEV-NOTE: Extract proper customer ID from tenant context instead of using asset ID
 				tenantID := buildOpts.GetTenantId()
 				customerID := "cli-user" // Default fallback
-
-				// Try to extract tenant context for proper customer ID
-				if tenantCtx, ok := interceptors.TenantFromContext(ctx); ok && tenantCtx.CustomerID != "" {
-					customerID = tenantCtx.CustomerID
-				}
 
 				buildID, err := s.builderdClient.BuildDockerRootfsWithOptions(buildCtx, dockerImage, buildLabels, tenantID, customerID)
 				if err != nil {

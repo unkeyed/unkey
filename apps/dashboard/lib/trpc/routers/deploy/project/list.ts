@@ -1,5 +1,19 @@
 import { projectsQueryPayload as projectsInputSchema } from "@/app/(app)/projects/_components/list/projects-list.schema";
-import { and, count, db, desc, eq, exists, inArray, like, lt, or, schema } from "@/lib/db";
+import {
+  and,
+  count,
+  db,
+  desc,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+  like,
+  lt,
+  or,
+  schema,
+} from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -45,9 +59,23 @@ export const queryProjects = t.procedure
 
     // Add cursor condition for pagination
     if (input.cursor && typeof input.cursor === "number") {
-      baseConditions.push(lt(schema.projects.updatedAt, input.cursor));
-    }
+      const cursorDate = input.cursor;
+      const sql = or(
+        // updatedAt exists and is less than cursor
+        and(isNotNull(schema.projects.updatedAt), lt(schema.projects.updatedAt, cursorDate)),
+        // updatedAt is null, use createdAt instead
+        and(isNull(schema.projects.updatedAt), lt(schema.projects.createdAt, cursorDate)),
+      );
 
+      if (!sql) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid cursor: Failed to create pagination condition",
+        });
+      }
+
+      baseConditions.push(sql);
+    }
     const filterConditions = [];
 
     // Single query field that searches across name, branch, and hostnames
@@ -76,13 +104,13 @@ export const queryProjects = t.procedure
         queryConditions.push(
           exists(
             db
-              .select({ projectId: schema.routes.projectId })
-              .from(schema.routes)
+              .select({ projectId: schema.domains.projectId })
+              .from(schema.domains)
               .where(
                 and(
-                  eq(schema.routes.workspaceId, ctx.workspace.id),
-                  eq(schema.routes.projectId, schema.projects.id),
-                  like(schema.routes.hostname, searchValue),
+                  eq(schema.domains.workspaceId, ctx.workspace.id),
+                  eq(schema.domains.projectId, schema.projects.id),
+                  like(schema.domains.domain, searchValue),
                 ),
               ),
           ),
@@ -137,30 +165,36 @@ export const queryProjects = t.procedure
       // Fetch hostnames for all projects - only .unkey.app domains
       const hostnamesResult =
         projectIds.length > 0
-          ? await db.query.routes.findMany({
+          ? await db.query.domains.findMany({
               where: and(
-                eq(schema.routes.workspaceId, ctx.workspace.id),
-                inArray(schema.routes.projectId, projectIds),
-                like(schema.routes.hostname, "%.unkey.app"),
+                eq(schema.domains.workspaceId, ctx.workspace.id),
+                inArray(schema.domains.projectId, projectIds),
+                like(schema.domains.domain, "%.unkey.app"),
               ),
               columns: {
                 id: true,
                 projectId: true,
-                hostname: true,
+                domain: true,
               },
-              orderBy: [desc(schema.routes.createdAt)],
+              orderBy: [desc(schema.projects.updatedAt), desc(schema.projects.createdAt)],
             })
           : [];
 
       // Group hostnames by projectId
       const hostnamesByProject = hostnamesResult.reduce(
         (acc, hostname) => {
-          if (!acc[hostname.projectId]) {
-            acc[hostname.projectId] = [];
+          // Make typescript happy, we already ensure this is the case in the drizzle query
+          const projectId = hostname.projectId;
+          if (!projectId) {
+            return acc;
           }
-          acc[hostname.projectId].push({
+
+          if (!acc[projectId]) {
+            acc[projectId] = [];
+          }
+          acc[projectId].push({
             id: hostname.id,
-            hostname: hostname.hostname,
+            hostname: hostname.domain,
           });
           return acc;
         },
@@ -183,7 +217,10 @@ export const queryProjects = t.procedure
         projects,
         hasMore,
         total: totalResult[0]?.count ?? 0,
-        nextCursor: projects.length > 0 ? projects[projects.length - 1].updatedAt : null,
+        nextCursor:
+          hasMore && projects.length > 0
+            ? (projects[projects.length - 1].updatedAt ?? projects[projects.length - 1].createdAt)
+            : null,
       };
 
       return response;

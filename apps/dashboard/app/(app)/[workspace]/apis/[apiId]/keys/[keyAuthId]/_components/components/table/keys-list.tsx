@@ -3,6 +3,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
 import { Button, Checkbox, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -49,12 +50,11 @@ const KeysTableActionPopover = dynamic(
 export const KeysList = ({
   keyspaceId,
   apiId,
-  workspaceSlug,
 }: {
   keyspaceId: string;
   apiId: string;
-  workspaceSlug: string;
 }) => {
+  const { workspace } = useWorkspace();
   const { keys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useKeysListQuery({
     keyAuthId: keyspaceId,
   });
@@ -177,7 +177,7 @@ export const KeysList = ({
                   <Link
                     title={`View details for ${key.id}`}
                     className="font-mono group-hover:underline decoration-dotted"
-                    href={`/${workspaceSlug}/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
+                    href={`/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${key.id}`}
                     aria-disabled={isNavigating}
                     onClick={() => {
                       handleLinkClick(key.id);
@@ -267,7 +267,7 @@ export const KeysList = ({
       selectedKeys,
       toggleSelection,
       hoveredKeyId,
-      workspaceSlug,
+      workspace?.slug,
     ],
   );
 

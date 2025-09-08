@@ -17,10 +17,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// AIDEV-NOTE: This package implements jailer functionality directly in metald
-// This allows us to have better control over the network namespace and tap device
-// creation, solving the permission issues we encountered with the external jailer
-
 // Jailer provides functionality similar to firecracker's jailer but integrated into metald
 type Jailer struct {
 	logger *slog.Logger
@@ -109,7 +105,6 @@ func (j *Jailer) Exec(ctx context.Context, opts *ExecOptions) error {
 	}
 
 	// Step 5: Prepare firecracker command
-	// AIDEV-NOTE: Firecracker binary path is now hardcoded to standard location
 	firecrackerPath := "/usr/local/bin/firecracker"
 	args := []string{firecrackerPath}
 	args = append(args, "--api-sock", opts.SocketPath)
@@ -207,7 +202,7 @@ func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
 	// Create necessary directories
 	for _, dir := range []string{"", "dev", "dev/net", "run"} {
 		path := filepath.Join(chrootPath, dir)
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := os.MkdirAll(path, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", path, err)
 		}
 	}
@@ -218,7 +213,7 @@ func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to convert tun device number: %w", err)
 	}
-	if mkErr := unix.Mknod(tunPath, unix.S_IFCHR|0666, tunDev); mkErr != nil {
+	if mkErr := unix.Mknod(tunPath, unix.S_IFCHR|0o666, tunDev); mkErr != nil {
 		if !os.IsExist(mkErr) {
 			return fmt.Errorf("failed to create /dev/net/tun: %w", mkErr)
 		}
@@ -230,7 +225,7 @@ func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to convert kvm device number: %w", err)
 	}
-	if err := unix.Mknod(kvmPath, unix.S_IFCHR|0666, kvmDev); err != nil {
+	if err := unix.Mknod(kvmPath, unix.S_IFCHR|0o666, kvmDev); err != nil {
 		if !os.IsExist(err) {
 			return fmt.Errorf("failed to create /dev/kvm: %w", err)
 		}
@@ -238,7 +233,7 @@ func (j *Jailer) setupChroot(ctx context.Context, chrootPath string) error {
 
 	// Create metrics FIFO for billaged to read Firecracker stats
 	metricsPath := filepath.Join(chrootPath, "metrics.fifo")
-	if err := unix.Mkfifo(metricsPath, 0644); err != nil && !os.IsExist(err) {
+	if err := unix.Mkfifo(metricsPath, 0o644); err != nil && !os.IsExist(err) {
 		span.RecordError(err)
 		return fmt.Errorf("failed to create metrics FIFO: %w", err)
 	}
@@ -343,16 +338,9 @@ func validateFirecrackerPath(path string) error {
 	}
 
 	// Check if file is executable
-	if info.Mode()&0111 == 0 {
+	if info.Mode()&0o111 == 0 {
 		return fmt.Errorf("firecracker binary is not executable: %s", cleanPath)
 	}
 
 	return nil
 }
-
-// AIDEV-NOTE: This implementation provides the core jailer functionality
-// but integrated into metald. The key advantages are:
-// 1. We can create tap devices before dropping privileges
-// 2. We have full control over the network namespace setup
-// 3. We can pass open file descriptors to the jailed process
-// 4. We maintain the security isolation of the original jailer

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/unkeyed/unkey/go/cmd/deploy"
+	gateway "github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
@@ -26,6 +27,7 @@ func main() {
 			deploy.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
+			gateway.Cmd,
 		},
 	}
 

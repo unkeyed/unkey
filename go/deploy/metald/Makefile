@@ -8,18 +8,18 @@ BUILD_DIR := build
 VERSION ?= 0.5.2
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
-LDFLAGS := -ldflags "-s -w -X main.version=$(VERSION)"
+LDFLAGS := -ldflags "-s=false -w=false -X main.version=$(VERSION)"
 
 # Colors for output
 CYAN := \033[36m
 RESET := \033[0m
 
 # Targets (alphabetically ordered)
-.PHONY: build build-linux check ci clean debug deps dev fmt health help install install-tools lint metrics release run service-logs service-logs-full service-restart service-start service-status service-stop setup test test-coverage test-short uninstall version vet
+.PHONY: build build-linux check ci clean deps dev fmt help install install-bridge-8 install-bridge-32 lint release run service-logs service-logs-full service-restart service-start service-status service-stop test test-coverage test-short uninstall uninstall-bridge-systemd version vet apply-bridge-8-config apply-bridge-32-config
 
 build: deps ## Build the binary
 	@mkdir -p $(BUILD_DIR)
-	@go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/metald
+	go build $(LDFLAGS) -gcflags="all=-N -l" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/metald
 
 build-linux: ## Build Linux binary for deployment
 	@mkdir -p $(BUILD_DIR)
@@ -33,48 +33,29 @@ clean: ## Clean build artifacts
 	@rm -rf $(BUILD_DIR)
 	@rm -f coverage.out coverage.html
 
-
-debug: build ## Run with debug logging
-	@UNKEY_METALD_OTEL_ENABLED=true ./$(BUILD_DIR)/$(BINARY_NAME)
-
 deps: ## Download and tidy dependencies
 	@go mod download
 	@go mod tidy
 
-dev: ## Run the service in development mode
-	@go run ./cmd/metald
-
 fmt: ## Format Go code
 	@goimports -w .
-
-
-health: ## Check service health
-	@curl -s http://localhost:8080/_/health | jq . || echo "Health check failed"
+	@gofumpt -w .
 
 help: ## Display this help message
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make $(CYAN)<target>$(RESET)\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 } /^##@/ { printf "\n%s\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make $(CYAN)<target>$(RESET)\n"} /^[a-zA-Z0-9_-]+:.*##/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 } /^##@/ { printf "\n%s\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-# AIDEV-NOTE: The install target sets up environment configuration by copying metald.env.example
-# to /etc/metald/metald.env on first install. The systemd service uses EnvironmentFile to load
-# these settings, allowing easy configuration management without modifying the service file.
 install: build ## Install metald binary and systemd service
 	@sudo systemctl stop metald 2>/dev/null || true
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
 	@sudo chmod +x /usr/local/bin/$(BINARY_NAME)
 	@sudo cp contrib/systemd/metald.service /etc/systemd/system/metald.service
-	@echo "d /run/netns 0755 root root -" | sudo tee /etc/tmpfiles.d/metald-netns.conf >/dev/null
 	@sudo systemctl daemon-reload
 	@sudo systemctl start metald 2>/dev/null || true
 	@echo "✓ metald installed and started"
 
-
 lint: ## Run linting tools
 	@which golangci-lint >/dev/null || (echo "golangci-lint not found, install from https://golangci-lint.run/usage/install/" && exit 1)
 	@golangci-lint run --disable=godox
-
-metrics: ## Check Prometheus metrics
-	@curl -s http://localhost:9464/metrics | grep -E "^(vm_|process_|jailer_)" || echo "No VM metrics found"
-
 
 release: clean ci build-linux ## Prepare release build
 	@echo "✓ Release build: $(BUILD_DIR)/$(BINARY_NAME)-linux"
@@ -103,10 +84,8 @@ service-stop: ## Stop metald service
 	@sudo systemctl stop metald
 	@echo "✓ metald stopped"
 
-setup: deps ## Complete development setup
-
 test: ## Run all tests
-	@go test ./... -v
+	@go test -json -failfast -v ./... | tparse
 
 test-coverage: ## Run tests with coverage report
 	@go test ./... -coverprofile=coverage.out

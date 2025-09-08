@@ -9,6 +9,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "migrate": "drizzle-kit push",
+    "export": "drizzle-kit export",
     "studio": "dotenv -e .env drizzle-kit studio "
   },
   "devDependencies": {
