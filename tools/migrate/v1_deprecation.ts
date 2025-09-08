@@ -31,6 +31,7 @@ async function main() {
     FROM metrics.api_requests_per_day_v1
     WHERE startsWith(path, '/v1/')
     AND workspace_id != ''
+    AND workspace_id != 'ws_2vUFz88G6TuzMQHZaUhXADNyZWMy' // filter out special workspaces
     AND time >= (now() - INTERVAL 30 DAY)
     GROUP BY workspace_id, path`,
     schema: z.object({
@@ -42,7 +43,8 @@ async function main() {
     console.error(rows.err);
     process.exit(1);
   }
-  console.log(`Found ${rows.val.length} workspaces`);
+
+  let emailsSent = 0;
 
   const workspaceToPaths = new Map<string, string[]>();
   for (const row of rows.val) {
@@ -66,26 +68,24 @@ async function main() {
 
     const members = await workos.userManagement.listOrganizationMemberships({
       organizationId: workspace.orgId,
+      limit: 100,
     });
 
-    const users = await Promise.all(
-      members.data.map(async (member) => workos.userManagement.getUser(member.userId)),
-    );
+    for (const member of members.data) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const user = await workos.userManagement.getUser(member.userId);
 
-    for (const user of users) {
-      console.log(user.email);
-
-      if (user.email === "andreas@unkey.com") {
-        await resend.sendApiV1MigrationEmail({
-          email: user.email,
-          name: user.firstName,
-          workspace: workspace.name,
-          deprecatedEndpoints: paths,
-        });
-        throw new Error(`User ${user.email} is from unkey.com`);
-      }
+      await resend.sendApiV1MigrationEmail({
+        email: user.email,
+        name: user.firstName,
+        workspace: workspace.name,
+        deprecatedEndpoints: paths,
+      });
+      emailsSent++;
     }
   }
+
+  console.info(`Emails sent: ${emailsSent}`);
 }
 
 main();
