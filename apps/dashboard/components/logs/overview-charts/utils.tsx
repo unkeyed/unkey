@@ -131,16 +131,10 @@ export function createTimeIntervalFormatter(
 
     // If this is the last item or not found, just show current timestamp
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
-      // Use timestamp-aware timezone or fallback to global helper for missing/invalid timestamps
-      const fallbackTimezoneAbbr =
-        currentTimestamp && currentDate
-          ? timezoneAbbr
-          : getTimezoneAbbreviation();
-
       return (
         <div className="px-4">
           <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-            {formattedCurrentTimestamp} ({fallbackTimezoneAbbr})
+            {formattedCurrentTimestamp} ({timezoneAbbr})
           </span>
         </div>
       );
