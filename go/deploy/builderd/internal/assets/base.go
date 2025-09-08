@@ -283,8 +283,6 @@ func (m *BaseAssetManager) registerAsset(ctx context.Context, asset BaseAsset, l
 	maps.Copy(labels, asset.Labels)
 
 	labels["created_by"] = "builderd"
-	labels["customer_id"] = "system"
-	labels["tenant_id"] = "system"
 
 	// Get relative path within storage directory
 	relPath, err := filepath.Rel(m.storageDir, localPath)

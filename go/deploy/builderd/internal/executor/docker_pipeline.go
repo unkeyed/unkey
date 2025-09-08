@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
-	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 )
 
@@ -41,14 +40,7 @@ func NewDockerPipelineExecutor(logger *slog.Logger, cfg *config.Config, metrics 
 func (d *DockerPipelineExecutor) ExtractDockerImageWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error) {
 	start := time.Now()
 
-	// Get tenant context for logging and metrics
-	tenantID := "unknown"
-	if auth, ok := interceptors.TenantFromContext(ctx); ok {
-		tenantID = auth.TenantID
-	}
-
 	logger := d.logger.With(
-		slog.String("tenant_id", tenantID),
 		slog.String("build_id", buildID),
 		slog.String("image_uri", request.GetConfig().GetSource().GetDockerImage().GetImageUri()),
 	)
@@ -57,7 +49,7 @@ func (d *DockerPipelineExecutor) ExtractDockerImageWithID(ctx context.Context, r
 
 	// Record build start metrics
 	if d.buildMetrics != nil {
-		d.buildMetrics.RecordBuildStart(ctx, "docker", "docker", tenantID)
+		d.buildMetrics.RecordBuildStart(ctx, "docker", "docker")
 	}
 
 	defer func() {
@@ -121,14 +113,7 @@ func (d *DockerPipelineExecutor) ExtractDockerImageWithID(ctx context.Context, r
 func (d *DockerPipelineExecutor) ResumeBuild(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string, lastCompletedStep int) (*BuildResult, error) {
 	start := time.Now()
 
-	// Get tenant context for logging and metrics
-	tenantID := "unknown"
-	if auth, ok := interceptors.TenantFromContext(ctx); ok {
-		tenantID = auth.TenantID
-	}
-
 	logger := d.logger.With(
-		slog.String("tenant_id", tenantID),
 		slog.String("build_id", buildID),
 		slog.String("image_uri", request.GetConfig().GetSource().GetDockerImage().GetImageUri()),
 		slog.Int("resume_from_step", lastCompletedStep+1),
