@@ -3,7 +3,7 @@
 import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
-import { formatTooltipTimestamp } from "@/components/logs/utils";
+import { formatTooltipInterval } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -11,10 +11,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import {
-  type CompoundTimeseriesGranularity,
-  getTimeBufferForGranularity,
-} from "@/lib/trpc/routers/utils/granularity";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import {
@@ -29,7 +26,6 @@ import {
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-import { DEFAULT_TIME_BUFFER_MS } from "./utils";
 
 export type ChartMetric = {
   key: string;
@@ -47,18 +43,6 @@ export type TimeseriesChartLabels = {
 };
 
 export type Granularity = CompoundTimeseriesGranularity | undefined;
-
-// Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
-const getGranularityBuffer = (granularity: Granularity): number => {
-  if (!granularity) {
-    return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
-  }
-  try {
-    return getTimeBufferForGranularity(granularity);
-  } catch {
-    return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
-  }
-};
 
 export interface TimeseriesAreaChartProps {
   data?: TimeseriesData[];
@@ -280,124 +264,12 @@ export const OverviewAreaChart = ({
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) => {
-                        if (!tooltipPayload?.[0]?.payload?.originalTimestamp) {
-                          return "";
-                        }
-
-                        const currentPayload = tooltipPayload[0].payload;
-                        const currentTimestamp = currentPayload.originalTimestamp;
-
-                        // Handle missing data
-                        if (!data?.length) {
-                          return (
-                            <div className="px-4">
-                              <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        // Handle single timestamp case
-                        if (data.length === 1) {
-                          return (
-                            <div className="px-4">
-                              <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(currentTimestamp, granularity, data)}
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        // Normalize timestamps to numeric for robust comparison
-                        const currentTimestampNumeric =
-                          typeof currentTimestamp === "number"
-                            ? currentTimestamp
-                            : +new Date(currentTimestamp);
-
-                        // Find position in the data array using O(1) map lookup
-                        const currentIndex = timestampToIndexMap.get(currentTimestampNumeric) ?? -1;
-
-                        // If not found, fallback to single timestamp display
-                        if (currentIndex === -1) {
-                          return (
-                            <div className="px-4">
-                              <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                {formatTooltipTimestamp(currentTimestampNumeric, granularity, data)}
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        // Compute interval end timestamp
-                        let intervalEndTimestamp: number;
-
-                        // If this is the last item, compute interval end using granularity
-                        if (currentIndex >= data.length - 1) {
-                          const inferredGranularityMs = granularity
-                            ? getGranularityBuffer(granularity)
-                            : data.length > 1
-                              ? Math.abs(
-                                  (typeof data[1].originalTimestamp === "number"
-                                    ? data[1].originalTimestamp
-                                    : +new Date(data[1].originalTimestamp)) -
-                                    (typeof data[0].originalTimestamp === "number"
-                                      ? data[0].originalTimestamp
-                                      : +new Date(data[0].originalTimestamp)),
-                                )
-                              : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
-                          intervalEndTimestamp = currentTimestampNumeric + inferredGranularityMs;
-                        } else {
-                          // Use next data point's timestamp
-                          const nextPoint = data[currentIndex + 1];
-                          if (!nextPoint?.originalTimestamp) {
-                            // Fallback to single timestamp if next point is invalid
-                            return (
-                              <div className="px-4">
-                                <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                                  {formatTooltipTimestamp(
-                                    currentTimestampNumeric,
-                                    granularity,
-                                    data,
-                                  )}
-                                </span>
-                              </div>
-                            );
-                          }
-                          intervalEndTimestamp =
-                            typeof nextPoint.originalTimestamp === "number"
-                              ? nextPoint.originalTimestamp
-                              : +new Date(nextPoint.originalTimestamp);
-                        }
-
-                        // Format both timestamps using normalized numeric values
-                        const formattedCurrentTimestamp = formatTooltipTimestamp(
-                          currentTimestampNumeric,
+                        const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                        return formatTooltipInterval(
+                          payloadTimestamp,
+                          data || [],
                           granularity,
-                          data,
-                        );
-                        const formattedNextTimestamp = formatTooltipTimestamp(
-                          intervalEndTimestamp,
-                          granularity,
-                          data,
-                        );
-
-                        // Get timezone abbreviation from the actual point date for correct DST handling
-                        const pointDate = new Date(currentTimestampNumeric);
-                        const timezone =
-                          new Intl.DateTimeFormat("en-US", {
-                            timeZoneName: "short",
-                          })
-                            .formatToParts(pointDate)
-                            .find((part) => part.type === "timeZoneName")?.value || "";
-
-                        // Return formatted interval with timezone info
-                        return (
-                          <div className="px-4">
-                            <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-                              {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezone})
-                            </span>
-                          </div>
+                          timestampToIndexMap,
                         );
                       }}
                     />
