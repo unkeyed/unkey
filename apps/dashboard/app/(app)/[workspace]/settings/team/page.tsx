@@ -16,12 +16,9 @@ export default async function SettingTeamPage() {
 
   return workspace ? (
     <>
-      <WorkspaceNavbar
-        workspace={{ id: workspace.id, name: workspace.name, slug: workspace.slug ?? "" }}
-        activePage={{ href: "team", text: "Team" }}
-      />
+      <WorkspaceNavbar activePage={{ href: "team", text: "Team" }} />
       <div className="flex flex-col items-center justify-center w-full px-16 gap-4 mt-10">
-        <TeamPageClient team={team} workspaceSlug={workspace.slug ?? ""} />
+        <TeamPageClient team={team} />
       </div>
     </>
   ) : (

@@ -1,5 +1,6 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -7,18 +8,16 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-type Props = {
-  workspace: {
-    id: string;
-    name: string;
-  };
-};
-
-export function UpdateWorkspaceName(props: Props) {
-  const { workspace } = props;
+export function UpdateWorkspaceName() {
+  const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
   const utils = trpc.useUtils();
-  const [name, setName] = useState(workspace.name);
+
+  if (!workspace && !isLoading) {
+    router.replace("/new");
+  }
+
+  const [name, setName] = useState(workspace?.name);
 
   const formSchema = z.object({
     workspaceId: z.string(),
@@ -38,7 +37,7 @@ export function UpdateWorkspaceName(props: Props) {
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
-      workspaceId: workspace.id,
+      workspaceId: workspace?.id,
       workspaceName: name,
     },
   });
@@ -48,6 +47,7 @@ export function UpdateWorkspaceName(props: Props) {
       toast.success("Workspace name updated");
       // invalidate the current user so it refetches
       utils.user.getCurrentUser.invalidate();
+      utils.workspace.invalidate();
       setName(watch("workspaceName"));
       router.refresh();
     },
@@ -59,8 +59,12 @@ export function UpdateWorkspaceName(props: Props) {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (workspace.name === values.workspaceName || !values.workspaceName) {
+    if (workspace?.name === values.workspaceName || !values.workspaceName) {
       return toast.error("Please provide a different name before saving.");
+    }
+
+    if (!workspace?.id) {
+      return toast.error("Workspace not found");
     }
 
     await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
@@ -76,7 +80,7 @@ export function UpdateWorkspaceName(props: Props) {
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">
-          <input type="hidden" name="workspaceId" value={workspace.id} />
+          <input type="hidden" name="workspaceId" value={workspace?.id} />
           <label htmlFor="workspaceName" className="sr-only">
             Workspace Name
           </label>

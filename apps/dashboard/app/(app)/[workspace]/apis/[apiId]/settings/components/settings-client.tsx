@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { CopyApiId } from "./copy-api-id";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
@@ -10,10 +11,13 @@ import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
-export const SettingsClient = ({
-  apiId,
-  workspaceSlug,
-}: { apiId: string; workspaceSlug: string }) => {
+export const SettingsClient = ({ apiId }: { apiId: string }) => {
+  const { workspace } = useWorkspace();
+
+  if (!workspace) {
+    return null;
+  }
+
   const {
     data: layoutData,
     isLoading,
@@ -33,7 +37,7 @@ export const SettingsClient = ({
     throw new Error("KeyAuth configuration not found");
   }
 
-  const { currentApi, keyAuth, workspace } = layoutData;
+  const { currentApi, keyAuth, workspace: workspaceData } = layoutData;
 
   const api = {
     id: currentApi.id,
@@ -51,7 +55,7 @@ export const SettingsClient = ({
   };
 
   const workspaceForComponents = {
-    features: { ipWhitelist: workspace.ipWhitelist },
+    features: { ipWhitelist: workspaceData.ipWhitelist },
   };
 
   return (
