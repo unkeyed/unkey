@@ -24,7 +24,6 @@ export default function APIKeysPage(props: {
     <div>
       <ApisNavbar
         activePage={{
-
           href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`,
           text: "Keys",
         }}

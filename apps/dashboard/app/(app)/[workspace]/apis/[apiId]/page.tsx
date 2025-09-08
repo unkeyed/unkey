@@ -9,7 +9,6 @@ export default function ApiPage(props: { params: { apiId: string } }) {
   const { workspace, error, isLoading } = useWorkspace();
   const router = useRouter();
 
-
   if (workspace && !isLoading) {
     router.replace(`/${workspace?.slug}/apis/${apiId}`);
   }
