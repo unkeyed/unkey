@@ -1,22 +1,23 @@
 "use client";
 
+import { useWorkspace } from "@/providers/workspace-provider";
 import { NamespaceNavbar } from "../namespace-navbar";
 import { LogsClient } from "./components/logs-client";
 
 export default function RatelimitLogsPage({
-  params: { workspaceId, namespaceId },
+  params: { namespaceId },
 }: {
-  params: { workspaceId: string; namespaceId: string };
+  params: { namespaceId: string };
 }) {
+  const { workspace } = useWorkspace();
   return (
     <div>
       <NamespaceNavbar
         namespaceId={namespaceId}
         activePage={{
-          href: `/ratelimits/${namespaceId}/logs`,
+          href: `/${workspace?.slug}/ratelimits/${namespaceId}/logs`,
           text: "Logs",
         }}
-        workspaceId={workspaceId}
       />
       <LogsClient namespaceId={namespaceId} />
     </div>

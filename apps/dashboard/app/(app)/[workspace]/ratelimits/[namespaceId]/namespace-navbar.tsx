@@ -4,6 +4,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronExpandY, Gauge, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -23,17 +24,15 @@ type NamespaceNavbarProps = {
     href: string;
     text: string;
   };
-  workspaceId: string;
 };
 
 export const NamespaceNavbar = ({
   namespaceId,
   includeOverrides = false,
   activePage,
-  workspaceId,
 }: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
-
+  const { workspace } = useWorkspace();
   const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
     namespaceId,
     includeOverrides,
@@ -43,7 +42,7 @@ export const NamespaceNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>
+          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/ratelimits`}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
@@ -75,11 +74,11 @@ export const NamespaceNavbar = ({
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceId}/ratelimits`}>
+          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/ratelimits`}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/${workspaceId}/ratelimits/${namespace.id}`}
+            href={`/${workspace?.slug}/ratelimits/${namespace.id}`}
             isIdentifier
             className="group"
             noop
@@ -88,7 +87,7 @@ export const NamespaceNavbar = ({
               items={ratelimitNamespaces.map((ns) => ({
                 id: ns.id,
                 label: ns.name,
-                href: `/${workspaceId}/ratelimits/${ns.id}`,
+                href: `/${workspace?.slug}/ratelimits/${ns.id}`,
               }))}
               shortcutKey="N"
             >
@@ -101,22 +100,22 @@ export const NamespaceNavbar = ({
                 {
                   id: "requests",
                   label: "Requests",
-                  href: `/${workspaceId}/ratelimits/${namespace.id}`,
+                  href: `/${workspace?.slug}/ratelimits/${namespace.id}`,
                 },
                 {
                   id: "logs",
                   label: "Logs",
-                  href: `/${workspaceId}/ratelimits/${namespace.id}/logs`,
+                  href: `/${workspace?.slug}/ratelimits/${namespace.id}/logs`,
                 },
                 {
                   id: "settings",
                   label: "Settings",
-                  href: `/${workspaceId}/ratelimits/${namespace.id}/settings`,
+                  href: `/${workspace?.slug}/ratelimits/${namespace.id}/settings`,
                 },
                 {
                   id: "overrides",
                   label: "Overrides",
-                  href: `/${workspaceId}/ratelimits/${namespace.id}/overrides`,
+                  href: `/${workspace?.slug}/ratelimits/${namespace.id}/overrides`,
                 },
               ]}
               shortcutKey="M"

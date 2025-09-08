@@ -4,7 +4,7 @@ import {
   type NamespaceListOutputSchema,
   namespaceListInputSchema,
   namespaceListOutputSchema,
-} from "@/app/(app)/ratelimits/_components/list/namespace-list.schema";
+} from "@/app/(app)/[workspace]/ratelimits/_components/list/namespace-list.schema";
 import { and, db, desc, eq, isNull, like, lt, schema, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

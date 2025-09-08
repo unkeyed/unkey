@@ -12,7 +12,7 @@ import React from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspace]/audit/filters.schema";
 import { logsFilterFieldEnum } from "@/app/(app)/[workspace]/logs/filters.schema";
-import { ratelimitFilterFieldEnum } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
+import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/logs/filters.schema";
 import {
   Bucket,
   CalendarEvent,
@@ -32,8 +32,8 @@ import type {
   LogsFilterField,
   QuerySearchParams,
 } from "@/app/(app)/[workspace]/logs/filters.schema";
-import type { RatelimitFilterField } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
-import { namespaceListFilterFieldEnum } from "@/app/(app)/ratelimits/_components/namespace-list-filters.schema";
+import type { RatelimitFilterField } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/logs/filters.schema";
+import { namespaceListFilterFieldEnum } from "@/app/(app)/[workspace]/ratelimits/_components/namespace-list-filters.schema";
 import type { IconProps } from "@unkey/icons/src/props";
 import type { FC } from "react";
 

@@ -1,9 +1,10 @@
 "use client";
-import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
+import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Clock, ProgressBar } from "@unkey/icons";
 import ms from "ms";
 
@@ -11,11 +12,11 @@ type Props = {
   namespace: {
     id: string;
     name: string;
-    workspaceId: string;
   };
 };
 
 export const NamespaceCard = ({ namespace }: Props) => {
+  const { workspace } = useWorkspace();
   const { timeseries, isLoading, isError } = useFetchRatelimitOverviewTimeseries(namespace.id);
   const utils = trpc.useUtils();
 
@@ -38,7 +39,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
     <div onMouseEnter={handleMouseEnter}>
       <StatsCard
         name={namespace.name}
-        linkPath={`/${namespace.workspaceId}/ratelimits/${namespace.id}`}
+        linkPath={`/${workspace?.slug}/ratelimits/${namespace.id}`}
         chart={
           <StatsTimeseriesBarChart
             data={timeseries}
