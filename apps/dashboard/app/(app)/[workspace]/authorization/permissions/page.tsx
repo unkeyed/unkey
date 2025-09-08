@@ -9,13 +9,15 @@ export default function PermissionsPage() {
   const { workspace } = useWorkspace();
 
   return (
-    <div>
-      <Navigation />
-      <div className="flex flex-col">
-        <PermissionListControls />
-        <PermissionsListControlCloud />
-        <PermissionsList />
+    workspace && (
+      <div>
+        <Navigation />
+        <div className="flex flex-col">
+          <PermissionListControls />
+          <PermissionsListControlCloud />
+          <PermissionsList />
+        </div>
       </div>
-    </div>
+    )
   );
 }
