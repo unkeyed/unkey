@@ -1,9 +1,9 @@
+import { collection } from "@/lib/collections";
+import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Bookmark } from "@unkey/icons";
 import { Button, CopyButton, Empty } from "@unkey/ui";
+import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceCard } from "./namespace-card";
-import { useLiveQuery } from "@tanstack/react-db";
-import { collection } from "@/lib/collections";
-
 
 const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimits.limit' \\
   -H 'Content-Type: application/json' \\
@@ -16,12 +16,18 @@ const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimits.limit'
   }'`;
 
 export const NamespaceList = () => {
+  const { filters } = useNamespaceListFilters();
 
-  const { data: namespaces } = useLiveQuery(q => q.from({ namespace: collection.ratelimitNamespaces }).orderBy(({ namespace }) => namespace.id, 'desc')
+  const nameFilter = filters.find((filter) => filter.field === "query")?.value ?? "";
 
-  )
-
-
+  const { data: namespaces } = useLiveQuery(
+    (q) =>
+      q
+        .from({ namespace: collection.ratelimitNamespaces })
+        .where(({ namespace }) => ilike(namespace.name, `%${nameFilter}%`))
+        .orderBy(({ namespace }) => namespace.id, "desc"),
+    [nameFilter],
+  );
 
   if (namespaces.length === 0) {
     return (
@@ -62,6 +68,5 @@ export const NamespaceList = () => {
         ))}
       </div>
     </div>
-
   );
 };

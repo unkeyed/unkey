@@ -45,6 +45,7 @@ export const GeneralSetup = () => {
             value={field.value ?? null}
             onChange={(identityId: string | null, externalId: string | null) => {
               field.onChange(identityId);
+              // @ts-expect-error
               setValue("externalId", externalId);
             }}
             error={errors.externalId?.message}

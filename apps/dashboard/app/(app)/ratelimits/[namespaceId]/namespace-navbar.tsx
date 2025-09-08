@@ -26,16 +26,10 @@ type NamespaceNavbarProps = {
   };
 };
 
-export const NamespaceNavbar = ({
-  namespaceId,
-  activePage,
-}: NamespaceNavbarProps) => {
+export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
 
-
-  const { data } = useLiveQuery((q) => q.from({ namespace: collection.ratelimitNamespaces }))
-
-
+  const { data } = useLiveQuery((q) => q.from({ namespace: collection.ratelimitNamespaces }));
 
   if (!data) {
     return (

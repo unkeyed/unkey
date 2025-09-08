@@ -30,12 +30,7 @@ export const DeleteNamespaceDialog = ({
   namespace,
 }: DeleteNamespaceProps) => {
   const router = useRouter();
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting },
-  } = useForm<FormValues>({
+  const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,15 +39,9 @@ export const DeleteNamespaceDialog = ({
   });
   const isValid = watch("name") === namespace.name;
 
-
-
-
-
-
   const onSubmit = async () => {
-    collection.ratelimitNamespaces.delete(namespace.id)
+    collection.ratelimitNamespaces.delete(namespace.id);
     router.push("/ratelimits");
-
 
     //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };
@@ -82,7 +71,8 @@ export const DeleteNamespaceDialog = ({
     >
       <p className="text-gray-11 text-[13px]">
         <span className="font-medium">Warning: </span>
-        Deleting this namespace while it is in use may cause your current requests to fail. You will lose access to analytical data.
+        Deleting this namespace while it is in use may cause your current requests to fail. You will
+        lose access to analytical data.
       </p>
 
       <form id="delete-namespace-form" onSubmit={handleSubmit(onSubmit)}>

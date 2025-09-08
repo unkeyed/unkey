@@ -3,28 +3,31 @@ import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/li
 
 import { TRPCError } from "@trpc/server";
 
-export const listRatelimitNamespaces = t.procedure
+export const listRatelimitOverrides = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
     try {
-      return await db.query.ratelimitNamespaces.findMany({
+      return await db.query.ratelimitOverrides.findMany({
         where: (table, { eq, and, isNull }) =>
           and(eq(table.workspaceId, ctx.workspace.id), isNull(table.deletedAtM)),
         columns: {
           id: true,
-          name: true,
+          identifier: true,
+          limit: true,
+          duration: true,
+          namespaceId: true,
         },
       });
     } catch (error) {
       console.error(
-        "Something went wrong when fetching ratelimit namespaces",
+        "Something went wrong when fetching ratelimit overrides",
         JSON.stringify(error),
       );
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch ratelimit namespaces",
+        message: "Failed to fetch ratelimit overrides",
       });
     }
   });

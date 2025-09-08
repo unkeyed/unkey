@@ -1,6 +1,6 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
 import {
@@ -13,8 +13,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toast,
 } from "@unkey/ui";
+import { redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -54,7 +54,6 @@ export const IdentifierDialog = ({
   overrideDetails,
   isLoading = false,
 }: Props) => {
-  const { ratelimit } = trpc.useUtils();
   const {
     register,
     handleSubmit,
@@ -71,59 +70,25 @@ export const IdentifierDialog = ({
     },
   });
 
-  const update = trpc.ratelimit.override.update.useMutation({
-    onSuccess() {
-      toast.success("Limits have been updated", {
-        description: "Changes may take up to 60s to propagate globally",
-      });
-      onOpenChange(false);
-      ratelimit.overview.logs.query.invalidate();
-    },
-    onError(err) {
-      toast.error("Failed to update override", {
-        description: err.message,
-      });
-    },
-  });
-
-  const create = trpc.ratelimit.override.create.useMutation({
-    onSuccess() {
-      toast.success("Override has been created", {
-        description: "Changes may take up to 60s to propagate globally",
-      });
-      onOpenChange(false);
-      ratelimit.overview.logs.query.invalidate();
-    },
-    onError(err) {
-      toast.error("Failed to create override", {
-        description: err.message,
-      });
-    },
-  });
-
   const onSubmitForm = async (values: FormValues) => {
     try {
-      const asyncValue = {
-        unset: undefined,
-        sync: false,
-        async: true,
-      }[values.async];
-
       if (overrideDetails?.overrideId) {
-        await update.mutateAsync({
-          id: overrideDetails.overrideId,
-          limit: values.limit,
-          duration: values.duration,
-          async: Boolean(overrideDetails.async),
+        collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
+          draft.identifier = values.identifier;
+          draft.limit = values.limit;
+          draft.duration = values.duration;
         });
+        onOpenChange(false);
       } else {
-        await create.mutateAsync({
+        collection.ratelimitOverrides.insert({
           namespaceId,
+          id: new Date().toISOString(),
           identifier: values.identifier,
           limit: values.limit,
           duration: values.duration,
-          async: asyncValue,
         });
+        onOpenChange(false);
+        redirect(`/ratelimits/${namespaceId}/overrides`);
       }
     } catch (error) {
       console.error("Form submission error:", error);

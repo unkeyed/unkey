@@ -15,9 +15,11 @@ import { useMemo } from "react";
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
-  const { data } = useLiveQuery(q => q.from({ namespace: collection.ratelimitNamespaces }).orderBy(({ namespace }) => namespace.id, 'desc')
-
-  )
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ namespace: collection.ratelimitNamespaces })
+      .orderBy(({ namespace }) => namespace.id, "desc"),
+  );
 
   // Convert ratelimit namespaces data to navigation items with sub-items
   const ratelimitNavItems = useMemo(() => {
@@ -70,7 +72,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       };
 
       return namespaceNavItem;
-    })
+    });
   }, [data, segments]);
 
   const enhancedNavItems = useMemo(() => {
@@ -81,13 +83,11 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
       ratelimitsItem.items = [...(ratelimitsItem.items || []), ...ratelimitNavItems];
 
-
       items[ratelimitsItemIndex] = ratelimitsItem;
     }
 
     return items;
   }, [baseNavItems, ratelimitNavItems]);
-
 
   return {
     enhancedNavItems,

@@ -84,8 +84,7 @@ export function AppSidebar({
   const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
     useApiNavigation(baseNavItems);
 
-  const { enhancedNavItems: ratelimitAddedNavItems } =
-    useRatelimitNavigation(apiAddedNavItems);
+  const { enhancedNavItems: ratelimitAddedNavItems } = useRatelimitNavigation(apiAddedNavItems);
 
   const { enhancedNavItems: projectAddedNavItems, loadMore: loadMoreProjects } =
     useProjectNavigation(ratelimitAddedNavItems);

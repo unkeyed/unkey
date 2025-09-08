@@ -2,8 +2,10 @@
 
 import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -11,7 +13,6 @@ import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { collection } from "@/lib/collections";
 
 const formSchema = z.object({
   name: z
@@ -32,10 +33,10 @@ export const CreateNamespaceButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [isOpen, setIsOpen] = useState(false);
 
-
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isValid, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -58,11 +59,18 @@ export const CreateNamespaceButton = ({
   });
 
   const onSubmit = (values: FormValues) => {
-    collection.ratelimitNamespaces.insert({
-      id: new Date().toISOString(),
-      name: values.name,
-    })
-    setIsOpen(false)
+    //collection.ratelimitNamespaces.
+    try {
+      collection.ratelimitNamespaces.insert({
+        id: new Date().toISOString(),
+        name: values.name,
+      });
+      setIsOpen(false);
+    } catch (error) {
+      if (error instanceof DuplicateKeyError) {
+        setError("name", { type: "custom", message: "Namespace already exists" });
+      }
+    }
   };
 
   return (

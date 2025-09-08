@@ -1,11 +1,11 @@
 "use client";
 
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Button, CopyButton, Input, SettingCard, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
 import { SettingsClientSkeleton } from "./skeleton";
-import { useLiveQuery, eq } from "@tanstack/react-db";
-import { collection } from "@/lib/collections";
 
 type Props = {
   namespaceId: string;
@@ -14,19 +14,19 @@ type Props = {
 export const SettingsClient = ({ namespaceId }: Props) => {
   const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
 
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ namespace: collection.ratelimitNamespaces })
+      .where(({ namespace }) => eq(namespace.id, namespaceId)),
+  );
 
-
-
-  const { data } = useLiveQuery(q => q.from({ namespace: collection.ratelimitNamespaces }).where(({ namespace }) => eq(namespace.id, namespaceId)))
-
-  const namespace = data.at(0)
+  const namespace = data.at(0);
 
   const [namespaceName, setNamespaceName] = useState<string | null>(null);
   useEffect(() => {
     if (namespaceName === null && namespace) {
       setNamespaceName(namespace.name);
     }
-
   }, [namespace, namespaceName]);
 
   const handleUpdateName = async () => {
@@ -38,8 +38,9 @@ export const SettingsClient = ({ namespaceId }: Props) => {
       return toast.error("Please provide a different name before saving.");
     }
 
-    collection.ratelimitNamespaces.update(namespace.id, draft => { draft.name = namespaceName })
-
+    collection.ratelimitNamespaces.update(namespace.id, (draft) => {
+      draft.name = namespaceName;
+    });
   };
 
   if (!namespace) {
