@@ -31,7 +31,7 @@ type TimeseriesData = {
   [key: string]: unknown;
 };
 
-type ChartMouseEvent = {
+export type ChartMouseEvent = {
   activeLabel?: string | number;
   activePayload?: ReadonlyArray<{
     payload: TimeseriesData;
@@ -76,7 +76,7 @@ export function LogsTimeseriesBarChart({
   }, [onMount, isLoading, isError]);
 
   const handleMouseDown = (e: ChartMouseEvent) => {
-    if (!enableSelection) {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
@@ -89,7 +89,7 @@ export function LogsTimeseriesBarChart({
   };
 
   const handleMouseMove = (e: ChartMouseEvent) => {
-    if (!enableSelection) {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     if (selection.start) {

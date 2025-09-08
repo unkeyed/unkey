@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipTimestamp } from "@/components/logs/utils";
@@ -83,9 +84,8 @@ export const OverviewAreaChart = ({
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const handleMouseDown = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseDown = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
@@ -97,15 +97,15 @@ export const OverviewAreaChart = ({
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const handleMouseMove = (e: any) => {
-    if (!enableSelection || !selection.start) {
+  const handleMouseMove = (e: ChartMouseEvent) => {
+    if (!enableSelection || !selection.start || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    const activeLabel = e.activeLabel;
     setSelection((prev) => ({
       ...prev,
-      end: e.activeLabel,
+      end: activeLabel,
       endTimestamp: timestamp,
     }));
   };
