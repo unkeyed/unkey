@@ -8,7 +8,7 @@ export const formatTimestampLabel = (timestamp: string | number | Date) => {
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: CompoundTimeseriesGranularity,
+  granularity: CompoundTimeseriesGranularity
 ) => {
   const localDate = new Date(value);
 
@@ -51,6 +51,18 @@ const isUnixMicro = (unix: string | number): boolean => {
 };
 
 export const formatTimestampTooltip = (value: string | number) => {
-  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
+  // Coerce numeric strings to numbers to prevent Invalid Date
+  const parsed = typeof value === "string" ? Number(value) : value;
+
+  let date: Date;
+  if (isUnixMicro(parsed)) {
+    date = unixMicroToDate(parsed);
+  } else if (typeof parsed === "number") {
+    date = new Date(parsed);
+  } else {
+    // Fallback for non-numeric strings
+    date = new Date(String(value));
+  }
+
   return format(date, "MMM dd, h:mm:ss a");
 };
