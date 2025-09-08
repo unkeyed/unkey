@@ -9,7 +9,6 @@ import { RootKeysList } from "./components/table/root-keys-list";
 import { Navigation } from "./navigation";
 
 export default function RootKeysPage() {
-
   const { workspace, isLoading } = useWorkspace();
   const router = useRouter();
 
