@@ -2,6 +2,7 @@
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
   Empty,
@@ -19,7 +20,13 @@ import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
 
-export function TeamPageClient({ team, workspaceSlug }: { team: boolean; workspaceSlug: string }) {
+export function TeamPageClient({ team }: { team: boolean }) {
+  const { workspace } = useWorkspace();
+
+  if (!workspace) {
+    return null;
+  }
+
   const { data: user } = trpc.user.getCurrentUser.useQuery();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
@@ -83,7 +90,7 @@ export function TeamPageClient({ team, workspaceSlug }: { team: boolean; workspa
           <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
           <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
-            <Link href={`/${workspaceSlug}/settings/billing`}>
+            <Link href={`/${workspace?.slug}/settings/billing`}>
               <Button>Upgrade</Button>
             </Link>
           </Empty.Actions>

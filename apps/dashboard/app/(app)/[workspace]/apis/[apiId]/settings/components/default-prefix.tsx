@@ -1,6 +1,7 @@
 "use client";
 import { revalidate } from "@/app/actions";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,12 +24,14 @@ type Props = {
     defaultPrefix: string | undefined | null;
   };
   apiId: string;
-  workspaceSlug: string;
 };
 
-export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId, workspaceSlug }) => {
+export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
   const { onUpdateSuccess, onError } = createMutationHandlers();
-
+  const { workspace } = useWorkspace();
+  if (!workspace) {
+    return null;
+  }
   const {
     control,
     handleSubmit,
@@ -58,7 +61,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId, workspaceSlug }
     }
 
     await setDefaultPrefix.mutateAsync(values);
-    revalidate(`/${workspaceSlug}/apis/${apiId}/settings`);
+    revalidate(`/${workspace?.slug}/apis/${apiId}/settings`);
   }
 
   return (

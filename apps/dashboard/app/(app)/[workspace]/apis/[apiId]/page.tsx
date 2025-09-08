@@ -9,7 +9,6 @@ export default function ApiPage(props: { params: { apiId: string } }) {
   const { workspace, error, isLoading } = useWorkspace();
   const router = useRouter();
 
-
   if (workspace && !isLoading) {
     router.replace(`/${workspace?.slug}/apis/${apiId}`);
   }
@@ -26,9 +25,8 @@ export default function ApiPage(props: { params: { apiId: string } }) {
           href: `/${workspace?.slug}/apis/${apiId}`,
           text: "Requests",
         }}
-        workspaceSlug={workspace?.slug ?? ""}
       />
-      <LogsClient apiId={apiId} workspaceSlug={workspace?.slug ?? ""} />
+      <LogsClient apiId={apiId} />
     </div>
   );
 }

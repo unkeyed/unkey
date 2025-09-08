@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Configuration
-BUF_VERSION="${BUF_VERSION:-v1.55.1}"
+BUF_VERSION="${BUF_VERSION:-v1.57.0}"
 ARCH="${ARCH:-$(uname -m)}"
 OS="${OS:-$(uname -s)}"
 INSTALL_DIR="/usr/local/bin"

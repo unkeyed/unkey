@@ -17,6 +17,12 @@ export const changeWorkspaceName = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    if (input.workspaceId !== ctx.workspace.id) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid workspace ID",
+      });
+    }
     await db
       .transaction(async (tx) => {
         await tx

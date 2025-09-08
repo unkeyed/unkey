@@ -5,13 +5,11 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
-import { partitions } from "./partitions";
 export const projects = mysqlTable(
   "projects",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    partitionId: varchar("partition_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
@@ -25,7 +23,6 @@ export const projects = mysqlTable(
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    partitionIdx: index("partition_idx").on(table.partitionId),
     workspaceSlugIdx: uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
   }),
 );
@@ -34,10 +31,6 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [projects.workspaceId],
     references: [workspaces.id],
-  }),
-  partition: one(partitions, {
-    fields: [projects.partitionId],
-    references: [partitions.id],
   }),
   deployments: many(deployments),
   // environments: many(projectEnvironments),

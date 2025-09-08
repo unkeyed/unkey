@@ -1,6 +1,7 @@
 "use client";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
@@ -12,7 +13,6 @@ import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
   apiId: string;
-  workspaceSlug: string;
   onNavigate?: () => void;
 };
 
@@ -44,12 +44,8 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({
-  log,
-  apiId,
-  onNavigate,
-  workspaceSlug,
-}: KeyIdentifierColumnProps) => {
+export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
+  const { workspace } = useWorkspace();
   const router = useRouter();
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
@@ -64,10 +60,10 @@ export const KeyIdentifierColumn = ({
       onNavigate?.();
 
       router.push(
-        `/${workspaceSlug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`,
+        `/${workspace?.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`,
       );
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push, workspaceSlug],
+    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push, workspace?.slug],
   );
 
   return (
@@ -90,7 +86,7 @@ export const KeyIdentifierColumn = ({
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono group-hover:underline decoration-dotted"
-        href={`/${workspaceSlug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        href={`/${workspace?.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
         onClick={handleLinkClick}
       >
         <div className="font-mono font-medium truncate flex items-center">

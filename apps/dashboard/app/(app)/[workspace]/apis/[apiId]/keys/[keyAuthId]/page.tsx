@@ -24,18 +24,12 @@ export default function APIKeysPage(props: {
     <div>
       <ApisNavbar
         activePage={{
-
           href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`,
           text: "Keys",
         }}
         apiId={apiId}
-        workspaceSlug={workspace?.slug ?? ""}
       />
-      <KeysClient
-        apiId={props.params.apiId}
-        keyspaceId={keyspaceId}
-        workspaceSlug={workspace?.slug ?? ""}
-      />
+      <KeysClient apiId={props.params.apiId} keyspaceId={keyspaceId} />
     </div>
   );
 }

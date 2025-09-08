@@ -34,6 +34,8 @@ var Cmd = &cli.Command{
 		// Database Configuration
 		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
+		cli.String("database-partition", "MySQL connection string for partition database. Required for all deployments. Example: user:pass@host:3306/partition_002?parseTime=true",
+			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PARTITION")),
 		cli.String("database-hydra", "MySQL connection string for hydra database. Required for all deployments. Example: user:pass@host:3306/hydra?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_HYDRA")),
 
@@ -56,6 +58,20 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_METALD_ADDRESS")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
+
+		// Vault Configuration
+		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket name",
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID",
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 secret access key",
+			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 	},
 	Action: action,
 }
@@ -87,8 +103,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		InstanceID: cmd.String("instance-id"),
 
 		// Database configuration
-		DatabasePrimary: cmd.String("database-primary"),
-		DatabaseHydra:   cmd.String("database-hydra"),
+		DatabasePrimary:   cmd.String("database-primary"),
+		DatabasePartition: cmd.String("database-partition"),
+		DatabaseHydra:     cmd.String("database-hydra"),
 
 		// Observability
 		OtelEnabled:           cmd.Bool("otel"),
@@ -101,6 +118,17 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		AuthToken:        cmd.String("auth-token"),
 		MetaldAddress:    cmd.String("metald-address"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
+
+		// Vault configuration
+		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
+		VaultS3: ctrl.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+		},
+
+		AcmeEnabled: cmd.Bool("acme-enabled"),
 
 		// Common
 		Clock: clock.New(),

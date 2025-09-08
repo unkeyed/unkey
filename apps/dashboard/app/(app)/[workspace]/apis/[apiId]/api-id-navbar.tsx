@@ -7,6 +7,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { navigation } from "./constants";
@@ -37,7 +38,6 @@ export const ApisNavbar = ({
   keyspaceId,
   keyId,
   activePage,
-  workspaceSlug,
 }: {
   apiId: string;
   keyspaceId?: string;
@@ -46,8 +46,9 @@ export const ApisNavbar = ({
     href: string;
     text: string;
   };
-  workspaceSlug: string;
 }) => {
+  const { workspace } = useWorkspace();
+
   const isMobile = useIsMobile();
   const trpcUtils = trpc.useUtils();
   const { data: layoutData, isLoading } = trpc.api.queryApiKeyDetails.useQuery({
@@ -86,7 +87,7 @@ export const ApisNavbar = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -128,8 +129,8 @@ export const ApisNavbar = ({
   const { currentApi, workspaceApis } = layoutData;
 
   // Define base path for API navigation
-  const base = `/${workspaceSlug}/apis/${currentApi.id}`;
-  const navItems = navigation(currentApi.id, currentApi.keyAuthId ?? "", workspaceSlug);
+  const base = `/${workspace?.slug}/apis/${currentApi.id}`;
+  const navItems = navigation(currentApi.id, currentApi.keyAuthId ?? "");
 
   return (
     <>
@@ -138,7 +139,10 @@ export const ApisNavbar = ({
           <Navbar.Breadcrumbs className="flex-1 w-full" icon={<Nodes />}>
             {!isMobile && (
               <>
-                <Navbar.Breadcrumbs.Link href={`/${workspaceSlug}/apis`} className="max-md:hidden">
+                <Navbar.Breadcrumbs.Link
+                  href={`/${workspace?.slug}/apis`}
+                  className="max-md:hidden"
+                >
                   APIs
                 </Navbar.Breadcrumbs.Link>
                 <Navbar.Breadcrumbs.Link
@@ -151,7 +155,7 @@ export const ApisNavbar = ({
                     items={workspaceApis.map((api) => ({
                       id: api.id,
                       label: api.name,
-                      href: `/${workspaceSlug}/apis/${api.id}`,
+                      href: `/${workspace?.slug}/apis/${api.id}`,
                     }))}
                     shortcutKey="N"
                   >
@@ -206,7 +210,6 @@ export const ApisNavbar = ({
                 keyspaceId={currentApi.keyAuthId}
                 apiId={currentApi.id}
                 keyspaceDefaults={currentApi.keyspaceDefaults}
-                workspaceSlug={workspaceSlug}
               />
             )
           )}

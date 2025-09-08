@@ -1,0 +1,271 @@
+import type { DeploymentDetails } from "@/lib/trpc/routers/deploy/project/active-deployment/getDetails";
+import {
+  Bolt,
+  ChartActivity,
+  CircleHalfDottedClock,
+  CodeBranch,
+  CodeCommit,
+  Connections,
+  FolderCloud,
+  Gear,
+  Github,
+  Grid,
+  Harddrive,
+  Heart,
+  Location2,
+  MessageWriting,
+  PaperClip2,
+  User,
+} from "@unkey/icons";
+import { Badge, TimestampInfo } from "@unkey/ui";
+import type { ReactNode } from "react";
+
+export type DetailItem = {
+  icon: ReactNode;
+  label: string;
+  content: ReactNode;
+  alignment?: "center" | "start";
+};
+
+export type DetailSection = {
+  title: string;
+  items: DetailItem[];
+};
+
+export const createDetailSections = (details: DeploymentDetails): DetailSection[] => [
+  {
+    title: "Active deployment",
+    items: [
+      {
+        icon: <Github className="size-[16px] text-gray-12" />,
+        label: "Repository",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.repository.owner}</span>/
+            {details.repository.name}
+          </div>
+        ),
+      },
+      {
+        icon: <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Branch",
+        content: <span className="text-gray-12 font-medium">{details.branch}</span>,
+      },
+      {
+        icon: <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Commit",
+        content: <span className="text-gray-12 font-medium">{details.commit}</span>,
+      },
+      {
+        icon: <MessageWriting className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Description",
+        content: (
+          <div className="truncate max-w-[150px] min-w-0">
+            <span className="text-gray-12 font-medium">{details.description}</span>
+          </div>
+        ),
+      },
+      {
+        icon: <FolderCloud className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Image",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.image}</span>
+          </div>
+        ),
+      },
+      {
+        icon: <User className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Author",
+        content: (
+          <div className="flex gap-2 items-center">
+            <img
+              src={details.author.avatar}
+              alt={details.author.name}
+              className="rounded-full size-5"
+            />
+            <span className="font-medium text-grayA-12">{details.author.name}</span>
+          </div>
+        ),
+      },
+      {
+        icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Created",
+        content: (
+          <TimestampInfo
+            value={details.createdAt}
+            className="font-medium text-grayA-12 text-[13px]"
+          />
+        ),
+      },
+    ],
+  },
+  {
+    title: "Runtime settings",
+    items: [
+      {
+        icon: <Connections className="text-gray-12" size="md-regular" />,
+        label: "Instances",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.instances}</span>
+            vm
+          </div>
+        ),
+      },
+      {
+        icon: <Location2 className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Regions",
+        alignment: "start",
+        content: (
+          <div className="flex flex-wrap gap-1 font-medium">
+            {details.regions.map((region) => (
+              <span
+                key={region}
+                className="px-1.5 py-1 bg-grayA-3 rounded text-gray-12 text-xs font-mono"
+              >
+                {region}
+              </span>
+            ))}
+          </div>
+        ),
+      },
+      {
+        icon: <Bolt className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "CPU",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.cpu}</span>vCPUs
+          </div>
+        ),
+      },
+      {
+        icon: <Grid className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Memory",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.memory}</span>mb
+          </div>
+        ),
+      },
+      {
+        icon: <Harddrive className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Storage",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.storage}</span>
+            mb
+          </div>
+        ),
+      },
+      {
+        icon: <Heart className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Healthcheck",
+        alignment: "start",
+        content: (
+          <div className="flex flex-col justify-center gap-2">
+            <div className="gap-2 items-center flex">
+              <Badge variant="success" className="font-medium">
+                {details.healthcheck.method}
+              </Badge>
+              <div className="text-grayA-10">
+                /
+                <span className="text-gray-12 font-medium">
+                  {details.healthcheck.path.replace(/^\/+/, "")}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-grayA-10">
+              <div>every</div>
+              <div>
+                <span className="text-gray-12 font-medium">{details.healthcheck.interval}</span>s
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        icon: <ChartActivity className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Scaling",
+        alignment: "start",
+        content: (
+          <div className="text-grayA-10">
+            <div>
+              <span className="text-gray-12 font-medium">{details.scaling.min}</span> to{" "}
+              <span className="text-gray-12 font-medium">{details.scaling.max}</span> instances
+            </div>
+            <div className="mt-0.5">
+              at <span className="text-gray-12 font-medium">{details.scaling.threshold}%</span> CPU
+              threshold
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    title: "Build Info",
+    items: [
+      {
+        icon: <PaperClip2 className="text-gray-12" size="md-regular" />,
+        label: "Image size",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.imageSize}</span>
+            mb
+          </div>
+        ),
+      },
+      {
+        icon: <CircleHalfDottedClock className="text-gray-12" size="md-regular" />,
+        label: "Build time",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.buildTime}</span>s
+          </div>
+        ),
+      },
+      {
+        icon: <Bolt className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Build status",
+        content: (
+          <Badge
+            variant={
+              details.buildStatus === "success"
+                ? "success"
+                : details.buildStatus === "failed"
+                  ? "error"
+                  : "secondary"
+            }
+            className="font-medium"
+          >
+            {details.buildStatus === "success"
+              ? "Success"
+              : details.buildStatus === "failed"
+                ? "Failed"
+                : "Pending"}
+          </Badge>
+        ),
+      },
+      {
+        icon: <Gear className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Base image",
+        content: (
+          <div className="text-grayA-10">
+            <span className="text-gray-12 font-medium">{details.baseImage}</span>
+          </div>
+        ),
+      },
+      {
+        icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
+        label: "Built At",
+        content: (
+          <TimestampInfo
+            value={details.builtAt}
+            className="font-medium text-grayA-12 text-[13px]"
+          />
+        ),
+      },
+    ],
+  },
+];

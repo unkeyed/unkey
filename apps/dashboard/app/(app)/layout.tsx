@@ -40,7 +40,7 @@ export default async function Layout({ children }: LayoutProps) {
               id="layout-wrapper"
             >
               {/* Mobile sidebar at the top of content */}
-              <SidebarMobile workspace={workspace} />
+              <SidebarMobile />
 
               <div className="w-full">
                 {workspace.enabled ? (

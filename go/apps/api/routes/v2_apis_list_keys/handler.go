@@ -169,11 +169,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctx,
 		h.DB.RO(),
 		db.ListLiveKeysByKeyAuthIDParams{
-			KeyAuthID:   api.KeyAuthID.String,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			IDCursor:    cursor,
-			Identity:    identityFilter,
-			Limit:       int32(limit + 1), // nolint:gosec
+			KeyAuthID: api.KeyAuthID.String,
+			IDCursor:  cursor,
+			Identity:  identityFilter,
+			Limit:     int32(limit + 1), // nolint:gosec
 		},
 	)
 	if err != nil {

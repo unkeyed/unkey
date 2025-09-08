@@ -31,7 +31,7 @@ export default async function BillingPage() {
   if (!e) {
     return (
       <div>
-        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
+        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
         <Empty>
           <Empty.Title>Stripe is not configured</Empty.Title>
           <Empty.Description>
@@ -73,7 +73,7 @@ export default async function BillingPage() {
   if (isLegacy) {
     return (
       <Shell>
-        <WorkspaceNavbar workspace={workspace} activePage={{ href: "billing", text: "Billing" }} />
+        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
         <div className="w-full">
           <SettingCard
             title="Verifications"
@@ -151,10 +151,7 @@ export default async function BillingPage() {
     <Suspense
       fallback={
         <div className="animate-pulse">
-          <WorkspaceNavbar
-            workspace={workspace}
-            activePage={{ href: "billing", text: "Billing" }}
-          />
+          <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
           <Shell>
             <div className="w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
           </Shell>
