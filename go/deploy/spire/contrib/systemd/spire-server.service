@@ -6,11 +6,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# AIDEV-NOTE: Run as root for full system access
 User=root
 Group=root
 
-# AIDEV-NOTE: Systemd-managed directory creation
 # RuntimeDirectory creates /run/spire (cleared on reboot) - keeping for backward compatibility
 RuntimeDirectory=spire
 RuntimeDirectoryMode=0755
@@ -21,13 +19,10 @@ StateDirectoryMode=0755
 # ConfigurationDirectory would create /etc/spire but we manage this separately
 # ConfigurationDirectory=spire/server
 
-# AIDEV-NOTE: Additional permission setup for keys directory
 ExecStartPre=/bin/bash -c 'chmod 700 /var/lib/spire/server/keys || true'
 
-# AIDEV-NOTE: Main server process with config path
 ExecStart=/opt/spire/bin/spire-server run -config /etc/spire/server/server.conf
 
-# AIDEV-NOTE: Graceful shutdown
 ExecStop=/bin/kill -SIGTERM $MAINPID
 TimeoutStopSec=30
 
@@ -38,7 +33,6 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=spire-server
 
-# AIDEV-SECURITY: Relaxed security settings to ensure /run/spire is accessible
 # Most security features disabled to prevent namespace isolation
 NoNewPrivileges=true
 PrivateTmp=no
@@ -50,13 +44,11 @@ RestrictRealtime=true
 LockPersonality=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
-# AIDEV-NOTE: Environment configuration
 # Trust domain must be set per environment
-Environment="UNKEY_SPIRE_TRUST_DOMAIN=development.unkey.app"
+Environment="UNKEY_SPIRE_TRUST_DOMAIN=development.unkey.cloud"
 Environment="UNKEY_SPIRE_LOG_LEVEL=INFO"
 Environment="UNKEY_SPIRE_DB_TYPE=sqlite3"
 Environment="UNKEY_SPIRE_DB_CONNECTION=/var/lib/spire/server/data/datastore.sqlite3"
-# AIDEV-NOTE: Override these in environment-specific drop-ins
 # e.g., /etc/systemd/system/spire-server.service.d/environment.conf
 # Optional: Set UNKEY_SPIRE_TRUST_BUNDLE if using external trust bundle
 

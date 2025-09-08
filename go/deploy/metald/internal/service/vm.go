@@ -44,13 +44,6 @@ func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *
 	}
 }
 
-// CreateDeployment allocates a network, generates IDs etc
-func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[metaldv1.CreateDeploymentRequest]) (*connect.Response[metaldv1.CreateDeploymentResponse], error) {
-	return connect.NewResponse(&metaldv1.CreateDeploymentResponse{
-		VmIds: []string{"a"},
-	}), nil
-}
-
 // CreateVm creates a new VM instance
 func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.CreateVmRequest]) (*connect.Response[metaldv1.CreateVmResponse], error) {
 	ctx, span := s.tracer.Start(ctx, "metald.vm.create",
