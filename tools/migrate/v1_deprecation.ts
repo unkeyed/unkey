@@ -42,8 +42,7 @@ async function main() {
     console.error(rows.err);
     process.exit(1);
   }
-  console.log(`Found ${rows.val.length} workspaces`);
-
+  console.log(`Found ${new Set(rows.val.map(r => r.workspace_id)).size} workspaces across ${rows.val.length} paths`);
   const workspaceToPaths = new Map<string, string[]>();
   for (const row of rows.val) {
     const paths = workspaceToPaths.get(row.workspace_id) || [];
