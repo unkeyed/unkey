@@ -1,42 +1,69 @@
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format, fromUnixTime } from "date-fns";
 
+// Memoization cache with bounded size
+const formatCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
+
+// Memoized format function
+const memoizedFormat = (date: Date, formatString: string): string => {
+  const cacheKey = `${date.getTime()}-${formatString}`;
+
+  const cachedValue = formatCache.get(cacheKey);
+  if (cachedValue !== undefined) {
+    return cachedValue;
+  }
+
+  const formattedValue = format(date, formatString);
+
+  // Evict oldest entries if cache is full
+  if (formatCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = formatCache.keys().next().value;
+    if (firstKey !== undefined) {
+      formatCache.delete(firstKey);
+    }
+  }
+
+  formatCache.set(cacheKey, formattedValue);
+  return formattedValue;
+};
+
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
   const date = new Date(timestamp);
-  return format(date, "MMM dd, h:mm a").toUpperCase();
+  return memoizedFormat(date, "MMM dd, h:mm a").toUpperCase();
 };
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: CompoundTimeseriesGranularity,
+  granularity: CompoundTimeseriesGranularity
 ) => {
   const localDate = new Date(value);
 
   switch (granularity) {
     case "perMinute":
-      return format(localDate, "h:mm:ss a");
+      return memoizedFormat(localDate, "h:mm:ss a");
     case "per5Minutes":
     case "per15Minutes":
     case "per30Minutes":
-      return format(localDate, "h:mm a");
+      return memoizedFormat(localDate, "h:mm a");
     case "perHour":
     case "per2Hours":
     case "per4Hours":
     case "per6Hours":
-      return format(localDate, "MMM d, h:mm a");
+      return memoizedFormat(localDate, "MMM d, h:mm a");
     case "perDay":
-      return format(localDate, "MMM d");
+      return memoizedFormat(localDate, "MMM d");
 
     case "per12Hours":
-      return format(localDate, "MMM d, h:mm a");
+      return memoizedFormat(localDate, "MMM d, h:mm a");
     case "per3Days":
-      return format(localDate, "MMM d");
+      return memoizedFormat(localDate, "MMM d");
     case "perWeek":
-      return format(localDate, "MMM d");
+      return memoizedFormat(localDate, "MMM d");
     case "perMonth":
-      return format(localDate, "MMM yyyy");
+      return memoizedFormat(localDate, "MMM yyyy");
     default:
-      return format(localDate, "Pp");
+      return memoizedFormat(localDate, "Pp");
   }
 };
 
@@ -64,5 +91,5 @@ export const formatTimestampTooltip = (value: string | number) => {
     date = new Date(String(value));
   }
 
-  return format(date, "MMM dd, h:mm:ss a");
+  return memoizedFormat(date, "MMM dd, h:mm:ss a");
 };
