@@ -12,8 +12,14 @@ export const revokeInvitation = t.procedure
       orgId: z.string(), // needed for the requireOrgAdmin middleware
     }),
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
     try {
+      if (input.orgId !== ctx.workspace?.orgId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid organization ID",
+        });
+      }
       return await authProvider.revokeOrgInvitation(input.invitationId);
     } catch (error) {
       throw new TRPCError({

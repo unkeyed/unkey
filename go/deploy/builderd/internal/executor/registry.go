@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"sync"
 
-	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 )
 
 // Registry manages different build executors
@@ -35,9 +35,16 @@ func NewRegistry(logger *slog.Logger, cfg *config.Config, buildMetrics *observab
 
 // registerBuiltinExecutors registers the standard executors
 func (r *Registry) registerBuiltinExecutors(buildMetrics *observability.BuildMetrics) {
-	// Register Docker executor
-	dockerExecutor := NewDockerExecutor(r.logger, r.config, buildMetrics)
-	r.RegisterExecutor("docker", dockerExecutor)
+	// Register Docker executor based on feature flag
+	if r.config.Builder.UsePipelineExecutor {
+		r.logger.InfoContext(context.Background(), "using step-based pipeline executor for Docker builds")
+		pipelineExecutor := NewDockerPipelineExecutor(r.logger, r.config, buildMetrics)
+		r.RegisterExecutor("docker", pipelineExecutor)
+	} else {
+		r.logger.InfoContext(context.Background(), "using monolithic executor for Docker builds")
+		dockerExecutor := NewDockerExecutor(r.logger, r.config, buildMetrics)
+		r.RegisterExecutor("docker", dockerExecutor)
+	}
 
 	// TODO: Register other executors
 	// gitExecutor := NewGitExecutor(r.logger, r.config, buildMetrics)
@@ -48,6 +55,7 @@ func (r *Registry) registerBuiltinExecutors(buildMetrics *observability.BuildMet
 
 	r.logger.InfoContext(context.Background(), "registered built-in executors",
 		slog.Int("executor_count", len(r.executors)),
+		slog.Bool("pipeline_mode", r.config.Builder.UsePipelineExecutor),
 	)
 }
 

@@ -3,6 +3,7 @@
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
@@ -31,19 +32,19 @@ const settingsNavbar = [
 ];
 
 export const WorkspaceNavbar = ({
-  workspace,
   activePage,
 }: {
-  workspace: {
-    id: string;
-    name: string;
-    slug: string | null;
-  };
   activePage: {
     href: string;
     text: string;
   };
 }) => {
+  const { workspace } = useWorkspace();
+
+  if (!workspace) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col w-full h-full">
       <Navbar>

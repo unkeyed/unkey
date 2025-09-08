@@ -25,11 +25,11 @@ export const getOpenApiDiff = t.procedure
             openapiSpec: true,
             gitCommitSha: true,
             gitBranch: true,
-            environment: true,
             // TODO: add this column
             //gitCommitMessage: true,
           },
           with: {
+            environment: true,
             project: {
               columns: {
                 id: true,
@@ -47,10 +47,10 @@ export const getOpenApiDiff = t.procedure
             openapiSpec: true,
             gitCommitSha: true,
             gitBranch: true,
-            environment: true,
             //gitCommitMessage: true,
           },
           with: {
+            environment: true,
             project: {
               columns: {
                 id: true,

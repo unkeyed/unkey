@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/executor"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -28,17 +28,9 @@ type BuilderService struct {
 	executors    *executor.Registry
 	assetClient  *assetmanager.Client
 
-	// TODO: Add these when implemented
-	// db           *database.DB
-	// storage      storage.Backend
-	// docker       *docker.Client
-	// tenantMgr    *tenant.Manager
-
-	// AIDEV-NOTE: Temporary in-memory storage for build jobs until database is implemented
 	builds      map[string]*builderv1.BuildJob
 	buildsMutex sync.RWMutex
 
-	// AIDEV-NOTE: Shutdown coordination to prevent races
 	shutdownCtx    context.Context
 	shutdownCancel context.CancelFunc
 	buildWg        sync.WaitGroup
@@ -54,7 +46,6 @@ func NewBuilderService(
 	// Create executor registry
 	executors := executor.NewRegistry(logger, cfg, buildMetrics)
 
-	// AIDEV-NOTE: Create shutdown context for coordinated service shutdown
 	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
 
 	return &BuilderService{
@@ -434,7 +425,7 @@ func (s *BuilderService) CancelBuild(
 
 	// Record cancellation metrics
 	if s.buildMetrics != nil {
-		s.buildMetrics.RecordBuildCancellation(ctx, "unknown", "unknown", "unknown")
+		s.buildMetrics.RecordBuildCancellation(ctx, "unknown", "unknown")
 	}
 
 	resp := &builderv1.CancelBuildResponse{

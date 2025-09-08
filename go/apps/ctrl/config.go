@@ -5,6 +5,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
+type S3Config struct {
+	URL             string
+	Bucket          string
+	AccessKeyID     string
+	AccessKeySecret string
+}
+
 type Config struct {
 	// InstanceID is the unique identifier for this instance of the control plane server
 	InstanceID string
@@ -24,8 +31,9 @@ type Config struct {
 	// --- Database configuration ---
 
 	// DatabasePrimary is the primary database connection string for read and write operations
-	DatabasePrimary string
-	DatabaseHydra   string
+	DatabasePrimary   string
+	DatabasePartition string
+	DatabaseHydra     string
 
 	// --- OpenTelemetry configuration ---
 
@@ -46,8 +54,15 @@ type Config struct {
 	SPIFFESocketPath string
 
 	Clock clock.Clock
+
+	// --- Vault Configuration ---
+	VaultMasterKeys []string
+	VaultS3         S3Config
+
+	AcmeEnabled bool
 }
 
 func (c Config) Validate() error {
+
 	return nil
 }
