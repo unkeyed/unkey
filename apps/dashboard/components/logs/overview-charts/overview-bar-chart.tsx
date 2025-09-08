@@ -29,6 +29,9 @@ import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
 
+// Default time buffer for granularity fallbacks (1 minute)
+const DEFAULT_TIME_BUFFER_MS = 60_000;
+
 type ChartTooltipItem = {
   label: string;
   dataKey: string;
@@ -47,12 +50,12 @@ const getGranularityBuffer = (
   granularity?: CompoundTimeseriesGranularity
 ): number => {
   if (!granularity) {
-    return 60000; // 1 minute fallback
+    return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
   }
   try {
     return getTimeBufferForGranularity(granularity);
   } catch {
-    return 60000; // 1 minute fallback
+    return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
   }
 };
 
@@ -396,7 +399,7 @@ export function OverviewBarChart({
                                     ? data[0].originalTimestamp
                                     : +new Date(data[0].originalTimestamp))
                               )
-                            : 60000; // 1 minute fallback
+                            : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
                           intervalEndTimestamp =
                             currentTimestampNumeric + inferredGranularityMs;
                         } else {
