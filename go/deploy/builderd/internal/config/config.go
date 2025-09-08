@@ -14,7 +14,6 @@ type Config struct {
 	Builder       BuilderConfig       `yaml:"builder"`
 	Storage       StorageConfig       `yaml:"storage"`
 	Docker        DockerConfig        `yaml:"docker"`
-	Tenant        TenantConfig        `yaml:"tenant"`
 	Database      DatabaseConfig      `yaml:"database"`
 	OpenTelemetry OpenTelemetryConfig `yaml:"opentelemetry"`
 	TLS           *TLSConfig          `yaml:"tls,omitempty"`
@@ -77,15 +76,7 @@ type DockerConfig struct {
 	InsecureRegistries []string      `yaml:"insecure_registries,omitempty"`
 }
 
-// TenantConfig holds multi-tenancy configuration
-type TenantConfig struct {
-	DefaultTier           string         `yaml:"default_tier"`
-	IsolationEnabled      bool           `yaml:"isolation_enabled"`
-	QuotaCheckInterval    time.Duration  `yaml:"quota_check_interval"`
-	DefaultResourceLimits ResourceLimits `yaml:"default_resource_limits"`
-}
-
-// ResourceLimits defines default resource limits per tenant tier
+// ResourceLimits defines default resource limits
 type ResourceLimits struct {
 	MaxMemoryBytes      int64 `yaml:"max_memory_bytes"`
 	MaxCPUCores         int32 `yaml:"max_cpu_cores"`
@@ -183,21 +174,6 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			RegistryMirror:     getEnvOrDefault("UNKEY_BUILDERD_DOCKER_REGISTRY_MIRROR", ""),
 			InsecureRegistries: getEnvSliceOrDefault("UNKEY_BUILDERD_DOCKER_INSECURE_REGISTRIES", []string{}),
 		},
-		Tenant: TenantConfig{
-			DefaultTier:        getEnvOrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_TIER", "free"),
-			IsolationEnabled:   getEnvBoolOrDefault("UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED", true),
-			QuotaCheckInterval: getEnvDurationOrDefault("UNKEY_BUILDERD_TENANT_QUOTA_CHECK_INTERVAL", 5*time.Minute),
-			DefaultResourceLimits: ResourceLimits{
-				MaxMemoryBytes:      getEnvInt64OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_MEMORY_BYTES", 2<<30), // 2GB
-				MaxCPUCores:         getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_CPU_CORES", 2),
-				MaxDiskBytes:        getEnvInt64OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_DISK_BYTES", 10<<30), // 10GB
-				TimeoutSeconds:      getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_TIMEOUT_SECONDS", 900),   // 15min
-				MaxConcurrentBuilds: getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_CONCURRENT_BUILDS", 3),
-				MaxDailyBuilds:      getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_DAILY_BUILDS", 100),
-				MaxStorageBytes:     getEnvInt64OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_STORAGE_BYTES", 50<<30), // 50GB
-				MaxBuildTimeMinutes: getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_BUILD_TIME_MINUTES", 30),
-			},
-		},
 		Database: DatabaseConfig{
 			DataDir:  getEnvOrDefault("UNKEY_BUILDERD_DATABASE_DATA_DIR", "/opt/builderd/data"),
 			Type:     getEnvOrDefault("UNKEY_BUILDERD_DATABASE_TYPE", "sqlite"),
@@ -242,7 +218,6 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 		slog.String("server_port", config.Server.Port),
 		slog.String("storage_backend", config.Storage.Backend),
 		slog.Bool("otel_enabled", config.OpenTelemetry.Enabled),
-		slog.Bool("tenant_isolation", config.Tenant.IsolationEnabled),
 		slog.Int("max_concurrent_builds", config.Builder.MaxConcurrentBuilds),
 	)
 
