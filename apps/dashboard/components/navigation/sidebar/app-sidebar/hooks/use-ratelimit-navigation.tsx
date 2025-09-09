@@ -11,16 +11,12 @@ import {
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
-const DEFAULT_LIMIT = 10;
-
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.ratelimit.namespace.query.useInfiniteQuery(
-      {
-        limit: DEFAULT_LIMIT,
-      },
+      { query: [] },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
       },
@@ -94,7 +90,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         ratelimitsItem.items?.push({
           icon: () => null,
           href: "#load-more-ratelimits",
-          label: "More",
+          label: <div className="font-normal decoration-dotted underline ">More</div>,
           active: false,
           loadMoreAction: true,
         });

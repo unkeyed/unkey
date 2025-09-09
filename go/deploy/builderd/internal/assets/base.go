@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/assetmanager"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 )
 
 // BaseAssetManager handles initialization and registration of base VM assets
@@ -21,6 +24,13 @@ type BaseAssetManager struct {
 	config      *config.Config
 	assetClient *assetmanager.Client
 	storageDir  string
+	metrics     MetricsRecorder
+}
+
+// MetricsRecorder interface for recording asset initialization metrics
+type MetricsRecorder interface {
+	RecordBaseAssetInitRetry(ctx context.Context, attempt int, reason string)
+	RecordBaseAssetInitFailure(ctx context.Context, totalAttempts int, finalError string)
 }
 
 // BaseAsset represents a base asset that needs to be downloaded and registered
@@ -39,7 +49,69 @@ func NewBaseAssetManager(logger *slog.Logger, cfg *config.Config, assetClient *a
 		config:      cfg,
 		assetClient: assetClient,
 		storageDir:  cfg.Builder.RootfsOutputDir,
+		metrics:     nil, // No metrics by default
 	}
+}
+
+// WithMetrics adds metrics recording to the asset manager
+func (m *BaseAssetManager) WithMetrics(metrics MetricsRecorder) *BaseAssetManager {
+	m.metrics = metrics
+	return m
+}
+
+// InitializeBaseAssetsWithRetry ensures all required base assets are available with retry logic
+func (m *BaseAssetManager) InitializeBaseAssetsWithRetry(ctx context.Context) error {
+	maxRetries := 8 // ~4-ish minutes total with exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 64s, 128s
+
+	for attempt := range maxRetries {
+		if attempt > 0 {
+			delay := time.Duration(1<<attempt) * time.Second // Exponential backoff
+			m.logger.InfoContext(ctx, "retrying base asset initialization",
+				"attempt", attempt+1,
+				"max_retries", maxRetries,
+				"delay", delay,
+			)
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(delay):
+			}
+		}
+
+		err := m.InitializeBaseAssets(ctx)
+		if err == nil {
+			if attempt > 0 {
+				m.logger.InfoContext(ctx, "base asset initialization succeeded after retries",
+					"successful_attempt", attempt+1,
+				)
+			}
+			return nil // Success
+		}
+
+		// Log the error
+		m.logger.WarnContext(ctx, "base asset initialization attempt failed",
+			"attempt", attempt+1,
+			"max_retries", maxRetries,
+			"error", err,
+		)
+
+		// Record retry metric if metrics are available
+		if m.metrics != nil && attempt > 0 {
+			m.metrics.RecordBaseAssetInitRetry(ctx, attempt, err.Error())
+		}
+
+		// Don't retry if it's the last attempt
+		if attempt == maxRetries-1 {
+			// Record final failure metric if metrics are available
+			if m.metrics != nil {
+				m.metrics.RecordBaseAssetInitFailure(ctx, maxRetries, err.Error())
+			}
+			return fmt.Errorf("failed to initialize base assets after %d attempts: %w", maxRetries, err)
+		}
+	}
+
+	return nil // Should never reach here
 }
 
 // InitializeBaseAssets ensures all required base assets are available
@@ -152,6 +224,7 @@ func (m *BaseAssetManager) downloadAsset(ctx context.Context, asset BaseAsset, l
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
+	// TODO: replace with shared configured http client
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to download asset: %w", err)
@@ -170,7 +243,6 @@ func (m *BaseAssetManager) downloadAsset(ctx context.Context, asset BaseAsset, l
 	}
 	defer os.Remove(tmpPath)
 
-	// Copy with progress
 	written, err := io.Copy(tmpFile, resp.Body)
 	if err != nil {
 		tmpFile.Close()
@@ -208,12 +280,9 @@ func (m *BaseAssetManager) registerAsset(ctx context.Context, asset BaseAsset, l
 
 	// Prepare labels
 	labels := make(map[string]string)
-	for k, v := range asset.Labels {
-		labels[k] = v
-	}
+	maps.Copy(labels, asset.Labels)
+
 	labels["created_by"] = "builderd"
-	labels["customer_id"] = "system"
-	labels["tenant_id"] = "system"
 
 	// Get relative path within storage directory
 	relPath, err := filepath.Rel(m.storageDir, localPath)
@@ -224,7 +293,19 @@ func (m *BaseAssetManager) registerAsset(ctx context.Context, asset BaseAsset, l
 	// Register via assetmanager client
 	assetID, err := m.assetClient.RegisterBuildArtifact(ctx, "base-assets", localPath, asset.Type, labels)
 	if err != nil {
-		return fmt.Errorf("failed to register asset: %w", err)
+		// Already exists errors are fine, connection errors should cause retry
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "already exists") || strings.Contains(errStr, "duplicate") ||
+			strings.Contains(errStr, "conflict") {
+			m.logger.InfoContext(ctx, "base asset already registered, skipping",
+				"asset", asset.Name,
+				"error", err,
+			)
+			return nil // Success - asset already registered
+		} else {
+			// This is likely a connection/service unavailable error - should trigger retry
+			return fmt.Errorf("failed to register base asset %s (service may not be ready): %w", asset.Name, err)
+		}
 	}
 
 	m.logger.InfoContext(ctx, "asset registered successfully",

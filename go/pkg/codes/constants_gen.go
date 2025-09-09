@@ -89,6 +89,8 @@ const (
 
 	// NotFound indicates the requested rate limit namespace was not found.
 	UnkeyDataErrorsRatelimitNamespaceNotFound URN = "err:unkey:data:ratelimit_namespace_not_found"
+	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
+	UnkeyDataErrorsRatelimitNamespaceGone URN = "err:unkey:data:ratelimit_namespace_gone"
 
 	// RatelimitOverride
 
@@ -134,4 +136,47 @@ const (
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
+
+	// ----------------
+	// UnkeyGatewayErrors
+	// ----------------
+
+	// Proxy
+
+	// BadGateway represents a 502 error - invalid response from upstream server
+	UnkeyGatewayErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
+	// ServiceUnavailable represents a 503 error - backend service is unavailable
+	UnkeyGatewayErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
+	// GatewayTimeout represents a 504 error - upstream server timeout
+	UnkeyGatewayErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
+	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
+	UnkeyGatewayErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
+
+	// Routing
+
+	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
+	UnkeyGatewayErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
+	// VMSelectionFailed represents a 500 error - failed to select an available VM
+	UnkeyGatewayErrorsRoutingVMSelectionFailed URN = "err:unkey:internal_server_error:vm_selection_failed"
+
+	// Auth
+
+	// Unauthorized represents a 401 error - authentication required or failed
+	UnkeyGatewayErrorsAuthUnauthorized URN = "err:unkey:unauthorized:unauthorized"
+	// RateLimited represents a 429 error - rate limit exceeded
+	UnkeyGatewayErrorsAuthRateLimited URN = "err:unkey:rate_limited:rate_limited"
+
+	// Validation
+
+	// RequestInvalid represents a 400 error - request validation failed
+	UnkeyGatewayErrorsValidationRequestInvalid URN = "err:unkey:bad_request:request_invalid"
+	// ResponseInvalid represents a 502 error - response validation failed
+	UnkeyGatewayErrorsValidationResponseInvalid URN = "err:unkey:bad_request:response_invalid"
+
+	// Internal
+
+	// InternalServerError represents a 500 error - internal server error
+	UnkeyGatewayErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
+	// KeyVerificationFailed represents a 500 error - key verification service failure
+	UnkeyGatewayErrorsInternalKeyVerificationFailed URN = "err:unkey:internal_server_error:key_verification_failed"
 )

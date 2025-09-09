@@ -14,7 +14,6 @@ type Config struct {
 	Builder       BuilderConfig       `yaml:"builder"`
 	Storage       StorageConfig       `yaml:"storage"`
 	Docker        DockerConfig        `yaml:"docker"`
-	Tenant        TenantConfig        `yaml:"tenant"`
 	Database      DatabaseConfig      `yaml:"database"`
 	OpenTelemetry OpenTelemetryConfig `yaml:"opentelemetry"`
 	TLS           *TLSConfig          `yaml:"tls,omitempty"`
@@ -37,6 +36,7 @@ type BuilderConfig struct {
 	RootfsOutputDir     string        `yaml:"rootfs_output_dir"`
 	WorkspaceDir        string        `yaml:"workspace_dir"`
 	CleanupInterval     time.Duration `yaml:"cleanup_interval"`
+	UsePipelineExecutor bool          `yaml:"use_pipeline_executor"` // Feature flag for step-based execution
 }
 
 // StorageConfig holds storage backend configuration
@@ -76,15 +76,7 @@ type DockerConfig struct {
 	InsecureRegistries []string      `yaml:"insecure_registries,omitempty"`
 }
 
-// TenantConfig holds multi-tenancy configuration
-type TenantConfig struct {
-	DefaultTier           string         `yaml:"default_tier"`
-	IsolationEnabled      bool           `yaml:"isolation_enabled"`
-	QuotaCheckInterval    time.Duration  `yaml:"quota_check_interval"`
-	DefaultResourceLimits ResourceLimits `yaml:"default_resource_limits"`
-}
-
-// ResourceLimits defines default resource limits per tenant tier
+// ResourceLimits defines default resource limits
 type ResourceLimits struct {
 	MaxMemoryBytes      int64 `yaml:"max_memory_bytes"`
 	MaxCPUCores         int32 `yaml:"max_cpu_cores"`
@@ -165,6 +157,7 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			RootfsOutputDir:     getEnvOrDefault("UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR", "/opt/builderd/rootfs"),
 			WorkspaceDir:        getEnvOrDefault("UNKEY_BUILDERD_WORKSPACE_DIR", "/opt/builderd/workspace"),
 			CleanupInterval:     getEnvDurationOrDefault("UNKEY_BUILDERD_CLEANUP_INTERVAL", 1*time.Hour),
+			UsePipelineExecutor: getEnvBoolOrDefault("UNKEY_BUILDERD_USE_PIPELINE_EXECUTOR", false),
 		},
 		Storage: StorageConfig{ //nolint:exhaustruct // S3Config and GCSConfig are optional backend-specific configs
 			Backend:        getEnvOrDefault("UNKEY_BUILDERD_STORAGE_BACKEND", "local"),
@@ -180,21 +173,6 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 			PullTimeout:        getEnvDurationOrDefault("UNKEY_BUILDERD_DOCKER_PULL_TIMEOUT", 10*time.Minute),
 			RegistryMirror:     getEnvOrDefault("UNKEY_BUILDERD_DOCKER_REGISTRY_MIRROR", ""),
 			InsecureRegistries: getEnvSliceOrDefault("UNKEY_BUILDERD_DOCKER_INSECURE_REGISTRIES", []string{}),
-		},
-		Tenant: TenantConfig{
-			DefaultTier:        getEnvOrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_TIER", "free"),
-			IsolationEnabled:   getEnvBoolOrDefault("UNKEY_BUILDERD_TENANT_ISOLATION_ENABLED", true),
-			QuotaCheckInterval: getEnvDurationOrDefault("UNKEY_BUILDERD_TENANT_QUOTA_CHECK_INTERVAL", 5*time.Minute),
-			DefaultResourceLimits: ResourceLimits{
-				MaxMemoryBytes:      getEnvInt64OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_MEMORY_BYTES", 2<<30), // 2GB
-				MaxCPUCores:         getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_CPU_CORES", 2),
-				MaxDiskBytes:        getEnvInt64OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_DISK_BYTES", 10<<30), // 10GB
-				TimeoutSeconds:      getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_TIMEOUT_SECONDS", 900),   // 15min
-				MaxConcurrentBuilds: getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_CONCURRENT_BUILDS", 3),
-				MaxDailyBuilds:      getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_DAILY_BUILDS", 100),
-				MaxStorageBytes:     getEnvInt64OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_STORAGE_BYTES", 50<<30), // 50GB
-				MaxBuildTimeMinutes: getEnvInt32OrDefault("UNKEY_BUILDERD_TENANT_DEFAULT_MAX_BUILD_TIME_MINUTES", 30),
-			},
 		},
 		Database: DatabaseConfig{
 			DataDir:  getEnvOrDefault("UNKEY_BUILDERD_DATABASE_DATA_DIR", "/opt/builderd/data"),
@@ -240,7 +218,6 @@ func LoadConfigWithLogger(logger *slog.Logger) (*Config, error) {
 		slog.String("server_port", config.Server.Port),
 		slog.String("storage_backend", config.Storage.Backend),
 		slog.Bool("otel_enabled", config.OpenTelemetry.Enabled),
-		slog.Bool("tenant_isolation", config.Tenant.IsolationEnabled),
 		slog.Int("max_concurrent_builds", config.Builder.MaxConcurrentBuilds),
 	)
 

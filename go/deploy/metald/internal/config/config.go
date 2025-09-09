@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/unkeyed/unkey/go/deploy/metald/internal/backend/types"
 )
@@ -30,10 +29,7 @@ type Config struct {
 	// AssetManager configuration
 	AssetManager AssetManagerConfig
 
-	// Network configuration
-	Network NetworkConfig
-
-	// TLS configuration (optional, defaults to disabled)
+	// TLS configuration
 	TLS *TLSConfig
 }
 
@@ -48,10 +44,10 @@ type ServerConfig struct {
 
 // BackendConfig holds backend-specific configuration
 type BackendConfig struct {
-	// Type of backend (firecracker only for now)
+	// Type of backend
 	Type types.BackendType
 
-	// Jailer configuration (required for production)
+	// Jailer configuration
 	Jailer JailerConfig
 }
 
@@ -130,39 +126,6 @@ type AssetManagerConfig struct {
 	CacheDir string
 }
 
-// NetworkConfig holds network-related configuration
-type NetworkConfig struct {
-	// Enabled indicates if networking is enabled
-	Enabled bool
-
-	// IPv4 Configuration
-	EnableIPv4     bool
-	BridgeIPv4     string
-	VMSubnetIPv4   string
-	DNSServersIPv4 []string
-
-	// IPv6 Configuration
-	EnableIPv6     bool
-	BridgeIPv6     string
-	VMSubnetIPv6   string
-	DNSServersIPv6 []string
-	IPv6Mode       string // "dual-stack", "ipv6-only", "ipv4-only"
-
-	// Common Configuration
-	BridgeName      string
-	EnableRateLimit bool
-	RateLimitMbps   int
-
-	// Production Scalability Configuration
-	MaxVMsPerBridge   int    // Maximum VMs per bridge before creating new bridge
-	EnableMultiBridge bool   // Enable multiple bridges for scalability
-	BridgePrefix      string // Prefix for multiple bridges (e.g., "metald-br")
-
-	// Host Protection Configuration
-	EnableHostProtection bool   // Enable host network route protection
-	PrimaryInterface     string // Primary host interface to protect (auto-detected if empty)
-}
-
 // TLSConfig holds TLS configuration
 type TLSConfig struct {
 	// Mode can be "file" or "spiffe" (default: "spiffe")
@@ -194,9 +157,6 @@ func LoadConfigWithSocketPath(socketPath string) (*Config, error) {
 
 // LoadConfigWithSocketPathAndLogger loads configuration with optional socket path override and custom logger
 func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (*Config, error) {
-	// AIDEV-NOTE: Socket endpoints are now managed by process manager
-	// No need for endpoint configuration
-
 	// Parse sampling rate
 	samplingRate := 1.0
 	if samplingStr := os.Getenv("UNKEY_METALD_OTEL_SAMPLING_RATE"); samplingStr != "" {
@@ -249,8 +209,6 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 		}
 	}
 
-	// AIDEV-BUSINESS_RULE: Jailer is always required for production security
-
 	// Parse jailer UID/GID
 	jailerUID := uint32(1000)
 	if uidStr := os.Getenv("UNKEY_METALD_JAILER_UID"); uidStr != "" {
@@ -275,10 +233,6 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			)
 		}
 	}
-
-	// AIDEV-NOTE: Namespace isolation is always enabled for security
-
-	// AIDEV-NOTE: Resource limits are applied at container/VM level, not jailer level
 
 	// Parse billing configuration
 	billingEnabled := true // Default to enabled
@@ -345,30 +299,6 @@ func LoadConfigWithSocketPathAndLogger(socketPath string, logger *slog.Logger) (
 			Endpoint: getEnvOrDefault("UNKEY_METALD_ASSETMANAGER_ENDPOINT", "http://localhost:8083"),
 			CacheDir: getEnvOrDefault("UNKEY_METALD_ASSETMANAGER_CACHE_DIR", "/opt/metald/assets"),
 		},
-		Network: NetworkConfig{
-			Enabled:         getEnvBoolOrDefault("UNKEY_METALD_NETWORK_ENABLED"),
-			EnableIPv4:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV4_ENABLED"),
-			BridgeIPv4:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV4", "172.31.0.1/19"),
-			VMSubnetIPv4:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV4", "172.31.0.0/19"),
-			DNSServersIPv4:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV4", "8.8.8.8,8.8.4.4"), ","),
-			EnableIPv6:      getEnvBoolOrDefault("UNKEY_METALD_NETWORK_IPV6_ENABLED"),
-			BridgeIPv6:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_IPV6", "fd00::1/64"),
-			VMSubnetIPv6:    getEnvOrDefault("UNKEY_METALD_NETWORK_VM_SUBNET_IPV6", "fd00::/64"),
-			DNSServersIPv6:  strings.Split(getEnvOrDefault("UNKEY_METALD_NETWORK_DNS_IPV6", "2606:4700:4700::1111,2606:4700:4700::1001"), ","),
-			IPv6Mode:        getEnvOrDefault("UNKEY_METALD_NETWORK_IPV6_MODE", "dual-stack"),
-			BridgeName:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE", "br-vms"),
-			EnableRateLimit: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT"),
-			RateLimitMbps:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_RATE_LIMIT_MBPS", 1000),
-
-			// Production Scalability Defaults
-			MaxVMsPerBridge:   getEnvIntOrDefault("UNKEY_METALD_NETWORK_MAX_VMS_PER_BRIDGE", 1000),
-			EnableMultiBridge: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_MULTI_BRIDGE"),
-			BridgePrefix:      getEnvOrDefault("UNKEY_METALD_NETWORK_BRIDGE_PREFIX", "metald-br"),
-
-			// Host Protection Defaults
-			EnableHostProtection: getEnvBoolOrDefault("UNKEY_METALD_NETWORK_HOST_PROTECTION"),
-			PrimaryInterface:     getEnvOrDefault("UNKEY_METALD_NETWORK_PRIMARY_INTERFACE", ""),
-		},
 		TLS: &TLSConfig{
 			// AIDEV-BUSINESS_RULE: mTLS/SPIFFE is required for production security
 			Mode:              getEnvOrDefault("UNKEY_METALD_TLS_MODE", "spiffe"),
@@ -396,8 +326,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("only firecracker and docker backends are supported, got: %s", c.Backend.Type)
 	}
 
-	// AIDEV-NOTE: Comprehensive unit tests implemented in config_test.go
-	// Tests cover: parsing, validation, edge cases, default values, and error conditions
 	if c.OpenTelemetry.Enabled {
 		if c.OpenTelemetry.TracingSamplingRate < 0.0 || c.OpenTelemetry.TracingSamplingRate > 1.0 {
 			return fmt.Errorf("tracing sampling rate must be between 0.0 and 1.0, got %f", c.OpenTelemetry.TracingSamplingRate)

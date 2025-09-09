@@ -16,10 +16,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/observability"
-	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
+	builderv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/builderd/v1"
 )
 
 // DockerExecutor handles Docker image extraction to rootfs
@@ -51,14 +50,7 @@ func (d *DockerExecutor) ExtractDockerImage(ctx context.Context, request *builde
 func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *builderv1.CreateBuildRequest, buildID string) (*BuildResult, error) {
 	start := time.Now()
 
-	// Get tenant context for logging and metrics
-	tenantID := "unknown"
-	if auth, ok := interceptors.TenantFromContext(ctx); ok {
-		tenantID = auth.TenantID
-	}
-
 	logger := d.logger.With(
-		slog.String("tenant_id", tenantID),
 		slog.String("image_uri", request.GetConfig().GetSource().GetDockerImage().GetImageUri()),
 	)
 
@@ -66,7 +58,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 
 	// Record build start metrics
 	if d.buildMetrics != nil {
-		d.buildMetrics.RecordBuildStart(ctx, "docker", "docker", tenantID)
+		d.buildMetrics.RecordBuildStart(ctx, "docker", "docker")
 	}
 
 	defer func() {
@@ -115,7 +107,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 			slog.String("image", fullImageName),
 		)
 		if d.buildMetrics != nil {
-			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), false)
+			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", time.Since(start), false)
 		}
 		return nil, fmt.Errorf("failed to pull Docker image: %w", err)
 	}
@@ -128,7 +120,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 			slog.String("image", fullImageName),
 		)
 		if d.buildMetrics != nil {
-			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), false)
+			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", time.Since(start), false)
 		}
 		return nil, fmt.Errorf("failed to create container: %w", err)
 	}
@@ -148,7 +140,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 			slog.String("image", fullImageName),
 		)
 		if d.buildMetrics != nil {
-			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), false)
+			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", time.Since(start), false)
 		}
 		return nil, fmt.Errorf("failed to extract container metadata: %w", err)
 	}
@@ -161,7 +153,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 			slog.String("rootfs_dir", rootfsDir),
 		)
 		if d.buildMetrics != nil {
-			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), false)
+			d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", time.Since(start), false)
 		}
 		return nil, fmt.Errorf("failed to extract filesystem: %w", err)
 	}
@@ -199,7 +191,6 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 		SourceImage:   fullImageName,
 		RootfsPath:    ext4Path, // Use the ext4 image path instead of directory
 		WorkspaceDir:  workspaceDir,
-		TenantID:      tenantID,
 		StartTime:     start,
 		EndTime:       time.Now(),
 		Status:        "completed",
@@ -208,7 +199,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 
 	// Record successful build
 	if d.buildMetrics != nil {
-		d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", tenantID, time.Since(start), true)
+		d.buildMetrics.RecordBuildComplete(ctx, "docker", "docker", time.Since(start), true)
 	}
 
 	logger.InfoContext(ctx, "Docker image extraction successful",
@@ -922,18 +913,12 @@ func (d *DockerExecutor) extractContainerMetadata(ctx context.Context, logger *s
 		}
 	}
 
-	// Extract user
-	if user, ok := config["User"].(string); ok {
-		metadata.User = user
-	}
-
 	logger.InfoContext(ctx, "extracted container metadata",
 		slog.Int("entrypoint_len", len(metadata.Entrypoint)),
 		slog.Int("cmd_len", len(metadata.Command)),
 		slog.String("working_dir", metadata.WorkingDir),
 		slog.Int("env_vars", len(metadata.Env)),
 		slog.Int("exposed_ports", len(metadata.ExposedPorts)),
-		slog.String("user", metadata.User),
 	)
 
 	return metadata, nil
@@ -1083,12 +1068,10 @@ func (d *DockerExecutor) createContainerEnv(ctx context.Context, logger *slog.Lo
 	envConfig := struct {
 		WorkingDir   string            `json:"working_dir,omitempty"`
 		Env          map[string]string `json:"env,omitempty"`
-		User         string            `json:"user,omitempty"`
 		ExposedPorts []string          `json:"exposed_ports,omitempty"`
 	}{
 		WorkingDir:   metadata.WorkingDir,
 		Env:          metadata.Env,
-		User:         metadata.User,
 		ExposedPorts: metadata.ExposedPorts,
 	}
 

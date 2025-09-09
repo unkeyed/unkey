@@ -9,10 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/builderd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -101,18 +101,6 @@ func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artif
 	// Upload asset via streaming API
 	// AIDEV-NOTE: This properly uploads the file to assetmanagerd's storage and registers it
 	stream := c.client.UploadAsset(ctx)
-
-	// Try to extract tenant info from labels for headers
-	tenantID := labels["tenant_id"]
-	customerID := labels["customer_id"]
-
-	// Set tenant headers on the stream if available
-	if tenantID != "" {
-		stream.RequestHeader().Set("X-Tenant-ID", tenantID)
-	}
-	if customerID != "" {
-		stream.RequestHeader().Set("X-Customer-ID", customerID)
-	}
 
 	// Send metadata first
 	metadataReq := &assetv1.UploadAssetRequest{

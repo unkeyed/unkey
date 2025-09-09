@@ -123,6 +123,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Ratelimit:               svc.Ratelimit,
 			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 			TestMode:                srv.Flags().TestMode,
+			Auditlogs:               svc.Auditlogs,
 		},
 	)
 

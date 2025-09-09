@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
-	"github.com/unkeyed/unkey/go/deploy/pkg/tls"
 )
 
 // AIDEV-NOTE: AssetManagerd client with SPIFFE/SPIRE socket integration
@@ -22,9 +22,6 @@ type Config struct {
 
 	// UserID is the user identifier for authentication
 	UserID string
-
-	// TenantID is the tenant identifier for data scoping
-	TenantID string
 
 	// TLS configuration
 	TLSMode           string        // "disabled", "file", or "spiffe"
@@ -44,7 +41,6 @@ type Client struct {
 	assetService assetmanagerdv1connect.AssetManagerServiceClient
 	tlsProvider  tls.Provider
 	userID       string
-	tenantID     string
 	serverAddr   string
 }
 
@@ -84,11 +80,10 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	httpClient := tlsProvider.HTTPClient()
 	httpClient.Timeout = config.Timeout
 
-	// Add authentication and tenant isolation transport
-	httpClient.Transport = &tenantTransport{
-		Base:     httpClient.Transport,
-		UserID:   config.UserID,
-		TenantID: config.TenantID,
+	// Add authentication
+	httpClient.Transport = &transport{
+		Base:   httpClient.Transport,
+		UserID: config.UserID,
 	}
 
 	// Create ConnectRPC client
@@ -101,7 +96,6 @@ func New(ctx context.Context, config Config) (*Client, error) {
 		assetService: assetService,
 		tlsProvider:  tlsProvider,
 		userID:       config.UserID,
-		tenantID:     config.TenantID,
 		serverAddr:   config.ServerAddress,
 	}, nil
 }
@@ -292,24 +286,18 @@ func (c *Client) GarbageCollect(ctx context.Context, req *GarbageCollectRequest)
 	}, nil
 }
 
-// GetTenantID returns the tenant ID associated with this client
-func (c *Client) GetTenantID() string {
-	return c.tenantID
-}
-
 // GetServerAddress returns the server address this client is connected to
 func (c *Client) GetServerAddress() string {
 	return c.serverAddr
 }
 
-// tenantTransport adds authentication and tenant isolation headers to all requests
-type tenantTransport struct {
-	Base     http.RoundTripper
-	UserID   string
-	TenantID string
+// transport adds authentication headers to all requests
+type transport struct {
+	Base   http.RoundTripper
+	UserID string
 }
 
-func (t *tenantTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	req2 := req.Clone(req.Context())
 	if req2.Header == nil {
@@ -320,9 +308,6 @@ func (t *tenantTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// AIDEV-BUSINESS_RULE: In development, use "dev_user_<id>" format
 	// TODO: Update to proper JWT tokens in production
 	req2.Header.Set("Authorization", fmt.Sprintf("Bearer dev_user_%s", t.UserID))
-
-	// Also set X-Tenant-ID header for tenant identification
-	req2.Header.Set("X-Tenant-ID", t.TenantID)
 
 	// Use the base transport, or default if nil
 	base := t.Base

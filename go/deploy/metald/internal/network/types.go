@@ -1,26 +1,67 @@
 package network
 
 import (
-	"fmt"
+	"log/slog"
 	"net"
+	"sync"
 	"time"
 )
 
+// BridgeManager manages workspace allocation across multiple bridges
+type BridgeManager struct {
+	bridgeCount  int                             // 8 or 32 bridges
+	bridgePrefix string                          // "br-vms" -> br-vms-0, br-vms-1, etc.
+	workspaces   map[string]*WorkspaceAllocation // workspace_id -> allocation
+	bridgeUsage  map[int]map[string]bool         // bridge_num -> workspace_id -> exists
+	mu           sync.RWMutex
+	statePath    string       // Path to state persistence file
+	logger       *slog.Logger // Structured logger for state operations
+}
+
+// BridgeState represents the serializable state for persistence
+type BridgeState struct {
+	Workspaces  map[string]*WorkspaceAllocation `json:"workspaces"`
+	BridgeUsage map[int]map[string]bool         `json:"bridge_usage"`
+	LastSaved   time.Time                       `json:"last_saved"`
+	Checksum    string                          `json:"checksum"` // SHA256 checksum for integrity validation
+}
+
+type MultiBridgeManager struct {
+	bridgeCount    int                             // 8 or 32 bridges
+	bridgePrefix   string                          // "br-vms" -> br-vms-0, br-vms-1, etc.
+	workspaces     map[string]*WorkspaceAllocation // workspace_id -> allocation
+	bridgeUsage    map[int]map[string]bool         // bridge_num -> workspace_id -> exists
+	mu             sync.RWMutex
+	vlanRangeStart int          // Starting VLAN ID (100)
+	vlanRangeEnd   int          // Ending VLAN ID (4000)
+	statePath      string       // Path to state persistence file
+	logger         *slog.Logger // Structured logger for state operations
+}
+
+// WorkspaceAllocation represents a workspace's network allocation
+type WorkspaceAllocation struct {
+	WorkspaceID  string `json:"workspace_id"`
+	BridgeNumber int    `json:"bridge_number"` // 0-31
+	BridgeName   string `json:"bridge_name"`   // br-vms-N
+	CreatedAt    string `json:"created_at"`
+	VMCount      int    `json:"vm_count"` // Track VM count for IP allocation
+}
+
 // VMNetwork contains network configuration for a VM
 type VMNetwork struct {
-	VMID       string     `json:"vm_id"`
-	NetworkID  string     `json:"network_id"` // AIDEV-NOTE: Internal 8-char ID for network device naming
-	Namespace  string     `json:"namespace"`
-	TapDevice  string     `json:"tap_device"`
-	IPAddress  net.IP     `json:"ip_address"`
-	Netmask    net.IPMask `json:"netmask"`
-	Gateway    net.IP     `json:"gateway"`
-	MacAddress string     `json:"mac_address"`
-	DNSServers []string   `json:"dns_servers"`
-	CreatedAt  time.Time  `json:"created_at"`
+	VMID        string     `json:"vm_id"`
+	NetworkID   string     `json:"network_id"`   // AIDEV-NOTE: Internal 8-char ID for network device naming
+	WorkspaceID string     `json:"workspace_id"` // AIDEV-NOTE: Track workspace for proper IP release
+	Namespace   string     `json:"namespace"`
+	TapDevice   string     `json:"tap_device"`
+	IPAddress   net.IP     `json:"ip_address"`
+	Netmask     net.IPMask `json:"netmask"`
+	Gateway     net.IP     `json:"gateway"`
+	MacAddress  string     `json:"mac_address"`
+	DNSServers  []string   `json:"dns_servers"`
+	CreatedAt   time.Time  `json:"created_at"`
 
-	// Optional fields for advanced configurations
-	VLANID      int     `json:"vlan_id,omitempty"`
+	// Optional fields for advanced configuration
 	IPv6Address net.IP  `json:"ipv6_address,omitempty"`
 	Routes      []Route `json:"routes,omitempty"`
 }
@@ -63,56 +104,4 @@ type FirewallRule struct {
 	Destination string `json:"destination,omitempty"` // CIDR or "any"
 	Action      string `json:"action"`                // "allow" or "deny"
 	Priority    int    `json:"priority"`              // Lower number = higher priority
-}
-
-// GenerateCloudInitNetwork generates cloud-init network configuration
-func (n *VMNetwork) GenerateCloudInitNetwork() map[string]interface{} {
-	// Generate network configuration for cloud-init
-	config := map[string]interface{}{
-		"version": 2,
-		"ethernets": map[string]interface{}{
-			"eth0": map[string]interface{}{
-				"match": map[string]interface{}{
-					"macaddress": n.MacAddress,
-				},
-				"addresses": []string{
-					n.IPAddress.String() + "/24",
-				},
-				"gateway4": n.Gateway.String(),
-				"nameservers": map[string]interface{}{
-					"addresses": n.DNSServers,
-				},
-			},
-		},
-	}
-
-	return config
-}
-
-// GenerateNetworkMetadata generates metadata for the VM
-func (n *VMNetwork) GenerateNetworkMetadata() map[string]string {
-	metadata := map[string]string{
-		"local-ipv4":      n.IPAddress.String(),
-		"mac":             n.MacAddress,
-		"gateway":         n.Gateway.String(),
-		"netmask":         n.Netmask.String(),
-		"dns-nameservers": n.DNSServers[0],
-	}
-
-	if len(n.DNSServers) > 1 {
-		metadata["dns-nameservers-secondary"] = n.DNSServers[1]
-	}
-
-	return metadata
-}
-
-// KernelCmdlineArgs returns kernel command line arguments for network configuration
-func (n *VMNetwork) KernelCmdlineArgs() string {
-	// Format: ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>
-	// Example: ip=10.100.1.2::10.100.0.1:255.255.255.0:vm::off
-	return fmt.Sprintf("ip=%s::%s:%s:vm::off",
-		n.IPAddress.String(),
-		n.Gateway.String(),
-		n.Netmask.String(),
-	)
 }

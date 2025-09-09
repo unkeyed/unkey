@@ -68,7 +68,6 @@ export const createProject = t.procedure
           await tx.insert(schema.projects).values({
             id: projectId,
             workspaceId,
-            partitionId: "part_default", // Default partition for now
             name: input.name,
             slug: input.slug,
             gitRepositoryUrl: input.gitRepositoryUrl || null,
@@ -95,6 +94,36 @@ export const createProject = t.procedure
               userAgent: ctx.audit.userAgent,
             },
           });
+
+          for (const slug of ["production", "preview"]) {
+            const environmentId = newId("environment");
+            await tx.insert(schema.environments).values({
+              id: environmentId,
+              workspaceId,
+              projectId,
+              slug: slug,
+            });
+            await insertAuditLogs(tx, {
+              workspaceId,
+              actor: {
+                type: "user",
+                id: userId,
+              },
+              event: "environment.create",
+              description: `Created environment "${slug}" for project "${input.name}"`,
+              resources: [
+                {
+                  type: "environment",
+                  id: environmentId,
+                  name: slug,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
+            });
+          }
         });
       } catch (txErr) {
         console.error({

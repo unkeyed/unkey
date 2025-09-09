@@ -54,6 +54,8 @@ type dataKeyAuth struct {
 type dataRatelimitNamespace struct {
 	// NotFound indicates the requested rate limit namespace was not found.
 	NotFound Code
+	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
+	Gone Code
 }
 
 // dataRatelimitOverride defines errors related to rate limit override operations.
@@ -130,6 +132,7 @@ var Data = UnkeyDataErrors{
 
 	RatelimitNamespace: dataRatelimitNamespace{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
+		Gone:     Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
 	},
 
 	RatelimitOverride: dataRatelimitOverride{
