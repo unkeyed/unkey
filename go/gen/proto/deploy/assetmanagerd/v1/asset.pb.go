@@ -1604,11 +1604,9 @@ type BuildOptions struct {
 	BuildTimeoutSeconds int32 `protobuf:"varint,3,opt,name=build_timeout_seconds,json=buildTimeoutSeconds,proto3" json:"build_timeout_seconds,omitempty"`
 	// Additional labels to add to the built asset
 	BuildLabels map[string]string `protobuf:"bytes,4,rep,name=build_labels,json=buildLabels,proto3" json:"build_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Tenant context for build authorization
-	TenantId string `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	// Suggested asset ID to use when registering the built asset
 	// This allows the caller to know the asset ID before it's built
-	SuggestedAssetId string `protobuf:"bytes,6,opt,name=suggested_asset_id,json=suggestedAssetId,proto3" json:"suggested_asset_id,omitempty"`
+	SuggestedAssetId string `protobuf:"bytes,5,opt,name=suggested_asset_id,json=suggestedAssetId,proto3" json:"suggested_asset_id,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1669,13 +1667,6 @@ func (x *BuildOptions) GetBuildLabels() map[string]string {
 		return x.BuildLabels
 	}
 	return nil
-}
-
-func (x *BuildOptions) GetTenantId() string {
-	if x != nil {
-		return x.TenantId
-	}
-	return ""
 }
 
 func (x *BuildOptions) GetSuggestedAssetId() string {
@@ -1960,14 +1951,13 @@ const file_deploy_assetmanagerd_v1_asset_proto_rawDesc = "" +
 	"\rbuild_options\x18\x06 \x01(\v2%.deploy.assetmanagerd.v1.BuildOptionsR\fbuildOptions\x1a@\n" +
 	"\x12LabelSelectorEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x84\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe7\x02\n" +
 	"\fBuildOptions\x12*\n" +
 	"\x11enable_auto_build\x18\x01 \x01(\bR\x0fenableAutoBuild\x12.\n" +
 	"\x13wait_for_completion\x18\x02 \x01(\bR\x11waitForCompletion\x122\n" +
 	"\x15build_timeout_seconds\x18\x03 \x01(\x05R\x13buildTimeoutSeconds\x12Y\n" +
-	"\fbuild_labels\x18\x04 \x03(\v26.deploy.assetmanagerd.v1.BuildOptions.BuildLabelsEntryR\vbuildLabels\x12\x1b\n" +
-	"\ttenant_id\x18\x05 \x01(\tR\btenantId\x12,\n" +
-	"\x12suggested_asset_id\x18\x06 \x01(\tR\x10suggestedAssetId\x1a>\n" +
+	"\fbuild_labels\x18\x04 \x03(\v26.deploy.assetmanagerd.v1.BuildOptions.BuildLabelsEntryR\vbuildLabels\x12,\n" +
+	"\x12suggested_asset_id\x18\x05 \x01(\tR\x10suggestedAssetId\x1a>\n" +
 	"\x10BuildLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc4\x01\n" +

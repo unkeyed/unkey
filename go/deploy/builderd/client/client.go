@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,11 +19,9 @@ type Config struct {
 	// ServerAddress is the builderd server endpoint (e.g., "https://builderd:8082")
 	ServerAddress string
 
-	// UserID is the user identifier for authentication
+	// I do not understand what this userID is.
+	// Is it an unkey user? or is it a linux user on the metal host?
 	UserID string
-
-	// TenantID is the tenant identifier for data scoping
-	TenantID string
 
 	// TLS configuration
 	TLSMode           string        // "disabled", "file", or "spiffe"
@@ -39,12 +36,9 @@ type Config struct {
 	Timeout time.Duration
 }
 
-// Client provides a high-level interface to builderd services
 type Client struct {
 	builderService builderdv1connect.BuilderServiceClient
 	tlsProvider    tls.Provider
-	userID         string
-	tenantID       string
 	serverAddr     string
 }
 
@@ -84,13 +78,6 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	httpClient := tlsProvider.HTTPClient()
 	httpClient.Timeout = config.Timeout
 
-	// Add authentication and tenant isolation transport
-	httpClient.Transport = &tenantTransport{
-		Base:     httpClient.Transport,
-		UserID:   config.UserID,
-		TenantID: config.TenantID,
-	}
-
 	// Create ConnectRPC client
 	builderService := builderdv1connect.NewBuilderServiceClient(
 		httpClient,
@@ -100,8 +87,6 @@ func New(ctx context.Context, config Config) (*Client, error) {
 	return &Client{
 		builderService: builderService,
 		tlsProvider:    tlsProvider,
-		userID:         config.UserID,
-		tenantID:       config.TenantID,
 		serverAddr:     config.ServerAddress,
 	}, nil
 }
@@ -136,8 +121,7 @@ func (c *Client) CreateBuild(ctx context.Context, req *CreateBuildRequest) (*Cre
 // GetBuild retrieves build status and progress
 func (c *Client) GetBuild(ctx context.Context, req *GetBuildRequest) (*GetBuildResponse, error) {
 	pbReq := &builderv1.GetBuildRequest{
-		BuildId:  req.BuildID,
-		TenantId: req.TenantID,
+		BuildId: req.BuildID,
 	}
 
 	resp, err := c.builderService.GetBuild(ctx, connect.NewRequest(pbReq))
@@ -150,10 +134,9 @@ func (c *Client) GetBuild(ctx context.Context, req *GetBuildRequest) (*GetBuildR
 	}, nil
 }
 
-// ListBuilds lists builds with filtering (tenant-scoped)
+// ListBuilds lists builds with filtering
 func (c *Client) ListBuilds(ctx context.Context, req *ListBuildsRequest) (*ListBuildsResponse, error) {
 	pbReq := &builderv1.ListBuildsRequest{
-		TenantId:    req.TenantID,
 		StateFilter: req.State,
 		PageSize:    req.PageSize,
 		PageToken:   req.PageToken,
@@ -174,8 +157,7 @@ func (c *Client) ListBuilds(ctx context.Context, req *ListBuildsRequest) (*ListB
 // CancelBuild cancels a running build
 func (c *Client) CancelBuild(ctx context.Context, req *CancelBuildRequest) (*CancelBuildResponse, error) {
 	pbReq := &builderv1.CancelBuildRequest{
-		BuildId:  req.BuildID,
-		TenantId: req.TenantID,
+		BuildId: req.BuildID,
 	}
 
 	resp, err := c.builderService.CancelBuild(ctx, connect.NewRequest(pbReq))
@@ -192,9 +174,8 @@ func (c *Client) CancelBuild(ctx context.Context, req *CancelBuildRequest) (*Can
 // DeleteBuild deletes a build and its artifacts
 func (c *Client) DeleteBuild(ctx context.Context, req *DeleteBuildRequest) (*DeleteBuildResponse, error) {
 	pbReq := &builderv1.DeleteBuildRequest{
-		BuildId:  req.BuildID,
-		TenantId: req.TenantID,
-		Force:    req.Force,
+		BuildId: req.BuildID,
+		Force:   req.Force,
 	}
 
 	resp, err := c.builderService.DeleteBuild(ctx, connect.NewRequest(pbReq))
@@ -210,9 +191,8 @@ func (c *Client) DeleteBuild(ctx context.Context, req *DeleteBuildRequest) (*Del
 // StreamBuildLogs streams build logs in real-time
 func (c *Client) StreamBuildLogs(ctx context.Context, req *StreamBuildLogsRequest) (*connect.ServerStreamForClient[builderv1.StreamBuildLogsResponse], error) {
 	pbReq := &builderv1.StreamBuildLogsRequest{
-		BuildId:  req.BuildID,
-		TenantId: req.TenantID,
-		Follow:   req.Follow,
+		BuildId: req.BuildID,
+		Follow:  req.Follow,
 	}
 
 	stream, err := c.builderService.StreamBuildLogs(ctx, connect.NewRequest(pbReq))
@@ -223,28 +203,9 @@ func (c *Client) StreamBuildLogs(ctx context.Context, req *StreamBuildLogsReques
 	return stream, nil
 }
 
-// GetTenantQuotas retrieves tenant quotas and usage
-func (c *Client) GetTenantQuotas(ctx context.Context, req *GetTenantQuotasRequest) (*GetTenantQuotasResponse, error) {
-	pbReq := &builderv1.GetTenantQuotasRequest{
-		TenantId: req.TenantID,
-	}
-
-	resp, err := c.builderService.GetTenantQuotas(ctx, connect.NewRequest(pbReq))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tenant quotas: %w", err)
-	}
-
-	return &GetTenantQuotasResponse{
-		Quotas:     resp.Msg.CurrentLimits,
-		Usage:      resp.Msg.CurrentUsage,
-		Violations: resp.Msg.Violations,
-	}, nil
-}
-
 // GetBuildStats retrieves build statistics
 func (c *Client) GetBuildStats(ctx context.Context, req *GetBuildStatsRequest) (*GetBuildStatsResponse, error) {
 	pbReq := &builderv1.GetBuildStatsRequest{
-		TenantId:  req.TenantID,
 		StartTime: req.StartTime,
 		EndTime:   req.EndTime,
 	}
@@ -259,42 +220,7 @@ func (c *Client) GetBuildStats(ctx context.Context, req *GetBuildStatsRequest) (
 	}, nil
 }
 
-// GetTenantID returns the tenant ID associated with this client
-func (c *Client) GetTenantID() string {
-	return c.tenantID
-}
-
 // GetServerAddress returns the server address this client is connected to
 func (c *Client) GetServerAddress() string {
 	return c.serverAddr
-}
-
-// tenantTransport adds authentication and tenant isolation headers to all requests
-type tenantTransport struct {
-	Base     http.RoundTripper
-	UserID   string
-	TenantID string
-}
-
-func (t *tenantTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Clone the request to avoid modifying the original
-	req2 := req.Clone(req.Context())
-	if req2.Header == nil {
-		req2.Header = make(http.Header)
-	}
-
-	// Set Authorization header with development token format
-	// AIDEV-BUSINESS_RULE: In development, use "dev_user_<id>" format
-	// TODO: Update to proper JWT tokens in production
-	req2.Header.Set("Authorization", fmt.Sprintf("Bearer dev_user_%s", t.UserID))
-
-	// Also set X-Tenant-ID header for tenant identification
-	req2.Header.Set("X-Tenant-ID", t.TenantID)
-
-	// Use the base transport, or default if nil
-	base := t.Base
-	if base == nil {
-		base = http.DefaultTransport
-	}
-	return base.RoundTrip(req2)
 }
