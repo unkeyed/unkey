@@ -1,14 +1,11 @@
 "use client";
 
-import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
-import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
@@ -37,34 +34,20 @@ export const CreateNamespaceButton = ({
     register,
     handleSubmit,
     setError,
-    formState: { errors, isValid, isSubmitting },
+    formState: { errors, isValid },
+    reset,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
   });
 
-  const router = useRouter();
-
-  const create = trpc.ratelimit.namespace.create.useMutation({
-    async onSuccess(res) {
-      router.refresh();
-      await revalidate("/ratelimits");
-      router.push(`/ratelimits/${res.id}`);
-      toast.success("Your Namespace has been created");
-      setIsOpen(false);
-    },
-    onError(err) {
-      toast.error(err.message);
-    },
-  });
-
   const onSubmit = (values: FormValues) => {
-    //collection.ratelimitNamespaces.
     try {
       collection.ratelimitNamespaces.insert({
         id: new Date().toISOString(),
         name: values.name,
       });
+      reset();
       setIsOpen(false);
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
@@ -96,8 +79,7 @@ export const CreateNamespaceButton = ({
               form="create-namespace-form"
               variant="primary"
               size="xlg"
-              disabled={create.isLoading || !isValid || isSubmitting}
-              loading={create.isLoading || isSubmitting}
+              disabled={!isValid}
               className="w-full rounded-lg"
             >
               Create Namespace

@@ -2,21 +2,11 @@
 
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleInfo } from "@unkey/icons";
-import {
-  Badge,
-  Button,
-  DialogContainer,
-  FormInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
-import { redirect } from "next/navigation";
+import { DuplicateKeyError } from "@tanstack/react-db";
+import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OverrideDetails } from "../types";
 
@@ -32,7 +22,6 @@ const overrideValidationSchema = z.object({
     .int()
     .min(1_000, "Duration must be at least 1 second (1000ms)")
     .max(24 * 60 * 60 * 1000, "Duration cannot exceed 24 hours"),
-  async: z.enum(["unset", "sync", "async"]),
 });
 
 type FormValues = z.infer<typeof overrideValidationSchema>;
@@ -57,41 +46,50 @@ export const IdentifierDialog = ({
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors, isSubmitting },
+    setError,
   } = useForm<FormValues>({
     resolver: zodResolver(overrideValidationSchema),
     defaultValues: {
       identifier,
       limit: overrideDetails?.limit ?? 10,
       duration: overrideDetails?.duration ?? 60_000,
-      async:
-        overrideDetails?.async === undefined ? "unset" : overrideDetails.async ? "async" : "sync",
     },
   });
+
+  const router = useRouter();
 
   const onSubmitForm = async (values: FormValues) => {
     try {
       if (overrideDetails?.overrideId) {
         collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
-          draft.identifier = values.identifier;
           draft.limit = values.limit;
           draft.duration = values.duration;
         });
         onOpenChange(false);
       } else {
+        // workaround until tanstack db throws on index violation
+        collection.ratelimitOverrides.forEach((override) => {
+          if (override.namespaceId === namespaceId && override.identifier === values.identifier) {
+            throw new DuplicateKeyError(override.id);
+          }
+        });
         collection.ratelimitOverrides.insert({
           namespaceId,
-          id: new Date().toISOString(),
+          id: new Date().toISOString(), // gets replaced by backend
           identifier: values.identifier,
           limit: values.limit,
           duration: values.duration,
         });
         onOpenChange(false);
-        redirect(`/ratelimits/${namespaceId}/overrides`);
+        router.push(`/ratelimits/${namespaceId}/overrides`);
       }
     } catch (error) {
-      console.error("Form submission error:", error);
+      if (error instanceof DuplicateKeyError) {
+        setError("identifier", { type: "custom", message: "Identifier already exists" });
+      } else {
+        throw error;
+      }
     }
   };
 
@@ -154,31 +152,6 @@ export const IdentifierDialog = ({
               MS
             </Badge>
           }
-        />
-
-        <Controller
-          control={control}
-          name="async"
-          render={({ field }) => (
-            <div className="space-y-1.5">
-              <div className="text-gray-11 text-[13px] flex items-center">Override Type</div>
-
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger className="flex h-8 w-full items-center justify-between rounded-md bg-transparent px-3 py-2 text-[13px] border border-gray-4 focus:border focus:border-gray-4 hover:bg-gray-4 hover:border-gray-8 focus:bg-gray-4">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-none">
-                  <SelectItem value="unset">Don't override</SelectItem>
-                  <SelectItem value="async">Async</SelectItem>
-                  <SelectItem value="sync">Sync</SelectItem>
-                </SelectContent>
-              </Select>
-              <output className="text-gray-9 flex gap-2 items-center text-[13px]">
-                <CircleInfo size="md-regular" aria-hidden="true" />
-                <span>Override the mode, async is faster but slightly less accurate.</span>
-              </output>
-            </div>
-          )}
         />
       </form>
     </DialogContainer>

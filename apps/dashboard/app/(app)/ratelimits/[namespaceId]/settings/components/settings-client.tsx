@@ -37,6 +37,16 @@ export const SettingsClient = ({ namespaceId }: Props) => {
     if (namespaceName === namespace.name || !namespaceName) {
       return toast.error("Please provide a different name before saving.");
     }
+    let error = "";
+    collection.ratelimitNamespaces.forEach((ns) => {
+      if (ns.id !== namespaceId && namespaceName === ns.name) {
+        error = "Another namespace already has this name";
+        return;
+      }
+    });
+    if (error) {
+      return toast.error(error);
+    }
 
     collection.ratelimitNamespaces.update(namespace.id, (draft) => {
       draft.name = namespaceName;

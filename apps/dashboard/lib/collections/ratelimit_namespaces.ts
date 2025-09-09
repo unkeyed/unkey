@@ -20,7 +20,7 @@ export const ratelimitNamespaces = createCollection(
       console.info("DB fetching ratelimitNamespaces");
       return await trpcClient.ratelimit.namespace.list.query();
     },
-    getKey: (item) => [item.name].join("::"),
+    getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
       const { changes: newNamespace } = transaction.mutations[0];
       if (!newNamespace.name) {
@@ -67,3 +67,10 @@ export const ratelimitNamespaces = createCollection(
     },
   }),
 );
+
+ratelimitNamespaces.createIndex((row) => row.name, {
+  name: "name",
+  options: {
+    unique: true,
+  },
+});

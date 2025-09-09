@@ -58,7 +58,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
       key: "identifier",
       header: "Identifier",
       headerClassName: "pl-2",
-      width: "25%",
+      width: "40%",
       render: (override) => (
         <div className="flex flex-col items-start pl-2">
           <span className="font-mono text-xs text-gray-12 truncate max-w-40">
@@ -97,24 +97,6 @@ export const OverridesTable = ({ namespaceId }: Props) => {
           </div>
         </div>
       ),
-    },
-    {
-      key: "async",
-      header: "Async",
-      width: "15%",
-      render: (override) =>
-        override.async === null ? (
-          <div className="w-4 h-4 text-content-subtle">─</div>
-        ) : (
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono min-w-[70px] inline-block text-center",
-              STATUS_STYLES.default.badge.default,
-            )}
-          >
-            {override.async ? "async" : "sync"}
-          </Badge>
-        ),
     },
     {
       key: "lastUsed",
