@@ -24,16 +24,16 @@ import { getRowClassName } from "./utils/get-row-class";
 export const RolesList = () => {
   const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useRolesListQuery();
   const [selectedRole, setSelectedRole] = useState<RoleBasic | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<Set<RoleBasic>>(new Set());
+  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
 
-  const toggleSelection = useCallback((role: RoleBasic) => {
+  const toggleSelection = useCallback((roleId: string) => {
     setSelectedRoles((prevSelected) => {
       const newSelected = new Set(prevSelected);
-      if (newSelected.has(role)) {
-        newSelected.delete(role);
+      if (newSelected.has(roleId)) {
+        newSelected.delete(roleId);
       } else {
-        newSelected.add(role);
+        newSelected.add(roleId);
       }
       return newSelected;
     });
@@ -47,7 +47,7 @@ export const RolesList = () => {
         width: "20%",
         headerClassName: "pl-[18px]",
         render: (role) => {
-          const isSelected = selectedRoles.has(role);
+          const isSelected = selectedRoles.has(role.roleId);
           const isHovered = hoveredRoleName === role.name;
 
           const iconContainer = (
@@ -65,7 +65,7 @@ export const RolesList = () => {
                 <Checkbox
                   checked={isSelected}
                   className="size-4 [&_svg]:size-3"
-                  onCheckedChange={() => toggleSelection(role)}
+                  onCheckedChange={() => toggleSelection(role.roleId)}
                 />
               )}
             </div>

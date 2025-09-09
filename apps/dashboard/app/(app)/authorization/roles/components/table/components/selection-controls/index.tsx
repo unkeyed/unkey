@@ -1,6 +1,5 @@
 import { AnimatedCounter } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/selection-controls";
 import { ConfirmPopover } from "@/components/confirmation-popover";
-import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,8 +7,8 @@ import { useRef, useState } from "react";
 import { useDeleteRole } from "../actions/components/hooks/use-delete-role";
 
 type SelectionControlsProps = {
-  selectedRoles: Set<RoleBasic>;
-  setSelectedRoles: (keys: Set<RoleBasic>) => void;
+  selectedRoles: Set<string>;
+  setSelectedRoles: (keys: Set<string>) => void;
 };
 
 export const SelectionControls = ({ selectedRoles, setSelectedRoles }: SelectionControlsProps) => {
@@ -26,7 +25,7 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
 
   const performRoleDeletion = () => {
     deleteRole.mutate({
-      roleIds: Array.from(selectedRoles).map((role) => role.roleId),
+      roleIds: Array.from(selectedRoles),
     });
   };
 
