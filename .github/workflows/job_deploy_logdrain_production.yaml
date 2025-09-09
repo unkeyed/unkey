@@ -10,7 +10,7 @@ jobs:
       contents: read
       deployments: write
     environment: Production
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
