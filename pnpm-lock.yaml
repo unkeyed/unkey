@@ -621,7 +621,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 6.2.1(@types/node@20.14.9)(typescript@5.5.3)
+        version: 6.5.0(@types/node@20.14.9)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.14.9)(typescript@5.5.3)
@@ -669,8 +669,8 @@ importers:
         specifier: workspace:^
         version: link:../id
       drizzle-orm:
-        specifier: ^0.31.2
-        version: 0.31.2(@planetscale/database@1.19.0)(mysql2@3.10.3)
+        specifier: ^0.44.5
+        version: 0.44.5(@planetscale/database@1.19.0)(mysql2@3.10.3)
     devDependencies:
       '@types/node':
         specifier: ^20.14.9
@@ -682,8 +682,8 @@ importers:
         specifier: ^7.4.1
         version: 7.4.1
       drizzle-kit:
-        specifier: 0.22.7
-        version: 0.22.7
+        specifier: 0.31.4
+        version: 0.31.4
       mysql2:
         specifier: ^3.10.3
         version: 3.10.3
@@ -710,8 +710,8 @@ importers:
         version: link:../../packages/error
     devDependencies:
       drizzle-kit:
-        specifier: ^0.22.7
-        version: 0.22.7
+        specifier: ^0.31.4
+        version: 0.31.4
       typescript:
         specifier: ^5.5.3
         version: 5.7.3
@@ -2182,6 +2182,10 @@ packages:
       typescript: 5.7.3
     transitivePeerDependencies:
       - supports-color
+    dev: true
+
+  /@drizzle-team/brocli@0.10.2:
+    resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
     dev: true
 
   /@emnapi/runtime@1.4.5:
@@ -11934,8 +11938,8 @@ packages:
     engines: {node: '>= 16'}
     dev: true
 
-  /checkly@6.2.1(@types/node@20.14.9)(typescript@5.5.3):
-    resolution: {integrity: sha512-xD6EV9A5AxH6397YJWYLvyg4WGI1Nheaw2lh4Hoyk/S4TQVoKCX01XxZfDQwc5XHQI7i7FLB0XKH8B2k6PVwBw==}
+  /checkly@6.5.0(@types/node@20.14.9)(typescript@5.5.3):
+    resolution: {integrity: sha512-i90/P+sWL6CmTBRGOHXFAogisrDdomE928XKSaw2g4t9e2dVGcaDfQ72ZdXFCm27gVQd7siXPGrO6LNFwyEsWg==}
     engines: {node: ^18.19.0 || >=20.5.0}
     hasBin: true
     peerDependencies:
@@ -13120,44 +13124,48 @@ packages:
       minimatch: 3.1.2
     dev: false
 
-  /drizzle-kit@0.22.7:
-    resolution: {integrity: sha512-9THPCb2l1GPt7wxhws9LvTR0YG565ZlVgTuqGMwjs590Kch1pXu4GyjEArVijSF5m0OBj3qgdeKmuJXhKXgWFw==}
+  /drizzle-kit@0.31.4:
+    resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
     hasBin: true
     dependencies:
+      '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5
-      esbuild: 0.19.12
-      esbuild-register: 3.6.0(esbuild@0.19.12)
+      esbuild: 0.25.9
+      esbuild-register: 3.6.0(esbuild@0.25.9)
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.31.2(@planetscale/database@1.19.0)(mysql2@3.10.3):
-    resolution: {integrity: sha512-QnenevbnnAzmbNzQwbhklvIYrDE8YER8K7kSrAWQSV1YvFCdSQPzj+jzqRdTSsV2cDqSpQ0NXGyL1G9I43LDLg==}
+  /drizzle-orm@0.44.5(@planetscale/database@1.19.0)(mysql2@3.10.3):
+    resolution: {integrity: sha512-jBe37K7d8ZSKptdKfakQFdeljtu3P2Cbo7tJoJSVZADzIKOBo9IAJPOmMsH2bZl90bZgh8FQlD8BjxXA/zuBkQ==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
-      '@cloudflare/workers-types': '>=3'
-      '@electric-sql/pglite': '>=0.1.1'
-      '@libsql/client': '*'
-      '@neondatabase/serverless': '>=0.1'
+      '@cloudflare/workers-types': '>=4'
+      '@electric-sql/pglite': '>=0.2.0'
+      '@libsql/client': '>=0.10.0'
+      '@libsql/client-wasm': '>=0.10.0'
+      '@neondatabase/serverless': '>=0.10.0'
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
-      '@planetscale/database': '>=1'
+      '@planetscale/database': '>=1.13'
+      '@prisma/client': '*'
       '@tidbcloud/serverless': '*'
       '@types/better-sqlite3': '*'
       '@types/pg': '*'
-      '@types/react': '>=18'
       '@types/sql.js': '*'
+      '@upstash/redis': '>=1.34.7'
       '@vercel/postgres': '>=0.8.0'
       '@xata.io/client': '*'
       better-sqlite3: '>=7'
       bun-types: '*'
-      expo-sqlite: '>=13.2.0'
+      expo-sqlite: '>=14.0.0'
+      gel: '>=2'
       knex: '*'
       kysely: '*'
       mysql2: '>=2'
       pg: '>=8'
       postgres: '>=3'
-      react: '>=18'
+      prisma: '*'
       sql.js: '>=1'
       sqlite3: '>=5'
     peerDependenciesMeta:
@@ -13169,6 +13177,8 @@ packages:
         optional: true
       '@libsql/client':
         optional: true
+      '@libsql/client-wasm':
+        optional: true
       '@neondatabase/serverless':
         optional: true
       '@op-engineering/op-sqlite':
@@ -13177,15 +13187,17 @@ packages:
         optional: true
       '@planetscale/database':
         optional: true
+      '@prisma/client':
+        optional: true
       '@tidbcloud/serverless':
         optional: true
       '@types/better-sqlite3':
         optional: true
       '@types/pg':
         optional: true
-      '@types/react':
-        optional: true
       '@types/sql.js':
+        optional: true
+      '@upstash/redis':
         optional: true
       '@vercel/postgres':
         optional: true
@@ -13197,6 +13209,8 @@ packages:
         optional: true
       expo-sqlite:
         optional: true
+      gel:
+        optional: true
       knex:
         optional: true
       kysely:
@@ -13207,7 +13221,7 @@ packages:
         optional: true
       postgres:
         optional: true
-      react:
+      prisma:
         optional: true
       sql.js:
         optional: true
@@ -13526,13 +13540,13 @@ packages:
       esast-util-from-estree: 2.0.0
       vfile-message: 4.0.3
 
-  /esbuild-register@3.6.0(esbuild@0.19.12):
+  /esbuild-register@3.6.0(esbuild@0.25.9):
     resolution: {integrity: sha512-H2/S7Pm8a9CL1uhp9OvjwrBh5Pvx0H8qVOxNu8Wed9Y7qv56MPtq+GGM8RJpq6glYJn9Wspr8uw7l55uyinNeg==}
     peerDependencies:
       esbuild: '>=0.12 <1'
     dependencies:
       debug: 4.4.1(supports-color@8.1.1)
-      esbuild: 0.19.12
+      esbuild: 0.25.9
     transitivePeerDependencies:
       - supports-color
     dev: true

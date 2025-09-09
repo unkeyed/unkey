@@ -1,12 +1,11 @@
 #!/bin/bash
-# AIDEV-NOTE: SPIRE Agent wrapper script for join token support
 # This wrapper handles automatic joining with server using join tokens
 # Environment variables are passed from systemd service
 
 set -euo pipefail
 
 # Configuration from environment variables (set by systemd)
-TRUST_DOMAIN=${UNKEY_SPIRE_TRUST_DOMAIN:-development.unkey.app}
+TRUST_DOMAIN=${UNKEY_SPIRE_TRUST_DOMAIN:-development.unkey.cloud}
 LOG_LEVEL=${UNKEY_SPIRE_LOG_LEVEL:-INFO}
 SERVER_URL=${UNKEY_SPIRE_SERVER_URL:-https://localhost:8085}
 JOIN_TOKEN=${UNKEY_SPIRE_JOIN_TOKEN:-}
