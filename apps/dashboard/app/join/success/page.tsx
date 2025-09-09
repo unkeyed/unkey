@@ -2,8 +2,9 @@
 
 import { Button } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-export default function JoinSuccessPage() {
+import { Suspense, useEffect, useState } from "react";
+
+function JoinSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(3);
@@ -55,5 +56,24 @@ export default function JoinSuccessPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function JoinSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto px-4">
+            <div className="mb-6">
+              <div className="w-16 h-16 border-4 border-gray-800 border-t-white rounded-full animate-spin mx-auto" />
+            </div>
+            <h1 className="text-2xl font-semibold mb-3">Loading...</h1>
+          </div>
+        </div>
+      }
+    >
+      <JoinSuccessContent />
+    </Suspense>
   );
 }
