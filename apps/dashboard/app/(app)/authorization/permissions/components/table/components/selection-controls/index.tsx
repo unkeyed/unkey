@@ -1,5 +1,6 @@
 import { AnimatedCounter } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/selection-controls";
 import { ConfirmPopover } from "@/components/confirmation-popover";
+import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,8 +8,8 @@ import { useRef, useState } from "react";
 import { useDeletePermission } from "../actions/components/hooks/use-delete-permission";
 
 type SelectionControlsProps = {
-  selectedPermissions: Set<string>;
-  setSelectedPermissions: (keys: Set<string>) => void;
+  selectedPermissions: Set<Permission>;
+  setSelectedPermissions: (keys: Set<Permission>) => void;
 };
 
 export const SelectionControls = ({
@@ -28,7 +29,7 @@ export const SelectionControls = ({
 
   const performPermissionDelete = () => {
     deletePermission.mutate({
-      permissionIds: Array.from(selectedPermissions),
+      permissionIds: Array.from(selectedPermissions).map((permission) => permission.permissionId),
     });
   };
 

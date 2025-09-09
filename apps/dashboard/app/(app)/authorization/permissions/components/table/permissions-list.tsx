@@ -25,16 +25,16 @@ export const PermissionsList = () => {
   const { permissions, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
     usePermissionsListQuery();
   const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
-  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<Permission>>(new Set());
   const [hoveredPermissionName, setHoveredPermissionName] = useState<string | null>(null);
 
-  const toggleSelection = useCallback((permissionName: string) => {
+  const toggleSelection = useCallback((permission: Permission) => {
     setSelectedPermissions((prevSelected) => {
       const newSelected = new Set(prevSelected);
-      if (newSelected.has(permissionName)) {
-        newSelected.delete(permissionName);
+      if (newSelected.has(permission)) {
+        newSelected.delete(permission);
       } else {
-        newSelected.add(permissionName);
+        newSelected.add(permission);
       }
       return newSelected;
     });
@@ -48,7 +48,7 @@ export const PermissionsList = () => {
         width: "20%",
         headerClassName: "pl-[18px]",
         render: (permission) => {
-          const isSelected = selectedPermissions.has(permission.name);
+          const isSelected = selectedPermissions.has(permission);
           const isHovered = hoveredPermissionName === permission.name;
 
           const iconContainer = (
@@ -66,7 +66,7 @@ export const PermissionsList = () => {
                 <Checkbox
                   checked={isSelected}
                   className="size-4 [&_svg]:size-3"
-                  onCheckedChange={() => toggleSelection(permission.name)}
+                  onCheckedChange={() => toggleSelection(permission)}
                 />
               )}
             </div>
