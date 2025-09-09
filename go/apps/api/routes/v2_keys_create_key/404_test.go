@@ -22,6 +22,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		Logger:    h.Logger,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		ApiCache:  h.Caches.LiveApiByID,
 	}
 
 	h.Register(route)
@@ -43,7 +44,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
+		require.Contains(t, res.Body.Error.Detail, "The requested API does not exist or has been deleted.")
 	})
 
 	t.Run("api with valid format but invalid id", func(t *testing.T) {
@@ -56,7 +57,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
+		require.Contains(t, res.Body.Error.Detail, "The requested API does not exist or has been deleted.")
 	})
 
 	t.Run("api from different workspace", func(t *testing.T) {
@@ -84,7 +85,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, otherHeaders, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
+		require.Contains(t, res.Body.Error.Detail, "The requested API does not exist or has been deleted.")
 	})
 
 	t.Run("api with minimum valid length but nonexistent", func(t *testing.T) {
@@ -97,7 +98,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
+		require.Contains(t, res.Body.Error.Detail, "The requested API does not exist or has been deleted.")
 	})
 
 	t.Run("deleted api", func(t *testing.T) {
@@ -111,7 +112,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
+		require.Contains(t, res.Body.Error.Detail, "The requested API does not exist or has been deleted.")
 	})
 
 }

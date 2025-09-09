@@ -51,6 +51,7 @@ build:
 generate:
 	buf generate
 	go generate ./...
+	go fmt ./...
 
 generate-builder:
 	buf generate --path proto/deploy/builderd

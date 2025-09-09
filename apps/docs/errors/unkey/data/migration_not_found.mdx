@@ -1,0 +1,51 @@
+---
+title: "migration_not_found"
+description: "The requested Key Migration was not found"
+---
+
+<Danger>err:unkey:data:migration_not_found</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested Migration could not be found",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/migration_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to migrate api keys for a migration that doesn't exist in the Unkey system.
+
+Common scenarios that trigger this error:
+
+- Using an incorrect or expired migrationId
+- The migration was deleted
+- The migration belongs to a different workspace
+- Typos in the migrationId
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Attempting to migrate keys with a non-existent migrationId
+curl -X POST https://api.unkey.com/v2/keys.migrateKeys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -d '{
+    "apiId": "api_123",
+    "migrationId": "migration_456",
+    "keys": [{ "hash": "deadbeef" }]
+  }'
+```
+
+## How To Fix
+
+<Info>
+  If you’re unsure about your migrationId or setup, contact support@unkey.com.
+</Info>

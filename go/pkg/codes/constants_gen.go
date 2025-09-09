@@ -61,6 +61,11 @@ const (
 	// NotFound indicates the requested API was not found.
 	UnkeyDataErrorsApiNotFound URN = "err:unkey:data:api_not_found"
 
+	// Migration
+
+	// NotFound indicates the requested migration was not found.
+	UnkeyDataErrorsMigrationNotFound URN = "err:unkey:data:migration_not_found"
+
 	// Permission
 
 	// Duplicate indicates the requested permission already exists.

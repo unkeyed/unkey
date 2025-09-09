@@ -27,7 +27,8 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     enabled,
     remaining_requests,
     refill_day,
-    refill_amount
+    refill_amount,
+    pending_migration_id
 ) VALUES (
     ?,
     ?,
@@ -44,26 +45,28 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
 
 type InsertKeyParams struct {
-	ID                string         `db:"id"`
-	KeyringID         string         `db:"keyring_id"`
-	Hash              string         `db:"hash"`
-	Start             string         `db:"start"`
-	WorkspaceID       string         `db:"workspace_id"`
-	ForWorkspaceID    sql.NullString `db:"for_workspace_id"`
-	Name              sql.NullString `db:"name"`
-	IdentityID        sql.NullString `db:"identity_id"`
-	Meta              sql.NullString `db:"meta"`
-	Expires           sql.NullTime   `db:"expires"`
-	CreatedAtM        int64          `db:"created_at_m"`
-	Enabled           bool           `db:"enabled"`
-	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
-	RefillDay         sql.NullInt16  `db:"refill_day"`
-	RefillAmount      sql.NullInt32  `db:"refill_amount"`
+	ID                 string         `db:"id"`
+	KeyringID          string         `db:"keyring_id"`
+	Hash               string         `db:"hash"`
+	Start              string         `db:"start"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
+	Name               sql.NullString `db:"name"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	Meta               sql.NullString `db:"meta"`
+	Expires            sql.NullTime   `db:"expires"`
+	CreatedAtM         int64          `db:"created_at_m"`
+	Enabled            bool           `db:"enabled"`
+	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RefillDay          sql.NullInt16  `db:"refill_day"`
+	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
 // InsertKey
@@ -84,7 +87,8 @@ type InsertKeyParams struct {
 //	    enabled,
 //	    remaining_requests,
 //	    refill_day,
-//	    refill_amount
+//	    refill_amount,
+//	    pending_migration_id
 //	) VALUES (
 //	    ?,
 //	    ?,
@@ -94,6 +98,7 @@ type InsertKeyParams struct {
 //	    ?,
 //	    ?,
 //	    null,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -120,6 +125,7 @@ func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) e
 		arg.RemainingRequests,
 		arg.RefillDay,
 		arg.RefillAmount,
+		arg.PendingMigrationID,
 	)
 	return err
 }

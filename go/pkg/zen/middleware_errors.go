@@ -37,6 +37,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			case codes.UnkeyDataErrorsKeyNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
+				codes.UnkeyDataErrorsMigrationNotFound,
 				codes.UnkeyDataErrorsPermissionNotFound,
 				codes.UnkeyDataErrorsRoleNotFound,
 				codes.UnkeyDataErrorsKeyAuthNotFound,

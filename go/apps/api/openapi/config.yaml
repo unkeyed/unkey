@@ -3,7 +3,6 @@ package: openapi
 output: ./gen.go
 generate:
   models: true
-
 output-options:
   nullable-type: true
   overlay:
