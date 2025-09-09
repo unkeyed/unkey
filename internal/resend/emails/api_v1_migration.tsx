@@ -16,7 +16,11 @@ export type Props = {
   deprecatedEndpoints: string[];
 };
 
-export function ApiV1Migration({ username, workspaceName, deprecatedEndpoints }: Props) {
+export function ApiV1Migration({
+  username = "User",
+  workspaceName = "Your Workspace",
+  deprecatedEndpoints = [],
+}: Props) {
   return (
     <Layout>
       <Heading className="font-sans text-3xl text-semibold text-center">

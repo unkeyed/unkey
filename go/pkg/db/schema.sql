@@ -182,7 +182,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
-	`slug` varchar(64),
+	`slug` varchar(64) NOT NULL,
 	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
