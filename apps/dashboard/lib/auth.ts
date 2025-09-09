@@ -152,9 +152,6 @@ export async function processPostAuthInvitation(
     console.error("Failed to process post-auth invitation:", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    return { success: false, error: "Unable to process invitation" };
   }
 }

@@ -20,11 +20,13 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 401 });
     }
-
-    // Get the invitation details from the request body
-    const body = await request.json();
-    const { invitationToken } = body;
-
+    let invitationToken: string | undefined;
+    try {
+      const body = await request.json();
+      invitationToken = body?.invitationToken;
+    } catch {
+      return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 });
+    }
     if (!invitationToken) {
       return NextResponse.json(
         { success: false, error: "Invitation token is required" },
@@ -61,7 +63,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate email matches
-    if (user.email !== invitationEmail) {
+    const normalize = (e: string) => e.trim().toLowerCase();
+    if (normalize(user.email) !== normalize(invitationEmail)) {
       return NextResponse.json({ success: false, error: "Email mismatch" }, { status: 403 });
     }
 
@@ -83,13 +86,11 @@ export async function POST(request: NextRequest) {
         message: "Invitation accepted and organization switched successfully",
       });
 
-      // Update session to ensure new session state is reflected
       const { headers: sessionHeaders } = await updateSession(request);
 
-      // Copy session headers to response
       for (const [key, value] of sessionHeaders.entries()) {
-        if (key.toLowerCase().includes("cookie") || key.toLowerCase().includes("session")) {
-          response.headers.set(key, value);
+        if (key.toLowerCase() === "set-cookie") {
+          response.headers.append(key, value);
         }
       }
 

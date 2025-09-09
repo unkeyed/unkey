@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth/server";
 import { updateSession } from "@/lib/auth/sessions";
 import type { AuthenticatedUser, Invitation, User } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const DASHBOARD_URL = new URL("/apis", request.url);
   const SIGN_IN_URL = new URL("/auth/sign-in", request.url);
@@ -13,7 +15,7 @@ export async function GET(request: NextRequest) {
   const invitationToken = searchParams.get("invitation_token");
 
   if (!invitationToken) {
-    return NextResponse.redirect(DASHBOARD_URL); // middleware will pickup if they are not authenticated and redirect to login
+    return NextResponse.redirect(DASHBOARD_URL);
   }
 
   // Check authentication status more reliably by validating the session

@@ -68,14 +68,15 @@ export async function verifyAuthCode(params: {
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
-              let redirectUrl = "/apis";
+              const redirectUrl = "/apis";
               try {
                 const org = await auth.getOrg(invitation.organizationId);
                 if (org?.name) {
-                  const successUrl = new URL("/join/success", "http://localhost");
-                  successUrl.searchParams.set("from_invite", "true");
-                  successUrl.searchParams.set("org_name", org.name);
-                  redirectUrl = successUrl.pathname + successUrl.search;
+                  const params = new URLSearchParams({
+                    from_invite: "true",
+                    org_name: org.name,
+                  });
+                  `/join/success?${params.toString()}`;
                 }
               } catch (error) {
                 // Don't fail the redirect if we can't get org name
@@ -125,27 +126,30 @@ export async function verifyAuthCode(params: {
           }
 
           // Try to get organization name for better UX
-          let redirectUrl = result.redirectTo;
+          const redirectUrl = result.redirectTo;
           try {
             const org = await auth.getOrg(invitation.organizationId);
             if (org?.name) {
-              const successUrl = new URL("/join/success", "http://localhost");
-              successUrl.searchParams.set("from_invite", "true");
-              successUrl.searchParams.set("org_name", org.name);
-              redirectUrl = successUrl.pathname + successUrl.search;
+              const params = new URLSearchParams({
+                from_invite: "true",
+                org_name: org.name,
+              });
+              `/join/success?${params.toString()}`;
             } else {
-              redirectUrl = "/join/success?from_invite=true";
+              const params = new URLSearchParams({ from_invite: "true" });
+              `/join/success?${params.toString()}`;
             }
           } catch (error) {
             // Don't fail if we can't get org name, just use join success without org name
             console.warn("Could not fetch organization name for new user success page:", error);
-            redirectUrl = "/join/success?from_invite=true";
+            const params = new URLSearchParams({ from_invite: "true" });
+            `/join/success?${params.toString()}`;
           }
 
           return {
             success: true,
             redirectTo: redirectUrl,
-            cookies: result.cookies,
+            cookies: [],
           };
         }
         console.warn("Invalid invitation or missing organization ID:", {
