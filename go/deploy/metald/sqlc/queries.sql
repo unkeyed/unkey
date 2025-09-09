@@ -12,8 +12,8 @@ WHERE id = (
 RETURNING *;
 
 -- name: CreateNetworkAllocation :one
-INSERT INTO network_allocations (deployment_id, network_id, available_ips)
-VALUES (?, ?, ?)
+INSERT INTO network_allocations (deployment_id, network_id, available_ips, bridge_name)
+VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetNetworkAllocation :one
