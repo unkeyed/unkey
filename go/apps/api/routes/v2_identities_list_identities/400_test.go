@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -80,9 +81,7 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("malformed JSON body", func(t *testing.T) {
 		customHeaders := make(http.Header)
-		for k, v := range headers {
-			customHeaders[k] = v
-		}
+		maps.Copy(customHeaders, headers)
 		customHeaders.Set("Content-Type", "application/json")
 
 		// Create a malformed JSON string
