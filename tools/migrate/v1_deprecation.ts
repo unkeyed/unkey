@@ -51,12 +51,21 @@ async function main() {
   );
   const workspaceToPaths = new Map<string, string[]>();
   for (const row of rows.val) {
+    if (row.workspace_id.startsWith("test_")) {
+      continue;
+    }
     const paths = workspaceToPaths.get(row.workspace_id) || [];
     paths.push(row.path);
     workspaceToPaths.set(row.workspace_id, paths);
   }
 
   for (const [workspaceId, paths] of workspaceToPaths.entries()) {
+    if (paths.includes("/v1/analytics.getVerifications")) {
+      console.warn(
+        `Skipping workspace ${workspaceId} due to analytics endpoint: ${paths.join(", ")}`,
+      );
+      continue;
+    }
     console.log(workspaceId, paths);
 
     const workspace = await db.query.workspaces.findFirst({
@@ -77,7 +86,7 @@ async function main() {
     for (const member of members.data) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       const user = await workos.userManagement.getUser(member.userId);
-
+      console.log(`User: ${user.email}`);
       await resend.sendApiV1MigrationEmail({
         email: user.email,
         name: user.firstName,
