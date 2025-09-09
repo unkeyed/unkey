@@ -152,6 +152,7 @@ func TestNotFoundErrors(t *testing.T) {
 			ID:        otherWorkspaceID,
 			OrgID:     uid.New("test_org"),
 			Name:      uid.New("test_name"),
+			Slug:      uid.New("slug"),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -215,6 +216,7 @@ func TestNotFoundErrors(t *testing.T) {
 			ID:        otherWorkspaceID,
 			OrgID:     uid.New("test_org"),
 			Name:      uid.New("test_name"),
+			Slug:      uid.New("slug"),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
