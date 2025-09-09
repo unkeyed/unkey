@@ -248,13 +248,10 @@ message BuildOptions {
 
   // Additional labels to add to the built asset
   map<string, string> build_labels = 4;
-
-  // Tenant context for build authorization
-  string tenant_id = 5;
   
   // Suggested asset ID to use when registering the built asset
   // This allows the caller to know the asset ID before it's built
-  string suggested_asset_id = 6;
+  string suggested_asset_id = 5;
 }
 
 // QueryAssetsResponse includes build information if builds were triggered

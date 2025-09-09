@@ -16,3 +16,5 @@ export type Transaction = PlanetScaleTransaction<
   typeof schema,
   ExtractTablesWithRelations<typeof schema>
 >;
+
+export { DrizzleQueryError } from "drizzle-orm/errors";

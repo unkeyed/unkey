@@ -102,18 +102,6 @@ func (c *Client) RegisterBuildArtifactWithID(ctx context.Context, buildID, artif
 	// AIDEV-NOTE: This properly uploads the file to assetmanagerd's storage and registers it
 	stream := c.client.UploadAsset(ctx)
 
-	// Try to extract tenant info from labels for headers
-	tenantID := labels["tenant_id"]
-	customerID := labels["customer_id"]
-
-	// Set tenant headers on the stream if available
-	if tenantID != "" {
-		stream.RequestHeader().Set("X-Tenant-ID", tenantID)
-	}
-	if customerID != "" {
-		stream.RequestHeader().Set("X-Customer-ID", customerID)
-	}
-
 	// Send metadata first
 	metadataReq := &assetv1.UploadAssetRequest{
 		Data: &assetv1.UploadAssetRequest_Metadata{

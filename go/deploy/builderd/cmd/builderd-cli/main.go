@@ -21,8 +21,6 @@ import (
 func main() {
 	var (
 		serverAddr   = flag.String("server", getEnvOrDefault("UNKEY_BUILDERD_SERVER_ADDRESS", "https://localhost:8082"), "builderd server address")
-		userID       = flag.String("user", getEnvOrDefault("UNKEY_BUILDERD_USER_ID", "cli-user"), "user ID for authentication")
-		tenantID     = flag.String("tenant", getEnvOrDefault("UNKEY_BUILDERD_TENANT_ID", "cli-tenant"), "tenant ID for data scoping")
 		tlsMode      = flag.String("tls-mode", getEnvOrDefault("UNKEY_BUILDERD_TLS_MODE", "spiffe"), "TLS mode: disabled, file, or spiffe")
 		spiffeSocket = flag.String("spiffe-socket", getEnvOrDefault("UNKEY_BUILDERD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"), "SPIFFE agent socket path")
 		tlsCert      = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
@@ -43,8 +41,6 @@ func main() {
 	// Create builderd client
 	config := client.Config{
 		ServerAddress:    *serverAddr,
-		UserID:           *userID,
-		TenantID:         *tenantID,
 		TLSMode:          *tlsMode,
 		SPIFFESocketPath: *spiffeSocket,
 		TLSCertFile:      *tlsCert,
@@ -74,8 +70,6 @@ func main() {
 		handleDeleteBuild(ctx, builderClient, *jsonOutput)
 	case "stream-logs":
 		handleStreamLogs(ctx, builderClient, *jsonOutput)
-	case "get-quotas":
-		handleGetQuotas(ctx, builderClient, *jsonOutput)
 	case "get-stats":
 		handleGetStats(ctx, builderClient, *jsonOutput)
 	default:
@@ -93,23 +87,20 @@ Usage: %s [flags] <command> [args...]
 Commands:
   create-build <image-uri>        Create a new build from Docker image
   get-build <build-id>            Get build status and details
-  list-builds                     List builds for tenant
+  list-builds                     List builds
   cancel-build <build-id>         Cancel a running build
   delete-build <build-id>         Delete a build and its artifacts
   stream-logs <build-id>          Stream build logs in real-time
-  get-quotas                      Get tenant quotas and usage
   get-stats                       Get build statistics
 
 Environment Variables:
   UNKEY_BUILDERD_SERVER_ADDRESS   Server address (default: https://localhost:8082)
-  UNKEY_BUILDERD_USER_ID          User ID for authentication (default: cli-user)
-  UNKEY_BUILDERD_TENANT_ID        Tenant ID for data scoping (default: cli-tenant)
   UNKEY_BUILDERD_TLS_MODE         TLS mode (default: spiffe)
   UNKEY_BUILDERD_SPIFFE_SOCKET    SPIFFE socket path (default: /var/lib/spire/agent/agent.sock)
 
 Examples:
   # Create build from Docker image with SPIFFE authentication
-  %s -user=prod-user-123 -tenant=prod-tenant-456 create-build ubuntu:latest
+  %s create-build ubuntu:latest
 
   # Get build status
   %s get-build build-12345
@@ -120,8 +111,6 @@ Examples:
   # Stream build logs
   %s stream-logs build-12345
 
-  # Get tenant quotas
-  %s get-quotas
 
   # Get build statistics
   %s get-stats
@@ -129,7 +118,7 @@ Examples:
   # Get response with JSON output
   %s get-build build-12345 -json
 
-`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 }
 
 func handleCreateBuild(ctx context.Context, builderClient *client.Client, jsonOutput bool) {
@@ -140,10 +129,6 @@ func handleCreateBuild(ctx context.Context, builderClient *client.Client, jsonOu
 
 	// Create a basic Docker image build configuration
 	config := &builderv1.BuildConfig{
-		Tenant: &builderv1.TenantContext{
-			TenantId:   builderClient.GetTenantID(),
-			CustomerId: builderClient.GetTenantID(),
-		},
 		Source: &builderv1.BuildSource{
 			SourceType: &builderv1.BuildSource_DockerImage{
 				DockerImage: &builderv1.DockerImageSource{
@@ -195,8 +180,7 @@ func handleGetBuild(ctx context.Context, builderClient *client.Client, jsonOutpu
 	buildID := flag.Arg(1)
 
 	req := &client.GetBuildRequest{
-		BuildID:  buildID,
-		TenantID: builderClient.GetTenantID(),
+		BuildID: buildID,
 	}
 
 	resp, err := builderClient.GetBuild(ctx, req)
@@ -223,7 +207,6 @@ func handleGetBuild(ctx context.Context, builderClient *client.Client, jsonOutpu
 
 func handleListBuilds(ctx context.Context, builderClient *client.Client, jsonOutput bool) {
 	req := &client.ListBuildsRequest{
-		TenantID: builderClient.GetTenantID(),
 		PageSize: 50,
 	}
 
@@ -252,8 +235,7 @@ func handleCancelBuild(ctx context.Context, builderClient *client.Client, jsonOu
 	buildID := flag.Arg(1)
 
 	req := &client.CancelBuildRequest{
-		BuildID:  buildID,
-		TenantID: builderClient.GetTenantID(),
+		BuildID: buildID,
 	}
 
 	resp, err := builderClient.CancelBuild(ctx, req)
@@ -284,9 +266,8 @@ func handleDeleteBuild(ctx context.Context, builderClient *client.Client, jsonOu
 	}
 
 	req := &client.DeleteBuildRequest{
-		BuildID:  buildID,
-		TenantID: builderClient.GetTenantID(),
-		Force:    force,
+		BuildID: buildID,
+		Force:   force,
 	}
 
 	resp, err := builderClient.DeleteBuild(ctx, req)
@@ -311,9 +292,8 @@ func handleStreamLogs(ctx context.Context, builderClient *client.Client, jsonOut
 	buildID := flag.Arg(1)
 
 	req := &client.StreamBuildLogsRequest{
-		BuildID:  buildID,
-		TenantID: builderClient.GetTenantID(),
-		Follow:   true,
+		BuildID: buildID,
+		Follow:  true,
 	}
 
 	stream, err := builderClient.StreamBuildLogs(ctx, req)
@@ -340,38 +320,6 @@ func handleStreamLogs(ctx context.Context, builderClient *client.Client, jsonOut
 	}
 }
 
-func handleGetQuotas(ctx context.Context, builderClient *client.Client, jsonOutput bool) {
-	req := &client.GetTenantQuotasRequest{
-		TenantID: builderClient.GetTenantID(),
-	}
-
-	resp, err := builderClient.GetTenantQuotas(ctx, req)
-	if err != nil {
-		log.Fatalf("Failed to get tenant quotas: %v", err)
-	}
-
-	if jsonOutput {
-		outputJSON(resp)
-	} else {
-		fmt.Printf("Tenant quotas and usage:\n")
-		if resp.Quotas != nil {
-			fmt.Printf("  Limits:\n")
-			fmt.Printf("    Max concurrent builds: %d\n", resp.Quotas.MaxConcurrentBuilds)
-			fmt.Printf("    Max daily builds: %d\n", resp.Quotas.MaxDailyBuilds)
-			fmt.Printf("    Max storage bytes: %d\n", resp.Quotas.MaxStorageBytes)
-		}
-		if resp.Usage != nil {
-			fmt.Printf("  Current usage:\n")
-			fmt.Printf("    Active builds: %d\n", resp.Usage.ActiveBuilds)
-			fmt.Printf("    Daily builds used: %d\n", resp.Usage.DailyBuildsUsed)
-			fmt.Printf("    Storage used: %d bytes\n", resp.Usage.StorageBytesUsed)
-		}
-		if len(resp.Violations) > 0 {
-			fmt.Printf("  Quota violations: %d\n", len(resp.Violations))
-		}
-	}
-}
-
 func handleGetStats(ctx context.Context, builderClient *client.Client, jsonOutput bool) {
 	// Default to last 24 hours
 	endTime := time.Now()
@@ -385,7 +333,6 @@ func handleGetStats(ctx context.Context, builderClient *client.Client, jsonOutpu
 	}
 
 	req := &client.GetBuildStatsRequest{
-		TenantID:  builderClient.GetTenantID(),
 		StartTime: timestamppb.New(startTime),
 		EndTime:   timestamppb.New(endTime),
 	}

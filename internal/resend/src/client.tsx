@@ -3,6 +3,7 @@ import { Resend as Client } from "resend";
 import { render } from "@react-email/render";
 // biome-ignore lint/correctness/noUnusedImports: React UMD bypass
 import React from "react";
+import { ApiV1Migration } from "../emails/api_v1_migration";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
 import { TrialEnded } from "../emails/trial_ended";
@@ -106,6 +107,37 @@ export class Resend {
       throw result.error;
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  public async sendApiV1MigrationEmail(req: {
+    email: string;
+    name: string;
+    workspace: string;
+    deprecatedEndpoints: string[];
+  }): Promise<void> {
+    const html = render(
+      <ApiV1Migration
+        username={req.name}
+        workspaceName={req.workspace}
+        deprecatedEndpoints={req.deprecatedEndpoints}
+      />,
+    );
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "Andreas from Unkey <andreas@updates.unkey.com>",
+        replyTo: this.replyTo,
+        subject: "Action Required: Migrate from API v1 to v2 - Deadline January 1st, 2026",
+        html,
+      });
+
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending API v1 migration email ", JSON.stringify(error));
     }
   }
 }
