@@ -17,7 +17,6 @@ export const ratelimitNamespaces = createCollection(
     queryKey: ["ratelimitNamespaces"],
     retry: 3,
     queryFn: async () => {
-      console.info("DB fetching ratelimitNamespaces");
       return await trpcClient.ratelimit.namespace.list.query();
     },
     getKey: (item) => item.id,
