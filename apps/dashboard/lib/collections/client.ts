@@ -1,5 +1,4 @@
-"use client"
-
+"use client";
 
 import type { Router } from "@/lib/trpc/routers";
 import { QueryClient } from "@tanstack/query-core";

@@ -1,16 +1,18 @@
-"use client"
+"use client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
-import { queryClient, trpcClient } from "./client";
 import { z } from "zod";
+import { queryClient, trpcClient } from "./client";
 
 const schema = z.object({
+  id: z.string(),
   namespaceId: z.string(),
   identifier: z.string(),
   limit: z.number(),
   duration: z.number(),
 });
+type Schema = z.infer<typeof schema>;
 
 export const ratelimitOverrides = createCollection<Schema>(
   queryCollectionOptions({

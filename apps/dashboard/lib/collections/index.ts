@@ -3,7 +3,6 @@
 import { ratelimitNamespaces } from "./ratelimit_namespaces";
 import { ratelimitOverrides } from "./ratelimit_overrides";
 
-
 export const collection = {
   ratelimitNamespaces,
   ratelimitOverrides,
