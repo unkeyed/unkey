@@ -7,7 +7,7 @@ import { queryClient, trpcClient } from "./client";
 
 const schema = z.object({
   id: z.string(),
-  name: z.string(),
+  name: z.string().min(1).max(50),
 });
 
 type Schema = z.infer<typeof schema>;
