@@ -69,7 +69,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         utils.user.getCurrentUser.invalidate();
         utils.api.overview.query.invalidate();
 
-        reset();
+        await reset();
 
         // reload data
         router.replace("/");

@@ -10,9 +10,9 @@ export const collection = {
 };
 
 // resets all collections data and preloads new
-export function reset() {
+export async function reset() {
   for (const c of [ratelimitNamespaces, ratelimitOverrides]) {
-    c.cleanup();
-    c.preload();
+    await c.cleanup();
+    await c.preload();
   }
 }
