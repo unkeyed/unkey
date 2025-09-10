@@ -190,29 +190,57 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			for _, instance := range vms {
 				known, ok := instances[instance.Id]
 				if !ok || known.State != instance.State {
-					if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), partitiondb.UpsertVMParams{
+					upsertParams := partitiondb.UpsertVMParams{
 						ID:            instance.Id,
 						DeploymentID:  req.DeploymentID,
 						Address:       sql.NullString{Valid: true, String: fmt.Sprintf("%s:%d", instance.Host, instance.Port)},
 						CpuMillicores: 1000,                         // TODO derive from spec
 						MemoryMb:      1024,                         // TODO derive from spec
 						Status:        partitiondb.VmsStatusRunning, // TODO
-					}); err != nil {
-						w.logger.Error("failed to upsert VM", "error", err, "vm_id", instance.Id)
+					}
+
+					w.logger.Info("upserting VM to database",
+						"vm_id", instance.Id,
+						"deployment_id", req.DeploymentID,
+						"address", fmt.Sprintf("%s:%d", instance.Host, instance.Port),
+						"status", "running")
+
+					if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+						w.logger.Error("failed to upsert VM", "error", err, "vm_id", instance.Id, "params", upsertParams)
 						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
 					}
 
+					w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
+
 					instances[instance.Id] = instance
-					if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
-						allReady = false
-						w.logger.Debug("vm state changed", "vm_id", instance.Id, "state", instance.State)
-					}
+				}
+
+				w.logger.Debug("checking VM readiness", "vm_id", instance.Id, "state", instance.State.String())
+				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
+					allReady = false
+					w.logger.Debug("vm not ready", "vm_id", instance.Id, "state", instance.State.String())
 				}
 			}
 
 			if allReady {
+				w.logger.Info("all VMs ready, deployment complete",
+					"deployment_id", req.DeploymentID,
+					"vm_count", len(vms),
+					"vms", func() []string {
+						var ids []string
+						for _, vm := range vms {
+							ids = append(ids, vm.Id)
+						}
+						return ids
+					}())
+
 				return vms, nil
 			}
+
+			w.logger.Debug("deployment not ready yet, continuing to poll",
+				"deployment_id", req.DeploymentID,
+				"iteration", i,
+				"all_ready", allReady)
 		}
 
 		return nil, fmt.Errorf("deployment never became ready")
@@ -366,6 +394,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Update deployment status to active
 	_, err = hydra.Step(ctx, "update-deployment-ready", func(stepCtx context.Context) (*DeploymentResult, error) {
+		w.logger.Info("updating deployment status to ready", "deployment_id", req.DeploymentID)
 		completionTime := time.Now().UnixMilli()
 		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
@@ -376,6 +405,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			w.logger.Error("failed to update deployment status to ready", "error", activeErr, "deployment_id", req.DeploymentID)
 			return nil, fmt.Errorf("failed to update deployment status to ready: %w", activeErr)
 		}
+		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
 
 		return &DeploymentResult{
 			DeploymentID: req.DeploymentID,

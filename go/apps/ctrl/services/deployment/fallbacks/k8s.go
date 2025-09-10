@@ -233,20 +233,20 @@ func (k *K8sBackend) GetDeploymentStatus(ctx context.Context, deploymentID strin
 		state = metaldv1.VmState_VM_STATE_CREATED
 	}
 
-	// Get the NodePort from the service
-	nodePort := int32(8080) // fallback
-	if len(service.Spec.Ports) > 0 && service.Spec.Ports[0].NodePort != 0 {
-		nodePort = service.Spec.Ports[0].NodePort
-	}
+	// Always use cluster IP and container port for backend communication
+	host := service.Spec.ClusterIP
+	port := int32(8080) // Always use container port for backend service calls
 
 	// For each VM ID, create a response
 	for _, vmID := range deploymentInfo.VMIDs {
-		vms = append(vms, &metaldv1.GetDeploymentResponse_Vm{
+		vm := &metaldv1.GetDeploymentResponse_Vm{
 			Id:    vmID,
 			State: state,
-			Host:  service.Spec.ClusterIP,
-			Port:  uint32(nodePort),
-		})
+			Host:  host,
+			Port:  uint32(port),
+		}
+
+		vms = append(vms, vm)
 	}
 
 	return vms, nil
