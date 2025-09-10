@@ -7,27 +7,26 @@ import { TRPCError } from "@trpc/server";
 
 
 
-export const listProjects = t.procedure
+export const listDomains = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
 
-    return await db.query.projects.findMany({
+    return await db.query.domains.findMany({
       where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
       columns: {
         id: true,
-        name: true,
-        slug: true,
-        updatedAt: true,
-        gitRepositoryUrl: true,
+        domain: true,
+        projectId: true,
+        type: true,
       }
     }).catch(error => {
-      console.error("Error querying projects:", error);
+      console.error("Error querying domains:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve projects due to an error. If this issue persists, please contact support.",
+          "Failed to retrieve domains due to an error. If this issue persists, please contact support.",
       });
     });
   });

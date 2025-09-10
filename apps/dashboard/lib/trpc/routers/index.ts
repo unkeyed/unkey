@@ -43,8 +43,9 @@ import { createProject } from "./deploy/project/create";
 import { queryDeployments } from "./deploy/project/deployment/list";
 import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
 import { getEnvs } from "./deploy/project/envs/list";
-import { queryProjects } from "./deploy/project/list";
+import { listProjects } from "./deploy/project/list";
 import { deploymentRouter } from "./deployment";
+import { listDomains } from "./domains/list";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -312,7 +313,7 @@ export const router = t.router({
   }),
   deploy: t.router({
     project: t.router({
-      list: queryProjects,
+      list: listProjects,
       create: createProject,
       activeDeployment: t.router({
         details: getDeploymentDetails,
@@ -326,6 +327,9 @@ export const router = t.router({
         search: deploymentListLlmSearch,
       }),
     }),
+  }),
+  domain: t.router({
+    list: listDomains
   }),
   deployment: deploymentRouter,
 });
