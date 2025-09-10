@@ -24,8 +24,8 @@ export const ratelimitOverrides = createCollection<Schema>(
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
 
-      const p = trpcClient.ratelimit.override.create.mutate(schema.parse(changes));
-      toast.promise(p, {
+      const mutation = trpcClient.ratelimit.override.create.mutate(schema.parse(changes));
+      toast.promise(mutation, {
         loading: "Creating override...",
         success: "Override created",
         error: (res) => {
@@ -36,31 +36,31 @@ export const ratelimitOverrides = createCollection<Schema>(
           };
         },
       });
-      await p;
+      await mutation;
     },
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
-      const p = trpcClient.ratelimit.override.update.mutate({
+      const mutation = trpcClient.ratelimit.override.update.mutate({
         id: original.id,
         limit: modified.limit,
         duration: modified.duration,
       });
-      toast.promise(p, {
+      toast.promise(mutation, {
         loading: "Updating override...",
         success: "Override updated",
         error: "Failed to update override",
       });
-      await p;
+      await mutation;
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
-      const p = trpcClient.ratelimit.override.delete.mutate({ id: original.id });
-      toast.promise(p, {
+      const mutation = trpcClient.ratelimit.override.delete.mutate({ id: original.id });
+      toast.promise(mutation, {
         loading: "Deleting override...",
         success: "Override deleted",
         error: "Failed to delete override",
       });
-      await p;
+      await mutation;
     },
   }),
 );

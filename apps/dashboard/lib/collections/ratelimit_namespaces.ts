@@ -27,8 +27,8 @@ export const ratelimitNamespaces = createCollection(
         throw new Error("Namespace name is required");
       }
 
-      const p = trpcClient.ratelimit.namespace.create.mutate({ name: newNamespace.name });
-      toast.promise(p, {
+      const mutation = trpcClient.ratelimit.namespace.create.mutate({ name: newNamespace.name });
+      toast.promise(mutation, {
         loading: "Creating namespace...",
         success: "Namespace created",
         error: (res) => {
@@ -39,31 +39,31 @@ export const ratelimitNamespaces = createCollection(
           };
         },
       });
-      await p;
+      await mutation;
     },
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
 
-      const p = trpcClient.ratelimit.namespace.update.name.mutate({
+      const mutation = trpcClient.ratelimit.namespace.update.name.mutate({
         namespaceId: original.id,
         name: modified.name,
       });
-      toast.promise(p, {
+      toast.promise(mutation, {
         loading: "Updating namespace...",
         success: "Namespace updated",
         error: "Failed to update namespace",
       });
-      await p;
+      await mutation;
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
-      const p = trpcClient.ratelimit.namespace.delete.mutate({ namespaceId: original.id });
-      toast.promise(p, {
+      const mutation = trpcClient.ratelimit.namespace.delete.mutate({ namespaceId: original.id });
+      toast.promise(mutation, {
         loading: "Deleting namespace...",
         success: "Namespace deleted",
         error: "Failed to delete namespace",
       });
-      await p;
+      await mutation;
     },
   }),
 );
