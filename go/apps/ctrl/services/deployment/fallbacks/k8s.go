@@ -75,7 +75,6 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 		"vm_count", vmCount,
 		"namespace", k.namespace)
 
-	// Generate VM IDs
 	vmIDs := make([]string, vmCount)
 	for i := int32(0); i < vmCount; i++ {
 		vmIDs[i] = uid.New("vm")
@@ -123,6 +122,7 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
+							// This REALLY doesn't matter for dev
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("100m"),
@@ -156,7 +156,7 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 			},
 		},
 		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeClusterIP,
+			Type: corev1.ServiceTypeNodePort,
 			Selector: map[string]string{
 				"unkey.deployment.id": deploymentID,
 			},
@@ -233,13 +233,19 @@ func (k *K8sBackend) GetDeploymentStatus(ctx context.Context, deploymentID strin
 		state = metaldv1.VmState_VM_STATE_CREATED
 	}
 
+	// Get the NodePort from the service
+	nodePort := int32(8080) // fallback
+	if len(service.Spec.Ports) > 0 && service.Spec.Ports[0].NodePort != 0 {
+		nodePort = service.Spec.Ports[0].NodePort
+	}
+
 	// For each VM ID, create a response
 	for _, vmID := range deploymentInfo.VMIDs {
 		vms = append(vms, &metaldv1.GetDeploymentResponse_Vm{
 			Id:    vmID,
 			State: state,
 			Host:  service.Spec.ClusterIP,
-			Port:  8080,
+			Port:  uint32(nodePort),
 		})
 	}
 
