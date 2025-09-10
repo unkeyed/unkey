@@ -39,8 +39,8 @@ type Querier interface {
 	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
 	//UpsertGateway
 	//
-	//  INSERT INTO gateways (hostname, config)
-	//  VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
+	//  INSERT INTO gateways (workspace_id, hostname, config)
+	//  VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
 	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
 	//UpsertVM
 	//

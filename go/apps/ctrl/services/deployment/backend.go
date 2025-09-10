@@ -59,6 +59,7 @@ func NewFallbackBackend(backendType string, logger logging.Logger) (*FallbackBac
 	if err != nil {
 		return nil, err
 	}
+
 	return &FallbackBackend{
 		backend: backend,
 		logger:  logger,

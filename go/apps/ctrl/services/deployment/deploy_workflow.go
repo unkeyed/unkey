@@ -103,7 +103,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Update version status to building
 	_, err = hydra.Step(ctx, "update-version-building", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("updating deployment status to building", "deployment_id", req.DeploymentID)
 		updateErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusBuilding,
@@ -112,7 +111,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		if updateErr != nil {
 			return nil, fmt.Errorf("failed to update version status to building: %w", updateErr)
 		}
-		w.logger.Info("deployment status updated to building", "deployment_id", req.DeploymentID)
 		return &struct{}{}, nil
 	})
 	if err != nil {
@@ -121,7 +119,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	deployment, err := hydra.Step(ctx, "metald-create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
-		w.logger.Info("creating deployment", "deployment_id", req.DeploymentID, "docker_image", req.DockerImage, "workspace_id", req.WorkspaceID, "project_id", req.ProjectID)
 
 		if w.deploymentBackend == nil {
 			return nil, fmt.Errorf("deployment backend not initialized")
@@ -151,12 +148,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	w.logger.Info("Deployment created", "vm_ids", deployment.GetVmIds())
+	w.logger.Info("deployment created", "deployment_id", req.DeploymentID, "vm_count", len(deployment.GetVmIds()))
 
 	// Update version status to deploying
 	_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("starting deployment", "deployment_id", req.DeploymentID)
-
 		deployingErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusDeploying,
@@ -177,7 +172,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		for i := range 300 {
 			time.Sleep(time.Second)
-			w.logger.Info("Polling deployment", "i", i)
+			if i%10 == 0 { // Log every 10 seconds instead of every second
+				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
+			}
 
 			if w.deploymentBackend == nil {
 				return nil, fmt.Errorf("deployment backend not initialized")
@@ -197,9 +194,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 						ID:            instance.Id,
 						DeploymentID:  req.DeploymentID,
 						Address:       sql.NullString{Valid: true, String: fmt.Sprintf("%s:%d", instance.Host, instance.Port)},
-						CpuMillicores: 1000,                           // TODO derive from spec
-						MemoryMb:      1024,                           // TODO derive from spec
-						Status:        partitiondb.VmsStatusAllocated, // TODO
+						CpuMillicores: 1000,                         // TODO derive from spec
+						MemoryMb:      1024,                         // TODO derive from spec
+						Status:        partitiondb.VmsStatusRunning, // TODO
 					}); err != nil {
 						w.logger.Error("failed to upsert VM", "error", err, "vm_id", instance.Id)
 						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
@@ -208,7 +205,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					instances[instance.Id] = instance
 					if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
 						allReady = false
-						w.logger.Debug("VM not ready", "vm_id", instance.Id, "state", instance.State)
+						w.logger.Debug("vm state changed", "vm_id", instance.Id, "state", instance.State)
 					}
 				}
 			}
@@ -227,14 +224,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Generate all domains (custom + auto-generated)
 	allDomains, err := hydra.Step(ctx, "generate-all-domains", func(stepCtx context.Context) ([]string, error) {
-		w.logger.Info("generating all domains for deployment", "deployment_id", req.DeploymentID)
 
 		var domains []string
 
 		// Add custom hostname if provided
 		if req.Hostname != "" {
 			domains = append(domains, req.Hostname)
-			w.logger.Info("added custom hostname", "hostname", req.Hostname)
 		}
 
 		// Generate auto-generated hostname for this deployment
@@ -271,7 +266,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Create database entries for all domains
 	err = hydra.StepVoid(ctx, "create-domain-entries", func(stepCtx context.Context) error {
-		w.logger.Info("creating domain database entries", "deployment_id", req.DeploymentID, "domains", allDomains)
 
 		// Prepare bulk insert parameters
 		domainParams := make([]db.InsertDomainParams, 0, len(allDomains))
@@ -308,19 +302,20 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Create gateway configs for all domains in bulk (except local ones)
 	err = hydra.StepVoid(ctx, "create-gateway-configs-bulk", func(stepCtx context.Context) error {
-		w.logger.Info("creating gateway configurations in bulk", "deployment_id", req.DeploymentID, "total_domains", len(allDomains))
 
-		var configsCreated int
+		// Prepare gateway configs for all non-local domains
+		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
 
 		for _, domain := range allDomains {
 			if isLocalHostname(domain) {
-				w.logger.Info("skipping gateway config for local domain", "domain", domain)
 				skippedDomains = append(skippedDomains, domain)
 				continue
 			}
 
-			if err := w.createGatewayConfigForHostname(stepCtx, domain, req.DeploymentID, req.KeyspaceID, createdVMs); err != nil {
+			// Create gateway config for this domain
+			gatewayConfig, err := w.createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
+			if err != nil {
 				w.logger.Error("failed to create gateway config for domain",
 					"domain", domain,
 					"error", err,
@@ -328,19 +323,39 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				// Continue with other domains rather than failing the entire deployment
 				continue
 			}
-			configsCreated++
+
+			// Marshal protobuf to bytes
+			configBytes, err := protojson.Marshal(gatewayConfig)
+			if err != nil {
+				w.logger.Error("failed to marshal gateway config", "error", err, "domain", domain)
+				continue
+			}
+
+			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
+				WorkspaceID: req.WorkspaceID,
+				Hostname:    domain,
+				Config:      configBytes,
+			})
+		}
+
+		// Perform bulk upsert for all gateway configs
+		if len(gatewayParams) > 0 {
+			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, w.partitionDB.RW(), gatewayParams); err != nil {
+				w.logger.Error("failed to upsert gateway configs in bulk", "error", err, "deployment_id", req.DeploymentID, "config_count", len(gatewayParams))
+				return fmt.Errorf("failed to upsert gateway configs: %w", err)
+			}
 		}
 
 		w.logger.Info("gateway configurations created in bulk",
 			"deployment_id", req.DeploymentID,
 			"total_domains", len(allDomains),
-			"configs_created", configsCreated,
+			"configs_created", len(gatewayParams),
 			"skipped_domains", skippedDomains)
 
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       db.DeploymentStepsStatusAssigningDomains,
-			Message:      fmt.Sprintf("Created %d gateway configs for %d domains (skipped %d local domains)", configsCreated, len(allDomains), len(skippedDomains)),
+			Message:      fmt.Sprintf("Created %d gateway configs for %d domains (skipped %d local domains)", len(gatewayParams), len(allDomains), len(skippedDomains)),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
@@ -352,22 +367,19 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	// Update deployment status to active
 	_, err = hydra.Step(ctx, "update-deployment-ready", func(stepCtx context.Context) (*DeploymentResult, error) {
 		completionTime := time.Now().UnixMilli()
-		w.logger.Info("updating deployment status to ready", "deployment_id", req.DeploymentID, "completion_time", completionTime)
 		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
 		})
 		if activeErr != nil {
-			w.logger.Error("failed to update deployment status to active", "error", activeErr, "deployment_id", req.DeploymentID)
-			return nil, fmt.Errorf("failed to update deployment status to active: %w", activeErr)
+			w.logger.Error("failed to update deployment status to ready", "error", activeErr, "deployment_id", req.DeploymentID)
+			return nil, fmt.Errorf("failed to update deployment status to ready: %w", activeErr)
 		}
-
-		w.logger.Info("deployment complete", "deployment_id", req.DeploymentID, "status", "active")
 
 		return &DeploymentResult{
 			DeploymentID: req.DeploymentID,
-			Status:       "active",
+			Status:       "ready",
 		}, nil
 	})
 	if err != nil {
@@ -537,30 +549,16 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	w.logger.Info("deployment workflow stage completed successfully", "deployment_id", req.DeploymentID)
-
 	w.logger.Info("deployment workflow completed",
-		"execution_id", ctx.ExecutionID(),
 		"deployment_id", req.DeploymentID,
 		"status", "succeeded",
-		"workspace_id", req.WorkspaceID,
-		"project_id", req.ProjectID,
-		"docker_image", req.DockerImage,
-		"hostname", req.Hostname)
+		"domains", len(allDomains))
 
 	return nil
 }
 
-// createGatewayConfigForHostname creates a gateway configuration for a specific hostname
-func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, hostname, deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) error {
-	w.logger.Info("creating gateway configuration", "hostname", hostname, "deployment_id", deploymentID)
-
-	// Validate partition DB connection
-	if w.partitionDB == nil {
-		w.logger.Error("CRITICAL: partition database not initialized for gateway config")
-		return fmt.Errorf("partition database not initialized for gateway config")
-	}
-
+// createGatewayConfig creates a gateway configuration protobuf object
+func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
 		Deployment: &partitionv1.Deployment{
@@ -569,6 +567,7 @@ func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, hos
 		},
 		Vms: make([]*partitionv1.VM, len(vms)),
 	}
+
 	for i, vm := range vms {
 		gatewayConfig.Vms[i] = &partitionv1.VM{
 			Id: vm.Id,
@@ -582,6 +581,24 @@ func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, hos
 		}
 	}
 
+	return gatewayConfig, nil
+}
+
+// createGatewayConfigForHostname creates a gateway configuration for a specific hostname
+func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, workspaceID, hostname, deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) error {
+
+	// Validate partition DB connection
+	if w.partitionDB == nil {
+		w.logger.Error("CRITICAL: partition database not initialized for gateway config")
+		return fmt.Errorf("partition database not initialized for gateway config")
+	}
+
+	// Create gateway config
+	gatewayConfig, err := w.createGatewayConfig(deploymentID, keyspaceID, vms)
+	if err != nil {
+		return fmt.Errorf("failed to create gateway config: %w", err)
+	}
+
 	// Marshal protobuf to bytes
 	configBytes, err := protojson.Marshal(gatewayConfig)
 	if err != nil {
@@ -591,15 +608,15 @@ func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, hos
 
 	// Insert gateway config into partition database
 	params := partitiondb.UpsertGatewayParams{
-		Hostname: hostname,
-		Config:   configBytes,
+		WorkspaceID: workspaceID,
+		Hostname:    hostname,
+		Config:      configBytes,
 	}
 
 	if err := partitiondb.Query.UpsertGateway(ctx, w.partitionDB.RW(), params); err != nil {
 		w.logger.Error("failed to upsert gateway config", "error", err, "hostname", hostname)
 		return fmt.Errorf("failed to upsert gateway config: %w", err)
 	}
-	w.logger.Info("gateway configuration created successfully", "hostname", hostname)
 	return nil
 }
 
