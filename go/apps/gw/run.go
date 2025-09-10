@@ -275,6 +275,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Ratelimit:      nil,
 		MainDomain:     cfg.MainDomain,
 		AcmeClient:     acmeClient,
+		// For now just enable it if we don't do SSL Termination
+		HttpProxy: !cfg.EnableTLS,
 	}
 
 	// Register routes for HTTP server (ACME challenges)
