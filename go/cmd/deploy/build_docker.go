@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -38,12 +39,58 @@ var (
 	ErrBuildTimeout       = errors.New("docker build timed out")
 )
 
+// sanitizeDockerTag sanitizes a string to be valid for Docker tags
+// Official Docker tag grammar: /[\w][\w.-]{0,127}/
+// - First char: word character (a-zA-Z0-9_)
+// - Remaining chars: word characters, periods, or dashes
+// - Maximum 128 characters total
+func sanitizeDockerTag(input string) string {
+	if input == "" {
+		return "main"
+	}
+
+	// Convert to lowercase (Docker registries are case-insensitive)
+	result := strings.ToLower(input)
+
+	// Replace invalid characters with dashes
+	// Keep only: a-z, A-Z, 0-9, _, ., -
+	invalidChars := regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
+	result = invalidChars.ReplaceAllString(result, "-")
+
+	// Ensure first character is a word character (a-zA-Z0-9_)
+	// If it starts with . or -, prepend with a valid character
+	if len(result) > 0 && !regexp.MustCompile(`^[a-zA-Z0-9_]`).MatchString(result) {
+		result = "v" + result
+	}
+
+	// Remove consecutive dashes for cleaner tags
+	multiDash := regexp.MustCompile(`-{2,}`)
+	result = multiDash.ReplaceAllString(result, "-")
+
+	// Limit to 64 characters (leaving room for SHA suffix in the full image tag)
+	if len(result) > 64 {
+		result = result[:64]
+		// Ensure it doesn't end with dash after truncation
+		result = strings.TrimRight(result, "-")
+	}
+
+	// Final safety check - ensure we have a valid tag
+	if result == "" || !regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._-]*$`).MatchString(result) {
+		return "main"
+	}
+
+	return result
+}
+
 // generateImageTag creates a unique tag for the Docker image
 func generateImageTag(opts DeployOptions, gitInfo git.Info) string {
+	// Sanitize branch name for Docker tag compatibility
+	cleanBranch := sanitizeDockerTag(opts.Branch)
+
 	if gitInfo.ShortSHA != "" {
-		return fmt.Sprintf("%s-%s", opts.Branch, gitInfo.ShortSHA)
+		return fmt.Sprintf("%s-%s", cleanBranch, gitInfo.ShortSHA)
 	}
-	return fmt.Sprintf("%s-%d", opts.Branch, time.Now().Unix())
+	return fmt.Sprintf("%s-%d", cleanBranch, time.Now().Unix())
 }
 
 // isDockerAvailable checks if Docker is installed and accessible

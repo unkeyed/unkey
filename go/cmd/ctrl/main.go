@@ -72,6 +72,7 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
+		cli.String("metalD-fallback", "Whether to call metalD or go to the fallback (docker or k8s)", cli.EnvVar("UNKEY_METAL_FALLBACK")),
 	},
 	Action: action,
 }
@@ -128,7 +129,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 		},
 
-		AcmeEnabled: cmd.Bool("acme-enabled"),
+		AcmeEnabled:    cmd.Bool("acme-enabled"),
+		MetalDFallback: cmd.String("metalD-fallback"),
 
 		// Common
 		Clock: clock.New(),

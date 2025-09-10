@@ -50,6 +50,8 @@ type Config struct {
 	// MetaldAddress is the full URL of the metald service for VM operations (e.g., "https://metald.example.com:8080")
 	MetaldAddress string
 
+	MetalDFallback string // fallback to either k8's pod or docker, this skips calling metald
+
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
 	SPIFFESocketPath string
 
