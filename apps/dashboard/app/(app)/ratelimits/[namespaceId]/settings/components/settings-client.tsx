@@ -2,8 +2,9 @@
 
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Button, CopyButton, Input, SettingCard, toast } from "@unkey/ui";
+import { Button, CopyButton, Empty, Input, SettingCard, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
+import { CreateNamespaceButton } from "../../../_components/create-namespace-button";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
 import { SettingsClientSkeleton } from "./skeleton";
 
@@ -14,7 +15,7 @@ type Props = {
 export const SettingsClient = ({ namespaceId }: Props) => {
   const [isNamespaceNameDeleteModalOpen, setIsNamespaceNameDeleteModalOpen] = useState(false);
 
-  const { data } = useLiveQuery((q) =>
+  const { data, isLoading } = useLiveQuery((q) =>
     q
       .from({ namespace: collection.ratelimitNamespaces })
       .where(({ namespace }) => eq(namespace.id, namespaceId)),
@@ -28,6 +29,23 @@ export const SettingsClient = ({ namespaceId }: Props) => {
       setNamespaceName(namespace.name);
     }
   }, [namespace, namespaceName]);
+
+  if (isLoading) {
+    return <SettingsClientSkeleton />;
+  }
+
+  if (!namespace) {
+    return (
+      <Empty>
+        <Empty.Icon />
+        <Empty.Title>404</Empty.Title>
+        <Empty.Description>This namespace does not exist</Empty.Description>
+        <Empty.Actions>
+          <CreateNamespaceButton />
+        </Empty.Actions>
+      </Empty>
+    );
+  }
 
   const handleUpdateName = async () => {
     if (!namespace) {
@@ -52,10 +70,6 @@ export const SettingsClient = ({ namespaceId }: Props) => {
       draft.name = namespaceName;
     });
   };
-
-  if (!namespace) {
-    return <SettingsClientSkeleton />;
-  }
 
   return (
     <>
