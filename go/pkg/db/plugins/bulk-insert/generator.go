@@ -145,7 +145,7 @@ func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File
 	}
 
 	// Generate filename
-	filename := fmt.Sprintf("bulk_%s.go", query.GetFilename())
+	filename := fmt.Sprintf("bulk_%s_generated.go", query.GetFilename())
 
 	return &plugin.File{
 		Name:     filename,
