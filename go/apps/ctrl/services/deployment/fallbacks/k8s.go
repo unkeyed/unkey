@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,8 +81,12 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 		vmIDs[i] = uid.New("vm")
 	}
 
-	deploymentName := fmt.Sprintf("unkey-%s", deploymentID)
-	serviceName := fmt.Sprintf("unkey-svc-%s", deploymentID)
+	// Sanitize deployment ID for Kubernetes RFC 1123 compliance
+	// Must be lowercase, alphanumeric, and hyphens only
+	sanitizedDeploymentID := strings.ReplaceAll(deploymentID, "_", "-")
+	sanitizedDeploymentID = strings.ToLower(sanitizedDeploymentID)
+	deploymentName := fmt.Sprintf("unkey-%s", sanitizedDeploymentID)
+	serviceName := fmt.Sprintf("unkey-svc-%s", sanitizedDeploymentID)
 
 	// Create deployment
 	deployment := &appsv1.Deployment{
