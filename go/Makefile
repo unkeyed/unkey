@@ -1,4 +1,4 @@
-.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean
+.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
 
 # Detect OS and set GOMAXPROCS accordingly
 UNAME_S := $(shell uname -s)
@@ -78,3 +78,109 @@ test-integration: export SIMULATION_TEST=false
 test-integration: up
 	@echo "Running integration tests w/$(PARALLEL_PROCS) parallel test processes"
 	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
+
+# ============================================================================
+# Kubernetes Development Commands
+# ============================================================================
+
+k8s-check: ## Check if kubectl is available and cluster is running
+	@command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl not found. Install from: https://kubernetes.io/docs/tasks/tools/"; exit 1; }
+	@kubectl cluster-info >/dev/null 2>&1 || { echo "ERROR: Kubernetes cluster not available. Enable Kubernetes in Docker Desktop/OrbStack"; exit 1; }
+	@echo "Kubernetes cluster is available"
+
+k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
+	@echo "Building Docker images..."
+	@docker build -t unkey/mysql:latest -f ../deployment/Dockerfile.mysql ../
+	@docker build -t unkey:latest .
+	@echo "Creating namespace..."
+	@kubectl apply -f k8s/manifests/namespace.yaml
+	@echo "Applying Kubernetes manifests..."
+	@kubectl apply -f k8s/manifests/
+	@echo "Waiting for services to be ready..."
+	@kubectl wait --for=condition=ready pod -l app=mysql -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=clickhouse -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=s3 -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=api -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=gw -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=ctrl -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=dashboard -n unkey --timeout=180s
+	@echo "Kubernetes environment is ready!"
+	@echo ""
+	@echo "Services accessible via NodePort on localhost - check actual ports with:"
+	@echo ""
+	@echo "Check NodePort assignments: make k8s-ports"
+	@make k8s-status
+
+k8s-down: ## Delete all services from current Kubernetes cluster
+	@echo "Deleting all services..."
+	@kubectl delete namespace unkey --ignore-not-found=true
+	@echo "Services deleted"
+
+k8s-reset: k8s-down k8s-up ## Reset the entire Kubernetes environment
+
+k8s-status: ## Show status of k8s services
+	@echo "Cluster Status:"
+	@kubectl get nodes -o wide 2>/dev/null || echo "ERROR: Cluster not running"
+	@echo "\nServices Status:"
+	@kubectl get pods,svc -n unkey 2>/dev/null || echo "ERROR: Services not deployed"
+
+k8s-ports: ## Show NodePort assignments for direct localhost access
+	@echo "Services accessible via NodePort on localhost:"
+	@kubectl get svc -n unkey -o custom-columns="NAME:.metadata.name,TYPE:.spec.type,PORT(S):.spec.ports[*].port,NODEPORT:.spec.ports[*].nodePort" | grep NodePort
+
+# Helper function to deploy a service
+define deploy-service
+	@echo "Starting $(2)..."
+	$(if $(3),@docker build -t $(3) $(4))
+	@kubectl apply -f k8s/manifests/namespace.yaml
+	@kubectl apply -f k8s/manifests/$(1).yaml
+	@kubectl wait --for=condition=ready pod -l app=$(1) -n unkey --timeout=180s
+	$(if $(5),@kubectl wait --for=condition=ready pod -l app=$(5) -n unkey --timeout=180s)
+	@echo "$(2) is ready!"
+endef
+
+start-mysql: k8s-check ## Deploy only MySQL
+	$(call deploy-service,mysql,MySQL,unkey/mysql:latest,-f ../deployment/Dockerfile.mysql ../)
+
+start-clickhouse: k8s-check ## Deploy only ClickHouse
+	$(call deploy-service,clickhouse,ClickHouse)
+
+start-redis: k8s-check ## Deploy only Redis
+	$(call deploy-service,redis,Redis)
+
+start-s3: k8s-check ## Deploy only S3 (MinIO)
+	$(call deploy-service,s3,S3 (MinIO))
+
+start-planetscale: k8s-check ## Deploy only PlanetScale HTTP driver
+	$(call deploy-service,planetscale,PlanetScale HTTP driver)
+
+start-observability: k8s-check ## Deploy only Observability stack
+	$(call deploy-service,observability,Observability stack,,,otel-collector)
+
+start-api: k8s-check ## Deploy only API service (3 replicas)
+	$(call deploy-service,api,API,unkey:latest,.)
+
+start-gw: k8s-check ## Deploy only Gateway service
+	$(call deploy-service,gw,Gateway,unkey:latest,.)
+
+start-ctrl: k8s-check ## Deploy only ctrl service
+	$(call deploy-service,ctrl,Control Plane,unkey:latest,.)
+
+start-dashboard: k8s-check ## Deploy only dashboard service
+	$(call deploy-service,dashboard,Dashboard,unkey/dashboard:latest,-f ../apps/dashboard/Dockerfile ../)
+
+start-unkey-services: start-api start-gw start-ctrl start-dashboard ## Deploy all Unkey services
+
+start-dependencies: start-mysql start-clickhouse start-redis start-s3 start-planetscale start-observability ## Deploy all dependency services
+
+start-all: start-dependencies start-unkey-services ## Deploy all services individually
+
+dev: ## Start with Tilt (if available) or fallback to k8s-up
+	@if command -v tilt >/dev/null 2>&1; then \
+		echo "Starting with Tilt..."; \
+		tilt up; \
+	else \
+		echo "Tilt not found, using k8s-up instead"; \
+		echo "Install Tilt from: https://docs.tilt.dev/install.html"; \
+		make k8s-up; \
+	fi

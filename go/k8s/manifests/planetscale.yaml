@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planetscale
+  namespace: unkey
+  labels:
+    app: planetscale
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planetscale
+  template:
+    metadata:
+      labels:
+        app: planetscale
+    spec:
+      containers:
+      - name: planetscale-http
+        image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
+        ports:
+        - containerPort: 3900
+        args: ["-listen-port=3900", "-mysql-dbname=unkey", "-mysql-addr=mysql", "-mysql-max-rows=100000", "-mysql-idle-timeout=1s"]
+        env:
+        - name: DATABASE_HOST
+          value: "mysql"
+        - name: DATABASE_NAME
+          value: "unkey"
+        - name: DATABASE_USERNAME
+          value: "unkey"
+        - name: DATABASE_PASSWORD
+          value: "password"
+        readinessProbe:
+          tcpSocket:
+            port: 3900
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 3900
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planetscale
+  namespace: unkey
+  labels:
+    app: planetscale
+spec:
+  selector:
+    app: planetscale
+  ports:
+  - port: 3900
+    targetPort: 3900
+    protocol: TCP
+  type: ClusterIP

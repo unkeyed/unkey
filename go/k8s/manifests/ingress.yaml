@@ -1,0 +1,2 @@
+# OrbStack handles LoadBalancer services automatically
+# Services are accessible at <service-name>.k8s.orb.local
