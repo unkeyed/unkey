@@ -34,31 +34,31 @@ spec:
         app: prometheus
     spec:
       containers:
-      - name: prometheus
-        image: prom/prometheus:v2.45.0
-        ports:
-        - containerPort: 9090
-        args:
-        - '--config.file=/etc/prometheus/prometheus.yml'
-        - '--storage.tsdb.path=/prometheus/'
-        - '--web.console.libraries=/etc/prometheus/console_libraries'
-        - '--web.console.templates=/etc/prometheus/consoles'
-        - '--storage.tsdb.retention.time=200h'
-        - '--web.enable-lifecycle'
-        volumeMounts:
-        - name: prometheus-config
-          mountPath: /etc/prometheus/
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        - name: prometheus
+          image: prom/prometheus:v2.45.0
+          ports:
+            - containerPort: 9090
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus/"
+            - "--web.console.libraries=/etc/prometheus/console_libraries"
+            - "--web.console.templates=/etc/prometheus/consoles"
+            - "--storage.tsdb.retention.time=200h"
+            - "--web.enable-lifecycle"
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus/
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
       volumes:
-      - name: prometheus-config
-        configMap:
-          name: prometheus-config
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
 
 ---
 apiVersion: v1
@@ -72,9 +72,9 @@ spec:
   selector:
     app: prometheus
   ports:
-  - port: 9090
-    targetPort: 9090
-    protocol: TCP
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
   type: NodePort
 
 ---
@@ -96,32 +96,32 @@ spec:
         app: otel-collector
     spec:
       containers:
-      - name: otel-collector
-        image: otel/opentelemetry-collector-contrib:0.92.0
-        ports:
-        - containerPort: 4317  # OTLP gRPC
-        - containerPort: 4318  # OTLP HTTP
-        - containerPort: 8889  # Prometheus metrics
-        command:
-        - /otelcol-contrib
-        - --config=/etc/otelcol-contrib/otel-collector.yml
-        env:
-        - name: GOMEMLIMIT
-          value: "160MiB"
-        volumeMounts:
-        - name: otel-collector-config
-          mountPath: /etc/otelcol-contrib/
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.92.0
+          ports:
+            - containerPort: 4317 # OTLP gRPC
+            - containerPort: 4318 # OTLP HTTP
+            - containerPort: 8889 # Prometheus metrics
+          command:
+            - /otelcol-contrib
+            - --config=/etc/otelcol-contrib/otel-collector.yml
+          env:
+            - name: GOMEMLIMIT
+              value: "160MiB"
+          volumeMounts:
+            - name: otel-collector-config
+              mountPath: /etc/otelcol-contrib/
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
       volumes:
-      - name: otel-collector-config
-        configMap:
-          name: otel-collector-config
+        - name: otel-collector-config
+          configMap:
+            name: otel-collector-config
 
 ---
 apiVersion: v1
@@ -182,16 +182,16 @@ spec:
   selector:
     app: otel-collector
   ports:
-  - name: otlp-grpc
-    port: 4317
-    targetPort: 4317
-    protocol: TCP
-  - name: otlp-http
-    port: 4318
-    targetPort: 4318
-    protocol: TCP
-  - name: prometheus
-    port: 8889
-    targetPort: 8889
-    protocol: TCP
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
   type: NodePort

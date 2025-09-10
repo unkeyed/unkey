@@ -29,9 +29,8 @@ start_gw = 'all' in services or 'gateway' in services or 'gw' in services
 start_ctrl = 'all' in services or 'ctrl' in services
 start_dashboard = 'all' in services or 'dashboard' in services
 
-# Apply RBAC and ingress
+# Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
-k8s_yaml('k8s/manifests/ingress.yaml')
 
 # Redis service
 redis_started = False
@@ -130,7 +129,7 @@ if start_api or start_gw or start_ctrl:
 # API service (3 replicas)
 if start_api:
     print("Setting up API service...")
-    
+
     docker_build_with_restart(
         'unkey-api:latest',
         '.',
@@ -142,18 +141,18 @@ if start_api:
         ],
         ignore=['./cmd/gw', './cmd/ctrl', './apps/gw', './apps/ctrl']
     )
-    
+
     k8s_yaml('k8s/manifests/api.yaml')
-    
+
     # Build dependency list
     api_deps = []
     if start_mysql: api_deps.append('mysql')
     if start_clickhouse: api_deps.append('clickhouse')
-    if redis_started: api_deps.append('redis') 
-    
+    if redis_started: api_deps.append('redis')
+
     # Add compilation dependency for Unkey services
     api_deps.append('unkey-compile')
-    
+
     k8s_resource(
         'api',
         port_forwards='7070:7070',
@@ -163,10 +162,10 @@ if start_api:
         trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
     )
 
-# Gateway service (1 replica)  
+# Gateway service (1 replica)
 if start_gw:
     print("Setting up Gateway service...")
-    
+
     docker_build_with_restart(
         'unkey-gw:latest',
         '.',
@@ -178,15 +177,15 @@ if start_gw:
         ],
         ignore=['./cmd/api', './cmd/ctrl', './apps/api', './apps/ctrl']
     )
-    
+
     k8s_yaml('k8s/manifests/gw.yaml')
-    
+
     # Build dependency list
     gw_deps = []
     if start_mysql: gw_deps.append('mysql')
     # Add compilation dependency for Unkey services
     gw_deps.append('unkey-compile')
-    
+
     k8s_resource(
         'gw',
         port_forwards='6060:6060',
@@ -199,7 +198,7 @@ if start_gw:
 # Ctrl service (1 replica)
 if start_ctrl:
     print("Setting up Ctrl service...")
-    
+
     docker_build_with_restart(
         'unkey-ctrl:latest',
         '.',
@@ -211,16 +210,16 @@ if start_ctrl:
         ],
         ignore=['./cmd/api', './cmd/gw', './apps/api', './apps/gw']
     )
-    
+
     k8s_yaml('k8s/manifests/ctrl.yaml')
-    
+
     # Build dependency list
     ctrl_deps = []
     if start_mysql: ctrl_deps.append('mysql')
     if start_s3: ctrl_deps.append('s3')
     # Add compilation dependency for Unkey services
     ctrl_deps.append('unkey-compile')
-    
+
     k8s_resource(
         'ctrl',
         port_forwards='7091:7091',
@@ -244,12 +243,12 @@ if start_dashboard:
         ]
     )
     k8s_yaml('k8s/manifests/dashboard.yaml')
-    
+
     # Build dependency list
     dashboard_deps = []
     if start_planetscale: dashboard_deps.append('planetscale')
     if start_clickhouse: dashboard_deps.append('clickhouse')
-    
+
     k8s_resource(
         'dashboard',
         port_forwards='3000:3000',
@@ -263,7 +262,7 @@ if start_dashboard:
 active_services = []
 if redis_started: active_services.append('redis')
 if start_mysql: active_services.append('mysql')
-if start_clickhouse: active_services.append('clickhouse')  
+if start_clickhouse: active_services.append('clickhouse')
 if start_s3: active_services.append('s3')
 if start_planetscale: active_services.append('planetscale')
 if start_observability: active_services.extend(['prometheus', 'otel-collector'])
@@ -282,10 +281,10 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
-Gateway: http://localhost:6060  
+Gateway: http://localhost:6060
 Ctrl: http://localhost:7091
 Prometheus: http://localhost:9090
-S3 Console: http://localhost:9000  
+S3 Console: http://localhost:9000
 ClickHouse: http://localhost:8123
 
 Tips:

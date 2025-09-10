@@ -30,47 +30,47 @@ spec:
         app: mysql
     spec:
       containers:
-      - name: mysql
-        image: unkey/mysql:latest
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 3306
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          value: "root"
-        - name: MYSQL_DATABASE
-          value: "unkey"
-        - name: MYSQL_USER
-          value: "unkey"
-        - name: MYSQL_PASSWORD
-          value: "password"
-        args:
-        - "--max_connections=1000"
-        volumeMounts:
-        - name: mysql-storage
-          mountPath: /var/lib/mysql
-        readinessProbe:
-          exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        livenessProbe:
-          exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
-          initialDelaySeconds: 60
-          periodSeconds: 30
+        - name: mysql
+          image: unkey/mysql:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "root"
+            - name: MYSQL_DATABASE
+              value: "unkey"
+            - name: MYSQL_USER
+              value: "unkey"
+            - name: MYSQL_PASSWORD
+              value: "password"
+          args:
+            - "--max_connections=1000"
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 60
+            periodSeconds: 30
       volumes:
-      - name: mysql-storage
-        persistentVolumeClaim:
-          claimName: mysql-pvc
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
 
 ---
 apiVersion: v1
@@ -84,7 +84,7 @@ spec:
   selector:
     app: mysql
   ports:
-  - port: 3306
-    targetPort: 3306
-    protocol: TCP
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
   type: ClusterIP
