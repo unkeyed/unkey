@@ -13,8 +13,6 @@ RUN go build -o bin/unkey -ldflags="-X 'github.com/unkeyed/unkey/go/pkg/version.
 
 FROM ${BASE_IMAGE}
 
-# When BASE_IMAGE is golang-alpine (for Tilt dev), Go tools are already available
-
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey /
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey/go

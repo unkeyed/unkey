@@ -120,3 +120,26 @@ spec:
     targetPort: 6443
     protocol: TCP
   type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gw-lb
+  namespace: unkey
+  labels:
+    app: gw
+    service: loadbalancer
+spec:
+  selector:
+    app: gw
+  ports:
+  - name: http
+    port: 80
+    targetPort: 6060
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 6443
+    protocol: TCP
+  type: LoadBalancer

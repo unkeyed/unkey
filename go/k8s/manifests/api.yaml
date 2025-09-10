@@ -111,3 +111,22 @@ spec:
     targetPort: 7070
     protocol: TCP
   type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-lb
+  namespace: unkey
+  labels:
+    app: api
+    service: loadbalancer
+spec:
+  selector:
+    app: api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 7070
+    protocol: TCP
+  type: LoadBalancer
