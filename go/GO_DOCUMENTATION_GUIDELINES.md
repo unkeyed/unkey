@@ -422,7 +422,7 @@ Before submitting code, verify:
 
 - [ ] **Every package has a dedicated `doc.go` file** with comprehensive package documentation
 - [ ] Every exported function, method, type, constant, and variable is documented
-- [ ] Package documentation in `doc.go` explains purpose, key concepts, and includes examples
+- [ ] Package documentation in `doc.go` explains purpose, key concepts but not details
 - [ ] Internal code explains "why" decisions were made, not just "what" it does
 - [ ] Error conditions and return values are clearly explained
 - [ ] Complex algorithms include reasoning for the chosen approach
@@ -431,7 +431,7 @@ Before submitting code, verify:
 - [ ] All documentation follows Go formatting conventions (proper line breaks, etc.)
 - [ ] Cross-references use proper `[Reference]` format
 - [ ] Edge cases and non-obvious behaviors are documented
-- [ ] Anti-patterns are prevented with clear guidance
+- [ ] Concurrency guarantees are documented if and only if the code is designed to be concurrently safe
 
 ## Deprecation and Breaking Changes
 
