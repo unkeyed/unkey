@@ -1,6 +1,8 @@
 "use client";
-import { KeySecretSection } from "@/app/(app)/apis/[apiId]/_components/create-key/components/key-secret-section";
+import { KeySecretSection } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
+import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { TriangleWarning } from "@unkey/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef } from "react";
@@ -18,9 +20,10 @@ export const OnboardingSuccessStep = ({
   const router = useRouter();
   const anchorRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-
+  const { workspace } = useWorkspace();
   const apiId = searchParams?.get(API_ID_PARAM);
   const key = searchParams?.get(KEY_PARAM);
+  const utils = trpc.useUtils();
 
   if (!apiId || !key) {
     return (
@@ -54,8 +57,8 @@ export const OnboardingSuccessStep = ({
         onOpenChange={setIsConfirmOpen}
         onConfirm={() => {
           setIsConfirmOpen(false);
-
-          router.push("/apis");
+          utils.workspace.getCurrent.invalidate();
+          router.push(`/${workspace?.slug}/apis`);
         }}
         triggerRef={anchorRef}
         title="You won't see this secret key again!"

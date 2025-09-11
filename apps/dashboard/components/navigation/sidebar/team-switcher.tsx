@@ -15,6 +15,7 @@ import { setSessionCookie } from "@/lib/auth/cookies";
 import { reset } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronExpandY } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
@@ -23,17 +24,11 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
 
-type Props = {
-  workspace: {
-    name: string;
-  };
-};
-
-export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
+export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const router = useRouter();
   const utils = trpc.useUtils();
   const { isMobile, state } = useSidebar();
-
+  const { workspace } = useWorkspace();
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
 
@@ -113,7 +108,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         >
           <Avatar className="w-5 h-5 rounded border border-grayA-6">
             <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {props.workspace.name.slice(0, 1).toUpperCase()}
+              {workspace?.name.slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {isUserMembershipsLoading ? (
@@ -122,11 +117,11 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             <InfoTooltip
               variant="inverted"
               position={{ side: "right", sideOffset: 10 }}
-              content={<span>{props.workspace.name}</span>}
+              content={<span>{workspace?.name}</span>}
               className="text-xs font-medium py-2"
               triggerClassName="overflow-hidden text-sm font-medium text-ellipsis"
             >
-              {props.workspace.name}
+              {workspace?.name}
             </InfoTooltip>
           )}
         </div>

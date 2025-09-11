@@ -150,7 +150,9 @@ export default async function Page(props: Props) {
                       keyId={key.id}
                     />
                     <TableCell className="flex justify-end">
-                      <Link href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}>
+                      <Link
+                        href={`/${key.workspaceId}/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}
+                      >
                         <Button variant="ghost" shape="square">
                           <ChevronRight />
                         </Button>

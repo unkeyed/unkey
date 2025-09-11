@@ -1,6 +1,6 @@
-import { creditsSchema } from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
+import { creditsSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
@@ -47,7 +47,7 @@ export const updateKeyRemaining = t.procedure
               refillAmount,
               lastRefillAt: refillAmount ? new Date() : null,
             })
-            .where(eq(schema.keys.id, key.id))
+            .where(and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)))
             .catch((_err) => {
               throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
@@ -64,7 +64,7 @@ export const updateKeyRemaining = t.procedure
               refillAmount: null,
               lastRefillAt: null,
             })
-            .where(eq(schema.keys.id, key.id))
+            .where(and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)))
             .catch((_err) => {
               throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",

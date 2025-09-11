@@ -1,4 +1,4 @@
-import type { Workspace } from "@/lib/db";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Cube,
   Fingerprint,
@@ -39,14 +39,13 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
   </div>
 );
 
-export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures">,
-  segments: string[],
-) => {
+export const createWorkspaceNavigation = (segments: string[]) => {
+  const { workspace } = useWorkspace();
+  const basePath = `/${workspace?.slug}`;
   return [
     {
       icon: Nodes,
-      href: "/apis",
+      href: `${basePath}/apis`,
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
@@ -56,7 +55,7 @@ export const createWorkspaceNavigation = (
       href: "/projects",
       label: "Projects",
       active: segments.at(0) === "projects",
-      hidden: !workspace.betaFeatures.deployments,
+      hidden: !workspace?.betaFeatures.deployments,
       tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
     },
     {
@@ -97,7 +96,7 @@ export const createWorkspaceNavigation = (
       href: "/monitors/verifications",
       label: "Monitors",
       active: segments.at(0) === "verifications",
-      hidden: !workspace.features.webhooks,
+      hidden: !workspace?.features.webhooks,
     },
     {
       icon: Layers3,
@@ -111,14 +110,14 @@ export const createWorkspaceNavigation = (
       label: "Success",
       active: segments.at(0) === "success",
       tag: <Tag label="Internal" />,
-      hidden: !workspace.features.successPage,
+      hidden: !workspace?.features.successPage,
     },
     {
       icon: Fingerprint,
       href: "/identities",
       label: "Identities",
       active: segments.at(0) === "identities",
-      hidden: !workspace.betaFeatures.identities,
+      hidden: !workspace?.betaFeatures.identities,
     },
     {
       icon: Gear,
