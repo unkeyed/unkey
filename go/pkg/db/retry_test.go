@@ -144,6 +144,7 @@ func TestWithRetry_Integration(t *testing.T) {
 		ID:        workspaceID,
 		OrgID:     workspaceID,
 		Name:      "Test Workspace",
+		Slug:      uid.New("slug"),
 		CreatedAt: time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

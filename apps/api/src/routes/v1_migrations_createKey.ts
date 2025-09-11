@@ -7,6 +7,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
 import {
+  DrizzleQueryError,
   type InsertEncryptedKey,
   type InsertIdentity,
   type InsertKey,
@@ -554,14 +555,14 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           .insert(schema.keys)
           .values(keys)
           .catch((e) => {
-            if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
-              logger.warn("migrating duplicate key", {
-                error: e.body.message,
-                workspaceId: authorizedWorkspaceId,
-              });
+            if (
+              e instanceof DrizzleQueryError &&
+              e.cause instanceof DatabaseError &&
+              e.cause.message.includes("Duplicate entry")
+            ) {
               throw new UnkeyApiError({
                 code: "CONFLICT",
-                message: e.body.message,
+                message: e.message,
               });
             }
             throw e;

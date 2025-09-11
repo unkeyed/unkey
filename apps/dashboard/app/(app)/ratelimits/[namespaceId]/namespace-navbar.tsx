@@ -3,7 +3,8 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
+import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronExpandY, Gauge, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -25,19 +26,12 @@ type NamespaceNavbarProps = {
   };
 };
 
-export const NamespaceNavbar = ({
-  namespaceId,
-  includeOverrides = false,
-  activePage,
-}: NamespaceNavbarProps) => {
+export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
 
-  const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
-    namespaceId,
-    includeOverrides,
-  });
+  const { data } = useLiveQuery((q) => q.from({ namespace: collection.ratelimitNamespaces }));
 
-  if (!data || isLoading) {
+  if (!data) {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
@@ -65,7 +59,7 @@ export const NamespaceNavbar = ({
     );
   }
 
-  const { namespace, ratelimitNamespaces } = data;
+  const namespace = data.find((ns) => ns.id === namespaceId);
 
   return (
     <>
@@ -73,20 +67,20 @@ export const NamespaceNavbar = ({
         <Navbar.Breadcrumbs icon={<Gauge />}>
           <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${namespace.id}`}
+            href={`/ratelimits/${namespaceId}`}
             isIdentifier
             className="group"
             noop
           >
             <QuickNavPopover
-              items={ratelimitNamespaces.map((ns) => ({
+              items={data.map((ns) => ({
                 id: ns.id,
                 label: ns.name,
                 href: `/ratelimits/${ns.id}`,
               }))}
               shortcutKey="N"
             >
-              <div className="text-accent-10 group-hover:text-accent-12">{namespace.name}</div>
+              <div className="text-accent-10 group-hover:text-accent-12">{namespace?.name}</div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
@@ -95,22 +89,22 @@ export const NamespaceNavbar = ({
                 {
                   id: "requests",
                   label: "Requests",
-                  href: `/ratelimits/${namespace.id}`,
+                  href: `/ratelimits/${namespaceId}`,
                 },
                 {
                   id: "logs",
                   label: "Logs",
-                  href: `/ratelimits/${namespace.id}/logs`,
+                  href: `/ratelimits/${namespaceId}/logs`,
                 },
                 {
                   id: "settings",
                   label: "Settings",
-                  href: `/ratelimits/${namespace.id}/settings`,
+                  href: `/ratelimits/${namespaceId}/settings`,
                 },
                 {
                   id: "overrides",
                   label: "Overrides",
-                  href: `/ratelimits/${namespace.id}/overrides`,
+                  href: `/ratelimits/${namespaceId}/overrides`,
                 },
               ]}
               shortcutKey="M"
@@ -126,11 +120,11 @@ export const NamespaceNavbar = ({
           <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
             Override Identifier
           </NavbarActionButton>
-          <CopyableIDButton value={namespace.id} />
+          <CopyableIDButton value={namespaceId} />
         </Navbar.Actions>
       </Navbar>
       {open && (
-        <IdentifierDialog onOpenChange={setOpen} isModalOpen={open} namespaceId={namespace.id} />
+        <IdentifierDialog onOpenChange={setOpen} isModalOpen={open} namespaceId={namespaceId} />
       )}
     </>
   );
