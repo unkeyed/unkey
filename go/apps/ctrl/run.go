@@ -192,6 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 		PartitionDB:   partitionDB,
 		MetaldBackend: cfg.MetaldBackend,
 		MetalD:        metaldClient,
+		DefaultDomain: cfg.DefaultDomain,
 	})
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {

@@ -73,6 +73,7 @@ var Cmd = &cli.Command{
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.String("metald-backend", "Whether to call metalD or go to a fallback (docker or k8s)", cli.EnvVar("UNKEY_METALD_BACKEND")),
+		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 	},
 	Action: action,
 }
@@ -131,6 +132,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		AcmeEnabled:   cmd.Bool("acme-enabled"),
 		MetaldBackend: cmd.String("metald-backend"),
+		DefaultDomain: cmd.String("default-domain"),
 
 		// Common
 		Clock: clock.New(),

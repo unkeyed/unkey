@@ -65,6 +65,9 @@ type Config struct {
 	VaultS3         S3Config
 
 	AcmeEnabled bool
+
+	// DefaultDomain is the domain used for auto-generated hostnames (e.g., "unkey.app" or "unkey.cloud")
+	DefaultDomain string
 }
 
 func (c Config) Validate() error {

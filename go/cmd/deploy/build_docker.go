@@ -149,6 +149,9 @@ func buildImage(ctx context.Context, opts DeployOptions, dockerImage string, ui 
 	if opts.Dockerfile != DefaultDockerfile {
 		buildArgs = append(buildArgs, "-f", opts.Dockerfile)
 	}
+	if opts.Linux {
+		buildArgs = append(buildArgs, "--platform", "linux/amd64")
+	}
 	buildArgs = append(buildArgs,
 		"-t", dockerImage,
 		"--build-arg", fmt.Sprintf("%s=%s", VersionBuildArg, opts.Commit),
