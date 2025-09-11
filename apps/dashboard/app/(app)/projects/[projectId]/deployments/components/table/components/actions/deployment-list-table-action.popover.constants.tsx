@@ -12,21 +12,26 @@ type DeploymentListTableActionsProps = {
   currentActiveDeployment?: Deployment & { environment: "production"; active: true };
 };
 
-export const DeploymentListTableActions = ({ deployment, currentActiveDeployment }: DeploymentListTableActionsProps) => {
+export const DeploymentListTableActions = ({
+  deployment,
+  currentActiveDeployment,
+}: DeploymentListTableActionsProps) => {
   const router = useRouter();
   const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
   const menuItems = getDeploymentListTableActionItems(deployment, router, setIsRollbackModalOpen);
-  
+
   return (
     <>
       <TableActionPopover items={menuItems} />
-      <RollbackDialog
-        isOpen={isRollbackModalOpen}
-        onOpenChange={setIsRollbackModalOpen}
-        deployment={deployment}
-        currentDeployment={currentActiveDeployment}
-        hostname="example.com" // TODO: Get actual hostname from deployment/project
-      />
+      {currentActiveDeployment && (
+        <RollbackDialog
+          isOpen={isRollbackModalOpen}
+          onOpenChange={setIsRollbackModalOpen}
+          deployment={deployment}
+          currentDeployment={currentActiveDeployment}
+          hostname="example.com" // TODO: Get actual hostname from deployment/project
+        />
+      )}
     </>
   );
 };
@@ -37,7 +42,7 @@ const getDeploymentListTableActionItems = (
   setIsRollbackModalOpen: (open: boolean) => void,
 ): MenuItem[] => {
   // Rollback is only enabled for production deployments that are completed and not currently active
-  const canRollback = 
+  const canRollback =
     deployment.environment === "production" &&
     deployment.status === "completed" &&
     !("active" in deployment && deployment.active);

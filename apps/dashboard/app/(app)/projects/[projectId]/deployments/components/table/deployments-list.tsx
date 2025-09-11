@@ -276,7 +276,7 @@ export const DeploymentsList = () => {
           // Find current active production deployment for rollback context
           const currentActiveDeployment = deployments.find(
             (d): d is Deployment & { environment: "production"; active: true } =>
-              d.environment === "production" && "active" in d && d.active === true
+              d.environment === "production" && "active" in d && d.active === true,
           );
           return (
             <DeploymentListTableActions
