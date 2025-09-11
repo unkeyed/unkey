@@ -71,4 +71,4 @@ spec:
     - port: 3900
       targetPort: 3900
       protocol: TCP
-  type: ClusterIP
+  type: LoadBalancer

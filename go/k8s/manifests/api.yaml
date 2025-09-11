@@ -46,7 +46,7 @@ spec:
             - name: UNKEY_REDIS_URL
               value: "redis://redis:6379"
             - name: UNKEY_CLICKHOUSE_URL
-              value: "clickhouse://unkey:password@clickhouse:9000?secure=false&skip_verify=true"
+              value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
             # Observability - DISABLED for development
             - name: UNKEY_OTEL
               value: "false"
@@ -56,7 +56,7 @@ spec:
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
             - name: UNKEY_VAULT_S3_URL
-              value: "http://s3:9000"
+              value: "http://s3:3902"
             - name: UNKEY_VAULT_S3_BUCKET
               value: "vault"
             - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
@@ -115,7 +115,7 @@ spec:
       port: 7070
       targetPort: 7070
       protocol: TCP
-  type: NodePort
+  type: LoadBalancer
 
 ---
 apiVersion: v1

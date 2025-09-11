@@ -39,9 +39,9 @@ spec:
               name: native
           env:
             - name: CLICKHOUSE_DB
-              value: "unkey"
+              value: "default"
             - name: CLICKHOUSE_USER
-              value: "unkey"
+              value: "default"
             - name: CLICKHOUSE_PASSWORD
               value: "password"
           volumeMounts:
@@ -91,4 +91,4 @@ spec:
       port: 9000
       targetPort: 9000
       protocol: TCP
-  type: ClusterIP
+  type: LoadBalancer

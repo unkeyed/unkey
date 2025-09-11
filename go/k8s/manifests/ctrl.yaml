@@ -59,7 +59,7 @@ spec:
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
             - name: UNKEY_VAULT_S3_URL
-              value: "http://s3:9000"
+              value: "http://s3:3902"
             - name: UNKEY_VAULT_S3_BUCKET
               value: "vault"
             - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
@@ -69,7 +69,7 @@ spec:
             # Additional Configuration
             - name: UNKEY_ACME_ENABLED
               value: "false"
-            - name: UNKEY_METALD_FALLBACK
+            - name: UNKEY_METALD_BACKEND
               value: "k8s"
           command: ["/unkey", "run", "ctrl"]
           resources:
@@ -86,7 +86,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z s3 9000; do echo waiting for dependencies; sleep 2; done;",
+              "until nc -z mysql 3306 && nc -z s3 3902; do echo waiting for dependencies; sleep 2; done;",
             ]
 
 ---
@@ -105,4 +105,4 @@ spec:
       port: 7091
       targetPort: 7091
       protocol: TCP
-  type: NodePort
+  type: LoadBalancer

@@ -88,10 +88,10 @@ spec:
     app: s3
   ports:
     - name: api
-      port: 9000
+      port: 3902
       targetPort: 9000
       protocol: TCP
-  type: NodePort
+  type: LoadBalancer
 
 ---
 apiVersion: v1
@@ -107,7 +107,7 @@ spec:
     app: s3
   ports:
     - name: console
-      port: 9001
+      port: 3903
       targetPort: 9001
       protocol: TCP
-  type: NodePort
+  type: LoadBalancer
