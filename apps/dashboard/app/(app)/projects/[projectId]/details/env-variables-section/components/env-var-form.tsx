@@ -1,7 +1,7 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { trpc } from "@/lib/trpc/client";
-import { type EnvVarFormData, type EnvVar, EnvVarFormSchema } from "../types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { type EnvVar, type EnvVarFormData, EnvVarFormSchema } from "../types";
 import { EnvVarInputs } from "./env-var-inputs";
 import { EnvVarSaveActions } from "./env-var-save-actions";
 import { EnvVarSecretSwitch } from "./env-var-secret-switch";
@@ -14,6 +14,7 @@ type EnvVarFormProps = {
   onCancel: () => void;
   excludeId?: string;
   autoFocus?: boolean;
+  decrypted?: boolean;
   className?: string;
 };
 
@@ -24,6 +25,7 @@ export function EnvVarForm({
   onSuccess,
   onCancel,
   excludeId,
+  decrypted,
   autoFocus = false,
   className = "w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0",
 }: EnvVarFormProps) {
@@ -49,7 +51,7 @@ export function EnvVarForm({
             path: ["key"],
           });
         }
-      })
+      }),
     ),
     defaultValues: initialData,
   });
@@ -88,31 +90,26 @@ export function EnvVarForm({
 
   return (
     <div className={className}>
-      <form
-        onSubmit={handleSubmit(handleSave)}
-        className="w-full flex items-center gap-2"
-      >
+      <form onSubmit={handleSubmit(handleSave)} className="w-full flex items-center gap-2">
         <EnvVarInputs
           register={register}
           errors={errors}
           isSecret={watchedType === "secret"}
+          decrypted={decrypted}
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
         />
         <div className="flex items-center gap-2 ml-auto">
           <EnvVarSecretSwitch
             isSecret={watchedType === "secret"}
-            onCheckedChange={(checked) =>
-              setValue("type", checked ? "secret" : "env")
-            }
+            onCheckedChange={(checked) => setValue("type", checked ? "secret" : "env")}
             disabled={isSubmitting}
           />
           <EnvVarSaveActions
             isSubmitting={isSubmitting}
             save={{
               disabled: !isValid || isSubmitting,
-              onClick: () =>
-                console.info("Saving. tRPC mutation will be called here"),
+              onClick: () => console.info("Saving. tRPC mutation will be called here"),
             }}
             cancel={{
               disabled: isSubmitting,

@@ -32,7 +32,7 @@ export default function ProjectDetails() {
     <div
       className={cn(
         "flex justify-center transition-all duration-300 ease-in-out pb-20 px-8",
-        isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]"
+        isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
@@ -85,9 +85,7 @@ function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2.5 py-1.5 px-2">
       {icon}
-      <div className="text-accent-12 font-medium text-[13px] leading-4">
-        {title}
-      </div>
+      <div className="text-accent-12 font-medium text-[13px] leading-4">{title}</div>
     </div>
   );
 }

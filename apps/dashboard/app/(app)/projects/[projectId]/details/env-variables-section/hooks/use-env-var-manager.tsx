@@ -6,10 +6,7 @@ type UseEnvVarsManagerProps = {
   environment: Environment;
 };
 
-export function useEnvVarsManager({
-  projectId,
-  environment,
-}: UseEnvVarsManagerProps) {
+export function useEnvVarsManager({ projectId, environment }: UseEnvVarsManagerProps) {
   const trpcUtils = trpc.useUtils();
 
   // Just fetch server data - no optimistic updates needed
@@ -20,9 +17,7 @@ export function useEnvVarsManager({
 
   // Helper for validation - each row can check for duplicates
   const getExistingEnvVar = (key: string, excludeId?: string) => {
-    return envVars.find(
-      (envVar) => envVar.key === key.trim() && envVar.id !== excludeId
-    );
+    return envVars.find((envVar) => envVar.key === key.trim() && envVar.id !== excludeId);
   };
 
   return {

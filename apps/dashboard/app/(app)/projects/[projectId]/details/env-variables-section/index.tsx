@@ -2,10 +2,10 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { EnvVarRow } from "./env-var-row";
 import { AddEnvVarRow } from "./add-env-var-row";
-import type { Environment } from "./types";
+import { EnvVarRow } from "./env-var-row";
 import { useEnvVarsManager } from "./hooks/use-env-var-manager";
+import type { Environment } from "./types";
 
 type EnvironmentVariablesSectionProps = {
   icon: ReactNode;
@@ -53,12 +53,7 @@ export function EnvironmentVariablesSection({
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
       {/* Header */}
-      <div
-        className={cn(
-          "px-4 pt-3 flex justify-between items-center",
-          isExpanded ? "" : "pb-3"
-        )}
-      >
+      <div className={cn("px-4 pt-3 flex justify-between items-center", isExpanded ? "" : "pb-3")}>
         <div className="flex items-center">
           {icon}
           <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
@@ -72,7 +67,7 @@ export function EnvironmentVariablesSection({
             onClick={startAdding}
             className={cn(
               "size-7 text-gray-9 hover:text-gray-11",
-              showPlusButton ? "visible" : "invisible"
+              showPlusButton ? "visible" : "invisible",
             )}
           >
             <Plus className="!size-3" />
@@ -81,7 +76,7 @@ export function EnvironmentVariablesSection({
             <ChevronDown
               className={cn(
                 "text-grayA-9 !size-3 transition-transform duration-200",
-                isExpanded && "rotate-180"
+                isExpanded && "rotate-180",
               )}
             />
           </Button>
@@ -92,7 +87,7 @@ export function EnvironmentVariablesSection({
       <div
         className={cn(
           "bg-gray-1 rounded-b-[14px] transition-all duration-200",
-          isExpanded ? "opacity-100" : "opacity-0 h-0"
+          isExpanded ? "opacity-100" : "opacity-0 h-0",
         )}
       >
         <div className="relative h-3 flex items-center justify-center">
@@ -104,15 +99,13 @@ export function EnvironmentVariablesSection({
           className={cn(
             "bg-gray-1 relative overflow-hidden",
             ANIMATION_STYLES.expand,
-            isExpanded ? "max-h-64 opacity-100" : "h-0 opacity-0 py-0"
+            isExpanded ? "max-h-64 opacity-100" : "h-0 opacity-0 py-0",
           )}
         >
           <div
             className={cn(
               ANIMATION_STYLES.slideIn,
-              isExpanded
-                ? "translate-y-0 opacity-100"
-                : "translate-y-2 opacity-0"
+              isExpanded ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
             )}
             style={{
               transitionDelay: isExpanded ? "150ms" : "0ms",
@@ -130,14 +123,10 @@ export function EnvironmentVariablesSection({
                       key={envVar.id}
                       className={cn(
                         "transition-all duration-150 ease-out",
-                        isExpanded
-                          ? "translate-x-0 opacity-100"
-                          : "translate-x-2 opacity-0"
+                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
                       )}
                       style={{
-                        transitionDelay: isExpanded
-                          ? `${200 + index * 50}ms`
-                          : "0ms",
+                        transitionDelay: isExpanded ? `${200 + index * 50}ms` : "0ms",
                       }}
                     >
                       <EnvVarRow
@@ -152,14 +141,10 @@ export function EnvironmentVariablesSection({
                     <div
                       className={cn(
                         "transition-all duration-300 ease-out",
-                        isExpanded
-                          ? "translate-x-0 opacity-100"
-                          : "translate-x-2 opacity-0"
+                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
                       )}
                       style={{
-                        transitionDelay: isExpanded
-                          ? `${200 + envVars.length * 50}ms`
-                          : "0ms",
+                        transitionDelay: isExpanded ? `${200 + envVars.length * 50}ms` : "0ms",
                       }}
                     >
                       <AddEnvVarRow

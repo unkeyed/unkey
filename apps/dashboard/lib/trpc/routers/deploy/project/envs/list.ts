@@ -1,11 +1,5 @@
 import { envVarSchema } from "@/app/(app)/projects/[projectId]/details/env-variables-section/types";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 
 const environmentVariablesOutputSchema = z.object({
@@ -13,9 +7,7 @@ const environmentVariablesOutputSchema = z.object({
   preview: z.array(envVarSchema),
 });
 
-export type EnvironmentVariables = z.infer<
-  typeof environmentVariablesOutputSchema
->;
+export type EnvironmentVariables = z.infer<typeof environmentVariablesOutputSchema>;
 export type EnvVar = z.infer<typeof envVarSchema>;
 
 export const VARIABLES: EnvironmentVariables = {
@@ -80,7 +72,7 @@ export const getEnvs = t.procedure
   .input(
     z.object({
       projectId: z.string(),
-    })
+    }),
   )
   .output(environmentVariablesOutputSchema)
   .query(() => {
