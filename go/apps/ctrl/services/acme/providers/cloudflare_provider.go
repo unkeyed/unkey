@@ -56,14 +56,15 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 	// Find domain in database to track the challenge
 	// For DNS-01 challenges on the default domain, Let's Encrypt passes the base domain
 	// but we store the wildcard domain in the database
+	searchDomain := domain
 	if domain == p.defaultDomain {
 		// This is our default domain - look for the wildcard version
-		domain = "*." + domain
+		searchDomain = "*." + domain
 	}
 
-	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
+	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), searchDomain)
 	if err != nil {
-		p.logger.Error("failed to find domain", "error", err, "domain", domain)
+		p.logger.Error("failed to find domain", "error", err, "domain", searchDomain)
 		return fmt.Errorf("failed to find domain: %w", err)
 	}
 
