@@ -327,7 +327,6 @@ func (c *Client) createBuildOptions(config *metaldv1.VmConfig, labels map[string
 		EnableAutoBuild:     true,
 		WaitForCompletion:   true, // Block VM creation until build completes
 		BuildTimeoutSeconds: 1800, // 30 minutes maximum wait time
-		TenantId:            tenantID,
 		SuggestedAssetId:    assetID,
 		BuildLabels:         buildLabels,
 	}

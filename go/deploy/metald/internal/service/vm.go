@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base32"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -34,14 +36,20 @@ type VMService struct {
 // NewVMService creates a new VM service instance
 func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *billing.MetricsCollector, vmMetrics *observability.VMMetrics, queries database.Querier) *VMService {
 	tracer := otel.Tracer("metald.service.vm")
-	return &VMService{ //nolint:exhaustruct // UnimplementedVmServiceHandler is embedded and provides default implementations
+	return &VMService{ //nolint:exhaustruct
 		backend:          backend,
-		logger:           logger.With("service", "vm"),
+		logger:           logger.With("service", "metald"),
 		metricsCollector: metricsCollector,
 		vmMetrics:        vmMetrics,
 		queries:          queries,
 		tracer:           tracer,
 	}
+}
+
+func (s *VMService) generateVMID(ctx context.Context) string {
+	b := make([]byte, 15)
+	rand.Read(b)
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b)[:24]
 }
 
 // CreateVm creates a new VM instance
@@ -82,17 +90,6 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	// Validate required fields
-	// if validateErr := s.validateVMConfig(config); validateErr != nil {
-	// 	s.logger.LogAttrs(ctx, slog.LevelError, "invalid vm config",
-	// 		slog.String("error", validateErr.Error()),
-	// 	)
-	// 	if s.vmMetrics != nil {
-	// 		s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "invalid_config")
-	// 	}
-	// 	return nil, connect.NewError(connect.CodeInvalidArgument, validateErr)
-	// }
-
 	network, netErr := s.queries.AllocateNetwork(ctx)
 	if netErr != nil {
 		s.logger.Info("failed to allocate network",
@@ -102,7 +99,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 	}
 
 	s.logger.Info("network allocated",
-		slog.String("network_cidr", network.BaseNetwork),
+		slog.Any("network_cidr", network.BaseNetwork),
 	)
 
 	ip, ipErr := s.queries.AllocateIP(ctx, database.AllocateIPParams{
