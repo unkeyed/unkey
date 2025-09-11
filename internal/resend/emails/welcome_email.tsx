@@ -35,7 +35,7 @@ export function WelcomeEmail() {
             series of guides will help you integrate Unkey step by step.
           </li>
           <li className="pt-4">
-            <Link href="https://www.unkey.com/docs/api-reference/overview"> API Documentation</Link>{" "}
+            <Link href="https://www.unkey.com/docs/api-reference/v2/overview"> API Documentation</Link>{" "}
             - Our API reference documentation will help you understand and use our API features to
             their fullest potential.
           </li>

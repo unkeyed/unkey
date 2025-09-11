@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey/go/deploy/builderd
 
-go 1.24.4
+go 1.25.1
 
 require (
 	connectrpc.com/connect v1.18.1
