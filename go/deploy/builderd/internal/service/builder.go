@@ -124,28 +124,16 @@ func (s *BuilderService) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[builderv1.CreateBuildRequest],
 ) (*connect.Response[builderv1.CreateBuildResponse], error) {
-	// Extract tenant info safely
-	var tenantID, customerID string
-	if req.Msg != nil && req.Msg.GetConfig() != nil && req.Msg.GetConfig().GetTenant() != nil {
-		tenantID = req.Msg.GetConfig().GetTenant().GetTenantId()
-		customerID = req.Msg.GetConfig().GetTenant().GetCustomerId()
-	}
 
-	s.logger.InfoContext(ctx, "create build request received",
-		slog.String("tenant_id", tenantID),
-		slog.String("customer_id", customerID),
-	)
+	s.logger.InfoContext(ctx, "create build request received")
 
 	// Validate build configuration first to prevent nil pointer dereference
 	if err := s.validateBuildConfig(req.Msg.GetConfig()); err != nil {
 		s.logger.WarnContext(ctx, "invalid build configuration",
 			slog.String("error", err.Error()),
-			slog.String("tenant_id", tenantID),
 		)
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-
-	// TODO: Check tenant quotas
 
 	// Create build job record
 	buildJob := &builderv1.BuildJob{
@@ -172,13 +160,8 @@ func (s *BuilderService) CreateBuild(
 		// This prevents builds from running indefinitely during shutdown
 		buildCtx := s.shutdownCtx
 
-		// AIDEV-NOTE: Preserve tenant context for asset registration
-		tenantID := req.Msg.GetConfig().GetTenant().GetTenantId()
-		customerID := req.Msg.GetConfig().GetTenant().GetCustomerId()
-
 		s.logger.InfoContext(buildCtx, "starting async build execution",
 			slog.String("build_id", buildJob.BuildId),
-			slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 		)
 
 		// AIDEV-NOTE: Check for shutdown signal before starting expensive build operation
@@ -209,14 +192,12 @@ func (s *BuilderService) CreateBuild(
 			s.logger.ErrorContext(buildCtx, "build execution failed",
 				slog.String("error", err.Error()),
 				slog.String("build_id", buildJob.BuildId),
-				slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 			)
 			return
 		}
 
 		s.logger.InfoContext(buildCtx, "build job completed successfully",
 			slog.String("build_id", buildJob.BuildId),
-			slog.String("tenant_id", req.Msg.GetConfig().GetTenant().GetTenantId()),
 			slog.String("source_type", buildResult.SourceType),
 			slog.String("rootfs_path", buildResult.RootfsPath),
 			slog.Duration("duration", buildResult.EndTime.Sub(buildResult.StartTime)),
@@ -242,8 +223,6 @@ func (s *BuilderService) CreateBuild(
 		if buildState == builderv1.BuildState_BUILD_STATE_COMPLETED && s.assetClient.IsEnabled() {
 			labels := map[string]string{
 				"source_type": buildResult.SourceType,
-				"tenant_id":   tenantID,   // AIDEV-NOTE: Include tenant info for asset registration
-				"customer_id": customerID, // AIDEV-NOTE: Include customer info for asset registration
 			}
 
 			// Add docker image label if it's a Docker source
@@ -303,19 +282,12 @@ func (s *BuilderService) CreateBuild(
 					)
 				} else {
 					// Create kernel labels
-					var tenantID, customerID string
-					if buildJob.Config != nil && buildJob.Config.Tenant != nil {
-						tenantID = buildJob.Config.Tenant.TenantId
-						customerID = buildJob.Config.Tenant.CustomerId
-					}
 
 					kernelLabels := map[string]string{
 						"kernel_type":   "bundled",
 						"compatible_os": extractOSFromImage(sourceImage),
 						"build_id":      buildJob.BuildId,
 						"created_by":    "builderd",
-						"tenant_id":     tenantID,
-						"customer_id":   customerID,
 					}
 
 					kernelAssetID, err := s.assetClient.RegisterBuildArtifactWithID(
@@ -363,10 +335,7 @@ func (s *BuilderService) GetBuild(
 ) (*connect.Response[builderv1.GetBuildResponse], error) {
 	s.logger.InfoContext(ctx, "get build request received",
 		slog.String("build_id", req.Msg.GetBuildId()),
-		slog.String("tenant_id", req.Msg.GetTenantId()),
 	)
-
-	// TODO: Validate tenant has access to this build
 
 	// Retrieve build from memory storage
 	s.buildsMutex.RLock()
@@ -385,17 +354,16 @@ func (s *BuilderService) GetBuild(
 	return connect.NewResponse(resp), nil
 }
 
-// ListBuilds lists builds for a tenant
+// ListBuilds lists builds
 func (s *BuilderService) ListBuilds(
 	ctx context.Context,
 	req *connect.Request[builderv1.ListBuildsRequest],
 ) (*connect.Response[builderv1.ListBuildsResponse], error) {
 	s.logger.InfoContext(ctx, "list builds request received",
-		slog.String("tenant_id", req.Msg.GetTenantId()),
 		slog.Int("page_size", int(req.Msg.GetPageSize())),
 	)
 
-	// TODO: Retrieve builds from database with tenant filtering
+	// TODO: Retrieve builds from database
 	// TODO: Apply state filters
 	// TODO: Implement pagination
 
@@ -416,10 +384,8 @@ func (s *BuilderService) CancelBuild(
 ) (*connect.Response[builderv1.CancelBuildResponse], error) {
 	s.logger.InfoContext(ctx, "cancel build request received",
 		slog.String("build_id", req.Msg.GetBuildId()),
-		slog.String("tenant_id", req.Msg.GetTenantId()),
 	)
 
-	// TODO: Validate tenant has access to this build
 	// TODO: Cancel the running build process
 	// TODO: Update build state in database
 
@@ -443,11 +409,9 @@ func (s *BuilderService) DeleteBuild(
 ) (*connect.Response[builderv1.DeleteBuildResponse], error) {
 	s.logger.InfoContext(ctx, "delete build request received",
 		slog.String("build_id", req.Msg.GetBuildId()),
-		slog.String("tenant_id", req.Msg.GetTenantId()),
 		slog.Bool("force", req.Msg.GetForce()),
 	)
 
-	// TODO: Validate tenant has access to this build
 	// TODO: Check if build is running (and force flag)
 	// TODO: Delete build from database
 	// TODO: Delete build artifacts from storage
@@ -467,11 +431,9 @@ func (s *BuilderService) StreamBuildLogs(
 ) error {
 	s.logger.InfoContext(ctx, "stream build logs request received",
 		slog.String("build_id", req.Msg.GetBuildId()),
-		slog.String("tenant_id", req.Msg.GetTenantId()),
 		slog.Bool("follow", req.Msg.GetFollow()),
 	)
 
-	// TODO: Validate tenant has access to this build
 	// TODO: Stream existing logs
 	// TODO: If follow=true, stream new logs as they arrive
 
@@ -491,55 +453,12 @@ func (s *BuilderService) StreamBuildLogs(
 	return nil
 }
 
-// GetTenantQuotas retrieves tenant quota information
-func (s *BuilderService) GetTenantQuotas(
-	ctx context.Context,
-	req *connect.Request[builderv1.GetTenantQuotasRequest],
-) (*connect.Response[builderv1.GetTenantQuotasResponse], error) {
-	s.logger.InfoContext(ctx, "get tenant quotas request received",
-		slog.String("tenant_id", req.Msg.GetTenantId()),
-	)
-
-	// TODO: Retrieve tenant configuration
-	// TODO: Calculate current usage
-	// TODO: Check for quota violations
-
-	// Return default quotas for now
-	resp := &builderv1.GetTenantQuotasResponse{
-		CurrentLimits: &builderv1.TenantResourceLimits{ //nolint:exhaustruct // AllowedRegistries, AllowedGitHosts, AllowPrivilegedBuilds, BlockedCommands, SandboxLevel are tenant-specific overrides not set in defaults
-			MaxMemoryBytes:       s.config.Tenant.DefaultResourceLimits.MaxMemoryBytes,
-			MaxCpuCores:          s.config.Tenant.DefaultResourceLimits.MaxCPUCores,
-			MaxDiskBytes:         s.config.Tenant.DefaultResourceLimits.MaxDiskBytes,
-			TimeoutSeconds:       s.config.Tenant.DefaultResourceLimits.TimeoutSeconds,
-			MaxConcurrentBuilds:  s.config.Tenant.DefaultResourceLimits.MaxConcurrentBuilds,
-			MaxDailyBuilds:       s.config.Tenant.DefaultResourceLimits.MaxDailyBuilds,
-			MaxStorageBytes:      s.config.Tenant.DefaultResourceLimits.MaxStorageBytes,
-			MaxBuildTimeMinutes:  s.config.Tenant.DefaultResourceLimits.MaxBuildTimeMinutes,
-			AllowExternalNetwork: true,
-		},
-		CurrentUsage: &builderv1.TenantUsageStats{
-			ActiveBuilds:         0,
-			DailyBuildsUsed:      0,
-			StorageBytesUsed:     0,
-			ComputeMinutesUsed:   0,
-			BuildsQueued:         0,
-			BuildsCompletedToday: 0,
-			BuildsFailedToday:    0,
-		},
-		Violations: []*builderv1.QuotaViolation{},
-	}
-
-	return connect.NewResponse(resp), nil
-}
-
 // GetBuildStats retrieves build statistics
 func (s *BuilderService) GetBuildStats(
 	ctx context.Context,
 	req *connect.Request[builderv1.GetBuildStatsRequest],
 ) (*connect.Response[builderv1.GetBuildStatsResponse], error) {
-	s.logger.InfoContext(ctx, "get build stats request received",
-		slog.String("tenant_id", req.Msg.GetTenantId()),
-	)
+	s.logger.InfoContext(ctx, "get build stats request received")
 
 	// TODO: Calculate actual statistics from database
 
@@ -560,14 +479,6 @@ func (s *BuilderService) GetBuildStats(
 func (s *BuilderService) validateBuildConfig(config *builderv1.BuildConfig) error {
 	if config == nil {
 		return fmt.Errorf("build config is required")
-	}
-
-	if config.GetTenant() == nil {
-		return fmt.Errorf("tenant context is required")
-	}
-
-	if config.GetTenant().GetTenantId() == "" {
-		return fmt.Errorf("tenant ID is required")
 	}
 
 	if config.GetSource() == nil {

@@ -1,8 +1,8 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, Input, toast } from "@unkey/ui";
+import { Button, DialogContainer, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -20,7 +20,6 @@ type DeleteNamespaceProps = {
   onOpenChange: (value: boolean) => void;
   namespace: {
     id: string;
-    workspaceId: string;
     name: string;
   };
 };
@@ -31,39 +30,20 @@ export const DeleteNamespaceDialog = ({
   namespace,
 }: DeleteNamespaceProps) => {
   const router = useRouter();
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting },
-  } = useForm<FormValues>({
+  const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
     },
   });
-  const trpcUtils = trpc.useUtils();
   const isValid = watch("name") === namespace.name;
 
-  const deleteNamespace = trpc.ratelimit.namespace.delete.useMutation({
-    onSuccess() {
-      toast.success("Namespace Deleted", {
-        description: "Your namespace and all its overridden identifiers have been deleted.",
-      });
-      trpcUtils.ratelimit.namespace.query.invalidate();
-      router.push("/ratelimits");
-      onOpenChange(false);
-    },
-    onError(err) {
-      toast.error("Failed to delete namespace", {
-        description: err.message,
-      });
-    },
-  });
-
   const onSubmit = async () => {
-    await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
+    collection.ratelimitNamespaces.delete(namespace.id);
+    router.push("/ratelimits");
+
+    //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };
   return (
     <DialogContainer
@@ -78,8 +58,7 @@ export const DeleteNamespaceDialog = ({
             variant="primary"
             color="danger"
             size="xlg"
-            disabled={!isValid || deleteNamespace.isLoading || isSubmitting}
-            loading={deleteNamespace.isLoading || isSubmitting}
+            disabled={!isValid}
             className="w-full rounded-lg"
           >
             Delete Namespace

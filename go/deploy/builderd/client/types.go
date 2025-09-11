@@ -23,8 +23,7 @@ type CreateBuildResponse struct {
 
 // GetBuildRequest wraps builderv1.GetBuildRequest
 type GetBuildRequest struct {
-	BuildID  string
-	TenantID string
+	BuildID string
 }
 
 // GetBuildResponse wraps builderv1.GetBuildResponse
@@ -34,7 +33,6 @@ type GetBuildResponse struct {
 
 // ListBuildsRequest wraps builderv1.ListBuildsRequest
 type ListBuildsRequest struct {
-	TenantID  string
 	State     []builderv1.BuildState
 	PageSize  int32
 	PageToken string
@@ -49,8 +47,7 @@ type ListBuildsResponse struct {
 
 // CancelBuildRequest wraps builderv1.CancelBuildRequest
 type CancelBuildRequest struct {
-	BuildID  string
-	TenantID string
+	BuildID string
 }
 
 // CancelBuildResponse wraps builderv1.CancelBuildResponse
@@ -61,9 +58,8 @@ type CancelBuildResponse struct {
 
 // DeleteBuildRequest wraps builderv1.DeleteBuildRequest
 type DeleteBuildRequest struct {
-	BuildID  string
-	TenantID string
-	Force    bool
+	BuildID string
+	Force   bool
 }
 
 // DeleteBuildResponse wraps builderv1.DeleteBuildResponse
@@ -73,26 +69,12 @@ type DeleteBuildResponse struct {
 
 // StreamBuildLogsRequest wraps builderv1.StreamBuildLogsRequest
 type StreamBuildLogsRequest struct {
-	BuildID  string
-	TenantID string
-	Follow   bool
-}
-
-// GetTenantQuotasRequest wraps builderv1.GetTenantQuotasRequest
-type GetTenantQuotasRequest struct {
-	TenantID string
-}
-
-// GetTenantQuotasResponse wraps builderv1.GetTenantQuotasResponse
-type GetTenantQuotasResponse struct {
-	Quotas     *builderv1.TenantResourceLimits
-	Usage      *builderv1.TenantUsageStats
-	Violations []*builderv1.QuotaViolation
+	BuildID string
+	Follow  bool
 }
 
 // GetBuildStatsRequest wraps builderv1.GetBuildStatsRequest
 type GetBuildStatsRequest struct {
-	TenantID  string
 	StartTime *timestamppb.Timestamp
 	EndTime   *timestamppb.Timestamp
 }

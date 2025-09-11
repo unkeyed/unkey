@@ -293,11 +293,11 @@ func NewBuildMetrics(logger *slog.Logger, highCardinalityEnabled bool) (*BuildMe
 }
 
 // RecordBuildStart records the start of a build
-func (m *BuildMetrics) RecordBuildStart(ctx context.Context, buildType, sourceType, tenantTier string) {
+func (m *BuildMetrics) RecordBuildStart(ctx context.Context, buildType, sourceType string) {
+
 	attrs := []attribute.KeyValue{
 		attribute.String("build_type", buildType),
 		attribute.String("source_type", sourceType),
-		attribute.String("tenant_tier", tenantTier),
 	}
 
 	m.buildsTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
