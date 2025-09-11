@@ -10,8 +10,8 @@ import {
 } from "date-fns";
 import React from "react";
 
+import { logsFilterFieldEnum } from "@/app/(app)/[workspace]/logs/filters.schema";
 import { auditLogsFilterFieldEnum } from "@/app/(app)/audit/filters.schema";
-import { logsFilterFieldEnum } from "@/app/(app)/logs/filters.schema";
 import { ratelimitFilterFieldEnum } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import {
   Bucket,
@@ -27,8 +27,11 @@ import {
   UserSearch,
 } from "@unkey/icons";
 
+import type {
+  LogsFilterField,
+  QuerySearchParams,
+} from "@/app/(app)/[workspace]/logs/filters.schema";
 import type { AuditLogsFilterField } from "@/app/(app)/audit/filters.schema";
-import type { LogsFilterField, QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import type { RatelimitFilterField } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { namespaceListFilterFieldEnum } from "@/app/(app)/ratelimits/_components/namespace-list-filters.schema";
 import type { IconProps } from "@unkey/icons/src/props";

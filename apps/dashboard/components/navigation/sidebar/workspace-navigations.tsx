@@ -100,7 +100,7 @@ export const createWorkspaceNavigation = (segments: string[]) => {
     },
     {
       icon: Layers3,
-      href: "/logs",
+      href: `${basePath}/logs`,
       label: "Logs",
       active: segments.at(0) === "logs",
     },

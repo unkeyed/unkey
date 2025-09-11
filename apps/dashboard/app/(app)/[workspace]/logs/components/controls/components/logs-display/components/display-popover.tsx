@@ -1,4 +1,4 @@
-import { isDisplayProperty, useLogsContext } from "@/app/(app)/logs/context/logs";
+import { isDisplayProperty, useLogsContext } from "@/app/(app)/[workspace]/logs/context/logs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@unkey/ui";

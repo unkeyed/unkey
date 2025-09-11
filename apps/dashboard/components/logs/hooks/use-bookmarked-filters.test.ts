@@ -1,4 +1,4 @@
-import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
+import type { QuerySearchParams } from "@/app/(app)/[workspace]/logs/filters.schema";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FilterValue } from "../validation/filter.types";

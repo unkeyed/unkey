@@ -1,4 +1,4 @@
-import type { queryLogsPayload } from "@/app/(app)/logs/components/table/query-logs.schema";
+import type { queryLogsPayload } from "@/app/(app)/[workspace]/logs/components/table/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 import type { z } from "zod";

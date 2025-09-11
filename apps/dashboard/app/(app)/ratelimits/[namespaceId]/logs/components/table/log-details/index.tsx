@@ -1,6 +1,6 @@
 "use client";
 
-import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
+import { extractResponseField, safeParseJson } from "@/app/(app)/[workspace]/logs/utils";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { useMemo } from "react";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";

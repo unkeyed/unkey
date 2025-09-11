@@ -1,6 +1,6 @@
 "use client";
-import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
-import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
+import { RED_STATES, YELLOW_STATES } from "@/app/(app)/[workspace]/logs/constants";
+import { extractResponseField, getRequestHeader } from "@/app/(app)/[workspace]/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
