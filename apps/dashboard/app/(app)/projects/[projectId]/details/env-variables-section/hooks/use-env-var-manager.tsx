@@ -9,13 +9,13 @@ type UseEnvVarsManagerProps = {
 export function useEnvVarsManager({ projectId, environment }: UseEnvVarsManagerProps) {
   const trpcUtils = trpc.useUtils();
 
-  // Just fetch server data - no optimistic updates needed
   const allEnvVars = trpcUtils.deploy.project.envs.getEnvs.getData({
     projectId,
   });
   const envVars = allEnvVars?.[environment] || [];
 
-  // Helper for validation - each row can check for duplicates
+  // Helper to check for duplicate environment variable keys within the current environment.
+  // Used for client-side validation before making server requests.
   const getExistingEnvVar = (key: string, excludeId?: string) => {
     return envVars.find((envVar) => envVar.key === key.trim() && envVar.id !== excludeId);
   };
