@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/builderd"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/config"
 	"github.com/unkeyed/unkey/go/deploy/assetmanagerd/internal/observability"
@@ -27,6 +25,8 @@ import (
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
+	assetv1 "github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/deploy/assetmanagerd/v1/assetmanagerdv1connect"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -204,12 +204,6 @@ func main() {
 		interceptors.WithRequestDurationMetric(true), // Match existing behavior
 		interceptors.WithErrorResampling(true),
 		interceptors.WithPanicStackTrace(true),
-		interceptors.WithTenantAuth(true,
-			// Exempt health check endpoints from tenant auth
-			"/health.v1.HealthService/Check",
-			// Exempt system maintenance operations from tenant auth
-			"/asset.v1.AssetManagerService/GarbageCollect",
-		),
 	}
 
 	// Add meter if OpenTelemetry is enabled
@@ -217,7 +211,7 @@ func main() {
 		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(observability.GetMeter("assetmanagerd")))
 	}
 
-	// Get default interceptors (tenant auth, metrics, logging)
+	// Get default interceptors (metrics, logging)
 	sharedInterceptors := interceptors.NewDefaultInterceptors("assetmanagerd", interceptorOpts...)
 
 	// Convert UnaryInterceptorFunc to Interceptor
