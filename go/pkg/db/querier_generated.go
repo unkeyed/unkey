@@ -10,6 +10,12 @@ import (
 )
 
 type Querier interface {
+	//ClearAcmeChallengeTokens
+	//
+	//  UPDATE acme_challenges
+	//  SET token = ?, authorization = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -1562,6 +1568,12 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE domain_id = ? AND status = 'waiting'
 	UpdateAcmeChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateAcmeChallengeTryClaimingParams) error
+	//UpdateAcmeChallengeVerifiedWithExpiry
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, expires_at = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateAcmeChallengeVerifiedWithExpiry(ctx context.Context, db DBTX, arg UpdateAcmeChallengeVerifiedWithExpiryParams) error
 	//UpdateAcmeUserRegistrationURI
 	//
 	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?

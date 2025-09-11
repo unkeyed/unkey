@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
 import { domains } from "./domains";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -7,7 +7,7 @@ import { workspaces } from "./workspaces";
 export const acmeChallenges = mysqlTable(
   "acme_challenges",
   {
-    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     domainId: varchar("domain_id", { length: 256 }).notNull(),
     token: varchar("token", { length: 256 }).notNull(),
@@ -19,7 +19,9 @@ export const acmeChallenges = mysqlTable(
     ...lifecycleDates,
   },
   (table) => ({
+    idIdx: index("id_idx").on(table.id),
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
+    pk: primaryKey({columns:[table.domainId]}),
   }),
 );
 

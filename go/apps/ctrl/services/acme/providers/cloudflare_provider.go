@@ -13,6 +13,7 @@ import (
 )
 
 var _ challenge.Provider = (*CloudflareProvider)(nil)
+var _ challenge.ProviderTimeout = (*CloudflareProvider)(nil)
 
 // CloudflareProvider implements the lego challenge.Provider interface for DNS-01 challenges
 // It uses Cloudflare DNS to store challenges and tracks them in the database
@@ -68,12 +69,12 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 		return fmt.Errorf("failed to find domain: %w", err)
 	}
 
-	p.logger.Info("presenting DNS challenge", "domain", domain, "token", token)
+	p.logger.Info("presenting dns challenge", "domain", domain, "token", "[REDACTED]")
 
 	// Create the DNS challenge record using Cloudflare
 	err = p.provider.Present(domain, token, keyAuth)
 	if err != nil {
-		p.logger.Error("failed to present DNS challenge", "error", err, "domain", domain, "token", token)
+		p.logger.Error("failed to present dns challenge", "error", err, "domain", domain)
 		return fmt.Errorf("failed to present DNS challenge: %w", err)
 	}
 
@@ -87,28 +88,25 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 	})
 
 	if err != nil {
-		p.logger.Error("failed to store challenge in database", "error", err, "domain", domain, "token", token)
+		p.logger.Error("failed to store challenge in database", "error", err, "domain", domain)
 		// Don't cleanup DNS record - Let's Encrypt still needs it for validation
 		// The DNS record will be cleaned up later in CleanUp() regardless of success/failure
 		return fmt.Errorf("failed to store challenge: %w", err)
 	}
 
-	p.logger.Info("DNS challenge presented successfully", "domain", domain, "token", token)
-
-	// Give DNS time to propagate before Let's Encrypt validates
-	time.Sleep(30 * time.Second)
+	p.logger.Info("dns challenge presented successfully", "domain", domain)
 
 	return nil
 }
 
 // CleanUp removes the DNS TXT record and updates the database
 func (p *CloudflareProvider) CleanUp(domain, token, keyAuth string) error {
-	p.logger.Info("cleaning up DNS challenge", "domain", domain, "token", token)
+	p.logger.Info("cleaning up dns challenge", "domain", domain)
 
 	// Clean up the DNS record first
 	err := p.provider.CleanUp(domain, token, keyAuth)
 	if err != nil {
-		p.logger.Warn("failed to clean up DNS challenge record", "error", err, "domain", domain, "token", token)
+		p.logger.Warn("failed to clean up dns challenge record", "error", err, "domain", domain)
 	}
 
 	return nil

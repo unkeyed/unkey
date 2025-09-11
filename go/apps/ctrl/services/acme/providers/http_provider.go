@@ -12,6 +12,7 @@ import (
 )
 
 var _ challenge.Provider = (*HTTPProvider)(nil)
+var _ challenge.ProviderTimeout = (*HTTPProvider)(nil)
 
 // HTTPProvider implements the lego challenge.Provider interface for HTTP-01 challenges
 // It stores challenges in the database where the gateway can retrieve them
@@ -54,12 +55,9 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	})
 
 	if err != nil {
-		p.logger.Error("failed to store challenge", "error", err, "domain", domain, "token", token)
+		p.logger.Error("failed to store challenge", "error", err, "domain", domain)
 		return fmt.Errorf("failed to store challenge: %w", err)
 	}
-
-	// Give the database time to replicate before Let's Encrypt tries to validate
-	time.Sleep(2 * time.Second)
 
 	return nil
 }
@@ -75,17 +73,25 @@ func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	}
 
 	// Clear the token and authorization so the gateway stops serving the challenge
-	err = db.Query.UpdateAcmeChallengePending(ctx, p.db.RW(), db.UpdateAcmeChallengePendingParams{
-		DomainID:      dom.ID,
-		Status:        db.AcmeChallengesStatusPending, // Keep existing status, just clear token
-		Token:         "",                             // Clear token
-		Authorization: "",                             // Clear authorization
+	// Don't change the status - it should remain as set by the certificate workflow
+	err = db.Query.ClearAcmeChallengeTokens(ctx, p.db.RW(), db.ClearAcmeChallengeTokensParams{
+		Token:         "", // Clear token
+		Authorization: "", // Clear authorization
 		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		DomainID:      dom.ID,
 	})
 
 	if err != nil {
-		p.logger.Warn("failed to clean up challenge token", "error", err, "domain", domain, "token", token)
+		p.logger.Warn("failed to clean up challenge token", "error", err, "domain", domain)
 	}
 
 	return nil
+}
+
+// Timeout returns custom timeout and check interval for HTTP-01 challenges
+// Returns (timeout, interval) - how long to wait and time between checks
+func (p *HTTPProvider) Timeout() (time.Duration, time.Duration) {
+	// HTTP challenges typically resolve faster than DNS, but give some buffer
+	// 90 seconds timeout, 3 second check interval
+	return 90 * time.Second, 3 * time.Second
 }

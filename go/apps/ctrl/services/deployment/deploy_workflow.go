@@ -122,13 +122,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Get backend name for step naming
-	backendName := "unknown"
-	if w.deploymentBackend != nil {
-		backendName = w.deploymentBackend.Name()
-	}
-
-	deployment, err := hydra.Step(ctx, fmt.Sprintf("%s-create-deployment", backendName), func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
+	deployment, err := hydra.Step(ctx, "create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
 		if w.deploymentBackend == nil {
 			return nil, fmt.Errorf("deployment backend not initialized")
 		}
@@ -146,14 +140,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		resp, err := w.deploymentBackend.CreateDeployment(stepCtx, deploymentReq)
 		if err != nil {
-			w.logger.Error("CreateDeployment failed", "error", err, "docker_image", req.DockerImage)
+			w.logger.Error("create deployment failed", "error", err, "docker_image", req.DockerImage)
 			return nil, fmt.Errorf("failed to create deployment: %w", err)
 		}
 
 		return resp, nil
 	})
 	if err != nil {
-		w.logger.Error("Deployment failed", "error", err, "deployment_id", req.DeploymentID, "backend", backendName)
+		w.logger.Error("deployment failed", "error", err, "deployment_id", req.DeploymentID, "backend", w.deploymentBackend.Name())
 		return err
 	}
 
@@ -191,7 +185,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 			vms, err := w.deploymentBackend.GetDeployment(stepCtx, req.DeploymentID)
 			if err != nil {
-				w.logger.Error("GetDeployment failed", "error", err, "deployment_id", req.DeploymentID)
+				w.logger.Error("get deployment failed", "error", err, "deployment_id", req.DeploymentID)
 				return nil, fmt.Errorf("failed to get deployment: %w", err)
 			}
 
@@ -255,7 +249,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return nil, fmt.Errorf("deployment never became ready")
 	})
 	if err != nil {
-		w.logger.Error("Polling deployment prepare failed", "error", err, "deployment_id", req.DeploymentID)
+		w.logger.Error("polling deployment prepare failed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -455,13 +449,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 				resp, err := client.Get(openapiURL)
 				if err != nil {
-					w.logger.Warn("OpenAPI scraping failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
 					continue
 				}
 				defer resp.Body.Close()
 
 				if resp.StatusCode != http.StatusOK {
-					w.logger.Warn("OpenAPI endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
 					continue
 				}
 
@@ -472,7 +466,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					continue
 				}
 
-				w.logger.Info("OpenAPI spec scraped successfully", "host_addr", hostAddr, "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
+				w.logger.Info("openapi spec scraped successfully", "host_addr", hostAddr, "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
 				return string(specBytes), nil
 			}
 
@@ -562,7 +556,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				return nil // Don't fail the deployment
 			}
 
-			w.logger.Info("OpenAPI spec stored in database successfully", "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
+			w.logger.Info("openapi spec stored in database successfully", "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
 			return nil
 		})
 		if err != nil {
@@ -631,7 +625,7 @@ func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, wor
 
 	// Validate partition DB connection
 	if w.partitionDB == nil {
-		w.logger.Error("CRITICAL: partition database not initialized for gateway config")
+		w.logger.Error("critical: partition database not initialized for gateway config")
 		return fmt.Errorf("partition database not initialized for gateway config")
 	}
 

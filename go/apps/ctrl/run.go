@@ -395,7 +395,6 @@ func Run(ctx context.Context, cfg Config) error {
 				for _, challenge := range executableChallenges {
 					executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
 						acme.CertificateChallengeRequest{
-							ID:          challenge.ID,
 							WorkspaceID: challenge.WorkspaceID,
 							Domain:      challenge.Domain,
 						},
