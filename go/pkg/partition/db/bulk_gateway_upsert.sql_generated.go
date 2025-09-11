@@ -9,7 +9,9 @@ import (
 )
 
 // bulkUpsertGateway is the base query for bulk insert
-const bulkUpsertGateway = `INSERT INTO gateways (workspace_id, hostname, config) VALUES %s ON DUPLICATE KEY UPDATE config = VALUES(config)`
+const bulkUpsertGateway = `INSERT INTO gateways (workspace_id, hostname, config) VALUES %s ON DUPLICATE KEY UPDATE 
+    config = VALUES(config),
+    workspace_id = VALUES(workspace_id)`
 
 // UpsertGateway performs bulk insert in a single query
 func (q *BulkQueries) UpsertGateway(ctx context.Context, db DBTX, args []UpsertGatewayParams) error {

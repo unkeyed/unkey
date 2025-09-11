@@ -11,5 +11,5 @@ type BulkQuerier interface {
 	UpsertVM(ctx context.Context, db DBTX, args []UpsertVMParams) error
 }
 
-// Ensure Queries implements BulkQuerier
+// Ensure BulkQueries implements BulkQuerier
 var _ BulkQuerier = (*BulkQueries)(nil)

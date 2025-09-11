@@ -108,10 +108,11 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 
 		// For testing or other reasons we want to bypass HTTPS redirection
 		if svc.HttpProxy {
+			svc.Logger.Error("Plaintext HTTP proxying is ENABLED! This should ONLY be used for testing/development.")
 			mux.Handle("/", srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares))
 		} else {
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				http.Redirect(w, r, "https://"+r.Host+r.URL.RequestURI(), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, "https://"+r.Host+r.URL.RequestURI(), http.StatusPermanentRedirect)
 			})
 		}
 	}

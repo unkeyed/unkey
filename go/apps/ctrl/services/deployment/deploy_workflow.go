@@ -28,22 +28,22 @@ type DeployWorkflow struct {
 }
 
 type DeployWorkflowConfig struct {
-	Logger         logging.Logger
-	DB             db.Database
-	PartitionDB    db.Database
-	MetalD         metaldv1connect.VmServiceClient
-	MetalDFallback string
+	Logger        logging.Logger
+	DB            db.Database
+	PartitionDB   db.Database
+	MetalD        metaldv1connect.VmServiceClient
+	MetaldBackend string
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
 	// Create the appropriate deployment backend
-	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetalDFallback, cfg.Logger)
+	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger)
 	if err != nil {
 		// Log error but continue - workflow will fail when trying to use the backend
 		cfg.Logger.Error("failed to initialize deployment backend",
 			"error", err,
-			"fallback", cfg.MetalDFallback)
+			"fallback", cfg.MetaldBackend)
 	}
 
 	return &DeployWorkflow{
@@ -118,8 +118,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	deployment, err := hydra.Step(ctx, "metald-create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
+	// Get backend name for step naming
+	backendName := "unknown"
+	if w.deploymentBackend != nil {
+		backendName = w.deploymentBackend.Name()
+	}
 
+	deployment, err := hydra.Step(ctx, fmt.Sprintf("%s-create-deployment", backendName), func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
 		if w.deploymentBackend == nil {
 			return nil, fmt.Errorf("deployment backend not initialized")
 		}
@@ -144,7 +149,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return resp, nil
 	})
 	if err != nil {
-		w.logger.Error("Deployment  failed", "error", err, "deployment_id", req.DeploymentID)
+		w.logger.Error("Deployment failed", "error", err, "deployment_id", req.DeploymentID, "backend", backendName)
 		return err
 	}
 
@@ -374,12 +379,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 		}
 
-		w.logger.Info("gateway configurations created in bulk",
-			"deployment_id", req.DeploymentID,
-			"total_domains", len(allDomains),
-			"configs_created", len(gatewayParams),
-			"skipped_domains", skippedDomains)
-
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       db.DeploymentStepsStatusAssigningDomains,
@@ -392,7 +391,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Update deployment status to active
+	// Update deployment status to ready
 	_, err = hydra.Step(ctx, "update-deployment-ready", func(stepCtx context.Context) (*DeploymentResult, error) {
 		w.logger.Info("updating deployment status to ready", "deployment_id", req.DeploymentID)
 		completionTime := time.Now().UnixMilli()
@@ -500,8 +499,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			// Unmarshal existing config
+			// IMPORTANT: Gateway configs are stored as JSON in the database for compatibility with the gateway service
 			var gatewayConfig partitionv1.GatewayConfig
-			if err := proto.Unmarshal(existingConfig.Config, &gatewayConfig); err != nil {
+			if err := protojson.Unmarshal(existingConfig.Config, &gatewayConfig); err != nil {
 				w.logger.Error("failed to unmarshal existing gateway config", "error", err, "hostname", req.Hostname)
 				return fmt.Errorf("failed to unmarshal existing gateway config: %w", err)
 			}
@@ -513,7 +513,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			gatewayConfig.ValidationConfig.OpenapiSpec = openapiSpec
 
 			// Marshal updated config
-			configBytes, err := proto.Marshal(&gatewayConfig)
+			// Gateway configs must be stored as JSON for compatibility with the gateway service
+			configBytes, err := protojson.Marshal(&gatewayConfig)
 			if err != nil {
 				w.logger.Error("failed to marshal updated gateway config", "error", err)
 				return fmt.Errorf("failed to marshal updated gateway config: %w", err)
@@ -588,6 +589,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 }
 
 // createGatewayConfig creates a gateway configuration protobuf object
+//
+// ENCODING POLICY FOR GATEWAY CONFIGS:
+// Gateway configs are stored as JSON (using protojson.Marshal) for easier debugging
+// and readability during development/demo. This makes it simpler to inspect and
+// modify configs directly in the database.
+// IMPORTANT: Always use protojson.Marshal for writes and protojson.Unmarshal for reads.
 func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
@@ -652,16 +659,23 @@ func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, wor
 
 // isLocalHostname checks if a hostname is for local development
 func isLocalHostname(hostname string) bool {
-	localDomains := []string{
-		"localhost",
-		"127.0.0.1",
+	// Lowercase for case-insensitive comparison
+	hostname = strings.ToLower(hostname)
+
+	// Exact matches for common local hosts
+	if hostname == "localhost" || hostname == "127.0.0.1" {
+		return true
+	}
+
+	// Check for local-only TLD suffixes
+	// Note: .dev is a real TLD owned by Google, so it's excluded
+	localSuffixes := []string{
 		".local",
-		".dev",
 		".test",
 	}
 
-	for _, local := range localDomains {
-		if strings.Contains(hostname, local) {
+	for _, suffix := range localSuffixes {
+		if strings.HasSuffix(hostname, suffix) {
 			return true
 		}
 	}

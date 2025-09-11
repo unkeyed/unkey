@@ -1,4 +1,4 @@
-package fallbacks
+package backends
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
 	"github.com/docker/go-connections/nat"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -60,7 +61,7 @@ func NewDockerBackend(logger logging.Logger) (*DockerBackend, error) {
 }
 
 // CreateDeployment creates Docker containers for the deployment
-func (d *DockerBackend) CreateDeployment(ctx context.Context, deploymentID string, image string, vmCount int32) ([]string, error) {
+func (d *DockerBackend) CreateDeployment(ctx context.Context, deploymentID string, image string, vmCount uint32) ([]string, error) {
 	d.logger.Info("creating Docker deployment",
 		"deployment_id", deploymentID,
 		"image", image,
@@ -80,7 +81,7 @@ func (d *DockerBackend) CreateDeployment(ctx context.Context, deploymentID strin
 	}
 
 	// Create containers
-	for i := int32(0); i < vmCount; i++ {
+	for i := range vmCount {
 		vmID := uid.New("vm")
 		containerName := fmt.Sprintf("unkey-%s-%s", deploymentID, vmID)
 
@@ -191,28 +192,36 @@ func (d *DockerBackend) DeleteDeployment(ctx context.Context, deploymentID strin
 
 // Type returns the backend type
 func (d *DockerBackend) Type() string {
-	return "docker"
+	return BackendTypeDocker
 }
 
 // Helper methods
 
 func (d *DockerBackend) pullImageIfNeeded(ctx context.Context, imageName string) error {
 	// Check if image exists locally
-	_, _, err := d.dockerClient.ImageInspectWithRaw(ctx, imageName)
-	if err == nil {
+	_, _, inspectErr := d.dockerClient.ImageInspectWithRaw(ctx, imageName)
+	if inspectErr == nil {
 		d.logger.Info("image found locally", "image", imageName)
 		return nil
 	}
 
+	// Only attempt to pull if the error indicates the image is not found
+	// For other errors (e.g., permission issues, Docker daemon problems), return immediately
+	if !errdefs.IsNotFound(inspectErr) {
+		return fmt.Errorf("failed to inspect image %s: %w", imageName, inspectErr)
+	}
+
+	// Image not found locally, attempt to pull it
 	d.logger.Info("pulling image", "image", imageName)
-	reader, err := d.dockerClient.ImagePull(ctx, imageName, image.PullOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to pull image %s: %w", imageName, err)
+	reader, pullErr := d.dockerClient.ImagePull(ctx, imageName, image.PullOptions{})
+	if pullErr != nil {
+		// If pull fails, return the original inspect error for better context
+		return fmt.Errorf("image %s not found locally and pull failed: inspect error: %v, pull error: %w", imageName, inspectErr, pullErr)
 	}
 	defer reader.Close()
 
 	// Read the output to ensure pull completes
-	_, err = io.Copy(io.Discard, reader)
+	_, err := io.Copy(io.Discard, reader)
 	if err != nil {
 		return fmt.Errorf("failed to read pull response: %w", err)
 	}

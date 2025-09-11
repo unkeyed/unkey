@@ -1,6 +1,9 @@
 package ctrl
 
 import (
+	"fmt"
+
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment/backends"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
@@ -50,7 +53,7 @@ type Config struct {
 	// MetaldAddress is the full URL of the metald service for VM operations (e.g., "https://metald.example.com:8080")
 	MetaldAddress string
 
-	MetalDFallback string // fallback to either k8's pod or docker, this skips calling metald
+	MetaldBackend string // fallback to either k8's pod or docker, this skips calling metald
 
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
 	SPIFFESocketPath string
@@ -65,6 +68,10 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	// Validate MetaldBackend field
+	if err := backends.ValidateBackendType(c.MetaldBackend); err != nil {
+		return fmt.Errorf("invalid metald backend configuration: %w", err)
+	}
 
 	return nil
 }

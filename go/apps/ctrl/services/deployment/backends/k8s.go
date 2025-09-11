@@ -1,9 +1,11 @@
-package fallbacks
+package backends
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +20,7 @@ import (
 
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -68,7 +71,7 @@ func NewK8sBackend(logger logging.Logger) (*K8sBackend, error) {
 }
 
 // CreateDeployment creates Kubernetes pods for the deployment
-func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, image string, vmCount int32) ([]string, error) {
+func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, image string, vmCount uint32) ([]string, error) {
 	k.logger.Info("creating Kubernetes deployment",
 		"deployment_id", deploymentID,
 		"image", image,
@@ -76,16 +79,12 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 		"namespace", k.namespace)
 
 	vmIDs := make([]string, vmCount)
-	for i := int32(0); i < vmCount; i++ {
+	for i := range vmCount {
 		vmIDs[i] = uid.New("vm")
 	}
 
 	// Sanitize deployment ID for Kubernetes RFC 1123 compliance
-	// Must be lowercase, alphanumeric, and hyphens only
-	sanitizedDeploymentID := strings.ReplaceAll(deploymentID, "_", "-")
-	sanitizedDeploymentID = strings.ToLower(sanitizedDeploymentID)
-	deploymentName := fmt.Sprintf("unkey-%s", sanitizedDeploymentID)
-	serviceName := fmt.Sprintf("unkey-svc-%s", sanitizedDeploymentID)
+	deploymentName, serviceName := k.sanitizeK8sNames(deploymentID)
 
 	// Create deployment
 	deployment := &appsv1.Deployment{
@@ -98,7 +97,7 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &vmCount,
+			Replicas: ptr.P(int32(vmCount)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"unkey.deployment.id": deploymentID,
@@ -290,7 +289,59 @@ func (k *K8sBackend) DeleteDeployment(ctx context.Context, deploymentID string) 
 
 // Type returns the backend type
 func (k *K8sBackend) Type() string {
-	return "k8s"
+	return BackendTypeK8s
+}
+
+// sanitizeK8sNames generates RFC1123-compliant names for Kubernetes resources
+// It ensures names are lowercase, alphanumeric with hyphens, max 63 chars, and unique
+func (k *K8sBackend) sanitizeK8sNames(deploymentID string) (deploymentName, serviceName string) {
+	// Generate a short hash suffix for uniqueness (6 hex chars)
+	hash := sha256.Sum256([]byte(deploymentID))
+	hashSuffix := fmt.Sprintf("%x", hash[:3]) // 3 bytes = 6 hex chars
+
+	// Replace any character not in [a-z0-9-] with a hyphen
+	// This regex will be compiled once at startup for efficiency
+	invalidCharsRegex := regexp.MustCompile(`[^a-z0-9-]+`)
+	sanitized := invalidCharsRegex.ReplaceAllString(strings.ToLower(deploymentID), "-")
+
+	// Collapse consecutive hyphens to a single hyphen
+	multiHyphenRegex := regexp.MustCompile(`-+`)
+	sanitized = multiHyphenRegex.ReplaceAllString(sanitized, "-")
+
+	// Trim leading and trailing hyphens
+	sanitized = strings.Trim(sanitized, "-")
+
+	// If empty after sanitization, use a default
+	if sanitized == "" {
+		sanitized = "deployment"
+	}
+
+	// Calculate max lengths for the core ID part
+	// Format: "unkey-<core>-<hash>" (deployment) and "unkey-svc-<core>-<hash>" (service)
+	// Max total length is 63 chars
+	// Reserve: "unkey-" (6) + "-" (1) + hash (6) = 13 chars for deployment
+	// Reserve: "unkey-svc-" (10) + "-" (1) + hash (6) = 17 chars for service
+	maxDeploymentCore := 63 - 13 // = 50 chars
+	maxServiceCore := 63 - 17    // = 46 chars
+
+	// Use the smaller limit to ensure both names are valid
+	maxCore := min(maxDeploymentCore, maxServiceCore)
+	if len(sanitized) > maxCore {
+		sanitized = sanitized[:maxCore]
+		// Trim any trailing hyphen from truncation
+		sanitized = strings.TrimRight(sanitized, "-")
+	}
+
+	// Build the final names with hash suffix
+	deploymentName = fmt.Sprintf("unkey-%s-%s", sanitized, hashSuffix)
+	serviceName = fmt.Sprintf("unkey-svc-%s-%s", sanitized, hashSuffix)
+
+	// Final validation: ensure names start and end with alphanumeric
+	// (should already be the case, but double-check)
+	deploymentName = strings.Trim(deploymentName, "-")
+	serviceName = strings.Trim(serviceName, "-")
+
+	return deploymentName, serviceName
 }
 
 // Helper function to read namespace from service account
@@ -299,5 +350,5 @@ func readNamespaceFromServiceAccount() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	return strings.TrimSpace(string(data)), nil
 }

@@ -187,11 +187,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Register deployment workflow with Hydra worker
 	deployWorkflow := deployment.NewDeployWorkflow(deployment.DeployWorkflowConfig{
-		Logger:         logger,
-		DB:             database,
-		PartitionDB:    partitionDB,
-		MetalDFallback: cfg.MetalDFallback,
-		MetalD:         metaldClient,
+		Logger:        logger,
+		DB:            database,
+		PartitionDB:   partitionDB,
+		MetaldBackend: cfg.MetaldBackend,
+		MetalD:        metaldClient,
 	})
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {

@@ -11,7 +11,10 @@ import (
 
 const upsertGateway = `-- name: UpsertGateway :exec
 INSERT INTO gateways (workspace_id, hostname, config)
-VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE 
+    config = VALUES(config),
+    workspace_id = VALUES(workspace_id)
 `
 
 type UpsertGatewayParams struct {
@@ -23,7 +26,10 @@ type UpsertGatewayParams struct {
 // UpsertGateway
 //
 //	INSERT INTO gateways (workspace_id, hostname, config)
-//	VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
+//	VALUES (?, ?, ?)
+//	ON DUPLICATE KEY UPDATE
+//	    config = VALUES(config),
+//	    workspace_id = VALUES(workspace_id)
 func (q *Queries) UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error {
 	_, err := db.ExecContext(ctx, upsertGateway, arg.WorkspaceID, arg.Hostname, arg.Config)
 	return err
