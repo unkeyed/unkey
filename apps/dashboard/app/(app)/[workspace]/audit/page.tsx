@@ -11,7 +11,7 @@ export default async function AuditPage() {
 
   return (
     <div>
-      <Navigation href="/audit" name="Audit" icon={<InputSearch />} />
+      <Navigation href={`/${workspace.slug}/audit`} name="Audit" icon={<InputSearch />} />
       <LogsClient rootKeys={workspace.keys} buckets={["unkey_mutations"]} members={members} />
     </div>
   );

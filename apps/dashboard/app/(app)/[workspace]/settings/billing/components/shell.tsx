@@ -1,6 +1,5 @@
 "use client";
 import type { PropsWithChildren } from "react";
-
 interface ShellProps extends PropsWithChildren {
   title?: string;
 }
