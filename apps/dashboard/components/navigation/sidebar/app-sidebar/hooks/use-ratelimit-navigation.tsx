@@ -1,7 +1,8 @@
 "use client";
 
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -15,27 +16,24 @@ import { useMemo } from "react";
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
   const { workspace } = useWorkspace();
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.ratelimit.namespace.query.useInfiniteQuery(
-      { query: [] },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
-    );
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ namespace: collection.ratelimitNamespaces })
+      .orderBy(({ namespace }) => namespace.id, "desc"),
+  );
 
   const basePath = `/${workspace?.slug}`;
   // Convert ratelimit namespaces data to navigation items with sub-items
   const ratelimitNavItems = useMemo(() => {
-    if (!data?.pages) {
+    if (data.length === 0) {
       return [];
     }
 
-    return data.pages.flatMap((page) =>
-      page.namespaceList.map((namespace) => {
-        const currentNamespaceActive =
-          segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
+    return data.map((namespace) => {
+      const currentNamespaceActive =
+        segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
 
-        const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
+      const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
 
         // Create sub-items for logs, settings, and overrides
         const subItems: NavItem[] = [
@@ -76,9 +74,8 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return namespaceNavItem;
-      }),
-    );
-  }, [data?.pages, segments, basePath]);
+      });
+  }, [data, segments, basePath]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
@@ -88,31 +85,14 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
       ratelimitsItem.items = [...(ratelimitsItem.items || []), ...ratelimitNavItems];
 
-      if (hasNextPage) {
-        ratelimitsItem.items?.push({
-          icon: () => null,
-          href: "#load-more-ratelimits",
-          label: <div className="font-normal decoration-dotted underline ">More</div>,
-          active: false,
-          loadMoreAction: true,
-        });
-      }
-
       items[ratelimitsItemIndex] = ratelimitsItem;
     }
 
     return items;
-  }, [baseNavItems, ratelimitNavItems, hasNextPage, basePath]);
+  }, [baseNavItems, ratelimitNavItems, basePath]);
 
-  const loadMore = () => {
-    if (!isFetchingNextPage && hasNextPage) {
-      fetchNextPage();
-    }
-  };
 
   return {
     enhancedNavItems,
-    isLoading,
-    loadMore,
   };
 };

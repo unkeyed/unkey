@@ -3,7 +3,6 @@ import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/[workspace]/rat
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Clock, ProgressBar } from "@unkey/icons";
 import ms from "ms";
@@ -18,14 +17,6 @@ type Props = {
 export const NamespaceCard = ({ namespace }: Props) => {
   const { workspace } = useWorkspace();
   const { timeseries, isLoading, isError } = useFetchRatelimitOverviewTimeseries(namespace.id);
-  const utils = trpc.useUtils();
-
-  const handleMouseEnter = () => {
-    utils.ratelimit.namespace.queryDetails.prefetch({
-      namespaceId: namespace.id,
-      includeOverrides: false,
-    });
-  };
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
   const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
@@ -36,7 +27,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
     : null;
 
   return (
-    <div onMouseEnter={handleMouseEnter}>
+    <div>
       <StatsCard
         name={namespace.name}
         linkPath={`/${workspace?.slug}/ratelimits/${namespace.id}`}

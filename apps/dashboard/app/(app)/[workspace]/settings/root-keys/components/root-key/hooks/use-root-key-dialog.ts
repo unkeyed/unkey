@@ -86,8 +86,12 @@ export function useRootKeyDialog({
       toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED);
       trpcUtils.settings.rootKeys.query.invalidate();
     },
-    onError(err: { message: string }) {
-      toast.error(err.message);
+    onError(err) {
+      if (err.data?.code === "BAD_REQUEST") {
+        toast.error("You need to add at least one permission.");
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     },
   });
 

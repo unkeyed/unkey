@@ -70,7 +70,7 @@ curl -X POST http://localhost:8082/builder.v1.BuilderService/CreateBuild \
   -d '{
     "config": {
       "tenant": {
-        "tenant_id": "test-tenant",
+        "tenant_id": "example-tenant",
         "tier": "TENANT_TIER_FREE"
       },
       "source": {
@@ -220,8 +220,8 @@ import (
 req := &builderv1.CreateBuildRequest{
     Config: &builderv1.BuildConfig{
         Tenant: &builderv1.TenantContext{
-            TenantId:   "tenant-123",
-            CustomerId: "customer-456",
+            TenantId:   "example-tenant",
+            CustomerId: "example-customer",
             Tier:       builderv1.TenantTier_TENANT_TIER_PRO,
         },
         Source: &builderv1.BuildSource{

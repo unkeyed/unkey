@@ -39,9 +39,6 @@ type BuildResult struct {
 	// WorkspaceDir is the temporary workspace directory
 	WorkspaceDir string
 
-	// TenantID is the tenant this build belongs to
-	TenantID string
-
 	// StartTime when the build began
 	StartTime time.Time
 

@@ -14,13 +14,12 @@ import (
 )
 
 // AIDEV-NOTE: CLI tool demonstrating assetmanagerd client usage with SPIFFE integration
-// This provides a command-line interface for asset management operations with proper tenant isolation
+// This provides a command-line interface for asset management operations
 
 func main() {
 	var (
 		serverAddr   = flag.String("server", getEnvOrDefault("UNKEY_ASSETMANAGERD_SERVER_ADDRESS", "https://localhost:8083"), "assetmanagerd server address")
 		userID       = flag.String("user", getEnvOrDefault("UNKEY_ASSETMANAGERD_USER_ID", "cli-user"), "user ID for authentication")
-		tenantID     = flag.String("tenant", getEnvOrDefault("UNKEY_ASSETMANAGERD_TENANT_ID", "cli-tenant"), "tenant ID for data scoping")
 		tlsMode      = flag.String("tls-mode", getEnvOrDefault("UNKEY_ASSETMANAGERD_TLS_MODE", "spiffe"), "TLS mode: disabled, file, or spiffe")
 		spiffeSocket = flag.String("spiffe-socket", getEnvOrDefault("UNKEY_ASSETMANAGERD_SPIFFE_SOCKET", "/var/lib/spire/agent/agent.sock"), "SPIFFE agent socket path")
 		tlsCert      = flag.String("tls-cert", "", "TLS certificate file (for file mode)")
@@ -42,7 +41,6 @@ func main() {
 	config := client.Config{
 		ServerAddress:    *serverAddr,
 		UserID:           *userID,
-		TenantID:         *tenantID,
 		TLSMode:          *tlsMode,
 		SPIFFESocketPath: *spiffeSocket,
 		TLSCertFile:      *tlsCert,
@@ -104,13 +102,12 @@ Commands:
 Environment Variables:
   UNKEY_ASSETMANAGERD_SERVER_ADDRESS  Server address (default: https://localhost:8083)
   UNKEY_ASSETMANAGERD_USER_ID         User ID for authentication (default: cli-user)
-  UNKEY_ASSETMANAGERD_TENANT_ID       Tenant ID for data scoping (default: cli-tenant)
   UNKEY_ASSETMANAGERD_TLS_MODE        TLS mode (default: spiffe)
   UNKEY_ASSETMANAGERD_SPIFFE_SOCKET   SPIFFE socket path (default: /var/lib/spire/agent/agent.sock)
 
 Examples:
   # List all assets with SPIFFE authentication
-  %s -user=prod-user-123 -tenant=prod-tenant-456 list
+  %s -user=prod-user-123 list
 
   # Get detailed asset information
   %s get asset-12345
@@ -143,7 +140,6 @@ func handleList(ctx context.Context, assetClient *client.Client, jsonOutput bool
 	if jsonOutput {
 		outputJSON(resp)
 	} else {
-		fmt.Printf("Assets for tenant %s:\n", assetClient.GetTenantID())
 		for _, asset := range resp.Assets {
 			fmt.Printf("  - %s: %s (%s, %d bytes)\n",
 				asset.Id,
