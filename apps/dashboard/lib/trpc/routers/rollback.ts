@@ -65,7 +65,7 @@ export const rollback = t.procedure
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = "Failed to initiate rollback";
-        
+
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.message) {
@@ -94,7 +94,7 @@ export const rollback = t.procedure
             message: "Unauthorized to perform rollback",
           });
         }
-        
+
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: errorMessage,

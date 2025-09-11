@@ -2,7 +2,13 @@
 
 import { trpc } from "@/lib/trpc/client";
 import type { Deployment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, CircleInfo, Cloud, CodeBranch, CodeCommit } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  CircleInfo,
+  Cloud,
+  CodeBranch,
+  CodeCommit,
+} from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { useState } from "react";
 
@@ -14,9 +20,15 @@ type RollbackDialogProps = {
   hostname?: string;
 };
 
-export const RollbackDialog = ({ isOpen, onOpenChange, deployment, currentDeployment, hostname }: RollbackDialogProps) => {
+export const RollbackDialog = ({
+  isOpen,
+  onOpenChange,
+  deployment,
+  currentDeployment,
+  hostname,
+}: RollbackDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const rollback = trpc.deploy.rollback.useMutation({
     onSuccess: () => {
       toast.success("Rollback completed", {
@@ -71,9 +83,7 @@ export const RollbackDialog = ({ isOpen, onOpenChange, deployment, currentDeploy
           >
             Rollback to target version
           </Button>
-          <div className="text-xs text-gray-9">
-            Rollbacks usually complete within seconds
-          </div>
+          <div className="text-xs text-gray-9">Rollbacks usually complete within seconds</div>
         </div>
       }
     >
@@ -84,21 +94,17 @@ export const RollbackDialog = ({ isOpen, onOpenChange, deployment, currentDeploy
             <h3 className="text-sm font-medium text-gray-12">Current active deployment</h3>
             <CircleInfo size="sm-regular" className="text-gray-9" />
           </div>
-          
+
           <div className="bg-gray-2 border border-gray-6 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Cloud size="md-regular" className="text-gray-11 bg-gray-3 rounded" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-12">
-                      {currentDeployment.id}
-                    </span>
+                    <span className="text-sm font-medium text-gray-12">{currentDeployment.id}</span>
                     <Badge variant="success" className="text-successA-11 font-medium">
-                        <div className="flex items-center gap-2">
-                          Active
-                        </div>
-                      </Badge>
+                      <div className="flex items-center gap-2">Active</div>
+                    </Badge>
                   </div>
                   <div className="text-xs text-gray-11">
                     {currentDeployment?.gitCommitMessage || "Current active deployment"}
@@ -125,21 +131,17 @@ export const RollbackDialog = ({ isOpen, onOpenChange, deployment, currentDeploy
             <h3 className="text-sm font-medium text-gray-12">Target version</h3>
             <CircleInfo size="sm-regular" className="text-gray-9" />
           </div>
-          
+
           <div className="bg-gray-2 border border-gray-6 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Cloud size="md-regular" className="text-gray-11 bg-gray-3 rounded" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-12">
-                      {deployment.id}
-                    </span>
+                    <span className="text-sm font-medium text-gray-12">{deployment.id}</span>
                     <Badge variant="primary" className="text-primaryA-11 font-medium">
-                        <div className="flex items-center gap-1">
-                          Inactive
-                        </div>
-                      </Badge>
+                      <div className="flex items-center gap-1">Inactive</div>
+                    </Badge>
                   </div>
                   <div className="text-xs text-gray-11">
                     {deployment.gitCommitMessage || "Target deployment"}

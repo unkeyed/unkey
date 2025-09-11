@@ -13,7 +13,11 @@ type DeploymentListTableActionsProps = {
   environment?: Environment;
 };
 
-export const DeploymentListTableActions = ({ deployment, currentActiveDeployment, environment }: DeploymentListTableActionsProps) => {
+export const DeploymentListTableActions = ({
+  deployment,
+  currentActiveDeployment,
+  environment,
+}: DeploymentListTableActionsProps) => {
   const router = useRouter();
   const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
   const menuItems = getDeploymentListTableActionItems(deployment, environment, router, setIsRollbackModalOpen);
