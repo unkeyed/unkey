@@ -1193,6 +1193,9 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
+      '@clickhouse/client-web':
+        specifier: ^1.11.1
+        version: 1.11.1
       '@types/node':
         specifier: 20.14.9
         version: 20.14.9
@@ -1908,13 +1911,11 @@ packages:
 
   /@clickhouse/client-common@1.11.1:
     resolution: {integrity: sha512-bme0le2yhDSAh13d2fxhSW5ZrNoVqZ3LTyac8jK6hNH0qkksXnjYkLS6KQalPU6NMpffxHmpI4+/Gi2MnX0NCA==}
-    dev: false
 
   /@clickhouse/client-web@1.11.1:
     resolution: {integrity: sha512-dRmve4Vh8tdnLo8tt77O+2Ye4FWBR9eBrJ3CsaoNS2Q6aQNwv0JbPUKIrU88ep2sg5kilmNfAXqWaJXehpYVRg==}
     dependencies:
       '@clickhouse/client-common': 1.11.1
-    dev: false
 
   /@cloudflare/kv-asset-handler@0.4.0:
     resolution: {integrity: sha512-+tv3z+SPp+gqTIcImN9o0hqE9xyfQjI1XD9pL6NuKjua9B1y7mNYv0S9cP+QEbA4ppVgGZEmKOvHX5G5Ei1CVA==}
