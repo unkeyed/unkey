@@ -14,9 +14,15 @@ type EnvironmentVariablesSectionProps = {
   environment: Environment;
 };
 
-const ANIMATION_STYLES = {
-  expand: "transition-all duration-400 ease-in",
-  slideIn: "transition-all duration-300 ease-out",
+const ANIMATION_CONFIG = {
+  baseDelay: 200,
+  itemStagger: 50,
+  contentDelay: 150,
+} as const;
+
+const LAYOUT_CONFIG = {
+  maxContentHeight: "max-h-64",
+  maxScrollHeight: "max-h-60",
 } as const;
 
 export function EnvironmentVariablesSection({
@@ -33,22 +39,20 @@ export function EnvironmentVariablesSection({
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-    if (!isExpanded) {
-      // Cancel adding when collapsing
-      setIsAddingNew(false);
-    }
+    setIsExpanded((prev) => {
+      const newExpanded = !prev;
+      if (!newExpanded) {
+        setIsAddingNew(false);
+      }
+      return newExpanded;
+    });
   };
 
-  const startAdding = () => {
-    setIsAddingNew(true);
-  };
-
-  const cancelAdding = () => {
-    setIsAddingNew(false);
-  };
+  const startAdding = () => setIsAddingNew(true);
+  const cancelAdding = () => setIsAddingNew(false);
 
   const showPlusButton = isExpanded && !isAddingNew;
+  const hasContent = envVars.length > 0 || isAddingNew;
 
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
@@ -57,7 +61,7 @@ export function EnvironmentVariablesSection({
         <div className="flex items-center">
           {icon}
           <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
-            {title} {envVars.length > 0 ? `(${envVars.length})` : null}
+            {title} {envVars.length > 0 && `(${envVars.length})`}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -83,83 +87,90 @@ export function EnvironmentVariablesSection({
         </div>
       </div>
 
-      {/* Concave Separator */}
+      <ConcaveSeparator isExpanded={isExpanded} />
+
+      {/* Expandable Content */}
       <div
         className={cn(
-          "bg-gray-1 rounded-b-[14px] transition-all duration-200",
-          isExpanded ? "opacity-100" : "opacity-0 h-0",
+          "bg-gray-1 relative overflow-hidden transition-all duration-400 ease-in",
+          isExpanded ? `${LAYOUT_CONFIG.maxContentHeight} opacity-100` : "h-0 opacity-0 py-0",
         )}
       >
-        <div className="relative h-3 flex items-center justify-center">
-          <div className="absolute top-0 left-0 right-0 h-3 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
-        </div>
-
-        {/* Expandable Content */}
         <div
           className={cn(
-            "bg-gray-1 relative overflow-hidden",
-            ANIMATION_STYLES.expand,
-            isExpanded ? "max-h-64 opacity-100" : "h-0 opacity-0 py-0",
+            "transition-all duration-300 ease-out",
+            isExpanded ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
           )}
+          style={{
+            transitionDelay: isExpanded ? `${ANIMATION_CONFIG.contentDelay}ms` : "0ms",
+          }}
         >
-          <div
-            className={cn(
-              ANIMATION_STYLES.slideIn,
-              isExpanded ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
-            )}
-            style={{
-              transitionDelay: isExpanded ? "150ms" : "0ms",
-            }}
-          >
-            <div className="max-h-60 overflow-y-auto">
-              {envVars.length === 0 && !isAddingNew ? (
-                <div className="px-4 py-8 text-center text-gray-9 text-sm flex items-center justify-center h-full">
-                  No environment variables configured
-                </div>
-              ) : (
-                <div className="flex flex-col">
-                  {envVars.map((envVar, index) => (
-                    <div
-                      key={envVar.id}
-                      className={cn(
-                        "transition-all duration-150 ease-out",
-                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
-                      )}
-                      style={{
-                        transitionDelay: isExpanded ? `${200 + index * 50}ms` : "0ms",
-                      }}
-                    >
-                      <EnvVarRow
-                        envVar={envVar}
-                        projectId={projectId}
-                        getExistingEnvVar={getExistingEnvVar}
-                      />
-                    </div>
-                  ))}
+          <div className={cn(LAYOUT_CONFIG.maxScrollHeight, "overflow-y-auto")}>
+            {hasContent ? (
+              <div className="flex flex-col">
+                {envVars.map((envVar, index) => (
+                  <div key={envVar.id} {...getItemAnimationProps(index, isExpanded)}>
+                    <EnvVarRow
+                      envVar={envVar}
+                      projectId={projectId}
+                      getExistingEnvVar={getExistingEnvVar}
+                    />
+                  </div>
+                ))}
 
-                  {isAddingNew && (
-                    <div
-                      className={cn(
-                        "transition-all duration-300 ease-out",
-                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
-                      )}
-                      style={{
-                        transitionDelay: isExpanded ? `${200 + envVars.length * 50}ms` : "0ms",
-                      }}
-                    >
-                      <AddEnvVarRow
-                        projectId={projectId}
-                        getExistingEnvVar={getExistingEnvVar}
-                        onCancel={cancelAdding}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                {isAddingNew && (
+                  <div {...getItemAnimationProps(envVars.length, isExpanded)}>
+                    <AddEnvVarRow
+                      projectId={projectId}
+                      getExistingEnvVar={getExistingEnvVar}
+                      onCancel={cancelAdding}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState />
+            )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const getItemAnimationProps = (index: number, isExpanded: boolean) => ({
+  className: cn(
+    "transition-all duration-150 ease-out",
+    isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
+  ),
+  style: {
+    transitionDelay: isExpanded
+      ? `${ANIMATION_CONFIG.baseDelay + index * ANIMATION_CONFIG.itemStagger}ms`
+      : "0ms",
+  },
+});
+
+// Concave separator component
+function ConcaveSeparator({ isExpanded }: { isExpanded: boolean }) {
+  return (
+    <div
+      className={cn(
+        "bg-gray-1 rounded-b-[14px] transition-all duration-200",
+        isExpanded ? "opacity-100" : "opacity-0 h-0",
+      )}
+    >
+      <div className="relative h-3 flex items-center justify-center">
+        <div className="absolute top-0 left-0 right-0 h-3 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
+      </div>
+    </div>
+  );
+}
+
+// Empty state component
+function EmptyState() {
+  return (
+    <div className="px-4 py-8 text-center text-gray-9 text-sm flex items-center justify-center h-full">
+      No environment variables configured
     </div>
   );
 }
