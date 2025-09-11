@@ -86,7 +86,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 			slog.String("deployment_workspace_id", deployment.WorkspaceID),
 			slog.String("deployment_id", versionID),
 		)
-		return nil, connect.NewError(connect.CodeNotFound, 
+		return nil, connect.NewError(connect.CodeNotFound,
 			fmt.Errorf("deployment not found: %s", versionID))
 	}
 
@@ -251,7 +251,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 
 	// Validate workspace ID is provided
 	if workspaceID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, 
+		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("workspace_id is required for authorization"))
 	}
 
@@ -289,7 +289,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			slog.String("deployment_workspace_id", deployment.WorkspaceID),
 			slog.String("deployment_id", targetVersionID),
 		)
-		return nil, connect.NewError(connect.CodeNotFound, 
+		return nil, connect.NewError(connect.CodeNotFound,
 			fmt.Errorf("deployment not found: %s", targetVersionID))
 	}
 
@@ -309,7 +309,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	setRouteReq := &ctrlv1.SetRouteRequest{
 		Hostname:    hostname,
 		VersionId:   targetVersionID,
-		Weight:      100, // Full cutover for rollback
+		Weight:      100,         // Full cutover for rollback
 		WorkspaceId: workspaceID, // Pass workspace for validation
 	}
 
