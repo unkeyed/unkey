@@ -64,25 +64,27 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	return nil
 }
 
-// CleanUp removes the challenge from the database after validation
+// CleanUp removes the challenge token from the database after validation
 func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	ctx := context.Background()
 
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
-		p.logger.Error("failed to find domain", "error", err, "domain", domain)
+		p.logger.Error("failed to find domain during cleanup", "error", err, "domain", domain)
 		return fmt.Errorf("failed to find domain: %w", err)
 	}
 
-	// Update the challenge status to mark it as verified
-	err = db.Query.UpdateAcmeChallengeStatus(ctx, p.db.RW(), db.UpdateAcmeChallengeStatusParams{
-		DomainID:  dom.ID,
-		Status:    db.AcmeChallengesStatusVerified,
-		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	// Clear the token and authorization so the gateway stops serving the challenge
+	err = db.Query.UpdateAcmeChallengePending(ctx, p.db.RW(), db.UpdateAcmeChallengePendingParams{
+		DomainID:      dom.ID,
+		Status:        db.AcmeChallengesStatusPending, // Keep existing status, just clear token
+		Token:         "",                             // Clear token
+		Authorization: "",                             // Clear authorization
+		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	})
 
 	if err != nil {
-		p.logger.Warn("failed to clean up challenge", "error", err, "domain", domain, "token", token)
+		p.logger.Warn("failed to clean up challenge token", "error", err, "domain", domain, "token", token)
 	}
 
 	return nil
