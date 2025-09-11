@@ -1,4 +1,4 @@
-import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
+import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspace]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";

@@ -1,4 +1,4 @@
-import { useRoleLimits } from "@/app/(app)/authorization/roles/components/table/hooks/use-role-limits";
+import { useRoleLimits } from "@/app/(app)/[workspace]/authorization/roles/components/table/hooks/use-role-limits";
 import { trpc } from "@/lib/trpc/client";
 
 export const useFetchConnectedKeysAndPermsData = (roleId: string) => {

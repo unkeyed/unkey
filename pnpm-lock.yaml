@@ -7525,6 +7525,7 @@ packages:
       '@types/react-dom':
         optional: true
     dependencies:
+      '@babel/runtime': 7.28.4
       '@floating-ui/react-dom': 2.1.6(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-arrow': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-compose-refs': 1.1.0(@types/react@18.3.11)(react@18.3.1)

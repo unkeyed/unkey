@@ -1,4 +1,4 @@
-import { permissionSchema } from "@/app/(app)/authorization/permissions/components/upsert-permission/upsert-permission.schema";
+import { permissionSchema } from "@/app/(app)/[workspace]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
