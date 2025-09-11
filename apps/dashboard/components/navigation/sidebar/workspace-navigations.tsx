@@ -114,7 +114,7 @@ export const createWorkspaceNavigation = (segments: string[]) => {
     },
     {
       icon: Fingerprint,
-      href: "/identities",
+      href: `${basePath}/identities`,
       label: "Identities",
       active: segments.at(0) === "identities",
       hidden: !workspace?.betaFeatures.identities,

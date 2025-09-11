@@ -32,7 +32,9 @@ export default async function Page(props: Props) {
     with: {
       workspace: {
         columns: {
+          id: true,
           orgId: true,
+          slug: true,
         },
       },
       keys: {
@@ -139,19 +141,25 @@ export default async function Page(props: Props) {
                     <TableCell className="font-mono">{key.id}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {key.meta ? (
-                        JSON.stringify(JSON.parse(key.meta), null, 2)
+                        (() => {
+                          try {
+                            return JSON.stringify(JSON.parse(key.meta), null, 2);
+                          } catch {
+                            return key.meta;
+                          }
+                        })()
                       ) : (
                         <Minus className="text-content-subtle w-4 h-4" />
                       )}
                     </TableCell>
                     <LastUsed
-                      workspaceId={key.workspaceId}
+                      workspaceId={identity.workspace?.id}
                       keySpaceId={key.keyAuthId}
                       keyId={key.id}
                     />
                     <TableCell className="flex justify-end">
                       <Link
-                        href={`/${key.workspaceId}/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}
+                        href={`/${identity.workspace?.slug ?? ""}/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}
                       >
                         <Button variant="ghost" shape="square">
                           <ChevronRight />
