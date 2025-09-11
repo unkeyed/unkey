@@ -27,6 +27,10 @@ export const EnvVarInputs = forwardRef<HTMLDivElement, EnvVarInputsProps>(
               errors.key && "border-red-6 focus:border-red-7",
             )}
             autoFocus={autoFocus}
+            autoComplete="off"
+            spellCheck={false}
+            autoCapitalize="none"
+            aria-invalid={Boolean(errors.key)}
           />
         </div>
         <span className="text-gray-9 text-xs px-1">=</span>
@@ -39,6 +43,10 @@ export const EnvVarInputs = forwardRef<HTMLDivElement, EnvVarInputsProps>(
             errors.value && "border-red-6 focus:border-red-7",
           )}
           type={isSecret && !decrypted ? "password" : "text"}
+          autoComplete={isSecret ? "new-password" : "off"}
+          spellCheck={false}
+          autoCapitalize="none"
+          aria-invalid={Boolean(errors.value)}
         />
       </div>
     );

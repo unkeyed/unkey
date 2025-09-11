@@ -8,7 +8,6 @@ export const EnvVarSaveActions = ({
   isSubmitting: boolean;
   save: {
     disabled: boolean;
-    onClick: () => void;
   };
   cancel: {
     disabled: boolean;
@@ -22,7 +21,6 @@ export const EnvVarSaveActions = ({
         variant="outline"
         className="text-xs"
         disabled={save.disabled}
-        onClick={save.onClick}
         loading={isSubmitting}
       >
         Save

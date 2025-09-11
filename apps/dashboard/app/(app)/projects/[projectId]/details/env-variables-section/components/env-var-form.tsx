@@ -102,14 +102,18 @@ export function EnvVarForm({
         <div className="flex items-center gap-2 ml-auto">
           <EnvVarSecretSwitch
             isSecret={watchedType === "secret"}
-            onCheckedChange={(checked) => setValue("type", checked ? "secret" : "env")}
+            onCheckedChange={(checked) =>
+              setValue("type", checked ? "secret" : "env", {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
             disabled={isSubmitting}
           />
           <EnvVarSaveActions
             isSubmitting={isSubmitting}
             save={{
               disabled: !isValid || isSubmitting,
-              onClick: () => console.info("Saving. tRPC mutation will be called here"),
             }}
             cancel={{
               disabled: isSubmitting,

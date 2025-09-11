@@ -22,7 +22,6 @@ const ANIMATION_CONFIG = {
 
 const LAYOUT_CONFIG = {
   maxContentHeight: "max-h-64",
-  maxScrollHeight: "max-h-60",
 } as const;
 
 export function EnvironmentVariablesSection({
@@ -91,7 +90,7 @@ export function EnvironmentVariablesSection({
       {/* Expandable Content */}
       <div
         className={cn(
-          "bg-gray-1 relative overflow-hidden transition-all duration-400 ease-in",
+          "bg-gray-1 relative overflow-hidden transition-all duration-300 ease-in",
           isExpanded ? `${LAYOUT_CONFIG.maxContentHeight} opacity-100` : "h-0 opacity-0 py-0",
         )}
       >
@@ -133,17 +132,21 @@ export function EnvironmentVariablesSection({
   );
 }
 
-const getItemAnimationProps = (index: number, isExpanded: boolean) => ({
-  className: cn(
-    "transition-all duration-150 ease-out",
-    isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
-  ),
-  style: {
-    transitionDelay: isExpanded
-      ? `${ANIMATION_CONFIG.baseDelay + index * ANIMATION_CONFIG.itemStagger}ms`
-      : "0ms",
-  },
-});
+const getItemAnimationProps = (index: number, isExpanded: boolean) => {
+  const prefersReduced =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  const delay = prefersReduced
+    ? 0
+    : ANIMATION_CONFIG.baseDelay + index * ANIMATION_CONFIG.itemStagger;
+  return {
+    className: cn(
+      "transition-all duration-150 ease-out",
+      isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
+    ),
+    style: { transitionDelay: isExpanded ? `${delay}ms` : "0ms" },
+  };
+};
 
 // Concave separator component
 function ConcaveSeparator({ isExpanded }: { isExpanded: boolean }) {

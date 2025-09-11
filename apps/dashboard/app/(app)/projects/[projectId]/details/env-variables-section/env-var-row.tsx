@@ -83,7 +83,7 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
       <EnvVarForm
         initialData={{
           key: envVar.key,
-          value: decryptedValue || envVar.value,
+          value: envVar.type === "secret" && !isDecrypted ? "" : (decryptedValue ?? envVar.value),
           type: envVar.type,
         }}
         projectId={projectId}
@@ -139,7 +139,9 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
         <Button
           size="icon"
           variant="outline"
-          onClick={() => setIsEditing(true)}
+          onClick={() => {
+            handleToggleSecret().then(() => setIsEditing(true));
+          }}
           className="size-7 text-gray-9"
         >
           <PenWriting3 className="!size-[14px]" size="sm-medium" />

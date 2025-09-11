@@ -76,7 +76,7 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
 
   return (
     <div className="w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0">
-      <form onSubmit={handleSubmit(handleSave)} className="w-full flex items-center gap-2">
+      <form onSubmit={handleSubmit(handleSave)} className="w-full flex items-center gap-2 h-12">
         <EnvVarInputs
           register={register}
           errors={errors}
@@ -87,14 +87,18 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
         <div className="flex items-center gap-2 ml-auto">
           <EnvVarSecretSwitch
             isSecret={watchedType === "secret"}
-            onCheckedChange={(checked) => setValue("type", checked ? "secret" : "env")}
+            onCheckedChange={(checked) =>
+              setValue("type", checked ? "secret" : "env", {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
             disabled={isSubmitting}
           />
           <EnvVarSaveActions
             isSubmitting={isSubmitting}
             save={{
               disabled: !isValid || isSubmitting,
-              onClick: () => console.info("Saving. tRPC mutation will be called here"),
             }}
             cancel={{
               disabled: isSubmitting,
