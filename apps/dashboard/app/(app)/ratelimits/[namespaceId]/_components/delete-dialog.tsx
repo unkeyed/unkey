@@ -1,7 +1,7 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, Input, toast } from "@unkey/ui";
+import { Button, DialogContainer, Input } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,14 +23,7 @@ type Props = PropsWithChildren<{
 }>;
 
 export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier }: Props) => {
-  const { ratelimit } = trpc.useUtils();
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting },
-  } = useForm<FormValues>({
+  const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,28 +33,9 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
 
   const isValid = watch("identifier") === identifier;
 
-  const deleteOverride = trpc.ratelimit.override.delete.useMutation({
-    onSuccess() {
-      toast.success("Override has been deleted", {
-        description: "Changes may take up to 60s to propagate globally",
-      });
-      onOpenChange(false);
-      ratelimit.overview.logs.query.invalidate();
-      ratelimit.logs.queryRatelimitTimeseries.invalidate();
-    },
-    onError(err) {
-      toast.error("Failed to delete override", {
-        description: err.message,
-      });
-    },
-  });
-
   const onSubmit = async () => {
-    try {
-      await deleteOverride.mutateAsync({ id: overrideId });
-    } catch (error) {
-      console.error("Delete error:", error);
-    }
+    collection.ratelimitOverrides.delete(overrideId);
+    onOpenChange(false);
   };
 
   return (
@@ -77,8 +51,7 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
             variant="primary"
             color="danger"
             size="xlg"
-            disabled={!isValid || deleteOverride.isLoading || isSubmitting}
-            loading={deleteOverride.isLoading || isSubmitting}
+            disabled={!isValid}
             className="w-full rounded-lg"
           >
             Delete Override

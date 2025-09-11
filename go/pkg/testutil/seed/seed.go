@@ -50,6 +50,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		ID:        uid.New("test_ws"),
 		OrgID:     uid.New("test_org"),
 		Name:      uid.New("test_name"),
+		Slug:      uid.New("slug"),
 		CreatedAt: time.Now().UnixMilli(),
 	}
 

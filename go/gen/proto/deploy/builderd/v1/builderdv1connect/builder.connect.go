@@ -50,9 +50,6 @@ const (
 	// BuilderServiceStreamBuildLogsProcedure is the fully-qualified name of the BuilderService's
 	// StreamBuildLogs RPC.
 	BuilderServiceStreamBuildLogsProcedure = "/deploy.builderd.v1.BuilderService/StreamBuildLogs"
-	// BuilderServiceGetTenantQuotasProcedure is the fully-qualified name of the BuilderService's
-	// GetTenantQuotas RPC.
-	BuilderServiceGetTenantQuotasProcedure = "/deploy.builderd.v1.BuilderService/GetTenantQuotas"
 	// BuilderServiceGetBuildStatsProcedure is the fully-qualified name of the BuilderService's
 	// GetBuildStats RPC.
 	BuilderServiceGetBuildStatsProcedure = "/deploy.builderd.v1.BuilderService/GetBuildStats"
@@ -72,8 +69,6 @@ type BuilderServiceClient interface {
 	DeleteBuild(context.Context, *connect.Request[v1.DeleteBuildRequest]) (*connect.Response[v1.DeleteBuildResponse], error)
 	// Stream build logs in real-time
 	StreamBuildLogs(context.Context, *connect.Request[v1.StreamBuildLogsRequest]) (*connect.ServerStreamForClient[v1.StreamBuildLogsResponse], error)
-	// Get tenant quotas and usage
-	GetTenantQuotas(context.Context, *connect.Request[v1.GetTenantQuotasRequest]) (*connect.Response[v1.GetTenantQuotasResponse], error)
 	// Get build statistics
 	GetBuildStats(context.Context, *connect.Request[v1.GetBuildStatsRequest]) (*connect.Response[v1.GetBuildStatsResponse], error)
 }
@@ -125,12 +120,6 @@ func NewBuilderServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(builderServiceMethods.ByName("StreamBuildLogs")),
 			connect.WithClientOptions(opts...),
 		),
-		getTenantQuotas: connect.NewClient[v1.GetTenantQuotasRequest, v1.GetTenantQuotasResponse](
-			httpClient,
-			baseURL+BuilderServiceGetTenantQuotasProcedure,
-			connect.WithSchema(builderServiceMethods.ByName("GetTenantQuotas")),
-			connect.WithClientOptions(opts...),
-		),
 		getBuildStats: connect.NewClient[v1.GetBuildStatsRequest, v1.GetBuildStatsResponse](
 			httpClient,
 			baseURL+BuilderServiceGetBuildStatsProcedure,
@@ -148,7 +137,6 @@ type builderServiceClient struct {
 	cancelBuild     *connect.Client[v1.CancelBuildRequest, v1.CancelBuildResponse]
 	deleteBuild     *connect.Client[v1.DeleteBuildRequest, v1.DeleteBuildResponse]
 	streamBuildLogs *connect.Client[v1.StreamBuildLogsRequest, v1.StreamBuildLogsResponse]
-	getTenantQuotas *connect.Client[v1.GetTenantQuotasRequest, v1.GetTenantQuotasResponse]
 	getBuildStats   *connect.Client[v1.GetBuildStatsRequest, v1.GetBuildStatsResponse]
 }
 
@@ -182,11 +170,6 @@ func (c *builderServiceClient) StreamBuildLogs(ctx context.Context, req *connect
 	return c.streamBuildLogs.CallServerStream(ctx, req)
 }
 
-// GetTenantQuotas calls deploy.builderd.v1.BuilderService.GetTenantQuotas.
-func (c *builderServiceClient) GetTenantQuotas(ctx context.Context, req *connect.Request[v1.GetTenantQuotasRequest]) (*connect.Response[v1.GetTenantQuotasResponse], error) {
-	return c.getTenantQuotas.CallUnary(ctx, req)
-}
-
 // GetBuildStats calls deploy.builderd.v1.BuilderService.GetBuildStats.
 func (c *builderServiceClient) GetBuildStats(ctx context.Context, req *connect.Request[v1.GetBuildStatsRequest]) (*connect.Response[v1.GetBuildStatsResponse], error) {
 	return c.getBuildStats.CallUnary(ctx, req)
@@ -206,8 +189,6 @@ type BuilderServiceHandler interface {
 	DeleteBuild(context.Context, *connect.Request[v1.DeleteBuildRequest]) (*connect.Response[v1.DeleteBuildResponse], error)
 	// Stream build logs in real-time
 	StreamBuildLogs(context.Context, *connect.Request[v1.StreamBuildLogsRequest], *connect.ServerStream[v1.StreamBuildLogsResponse]) error
-	// Get tenant quotas and usage
-	GetTenantQuotas(context.Context, *connect.Request[v1.GetTenantQuotasRequest]) (*connect.Response[v1.GetTenantQuotasResponse], error)
 	// Get build statistics
 	GetBuildStats(context.Context, *connect.Request[v1.GetBuildStatsRequest]) (*connect.Response[v1.GetBuildStatsResponse], error)
 }
@@ -255,12 +236,6 @@ func NewBuilderServiceHandler(svc BuilderServiceHandler, opts ...connect.Handler
 		connect.WithSchema(builderServiceMethods.ByName("StreamBuildLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
-	builderServiceGetTenantQuotasHandler := connect.NewUnaryHandler(
-		BuilderServiceGetTenantQuotasProcedure,
-		svc.GetTenantQuotas,
-		connect.WithSchema(builderServiceMethods.ByName("GetTenantQuotas")),
-		connect.WithHandlerOptions(opts...),
-	)
 	builderServiceGetBuildStatsHandler := connect.NewUnaryHandler(
 		BuilderServiceGetBuildStatsProcedure,
 		svc.GetBuildStats,
@@ -281,8 +256,6 @@ func NewBuilderServiceHandler(svc BuilderServiceHandler, opts ...connect.Handler
 			builderServiceDeleteBuildHandler.ServeHTTP(w, r)
 		case BuilderServiceStreamBuildLogsProcedure:
 			builderServiceStreamBuildLogsHandler.ServeHTTP(w, r)
-		case BuilderServiceGetTenantQuotasProcedure:
-			builderServiceGetTenantQuotasHandler.ServeHTTP(w, r)
 		case BuilderServiceGetBuildStatsProcedure:
 			builderServiceGetBuildStatsHandler.ServeHTTP(w, r)
 		default:
@@ -316,10 +289,6 @@ func (UnimplementedBuilderServiceHandler) DeleteBuild(context.Context, *connect.
 
 func (UnimplementedBuilderServiceHandler) StreamBuildLogs(context.Context, *connect.Request[v1.StreamBuildLogsRequest], *connect.ServerStream[v1.StreamBuildLogsResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("deploy.builderd.v1.BuilderService.StreamBuildLogs is not implemented"))
-}
-
-func (UnimplementedBuilderServiceHandler) GetTenantQuotas(context.Context, *connect.Request[v1.GetTenantQuotasRequest]) (*connect.Response[v1.GetTenantQuotasResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("deploy.builderd.v1.BuilderService.GetTenantQuotas is not implemented"))
 }
 
 func (UnimplementedBuilderServiceHandler) GetBuildStats(context.Context, *connect.Request[v1.GetBuildStatsRequest]) (*connect.Response[v1.GetBuildStatsResponse], error) {

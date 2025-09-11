@@ -1,12 +1,11 @@
 "use client";
 
-import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import { DuplicateKeyError } from "@tanstack/react-db";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
@@ -31,35 +30,30 @@ export const CreateNamespaceButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { ratelimit } = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid, isSubmitting },
+    setError,
+    formState: { errors, isValid },
+    reset,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
   });
 
-  const router = useRouter();
-
-  const create = trpc.ratelimit.namespace.create.useMutation({
-    async onSuccess(res) {
-      router.refresh();
-      await revalidate("/ratelimits");
-      ratelimit.namespace.query.invalidate();
-      router.push(`/ratelimits/${res.id}`);
-      toast.success("Your Namespace has been created");
-      setIsOpen(false);
-    },
-    onError(err) {
-      toast.error(err.message);
-    },
-  });
-
   const onSubmit = (values: FormValues) => {
-    create.mutate(values);
+    try {
+      collection.ratelimitNamespaces.insert({
+        id: new Date().toISOString(),
+        name: values.name,
+      });
+      reset();
+      setIsOpen(false);
+    } catch (error) {
+      if (error instanceof DuplicateKeyError) {
+        setError("name", { type: "custom", message: "Namespace already exists" });
+      }
+    }
   };
 
   return (
@@ -85,8 +79,7 @@ export const CreateNamespaceButton = ({
               form="create-namespace-form"
               variant="primary"
               size="xlg"
-              disabled={create.isLoading || !isValid || isSubmitting}
-              loading={create.isLoading || isSubmitting}
+              disabled={!isValid}
               className="w-full rounded-lg"
             >
               Create Namespace
