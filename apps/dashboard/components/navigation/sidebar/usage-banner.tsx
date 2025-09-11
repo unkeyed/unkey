@@ -1,5 +1,5 @@
 "use client";
-import { ProgressCircle } from "@/app/(app)/settings/billing/components/usage";
+import { ProgressCircle } from "@/app/(app)/[workspace]/settings/billing/components/usage";
 import { trpc } from "@/lib/trpc/client";
 import type { Quotas } from "@unkey/db";
 import { Button } from "@unkey/ui";
