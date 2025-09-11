@@ -14,10 +14,10 @@ func TestDeploymentStatusValidation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		status         db.DeploymentsStatus
-		shouldBeReady  bool
-		description    string
+		name          string
+		status        db.DeploymentsStatus
+		shouldBeReady bool
+		description   string
 	}{
 		{
 			name:          "pending_not_ready",
@@ -75,14 +75,14 @@ func TestRollbackErrorScenarios(t *testing.T) {
 
 	// Test scenario: "Given I attempt to rollback to a deployment that is not in ready state"
 	// Expected: "Then it should return an appropriate error indicating the deployment is not ready for rollback"
-	
+
 	t.Run("non_ready_deployment_error_format", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test the error message format from service.go:80-82
 		deploymentID := "test_deployment_123"
 		currentStatus := "building"
-		
+
 		// This is the exact error format from the service
 		expectedErrorContents := []string{
 			"deployment",
@@ -91,22 +91,22 @@ func TestRollbackErrorScenarios(t *testing.T) {
 			"current status:",
 			currentStatus,
 		}
-		
+
 		// Simulate the error message construction from service.go:80-82
 		errorMsg := "deployment " + deploymentID + " is not in ready state, current status: " + currentStatus
-		
+
 		for _, content := range expectedErrorContents {
 			require.Contains(t, errorMsg, content, "Error message should contain: "+content)
 		}
 	})
-	
+
 	t.Run("deployment_not_found_error", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test the error format from service.go:70
 		deploymentID := "non_existent_deployment"
 		expectedError := "deployment not found: " + deploymentID
-		
+
 		require.Contains(t, expectedError, "deployment not found", "Should indicate deployment not found")
 		require.Contains(t, expectedError, deploymentID, "Should include the deployment ID")
 	})
@@ -119,47 +119,47 @@ func TestBusinessRuleValidation(t *testing.T) {
 
 	t.Run("ready_deployment_requirements", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// AIDEV-BUSINESS_RULE from service.go:84
 		// "Only switch traffic if target deployment has running VMs"
-		
+
 		// Test that both conditions must be met:
 		// 1. Deployment status == "ready"
 		// 2. Has running VMs
-		
+
 		deploymentStatuses := []struct {
-			status  string
-			ready   bool
+			status string
+			ready  bool
 		}{
 			{"pending", false},
-			{"building", false}, 
+			{"building", false},
 			{"deploying", false},
 			{"network", false},
-			{"ready", true},  // Only this status is considered ready
+			{"ready", true}, // Only this status is considered ready
 			{"failed", false},
 		}
-		
+
 		for _, ds := range deploymentStatuses {
 			isReady := ds.status == "ready"
 			require.Equal(t, ds.ready, isReady, "Status %s should have ready=%v", ds.status, ds.ready)
 		}
 	})
-	
+
 	t.Run("vm_status_requirements", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test VM status validation from service.go:101-111
 		vmStatuses := []struct {
 			status    string
 			isRunning bool
 		}{
-			{"running", true},   // Only running VMs are valid
+			{"running", true}, // Only running VMs are valid
 			{"stopped", false},
 			{"terminated", false},
 			{"starting", false},
 			{"error", false},
 		}
-		
+
 		for _, vs := range vmStatuses {
 			isRunning := vs.status == "running"
 			require.Equal(t, vs.isRunning, isRunning, "VM status %s should have running=%v", vs.status, vs.isRunning)
@@ -172,13 +172,13 @@ func TestWorkspaceAuthorization(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name                   string
-		requestWorkspaceID     string
-		deploymentWorkspaceID  string
-		workspaceExists        bool
-		expectedError          bool
-		expectedErrorCode      connect.Code
-		description            string
+		name                  string
+		requestWorkspaceID    string
+		deploymentWorkspaceID string
+		workspaceExists       bool
+		expectedError         bool
+		expectedErrorCode     connect.Code
+		description           string
 	}{
 		{
 			name:                  "missing_workspace_id",
@@ -224,7 +224,7 @@ func TestWorkspaceAuthorization(t *testing.T) {
 
 			// Test the workspace authorization scenarios
 			// This verifies the security fix for cross-tenant rollback prevention
-			
+
 			// Simulate workspace existence check
 			if tt.requestWorkspaceID != "" && tt.workspaceExists {
 				// Workspace exists - authorization should depend on ownership match
@@ -235,7 +235,7 @@ func TestWorkspaceAuthorization(t *testing.T) {
 			// Test deployment ownership validation
 			if tt.requestWorkspaceID != "" && tt.deploymentWorkspaceID != "" {
 				isAuthorized := tt.requestWorkspaceID == tt.deploymentWorkspaceID
-				
+
 				if tt.name == "workspace_mismatch_cross_tenant_access" {
 					// This specific test should fail authorization
 					require.False(t, isAuthorized, tt.description)
@@ -250,7 +250,7 @@ func TestWorkspaceAuthorization(t *testing.T) {
 			case "missing_workspace_id":
 				require.Equal(t, connect.CodeInvalidArgument, tt.expectedErrorCode, "Missing workspace should return InvalidArgument")
 			case "nonexistent_workspace":
-				require.Equal(t, connect.CodeNotFound, tt.expectedErrorCode, "Nonexistent workspace should return NotFound")  
+				require.Equal(t, connect.CodeNotFound, tt.expectedErrorCode, "Nonexistent workspace should return NotFound")
 			case "workspace_mismatch_cross_tenant_access":
 				require.Equal(t, connect.CodeNotFound, tt.expectedErrorCode, "Cross-tenant access should return NotFound (not PermissionDenied to avoid info disclosure)")
 			case "valid_workspace_authorization":
@@ -266,46 +266,46 @@ func TestSecurityScenarios(t *testing.T) {
 
 	t.Run("information_disclosure_prevention", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// AIDEV-SECURITY: Ensure cross-tenant access attempts don't reveal information
 		// about the existence of deployments in other workspaces
-		
+
 		// When a user tries to access a deployment from another workspace,
 		// the system should return "deployment not found" rather than "permission denied"
 		// This prevents information disclosure about deployment existence
-		
+
 		unauthorizedAccess := true
 		deploymentExists := true
-		
+
 		if unauthorizedAccess && deploymentExists {
 			// Should return NotFound, not PermissionDenied
 			expectedErrorCode := connect.CodeNotFound
-			require.Equal(t, connect.CodeNotFound, expectedErrorCode, 
+			require.Equal(t, connect.CodeNotFound, expectedErrorCode,
 				"Cross-tenant access should return NotFound to prevent information disclosure")
 		}
 	})
-	
+
 	t.Run("workspace_id_validation", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test workspace ID validation patterns
 		validWorkspaceIDs := []string{
 			"ws_1234567890abcdef",
 			"ws_test123",
-			"workspace_123", 
+			"workspace_123",
 		}
-		
+
 		invalidWorkspaceIDs := []string{
-			"",           // empty
-			"invalid",    // wrong format
-			"ws_",        // too short
+			"",        // empty
+			"invalid", // wrong format
+			"ws_",     // too short
 		}
-		
+
 		for _, valid := range validWorkspaceIDs {
 			isValidFormat := len(valid) > 0 // Basic validation
 			require.True(t, isValidFormat, "Workspace ID %s should be considered valid format", valid)
 		}
-		
+
 		for _, invalid := range invalidWorkspaceIDs {
 			if invalid == "" {
 				// Empty workspace ID should be caught by argument validation
@@ -323,92 +323,92 @@ func TestRollbackOperationalErrorScenarios(t *testing.T) {
 
 	t.Run("partition_db_connectivity_failure", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Scenario: Step 1 (checking partition DB for VMs) fails due to connectivity issues
 		// Expected: RPC returns failure response immediately with no system state changes
-		
+
 		// Test that partition DB connection errors are handled properly
 		// This simulates the error from service.go:100-107
-		
+
 		deploymentID := "test_deployment_123"
 		expectedError := "failed to find VMs for deployment: " + deploymentID
-		
+
 		// Verify the error includes deployment context
 		require.Contains(t, expectedError, "failed to find VMs for deployment", "Should indicate VM lookup failure")
 		require.Contains(t, expectedError, deploymentID, "Should include the deployment ID in error")
-		
+
 		// Verify this is treated as an internal error (connect.CodeInternal)
 		expectedErrorCode := connect.CodeInternal
 		require.Equal(t, connect.CodeInternal, expectedErrorCode, "DB connectivity issues should return Internal error")
 	})
-	
+
 	t.Run("vm_provisioning_failure_insufficient_capacity", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Scenario: VMs need to be booted (step 3) but VM provisioning fails
 		// Expected: RPC returns failure response, no hostname switching, current deployment unchanged
-		
+
 		// Test case 1: No VMs available for deployment
 		deploymentID := "test_deployment_no_vms"
 		expectedNoVMsError := "no VMs available for deployment " + deploymentID
-		
+
 		require.Contains(t, expectedNoVMsError, "no VMs available", "Should indicate no VMs available")
 		require.Contains(t, expectedNoVMsError, deploymentID, "Should include deployment ID")
-		
+
 		// Verify this returns FailedPrecondition (service.go:110-112)
 		expectedErrorCode := connect.CodeFailedPrecondition
-		require.Equal(t, connect.CodeFailedPrecondition, expectedErrorCode, 
+		require.Equal(t, connect.CodeFailedPrecondition, expectedErrorCode,
 			"No VMs available should return FailedPrecondition")
 	})
-	
+
 	t.Run("vm_provisioning_failure_no_running_vms", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test case 2: VMs exist but none are running (metald unavailable scenario)
 		deploymentID := "test_deployment_stopped_vms"
 		expectedNoRunningVMsError := "no running VMs available for deployment " + deploymentID
-		
-		require.Contains(t, expectedNoRunningVMsError, "no running VMs available", 
+
+		require.Contains(t, expectedNoRunningVMsError, "no running VMs available",
 			"Should indicate no running VMs")
 		require.Contains(t, expectedNoRunningVMsError, deploymentID, "Should include deployment ID")
-		
+
 		// Verify this also returns FailedPrecondition (service.go:122-125)
 		expectedErrorCode := connect.CodeFailedPrecondition
 		require.Equal(t, connect.CodeFailedPrecondition, expectedErrorCode,
 			"No running VMs should return FailedPrecondition")
 	})
-	
+
 	t.Run("hostname_switching_database_transaction_failure", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Scenario: Step 4 (hostname switching) database transaction fails
 		// Expected: Transaction rolled back, VMs remain running, no traffic routing changes
-		
+
 		expectedError := "failed to update routing: database transaction failed"
-		
+
 		// Test the error format from service.go:164-172
-		require.Contains(t, expectedError, "failed to update routing", 
+		require.Contains(t, expectedError, "failed to update routing",
 			"Should indicate routing update failure")
-		require.Contains(t, expectedError, "database transaction failed", 
+		require.Contains(t, expectedError, "database transaction failed",
 			"Should indicate database transaction issue")
-		
+
 		// Verify this returns Internal error for DB transaction failures
 		expectedErrorCode := connect.CodeInternal
 		require.Equal(t, connect.CodeInternal, expectedErrorCode,
 			"Database transaction failures should return Internal error")
 	})
-	
+
 	t.Run("gateway_config_marshaling_failure", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test protobuf marshaling failure in gateway config creation
 		// This tests service.go:146-154
-		
+
 		expectedError := "failed to marshal gateway config"
-		
+
 		require.Contains(t, expectedError, "failed to marshal gateway config",
 			"Should indicate marshaling failure")
-		
+
 		// Verify this returns Internal error
 		expectedErrorCode := connect.CodeInternal
 		require.Equal(t, connect.CodeInternal, expectedErrorCode,
@@ -419,61 +419,61 @@ func TestRollbackOperationalErrorScenarios(t *testing.T) {
 // TestRollbackTransactionBehavior tests transaction and atomicity guarantees
 func TestRollbackTransactionBehavior(t *testing.T) {
 	t.Parallel()
-	
+
 	t.Run("partial_failure_state_consistency", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// AIDEV-BUSINESS_RULE: Ensure system maintains consistent state during failures
 		// When any step fails, the system should:
 		// 1. Return appropriate error immediately
 		// 2. Not modify traffic routing
 		// 3. Leave existing VMs running (for future attempts)
 		// 4. Maintain current active deployment
-		
+
 		scenarios := []struct {
-			name                    string
-			failureStage           string
-			expectedBehavior       string
-			systemStateChanges     bool
-			trafficRoutingChanges  bool
+			name                  string
+			failureStage          string
+			expectedBehavior      string
+			systemStateChanges    bool
+			trafficRoutingChanges bool
 		}{
 			{
-				name:                   "deployment_not_found",
+				name:                  "deployment_not_found",
 				failureStage:          "deployment_lookup",
 				expectedBehavior:      "immediate_failure_response",
 				systemStateChanges:    false,
 				trafficRoutingChanges: false,
 			},
 			{
-				name:                   "deployment_not_ready",
+				name:                  "deployment_not_ready",
 				failureStage:          "deployment_validation",
-				expectedBehavior:      "immediate_failure_response", 
+				expectedBehavior:      "immediate_failure_response",
 				systemStateChanges:    false,
 				trafficRoutingChanges: false,
 			},
 			{
-				name:                   "vm_lookup_failure",
+				name:                  "vm_lookup_failure",
 				failureStage:          "partition_db_query",
 				expectedBehavior:      "immediate_failure_response",
 				systemStateChanges:    false,
 				trafficRoutingChanges: false,
 			},
 			{
-				name:                   "no_running_vms",
+				name:                  "no_running_vms",
 				failureStage:          "vm_validation",
 				expectedBehavior:      "immediate_failure_response",
 				systemStateChanges:    false,
 				trafficRoutingChanges: false,
 			},
 			{
-				name:                   "gateway_upsert_failure",
+				name:                  "gateway_upsert_failure",
 				failureStage:          "hostname_switching",
 				expectedBehavior:      "immediate_failure_response",
 				systemStateChanges:    false, // Should be rolled back
 				trafficRoutingChanges: false, // Should not occur
 			},
 		}
-		
+
 		for _, scenario := range scenarios {
 			t.Run(scenario.name, func(t *testing.T) {
 				// Verify expected behavior matches business rules
@@ -486,21 +486,21 @@ func TestRollbackTransactionBehavior(t *testing.T) {
 			})
 		}
 	})
-	
+
 	t.Run("successful_vm_preservation", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Test that VMs remain running even when hostname switching fails
 		// This ensures they're available for future rollback attempts
-		
+
 		vmStatuses := []string{"running", "running", "running"}
 		hostnameUpdatedSuccessfully := false
-		
+
 		// Simulate hostname switching failure
 		if !hostnameUpdatedSuccessfully {
 			// VMs should still be in running state
 			for _, status := range vmStatuses {
-				require.Equal(t, "running", status, 
+				require.Equal(t, "running", status,
 					"VMs should remain running even when hostname switching fails")
 			}
 		}
