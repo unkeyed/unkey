@@ -46,6 +46,7 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
 		ID:        workspaceB,
 		Name:      "Test Workspace B",
+		Slug:      uid.New("slug"),
 		CreatedAt: time.Now().UnixMilli(),
 		OrgID:     uid.New("org"),
 	})

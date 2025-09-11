@@ -239,8 +239,7 @@ curl -X POST http://localhost:8083/asset.v1.AssetManagerService/QueryAssets \
     "build_options": {
       "enable_auto_build": true,
       "wait_for_completion": true,
-      "build_timeout_seconds": 1800,
-      "tenant_id": "tenant-123"
+      "build_timeout_seconds": 1800
     }
   }'
 ```

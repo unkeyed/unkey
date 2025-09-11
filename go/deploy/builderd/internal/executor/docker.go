@@ -58,7 +58,7 @@ func (d *DockerExecutor) ExtractDockerImageWithID(ctx context.Context, request *
 
 	// Record build start metrics
 	if d.buildMetrics != nil {
-		d.buildMetrics.RecordBuildStart(ctx, "docker", "docker", "")
+		d.buildMetrics.RecordBuildStart(ctx, "docker", "docker")
 	}
 
 	defer func() {
@@ -913,18 +913,12 @@ func (d *DockerExecutor) extractContainerMetadata(ctx context.Context, logger *s
 		}
 	}
 
-	// Extract user
-	if user, ok := config["User"].(string); ok {
-		metadata.User = user
-	}
-
 	logger.InfoContext(ctx, "extracted container metadata",
 		slog.Int("entrypoint_len", len(metadata.Entrypoint)),
 		slog.Int("cmd_len", len(metadata.Command)),
 		slog.String("working_dir", metadata.WorkingDir),
 		slog.Int("env_vars", len(metadata.Env)),
 		slog.Int("exposed_ports", len(metadata.ExposedPorts)),
-		slog.String("user", metadata.User),
 	)
 
 	return metadata, nil
@@ -1074,12 +1068,10 @@ func (d *DockerExecutor) createContainerEnv(ctx context.Context, logger *slog.Lo
 	envConfig := struct {
 		WorkingDir   string            `json:"working_dir,omitempty"`
 		Env          map[string]string `json:"env,omitempty"`
-		User         string            `json:"user,omitempty"`
 		ExposedPorts []string          `json:"exposed_ports,omitempty"`
 	}{
 		WorkingDir:   metadata.WorkingDir,
 		Env:          metadata.Env,
-		User:         metadata.User,
 		ExposedPorts: metadata.ExposedPorts,
 	}
 
