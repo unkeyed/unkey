@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@ant-design/plots": "^1.2.5",
-    "@hookform/resolvers": "^3.3.4",
+    "@hookform/resolvers": "^3.4.2",
     "@planetscale/database": "^1.16.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.4",
@@ -35,6 +35,9 @@
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/typography": "^0.5.12",
+    "@tanstack/query-core": "^5.87.1",
+    "@tanstack/query-db-collection": "^0.2.11",
+    "@tanstack/react-db": "^0.1.12",
     "@tanstack/react-query": "^4.36.1",
     "@tanstack/react-table": "^8.16.0",
     "@tanstack/react-virtual": "^3.10.9",
