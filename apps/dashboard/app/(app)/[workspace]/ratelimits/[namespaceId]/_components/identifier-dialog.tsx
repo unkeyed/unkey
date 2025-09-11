@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
@@ -43,6 +44,7 @@ export const IdentifierDialog = ({
   overrideDetails,
   isLoading = false,
 }: Props) => {
+  const { workspace } = useWorkspace();
   const {
     register,
     handleSubmit,
@@ -82,7 +84,7 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(`/ratelimits/${namespaceId}/overrides`);
+        router.push(`${workspace?.slug}/ratelimits/${namespaceId}/overrides`);
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

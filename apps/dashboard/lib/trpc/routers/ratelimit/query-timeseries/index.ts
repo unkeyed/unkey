@@ -1,4 +1,4 @@
-import { ratelimitQueryTimeseriesPayload } from "@/app/(app)/ratelimits/[namespaceId]/logs/components/charts/query-timeseries.schema";
+import { ratelimitQueryTimeseriesPayload } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/logs/components/charts/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";

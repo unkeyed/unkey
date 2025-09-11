@@ -4,6 +4,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { collection } from "@/lib/collections";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronExpandY, Gauge, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
@@ -28,14 +29,16 @@ type NamespaceNavbarProps = {
 
 export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
-
+  const { workspace } = useWorkspace();
   const { data } = useLiveQuery((q) => q.from({ namespace: collection.ratelimitNamespaces }));
 
   if (!data) {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/ratelimits`}>
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -65,9 +68,11 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/ratelimits`}>
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${namespaceId}`}
+            href={`/${workspace?.slug}/ratelimits/${namespaceId}`}
             isIdentifier
             className="group"
             noop
@@ -76,7 +81,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
               items={data.map((ns) => ({
                 id: ns.id,
                 label: ns.name,
-                href: `/ratelimits/${ns.id}`,
+                href: `/${workspace?.slug}/ratelimits/${ns.id}`,
               }))}
               shortcutKey="N"
             >
@@ -89,22 +94,22 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
                 {
                   id: "requests",
                   label: "Requests",
-                  href: `/ratelimits/${namespaceId}`,
+                  href: `/${workspace?.slug}/ratelimits/${namespaceId}`,
                 },
                 {
                   id: "logs",
                   label: "Logs",
-                  href: `/ratelimits/${namespaceId}/logs`,
+                  href: `/${workspace?.slug}/ratelimits/${namespaceId}/logs`,
                 },
                 {
                   id: "settings",
                   label: "Settings",
-                  href: `/ratelimits/${namespaceId}/settings`,
+                  href: `/${workspace?.slug}/ratelimits/${namespaceId}/settings`,
                 },
                 {
                   id: "overrides",
                   label: "Overrides",
-                  href: `/ratelimits/${namespaceId}/overrides`,
+                  href: `/${workspace?.slug}/ratelimits/${namespaceId}/overrides`,
                 },
               ]}
               shortcutKey="M"

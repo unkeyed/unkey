@@ -1,4 +1,4 @@
-import { useFilters } from "@/app/(app)/ratelimits/[namespaceId]/_overview/hooks/use-filters";
+import { useFilters } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";

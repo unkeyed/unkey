@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { useEffect, useMemo, useState } from "react";
-import { useSort } from "../../../../../../../../components/logs/hooks/use-sort";
+import { useSort } from "../../../../../../../../../components/logs/hooks/use-sort";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
 

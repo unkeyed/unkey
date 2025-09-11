@@ -2,6 +2,7 @@
 
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { collection } from "@/lib/collections";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -14,13 +15,14 @@ import { useMemo } from "react";
 
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
-
+  const { workspace } = useWorkspace();
   const { data } = useLiveQuery((q) =>
     q
       .from({ namespace: collection.ratelimitNamespaces })
       .orderBy(({ namespace }) => namespace.id, "desc"),
   );
 
+  const basePath = `/${workspace?.slug}`;
   // Convert ratelimit namespaces data to navigation items with sub-items
   const ratelimitNavItems = useMemo(() => {
     if (data.length === 0) {
@@ -37,25 +39,25 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       const subItems: NavItem[] = [
         {
           icon: ArrowOppositeDirectionY,
-          href: `/ratelimits/${namespace.id}`,
+          href: `${basePath}/ratelimits/${namespace.id}`,
           label: "Requests",
           active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
         },
         {
           icon: Layers3,
-          href: `/ratelimits/${namespace.id}/logs`,
+          href: `${basePath}/ratelimits/${namespace.id}/logs`,
           label: "Logs",
           active: currentNamespaceActive && segments.at(2) === "logs",
         },
         {
           icon: Gear,
-          href: `/ratelimits/${namespace.id}/settings`,
+          href: `${basePath}/ratelimits/${namespace.id}/settings`,
           label: "Settings",
           active: currentNamespaceActive && segments.at(2) === "settings",
         },
         {
           icon: ArrowDottedRotateAnticlockwise,
-          href: `/ratelimits/${namespace.id}/overrides`,
+          href: `${basePath}/ratelimits/${namespace.id}/overrides`,
           label: "Overrides",
           active: currentNamespaceActive && segments.at(2) === "overrides",
         },
@@ -64,7 +66,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       // Create the main namespace nav item
       const namespaceNavItem: NavItem = {
         icon: null,
-        href: `/ratelimits/${namespace.id}`,
+        href: `${basePath}/ratelimits/${namespace.id}`,
         label: namespace.name,
         active: currentNamespaceActive,
         // Include sub-items
@@ -73,11 +75,11 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
 
       return namespaceNavItem;
     });
-  }, [data, segments]);
+  }, [data, segments, basePath]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex((item) => item.href === "/ratelimits");
+    const ratelimitsItemIndex = items.findIndex((item) => item.href === `${basePath}/ratelimits`);
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
@@ -87,7 +89,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
     }
 
     return items;
-  }, [baseNavItems, ratelimitNavItems]);
+  }, [baseNavItems, ratelimitNavItems, basePath]);
 
   return {
     enhancedNavItems,

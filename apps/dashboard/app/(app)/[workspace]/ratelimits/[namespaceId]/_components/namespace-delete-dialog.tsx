@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -30,6 +31,7 @@ export const DeleteNamespaceDialog = ({
   namespace,
 }: DeleteNamespaceProps) => {
   const router = useRouter();
+  const { workspace } = useWorkspace();
   const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
@@ -41,7 +43,7 @@ export const DeleteNamespaceDialog = ({
 
   const onSubmit = async () => {
     collection.ratelimitNamespaces.delete(namespace.id);
-    router.push("/ratelimits");
+    router.push(`/${workspace?.slug}/ratelimits`);
 
     //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };

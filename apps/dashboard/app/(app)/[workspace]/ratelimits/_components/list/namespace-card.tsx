@@ -1,8 +1,9 @@
 "use client";
-import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
+import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/hooks/use-fetch-timeseries";
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Clock, ProgressBar } from "@unkey/icons";
 import ms from "ms";
 
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export const NamespaceCard = ({ namespace }: Props) => {
+  const { workspace } = useWorkspace();
   const { timeseries, isLoading, isError } = useFetchRatelimitOverviewTimeseries(namespace.id);
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
@@ -28,7 +30,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
     <div>
       <StatsCard
         name={namespace.name}
-        linkPath={`/ratelimits/${namespace.id}`}
+        linkPath={`/${workspace?.slug}/ratelimits/${namespace.id}`}
         chart={
           <StatsTimeseriesBarChart
             data={timeseries}

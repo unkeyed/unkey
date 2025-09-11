@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspace } from "@/providers/workspace-provider";
 import { NamespaceNavbar } from "../namespace-navbar";
 import { SettingsClient } from "./components/settings-client";
 
@@ -11,12 +12,13 @@ type Props = {
 
 export default function SettingsPage(props: Props) {
   const namespaceId = props.params.namespaceId;
+  const { workspace } = useWorkspace();
   return (
     <div>
       <NamespaceNavbar
         namespaceId={namespaceId}
         activePage={{
-          href: `/ratelimits/${namespaceId}/settings`,
+          href: `/${workspace?.slug}/ratelimits/${namespaceId}/settings`,
           text: "Settings",
         }}
       />
