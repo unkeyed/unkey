@@ -33,9 +33,9 @@ type CloudflareProviderConfig struct {
 // NewCloudflareProvider creates a new DNS-01 challenge provider using Cloudflare
 func NewCloudflareProvider(cfg CloudflareProviderConfig) (*CloudflareProvider, error) {
 	config := cloudflare.NewDefaultConfig()
+	config.PropagationTimeout = time.Minute * 5 // 5 minutes propagation timeout
 	config.AuthToken = cfg.APIToken
-	config.TTL = 120 // 2 minutes TTL for challenge records
-
+	config.TTL = 60 * 10 // 10 minutes TTL for challenge records
 	provider, err := cloudflare.NewDNSProviderConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Cloudflare DNS provider: %w", err)
