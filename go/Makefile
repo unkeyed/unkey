@@ -81,6 +81,7 @@ k8s-check: ## Check if kubectl is available and cluster is running
 k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
 	@echo "Building Docker images..."
 	@docker build -t unkey/mysql:latest -f ../deployment/Dockerfile.mysql ../
+	@docker build -t unkey/clickhouse:latest -f ../deployment/Dockerfile.clickhouse ../
 	@docker build -t unkey:latest .
 	@echo "Creating namespace..."
 	@kubectl apply -f k8s/manifests/namespace.yaml
@@ -128,6 +129,7 @@ start-mysql: k8s-check ## Deploy only MySQL
 	$(call deploy-service,mysql,MySQL,unkey/mysql:latest,-f ../deployment/Dockerfile.mysql ../)
 
 start-clickhouse: k8s-check ## Deploy only ClickHouse
+	@docker build -t unkey/clickhouse:latest -f ../deployment/Dockerfile.clickhouse ../
 	$(call deploy-service,clickhouse,ClickHouse)
 
 start-redis: k8s-check ## Deploy only Redis

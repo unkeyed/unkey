@@ -69,6 +69,16 @@ if start_mysql:
 # ClickHouse service
 if start_clickhouse:
     print("Setting up ClickHouse...")
+    # Only build if image doesn't exist
+    if not local('docker images -q unkey/clickhouse:latest 2>/dev/null', quiet=True):
+        print("Building ClickHouse image...")
+        docker_build(
+            'unkey/clickhouse:latest',
+            '../',  # Build context at repo root
+            dockerfile='../deployment/Dockerfile.clickhouse'
+        )
+    else:
+        print("Using existing ClickHouse image")
     k8s_yaml('k8s/manifests/clickhouse.yaml')
     k8s_resource(
         'clickhouse',

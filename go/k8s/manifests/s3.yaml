@@ -9,7 +9,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 50Gi
 
 ---
 apiVersion: apps/v1
@@ -63,13 +63,6 @@ spec:
               port: 9000
             initialDelaySeconds: 60
             periodSeconds: 30
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
       volumes:
         - name: s3-storage
           persistentVolumeClaim:

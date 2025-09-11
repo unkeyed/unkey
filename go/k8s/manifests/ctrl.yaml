@@ -72,13 +72,6 @@ spec:
             - name: UNKEY_METALD_BACKEND
               value: "k8s"
           command: ["/unkey", "run", "ctrl"]
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

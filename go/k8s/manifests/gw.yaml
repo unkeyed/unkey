@@ -87,13 +87,6 @@ spec:
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

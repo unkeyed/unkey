@@ -9,7 +9,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 2Gi
+      storage: 100Gi
 
 ---
 apiVersion: apps/v1
@@ -31,41 +31,52 @@ spec:
     spec:
       containers:
         - name: clickhouse
-          image: clickhouse/clickhouse-server:24.3
+          image: unkey/clickhouse:latest
           ports:
             - containerPort: 8123
               name: http
             - containerPort: 9000
               name: native
           env:
-            - name: CLICKHOUSE_DB
+            - name: CLICKHOUSE_ADMIN_USER
               value: "default"
-            - name: CLICKHOUSE_USER
-              value: "default"
-            - name: CLICKHOUSE_PASSWORD
+            - name: CLICKHOUSE_ADMIN_PASSWORD
               value: "password"
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "no"
           volumeMounts:
             - name: clickhouse-storage
-              mountPath: /var/lib/clickhouse
+              mountPath: /bitnami/clickhouse
           readinessProbe:
-            httpGet:
-              path: /ping
-              port: 8123
+            exec:
+              command:
+                - clickhouse-client
+                - --host
+                - localhost
+                - --user
+                - default
+                - --password
+                - password
+                - --query
+                - "SELECT 1"
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
-            httpGet:
-              path: /ping
-              port: 8123
+            exec:
+              command:
+                - clickhouse-client
+                - --host
+                - localhost
+                - --user
+                - default
+                - --password
+                - password
+                - --query
+                - "SELECT 1"
             initialDelaySeconds: 60
             periodSeconds: 30
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "200m"
-            limits:
-              memory: "1Gi"
-              cpu: "1000m"
+            timeoutSeconds: 5
       volumes:
         - name: clickhouse-storage
           persistentVolumeClaim:
