@@ -21,7 +21,7 @@ export const acmeChallenges = mysqlTable(
   (table) => ({
     idIdx: index("id_idx").on(table.id),
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    pk: primaryKey({columns:[table.domainId]}),
+    pk: primaryKey({ columns: [table.domainId] }),
   }),
 );
 
