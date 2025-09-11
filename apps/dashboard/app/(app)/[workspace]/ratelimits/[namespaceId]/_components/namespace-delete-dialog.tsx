@@ -1,10 +1,10 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useWorkspace } from "@/providers/workspace-provider";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
