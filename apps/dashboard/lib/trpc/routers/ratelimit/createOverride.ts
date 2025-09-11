@@ -14,7 +14,6 @@ export const createOverride = t.procedure
       identifier: z.string(),
       limit: z.number(),
       duration: z.number(),
-      async: z.boolean().optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -56,7 +55,6 @@ export const createOverride = t.procedure
             .set({
               limit: input.limit,
               duration: input.duration,
-              async: input.async ?? false,
               updatedAtM: Date.now(),
               deletedAtM: null,
             })
@@ -69,7 +67,7 @@ export const createOverride = t.procedure
             identifier: input.identifier,
             limit: input.limit,
             duration: input.duration,
-            async: input.async ?? false,
+            async: false,
             createdAtM: Date.now(),
           });
         }
