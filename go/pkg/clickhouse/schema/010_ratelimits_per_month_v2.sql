@@ -1,5 +1,5 @@
 CREATE TABLE ratelimits_per_month_v2 (
-  time DateTime,
+  time Date,
   workspace_id String,
   namespace_id String,
   identifier String,
@@ -26,7 +26,7 @@ SELECT
   avgMergeState(latency_avg) as latency_avg,
   quantilesTDigestMergeState(0.75)(latency_p75) as latency_p75,
   quantilesTDigestMergeState(0.99)(latency_p99) as latency_p99,
-  toStartOfMonth(time) AS time
+  toDate(toStartOfMonth(time)) AS time
 FROM
   ratelimits_per_day_v2
 GROUP BY
