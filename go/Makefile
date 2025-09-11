@@ -111,22 +111,17 @@ k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
 	@echo "Check NodePort assignments: make k8s-ports"
 	@make k8s-status
 
+k8s-stop: ## Stop all pods (scale deployments to 0)
+	@echo "Stopping all pods..."
+	@kubectl scale deployment --all --replicas=0 -n unkey
+	@echo "All pods stopped"
+
 k8s-down: ## Delete all services from current Kubernetes cluster
 	@echo "Deleting all services..."
 	@kubectl delete namespace unkey --ignore-not-found=true
 	@echo "Services deleted"
 
 k8s-reset: k8s-down k8s-up ## Reset the entire Kubernetes environment
-
-k8s-status: ## Show status of k8s services
-	@echo "Cluster Status:"
-	@kubectl get nodes -o wide 2>/dev/null || echo "ERROR: Cluster not running"
-	@echo "\nServices Status:"
-	@kubectl get pods,svc -n unkey 2>/dev/null || echo "ERROR: Services not deployed"
-
-k8s-ports: ## Show NodePort assignments for direct localhost access
-	@echo "Services accessible via NodePort on localhost:"
-	@kubectl get svc -n unkey -o custom-columns="NAME:.metadata.name,TYPE:.spec.type,PORT(S):.spec.ports[*].port,NODEPORT:.spec.ports[*].nodePort" | grep NodePort
 
 # Helper function to deploy a service
 define deploy-service
