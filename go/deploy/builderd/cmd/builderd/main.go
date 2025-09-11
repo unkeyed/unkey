@@ -129,7 +129,6 @@ func main() {
 		slog.String("port", cfg.Server.Port),
 		slog.String("storage_backend", cfg.Storage.Backend),
 		slog.Bool("otel_enabled", cfg.OpenTelemetry.Enabled),
-		slog.Bool("tenant_isolation", cfg.Tenant.IsolationEnabled),
 		slog.Int("max_concurrent_builds", cfg.Builder.MaxConcurrentBuilds),
 	)
 
@@ -196,7 +195,6 @@ func main() {
 	// TODO: Initialize database
 	// TODO: Initialize storage backend
 	// TODO: Initialize Docker client
-	// TODO: Initialize tenant manager
 	// TODO: Initialize build executor registry
 
 	// Initialize assetmanagerd client
@@ -242,12 +240,6 @@ func main() {
 		interceptors.WithRequestDurationMetric(false), // Match existing behavior
 		interceptors.WithErrorResampling(true),
 		interceptors.WithPanicStackTrace(true),
-		interceptors.WithTenantAuth(true,
-			// Exempt health check endpoints from tenant auth
-			"/health.v1.HealthService/Check",
-			// Exempt admin/stats endpoints from tenant auth
-			"/builder.v1.BuilderService/GetBuildStats",
-		),
 	}
 
 	// Add meter if OpenTelemetry is enabled
@@ -255,7 +247,7 @@ func main() {
 		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(otel.Meter("builderd")))
 	}
 
-	// Get default interceptors (tenant auth, metrics, logging)
+	// Get default interceptors (metrics, logging)
 	sharedInterceptors := interceptors.NewDefaultInterceptors("builderd", interceptorOpts...)
 
 	// Convert UnaryInterceptorFunc to Interceptor
