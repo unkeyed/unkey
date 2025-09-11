@@ -23,8 +23,9 @@ export const EnvVarSaveActions = ({
         className="text-xs"
         disabled={save.disabled}
         onClick={save.onClick}
+        loading={isSubmitting}
       >
-        {isSubmitting ? "Saving..." : "Save"}
+        Save
       </Button>
       <Button
         type="button"

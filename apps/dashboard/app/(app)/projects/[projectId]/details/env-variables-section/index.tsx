@@ -52,7 +52,6 @@ export function EnvironmentVariablesSection({
   const cancelAdding = () => setIsAddingNew(false);
 
   const showPlusButton = isExpanded && !isAddingNew;
-  const hasContent = envVars.length > 0 || isAddingNew;
 
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
@@ -105,32 +104,28 @@ export function EnvironmentVariablesSection({
             transitionDelay: isExpanded ? `${ANIMATION_CONFIG.contentDelay}ms` : "0ms",
           }}
         >
-          <div className={cn(LAYOUT_CONFIG.maxScrollHeight, "overflow-y-auto")}>
-            {hasContent ? (
-              <div className="flex flex-col">
-                {envVars.map((envVar, index) => (
-                  <div key={envVar.id} {...getItemAnimationProps(index, isExpanded)}>
-                    <EnvVarRow
-                      envVar={envVar}
-                      projectId={projectId}
-                      getExistingEnvVar={getExistingEnvVar}
-                    />
-                  </div>
-                ))}
-
-                {isAddingNew && (
-                  <div {...getItemAnimationProps(envVars.length, isExpanded)}>
-                    <AddEnvVarRow
-                      projectId={projectId}
-                      getExistingEnvVar={getExistingEnvVar}
-                      onCancel={cancelAdding}
-                    />
-                  </div>
-                )}
+          <div className="flex flex-col">
+            {envVars.map((envVar, index) => (
+              <div key={envVar.id} {...getItemAnimationProps(index, isExpanded)}>
+                <EnvVarRow
+                  envVar={envVar}
+                  projectId={projectId}
+                  getExistingEnvVar={getExistingEnvVar}
+                />
               </div>
-            ) : (
-              <EmptyState />
+            ))}
+
+            {isAddingNew && (
+              <div {...getItemAnimationProps(envVars.length, isExpanded)}>
+                <AddEnvVarRow
+                  projectId={projectId}
+                  getExistingEnvVar={getExistingEnvVar}
+                  onCancel={cancelAdding}
+                />
+              </div>
             )}
+
+            {envVars.length === 0 && !isAddingNew && <EmptyState />}
           </div>
         </div>
       </div>
