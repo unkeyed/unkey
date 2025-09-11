@@ -28,13 +28,12 @@ export default function DiffPage({ params }: Props) {
   // Fetch deployment details if needed in the future
 
   // Fetch all deployments for this project
-  const { data: deploymentsData, isLoading: deploymentsLoading } = trpc.deployment.list.useQuery(
-    undefined,
+  const { data: deploymentsData, isLoading: deploymentsLoading } = trpc.deployment.listByProject.useQuery(
+    { projectId: params.projectId },
     { enabled: !!params.projectId },
   );
 
-  const deployments =
-    deploymentsData?.deployments?.filter((d) => d.project?.id === params.projectId) || [];
+  const deployments = deploymentsData?.deployments || [];
 
   // Fetch the diff data
   const {
@@ -172,11 +171,10 @@ export default function DiffPage({ params }: Props) {
                                         {label.primary}
                                       </span>
                                       <span
-                                        className={`text-xs px-2 py-0.5 rounded-full ${
-                                          label.environment === "production"
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-blue-100 text-blue-700"
-                                        }`}
+                                        className={`text-xs px-2 py-0.5 rounded-full ${label.environment === "production"
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-blue-100 text-blue-700"
+                                          }`}
                                       >
                                         {label.environment}
                                       </span>
@@ -245,11 +243,10 @@ export default function DiffPage({ params }: Props) {
                                         {label.primary}
                                       </span>
                                       <span
-                                        className={`text-xs px-2 py-0.5 rounded-full ${
-                                          label.environment === "production"
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-blue-100 text-blue-700"
-                                        }`}
+                                        className={`text-xs px-2 py-0.5 rounded-full ${label.environment === "production"
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-blue-100 text-blue-700"
+                                          }`}
                                       >
                                         {label.environment}
                                       </span>

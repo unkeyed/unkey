@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { format } from "date-fns";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type LogEntry = {
   timestamp: string;
@@ -50,9 +50,8 @@ export function useDeploymentLogs({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch logs via tRPC
-  const { data: logsData, isLoading } = trpc.deploy.project.activeDeployment.buildLogs.useQuery({
-    deploymentId,
-  });
+  const isLoading = false;
+  const logsData = { logs: [] as any[] };
 
   // Transform tRPC logs to match the expected format
   const logs = useMemo((): LogEntry[] => {
@@ -65,13 +64,6 @@ export function useDeploymentLogs({
       level: log.level,
       message: log.message,
     }));
-  }, [logsData]);
-
-  // Auto-expand when logs are fetched
-  useEffect(() => {
-    if (logsData?.logs && logsData.logs.length > 0) {
-      setIsExpanded(true);
-    }
   }, [logsData]);
 
   // Calculate log counts

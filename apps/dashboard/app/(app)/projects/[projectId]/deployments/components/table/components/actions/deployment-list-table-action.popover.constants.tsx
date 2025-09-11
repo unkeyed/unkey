@@ -1,6 +1,6 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
+import type { Deployment } from "@/lib/collections";
 import { PenWriting3 } from "@unkey/icons";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";

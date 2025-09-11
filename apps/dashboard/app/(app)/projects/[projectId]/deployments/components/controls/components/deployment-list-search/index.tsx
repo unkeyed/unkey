@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 export const DeploymentListSearch = () => {
   const { filters, updateFilters } = useFilters();
 
-  const queryLLMForStructuredOutput = trpc.deploy.project.deployment.search.useMutation({
+  const queryLLMForStructuredOutput = trpc.deployment.search.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -25,9 +25,8 @@ export const DeploymentListSearch = () => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `: ${error.message}` : "."
-      } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${error.message ? `: ${error.message}` : "."
+        } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
         position: "top-right",

@@ -15,13 +15,12 @@ export default function DiffSelectionPage(): JSX.Element {
   const [selectedToDeployment, setSelectedToDeployment] = useState<string>("");
 
   // Fetch all deployments for this project
-  const { data: deploymentsData, isLoading: deploymentsLoading } = trpc.deployment.list.useQuery(
-    undefined,
+  const { data: deploymentsData, isLoading: deploymentsLoading } = trpc.deployment.listByProject.useQuery(
+    { projectId },
     { enabled: !!projectId },
   );
 
-  const deployments =
-    deploymentsData?.deployments?.filter((d) => d.project?.id === projectId) || [];
+  const deployments = deploymentsData?.deployments || [];
 
   // Helper function to create human-readable deployment labels
   interface DeploymentData {
@@ -140,11 +139,10 @@ export default function DiffSelectionPage(): JSX.Element {
                                       <Tag className="w-3 h-3 text-blue-600" />
                                     )}
                                     <span
-                                      className={`text-xs px-2 py-0.5 rounded-full ${
-                                        label.environment === "production"
-                                          ? "bg-green-100 text-green-700"
-                                          : "bg-blue-100 text-blue-700"
-                                      }`}
+                                      className={`text-xs px-2 py-0.5 rounded-full ${label.environment === "production"
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-blue-100 text-blue-700"
+                                        }`}
                                     >
                                       {label.environment}
                                     </span>
@@ -153,13 +151,12 @@ export default function DiffSelectionPage(): JSX.Element {
                                 <div className="text-xs text-content-subtle flex items-center gap-2">
                                   <span>{label.secondary}</span>
                                   <span
-                                    className={`px-2 py-0.5 rounded text-xs ${
-                                      label.status === "active"
-                                        ? "bg-green-100 text-green-700"
-                                        : label.status === "failed"
-                                          ? "bg-red-100 text-red-700"
-                                          : "bg-gray-100 text-gray-700"
-                                    }`}
+                                    className={`px-2 py-0.5 rounded text-xs ${label.status === "active"
+                                      ? "bg-green-100 text-green-700"
+                                      : label.status === "failed"
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-gray-100 text-gray-700"
+                                      }`}
                                   >
                                     {label.status}
                                   </span>
@@ -226,11 +223,10 @@ export default function DiffSelectionPage(): JSX.Element {
                                       <Tag className="w-3 h-3 text-blue-600" />
                                     )}
                                     <span
-                                      className={`text-xs px-2 py-0.5 rounded-full ${
-                                        label.environment === "production"
-                                          ? "bg-green-100 text-green-700"
-                                          : "bg-blue-100 text-blue-700"
-                                      }`}
+                                      className={`text-xs px-2 py-0.5 rounded-full ${label.environment === "production"
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-blue-100 text-blue-700"
+                                        }`}
                                     >
                                       {label.environment}
                                     </span>
@@ -239,13 +235,12 @@ export default function DiffSelectionPage(): JSX.Element {
                                 <div className="text-xs text-content-subtle flex items-center gap-2">
                                   <span>{label.secondary}</span>
                                   <span
-                                    className={`px-2 py-0.5 rounded text-xs ${
-                                      label.status === "active"
-                                        ? "bg-green-100 text-green-700"
-                                        : label.status === "failed"
-                                          ? "bg-red-100 text-red-700"
-                                          : "bg-gray-100 text-gray-700"
-                                    }`}
+                                    className={`px-2 py-0.5 rounded text-xs ${label.status === "active"
+                                      ? "bg-green-100 text-green-700"
+                                      : label.status === "failed"
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-gray-100 text-gray-700"
+                                      }`}
                                   >
                                     {label.status}
                                   </span>

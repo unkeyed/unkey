@@ -37,15 +37,12 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { getDeploymentBuildLogs } from "./deploy/project/active-deployment/getBuildLogs";
-import { getDeploymentDetails } from "./deploy/project/active-deployment/getDetails";
-import { createProject } from "./deploy/project/create";
-import { queryDeployments } from "./deploy/project/deployment/list";
-import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
-import { getEnvs } from "./deploy/project/envs/list";
-import { listProjects } from "./deploy/project/list";
-import { deploymentRouter } from "./deployment";
+import { listDeployments } from "./deployment/list";
+import { searchDeployments } from "./deployment/llm-search";
+import { createProject } from "./project/create";
+import { listProjects } from "./project/list";
 import { listDomains } from "./domains/list";
+import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -311,27 +308,20 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
-  deploy: t.router({
-    project: t.router({
-      list: listProjects,
-      create: createProject,
-      activeDeployment: t.router({
-        details: getDeploymentDetails,
-        buildLogs: getDeploymentBuildLogs,
-      }),
-      envs: t.router({
-        getEnvs,
-      }),
-      deployment: t.router({
-        list: queryDeployments,
-        search: deploymentListLlmSearch,
-      }),
-    }),
+  project: t.router({
+    list: listProjects,
+    create: createProject
   }),
   domain: t.router({
-    list: listDomains
+    list: listDomains,
   }),
-  deployment: deploymentRouter,
+  deployment: t.router({
+    list: listDeployments,
+    search: searchDeployments,
+  }),
+  environment: t.router({
+    list: listEnvironments
+  })
 });
 
 // export type definition of API

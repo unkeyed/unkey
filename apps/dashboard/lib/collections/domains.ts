@@ -11,18 +11,17 @@ const schema = z.object({
   projectId: z.string().nullable(),
 });
 
-type Schema = z.infer<typeof schema>;
+export type Domain = z.infer<typeof schema>;
 
-export const domains = createCollection<Schema>(
+export const domains = createCollection<Domain>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["domains"],
     retry: 3,
-    queryFn: trpcClient.domain.list.query,
-
+    queryFn: () => trpcClient.domain.list.query(),
 
     getKey: (item) => item.id,
-    onInsert: async ({ transaction }) => {
+    onInsert: async () => {
       throw new Error("Not implemented");
       //  const { changes: newNamespace } = transaction.mutations[0];
       //
@@ -46,7 +45,7 @@ export const domains = createCollection<Schema>(
       //  });
       //  await p;
     },
-    onDelete: async ({ transaction }) => {
+    onDelete: async () => {
       throw new Error("Not implemented");
       //   const { original } = transaction.mutations[0];
       //   const p = trpcClient.deploy.project.delete.mutate({ projectId: original.id });

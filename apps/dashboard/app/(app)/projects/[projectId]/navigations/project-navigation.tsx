@@ -2,32 +2,34 @@
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, Cube, Dots, ListRadio, Refresh3 } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { RepoDisplay } from "../../_components/list/repo-display";
-import { useLiveQuery, eq } from "@tanstack/react-db";
-import { collection } from "@/lib/collections";
 
 type ProjectNavigationProps = {
   projectId: string;
 };
 
 export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
-
-
-  const projects = useLiveQuery((q) => q.from({ project: collection.projects }).select(({ project }) => ({
-    id: project.id,
-    name: project.name,
-  })))
-
-  const activeProject = useLiveQuery((q) => q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId))
-    .select(({ project }) => ({
+  const projects = useLiveQuery((q) =>
+    q.from({ project: collection.projects }).select(({ project }) => ({
       id: project.id,
       name: project.name,
-      gitRepositoryUrl: project.gitRepositoryUrl
-    }))).data.at(0)
+    })),
+  );
 
-
+  const activeProject = useLiveQuery((q) =>
+    q
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
+      .select(({ project }) => ({
+        id: project.id,
+        name: project.name,
+        gitRepositoryUrl: project.gitRepositoryUrl,
+      })),
+  ).data.at(0);
 
   if (projects.isLoading) {
     return (

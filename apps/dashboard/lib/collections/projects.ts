@@ -10,13 +10,13 @@ const schema = z.object({
   name: z.string(),
   slug: z.string(),
   gitRepositoryUrl: z.string().nullable(),
-  updatedAt: z.number().int().nullable()
+  updatedAt: z.number().int().nullable(),
+  activeDeploymentId: z.string().nullable(),
 });
 
+export type Project = z.infer<typeof schema>;
 
-type Schema = z.infer<typeof schema>;
-
-export const projects = createCollection<Schema>(
+export const projects = createCollection<Project>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],
@@ -29,13 +29,15 @@ export const projects = createCollection<Schema>(
     onInsert: async ({ transaction }) => {
       const { changes: newNamespace } = transaction.mutations[0];
 
-      const p = trpcClient.deploy.project.create.mutate(schema.parse({
-        id: "created", // will be replaced by the actual ID after creation
-        name: newNamespace.name,
-        slug: newNamespace.slug,
-        gitRepositoryUrl: newNamespace.gitRepositoryUrl ?? null,
-        updatedAt: null,
-      }))
+      const p = trpcClient.deploy.project.create.mutate(
+        schema.parse({
+          id: "created", // will be replaced by the actual ID after creation
+          name: newNamespace.name,
+          slug: newNamespace.slug,
+          gitRepositoryUrl: newNamespace.gitRepositoryUrl ?? null,
+          updatedAt: null,
+        }),
+      );
       toast.promise(p, {
         loading: "Creating project...",
         success: "Project created",

@@ -1,21 +1,17 @@
+import { collection } from "@/lib/collections";
+import { useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
-import { useLiveQuery } from "@tanstack/react-db";
-import { collection } from "@/lib/collections";
 
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
-
   const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).orderBy(({ project }) => project.updatedAt, "desc"))
-
-
-
-
+    q.from({ project: collection.projects }).orderBy(({ project }) => project.updatedAt, "desc"),
+  );
 
   if (projects.isLoading) {
     return (
@@ -101,7 +97,6 @@ export const ProjectsList = () => {
           })}
         </div>
       </div>
-
     </>
   );
 };

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 type ProjectActionsProps = {
-  projectId: string
+  projectId: string;
 };
 
 export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
@@ -20,13 +20,12 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
 };
 
 const getProjectActionItems = (projectId: string, router: AppRouterInstance): MenuItem[] => {
-
   return [
     {
       id: "favorite-project",
       label: "Add favorite",
       icon: <Gear size="md-regular" />,
-      onClick: () => { },
+      onClick: () => {},
       divider: true,
     },
     {

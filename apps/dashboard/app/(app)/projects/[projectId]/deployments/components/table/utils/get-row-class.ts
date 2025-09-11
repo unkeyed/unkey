@@ -1,4 +1,5 @@
-import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
+import type { Deployment } from "@/lib/collections";
+
 import { cn } from "@/lib/utils";
 
 export type StatusStyle = {
@@ -34,10 +35,10 @@ export const FAILED_STATUS_STYLES = {
   focusRing: "focus:ring-error-7",
 };
 
-export const getRowClassName = (deployment: Deployment, selectedRow: Deployment | null) => {
+export const getRowClassName = (deployment: Deployment, selectedDeploymentId?: string) => {
   const isFailed = deployment.status === "failed";
   const style = isFailed ? FAILED_STATUS_STYLES : STATUS_STYLES;
-  const isSelected = deployment.id === selectedRow?.id;
+  const isSelected = typeof selectedDeploymentId !== "undefined" && deployment.id === selectedDeploymentId;
 
   return cn(
     style.base,

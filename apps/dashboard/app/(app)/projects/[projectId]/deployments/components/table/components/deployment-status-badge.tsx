@@ -2,11 +2,8 @@
 import {
   ArrowDotAntiClockwise,
   CircleCheck,
-  CircleDotted,
   CircleHalfDottedClock,
   CircleWarning,
-  Cloud,
-  CloudUp,
   HalfDottedCirclePlay,
   Nut,
 } from "@unkey/icons";
@@ -32,47 +29,24 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
-  downloading_docker_image: {
-    icon: Cloud,
-    label: "Downloading",
-    bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
-    textColor: "text-infoA-11",
-    iconColor: "text-info-11",
-    animated: true,
-  },
-  building_rootfs: {
+  building: {
     icon: Nut,
     label: "Building",
     bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
+
   },
-  uploading_rootfs: {
-    icon: CloudUp,
-    label: "Uploading",
-    bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
-    textColor: "text-infoA-11",
-    iconColor: "text-info-11",
-    animated: true,
-  },
-  creating_vm: {
-    icon: CircleDotted,
-    label: "Creating VM",
-    bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
-    textColor: "text-infoA-11",
-    iconColor: "text-info-11",
-    animated: true,
-  },
-  booting_vm: {
+  deploying: {
     icon: HalfDottedCirclePlay,
-    label: "Booting",
+    label: "Deploying",
     bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
   },
-  assigning_domains: {
+  network: {
     icon: ArrowDotAntiClockwise,
     label: "Assigning Domains",
     bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
@@ -80,7 +54,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     iconColor: "text-info-11",
     animated: true,
   },
-  completed: {
+  ready: {
     icon: CircleCheck,
     label: "Ready",
     bgColor: "bg-successA-3",
