@@ -107,7 +107,7 @@ export const RollbackDialog = ({
                     </Badge>
                   </div>
                   <div className="text-xs text-gray-11">
-                    {currentDeployment?.description || "Current active deployment"}
+                    {currentDeployment?.pullRequest?.title || "Current active deployment"}
                   </div>
                 </div>
               </div>
@@ -144,7 +144,7 @@ export const RollbackDialog = ({
                     </Badge>
                   </div>
                   <div className="text-xs text-gray-11">
-                    {deployment.description || "Target deployment"}
+                    {deployment.pullRequest?.title || "Target deployment"}
                   </div>
                 </div>
               </div>
