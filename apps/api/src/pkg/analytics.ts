@@ -105,10 +105,7 @@ export class Analytics {
         service_latency: number;
         user_agent: string;
         ip_address: string;
-        country: string;
-        city: string;
-        colo: string;
-        continent: string;
+        region: string;
       }) => {
         return await wrap(
           // biome-ignore lint/style/noNonNullAssertion: proxyClient existence verified above

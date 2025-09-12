@@ -51,7 +51,9 @@ import {
   getThirtyMinuteRatelimitTimeseries,
   getTwoHourlyLatencyTimeseries,
   getTwoHourlyRatelimitTimeseries,
+  insertRatelimit,
 } from "./ratelimits";
+import { insertApiRequest } from "./requests";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
@@ -68,6 +70,7 @@ import {
   getTwelveHourlyVerificationTimeseries,
   getTwoHourlyVerificationTimeseries,
   getWeeklyVerificationTimeseries,
+  insertVerification,
 } from "./verifications";
 
 export type ClickHouseConfig =
@@ -106,6 +109,7 @@ export class ClickHouse {
 
   public get verifications() {
     return {
+      insert: insertVerification(this.inserter),
       latest: getLatestVerifications(this.querier),
       timeseries: {
         // Minute-based granularity
@@ -147,6 +151,7 @@ export class ClickHouse {
   }
   public get ratelimits() {
     return {
+      insert: insertRatelimit(this.inserter),
       logs: getRatelimitLogs(this.querier),
       latest: getRatelimitLastUsed(this.querier),
       timeseries: {
@@ -185,6 +190,7 @@ export class ClickHouse {
   }
   public get api() {
     return {
+      insert: insertApiRequest(this.inserter),
       logs: getLogs(this.querier),
       keys: {
         logs: getKeysOverviewLogs(this.querier),
