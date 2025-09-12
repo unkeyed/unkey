@@ -11,7 +11,7 @@ import (
 )
 
 const listExecutableChallenges = `-- name: ListExecutableChallenges :many
-SELECT dc.id, dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
+SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
 JOIN domains d ON dc.domain_id = d.id
 WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
 AND dc.type IN (/*SLICE:verification_types*/?)
@@ -19,7 +19,6 @@ ORDER BY d.created_at ASC
 `
 
 type ListExecutableChallengesRow struct {
-	ID          uint64             `db:"id"`
 	WorkspaceID string             `db:"workspace_id"`
 	Type        AcmeChallengesType `db:"type"`
 	Domain      string             `db:"domain"`
@@ -27,7 +26,7 @@ type ListExecutableChallengesRow struct {
 
 // ListExecutableChallenges
 //
-//	SELECT dc.id, dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
+//	SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
 //	JOIN domains d ON dc.domain_id = d.id
 //	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
 //	AND dc.type IN (/*SLICE:verification_types*/?)
@@ -51,12 +50,7 @@ func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verific
 	var items []ListExecutableChallengesRow
 	for rows.Next() {
 		var i ListExecutableChallengesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.Type,
-			&i.Domain,
-		); err != nil {
+		if err := rows.Scan(&i.WorkspaceID, &i.Type, &i.Domain); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
