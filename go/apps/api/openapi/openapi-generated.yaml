@@ -2613,7 +2613,9 @@ components:
             items:
                 "$ref": "#/components/schemas/Role"
         UpdateKeyCreditsData:
-            type: object
+            type:
+                - object
+                - "null"
             description: Credit configuration and remaining balance for this key.
             properties:
                 remaining:
@@ -2623,12 +2625,10 @@ components:
                     format: int64
                     minimum: 0
                     maximum: 9223372036854776000
-                    description: Number of credits remaining (null for unlimited).
+                    description: Number of credits remaining (null for unlimited). This also clears the refilling schedule.
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/UpdateKeyCreditsRefill"
-            required:
-                - remaining
             additionalProperties: false
         UpdateKeyCreditsRefill:
             type:

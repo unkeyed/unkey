@@ -480,8 +480,8 @@ type UpdateKeyCreditsData struct {
 	// Refill Configuration for automatic credit refill behavior.
 	Refill nullable.Nullable[UpdateKeyCreditsRefill] `json:"refill,omitempty"`
 
-	// Remaining Number of credits remaining (null for unlimited).
-	Remaining nullable.Nullable[int64] `json:"remaining"`
+	// Remaining Number of credits remaining (null for unlimited). This also clears the refilling schedule.
+	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
 }
 
 // UpdateKeyCreditsRefill Configuration for automatic credit refill behavior.
@@ -1282,7 +1282,7 @@ type V2KeysUpdateCreditsResponseBody struct {
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *UpdateKeyCreditsData `json:"credits,omitempty"`
+	Credits nullable.Nullable[UpdateKeyCreditsData] `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.

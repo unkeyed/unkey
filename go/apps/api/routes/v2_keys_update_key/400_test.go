@@ -51,14 +51,15 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 	t.Run("reject invalid refill config", func(t *testing.T) {
 		req := handler.Request{
 			KeyId: keyResponse.KeyID,
-			Credits: &openapi.KeyCreditsData{
-				Remaining: nullable.NewNullableWithValue(int64(10)),
-				Refill: &openapi.KeyCreditsRefill{
-					Interval:  openapi.Daily,
+			Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Remaining: nullable.NewNullableWithValue(int64(100)),
+				Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+					Interval:  openapi.UpdateKeyCreditsRefillIntervalDaily,
 					Amount:    100,
 					RefillDay: ptr.P(int(4)), // Invalid: can't set refillDay for daily
-				},
-			},
+
+				}),
+			}),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

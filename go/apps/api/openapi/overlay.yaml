@@ -36,6 +36,11 @@ actions:
   - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]["type"]
     update: integer
   - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]
