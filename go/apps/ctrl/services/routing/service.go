@@ -48,6 +48,8 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 
 	// Get current route to capture what we're switching from
 	var previousVersionID string
+	var previousAuthConfig *partitionv1.AuthConfig
+	var previousValidationConfig *partitionv1.ValidationConfig
 	currentRoute, err := partitiondb.Query.FindGatewayByHostname(ctx, s.partitionDB.RO(), hostname)
 	if err != nil && !db.IsNotFound(err) {
 		s.logger.ErrorContext(ctx, "failed to get current route",
@@ -58,10 +60,12 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	}
 
 	if err == nil {
-		// Parse existing config to get previous version
+		// Parse existing config to get previous version and auth configs
 		var existingConfig partitionv1.GatewayConfig
 		if err := protojson.Unmarshal(currentRoute.Config, &existingConfig); err == nil {
 			previousVersionID = existingConfig.Deployment.Id
+			previousAuthConfig = existingConfig.AuthConfig
+			previousValidationConfig = existingConfig.ValidationConfig
 		}
 	}
 
@@ -130,7 +134,9 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 			Id:        versionID,
 			IsEnabled: true,
 		},
-		Vms: make([]*partitionv1.VM, 0, len(vms)),
+		Vms:              make([]*partitionv1.VM, 0, len(vms)),
+		AuthConfig:       previousAuthConfig,       // Include previous openapi/keyauthid for auth
+		ValidationConfig: previousValidationConfig, // Include previous validation config
 	}
 
 	// Add VM references to the gateway config
@@ -158,8 +164,9 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 
 	// Upsert the gateway configuration
 	err = partitiondb.Query.UpsertGateway(ctx, s.partitionDB.RW(), partitiondb.UpsertGatewayParams{
-		Hostname: hostname,
-		Config:   configBytes,
+		WorkspaceID: deploymentWorkspaceID,
+		Hostname:    hostname,
+		Config:      configBytes,
 	})
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to upsert gateway",
