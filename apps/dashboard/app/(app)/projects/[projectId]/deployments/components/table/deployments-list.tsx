@@ -287,7 +287,7 @@ export const DeploymentsList = () => {
         },
       },
     ];
-  }, [selectedDeployment?.id, isCompactView]);
+  }, [selectedDeployment?.id, isCompactView, deployments]);
 
   return (
     <VirtualTable
