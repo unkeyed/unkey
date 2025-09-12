@@ -448,9 +448,8 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeChallenge struct {
-	ID            uint64               `db:"id"`
-	WorkspaceID   string               `db:"workspace_id"`
 	DomainID      string               `db:"domain_id"`
+	WorkspaceID   string               `db:"workspace_id"`
 	Token         string               `db:"token"`
 	Type          AcmeChallengesType   `db:"type"`
 	Authorization string               `db:"authorization"`

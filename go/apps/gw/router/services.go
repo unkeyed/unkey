@@ -22,4 +22,5 @@ type Services struct {
 	Ratelimit      ratelimit.Service
 	MainDomain     string // Main gateway domain for internal endpoints
 	AcmeClient     ctrlv1connect.AcmeServiceClient
+	HttpProxy      bool // Whether to handle proxy requests directly over HTTP
 }

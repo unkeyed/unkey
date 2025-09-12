@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 

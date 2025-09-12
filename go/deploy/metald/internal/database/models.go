@@ -26,6 +26,7 @@ type NetworkAllocation struct {
 	ID           int64        `db:"id" json:"id"`
 	DeploymentID string       `db:"deployment_id" json:"deployment_id"`
 	NetworkID    int64        `db:"network_id" json:"network_id"`
+	BridgeName   string       `db:"bridge_name" json:"bridge_name"`
 	AvailableIps string       `db:"available_ips" json:"available_ips"`
 	AllocatedAt  sql.NullTime `db:"allocated_at" json:"allocated_at"`
 }

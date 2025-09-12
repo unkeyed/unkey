@@ -375,17 +375,16 @@ CREATE TABLE `domains` (
 );
 
 CREATE TABLE `acme_challenges` (
-	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`domain_id` varchar(256) NOT NULL,
-	`token` varchar(256) NOT NULL,
+	`domain_id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`token` varchar(255) NOT NULL,
 	`type` enum('HTTP-01','DNS-01') NOT NULL,
-	`authorization` varchar(256) NOT NULL,
+	`authorization` varchar(255) NOT NULL,
 	`status` enum('waiting','pending','verified','failed') NOT NULL,
 	`expires_at` bigint NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `acme_challenges_id` PRIMARY KEY(`id`)
+	CONSTRAINT `acme_challenges_domain_id_pk` PRIMARY KEY(`domain_id`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
@@ -414,4 +413,5 @@ CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
+CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 

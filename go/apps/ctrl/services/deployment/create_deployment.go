@@ -26,7 +26,6 @@ func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
 ) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
-
 	// Validate workspace exists
 	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 	if err != nil {
@@ -72,11 +71,15 @@ func (s *Service) CreateDeployment(
 			return nil, connect.NewError(connect.CodeInvalidArgument,
 				fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
 		}
+
 		// Also reject future timestamps more than 1 hour ahead (likely invalid)
 		maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
 		if timestamp > maxValidTimestamp {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
+			return nil,
+				connect.NewError(
+					connect.CodeInvalidArgument,
+					fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp),
+				)
 		}
 	}
 
@@ -138,6 +141,7 @@ func (s *Service) CreateDeployment(
 		hydra.WithTimeout(25*time.Minute),
 		hydra.WithRetryBackoff(1*time.Minute),
 	)
+
 	if err != nil {
 		s.logger.Error("failed to start deployment workflow",
 			"deployment_id", deploymentID,

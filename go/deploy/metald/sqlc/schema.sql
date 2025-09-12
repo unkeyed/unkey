@@ -10,6 +10,7 @@ CREATE TABLE network_allocations (
   id INTEGER PRIMARY KEY,
   deployment_id TEXT NOT NULL UNIQUE,
   network_id INTEGER NOT NULL,
+  bridge_name TEXT NOT NULL UNIQUE,
   available_ips TEXT NOT NULL,  -- JSON array: ["10.0.0.18","10.0.0.19",...]
   allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (network_id) REFERENCES networks(id)

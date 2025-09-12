@@ -145,7 +145,7 @@ func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File
 	}
 
 	// Generate filename
-	filename := fmt.Sprintf("bulk_%s.go", query.GetFilename())
+	filename := fmt.Sprintf("bulk_%s_generated.go", query.GetFilename())
 
 	return &plugin.File{
 		Name:     filename,
@@ -198,8 +198,8 @@ func (g *Generator) generateInterfaceContent(bulkFunctions []BulkFunction) strin
 
 	content.WriteString("}\n\n")
 
-	// Generate assertion to ensure Queries implements BulkQuerier
-	content.WriteString("// Ensure Queries implements BulkQuerier\n")
+	// Generate assertion to ensure BulkQueries implements BulkQuerier
+	content.WriteString("// Ensure BulkQueries implements BulkQuerier\n")
 	content.WriteString("var _ BulkQuerier = (*BulkQueries)(nil)\n")
 
 	return content.String()

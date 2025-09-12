@@ -5,6 +5,15 @@
       "engine": "mysql",
       "queries": "./queries",
       "schema": "schema.sql",
+      "codegen": [
+        {
+          "out": ".",
+          "plugin": "bulk-insert",
+          "options": {
+            "emit_methods_with_db_argument": true
+          }
+        }
+      ],
       "gen": {
         "go": {
           "package": "db",
@@ -22,6 +31,14 @@
           "output_copyfrom_file_name": "copyfrom_generated",
           "output_db_file_name": "delete_me"
         }
+      }
+    }
+  ],
+  "plugins": [
+    {
+      "name": "bulk-insert",
+      "process": {
+        "cmd": "../../db/plugins/dist/bulk-insert"
       }
     }
   ]

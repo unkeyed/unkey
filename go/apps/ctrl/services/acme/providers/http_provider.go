@@ -12,6 +12,7 @@ import (
 )
 
 var _ challenge.Provider = (*HTTPProvider)(nil)
+var _ challenge.ProviderTimeout = (*HTTPProvider)(nil)
 
 // HTTPProvider implements the lego challenge.Provider interface for HTTP-01 challenges
 // It stores challenges in the database where the gateway can retrieve them
@@ -40,8 +41,7 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	ctx := context.Background()
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
-		p.logger.Error("failed to find domain", "error", err, "domain", domain)
-		return fmt.Errorf("failed to find domain: %w", err)
+		return fmt.Errorf("failed to find domain %s: %w", domain, err)
 	}
 
 	// Update the existing challenge record with the token and authorization
@@ -54,36 +54,41 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	})
 
 	if err != nil {
-		p.logger.Error("failed to store challenge", "error", err, "domain", domain, "token", token)
-		return fmt.Errorf("failed to store challenge: %w", err)
+		return fmt.Errorf("failed to store challenge for domain %s: %w", domain, err)
 	}
-
-	// Give the database time to replicate before Let's Encrypt tries to validate
-	time.Sleep(2 * time.Second)
 
 	return nil
 }
 
-// CleanUp removes the challenge from the database after validation
+// CleanUp removes the challenge token from the database after validation
 func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	ctx := context.Background()
 
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
-		p.logger.Error("failed to find domain", "error", err, "domain", domain)
-		return fmt.Errorf("failed to find domain: %w", err)
+		return fmt.Errorf("failed to find domain %s during cleanup: %w", domain, err)
 	}
 
-	// Update the challenge status to mark it as verified
-	err = db.Query.UpdateAcmeChallengeStatus(ctx, p.db.RW(), db.UpdateAcmeChallengeStatusParams{
-		DomainID:  dom.ID,
-		Status:    db.AcmeChallengesStatusVerified,
-		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	// Clear the token and authorization so the gateway stops serving the challenge
+	// Don't change the status - it should remain as set by the certificate workflow
+	err = db.Query.ClearAcmeChallengeTokens(ctx, p.db.RW(), db.ClearAcmeChallengeTokensParams{
+		Token:         "", // Clear token
+		Authorization: "", // Clear authorization
+		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		DomainID:      dom.ID,
 	})
 
 	if err != nil {
-		p.logger.Warn("failed to clean up challenge", "error", err, "domain", domain, "token", token)
+		p.logger.Warn("failed to clean up challenge token", "error", err, "domain", domain)
 	}
 
 	return nil
+}
+
+// Timeout returns custom timeout and check interval for HTTP-01 challenges
+// Returns (timeout, interval) - how long to wait and time between checks
+func (p *HTTPProvider) Timeout() (time.Duration, time.Duration) {
+	// HTTP challenges typically resolve faster than DNS, but give some buffer
+	// 90 seconds timeout, 3 second check interval
+	return 90 * time.Second, 3 * time.Second
 }

@@ -193,6 +193,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								fault.Public("Failed to find identity."),
 							)
 						}
+
+						identityID = identity.ID
 					}
 
 					update.IdentityID = sql.NullString{Valid: true, String: identityID}
@@ -234,52 +236,75 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if req.Credits != nil {
-			if req.Credits.Remaining.IsSpecified() {
+		if req.Credits.IsSpecified() {
+			if req.Credits.IsNull() {
 				update.RemainingRequestsSpecified = 1
-				if req.Credits.Remaining.IsNull() {
-					update.RemainingRequests = sql.NullInt32{Valid: false}
-				} else {
-					update.RemainingRequests = sql.NullInt32{
-						Valid: true,
-						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
-					}
-				}
-			}
-
-			if req.Credits.Refill != nil {
 				update.RefillAmountSpecified = 1
-				update.RefillAmount = sql.NullInt32{
-					Valid: true,
-					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
+				update.RefillDaySpecified = 1
+				update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+				update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
+				update.RemainingRequests = sql.NullInt32{Valid: false}
+			} else {
+				credits := req.Credits.MustGet()
+				if credits.Remaining.IsSpecified() {
+					update.RemainingRequestsSpecified = 1
+					if credits.Remaining.IsNull() {
+						// This also clears refilling
+						update.RefillAmountSpecified = 1
+						update.RefillDaySpecified = 1
+						update.RemainingRequests = sql.NullInt32{Valid: false}
+						update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+						update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
+					} else {
+						update.RemainingRequests = sql.NullInt32{
+							Valid: true,
+							Int32: int32(credits.Remaining.MustGet()), // nolint:gosec
+						}
+					}
 				}
 
-				update.RefillDaySpecified = 1
-				switch req.Credits.Refill.Interval {
-				case openapi.Monthly:
-					if req.Credits.Refill.RefillDay == nil {
-						return fault.New("missing refillDay",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Internal("refillDay required for monthly interval"),
-							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
-						)
-					}
+				if credits.Refill.IsSpecified() {
+					if credits.Refill.IsNull() {
+						update.RefillAmountSpecified = 1
+						update.RefillDaySpecified = 1
+						update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+						update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
+					} else {
+						refill := credits.Refill.MustGet()
+						update.RefillAmountSpecified = 1
+						update.RefillAmount = sql.NullInt32{
+							Valid: true,
+							Int32: int32(refill.Amount), // nolint:gosec
+						}
 
-					update.RefillDay = sql.NullInt16{
-						Valid: true,
-						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
-					}
-				case openapi.Daily:
-					if req.Credits.Refill.RefillDay != nil {
-						return fault.New("invalid refillDay",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Internal("refillDay cannot be set for daily interval"),
-							fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
-						)
-					}
+						update.RefillDaySpecified = 1
+						switch refill.Interval {
+						case openapi.UpdateKeyCreditsRefillIntervalMonthly:
+							if refill.RefillDay == nil {
+								return fault.New("missing refillDay",
+									fault.Code(codes.App.Validation.InvalidInput.URN()),
+									fault.Internal("refillDay required for monthly interval"),
+									fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+								)
+							}
 
-					// For daily, refill_day should remain NULL
-					update.RefillDay = sql.NullInt16{Valid: false}
+							update.RefillDay = sql.NullInt16{
+								Valid: true,
+								Int16: int16(*refill.RefillDay), // nolint:gosec
+							}
+						case openapi.UpdateKeyCreditsRefillIntervalDaily:
+							if refill.RefillDay != nil {
+								return fault.New("invalid refillDay",
+									fault.Code(codes.App.Validation.InvalidInput.URN()),
+									fault.Internal("refillDay cannot be set for daily interval"),
+									fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
+								)
+							}
+
+							// For daily, refill_day should remain NULL
+							update.RefillDay = sql.NullInt16{Valid: false}
+						}
+					}
 				}
 			}
 		}

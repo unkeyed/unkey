@@ -106,13 +106,15 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 		// ACME challenge endpoint
 		mux.Handle("/.well-known/acme-challenge/", srv.WrapHandler(acmeHandler.Handle, defaultMiddlewares))
 
-		// Redirect all other HTTP traffic to HTTPS
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// Build HTTPS URL
-			httpsURL := "https://" + r.Host + r.URL.RequestURI()
-			// Use 307 to preserve method and body
-			http.Redirect(w, r, httpsURL, http.StatusTemporaryRedirect)
-		})
+		// For testing or other reasons we want to bypass HTTPS redirection
+		if svc.HttpProxy {
+			svc.Logger.Error("Plaintext HTTP proxying is ENABLED! This should ONLY be used for testing/development.")
+			mux.Handle("/", srv.WrapHandler(proxyHandler.Handle, defaultMiddlewares))
+		} else {
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "https://"+r.Host+r.URL.RequestURI(), http.StatusPermanentRedirect)
+			})
+		}
 	}
 
 	// HTTPS server configuration for main gateway

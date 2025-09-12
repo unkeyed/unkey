@@ -282,9 +282,9 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 
 		if keyData.Key.RefillAmount.Valid {
 			var refillDay *int
-			interval := openapi.Daily
+			interval := openapi.KeyCreditsRefillIntervalDaily
 			if keyData.Key.RefillDay.Valid {
-				interval = openapi.Monthly
+				interval = openapi.KeyCreditsRefillIntervalMonthly
 				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
 			}
 

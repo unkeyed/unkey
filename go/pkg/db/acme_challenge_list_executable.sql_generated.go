@@ -7,29 +7,42 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const listExecutableChallenges = `-- name: ListExecutableChallenges :many
-SELECT dc.id, dc.workspace_id, d.domain FROM acme_challenges dc
+SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
 JOIN domains d ON dc.domain_id = d.id
-WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+AND dc.type IN (/*SLICE:verification_types*/?)
 ORDER BY d.created_at ASC
 `
 
 type ListExecutableChallengesRow struct {
-	ID          uint64 `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	Domain      string `db:"domain"`
+	WorkspaceID string             `db:"workspace_id"`
+	Type        AcmeChallengesType `db:"type"`
+	Domain      string             `db:"domain"`
 }
 
 // ListExecutableChallenges
 //
-//	SELECT dc.id, dc.workspace_id, d.domain FROM acme_challenges dc
+//	SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
 //	JOIN domains d ON dc.domain_id = d.id
-//	WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+//	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+//	AND dc.type IN (/*SLICE:verification_types*/?)
 //	ORDER BY d.created_at ASC
-func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX) ([]ListExecutableChallengesRow, error) {
-	rows, err := db.QueryContext(ctx, listExecutableChallenges)
+func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error) {
+	query := listExecutableChallenges
+	var queryParams []interface{}
+	if len(verificationTypes) > 0 {
+		for _, v := range verificationTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:verification_types*/?", strings.Repeat(",?", len(verificationTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:verification_types*/?", "NULL", 1)
+	}
+	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +50,7 @@ func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX) ([]List
 	var items []ListExecutableChallengesRow
 	for rows.Next() {
 		var i ListExecutableChallengesRow
-		if err := rows.Scan(&i.ID, &i.WorkspaceID, &i.Domain); err != nil {
+		if err := rows.Scan(&i.WorkspaceID, &i.Type, &i.Domain); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

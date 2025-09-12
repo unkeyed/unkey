@@ -165,13 +165,13 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
 		Enabled:    ptr.P(true),
-		Credits: &openapi.KeyCreditsData{
+		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
 			Remaining: nullable.NewNullableWithValue(int64(100)),
-			Refill: &openapi.KeyCreditsRefill{
-				Interval: openapi.Daily,
+			Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Interval: openapi.UpdateKeyCreditsRefillIntervalDaily,
 				Amount:   50,
-			},
-		},
+			}),
+		}),
 		Permissions: &[]string{"read", "write"},
 		Roles:       &[]string{"admin", "user"},
 	}

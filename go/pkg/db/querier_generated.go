@@ -10,6 +10,12 @@ import (
 )
 
 type Querier interface {
+	//ClearAcmeChallengeTokens
+	//
+	//  UPDATE acme_challenges
+	//  SET token = ?, authorization = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -115,7 +121,7 @@ type Querier interface {
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	//FindAcmeChallengeByToken
 	//
-	//  SELECT id, workspace_id, domain_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	//  SELECT domain_id, workspace_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
 	//FindAcmeUserByWorkspaceID
 	//
@@ -1218,11 +1224,12 @@ type Querier interface {
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListExecutableChallenges
 	//
-	//  SELECT dc.id, dc.workspace_id, d.domain FROM acme_challenges dc
+	//  SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
 	//  JOIN domains d ON dc.domain_id = d.id
-	//  WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+	//  AND dc.type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
-	ListExecutableChallenges(ctx context.Context, db DBTX) ([]ListExecutableChallengesRow, error)
+	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1539,10 +1546,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
-	//UpdateAcmeChallengeExpiresAt
-	//
-	//  UPDATE acme_challenges SET expires_at = ? WHERE id = ?
-	UpdateAcmeChallengeExpiresAt(ctx context.Context, db DBTX, arg UpdateAcmeChallengeExpiresAtParams) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges
@@ -1561,6 +1564,12 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE domain_id = ? AND status = 'waiting'
 	UpdateAcmeChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateAcmeChallengeTryClaimingParams) error
+	//UpdateAcmeChallengeVerifiedWithExpiry
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, expires_at = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateAcmeChallengeVerifiedWithExpiry(ctx context.Context, db DBTX, arg UpdateAcmeChallengeVerifiedWithExpiryParams) error
 	//UpdateAcmeUserRegistrationURI
 	//
 	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?

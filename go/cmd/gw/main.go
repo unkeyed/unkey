@@ -14,11 +14,11 @@ var Cmd = &cli.Command{
 	Usage: "Run the Unkey Gateway server",
 	Flags: []cli.Flag{
 		// Server Configuration
-		cli.Int("http-port", "HTTP port for the API server to listen on. Default: 6060",
+		cli.Int("http-port", "HTTP port for the GW server to listen on. Default: 6060",
 			cli.Default(6060), cli.EnvVar("UNKEY_HTTP_PORT")),
 
-		cli.Int("https-port", "HTTP port for the API server to listen on. Default: 6060",
-			cli.Default(6060), cli.EnvVar("UNKEY_HTTP_PORT")),
+		cli.Int("https-port", "HTTPS port for the GW server to listen on. Default: 6433",
+			cli.Default(6433), cli.EnvVar("UNKEY_HTTPS_PORT")),
 
 		cli.Bool("tls-enabled", "Enable TLS termination for the gateway. Default: false",
 			cli.Default(false), cli.EnvVar("UNKEY_TLS_ENABLED")),

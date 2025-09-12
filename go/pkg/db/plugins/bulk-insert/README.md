@@ -96,8 +96,8 @@ type BulkQuerier interface {
     // ... other bulk insert methods
 }
 
-// Ensure Queries implements BulkQuerier
-var _ BulkQuerier = (*Queries)(nil)
+// Ensure BulkQueries implements BulkQuerier
+var _ BulkQuerier = (*BulkQueries)(nil)
 ```
 
 ## Usage
