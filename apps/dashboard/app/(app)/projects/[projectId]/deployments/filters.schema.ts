@@ -8,7 +8,12 @@ import { createFilterOutputSchema } from "@/components/logs/validation/utils/str
 import { z } from "zod";
 
 export const DEPLOYMENT_STATUSES = [
-  "pending", "building", "deploying", "network", "ready", "failed"
+  "pending",
+  "building",
+  "deploying",
+  "network",
+  "ready",
+  "failed",
 ] as const;
 
 // Define grouped statuses for client filtering
@@ -86,11 +91,7 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
     case "pending":
       return ["pending"];
     case "building":
-      return [
-        "building",
-        "deploying",
-        "network",
-      ];
+      return ["building", "deploying", "network"];
     case "ready":
       return ["ready"];
     case "failed":

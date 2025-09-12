@@ -37,10 +37,9 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { getOpenApiDiff } from "./deployment/getOpenApiDiff";
 import { listDeployments } from "./deployment/list";
 import { searchDeployments } from "./deployment/llm-search";
-import { createProject } from "./project/create";
-import { listProjects } from "./project/list";
 import { listDomains } from "./domains/list";
 import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
@@ -80,6 +79,9 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
+import { createProject } from "./project/create";
+import { getEnvs } from "./project/envs/list";
+import { listProjects } from "./project/list";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
@@ -310,7 +312,7 @@ export const router = t.router({
   }),
   project: t.router({
     list: listProjects,
-    create: createProject
+    create: createProject,
   }),
   domain: t.router({
     list: listDomains,
@@ -318,10 +320,14 @@ export const router = t.router({
   deployment: t.router({
     list: listDeployments,
     search: searchDeployments,
+    getOpenApiDiff: getOpenApiDiff,
   }),
   environment: t.router({
-    list: listEnvironments
-  })
+    list: listEnvironments,
+  }),
+  environmentVariables: t.router({
+    list: getEnvs,
+  }),
 });
 
 // export type definition of API

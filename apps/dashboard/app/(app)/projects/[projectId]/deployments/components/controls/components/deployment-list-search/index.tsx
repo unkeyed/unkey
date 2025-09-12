@@ -25,8 +25,9 @@ export const DeploymentListSearch = () => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${error.message ? `: ${error.message}` : "."
-        } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${
+        error.message ? `: ${error.message}` : "."
+      } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
         position: "top-right",

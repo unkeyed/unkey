@@ -24,10 +24,9 @@ export const listDeployments = t.procedure
           gitCommitTimestamp: true,
           runtimeConfig: true,
           status: true,
-          createdAt: true
-        }
+          createdAt: true,
+        },
       });
-
     } catch (_error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

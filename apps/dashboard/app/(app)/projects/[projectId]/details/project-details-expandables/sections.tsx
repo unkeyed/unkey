@@ -1,4 +1,4 @@
-import type { DeploymentDetails } from "@/lib/trpc/routers/deploy/project/active-deployment/getDetails";
+import type { Deployment } from "@/lib/collections";
 import {
   Bolt,
   ChartActivity,
@@ -6,15 +6,12 @@ import {
   CodeBranch,
   CodeCommit,
   Connections,
-  FolderCloud,
-  Gear,
   Github,
   Grid,
   Harddrive,
   Heart,
   Location2,
   MessageWriting,
-  PaperClip2,
   User,
 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
@@ -32,7 +29,7 @@ export type DetailSection = {
   items: DetailItem[];
 };
 
-export const createDetailSections = (details: DeploymentDetails): DetailSection[] => [
+export const createDetailSections = (details: Deployment): DetailSection[] => [
   {
     title: "Active deployment",
     items: [
@@ -41,36 +38,26 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         label: "Repository",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.repository.owner}</span>/
-            {details.repository.name}
+            <span className="text-gray-12 font-medium">TODO</span>/ TODO
           </div>
         ),
       },
       {
         icon: <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Branch",
-        content: <span className="text-gray-12 font-medium">{details.branch}</span>,
+        content: <span className="text-gray-12 font-medium">{details.gitBranch}</span>,
       },
       {
         icon: <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Commit",
-        content: <span className="text-gray-12 font-medium">{details.commit}</span>,
+        content: <span className="text-gray-12 font-medium">{details.gitCommitSha}</span>,
       },
       {
         icon: <MessageWriting className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Description",
         content: (
           <div className="truncate max-w-[150px] min-w-0">
-            <span className="text-gray-12 font-medium">{details.description}</span>
-          </div>
-        ),
-      },
-      {
-        icon: <FolderCloud className="size-[14px] text-gray-12" size="md-regular" />,
-        label: "Image",
-        content: (
-          <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.image}</span>
+            <span className="text-gray-12 font-medium">{details.gitCommitMessage}</span>
           </div>
         ),
       },
@@ -80,11 +67,11 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         content: (
           <div className="flex gap-2 items-center">
             <img
-              src={details.author.avatar}
-              alt={details.author.name}
+              src={details.gitCommitAuthorAvatarUrl ?? ""}
+              alt={details.gitCommitAuthorUsername ?? ""}
               className="rounded-full size-5"
             />
-            <span className="font-medium text-grayA-12">{details.author.name}</span>
+            <span className="font-medium text-grayA-12">{details.gitCommitAuthorUsername}</span>
           </div>
         ),
       },
@@ -108,7 +95,9 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         label: "Instances",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.instances}</span>
+            <span className="text-gray-12 font-medium">
+              {details.runtimeConfig.regions.reduce((acc, region) => acc + region.vmCount, 0)}
+            </span>
             vm
           </div>
         ),
@@ -119,12 +108,12 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         alignment: "start",
         content: (
           <div className="flex flex-wrap gap-1 font-medium">
-            {details.regions.map((region) => (
+            {details.runtimeConfig.regions.map((region) => (
               <span
-                key={region}
+                key={region.region}
                 className="px-1.5 py-1 bg-grayA-3 rounded text-gray-12 text-xs font-mono"
               >
-                {region}
+                {region.region}
               </span>
             ))}
           </div>
@@ -135,7 +124,7 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         label: "CPU",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.cpu}</span>vCPUs
+            <span className="text-gray-12 font-medium">{details.runtimeConfig.cpus}</span>vCPUs
           </div>
         ),
       },
@@ -144,7 +133,7 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         label: "Memory",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.memory}</span>mb
+            <span className="text-gray-12 font-medium">{details.runtimeConfig.memory}</span>mb
           </div>
         ),
       },
@@ -153,7 +142,7 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         label: "Storage",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.storage}</span>
+            <span className="text-gray-12 font-medium">20GB</span>
             mb
           </div>
         ),
@@ -166,19 +155,16 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
           <div className="flex flex-col justify-center gap-2">
             <div className="gap-2 items-center flex">
               <Badge variant="success" className="font-medium">
-                {details.healthcheck.method}
+                TODO
               </Badge>
               <div className="text-grayA-10">
-                /
-                <span className="text-gray-12 font-medium">
-                  {details.healthcheck.path.replace(/^\/+/, "")}
-                </span>
+                /<span className="text-gray-12 font-medium">TODO</span>
               </div>
             </div>
             <div className="flex items-center gap-1 text-grayA-10">
               <div>every</div>
               <div>
-                <span className="text-gray-12 font-medium">{details.healthcheck.interval}</span>s
+                <span className="text-gray-12 font-medium">TODO</span>s
               </div>
             </div>
           </div>
@@ -191,18 +177,18 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
         content: (
           <div className="text-grayA-10">
             <div>
-              <span className="text-gray-12 font-medium">{details.scaling.min}</span> to{" "}
-              <span className="text-gray-12 font-medium">{details.scaling.max}</span> instances
+              <span className="text-gray-12 font-medium">{3}</span> to{" "}
+              <span className="text-gray-12 font-medium">{6}</span> instances
             </div>
             <div className="mt-0.5">
-              at <span className="text-gray-12 font-medium">{details.scaling.threshold}%</span> CPU
-              threshold
+              at <span className="text-gray-12 font-medium">70%</span> CPU threshold
             </div>
           </div>
         ),
       },
     ],
   },
+  /*
   {
     title: "Build Info",
     items: [
@@ -268,4 +254,5 @@ export const createDetailSections = (details: DeploymentDetails): DetailSection[
       },
     ],
   },
+  */
 ];

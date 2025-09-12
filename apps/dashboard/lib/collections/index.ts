@@ -2,11 +2,10 @@
 
 import { deployments } from "./deployments";
 import { domains } from "./domains";
+import { environments } from "./environments";
 import { projects } from "./projects";
 import { ratelimitNamespaces } from "./ratelimit_namespaces";
 import { ratelimitOverrides } from "./ratelimit_overrides";
-import { environments } from "./environments";
-
 
 export type { Deployment } from "./deployments";
 export type { Domain } from "./domains";
@@ -21,7 +20,7 @@ export const collection = {
   projects,
   domains,
   deployments,
-  environments
+  environments,
 };
 
 // resets all collections data and preloads new

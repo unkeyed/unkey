@@ -22,14 +22,13 @@ export const projects = createCollection<Project>(
     queryKey: ["projects"],
     retry: 3,
     queryFn: async () => {
-      console.info("DB fetching projects");
-      return await trpcClient.deploy.project.list.query();
+      return await trpcClient.project.list.query();
     },
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
       const { changes: newNamespace } = transaction.mutations[0];
 
-      const p = trpcClient.deploy.project.create.mutate(
+      const p = trpcClient.project.create.mutate(
         schema.parse({
           id: "created", // will be replaced by the actual ID after creation
           name: newNamespace.name,

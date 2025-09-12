@@ -12,10 +12,9 @@ export const listEnvironments = t.procedure
         columns: {
           id: true,
           projectId: true,
-          slug: true
-        }
+          slug: true,
+        },
       });
-
     } catch (_error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

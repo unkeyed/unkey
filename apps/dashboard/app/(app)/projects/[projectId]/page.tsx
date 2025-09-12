@@ -2,13 +2,13 @@
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
 import { DomainRow } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
-import { Empty } from "@unkey/ui";
 
 export default function ProjectDetails() {
   const { isDetailsOpen, projectId } = useProjectLayout();
@@ -17,23 +17,21 @@ export default function ProjectDetails() {
     q.from({ domain: collection.domains }).where(({ domain }) => eq(domain.projectId, projectId)),
   );
 
-
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
   );
 
-  const project = projects.data.at(0)
+  const project = projects.data.at(0);
 
   if (!project) {
-    return <Empty>
-      <Empty.Icon />
-      <Empty.Title>No Project Found</Empty.Title>
-      <Empty.Description>Project not found</Empty.Description>
-    </Empty>
-
+    return (
+      <Empty>
+        <Empty.Icon />
+        <Empty.Title>No Project Found</Empty.Title>
+        <Empty.Description>Project not found</Empty.Description>
+      </Empty>
+    );
   }
-
-
 
   return (
     <div
@@ -43,7 +41,7 @@ export default function ProjectDetails() {
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
-        {project.activeDeploymentId ?
+        {project.activeDeploymentId ? (
           <Section>
             <SectionHeader
               icon={<Cloud size="md-regular" className="text-gray-9" />}
@@ -51,7 +49,7 @@ export default function ProjectDetails() {
             />
             <ActiveDeploymentCard deploymentId={project.activeDeploymentId} />
           </Section>
-          : null}
+        ) : null}
 
         <Section>
           <SectionHeader

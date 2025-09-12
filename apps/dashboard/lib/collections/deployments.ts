@@ -20,18 +20,19 @@ const schema = z.object({
 
   // Immutable configuration snapshot
   runtimeConfig: z.object({
-    regions: z.array(z.object({
-      region: z.string(),
-      vmCount: z.number().min(1).max(100)
-    })),
+    regions: z.array(
+      z.object({
+        region: z.string(),
+        vmCount: z.number().min(1).max(100),
+      }),
+    ),
     cpus: z.number().min(1).max(16),
-    memory: z.number().min(1).max(1024)
+    memory: z.number().min(1).max(1024),
   }),
 
   // Deployment status
   status: z.enum(["pending", "building", "deploying", "network", "ready", "failed"]),
   createdAt: z.number(),
-
 });
 
 export type Deployment = z.infer<typeof schema>;

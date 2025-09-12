@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
 import { format } from "date-fns";
 import { useMemo, useRef, useState } from "react";
 
@@ -43,6 +42,7 @@ type UseDeploymentLogsReturn = {
 export function useDeploymentLogs({
   deploymentId,
 }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
+  console.debug(deploymentId);
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);

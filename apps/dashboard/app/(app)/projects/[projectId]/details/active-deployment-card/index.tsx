@@ -1,5 +1,7 @@
 "use client";
 
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ChevronDown,
   CircleCheck,
@@ -7,7 +9,6 @@ import {
   CircleXMark,
   CodeBranch,
   CodeCommit,
-  FolderCloud,
   Layers3,
   Magnifier,
   TriangleWarning2,
@@ -19,17 +20,16 @@ import { useDeploymentLogs } from "./hooks/use-deployment-logs";
 import { InfoChip } from "./info-chip";
 import { ActiveDeploymentCardSkeleton } from "./skeleton";
 import { StatusIndicator } from "./status-indicator";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import { collection } from "@/lib/collections";
 
 const ANIMATION_STYLES = {
   expand: "transition-all duration-400 ease-in",
   slideIn: "transition-all duration-500 ease-out",
 } as const;
 
-export const statusIndicator = (status: "pending" | "building" | "deploying" | "network" | "ready" | "failed") => {
+export const statusIndicator = (
+  status: "pending" | "building" | "deploying" | "network" | "ready" | "failed",
+) => {
   switch (status) {
-
     case "pending":
       return { variant: "warning" as const, icon: CircleWarning, text: "Queued" };
     case "building":
@@ -45,21 +45,20 @@ export const statusIndicator = (status: "pending" | "building" | "deploying" | "
   }
 
   return { variant: "error" as const, icon: CircleWarning, text: "Unknown" };
-}
+};
 
 type Props = {
   deploymentId: string;
 };
 
 export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) => eq(deployment.id, deploymentId)),
+  );
 
-
-  const { data } = useLiveQuery((q) => q.from({ deployment: collection.deployments }).where(({ deployment }) => eq(deployment.id, deploymentId),
-
-  ))
-
-  const deployment = data.at(0)
-
+  const deployment = data.at(0);
 
   const {
     logFilter,
@@ -79,7 +78,7 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
     return <ActiveDeploymentCardSkeleton />;
   }
 
-  const statusConfig = statusIndicator(deployment.status)
+  const statusConfig = statusIndicator(deployment.status);
 
   return (
     <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">
@@ -101,11 +100,7 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
           <div className="items-center flex gap-2">
             <div className="flex gap-2 items-center">
               <span className="text-gray-9 text-xs">Created by</span>
-              <img
-                src="TODO"
-                alt="TODO"
-                className="rounded-full size-5"
-              />
+              <img src="TODO" alt="TODO" className="rounded-full size-5" />
               <span className="font-medium text-grayA-12 text-xs">
                 {deployment.gitCommitAuthorName}
               </span>
@@ -252,4 +247,4 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
       </div>
     </Card>
   );
-}
+};

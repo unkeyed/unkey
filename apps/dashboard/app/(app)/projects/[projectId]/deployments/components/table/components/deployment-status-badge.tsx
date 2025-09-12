@@ -36,7 +36,6 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
-
   },
   deploying: {
     icon: HalfDottedCirclePlay,

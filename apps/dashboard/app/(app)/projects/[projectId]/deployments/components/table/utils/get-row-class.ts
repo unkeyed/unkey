@@ -38,7 +38,8 @@ export const FAILED_STATUS_STYLES = {
 export const getRowClassName = (deployment: Deployment, selectedDeploymentId?: string) => {
   const isFailed = deployment.status === "failed";
   const style = isFailed ? FAILED_STATUS_STYLES : STATUS_STYLES;
-  const isSelected = typeof selectedDeploymentId !== "undefined" && deployment.id === selectedDeploymentId;
+  const isSelected =
+    typeof selectedDeploymentId !== "undefined" && deployment.id === selectedDeploymentId;
 
   return cn(
     style.base,

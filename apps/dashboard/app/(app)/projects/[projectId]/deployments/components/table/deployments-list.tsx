@@ -2,7 +2,9 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { type Deployment, type Environment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -22,8 +24,6 @@ import {
   StatusColumnSkeleton,
 } from "./components/skeletons";
 import { getRowClassName } from "./utils/get-row-class";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import { collection, type Environment, type Deployment } from "@/lib/collections";
 
 const DeploymentListTableActions = dynamic(
   () =>
@@ -47,13 +47,16 @@ export const DeploymentsList = ({ projectId }: Props) => {
     q
       .from({ deployment: collection.deployments })
       .where(({ deployment }) => eq(deployment.projectId, projectId))
-      .join({ environment: collection.environments }, ({ environment, deployment }) => eq(environment.id, deployment.environmentId))
+      .join({ environment: collection.environments }, ({ environment, deployment }) =>
+        eq(environment.id, deployment.environmentId),
+      )
       .orderBy(({ deployment }) => deployment.createdAt, "desc")
       .limit(100),
   );
 
-
-  const [selectedDeployment, setSelectedDeployment] = useState<Deployment & { environment: Environment } | null>(null);
+  const [selectedDeployment, setSelectedDeployment] = useState<
+    (Deployment & { environment: Environment }) | null
+  >(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
 
   const columns: Column<Deployment & { environment: Environment }>[] = useMemo(() => {
@@ -90,10 +93,9 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {deployment.environment.slug === "production" ?
-
+                    {deployment.environment.slug === "production" ? (
                       <EnvStatusBadge variant="current" text="Current" />
-                      : null}
+                    ) : null}
                   </div>
                   <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
                     {deployment.gitCommitMessage?.slice(0, 64) ?? "—"}
@@ -136,9 +138,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                 <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
                   <Cube className="text-gray-12" size="sm-regular" />
                   <div className="flex gap-0.5">
-                    <span className="font-semibold text-grayA-12 tabular-nums">
-                      TODO
-                    </span>
+                    <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
                     <span>VMs</span>
                   </div>
                 </div>
@@ -160,9 +160,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     </div>
                     <span> / </span>
                     <div className="flex gap-0.5">
-                      <span className="font-semibold text-grayA-12 tabular-nums">
-                        TODO
-                      </span>
+                      <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
                       <span>MB</span>
                     </div>
                   </div>
@@ -294,10 +292,14 @@ export const DeploymentsList = ({ projectId }: Props) => {
 
   return (
     <VirtualTable
-      data={Object.values(deployments.data).map((e) => ({
-        ...e.deployment,
-        environment: e.environment!,
-      } satisfies Deployment & { environment: Environment }))}
+      data={Object.values(deployments.data).map(
+        (e) =>
+          ({
+            ...e.deployment,
+            // biome-ignore lint/style/noNonNullAssertion: we know it's there
+            environment: e.environment!,
+          }) satisfies Deployment & { environment: Environment },
+      )}
       isLoading={deployments.isLoading}
       columns={columns}
       onRowClick={setSelectedDeployment}
