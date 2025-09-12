@@ -13,8 +13,14 @@ const (
 
 // Defines values for KeyCreditsRefillInterval.
 const (
-	Daily   KeyCreditsRefillInterval = "daily"
-	Monthly KeyCreditsRefillInterval = "monthly"
+	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
+	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for UpdateKeyCreditsRefillInterval.
+const (
+	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
+	UpdateKeyCreditsRefillIntervalMonthly UpdateKeyCreditsRefillInterval = "monthly"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
@@ -468,6 +474,32 @@ type UnauthorizedErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// UpdateKeyCreditsData Credit configuration and remaining balance for this key.
+type UpdateKeyCreditsData struct {
+	// Refill Configuration for automatic credit refill behavior.
+	Refill nullable.Nullable[UpdateKeyCreditsRefill] `json:"refill,omitempty"`
+
+	// Remaining Number of credits remaining (null for unlimited).
+	Remaining nullable.Nullable[int64] `json:"remaining"`
+}
+
+// UpdateKeyCreditsRefill Configuration for automatic credit refill behavior.
+type UpdateKeyCreditsRefill struct {
+	// Amount Number of credits to add during each refill cycle.
+	Amount int64 `json:"amount"`
+
+	// Interval How often credits are automatically refilled.
+	Interval UpdateKeyCreditsRefillInterval `json:"interval"`
+
+	// RefillDay Day of the month for monthly refills (1-31).
+	// Only required when interval is 'monthly'.
+	// For days beyond the month's length, refill occurs on the last day of the month.
+	RefillDay *int `json:"refillDay,omitempty"`
+}
+
+// UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
+type UpdateKeyCreditsRefillInterval string
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
@@ -1250,7 +1282,7 @@ type V2KeysUpdateCreditsResponseBody struct {
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
 	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsData `json:"credits,omitempty"`
+	Credits *UpdateKeyCreditsData `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.

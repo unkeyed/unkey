@@ -4,6 +4,8 @@ info:
   title: Overlay apps/api/openapi/openapi-generated.yaml => apps/api/openapi/openapi-generated3.0.yaml
   version: 0.0.0
 actions:
+  - target: $["openapi"]
+    update: 3.0.0
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]["type"]
     update: integer
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]
@@ -34,5 +36,13 @@ actions:
   - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]
     update:
       nullable: true
-  - target: $["openapi"]
-    update: 3.0.0
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
+    update:
+      nullable: true

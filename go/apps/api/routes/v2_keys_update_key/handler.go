@@ -247,7 +247,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			if req.Credits.Refill != nil {
+			if req.Credits.Refill.IsSpecified() && !req.Credits.Refill.IsNull() {
+				refill := req.Credits.Refill.MustGet()
 				update.RefillAmountSpecified = 1
 				update.RefillAmount = sql.NullInt32{
 					Valid: true,
@@ -256,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				update.RefillDaySpecified = 1
 				switch req.Credits.Refill.Interval {
-				case openapi.Monthly:
+				case openapi.UpdateKeyCreditsRefillIntervalMonthly:
 					if req.Credits.Refill.RefillDay == nil {
 						return fault.New("missing refillDay",
 							fault.Code(codes.App.Validation.InvalidInput.URN()),
