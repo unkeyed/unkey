@@ -193,9 +193,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								fault.Public("Failed to find identity."),
 							)
 						}
+
+						identityID = identity.ID
 					}
 
-					update.IdentityID = sql.NullString{Valid: true, String: identity.ID}
+					update.IdentityID = sql.NullString{Valid: true, String: identityID}
 				} else {
 					// Use existing identity
 					update.IdentityID = sql.NullString{Valid: true, String: identity.ID}
