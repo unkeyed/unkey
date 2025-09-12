@@ -23,8 +23,10 @@ export const RollbackDialog = ({
 }: RollbackDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
+  const utils = trpc.useUtils();
   const rollback = trpc.deploy.rollback.useMutation({
     onSuccess: () => {
+      utils.invalidate();
       toast.success("Rollback completed", {
         description: `Successfully rolled back to deployment ${deployment.id}`,
       });

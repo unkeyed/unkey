@@ -20,7 +20,10 @@ export const rollback = t.procedure
     const workspaceId = ctx.workspace.id;
 
     // Validate that ctrl service URL is configured
-    const ctrlUrl = env().CTRL_URL || "http://localhost:8080";
+    const ctrlUrl = env().CTRL_URL;
+    if (!ctrlUrl) {
+      throw new Error("ctrl service is not configured");
+    }
 
     try {
       // Verify the target deployment exists and belongs to this workspace
