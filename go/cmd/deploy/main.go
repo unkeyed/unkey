@@ -95,6 +95,7 @@ type DeployOptions struct {
 	ControlPlaneURL string
 	AuthToken       string
 	Hostname        string
+	Linux           bool
 }
 
 var DeployFlags = []cli.Flag{
@@ -118,6 +119,7 @@ var DeployFlags = []cli.Flag{
 		cli.EnvVar(EnvRegistry)),
 	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
+	cli.Bool("linux", "Build Docker image for linux/amd64 platform (for deployment to cloud clusters)"),
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
@@ -204,6 +206,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		ControlPlaneURL: cmd.String("control-plane-url"),
 		AuthToken:       cmd.String("auth-token"),
 		Hostname:        cmd.String("hostname"),
+		Linux:           cmd.Bool("linux"),
 	}
 
 	return executeDeploy(ctx, opts)

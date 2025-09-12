@@ -31,5 +31,5 @@ type BulkQuerier interface {
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 }
 
-// Ensure Queries implements BulkQuerier
+// Ensure BulkQueries implements BulkQuerier
 var _ BulkQuerier = (*BulkQueries)(nil)

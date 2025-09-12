@@ -57,24 +57,31 @@ func (q *Queries) AllocateNetwork(ctx context.Context) (Network, error) {
 }
 
 const createNetworkAllocation = `-- name: CreateNetworkAllocation :one
-INSERT INTO network_allocations (deployment_id, network_id, available_ips)
-VALUES (?, ?, ?)
-RETURNING id, deployment_id, network_id, available_ips, allocated_at
+INSERT INTO network_allocations (deployment_id, network_id, available_ips, bridge_name)
+VALUES (?, ?, ?, ?)
+RETURNING id, deployment_id, network_id, bridge_name, available_ips, allocated_at
 `
 
 type CreateNetworkAllocationParams struct {
 	DeploymentID string `db:"deployment_id" json:"deployment_id"`
 	NetworkID    int64  `db:"network_id" json:"network_id"`
 	AvailableIps string `db:"available_ips" json:"available_ips"`
+	BridgeName   string `db:"bridge_name" json:"bridge_name"`
 }
 
 func (q *Queries) CreateNetworkAllocation(ctx context.Context, arg CreateNetworkAllocationParams) (NetworkAllocation, error) {
-	row := q.db.QueryRowContext(ctx, createNetworkAllocation, arg.DeploymentID, arg.NetworkID, arg.AvailableIps)
+	row := q.db.QueryRowContext(ctx, createNetworkAllocation,
+		arg.DeploymentID,
+		arg.NetworkID,
+		arg.AvailableIps,
+		arg.BridgeName,
+	)
 	var i NetworkAllocation
 	err := row.Scan(
 		&i.ID,
 		&i.DeploymentID,
 		&i.NetworkID,
+		&i.BridgeName,
 		&i.AvailableIps,
 		&i.AllocatedAt,
 	)
@@ -132,7 +139,7 @@ func (q *Queries) GetIPAllocation(ctx context.Context, vmID string) (IpAllocatio
 }
 
 const getNetworkAllocation = `-- name: GetNetworkAllocation :one
-SELECT na.id, na.deployment_id, na.network_id, na.available_ips, na.allocated_at, n.base_network
+SELECT na.id, na.deployment_id, na.network_id, na.bridge_name, na.available_ips, na.allocated_at, n.base_network
 FROM network_allocations na
 JOIN networks n ON na.network_id = n.id
 WHERE na.deployment_id = ?
@@ -142,6 +149,7 @@ type GetNetworkAllocationRow struct {
 	ID           int64        `db:"id" json:"id"`
 	DeploymentID string       `db:"deployment_id" json:"deployment_id"`
 	NetworkID    int64        `db:"network_id" json:"network_id"`
+	BridgeName   string       `db:"bridge_name" json:"bridge_name"`
 	AvailableIps string       `db:"available_ips" json:"available_ips"`
 	AllocatedAt  sql.NullTime `db:"allocated_at" json:"allocated_at"`
 	BaseNetwork  string       `db:"base_network" json:"base_network"`
@@ -154,6 +162,7 @@ func (q *Queries) GetNetworkAllocation(ctx context.Context, deploymentID string)
 		&i.ID,
 		&i.DeploymentID,
 		&i.NetworkID,
+		&i.BridgeName,
 		&i.AvailableIps,
 		&i.AllocatedAt,
 		&i.BaseNetwork,
