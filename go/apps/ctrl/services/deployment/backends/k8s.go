@@ -273,10 +273,7 @@ func (k *K8sBackend) DeleteDeployment(ctx context.Context, deploymentID string) 
 
 	// Delete deployment
 	if err := k.clientset.AppsV1().Deployments(k.namespace).Delete(ctx, deploymentInfo.DeploymentName, metav1.DeleteOptions{}); err != nil {
-		k.logger.Error("failed to delete deployment",
-			"deployment_name", deploymentInfo.DeploymentName,
-			"error", err)
-		return err
+		return fmt.Errorf("failed to delete deployment %s: %w", deploymentInfo.DeploymentName, err)
 	}
 
 	k.logger.Info("Kubernetes deployment deleted",

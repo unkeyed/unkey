@@ -284,7 +284,6 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 		err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
 		if err != nil {
-			logger.Error("failed to set HTTP-01 provider", "error", err)
 			return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
 		}
 

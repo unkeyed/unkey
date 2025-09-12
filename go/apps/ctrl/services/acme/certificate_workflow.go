@@ -66,10 +66,9 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 	w.logger.Info("starting certificate challenge", "workspace_id", req.WorkspaceID, "domain", req.Domain)
 
 	dom, err := hydra.Step(ctx, "resolve-domain", func(stepCtx context.Context) (db.Domain, error) {
-		return db.Query.FindDomainByDomain(ctx.Context(), w.db.RO(), req.Domain)
+		return db.Query.FindDomainByDomain(stepCtx, w.db.RO(), req.Domain)
 	})
 	if err != nil {
-		w.logger.Error("failed to find domain", "error", err)
 		return err
 	}
 
@@ -81,7 +80,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to claim challenge", "error", err)
 		return err
 	}
 
@@ -96,7 +94,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-			w.logger.Error("failed to obtain certificate", "error", err)
 			return EncryptedCertificate{}, err
 		}
 
@@ -128,7 +125,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			})
 		}
 		if err != nil {
-			w.logger.Error("failed to renew/issue certificate", "error", err)
 			return EncryptedCertificate{}, err
 		}
 
@@ -152,7 +148,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to obtain certificate", "error", err)
 		return err
 	}
 
@@ -168,7 +163,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to store certificate", "error", err)
 		return err
 	}
 
@@ -181,7 +175,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to complete challenge", "error", err)
 		return err
 	}
 

@@ -65,8 +65,7 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), searchDomain)
 	if err != nil {
-		p.logger.Error("failed to find domain", "error", err, "domain", searchDomain)
-		return fmt.Errorf("failed to find domain: %w", err)
+		return fmt.Errorf("failed to find domain %s: %w", searchDomain, err)
 	}
 
 	p.logger.Info("presenting dns challenge", "domain", domain, "token", "[REDACTED]")
@@ -74,8 +73,7 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 	// Create the DNS challenge record using Cloudflare
 	err = p.provider.Present(domain, token, keyAuth)
 	if err != nil {
-		p.logger.Error("failed to present dns challenge", "error", err, "domain", domain)
-		return fmt.Errorf("failed to present DNS challenge: %w", err)
+		return fmt.Errorf("failed to present DNS challenge for domain %s: %w", domain, err)
 	}
 
 	// Update the database to track the challenge
@@ -88,10 +86,9 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 	})
 
 	if err != nil {
-		p.logger.Error("failed to store challenge in database", "error", err, "domain", domain)
 		// Don't cleanup DNS record - Let's Encrypt still needs it for validation
 		// The DNS record will be cleaned up later in CleanUp() regardless of success/failure
-		return fmt.Errorf("failed to store challenge: %w", err)
+		return fmt.Errorf("failed to store challenge for domain %s: %w", domain, err)
 	}
 
 	p.logger.Info("dns challenge presented successfully", "domain", domain)

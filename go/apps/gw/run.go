@@ -323,7 +323,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
-		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

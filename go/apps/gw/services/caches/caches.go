@@ -73,7 +73,7 @@ type Config struct {
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
 	gatewayConfig, err := cache.New(cache.Config[string, *partitionv1.GatewayConfig]{
-		Fresh:    time.Minute,
+		Fresh:    time.Second * 5,
 		Stale:    time.Second * 30,
 		Logger:   config.Logger,
 		MaxSize:  10_000,

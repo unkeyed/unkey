@@ -101,7 +101,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to log deployment pending", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -118,7 +117,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return &struct{}{}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to initialize build", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -140,14 +138,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		resp, err := w.deploymentBackend.CreateDeployment(stepCtx, deploymentReq)
 		if err != nil {
-			w.logger.Error("create deployment failed", "error", err, "docker_image", req.DockerImage)
-			return nil, fmt.Errorf("failed to create deployment: %w", err)
+			return nil, fmt.Errorf("failed to create deployment for image %s: %w", req.DockerImage, err)
 		}
 
 		return resp, nil
 	})
 	if err != nil {
-		w.logger.Error("deployment failed", "error", err, "deployment_id", req.DeploymentID, "backend", w.deploymentBackend.Name())
 		return err
 	}
 
@@ -166,7 +162,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return &struct{}{}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to update version status to deploying", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -185,8 +180,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 			vms, err := w.deploymentBackend.GetDeployment(stepCtx, req.DeploymentID)
 			if err != nil {
-				w.logger.Error("get deployment failed", "error", err, "deployment_id", req.DeploymentID)
-				return nil, fmt.Errorf("failed to get deployment: %w", err)
+				return nil, fmt.Errorf("failed to get deployment %s: %w", req.DeploymentID, err)
 			}
 
 			allReady := true
@@ -209,7 +203,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 						"status", "running")
 
 					if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
-						w.logger.Error("failed to upsert VM", "error", err, "vm_id", instance.Id, "params", upsertParams)
 						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
 					}
 
@@ -249,13 +242,11 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return nil, fmt.Errorf("deployment never became ready")
 	})
 	if err != nil {
-		w.logger.Error("polling deployment prepare failed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
 	// Generate all domains (custom + auto-generated)
 	allDomains, err := hydra.Step(ctx, "generate-all-domains", func(stepCtx context.Context) ([]string, error) {
-
 		var domains []string
 
 		// Add custom hostname if provided
@@ -292,7 +283,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return domains, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to generate domains", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -319,8 +309,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		// Perform bulk insert
 		if err := db.BulkQuery.InsertDomains(stepCtx, w.db.RW(), domainParams); err != nil {
-			w.logger.Error("failed to create domain entries in bulk", "error", err, "deployment_id", req.DeploymentID, "domain_count", len(allDomains))
-			return fmt.Errorf("failed to create domain entries: %w", err)
+			return fmt.Errorf("failed to create %d domain entries for deployment %s: %w", len(allDomains), req.DeploymentID, err)
 		}
 
 		w.logger.Info("domain entries created in bulk", "deployment_id", req.DeploymentID, "domain_count", len(allDomains))
@@ -328,7 +317,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return nil
 	})
 	if err != nil {
-		w.logger.Error("failed to create domain entries", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -373,8 +361,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Perform bulk upsert for all gateway configs
 		if len(gatewayParams) > 0 {
 			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, w.partitionDB.RW(), gatewayParams); err != nil {
-				w.logger.Error("failed to upsert gateway configs in bulk", "error", err, "deployment_id", req.DeploymentID, "config_count", len(gatewayParams))
-				return fmt.Errorf("failed to upsert gateway configs: %w", err)
+				return fmt.Errorf("failed to upsert %d gateway configs for deployment %s: %w", len(gatewayParams), req.DeploymentID, err)
 			}
 		}
 
@@ -386,7 +373,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to create gateway configurations in bulk", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -400,8 +386,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
 		})
 		if activeErr != nil {
-			w.logger.Error("failed to update deployment status to ready", "error", activeErr, "deployment_id", req.DeploymentID)
-			return nil, fmt.Errorf("failed to update deployment status to ready: %w", activeErr)
+			return nil, fmt.Errorf("failed to update deployment %s status to ready: %w", req.DeploymentID, activeErr)
 		}
 		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
 
@@ -411,7 +396,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}, nil
 	})
 	if err != nil {
-		w.logger.Error("deployment failed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 	/*
@@ -473,7 +457,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			return "", fmt.Errorf("failed to scrape OpenAPI spec from all host addresses: %v", hostAddresses)
 		})
 		if err != nil {
-			w.logger.Error("failed to scrape OpenAPI spec", "error", err, "deployment_id", req.DeploymentID)
 			return err
 		}
 
@@ -493,16 +476,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			// Fetch existing gateway config
 			existingConfig, err := partitiondb.Query.FindGatewayByHostname(stepCtx, w.partitionDB.RO(), req.Hostname)
 			if err != nil {
-				w.logger.Error("failed to fetch existing gateway config", "error", err, "hostname", req.Hostname)
-				return fmt.Errorf("failed to fetch existing gateway config: %w", err)
+				return fmt.Errorf("failed to fetch existing gateway config for %s: %w", req.Hostname, err)
 			}
 
 			// Unmarshal existing config
 			// IMPORTANT: Gateway configs are stored as JSON in the database for compatibility with the gateway service
 			var gatewayConfig partitionv1.GatewayConfig
 			if err := protojson.Unmarshal(existingConfig.Config, &gatewayConfig); err != nil {
-				w.logger.Error("failed to unmarshal existing gateway config", "error", err, "hostname", req.Hostname)
-				return fmt.Errorf("failed to unmarshal existing gateway config: %w", err)
+				return fmt.Errorf("failed to unmarshal existing gateway config for %s: %w", req.Hostname, err)
 			}
 
 			// Add or update ValidationConfig with OpenAPI spec
@@ -515,7 +496,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			// Gateway configs must be stored as JSON for compatibility with the gateway service
 			configBytes, err := protojson.Marshal(&gatewayConfig)
 			if err != nil {
-				w.logger.Error("failed to marshal updated gateway config", "error", err)
 				return fmt.Errorf("failed to marshal updated gateway config: %w", err)
 			}
 
@@ -526,15 +506,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			if err := partitiondb.Query.UpsertGateway(stepCtx, w.partitionDB.RW(), params); err != nil {
-				w.logger.Error("failed to update gateway config with OpenAPI spec", "error", err, "hostname", req.Hostname)
-				return fmt.Errorf("failed to update gateway config with OpenAPI spec: %w", err)
+				return fmt.Errorf("failed to update gateway config with OpenAPI spec for %s: %w", req.Hostname, err)
 			}
 
 			w.logger.Info("gateway config updated with OpenAPI spec successfully", "hostname", req.Hostname, "deployment_id", req.DeploymentID)
 			return nil
 		})
 		if err != nil {
-			w.logger.Error("failed to update gateway config with OpenAPI spec", "error", err, "deployment_id", req.DeploymentID)
 			// Don't fail the deployment for this
 		}
 
@@ -560,7 +538,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			return nil
 		})
 		if err != nil {
-			w.logger.Error("failed to store OpenAPI spec", "error", err, "deployment_id", req.DeploymentID)
 			return err
 		}
 
@@ -575,7 +552,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to log completed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
@@ -618,42 +594,6 @@ func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vm
 	}
 
 	return gatewayConfig, nil
-}
-
-// createGatewayConfigForHostname creates a gateway configuration for a specific hostname
-func (w *DeployWorkflow) createGatewayConfigForHostname(ctx context.Context, workspaceID, hostname, deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) error {
-
-	// Validate partition DB connection
-	if w.partitionDB == nil {
-		w.logger.Error("critical: partition database not initialized for gateway config")
-		return fmt.Errorf("partition database not initialized for gateway config")
-	}
-
-	// Create gateway config
-	gatewayConfig, err := w.createGatewayConfig(deploymentID, keyspaceID, vms)
-	if err != nil {
-		return fmt.Errorf("failed to create gateway config: %w", err)
-	}
-
-	// Marshal protobuf to bytes
-	configBytes, err := protojson.Marshal(gatewayConfig)
-	if err != nil {
-		w.logger.Error("failed to marshal gateway config", "error", err)
-		return fmt.Errorf("failed to marshal gateway config: %w", err)
-	}
-
-	// Insert gateway config into partition database
-	params := partitiondb.UpsertGatewayParams{
-		WorkspaceID: workspaceID,
-		Hostname:    hostname,
-		Config:      configBytes,
-	}
-
-	if err := partitiondb.Query.UpsertGateway(ctx, w.partitionDB.RW(), params); err != nil {
-		w.logger.Error("failed to upsert gateway config", "error", err, "hostname", hostname)
-		return fmt.Errorf("failed to upsert gateway config: %w", err)
-	}
-	return nil
 }
 
 // isLocalHostname checks if a hostname is for local development

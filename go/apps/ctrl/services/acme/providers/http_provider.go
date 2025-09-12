@@ -41,8 +41,7 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	ctx := context.Background()
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
-		p.logger.Error("failed to find domain", "error", err, "domain", domain)
-		return fmt.Errorf("failed to find domain: %w", err)
+		return fmt.Errorf("failed to find domain %s: %w", domain, err)
 	}
 
 	// Update the existing challenge record with the token and authorization
@@ -55,8 +54,7 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	})
 
 	if err != nil {
-		p.logger.Error("failed to store challenge", "error", err, "domain", domain)
-		return fmt.Errorf("failed to store challenge: %w", err)
+		return fmt.Errorf("failed to store challenge for domain %s: %w", domain, err)
 	}
 
 	return nil
@@ -68,8 +66,7 @@ func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 
 	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
-		p.logger.Error("failed to find domain during cleanup", "error", err, "domain", domain)
-		return fmt.Errorf("failed to find domain: %w", err)
+		return fmt.Errorf("failed to find domain %s during cleanup: %w", domain, err)
 	}
 
 	// Clear the token and authorization so the gateway stops serving the challenge
