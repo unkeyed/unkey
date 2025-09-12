@@ -1,20 +1,6 @@
 import { z } from "zod";
-import type { Inserter, Querier } from "./client";
+import type { Querier } from "./client";
 import { dateTimeToUnix } from "./util";
-
-export function insertRatelimit(ch: Inserter) {
-  return ch.insert({
-    table: "default.ratelimits_raw_v2",
-    schema: z.object({
-      request_id: z.string(),
-      time: z.number().int(),
-      workspace_id: z.string(),
-      namespace_id: z.string(),
-      identifier: z.string(),
-      passed: z.boolean(),
-    }),
-  });
-}
 
 export const ratelimitLogsTimeseriesParams = z.object({
   workspaceId: z.string(),
