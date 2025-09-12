@@ -92,9 +92,9 @@ func generateCertificate(ctx context.Context, cmd *cli.Command) error {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			Organization: []string{"Unkey Local Development"},
+			Organization: []string{"Unkey"},
 			Country:      []string{"US"},
-			CommonName:   "unkey.local",
+			CommonName:   "*.unkey.local",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(time.Duration(days) * 24 * time.Hour),
