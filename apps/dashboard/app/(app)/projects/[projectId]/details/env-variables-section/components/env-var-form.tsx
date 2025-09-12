@@ -1,21 +1,37 @@
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { EnvVarInputs } from "./components/env-var-inputs";
-import { EnvVarSaveActions } from "./components/env-var-save-actions";
-import { EnvVarSecretSwitch } from "./components/env-var-secret-switch";
-import { type EnvVar, type EnvVarFormData, EnvVarFormSchema } from "./types";
+import { type EnvVar, type EnvVarFormData, EnvVarFormSchema } from "../types";
+import { EnvVarInputs } from "./env-var-inputs";
+import { EnvVarSaveActions } from "./env-var-save-actions";
+import { EnvVarSecretSwitch } from "./env-var-secret-switch";
 
-type AddEnvVarRowProps = {
+type EnvVarFormProps = {
+  initialData: EnvVarFormData;
   projectId: string;
   getExistingEnvVar: (key: string, excludeId?: string) => EnvVar | undefined;
+  onSuccess: () => void;
   onCancel: () => void;
+  excludeId?: string;
+  autoFocus?: boolean;
+  decrypted?: boolean;
+  className?: string;
 };
 
-export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvVarRowProps) {
+export function EnvVarForm({
+  initialData,
+  projectId,
+  getExistingEnvVar,
+  onSuccess,
+  onCancel,
+  excludeId,
+  decrypted,
+  autoFocus = false,
+  className = "w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0",
+}: EnvVarFormProps) {
   const trpcUtils = trpc.useUtils();
 
-  // TODO: Add mutation when available
+  // TODO: Add mutations when available
   // const upsertMutation = trpc.deploy.project.envs.upsert.useMutation();
 
   const {
@@ -27,7 +43,7 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
   } = useForm<EnvVarFormData>({
     resolver: zodResolver(
       EnvVarFormSchema.superRefine((data, ctx) => {
-        const existing = getExistingEnvVar(data.key);
+        const existing = getExistingEnvVar(data.key, excludeId);
         if (existing) {
           ctx.addIssue({
             code: "custom",
@@ -37,11 +53,7 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
         }
       }),
     ),
-    defaultValues: {
-      key: "",
-      value: "",
-      type: "env",
-    },
+    defaultValues: initialData,
   });
 
   const watchedType = watch("type");
@@ -51,6 +63,7 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
       // TODO: Call tRPC upsert when available
       // await upsertMutation.mutateAsync({
       //   projectId,
+      //   id: excludeId, // Will be undefined for new entries
       //   ...formData
       // });
 
@@ -60,9 +73,10 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
       // Invalidate to refresh data
       await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
 
-      onCancel(); // Close the add form
+      onSuccess();
     } catch (error) {
-      console.error("Failed to add env var:", error);
+      console.error("Failed to save env var:", error);
+      throw error; // Re-throw to let form handle the error state
     }
   };
 
@@ -75,14 +89,15 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
   };
 
   return (
-    <div className="w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0">
-      <form onSubmit={handleSubmit(handleSave)} className="w-full flex items-center gap-2 h-12">
+    <div className={className}>
+      <form onSubmit={handleSubmit(handleSave)} className="w-full flex items-center gap-2">
         <EnvVarInputs
           register={register}
           errors={errors}
           isSecret={watchedType === "secret"}
+          decrypted={decrypted}
           onKeyDown={handleKeyDown}
-          autoFocus
+          autoFocus={autoFocus}
         />
         <div className="flex items-center gap-2 ml-auto">
           <EnvVarSecretSwitch
