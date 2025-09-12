@@ -7,21 +7,19 @@ import { workspaces } from "./workspaces";
 export const acmeChallenges = mysqlTable(
   "acme_challenges",
   {
-    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    domainId: varchar("domain_id", { length: 256 }).notNull(),
-    token: varchar("token", { length: 256 }).notNull(),
+    domainId: varchar("domain_id", { length: 255 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
+    token: varchar("token", { length: 255 }).notNull(),
     type: mysqlEnum("type", ["HTTP-01", "DNS-01"]).notNull(),
-    authorization: varchar("authorization", { length: 256 }).notNull(),
+    authorization: varchar("authorization", { length: 255 }).notNull(),
     status: mysqlEnum("status", ["waiting", "pending", "verified", "failed"]).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 
     ...lifecycleDates,
   },
   (table) => ({
-    idIdx: index("id_idx").on(table.id),
-    workspaceIdx: index("workspace_idx").on(table.workspaceId),
     pk: primaryKey({ columns: [table.domainId] }),
+    workspaceIdx: index("workspace_idx").on(table.workspaceId),
   }),
 );
 
