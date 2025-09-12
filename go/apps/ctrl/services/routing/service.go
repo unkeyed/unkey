@@ -60,7 +60,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	if err == nil {
 		// Parse existing config to get previous version
 		var existingConfig partitionv1.GatewayConfig
-		if err := proto.Unmarshal(currentRoute.Config, &existingConfig); err == nil {
+		if err := protojson.Unmarshal(currentRoute.Config, &existingConfig); err == nil {
 			previousVersionID = existingConfig.Deployment.Id
 		}
 	}
@@ -143,7 +143,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	}
 
 	// Marshal the configuration
-	configBytes, err := proto.Marshal(gatewayConfig)
+	configBytes, err := protojson.Marshal(gatewayConfig)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to marshal gateway config",
 			slog.String("hostname", hostname),
@@ -204,9 +204,9 @@ func (s *Service) GetRoute(ctx context.Context, req *connect.Request[ctrlv1.GetR
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get route: %w", err))
 	}
 
-	// Unmarshal the protobuf config
+	// Unmarshal the protojson config
 	var gatewayConfig partitionv1.GatewayConfig
-	if err := proto.Unmarshal(gatewayRow.Config, &gatewayConfig); err != nil {
+	if err := protojson.Unmarshal(gatewayRow.Config, &gatewayConfig); err != nil {
 		s.logger.ErrorContext(ctx, "failed to unmarshal gateway config",
 			slog.String("hostname", hostname),
 			slog.String("error", err.Error()),
