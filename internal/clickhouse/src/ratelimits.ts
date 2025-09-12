@@ -223,7 +223,7 @@ export function getRatelimitLastUsed(ch: Querier) {
     SELECT
       identifier,
       max(time) as time
-    FROM default.ratelimits_last_used_v1
+    FROM default.ratelimits_last_used_v2
     WHERE
       workspace_id = {workspaceId: String}
       AND namespace_id = {namespaceId: String}
