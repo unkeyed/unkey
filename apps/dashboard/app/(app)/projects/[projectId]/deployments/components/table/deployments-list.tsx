@@ -381,7 +381,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
         },
       },
     ];
-  }, [selectedDeployment, isCompactView]);
+  }, [selectedDeployment?.deployment.id, isCompactView, deployments]);
 
   return (
     <VirtualTable
