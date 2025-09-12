@@ -273,7 +273,7 @@ WITH
           key_id,
           tags,
           outcome
-      FROM verifications.raw_key_verifications_v1
+      FROM default.key_verifications_raw_v2
       WHERE workspace_id = {workspaceId: String}
           AND key_space_id = {keyspaceId: String}
           AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}

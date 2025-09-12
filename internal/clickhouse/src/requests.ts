@@ -21,10 +21,7 @@ export function insertApiRequest(ch: Inserter) {
       service_latency: z.number().int(),
       user_agent: z.string(),
       ip_address: z.string(),
-      continent: z.string().nullable().default(""),
-      city: z.string().nullable().default(""),
-      country: z.string().nullable().default(""),
-      colo: z.string().nullable().default(""),
+      region: z.string(),
     }),
   });
 }
