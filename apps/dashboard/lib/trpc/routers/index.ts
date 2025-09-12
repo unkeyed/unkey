@@ -44,6 +44,7 @@ import { queryDeployments } from "./deploy/project/deployment/list";
 import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
 import { getEnvs } from "./deploy/project/envs/list";
 import { queryProjects } from "./deploy/project/list";
+import { rollback } from "./deploy/rollback";
 import { deploymentRouter } from "./deployment";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -326,6 +327,7 @@ export const router = t.router({
         search: deploymentListLlmSearch,
       }),
     }),
+    rollback: rollback,
   }),
   deployment: deploymentRouter,
 });

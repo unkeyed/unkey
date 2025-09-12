@@ -273,11 +273,25 @@ export const DeploymentsList = () => {
         header: "",
         width: "auto",
         render: (deployment) => {
-          return <DeploymentListTableActions deployment={deployment} />;
+          // Find current active production deployment for rollback context
+          const currentActiveDeployment = useMemo(
+            () =>
+              deployments.find(
+                (d): d is Deployment & { environment: "production"; active: true } =>
+                  d.environment === "production" && "active" in d && d.active === true,
+              ),
+            [deployments],
+          );
+          return (
+            <DeploymentListTableActions
+              deployment={deployment}
+              currentActiveDeployment={currentActiveDeployment}
+            />
+          );
         },
       },
     ];
-  }, [selectedDeployment?.id, isCompactView]);
+  }, [selectedDeployment?.id, isCompactView, deployments]);
 
   return (
     <VirtualTable
