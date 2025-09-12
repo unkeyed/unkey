@@ -323,10 +323,7 @@ func main() {
 		interceptors.WithRequestDurationMetric(true), // Match existing behavior
 		interceptors.WithErrorResampling(true),
 		interceptors.WithPanicStackTrace(true),
-		interceptors.WithTenantAuth(true,
-			// Exempt health check endpoints from tenant auth
-			"/health.v1.HealthService/Check",
-		),
+
 	}
 
 	// Add meter if OpenTelemetry is enabled

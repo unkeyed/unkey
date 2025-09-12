@@ -110,7 +110,9 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
   clickhouse:
-    image: bitnami/clickhouse:25.6.4
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.clickhouse
     container_name: clickhouse
     environment:
       CLICKHOUSE_ADMIN_USER: default
@@ -138,13 +140,7 @@ services:
       retries: 10
       start_period: 30s
       interval: 5s
-  clickhouse_migrator:
-    container_name: clickhouse_migrator
-    build:
-      context: ../internal/clickhouse
-      dockerfile: ./Dockerfile
-    depends_on:
-      - clickhouse
+
   s3:
     container_name: s3
     image: bitnami/minio:2025.4.3
