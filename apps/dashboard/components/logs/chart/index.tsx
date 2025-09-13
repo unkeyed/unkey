@@ -8,6 +8,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
@@ -18,8 +19,8 @@ import { calculateTimePoints } from "./utils/calculate-timepoints";
 import { formatTimestampLabel } from "./utils/format-timestamp";
 
 type Selection = {
-  start: string | number;
-  end: string | number;
+  start: string | number | undefined;
+  end: string | number | undefined;
   startTimestamp?: number;
   endTimestamp?: number;
 };
@@ -28,6 +29,13 @@ type TimeseriesData = {
   originalTimestamp: number;
   total: number;
   [key: string]: unknown;
+};
+
+export type ChartMouseEvent = {
+  activeLabel?: string | number;
+  activePayload?: ReadonlyArray<{
+    payload: TimeseriesData;
+  }>;
 };
 
 type LogsTimeseriesBarChartProps = {
@@ -39,6 +47,7 @@ type LogsTimeseriesBarChartProps = {
   isLoading?: boolean;
   isError?: boolean;
   enableSelection?: boolean;
+  granularity?: CompoundTimeseriesGranularity;
 };
 
 export function LogsTimeseriesBarChart({
@@ -50,9 +59,13 @@ export function LogsTimeseriesBarChart({
   isLoading,
   isError,
   enableSelection = false,
+  granularity,
 }: LogsTimeseriesBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+  const [selection, setSelection] = useState<Selection>({
+    start: undefined,
+    end: undefined,
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
@@ -62,9 +75,8 @@ export function LogsTimeseriesBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
-  const handleMouseDown = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseDown = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
@@ -76,9 +88,8 @@ export function LogsTimeseriesBarChart({
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
-  const handleMouseMove = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseMove = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     if (selection.start) {
@@ -104,8 +115,8 @@ export function LogsTimeseriesBarChart({
       onSelectionChange({ start, end });
     }
     setSelection({
-      start: "",
-      end: "",
+      start: undefined,
+      end: undefined,
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
@@ -126,9 +137,8 @@ export function LogsTimeseriesBarChart({
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
               data.at(-1)?.originalTimestamp ?? Date.now(),
-            ).map((time, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <div key={i} className="z-10">
+            ).map((time) => (
+              <div key={time.getTime()} className="z-10">
                 {formatTimestampLabel(time)}
               </div>
             ))
@@ -187,8 +197,11 @@ export function LogsTimeseriesBarChart({
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
                     labelFormatter={(_, payload) =>
-                      //@ts-expect-error This is okay to ignore
-                      createTimeIntervalFormatter(data, "HH:mm")(payload)
+                      createTimeIntervalFormatter(
+                        data,
+                        undefined,
+                        granularity,
+                      )((payload ?? []).map((p) => (p as { payload: TimeseriesData }).payload))
                     }
                   />
                 );

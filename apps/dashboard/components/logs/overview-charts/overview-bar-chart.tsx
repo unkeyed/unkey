@@ -1,7 +1,9 @@
 "use client";
 
+import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { formatTooltipInterval } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -9,13 +11,22 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
-import { useEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ReferenceArea,
+  ResponsiveContainer,
+  YAxis,
+} from "recharts";
+import { parseTimestamp } from "../parseTimestamp";
+
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-import { createTimeIntervalFormatter } from "./utils";
 
 type ChartTooltipItem = {
   label: string;
@@ -40,6 +51,7 @@ type OverviewBarChartProps = {
   labels: ChartLabels;
   tooltipItems?: ChartTooltipItem[];
   onMount?: (distanceToTop: number) => void;
+  granularity?: CompoundTimeseriesGranularity;
 };
 
 export function OverviewBarChart({
@@ -52,9 +64,26 @@ export function OverviewBarChart({
   labels,
   tooltipItems = [],
   onMount,
+  granularity,
 }: OverviewBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  // Precompute timestamp-to-index mapping for O(1) lookup
+  const timestampToIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    if (data?.length) {
+      data.forEach((item, index) => {
+        if (item?.originalTimestamp) {
+          const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
+          if (Number.isFinite(normalizedTimestamp)) {
+            map.set(normalizedTimestamp, index);
+          }
+        }
+      });
+    }
+    return map;
+  }, [data]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
@@ -64,9 +93,8 @@ export function OverviewBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  // biome-ignore lint/suspicious/noExplicitAny: safe to leave
-  const handleMouseDown = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseDown = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
@@ -78,16 +106,16 @@ export function OverviewBarChart({
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: safe to leave
-  const handleMouseMove = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseMove = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     if (selection.start) {
       const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      const activeLabel = e.activeLabel;
       setSelection((prev) => ({
         ...prev,
-        end: e.activeLabel,
+        end: activeLabel,
         endTimestamp: timestamp,
       }));
     }
@@ -101,7 +129,10 @@ export function OverviewBarChart({
       if (!selection.startTimestamp || !selection.endTimestamp) {
         return;
       }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
+      const [start, end] = [
+        selection.startTimestamp,
+        selection.endTimestamp,
+      ].sort((a, b) => a - b);
 
       onSelectionChange({ start, end });
     }
@@ -122,23 +153,28 @@ export function OverviewBarChart({
 
   // Calculate totals based on the provided keys
   const totalCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
-    0,
+    (acc, crr) =>
+      acc +
+      (crr[labels.primaryKey] as number) +
+      (crr[labels.secondaryKey] as number),
+    0
   );
   const primaryCount = (data ?? []).reduce(
     (acc, crr) => acc + (crr[labels.primaryKey] as number),
-    0,
+    0
   );
   const secondaryCount = (data ?? []).reduce(
     (acc, crr) => acc + (crr[labels.secondaryKey] as number),
-    0,
+    0
   );
 
   return (
     <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
+          <div className="text-accent-10 text-[11px] leading-4">
+            {labels.title}
+          </div>
           <div className="text-accent-12 text-[18px] font-semibold leading-7">
             {formatNumber(totalCount)}
           </div>
@@ -148,7 +184,9 @@ export function OverviewBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-accent-8 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
+              <div className="text-accent-10 text-[11px] leading-4">
+                {labels.primaryLabel}
+              </div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
               {formatNumber(primaryCount)}
@@ -157,7 +195,9 @@ export function OverviewBarChart({
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
+              <div className="text-accent-10 text-[11px] leading-4">
+                {labels.secondaryLabel}
+              </div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
               {formatNumber(secondaryCount)}
@@ -196,7 +236,11 @@ export function OverviewBarChart({
                   strokeOpacity: 0.7,
                 }}
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                  if (
+                    !active ||
+                    !payload?.length ||
+                    payload?.[0]?.payload.total === 0
+                  ) {
                     return null;
                   }
                   return (
@@ -213,7 +257,9 @@ export function OverviewBarChart({
                                 <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                   All
                                 </span>
-                                <span className="capitalize text-accent-12 text-xs">Total</span>
+                                <span className="capitalize text-accent-12 text-xs">
+                                  Total
+                                </span>
                               </div>
                               <div className="ml-auto">
                                 <span className="font-mono tabular-nums text-accent-12">
@@ -241,7 +287,9 @@ export function OverviewBarChart({
                                 </div>
                                 <div className="ml-auto">
                                   <span className="font-mono tabular-nums text-accent-12">
-                                    {formatNumber(payload[0]?.payload?.[item.dataKey])}
+                                    {formatNumber(
+                                      payload[0]?.payload?.[item.dataKey]
+                                    )}
                                   </span>
                                 </div>
                               </div>
@@ -250,16 +298,27 @@ export function OverviewBarChart({
                         </div>
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(_, tooltipPayload) =>
-                        //@ts-expect-error safe to ignore for now
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
-                      }
+                      labelFormatter={(_, tooltipPayload) => {
+                        const payloadTimestamp =
+                          tooltipPayload?.[0]?.payload?.originalTimestamp;
+                        return formatTooltipInterval(
+                          payloadTimestamp,
+                          data || [],
+                          granularity,
+                          timestampToIndexMap
+                        );
+                      }}
                     />
                   );
                 }}
               />
               {Object.keys(config).map((key) => (
-                <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  stackId="a"
+                  fill={config[key].color}
+                />
               ))}
               {enableSelection && selection.start && selection.end && (
                 <ReferenceArea
@@ -287,7 +346,7 @@ export function OverviewBarChart({
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now(),
+              data.at(-1)?.originalTimestamp ?? Date.now()
             ).map((time, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <div key={i} className="z-10 text-center">
