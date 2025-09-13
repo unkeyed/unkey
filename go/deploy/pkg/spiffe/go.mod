@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey/go/deploy/pkg/spiffe
 
-go 1.24.4
+go 1.25.1
 
 require github.com/spiffe/go-spiffe/v2 v2.5.0
 
