@@ -1,5 +1,6 @@
 "use client";
 
+import { PostAuthInvitationHandler } from "@/components/auth/post-auth-invitation-handler";
 import { Navbar } from "@/components/navigation/navbar";
 import { Nodes } from "@unkey/icons";
 import { useSearchParams } from "next/navigation";
@@ -12,6 +13,7 @@ export default function ApisOverviewPage() {
 
   return (
     <div>
+      <PostAuthInvitationHandler />
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis" active>
