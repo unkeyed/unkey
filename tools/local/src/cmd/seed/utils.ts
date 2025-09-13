@@ -4,7 +4,7 @@ import { eq, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 export function generateUuid() {
-  return crypto.randomUUID();
+  return globalThis.crypto.randomUUID();
 }
 
 function env() {
