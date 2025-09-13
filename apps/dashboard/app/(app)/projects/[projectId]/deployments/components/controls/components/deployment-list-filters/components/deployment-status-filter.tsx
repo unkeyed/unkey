@@ -25,7 +25,7 @@ const baseOptions: StatusOption[] = [
   },
   {
     id: 3,
-    status: "completed",
+    status: "ready",
     display: "Ready",
     checked: false,
   },

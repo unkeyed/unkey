@@ -10,9 +10,9 @@ const schema = z.object({
   name: z.string().min(1).max(50),
 });
 
-type Schema = z.infer<typeof schema>;
+export type RatelimitNamespace = z.infer<typeof schema>;
 
-export const ratelimitNamespaces = createCollection<Schema>(
+export const ratelimitNamespaces = createCollection<RatelimitNamespace>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["ratelimitNamespaces"],

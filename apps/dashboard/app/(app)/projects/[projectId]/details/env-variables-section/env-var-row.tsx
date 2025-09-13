@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -19,8 +18,6 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
   const [isSecretLoading, setIsSecretLoading] = useState(false);
   const [decryptedValue, setDecryptedValue] = useState<string>();
 
-  const trpcUtils = trpc.useUtils();
-
   // TODO: Add mutations when available
   // const deleteMutation = trpc.deploy.project.envs.delete.useMutation();
   // const decryptMutation = trpc.deploy.project.envs.decrypt.useMutation();
@@ -37,7 +34,7 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Invalidate to refresh data
-      await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
+      // TODO await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
     } catch (error) {
       console.error("Failed to delete env var:", error);
     }

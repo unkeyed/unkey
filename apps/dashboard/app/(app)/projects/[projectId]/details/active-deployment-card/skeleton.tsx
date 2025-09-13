@@ -1,7 +1,6 @@
-import { ChevronDown, CodeBranch, CodeCommit, FolderCloud } from "@unkey/icons";
+import { ChevronDown, CircleCheck, CodeBranch, CodeCommit, FolderCloud } from "@unkey/icons";
 import { Badge, Button, Card } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { STATUS_CONFIG } from ".";
 import { StatusIndicator } from "./status-indicator";
 
 export const ActiveDeploymentCardSkeleton = () => (
@@ -17,8 +16,8 @@ export const ActiveDeploymentCardSkeleton = () => (
       <div className="flex items-center gap-4">
         <Badge variant="success" className="text-successA-11 font-medium">
           <div className="flex items-center gap-2">
-            {<STATUS_CONFIG.success.icon />}
-            {STATUS_CONFIG.success.text}
+            {<CircleCheck />}
+            Loading
           </div>
         </Badge>
         <div className="items-center flex gap-2">

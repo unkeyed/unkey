@@ -10,7 +10,7 @@ const openai = env().OPENAI_API_KEY
     })
   : null;
 
-export const deploymentListLlmSearch = t.procedure
+export const searchDeployments = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withLlmAccess())

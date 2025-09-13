@@ -1,8 +1,7 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { ProjectDetailsExpandable } from "./details/project-details-expandables";
 import { ProjectLayoutContext } from "./layout-provider";
 import { ProjectNavigation } from "./navigations/project-navigation";
@@ -25,39 +24,8 @@ type ProjectLayoutProps = {
 
 const FAKE_DEPLOYMENT_ID = "im-a-fake-deployment-id";
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
-  const trpcUtil = trpc.useUtils();
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-
-  useEffect(() => {
-    trpcUtil.deploy.project.envs.getEnvs.prefetch({
-      projectId,
-    });
-  }, [trpcUtil, projectId]);
-
-  // This will be called on mount to determine the offset to top, then it will prefetch project details and mount project details drawer.
-  const handleDistanceToTop = useCallback(
-    async (distanceToTop: number) => {
-      setTableDistanceToTop(distanceToTop);
-
-      if (distanceToTop !== 0) {
-        try {
-          // Only proceed if prefetch succeeds
-          await trpcUtil.deploy.project.activeDeployment.details.prefetch({
-            deploymentId: FAKE_DEPLOYMENT_ID,
-          });
-
-          setTimeout(() => {
-            setIsDetailsOpen(true);
-          }, 200);
-        } catch (error) {
-          console.error("Failed to prefetch project details:", error);
-          // Don't open the drawer if prefetch fails
-        }
-      }
-    },
-    [trpcUtil],
-  );
 
   return (
     <ProjectLayoutContext.Provider
@@ -72,7 +40,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         <ProjectNavigation projectId={projectId} />
         <div className="flex items-center flex-shrink-0">
           <ProjectSubNavigation
-            onMount={handleDistanceToTop}
+            onMount={setTableDistanceToTop}
             detailsExpandableTrigger={
               <InfoTooltip
                 asChild

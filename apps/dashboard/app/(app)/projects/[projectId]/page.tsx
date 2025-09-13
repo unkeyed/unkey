@@ -1,5 +1,8 @@
 "use client";
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
@@ -7,26 +10,28 @@ import { DomainRow } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
 
-const DOMAINS = [
-  {
-    domain: "api.gateway.com",
-    status: "success" as const,
-    tags: ["https", "primary"],
-  },
-  {
-    domain: "dev.gateway.com",
-    status: "error" as const,
-    tags: ["https", "primary"],
-  },
-  {
-    domain: "staging.gateway.com",
-    status: "success" as const,
-    tags: ["https", "primary"],
-  },
-];
-
 export default function ProjectDetails() {
   const { isDetailsOpen, projectId } = useProjectLayout();
+
+  const domains = useLiveQuery((q) =>
+    q.from({ domain: collection.domains }).where(({ domain }) => eq(domain.projectId, projectId)),
+  );
+
+  const projects = useLiveQuery((q) =>
+    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
+  );
+
+  const project = projects.data.at(0);
+
+  if (!project) {
+    return (
+      <Empty>
+        <Empty.Icon />
+        <Empty.Title>No Project Found</Empty.Title>
+        <Empty.Description>Project not found</Empty.Description>
+      </Empty>
+    );
+  }
 
   return (
     <div
@@ -36,13 +41,15 @@ export default function ProjectDetails() {
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
-        <Section>
-          <SectionHeader
-            icon={<Cloud size="md-regular" className="text-gray-9" />}
-            title="Active Deployment"
-          />
-          <ActiveDeploymentCard />
-        </Section>
+        {project.activeDeploymentId ? (
+          <Section>
+            <SectionHeader
+              icon={<Cloud size="md-regular" className="text-gray-9" />}
+              title="Active Deployment"
+            />
+            <ActiveDeploymentCard deploymentId={project.activeDeploymentId} />
+          </Section>
+        ) : null}
 
         <Section>
           <SectionHeader
@@ -50,8 +57,8 @@ export default function ProjectDetails() {
             title="Domains"
           />
           <div>
-            {DOMAINS.map((domain) => (
-              <DomainRow key={domain.domain} {...domain} />
+            {domains.data.map((domain) => (
+              <DomainRow key={domain.id} domain={domain.domain} />
             ))}
           </div>
         </Section>
