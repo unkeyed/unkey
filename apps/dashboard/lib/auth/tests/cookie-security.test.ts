@@ -3,7 +3,7 @@ import {
   getAuthCookieOptions,
   getDefaultCookieOptions,
   shouldUseSecureCookies,
-} from "./cookie-security";
+} from "../cookie-security";
 
 // Mock the env module
 vi.mock("@/lib/env", () => ({

@@ -6,7 +6,7 @@ import {
 } from "@workos-inc/node";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
-import { shouldUseSecureCookies } from "./cookie-security";
+import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie } from "./cookies";
 import { getAuth } from "./get-auth";
 import {
@@ -639,11 +639,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: shouldUseSecureCookies(),
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -662,11 +658,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: shouldUseSecureCookies(),
-                httpOnly: true,
-                sameSite: "lax",
-              },
+              options: { ...getAuthCookieOptions() },
             },
           ],
         };
@@ -704,11 +696,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: shouldUseSecureCookies(),
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -729,11 +717,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: shouldUseSecureCookies(),
-                httpOnly: true,
-                sameSite: "lax",
-              },
+              options: { ...getAuthCookieOptions() },
             },
           ],
         };
@@ -769,11 +753,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: shouldUseSecureCookies(),
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -851,11 +831,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: shouldUseSecureCookies(),
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -873,12 +849,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: shouldUseSecureCookies(),
-                httpOnly: true,
-                sameSite: "lax",
-                maxAge: 60, // user has 60 seconds to select an org before the cookie expires
-              },
+              options: { ...getAuthCookieOptions(), maxAge: 60 },
             },
           ],
         };
@@ -900,12 +871,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: shouldUseSecureCookies(),
-                httpOnly: true,
-                sameSite: "lax",
-                maxAge: 60 * 10, // user has 10 mins seconds to verify their email before the cookie expires
-              },
+              options: { ...getAuthCookieOptions(), maxAge: 60 * 10 },
             },
           ],
         };

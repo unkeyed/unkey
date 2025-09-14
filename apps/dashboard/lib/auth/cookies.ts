@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
-import { getDefaultCookieOptions, shouldUseSecureCookies } from "./cookie-security";
+import { getDefaultCookieOptions } from "./cookie-security";
 import { UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
@@ -71,9 +71,7 @@ export async function updateCookie(
       name: cookieName,
       value: value,
       options: {
-        httpOnly: true,
-        secure: shouldUseSecureCookies(),
-        sameSite: "strict",
+        ...getDefaultCookieOptions(),
       },
     });
     return;
@@ -113,10 +111,7 @@ export async function setSessionCookie(params: {
     name: UNKEY_SESSION_COOKIE,
     value: token,
     options: {
-      httpOnly: true,
-      secure: shouldUseSecureCookies(),
-      sameSite: "strict",
-      path: "/",
+      ...getDefaultCookieOptions(),
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
     },
   });

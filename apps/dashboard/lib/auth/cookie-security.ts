@@ -26,7 +26,7 @@ import { env } from "@/lib/env";
  */
 export function shouldUseSecureCookies(): boolean {
   const environment = env();
-  return environment.VERCEL_ENV === "production";
+  return environment.VERCEL_ENV !== "development";
 }
 
 /**
