@@ -12,8 +12,8 @@ import { env } from "@/lib/env";
  * operations to fail silently in development environments.
  *
  * SOLUTION:
- * - Use `secure: true` in production (HTTPS)
- * - Use `secure: false` in development/preview (HTTP/localhost)
+ * - Use `secure: true` in production and preview (both HTTPS)
+ * - Use `secure: false` in development (HTTP/localhost)
  *
  * This approach maintains security in production while allowing development
  * to work seamlessly across all browsers, including Safari.
@@ -22,7 +22,7 @@ import { env } from "@/lib/env";
 /**
  * Determines if cookies should be secure based on the environment.
  *
- * @returns true if cookies should be secure (production), false otherwise (development/preview)
+ * @returns true if cookies should be secure (production/preview), false otherwise (development)
  */
 export function shouldUseSecureCookies(): boolean {
   const environment = env();

@@ -36,12 +36,12 @@ describe("cookie-security", () => {
       expect(shouldUseSecureCookies()).toBe(false);
     });
 
-    it("should return false for preview environment", () => {
+    it("should return true for preview environment", () => {
       mockEnv.mockReturnValue({
         VERCEL_ENV: "preview",
       } as any);
 
-      expect(shouldUseSecureCookies()).toBe(false);
+      expect(shouldUseSecureCookies()).toBe(true);
     });
   });
 
