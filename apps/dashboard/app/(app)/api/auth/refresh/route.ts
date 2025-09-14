@@ -1,3 +1,4 @@
+import { shouldUseSecureCookies } from "@/lib/auth/cookie-security";
 import { setCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       value: newToken,
       options: {
         httpOnly: true,
-        secure: true,
+        secure: shouldUseSecureCookies(),
         sameSite: "lax",
         path: "/",
         maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000), // Convert to seconds

@@ -1,3 +1,4 @@
+import { shouldUseSecureCookies } from "@/lib/auth/cookie-security";
 import { setCookie } from "@/lib/auth/cookies";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
@@ -53,7 +54,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
         value: sessionData.token,
         options: {
           httpOnly: true,
-          secure: true,
+          secure: shouldUseSecureCookies(),
           sameSite: "strict",
           path: "/",
           maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),

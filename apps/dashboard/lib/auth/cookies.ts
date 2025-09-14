@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
+import { getDefaultCookieOptions, shouldUseSecureCookies } from "./cookie-security";
 import { UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
@@ -71,7 +72,7 @@ export async function updateCookie(
       value: value,
       options: {
         httpOnly: true,
-        secure: true,
+        secure: shouldUseSecureCookies(),
         sameSite: "strict",
       },
     });
@@ -113,7 +114,7 @@ export async function setSessionCookie(params: {
     value: token,
     options: {
       httpOnly: true,
-      secure: true,
+      secure: shouldUseSecureCookies(),
       sameSite: "strict",
       path: "/",
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
@@ -125,12 +126,7 @@ export async function getCookieOptionsAsString(
   options: Partial<CookieOptions> = {},
 ): Promise<string> {
   // Set defaults if not provided
-  const defaultOptions: CookieOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    path: "/",
-  };
+  const defaultOptions: CookieOptions = getDefaultCookieOptions();
 
   // Merge defaults with provided options
   const mergedOptions = { ...defaultOptions, ...options };
