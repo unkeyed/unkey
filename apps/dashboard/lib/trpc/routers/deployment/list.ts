@@ -26,6 +26,7 @@ export const listDeployments = t.procedure
           status: true,
           createdAt: true,
         },
+        limit: 500,
       });
     } catch (_error) {
       throw new TRPCError({

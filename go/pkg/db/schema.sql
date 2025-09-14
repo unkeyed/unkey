@@ -313,6 +313,7 @@ CREATE TABLE `projects` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`git_repository_url` varchar(500),
+	`active_deployment_id` varchar(256),
 	`default_branch` varchar(256) DEFAULT 'main',
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,

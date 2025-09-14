@@ -19,7 +19,7 @@ export const DEPLOYMENT_STATUSES = [
 // Define grouped statuses for client filtering
 const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
-  "building", // represents all building states
+  "deploying", // represents all deploying states
   "ready",
   "failed",
 ] as const;
@@ -90,7 +90,7 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
   switch (groupedStatus) {
     case "pending":
       return ["pending"];
-    case "building":
+    case "deploying":
       return ["building", "deploying", "network"];
     case "ready":
       return ["ready"];
