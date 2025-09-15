@@ -1,13 +1,20 @@
 import { auth as authProvider } from "@/lib/auth/server";
+import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { z } from "zod";
 import { requireUser, t } from "../../trpc";
 
 export const switchOrg = t.procedure
   .use(requireUser)
   .input(z.string())
-  .mutation(async ({ input: orgId }) => {
+  .mutation(async ({ input: orgId, ctx }) => {
     try {
       const { newToken, expiresAt, session } = await authProvider.switchOrg(orgId);
+
+      // Invalidate workspace cache for both current and target organizations
+      // This ensures fresh workspace data is loaded when switching between orgs
+      await invalidateWorkspaceCache(ctx.tenant.id); // Current org
+      await invalidateWorkspaceCache(orgId); // Target org
+
       return {
         success: true,
         token: newToken,

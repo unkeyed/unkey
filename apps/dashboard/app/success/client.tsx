@@ -9,7 +9,9 @@ export function SuccessClient({ workSpaceSlug }: { workSpaceSlug?: string }) {
     if (workSpaceSlug) {
       router.push(`/${workSpaceSlug}/settings/billing`);
     } else {
-      router.push("/apis");
+      // Redirect to root when no workspace slug is available
+      // This will typically redirect to workspace selection or onboarding
+      router.push("/");
     }
   }, [router, workSpaceSlug]);
 

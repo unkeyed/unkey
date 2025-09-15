@@ -2,7 +2,7 @@ import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getCachedWorkspace } from "@/lib/workspace-cache";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -15,12 +15,7 @@ export default async function Layout({ children }: LayoutProps) {
   const { orgId, impersonator } = await getAuth();
 
   const isImpersonator = !!impersonator;
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: {
-      quotas: true,
-    },
-  });
+  const workspace = await getCachedWorkspace(orgId)();
 
   if (!workspace) {
     return redirect("/new");

@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authClient } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
+import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
@@ -60,6 +61,9 @@ export const changeWorkspaceName = t.procedure
           id: ctx.tenant.id,
           name: input.name,
         });
+
+        // Invalidate workspace cache after successful update
+        await invalidateWorkspaceCache(ctx.tenant.id);
       })
       .catch((_err) => {
         throw new TRPCError({

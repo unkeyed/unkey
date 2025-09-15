@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -149,4 +150,7 @@ export const updateSubscription = t.procedure
         userAgent: ctx.audit.userAgent,
       },
     });
+
+    // Invalidate workspace cache after subscription update
+    await invalidateWorkspaceCache(ctx.tenant.id);
   });

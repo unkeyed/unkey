@@ -34,6 +34,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const utils = trpc.useUtils();
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -59,6 +60,13 @@ export const useWorkspaceStep = (): OnboardingStep => {
           maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
         },
       });
+
+      // Invalidate client-side workspace cache for immediate UI update
+      await utils.workspace.getCurrent.invalidate();
+
+      // Force a router refresh to ensure the server-side layout
+      // re-renders with the new session context and fresh workspace data
+      router.refresh();
     },
     onError: (error) => {
       toast.error(`Failed to load new workspace: ${error.message}`);

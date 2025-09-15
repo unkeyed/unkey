@@ -15,6 +15,7 @@ import { setSessionCookie } from "@/lib/auth/cookies";
 import { reset } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+
 import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronExpandY } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
@@ -63,6 +64,9 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
         // refresh the check mark by invalidating the current user's org data
         utils.user.getCurrentUser.invalidate();
         utils.api.overview.query.invalidate();
+
+        // Invalidate workspace provider cache to update the workspace name immediately
+        utils.workspace.getCurrent.invalidate();
 
         await reset();
 
