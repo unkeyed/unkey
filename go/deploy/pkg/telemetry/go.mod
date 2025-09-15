@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey/go/deploy/pkg/telemetry
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/prometheus/client_golang v1.22.0
