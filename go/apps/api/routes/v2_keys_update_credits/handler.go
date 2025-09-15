@@ -40,7 +40,7 @@ func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route match des
+// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/keys.updateCredits"
 }

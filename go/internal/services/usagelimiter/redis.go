@@ -204,8 +204,7 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 }
 
 func (s *counterService) Invalidate(ctx context.Context, keyID string) error {
-	redisKey := s.redisKey(keyID)
-	return s.counter.Delete(ctx, redisKey)
+	return s.counter.Delete(ctx, s.redisKey(keyID))
 
 }
 
