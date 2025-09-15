@@ -10,10 +10,8 @@ type CreateProjectResponse = {
 };
 
 export const useCreateProject = (onSuccess: (data: CreateProjectResponse) => void) => {
-  const trpcUtils = trpc.useUtils();
-  const project = trpc.deploy.project.create.useMutation({
+  const project = trpc.project.create.useMutation({
     onSuccess(data) {
-      trpcUtils.deploy.project.list.invalidate();
       onSuccess(data);
     },
     onError(err) {

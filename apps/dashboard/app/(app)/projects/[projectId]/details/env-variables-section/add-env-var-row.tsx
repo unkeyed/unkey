@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { EnvVarInputs } from "./components/env-var-inputs";
@@ -12,9 +11,7 @@ type AddEnvVarRowProps = {
   onCancel: () => void;
 };
 
-export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvVarRowProps) {
-  const trpcUtils = trpc.useUtils();
-
+export function AddEnvVarRow({ getExistingEnvVar, onCancel }: AddEnvVarRowProps) {
   // TODO: Add mutation when available
   // const upsertMutation = trpc.deploy.project.envs.upsert.useMutation();
 
@@ -58,7 +55,8 @@ export function AddEnvVarRow({ projectId, getExistingEnvVar, onCancel }: AddEnvV
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Invalidate to refresh data
-      await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
+      // TODO
+      //await trpcUtils.project.envs.getEnvs.invalidate({ projectId });
 
       onCancel(); // Close the add form
     } catch (error) {

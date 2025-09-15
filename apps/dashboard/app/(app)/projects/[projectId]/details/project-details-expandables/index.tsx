@@ -1,4 +1,5 @@
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Book2, Cube, DoubleChevronRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -9,26 +10,34 @@ type ProjectDetailsExpandableProps = {
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
-  activeDeploymentId: string;
+  projectId: string;
 };
 
 export const ProjectDetailsExpandable = ({
   tableDistanceToTop,
   isOpen,
   onClose,
-  activeDeploymentId,
+  projectId,
 }: ProjectDetailsExpandableProps) => {
-  const trpcUtil = trpc.useUtils();
-  const details = trpcUtil.deploy.project.activeDeployment.details.getData({
-    deploymentId: activeDeploymentId,
-  });
+  const query = useLiveQuery((q) =>
+    q
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
 
-  // Shouldn't happen, because layout handles this case
-  if (!details) {
+      .join({ deployment: collection.deployments }, ({ deployment, project }) =>
+        eq(deployment.id, project.activeDeploymentId),
+      )
+      .orderBy(({ project }) => project.id, "asc")
+      .limit(1),
+  );
+
+  const data = query.data.at(0);
+
+  if (!data?.deployment) {
     return null;
   }
 
-  const detailSections = createDetailSections(details);
+  const detailSections = createDetailSections(data.deployment);
 
   return (
     <div className="flex">

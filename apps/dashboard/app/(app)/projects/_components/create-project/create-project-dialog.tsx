@@ -44,7 +44,7 @@ export const CreateProjectDialog = () => {
       await createProject.mutateAsync({
         name: values.name,
         slug: values.slug,
-        gitRepositoryUrl: values.gitRepositoryUrl || undefined,
+        gitRepositoryUrl: values.gitRepositoryUrl ?? null,
       });
     } catch (error) {
       console.error("Form submission error:", error);

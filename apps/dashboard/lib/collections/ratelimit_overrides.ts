@@ -12,9 +12,9 @@ const schema = z.object({
   limit: z.number(),
   duration: z.number(),
 });
-type Schema = z.infer<typeof schema>;
+export type RatelimitOverride = z.infer<typeof schema>;
 
-export const ratelimitOverrides = createCollection<Schema>(
+export const ratelimitOverrides = createCollection<RatelimitOverride>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["ratelimitOverrides"],
