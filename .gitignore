@@ -22,3 +22,4 @@ dist
 .react-email
 
 .secrets.json
+certs/
