@@ -1,4 +1,4 @@
-FROM golang:1.24 AS builder
+FROM golang:1.25 AS builder
 
 WORKDIR /go/src/github.com/unkeyed/unkey/go
 # Copy everything first because go.mod has replace directives pointing to ./deploy/pkg/ modules

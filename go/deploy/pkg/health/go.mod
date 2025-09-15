@@ -1,3 +1,3 @@
 module github.com/unkeyed/unkey/go/deploy/pkg/health
 
-go 1.24.4
+go 1.25.1
