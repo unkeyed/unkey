@@ -11,6 +11,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,15 +32,18 @@ type K8sBackend struct {
 	namespace   string
 	deployments map[string]*k8sDeployment
 	mutex       sync.RWMutex
+	ttlSeconds  int32 // TTL for auto-termination (0 = no TTL)
 }
 
 type k8sDeployment struct {
 	DeploymentID   string
 	DeploymentName string
+	JobName        string // Job name for TTL-enabled deployments
 	ServiceName    string
 	VMIDs          []string
 	Image          string
 	CreatedAt      time.Time
+	UseJob         bool // Whether this deployment uses a Job (for TTL) or Deployment
 }
 
 // NewK8sBackend creates a new Kubernetes backend
@@ -67,6 +71,7 @@ func NewK8sBackend(logger logging.Logger) (*K8sBackend, error) {
 		clientset:   clientset,
 		namespace:   namespace,
 		deployments: make(map[string]*k8sDeployment),
+		ttlSeconds:  7200, // 2 hours default TTL for auto-cleanup
 	}, nil
 }
 
@@ -85,63 +90,124 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 
 	// Sanitize deployment ID for Kubernetes RFC 1123 compliance
 	deploymentName, serviceName := k.sanitizeK8sNames(deploymentID)
+	jobName := fmt.Sprintf("job-%s", deploymentName)
 
-	// Create deployment
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploymentName,
-			Namespace: k.namespace,
-			Labels: map[string]string{
-				"unkey.deployment.id": deploymentID,
-				"unkey.managed.by":    "ctrl-fallback",
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: ptr.P(int32(vmCount)),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
+	// Decide whether to use Job (with TTL) or Deployment
+	useJob := k.ttlSeconds > 0
+
+	if useJob {
+		// Create Job with TTL for auto-termination
+		job := &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      jobName,
+				Namespace: k.namespace,
+				Labels: map[string]string{
 					"unkey.deployment.id": deploymentID,
+					"unkey.managed.by":    "ctrl-fallback",
 				},
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"unkey.deployment.id": deploymentID,
-						"unkey.managed.by":    "ctrl-fallback",
+			Spec: batchv1.JobSpec{
+				TTLSecondsAfterFinished: &k.ttlSeconds,              // Auto-cleanup after completion
+				ActiveDeadlineSeconds:   ptr.P(int64(k.ttlSeconds)), // Max runtime
+				Parallelism:             ptr.P(int32(vmCount)),
+				Completions:             ptr.P(int32(vmCount)),
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"unkey.deployment.id": deploymentID,
+							"unkey.managed.by":    "ctrl-fallback",
+						},
 					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "app",
-							Image: image,
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 8080,
-									Protocol:      corev1.ProtocolTCP,
+					Spec: corev1.PodSpec{
+						RestartPolicy: corev1.RestartPolicyNever, // Required for Jobs
+						Containers: []corev1.Container{
+							{
+								Name:  "app",
+								Image: image,
+								Ports: []corev1.ContainerPort{
+									{
+										ContainerPort: 8080,
+										Protocol:      corev1.ProtocolTCP,
+									},
 								},
-							},
-							// This REALLY doesn't matter for dev
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("100m"),
-									corev1.ResourceMemory: resource.MustParse("128Mi"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("1000m"),
-									corev1.ResourceMemory: resource.MustParse("1Gi"),
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										corev1.ResourceCPU:    resource.MustParse("100m"),
+										corev1.ResourceMemory: resource.MustParse("128Mi"),
+									},
+									Limits: corev1.ResourceList{
+										corev1.ResourceCPU:    resource.MustParse("1000m"),
+										corev1.ResourceMemory: resource.MustParse("1Gi"),
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	_, err := k.clientset.AppsV1().Deployments(k.namespace).Create(ctx, deployment, metav1.CreateOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create deployment: %w", err)
+		_, err := k.clientset.BatchV1().Jobs(k.namespace).Create(ctx, job, metav1.CreateOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create job: %w", err)
+		}
+	} else {
+		// Create regular Deployment without TTL
+		deployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      deploymentName,
+				Namespace: k.namespace,
+				Labels: map[string]string{
+					"unkey.deployment.id": deploymentID,
+					"unkey.managed.by":    "ctrl-fallback",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: ptr.P(int32(vmCount)),
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"unkey.deployment.id": deploymentID,
+					},
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"unkey.deployment.id": deploymentID,
+							"unkey.managed.by":    "ctrl-fallback",
+						},
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "app",
+								Image: image,
+								Ports: []corev1.ContainerPort{
+									{
+										ContainerPort: 8080,
+										Protocol:      corev1.ProtocolTCP,
+									},
+								},
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										corev1.ResourceCPU:    resource.MustParse("100m"),
+										corev1.ResourceMemory: resource.MustParse("128Mi"),
+									},
+									Limits: corev1.ResourceList{
+										corev1.ResourceCPU:    resource.MustParse("1000m"),
+										corev1.ResourceMemory: resource.MustParse("1Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := k.clientset.AppsV1().Deployments(k.namespace).Create(ctx, deployment, metav1.CreateOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create deployment: %w", err)
+		}
 	}
 
 	// Create service to expose the deployment
@@ -169,10 +235,14 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 		},
 	}
 
-	_, err = k.clientset.CoreV1().Services(k.namespace).Create(ctx, service, metav1.CreateOptions{})
+	_, err := k.clientset.CoreV1().Services(k.namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
-		// Clean up deployment if service creation fails
-		k.clientset.AppsV1().Deployments(k.namespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
+		// Clean up deployment/job if service creation fails
+		if useJob {
+			k.clientset.BatchV1().Jobs(k.namespace).Delete(ctx, jobName, metav1.DeleteOptions{})
+		} else {
+			k.clientset.AppsV1().Deployments(k.namespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
+		}
 		return nil, fmt.Errorf("failed to create service: %w", err)
 	}
 
@@ -181,10 +251,12 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 	k.deployments[deploymentID] = &k8sDeployment{
 		DeploymentID:   deploymentID,
 		DeploymentName: deploymentName,
+		JobName:        jobName,
 		ServiceName:    serviceName,
 		VMIDs:          vmIDs,
 		Image:          image,
 		CreatedAt:      time.Now(),
+		UseJob:         useJob,
 	}
 	k.mutex.Unlock()
 
@@ -207,10 +279,38 @@ func (k *K8sBackend) GetDeploymentStatus(ctx context.Context, deploymentID strin
 		return nil, fmt.Errorf("deployment %s not found", deploymentID)
 	}
 
-	// Get deployment status
-	deployment, err := k.clientset.AppsV1().Deployments(k.namespace).Get(ctx, deploymentInfo.DeploymentName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get deployment: %w", err)
+	// Get deployment/job status
+	var state metaldv1.VmState
+	if deploymentInfo.UseJob {
+		job, err := k.clientset.BatchV1().Jobs(k.namespace).Get(ctx, deploymentInfo.JobName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get job: %w", err)
+		}
+
+		// Determine state based on job status
+		if job.Status.Succeeded > 0 {
+			state = metaldv1.VmState_VM_STATE_RUNNING
+		} else if job.Status.Failed > 0 {
+			state = metaldv1.VmState_VM_STATE_SHUTDOWN
+		} else if job.Status.Active > 0 {
+			state = metaldv1.VmState_VM_STATE_RUNNING
+		} else {
+			state = metaldv1.VmState_VM_STATE_CREATED
+		}
+	} else {
+		deployment, err := k.clientset.AppsV1().Deployments(k.namespace).Get(ctx, deploymentInfo.DeploymentName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get deployment: %w", err)
+		}
+
+		// Determine state based on deployment status
+		if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
+			state = metaldv1.VmState_VM_STATE_RUNNING
+		} else if deployment.Status.ReadyReplicas > 0 {
+			state = metaldv1.VmState_VM_STATE_RUNNING // Partially running
+		} else {
+			state = metaldv1.VmState_VM_STATE_CREATED
+		}
 	}
 
 	// Get service to find the cluster IP
@@ -221,16 +321,6 @@ func (k *K8sBackend) GetDeploymentStatus(ctx context.Context, deploymentID strin
 
 	// Create VM responses
 	vms := make([]*metaldv1.GetDeploymentResponse_Vm, 0, len(deploymentInfo.VMIDs))
-
-	// Determine state based on deployment status
-	state := metaldv1.VmState_VM_STATE_UNSPECIFIED
-	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
-		state = metaldv1.VmState_VM_STATE_RUNNING
-	} else if deployment.Status.ReadyReplicas > 0 {
-		state = metaldv1.VmState_VM_STATE_RUNNING // Partially running
-	} else {
-		state = metaldv1.VmState_VM_STATE_CREATED
-	}
 
 	// Always use cluster IP and container port for backend communication
 	host := service.Spec.ClusterIP
@@ -271,9 +361,15 @@ func (k *K8sBackend) DeleteDeployment(ctx context.Context, deploymentID string) 
 			"error", err)
 	}
 
-	// Delete deployment
-	if err := k.clientset.AppsV1().Deployments(k.namespace).Delete(ctx, deploymentInfo.DeploymentName, metav1.DeleteOptions{}); err != nil {
-		return fmt.Errorf("failed to delete deployment %s: %w", deploymentInfo.DeploymentName, err)
+	// Delete deployment or job
+	if deploymentInfo.UseJob {
+		if err := k.clientset.BatchV1().Jobs(k.namespace).Delete(ctx, deploymentInfo.JobName, metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("failed to delete job %s: %w", deploymentInfo.JobName, err)
+		}
+	} else {
+		if err := k.clientset.AppsV1().Deployments(k.namespace).Delete(ctx, deploymentInfo.DeploymentName, metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("failed to delete deployment %s: %w", deploymentInfo.DeploymentName, err)
+		}
 	}
 
 	k.logger.Info("Kubernetes deployment deleted",
