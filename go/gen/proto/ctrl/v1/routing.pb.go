@@ -28,7 +28,8 @@ type SetRouteRequest struct {
 	VersionId string                 `protobuf:"bytes,2,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
 	// Optional: for blue-green deployments
 	Weight int32 `protobuf:"varint,3,opt,name=weight,proto3" json:"weight,omitempty"` // 0-100, defaults to 100 for full cutover
-	// Required for authorization (when called via rollback)
+	// Required for authorization - must be non-empty and match caller workspace
+	// The workspace must exist and the deployment must belong to this workspace
 	WorkspaceId   string `protobuf:"bytes,4,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -510,9 +511,16 @@ type RollbackRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Hostname        string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	TargetVersionId string                 `protobuf:"bytes,2,opt,name=target_version_id,json=targetVersionId,proto3" json:"target_version_id,omitempty"`
-	WorkspaceId     string                 `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"` // Required for authorization
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Required for authorization - must be non-empty and match caller workspace
+	// The workspace must exist and the target deployment must belong to this workspace
+	//
+	// Error codes:
+	// - INVALID_ARGUMENT: workspace_id is empty or missing
+	// - NOT_FOUND: workspace doesn't exist or deployment not found in workspace
+	// - FAILED_PRECONDITION: deployment not in ready state or no running VMs
+	WorkspaceId   string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RollbackRequest) Reset() {

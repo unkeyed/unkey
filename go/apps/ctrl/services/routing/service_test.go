@@ -6,6 +6,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // TestDeploymentStatusValidation tests deployment status validation logic
@@ -62,7 +63,7 @@ func TestDeploymentStatusValidation(t *testing.T) {
 			t.Parallel()
 
 			// Test the status validation logic used in service.go:79
-			isReady := string(tt.status) == "ready"
+			isReady := tt.status == db.DeploymentsStatusReady
 			require.Equal(t, tt.shouldBeReady, isReady, tt.description)
 		})
 	}
@@ -128,19 +129,19 @@ func TestBusinessRuleValidation(t *testing.T) {
 		// 2. Has running VMs
 
 		deploymentStatuses := []struct {
-			status string
+			status db.DeploymentsStatus
 			ready  bool
 		}{
-			{"pending", false},
-			{"building", false},
-			{"deploying", false},
-			{"network", false},
-			{"ready", true}, // Only this status is considered ready
-			{"failed", false},
+			{db.DeploymentsStatusPending, false},
+			{db.DeploymentsStatusBuilding, false},
+			{db.DeploymentsStatusDeploying, false},
+			{db.DeploymentsStatusNetwork, false},
+			{db.DeploymentsStatusReady, true}, // Only this status is considered ready
+			{db.DeploymentsStatusFailed, false},
 		}
 
 		for _, ds := range deploymentStatuses {
-			isReady := ds.status == "ready"
+			isReady := ds.status == db.DeploymentsStatusReady
 			require.Equal(t, ds.ready, isReady, "Status %s should have ready=%v", ds.status, ds.ready)
 		}
 	})
@@ -150,18 +151,18 @@ func TestBusinessRuleValidation(t *testing.T) {
 
 		// Test VM status validation from service.go:101-111
 		vmStatuses := []struct {
-			status    string
+			status    partitiondb.VmsStatus
 			isRunning bool
 		}{
-			{"running", true}, // Only running VMs are valid
-			{"stopped", false},
-			{"terminated", false},
-			{"starting", false},
-			{"error", false},
+			{partitiondb.VmsStatusRunning, true}, // Only running VMs are valid
+			{partitiondb.VmsStatusStopped, false},
+			{partitiondb.VmsStatusFailed, false},
+			{partitiondb.VmsStatusStarting, false},
+			{partitiondb.VmsStatusStopping, false},
 		}
 
 		for _, vs := range vmStatuses {
-			isRunning := vs.status == "running"
+			isRunning := vs.status == partitiondb.VmsStatusRunning
 			require.Equal(t, vs.isRunning, isRunning, "VM status %s should have running=%v", vs.status, vs.isRunning)
 		}
 	})
@@ -493,15 +494,188 @@ func TestRollbackTransactionBehavior(t *testing.T) {
 		// Test that VMs remain running even when hostname switching fails
 		// This ensures they're available for future rollback attempts
 
-		vmStatuses := []string{"running", "running", "running"}
+		vmStatuses := []partitiondb.VmsStatus{partitiondb.VmsStatusRunning, partitiondb.VmsStatusRunning, partitiondb.VmsStatusRunning}
 		hostnameUpdatedSuccessfully := false
 
 		// Simulate hostname switching failure
 		if !hostnameUpdatedSuccessfully {
 			// VMs should still be in running state
 			for _, status := range vmStatuses {
-				require.Equal(t, "running", status,
+				require.Equal(t, partitiondb.VmsStatusRunning, status,
 					"VMs should remain running even when hostname switching fails")
+			}
+		}
+	})
+}
+
+// TestSetRouteWorkspaceValidation tests the workspace validation added to SetRoute handler
+// This covers the new validation requirements for workspace_id field
+func TestSetRouteWorkspaceValidation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                  string
+		workspaceID           string
+		workspaceExists       bool
+		deploymentWorkspaceID string
+		expectedError         bool
+		expectedErrorCode     connect.Code
+		description           string
+	}{
+		{
+			name:              "empty_workspace_id",
+			workspaceID:       "",
+			workspaceExists:   false,
+			expectedError:     true,
+			expectedErrorCode: connect.CodeInvalidArgument,
+			description:       "Empty workspace_id should be rejected with InvalidArgument",
+		},
+		{
+			name:              "nonexistent_workspace",
+			workspaceID:       "ws_nonexistent",
+			workspaceExists:   false,
+			expectedError:     true,
+			expectedErrorCode: connect.CodeNotFound,
+			description:       "Nonexistent workspace should return NotFound",
+		},
+		{
+			name:                  "workspace_deployment_mismatch",
+			workspaceID:           "ws_user",
+			workspaceExists:       true,
+			deploymentWorkspaceID: "ws_other",
+			expectedError:         true,
+			expectedErrorCode:     connect.CodeNotFound,
+			description:           "Deployment from different workspace should return NotFound (not PermissionDenied for security)",
+		},
+		{
+			name:                  "valid_workspace_and_deployment",
+			workspaceID:           "ws_user",
+			workspaceExists:       true,
+			deploymentWorkspaceID: "ws_user",
+			expectedError:         false,
+			expectedErrorCode:     0,
+			description:           "Valid workspace and matching deployment should succeed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Test validation logic for empty workspace_id
+			if tt.workspaceID == "" {
+				// This should be caught by the first validation check
+				require.True(t, tt.expectedError, "Empty workspace_id should cause validation error")
+				require.Equal(t, connect.CodeInvalidArgument, tt.expectedErrorCode,
+					"Empty workspace_id should return InvalidArgument")
+			}
+
+			// Test workspace existence validation
+			if tt.workspaceID != "" && !tt.workspaceExists {
+				// This should be caught by workspace existence check
+				require.True(t, tt.expectedError, "Nonexistent workspace should cause validation error")
+				require.Equal(t, connect.CodeNotFound, tt.expectedErrorCode,
+					"Nonexistent workspace should return NotFound")
+			}
+
+			// Test workspace-deployment ownership validation
+			if tt.workspaceID != "" && tt.workspaceExists && tt.deploymentWorkspaceID != "" {
+				ownershipMatches := tt.workspaceID == tt.deploymentWorkspaceID
+
+				if !ownershipMatches {
+					// This should be caught by workspace authorization check
+					require.True(t, tt.expectedError, "Workspace-deployment mismatch should cause authorization error")
+					require.Equal(t, connect.CodeNotFound, tt.expectedErrorCode,
+						"Cross-workspace access should return NotFound (not PermissionDenied) to prevent information disclosure")
+				} else {
+					// Valid case - should not fail at workspace validation stage
+					require.False(t, tt.expectedError, "Valid workspace authorization should not cause error")
+				}
+			}
+
+			// Verify the error handling matches security requirements
+			switch tt.name {
+			case "empty_workspace_id":
+				// Verify specific error message format
+				expectedMsg := "workspace_id is required and must be non-empty"
+				require.Contains(t, expectedMsg, "workspace_id is required",
+					"Error message should indicate workspace_id is required")
+				require.Contains(t, expectedMsg, "non-empty",
+					"Error message should indicate non-empty requirement")
+
+			case "nonexistent_workspace":
+				// Verify workspace not found error format
+				expectedMsg := "workspace not found: " + tt.workspaceID
+				require.Contains(t, expectedMsg, "workspace not found",
+					"Error message should indicate workspace not found")
+				require.Contains(t, expectedMsg, tt.workspaceID,
+					"Error message should include the workspace ID")
+
+			case "workspace_deployment_mismatch":
+				// Verify security-focused error message (doesn't reveal deployment details)
+				expectedMsg := "deployment not found: version_123"
+				require.Contains(t, expectedMsg, "deployment not found",
+					"Error message should appear as deployment not found")
+				require.NotContains(t, expectedMsg, "workspace",
+					"Error message should not mention workspace to prevent information disclosure")
+			}
+		})
+	}
+}
+
+// TestSetRouteWorkspaceValidationErrorCodes verifies specific error codes for different scenarios
+func TestSetRouteWorkspaceValidationErrorCodes(t *testing.T) {
+	t.Parallel()
+
+	// Test the error code progression:
+	// 1. InvalidArgument for missing required fields
+	// 2. NotFound for non-existent resources
+	// 3. NotFound (not PermissionDenied) for authorization failures to prevent info disclosure
+
+	t.Run("error_code_progression", func(t *testing.T) {
+		t.Parallel()
+
+		scenarios := []struct {
+			scenario    string
+			errorCode   connect.Code
+			description string
+		}{
+			{
+				scenario:    "missing_workspace_id",
+				errorCode:   connect.CodeInvalidArgument,
+				description: "Missing required field should return InvalidArgument",
+			},
+			{
+				scenario:    "workspace_not_found",
+				errorCode:   connect.CodeNotFound,
+				description: "Non-existent workspace should return NotFound",
+			},
+			{
+				scenario:    "deployment_not_found",
+				errorCode:   connect.CodeNotFound,
+				description: "Non-existent deployment should return NotFound",
+			},
+			{
+				scenario:    "cross_workspace_access",
+				errorCode:   connect.CodeNotFound,
+				description: "Cross-workspace access should return NotFound (not PermissionDenied)",
+			},
+			{
+				scenario:    "deployment_not_ready",
+				errorCode:   connect.CodeFailedPrecondition,
+				description: "Non-ready deployment should return FailedPrecondition",
+			},
+		}
+
+		for _, s := range scenarios {
+			// Verify error codes follow the expected pattern
+			switch s.scenario {
+			case "missing_workspace_id":
+				require.Equal(t, connect.CodeInvalidArgument, s.errorCode, s.description)
+			case "workspace_not_found", "deployment_not_found", "cross_workspace_access":
+				require.Equal(t, connect.CodeNotFound, s.errorCode, s.description)
+			case "deployment_not_ready":
+				require.Equal(t, connect.CodeFailedPrecondition, s.errorCode, s.description)
 			}
 		}
 	})

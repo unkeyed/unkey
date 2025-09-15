@@ -13,7 +13,8 @@ message SetRouteRequest {
   // Optional: for blue-green deployments
   int32 weight = 3;  // 0-100, defaults to 100 for full cutover
   
-  // Required for authorization (when called via rollback)
+  // Required for authorization - must be non-empty and match caller workspace
+  // The workspace must exist and the deployment must belong to this workspace
   string workspace_id = 4;
 }
 
@@ -73,7 +74,15 @@ message Route {
 message RollbackRequest {
   string hostname = 1;
   string target_version_id = 2;
-  string workspace_id = 3;  // Required for authorization
+
+  // Required for authorization - must be non-empty and match caller workspace
+  // The workspace must exist and the target deployment must belong to this workspace
+  //
+  // Error codes:
+  // - INVALID_ARGUMENT: workspace_id is empty or missing
+  // - NOT_FOUND: workspace doesn't exist or deployment not found in workspace
+  // - FAILED_PRECONDITION: deployment not in ready state or no running VMs
+  string workspace_id = 3;
 }
 
 message RollbackResponse {
@@ -93,5 +102,6 @@ service RoutingService {
   rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse) {}
   
   // Convenience method for rollback (just calls SetRoute internally)
+  // Requires workspace_id authorization - validates workspace ownership before routing change
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
 }

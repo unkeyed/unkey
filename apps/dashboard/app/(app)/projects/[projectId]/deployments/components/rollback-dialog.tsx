@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { Deployment } from "@/lib/collections";
 import { CircleInfo, Cloud, CodeBranch, CodeCommit } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
-import { useState } from "react";
+import React from "react";
 
 type RollbackDialogProps = {
   isOpen: boolean;
@@ -21,8 +21,6 @@ export const RollbackDialog = ({
   currentDeployment,
   hostname,
 }: RollbackDialogProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-
   const utils = trpc.useUtils();
   const rollback = trpc.deploy.rollback.useMutation({
     onSuccess: () => {
@@ -37,9 +35,6 @@ export const RollbackDialog = ({
         description: error.message,
       });
     },
-    onSettled: () => {
-      setIsLoading(false);
-    },
   });
 
   const handleRollback = async () => {
@@ -50,7 +45,6 @@ export const RollbackDialog = ({
       return;
     }
 
-    setIsLoading(true);
     try {
       await rollback.mutateAsync({
         hostname,
@@ -73,8 +67,8 @@ export const RollbackDialog = ({
             variant="primary"
             size="xlg"
             onClick={handleRollback}
-            disabled={isLoading || rollback.isLoading}
-            loading={isLoading || rollback.isLoading}
+            disabled={rollback.isLoading}
+            loading={rollback.isLoading}
             className="w-full rounded-lg"
           >
             Rollback to target version

@@ -40,6 +40,26 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	versionID := req.Msg.GetVersionId()
 	workspaceID := req.Msg.GetWorkspaceId()
 
+	// Validate required workspace_id
+	if workspaceID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("workspace_id is required and must be non-empty"))
+	}
+
+	// Validate workspace exists
+	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), workspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("workspace not found: %s", workspaceID))
+		}
+		s.logger.ErrorContext(ctx, "failed to validate workspace",
+			slog.String("workspace_id", workspaceID),
+			slog.String("error", err.Error()),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to validate workspace: %w", err))
+	}
+
 	s.logger.InfoContext(ctx, "setting route",
 		slog.String("hostname", hostname),
 		slog.String("version_id", versionID),
@@ -82,9 +102,9 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Verify workspace authorization if workspace_id is provided
+	// Verify workspace authorization - workspace_id must match deployment's workspace
 	// This prevents cross-tenant access when called through rollback or other authenticated endpoints
-	if workspaceID != "" && deployment.WorkspaceID != workspaceID {
+	if deployment.WorkspaceID != workspaceID {
 		s.logger.ErrorContext(ctx, "workspace authorization failed in SetRoute",
 			slog.String("requested_workspace_id", workspaceID),
 			slog.String("deployment_workspace_id", deployment.WorkspaceID),
@@ -94,7 +114,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 			fmt.Errorf("deployment not found: %s", versionID))
 	}
 
-	if deployment.Status != "ready" {
+	if deployment.Status != db.DeploymentsStatusReady {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("deployment %s is not in ready state, current status: %s", versionID, deployment.Status))
 	}
@@ -118,7 +138,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	// Check that at least some VMs are running
 	runningVMCount := 0
 	for _, vm := range vms {
-		if vm.Status == "running" {
+		if vm.Status == partitiondb.VmsStatusRunning {
 			runningVMCount++
 		}
 	}

@@ -50,6 +50,13 @@ export const rollback = t.procedure
         });
       }
 
+     if (deployment.status !== "ready") {
+       throw new TRPCError({
+         code: "PRECONDITION_FAILED",
+         message: `Deployment ${targetVersionId} is not ready (status: ${deployment.status})`,
+       });
+     }
+
       // Make request to ctrl service rollback endpoint
       const rollbackRequest = {
         hostname,
@@ -120,8 +127,8 @@ export const rollback = t.procedure
           },
         ],
         context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
+          location: ctx.audit?.location ?? 'unknown',
+          userAgent: ctx.audit?.userAgent ?? 'unknown',
         },
       });
 
