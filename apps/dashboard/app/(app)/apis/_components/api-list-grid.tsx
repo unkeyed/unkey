@@ -43,7 +43,8 @@ export const ApiListGrid = ({
 
       <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
         <div className="text-center text-sm text-accent-11">
-          Showing {apiList.length} of {total} APIs
+          Showing {new Intl.NumberFormat().format(apiList.length)} of{" "}
+          {new Intl.NumberFormat().format(total)} APIs
         </div>
 
         {!isSearching && hasMore && (
