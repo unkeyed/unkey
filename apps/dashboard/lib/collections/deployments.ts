@@ -42,7 +42,7 @@ export const deployments = createCollection<Deployment>(
     queryClient,
     queryKey: ["deployments"],
     retry: 3,
-    queryFn: () => trpcClient.deployment.list.query(),
+    queryFn: () => trpcClient.deploy.deployment.list.query(),
 
     getKey: (item) => item.id,
     onInsert: async () => {

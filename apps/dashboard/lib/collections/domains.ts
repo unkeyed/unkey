@@ -18,7 +18,7 @@ export const domains = createCollection<Domain>(
     queryClient,
     queryKey: ["domains"],
     retry: 3,
-    queryFn: () => trpcClient.domain.list.query(),
+    queryFn: () => trpcClient.deploy.domain.list.query(),
 
     getKey: (item) => item.id,
     onInsert: async () => {

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
+import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const listDeployments = t.procedure
   .use(requireUser)

@@ -36,7 +36,7 @@ export const projects = createCollection<Project>(
     queryKey: ["projects"],
     retry: 3,
     queryFn: async () => {
-      return await trpcClient.project.list.query();
+      return await trpcClient.deploy.project.list.query();
     },
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
@@ -47,7 +47,7 @@ export const projects = createCollection<Project>(
         slug: changes.slug,
         gitRepositoryUrl: changes.gitRepositoryUrl,
       });
-      const mutation = trpcClient.project.create.mutate(createInput);
+      const mutation = trpcClient.deploy.project.create.mutate(createInput);
 
       toast.promise(mutation, {
         loading: "Creating project...",

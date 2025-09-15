@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
+import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
 
 export const getById = t.procedure
   .use(requireUser)

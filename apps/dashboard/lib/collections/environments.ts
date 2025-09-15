@@ -17,8 +17,7 @@ export const environments = createCollection<Environment>(
     queryClient,
     queryKey: ["environments"],
     retry: 3,
-    queryFn: () => trpcClient.environment.list.query(),
-
+    queryFn: () => trpcClient.deploy.environment.list.query(),
     getKey: (item) => item.id,
     onInsert: async () => {
       throw new Error("Not implemented");

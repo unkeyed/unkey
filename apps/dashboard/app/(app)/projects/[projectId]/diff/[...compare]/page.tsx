@@ -47,7 +47,7 @@ export default function DiffPage({ params }: Props) {
     data: diffData,
     isLoading: diffLoading,
     error: diffError,
-  } = trpc.deployment.getOpenApiDiff.useQuery(
+  } = trpc.deploy.deployment.getOpenApiDiff.useQuery(
     {
       oldDeploymentId: selectedFromDeployment,
       newDeploymentId: selectedToDeployment,

@@ -37,11 +37,14 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { getDeploymentBuildLogs } from "./deployment/buildLogs";
-import { getOpenApiDiff } from "./deployment/getOpenApiDiff";
-import { listDeployments } from "./deployment/list";
-import { searchDeployments } from "./deployment/llm-search";
-import { listDomains } from "./domains/list";
+import { getDeploymentBuildLogs } from "./deploy/deployment/buildLogs";
+import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { listDeployments } from "./deploy/deployment/list";
+import { searchDeployments } from "./deploy/deployment/llm-search";
+import { listDomains } from "./deploy/domains/list";
+import { getEnvs } from "./deploy/envs/list";
+import { createProject } from "./deploy/project/create";
+import { listProjects } from "./deploy/project/list";
 import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
@@ -80,9 +83,6 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { createProject } from "./project/create";
-import { getEnvs } from "./project/envs/list";
-import { listProjects } from "./project/list";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
@@ -311,24 +311,24 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
-  project: t.router({
-    list: listProjects,
-    create: createProject,
-  }),
-  domain: t.router({
-    list: listDomains,
-  }),
-  deployment: t.router({
-    list: listDeployments,
-    search: searchDeployments,
-    getOpenApiDiff: getOpenApiDiff,
-    buildLogs: getDeploymentBuildLogs,
-  }),
-  environment: t.router({
-    list: listEnvironments,
-  }),
-  environmentVariables: t.router({
-    list: getEnvs,
+  deploy: t.router({
+    project: t.router({
+      list: listProjects,
+      create: createProject,
+    }),
+    environment: t.router({
+      list_dummy: getEnvs,
+      list: listEnvironments,
+    }),
+    domain: t.router({
+      list: listDomains,
+    }),
+    deployment: t.router({
+      list: listDeployments,
+      search: searchDeployments,
+      getOpenApiDiff: getOpenApiDiff,
+      buildLogs: getDeploymentBuildLogs,
+    }),
   }),
 });
 
