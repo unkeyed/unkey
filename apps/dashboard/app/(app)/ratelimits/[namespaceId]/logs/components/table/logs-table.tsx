@@ -3,6 +3,7 @@
 import { safeParseJson } from "@/app/(app)/logs/utils";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { BookBookmark } from "@unkey/icons";
@@ -237,10 +238,10 @@ export const RatelimitLogsTable = () => {
           <div className="flex gap-2">
             <span>Showing</span>{" "}
             <span className="text-accent-12">
-              {new Intl.NumberFormat().format(historicalLogs.length)}
+              {formatNumberFull(historicalLogs.length)}
             </span>
             <span>of</span>
-            {new Intl.NumberFormat().format(totalCount)}
+            {formatNumberFull(totalCount)}
             <span>ratelimit requests</span>
           </div>
         ),

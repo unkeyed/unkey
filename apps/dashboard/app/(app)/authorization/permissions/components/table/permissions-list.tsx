@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { BookBookmark, Page2 } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
@@ -212,10 +213,10 @@ export const PermissionsList = () => {
           <div className="flex gap-2">
             <span>Showing</span>{" "}
             <span className="text-accent-12">
-              {new Intl.NumberFormat().format(permissions.length)}
+              {formatNumberFull(permissions.length)}
             </span>
             <span>of</span>
-            {new Intl.NumberFormat().format(totalCount)}
+            {formatNumberFull(totalCount)}
             <span>permissions</span>
           </div>
         ),

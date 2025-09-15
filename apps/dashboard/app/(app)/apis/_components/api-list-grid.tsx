@@ -1,4 +1,5 @@
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
+import { formatNumberFull } from "@/lib/fmt";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { ChevronDown } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -43,8 +44,8 @@ export const ApiListGrid = ({
 
       <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
         <div className="text-center text-sm text-accent-11">
-          Showing {new Intl.NumberFormat().format(apiList.length)} of{" "}
-          {new Intl.NumberFormat().format(total)} APIs
+          Showing {formatNumberFull(apiList.length)} of{" "}
+          {formatNumberFull(total)} APIs
         </div>
 
         {!isSearching && hasMore && (

@@ -2,6 +2,7 @@
 import { HiddenValueCell } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
 import { BookBookmark, Dots, Key2 } from "@unkey/icons";
@@ -93,10 +94,10 @@ export const RootKeysList = () => {
         <div className="flex gap-2">
           <span>Showing</span>{" "}
           <span className="text-accent-12">
-            {new Intl.NumberFormat().format(rootKeys.length)}
+            {formatNumberFull(rootKeys.length)}
           </span>
           <span>of</span>
-          {new Intl.NumberFormat().format(totalCount)}
+          {formatNumberFull(totalCount)}
           <span>root keys</span>
         </div>
       ),

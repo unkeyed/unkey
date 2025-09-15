@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
@@ -351,10 +352,10 @@ export const KeysList = ({
             <div className="flex gap-2">
               <span>Showing</span>{" "}
               <span className="text-accent-12">
-                {new Intl.NumberFormat().format(keys.length)}
+                {formatNumberFull(keys.length)}
               </span>
               <span>of</span>
-              {new Intl.NumberFormat().format(totalCount)}
+              {formatNumberFull(totalCount)}
               <span>keys</span>
             </div>
           ),

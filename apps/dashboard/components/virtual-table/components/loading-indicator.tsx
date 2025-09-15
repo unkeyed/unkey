@@ -1,3 +1,4 @@
+import { formatNumberFull } from "@/lib/fmt";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useCallback, useState } from "react";
@@ -57,9 +58,9 @@ export const LoadMoreFooter = ({
           type="button"
           onClick={handleOpen}
           className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
-          title={`${buttonText} • ${new Intl.NumberFormat().format(
+          title={`${buttonText} • ${formatNumberFull(
             totalVisible
-          )} of ${new Intl.NumberFormat().format(totalCount)} ${itemLabel}`}
+          )} of ${formatNumberFull(totalCount)} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
@@ -125,11 +126,11 @@ export const LoadMoreFooter = ({
               <div className="flex gap-2 transition-all duration-200">
                 <span>Viewing</span>
                 <span className="text-accent-12 transition-colors duration-200">
-                  {new Intl.NumberFormat().format(totalVisible)}
+                  {formatNumberFull(totalVisible)}
                 </span>
                 <span>of</span>
                 <span className="text-grayA-12 transition-colors duration-200">
-                  {new Intl.NumberFormat().format(totalCount)}
+                  {formatNumberFull(totalCount)}
                 </span>
                 <span>{itemLabel}</span>
               </div>

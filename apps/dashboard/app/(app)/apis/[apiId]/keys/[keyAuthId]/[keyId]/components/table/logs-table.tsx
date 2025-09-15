@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
@@ -491,10 +492,10 @@ export const KeyDetailsLogsTable = ({
             <div className="flex gap-2">
               <span>Showing</span>{" "}
               <span className="text-accent-12">
-                {new Intl.NumberFormat().format(historicalLogs.length)}
+                {formatNumberFull(historicalLogs.length)}
               </span>
               <span>of</span>
-              {new Intl.NumberFormat().format(totalCount)}
+              {formatNumberFull(totalCount)}
               <span>requests</span>
             </div>
           ),

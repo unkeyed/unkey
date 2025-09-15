@@ -1,4 +1,5 @@
 import { LoadMoreFooter } from "@/components/virtual-table/components/loading-indicator";
+import { formatNumberFull } from "@/lib/fmt";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsListQuery } from "./hooks/use-projects-list-query";
@@ -115,11 +116,11 @@ export const ProjectsList = () => {
             <div className="flex gap-2">
               <span>Viewing</span>
               <span className="text-accent-12">
-                {new Intl.NumberFormat().format(projects.length)}
+                {formatNumberFull(projects.length)}
               </span>
               <span>of</span>
               <span className="text-grayA-12">
-                {new Intl.NumberFormat().format(totalCount)}
+                {formatNumberFull(totalCount)}
               </span>
               <span>projects</span>
             </div>

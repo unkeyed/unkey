@@ -2,6 +2,7 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatNumberFull } from "@/lib/fmt";
 import { shortenId } from "@/lib/shorten-id";
 import type { Deployment } from "@/lib/trpc/routers/deploy/project/deployment/list";
 import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
@@ -325,10 +326,10 @@ export const DeploymentsList = () => {
           <div className="flex gap-2">
             <span>Showing</span>{" "}
             <span className="text-accent-12">
-              {new Intl.NumberFormat().format(deployments.length)}
+              {formatNumberFull(deployments.length)}
             </span>
             <span>of</span>
-            {new Intl.NumberFormat().format(totalCount)}
+            {formatNumberFull(totalCount)}
             <span>deployments</span>
           </div>
         ),
