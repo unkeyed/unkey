@@ -104,8 +104,13 @@ else
     # Linux configuration
     DNSMASQ_CONF="/etc/dnsmasq.d/unkey.local.conf"
 
-    # Create configuration
-    echo "address=/unkey.local/127.0.0.1" | sudo tee "$DNSMASQ_CONF" > /dev/null
+    # Create configuration in dnsmasq.d directory (included by default in most dnsmasq setups)
+    # This keeps our config separate from the main dnsmasq configuration
+    {
+        echo "# Unkey local development DNS configuration"
+        echo "# Resolve all *.unkey.local domains to localhost"
+        echo "address=/unkey.local/127.0.0.1"
+    } | sudo tee "$DNSMASQ_CONF" > /dev/null
     echo "Configured dnsmasq to resolve *.unkey.local to 127.0.0.1"
 
     # Restart dnsmasq service

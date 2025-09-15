@@ -146,6 +146,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		DefaultDomain: cmd.String("default-domain"),
 
+		// Docker configuration
+		IsRunningDocker: cmd.Bool("docker-running"),
+
 		// Common
 		Clock: clock.New(),
 	}

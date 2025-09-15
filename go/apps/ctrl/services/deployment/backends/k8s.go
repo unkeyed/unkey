@@ -107,7 +107,7 @@ func (k *K8sBackend) CreateDeployment(ctx context.Context, deploymentID string, 
 				},
 			},
 			Spec: batchv1.JobSpec{
-				TTLSecondsAfterFinished: &k.ttlSeconds,       // Auto-cleanup after completion
+				TTLSecondsAfterFinished: &k.ttlSeconds,              // Auto-cleanup after completion
 				ActiveDeadlineSeconds:   ptr.P(int64(k.ttlSeconds)), // Max runtime
 				Parallelism:             ptr.P(int32(vmCount)),
 				Completions:             ptr.P(int32(vmCount)),

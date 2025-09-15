@@ -217,7 +217,7 @@ services:
       UNKEY_TLS_ENABLED: true
       UNKEY_DEFAULT_CERT_DOMAIN: "unkey.local"
       UNKEY_MAIN_DOMAIN: "unkey.local"
-      UNKEY_CTRL_ADDR: "ctrl:7091"
+      UNKEY_CTRL_ADDR: "http://ctrl:7091"
       UNKEY_REQUIRE_LOCAL_CERT: true
 
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"

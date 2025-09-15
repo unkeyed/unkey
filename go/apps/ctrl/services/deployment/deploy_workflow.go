@@ -29,13 +29,13 @@ type DeployWorkflow struct {
 }
 
 type DeployWorkflowConfig struct {
-	Logger           logging.Logger
-	DB               db.Database
-	PartitionDB      db.Database
-	MetalD           metaldv1connect.VmServiceClient
-	MetaldBackend    string
-	DefaultDomain    string
-	IsRunningDocker  bool
+	Logger          logging.Logger
+	DB              db.Database
+	PartitionDB     db.Database
+	MetalD          metaldv1connect.VmServiceClient
+	MetaldBackend   string
+	DefaultDomain   string
+	IsRunningDocker bool
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
