@@ -107,7 +107,7 @@ install: install-server install-agent ## Install both SPIRE server and agent
 	@echo "Next steps: 'make service-start-server', then 'make register-agent', then 'make register-services'"
 
 .PHONY: install-agent
-install-agent: download-spire create-users setup-directories ## Install SPIRE agent
+install-agent: download-spire setup-directories ## Install SPIRE agent
 	@sudo systemctl stop spire-agent 2>/dev/null || true
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-agent
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/spire-agent.service

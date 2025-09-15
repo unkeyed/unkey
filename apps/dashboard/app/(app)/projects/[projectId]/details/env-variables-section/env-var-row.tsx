@@ -1,104 +1,132 @@
-import type { EnvVar } from "@/lib/trpc/routers/deploy/project/envs/list";
+import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
-import { Button, Input } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { Button } from "@unkey/ui";
+import { useState } from "react";
+import { EnvVarForm } from "./components/env-var-form";
+import type { EnvVar } from "./types";
 
 type EnvVarRowProps = {
   envVar: EnvVar;
-  isEditing: boolean;
-  onEdit: () => void;
-  onSave: (updates: Partial<EnvVar>) => void;
-  onDelete: () => void;
-  onCancel: () => void;
+  projectId: string;
+  getExistingEnvVar: (key: string, excludeId?: string) => EnvVar | undefined;
 };
 
-export function EnvVarRow({
-  envVar,
-  isEditing,
-  onEdit,
-  onSave,
-  onDelete,
-  onCancel,
-}: EnvVarRowProps) {
-  const [editKey, setEditKey] = useState(envVar.key);
-  const [editValue, setEditValue] = useState(envVar.value);
-  const [isValueVisible, setIsValueVisible] = useState(false);
+export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDecrypted, setIsDecrypted] = useState(false);
+  // INFO: Won't be necessary once we add tRPC then we can use isSubmitting
+  const [isSecretLoading, setIsSecretLoading] = useState(false);
+  const [decryptedValue, setDecryptedValue] = useState<string>();
 
-  // Make value visible when entering edit mode
-  useEffect(() => {
-    if (isEditing) {
-      setIsValueVisible(true);
-    }
-  }, [isEditing]);
+  const trpcUtils = trpc.useUtils();
 
-  const handleSave = () => {
-    if (!editKey.trim() || !editValue.trim()) {
-      return;
+  // TODO: Add mutations when available
+  // const deleteMutation = trpc.deploy.project.envs.delete.useMutation();
+  // const decryptMutation = trpc.deploy.project.envs.decrypt.useMutation();
+
+  const handleDelete = async () => {
+    try {
+      // TODO: Call tRPC delete when available
+      // await deleteMutation.mutateAsync({
+      //   projectId,
+      //   id: envVar.id
+      // });
+
+      // Mock successful delete for now
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Invalidate to refresh data
+      await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
+    } catch (error) {
+      console.error("Failed to delete env var:", error);
     }
-    onSave({ key: editKey.trim(), value: editValue.trim() });
   };
 
-  const handleCancel = () => {
-    setEditKey(envVar.key);
-    setEditValue(envVar.value);
-    setIsValueVisible(false);
-    onCancel();
+  const handleToggleSecret = async () => {
+    if (envVar.type !== "secret") {
+      return;
+    }
+
+    // This stupid nested branching won't be necessary once we have the actual tRPC. So disregard this when reviewing
+    if (isDecrypted) {
+      setIsDecrypted(false);
+    } else {
+      if (decryptedValue) {
+        setIsDecrypted(true);
+      } else {
+        setIsSecretLoading(true);
+        try {
+          // TODO: Call tRPC decrypt when available
+          // const result = await decryptMutation.mutateAsync({
+          //   projectId,
+          //   envVarId: envVar.id
+          // });
+
+          // Mock decrypted value for now
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          const mockDecrypted = `decrypted-${envVar.key}`;
+
+          setDecryptedValue(mockDecrypted);
+          setIsDecrypted(true);
+        } catch (error) {
+          console.error("Failed to decrypt secret:", error);
+        } finally {
+          setIsSecretLoading(false);
+        }
+      }
+    }
   };
 
   if (isEditing) {
     return (
-      <div className="w-full flex px-4 py-3 bg-gray-2 h-12">
-        <div className="w-fit flex gap-2 items-center font-mono">
-          <Input
-            value={editKey}
-            onChange={(e) => setEditKey(e.target.value)}
-            placeholder="Variable name"
-            className="min-h-[32px] text-xs w-48 "
-            autoFocus
-          />
-          <span className="text-gray-9 text-xs px-1">=</span>
-          <Input
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            placeholder="Variable value"
-            className="min-h-[32px] text-xs flex-1"
-            type="text"
-          />
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button
-            variant="outline"
-            className="text-xs"
-            onClick={handleSave}
-            disabled={!editKey.trim() || !editValue.trim()}
-          >
-            Save
-          </Button>
-          <Button variant="outline" onClick={handleCancel} className="text-xs">
-            Cancel
-          </Button>
-        </div>
-      </div>
+      <EnvVarForm
+        initialData={{
+          key: envVar.key,
+          value: envVar.type === "secret" && !isDecrypted ? "" : (decryptedValue ?? envVar.value),
+          type: envVar.type,
+        }}
+        projectId={projectId}
+        decrypted={isDecrypted}
+        getExistingEnvVar={getExistingEnvVar}
+        excludeId={envVar.id}
+        onSuccess={() => setIsEditing(false)}
+        onCancel={() => setIsEditing(false)}
+        className="w-full flex px-4 py-3 bg-gray-2 h-12"
+      />
     );
   }
 
   return (
     <div className="w-full px-4 py-3 flex items-center hover:bg-gray-2 transition-colors border-b border-gray-4 last:border-b-0 h-12">
       <div className="flex items-center flex-1 min-w-0">
-        <div className="text-gray-12 font-medium text-xs font-mono w-48 truncate">{envVar.key}</div>
+        <div className="text-gray-12 font-medium text-xs font-mono w-28 truncate">{envVar.key}</div>
         <span className="text-gray-9 text-xs px-2">=</span>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="text-gray-10 text-xs font-mono truncate flex-1">
-            {envVar.isSecret && !isValueVisible ? "••••••••••••••••" : envVar.value}
+          <div
+            className={cn(
+              "text-gray-11 text-xs font-mono truncate flex-1",
+              isSecretLoading && "text-gray-7",
+            )}
+          >
+            {envVar.type === "secret" && !isDecrypted
+              ? "••••••••••••••••"
+              : envVar.type === "secret" && isSecretLoading
+                ? "Loading..."
+                : envVar.type === "secret" && isDecrypted && decryptedValue
+                  ? decryptedValue
+                  : envVar.value}
           </div>
-          {envVar.isSecret && (
+          {envVar.type === "secret" && (
             <Button
               size="icon"
               variant="outline"
-              onClick={() => setIsValueVisible(!isValueVisible)}
+              onClick={handleToggleSecret}
+              disabled={isSecretLoading}
               className="size-7 text-gray-9 hover:text-gray-11 shrink-0"
+              loading={isSecretLoading}
             >
-              {isValueVisible ? (
+              {isDecrypted ? (
                 <EyeSlash className="!size-[14px]" size="sm-medium" />
               ) : (
                 <Eye className="!size-[14px]" size="sm-medium" />
@@ -108,10 +136,17 @@ export function EnvVarRow({
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 ml-2">
-        <Button size="icon" variant="outline" onClick={onEdit} className="size-7 text-gray-9">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={() => {
+            handleToggleSecret().then(() => setIsEditing(true));
+          }}
+          className="size-7 text-gray-9"
+        >
           <PenWriting3 className="!size-[14px]" size="sm-medium" />
         </Button>
-        <Button size="icon" variant="outline" onClick={onDelete} className="size-7 text-gray-9">
+        <Button size="icon" variant="outline" onClick={handleDelete} className="size-7 text-gray-9">
           <Trash className="!size-[14px]" size="sm-medium" />
         </Button>
       </div>

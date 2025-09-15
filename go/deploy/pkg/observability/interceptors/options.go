@@ -26,12 +26,6 @@ type Options struct {
 	// EnableRequestDurationMetric controls whether to record request duration histogram.
 	EnableRequestDurationMetric bool
 
-	// TenantAuthRequired controls whether tenant authentication is enforced.
-	TenantAuthRequired bool
-
-	// TenantAuthExemptProcedures lists RPC procedures that don't require tenant auth.
-	TenantAuthExemptProcedures []string
-
 	// EnablePanicStackTrace controls whether to log full stack traces on panic.
 	EnablePanicStackTrace bool
 
@@ -78,14 +72,6 @@ func WithRequestDurationMetric(enabled bool) Option {
 	}
 }
 
-// WithTenantAuth configures tenant authentication requirements.
-func WithTenantAuth(required bool, exemptProcedures ...string) Option {
-	return func(o *Options) {
-		o.TenantAuthRequired = required
-		o.TenantAuthExemptProcedures = exemptProcedures
-	}
-}
-
 // WithPanicStackTrace enables logging of full stack traces on panic.
 func WithPanicStackTrace(enabled bool) Option {
 	return func(o *Options) {
@@ -107,7 +93,6 @@ func applyOptions(opts []Option) *Options {
 		ServiceName:                 "unknown",
 		EnableActiveRequestsMetric:  true,
 		EnableRequestDurationMetric: false,
-		TenantAuthRequired:          true,
 		EnablePanicStackTrace:       true,
 		EnableErrorResampling:       true,
 	}
