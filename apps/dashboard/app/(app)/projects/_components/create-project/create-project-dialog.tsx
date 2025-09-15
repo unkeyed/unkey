@@ -35,7 +35,7 @@ export const CreateProjectDialog = () => {
 
   const onSubmitForm = async (values: CreateProjectRequestSchema) => {
     try {
-      collection.projects.insert({
+      const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
         gitRepositoryUrl: values.gitRepositoryUrl || null,
@@ -43,6 +43,7 @@ export const CreateProjectDialog = () => {
         updatedAt: null,
         id: "will-be-replace-by-server",
       });
+      await tx.isPersisted.promise;
 
       reset();
       setIsModalOpen(false);
