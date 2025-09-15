@@ -23,7 +23,10 @@ export interface Cookie {
 /**
  * Get a cookie value by name
  */
-export async function getCookie(name: string, request?: NextRequest): Promise<string | null> {
+export async function getCookie(
+  name: string,
+  request?: NextRequest
+): Promise<string | null> {
   const cookieStore = request?.cookies || cookies();
   return cookieStore.get(name)?.value ?? null;
 }
@@ -63,7 +66,7 @@ export async function deleteCookie(name: string): Promise<void> {
 export async function updateCookie(
   cookieName: string,
   value: string | null | undefined,
-  reason?: string,
+  reason?: string
 ): Promise<void> {
   if (value) {
     await setCookie({
@@ -90,7 +93,7 @@ export async function updateCookie(
  */
 export async function setCookiesOnResponse(
   response: NextResponse,
-  cookieList: Cookie[],
+  cookieList: Cookie[]
 ): Promise<NextResponse> {
   for (const cookie of cookieList) {
     response.cookies.set(cookie.name, cookie.value, cookie.options);
@@ -116,13 +119,16 @@ export async function setSessionCookie(params: {
       secure: true,
       sameSite: "strict",
       path: "/",
-      maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+      maxAge: Math.max(
+        0,
+        Math.floor((expiresAt.getTime() - Date.now()) / 1000)
+      ),
     },
   });
 }
 
 export async function getCookieOptionsAsString(
-  options: Partial<CookieOptions> = {},
+  options: Partial<CookieOptions> = {}
 ): Promise<string> {
   // Set defaults if not provided
   const defaultOptions: CookieOptions = {
@@ -147,7 +153,8 @@ export async function getCookieOptionsAsString(
 
   if (mergedOptions.sameSite) {
     const capitalizedSameSite =
-      mergedOptions.sameSite.charAt(0).toUpperCase() + mergedOptions.sameSite.slice(1);
+      mergedOptions.sameSite.charAt(0).toUpperCase() +
+      mergedOptions.sameSite.slice(1);
     cookieString += `; SameSite=${capitalizedSameSite}`;
   }
 
