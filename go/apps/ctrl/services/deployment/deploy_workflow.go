@@ -29,18 +29,19 @@ type DeployWorkflow struct {
 }
 
 type DeployWorkflowConfig struct {
-	Logger        logging.Logger
-	DB            db.Database
-	PartitionDB   db.Database
-	MetalD        metaldv1connect.VmServiceClient
-	MetaldBackend string
-	DefaultDomain string
+	Logger          logging.Logger
+	DB              db.Database
+	PartitionDB     db.Database
+	MetalD          metaldv1connect.VmServiceClient
+	MetaldBackend   string
+	DefaultDomain   string
+	IsRunningDocker bool
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
 	// Create the appropriate deployment backend
-	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger)
+	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger, cfg.IsRunningDocker)
 	if err != nil {
 		// Log error but continue - workflow will fail when trying to use the backend
 		cfg.Logger.Error("failed to initialize deployment backend",
@@ -322,13 +323,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Create gateway configs for all domains in bulk (except local ones)
 	err = hydra.StepVoid(ctx, "create-gateway-configs-bulk", func(stepCtx context.Context) error {
-
 		// Prepare gateway configs for all non-local domains
 		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
 
 		for _, domain := range allDomains {
-			if isLocalHostname(domain) {
+			if isLocalHostname(domain, w.defaultDomain) {
 				skippedDomains = append(skippedDomains, domain)
 				continue
 			}
@@ -596,17 +596,25 @@ func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vm
 	return gatewayConfig, nil
 }
 
-// isLocalHostname checks if a hostname is for local development
-func isLocalHostname(hostname string) bool {
+// isLocalHostname checks if a hostname should be skipped from gateway config creation
+// Returns true for localhost/development domains that shouldn't get gateway configs
+func isLocalHostname(hostname, defaultDomain string) bool {
 	// Lowercase for case-insensitive comparison
 	hostname = strings.ToLower(hostname)
+	defaultDomain = strings.ToLower(defaultDomain)
 
-	// Exact matches for common local hosts
+	// Exact matches for common local hosts - these should be skipped
 	if hostname == "localhost" || hostname == "127.0.0.1" {
 		return true
 	}
 
-	// Check for local-only TLD suffixes
+	// If hostname uses the default domain, it should NOT be skipped (return false)
+	// This allows gateway configs to be created for the default domain
+	if strings.HasSuffix(hostname, "."+defaultDomain) || hostname == defaultDomain {
+		return false
+	}
+
+	// Check for local-only TLD suffixes - these should be skipped
 	// Note: .dev is a real TLD owned by Google, so it's excluded
 	localSuffixes := []string{
 		".local",

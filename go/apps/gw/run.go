@@ -140,6 +140,22 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(partitionedDB.Close)
 
+	// Generate local certificate if requested
+	if cfg.RequireLocalCert {
+		localCertCfg := LocalCertConfig{
+			Logger:        logger,
+			PartitionedDB: partitionedDB,
+			VaultService:  vaultSvc,
+			Hostname:      "*.unkey.local",
+			WorkspaceID:   "unkey",
+		}
+
+		err := generateLocalCertificate(ctx, localCertCfg)
+		if err != nil {
+			return fmt.Errorf("failed to generate local certificate: %w", err)
+		}
+	}
+
 	// Create separate non-partitioned database connection for keys service
 	var mainDB db.Database
 	mainDB, err = db.New(db.Config{
