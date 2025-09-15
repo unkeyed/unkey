@@ -1,6 +1,8 @@
 name: unkey
 services:
   mysql:
+    networks:
+      - default
     container_name: mysql
     build:
       context: ..
@@ -25,6 +27,8 @@ services:
       interval: 10s
 
   planetscale:
+    networks:
+      - default
     container_name: planetscale
     image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
     command:
@@ -42,6 +46,8 @@ services:
       - 3900:3900
 
   apiv2_lb:
+    networks:
+      - default
     container_name: apiv2_lb
     image: nginx:1.29.0
     volumes:
@@ -53,6 +59,8 @@ services:
       - 7070:7070
 
   apiv2:
+    networks:
+      - default
     deploy:
       replicas: 3
       endpoint_mode: vip
@@ -81,6 +89,8 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   redis:
+    networks:
+      - default
     container_name: redis
     image: redis:8.0
     ports:
@@ -93,6 +103,8 @@ services:
       interval: 5s
 
   agent:
+    networks:
+      - default
     container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
@@ -115,6 +127,8 @@ services:
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
   clickhouse:
+    networks:
+      - default
     build:
       context: ..
       dockerfile: deployment/Dockerfile.clickhouse
@@ -147,6 +161,8 @@ services:
       interval: 5s
 
   s3:
+    networks:
+      - default
     container_name: s3
     image: bitnami/minio:2025.4.3
     ports:
@@ -167,6 +183,8 @@ services:
       interval: 5s
 
   api:
+    networks:
+      - default
     container_name: api
     build:
       context: ..
@@ -198,6 +216,8 @@ services:
       - apiv2
 
   gw:
+    networks:
+      - default
     build:
       context: ../go
       dockerfile: Dockerfile
@@ -245,6 +265,8 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   ctrl:
+    networks:
+      - default
     build:
       context: ../go
       dockerfile: Dockerfile
@@ -282,6 +304,8 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   otel:
+    networks:
+      - default
     image: grafana/otel-lgtm:0.11.7
     container_name: otel
     hostname: otel
@@ -291,6 +315,8 @@ services:
       - 4318:4318
 
   prometheus:
+    networks:
+      - default
     image: prom/prometheus:v3.5.0
     container_name: prometheus
     ports:
@@ -301,6 +327,8 @@ services:
       - apiv2
 
   dashboard:
+    networks:
+      - default
     build:
       context: ..
       dockerfile: ./apps/dashboard/Dockerfile
@@ -376,3 +404,6 @@ volumes:
   clickhouse-keeper:
   s3:
   metald-aio-data:
+
+networks:
+  default:

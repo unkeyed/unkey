@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/go-connections/nat"
@@ -266,6 +267,9 @@ func (d *DockerBackend) createContainer(ctx context.Context, name string, imageN
 			"unkey.vm.id":         vmID,
 			"unkey.deployment.id": deploymentID,
 			"unkey.managed.by":    "ctrl-fallback",
+			"com.docker.compose.project": "unkey_deployments",
+			"com.docker.compose.service": fmt.Sprintf("vm_%s", vmID),
+			"com.docker.compose.container-number": "1",
 		},
 		ExposedPorts: nat.PortSet{
 			"8080/tcp": struct{}{},
@@ -281,15 +285,20 @@ func (d *DockerBackend) createContainer(ctx context.Context, name string, imageN
 				},
 			},
 		},
-		NetworkMode: "unkey_default",
-		AutoRemove:  false,
+		AutoRemove: false,
 		Resources: container.Resources{
 			Memory:   1024 * 1024 * 1024, // 1GB
 			NanoCPUs: 1000000000,         // 1 CPU
 		},
 	}
 
-	resp, err := d.dockerClient.ContainerCreate(ctx, config, hostConfig, nil, nil, name)
+	networkingConfig := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			"unkey_default": {},
+		},
+	}
+
+	resp, err := d.dockerClient.ContainerCreate(ctx, config, hostConfig, networkingConfig, nil, name)
 	if err != nil {
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
