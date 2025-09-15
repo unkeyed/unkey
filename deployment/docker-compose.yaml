@@ -247,8 +247,8 @@ services:
     volumes:
       # Mount Docker socket for Docker backend support
       - /var/run/docker.sock:/var/run/docker.sock
-      # Persistent storage for metald database
-      - metald-data:/var/lib/metald
+      # Mount SQLite database locally for direct access
+      - ./data/metald:/var/lib/metald
     environment:
       # Server configuration
       UNKEY_SERVER_ADDRESS: "0.0.0.0"
@@ -352,4 +352,3 @@ volumes:
   clickhouse:
   clickhouse-keeper:
   s3:
-  metald-data:
