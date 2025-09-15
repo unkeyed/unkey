@@ -70,8 +70,12 @@ export const createProject = t.procedure
             workspaceId,
             name: input.name,
             slug: input.slug,
+            activeDeploymentId: null,
             gitRepositoryUrl: input.gitRepositoryUrl || null,
+            defaultBranch: "main",
             deleteProtection: false,
+            createdAt: now,
+            updatedAt: now,
           });
 
           await insertAuditLogs(tx, {

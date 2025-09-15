@@ -16,6 +16,9 @@ export const projects = mysqlTable(
 
     // Git configuration
     gitRepositoryUrl: varchar("git_repository_url", { length: 500 }),
+    // this is likely temporary but we need a way to point to the current prod deployment.
+    // in the future I think we want to have a special deployment per environment, but for now this is fine
+    activeDeploymentId: varchar("active_deployment_id", { length: 256 }),
 
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     ...deleteProtection,

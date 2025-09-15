@@ -6,7 +6,7 @@ import { useFilters } from "../../../../hooks/use-filters";
 export const DeploymentListSearch = () => {
   const { filters, updateFilters } = useFilters();
 
-  const queryLLMForStructuredOutput = trpc.deploy.project.deployment.search.useMutation({
+  const queryLLMForStructuredOutput = trpc.deployment.search.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
