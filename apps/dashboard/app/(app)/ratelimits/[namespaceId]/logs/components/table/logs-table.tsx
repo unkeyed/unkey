@@ -63,13 +63,21 @@ const getSelectedClassName = (log: RatelimitLog, isSelected: boolean) => {
 };
 
 export const RatelimitLogsTable = () => {
-  const { setSelectedLog, selectedLog, isLive, namespaceId } = useRatelimitLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
-    useRatelimitLogsQuery({
-      namespaceId,
-      startPolling: isLive,
-      pollIntervalMs: 2000,
-    });
+  const { setSelectedLog, selectedLog, isLive, namespaceId } =
+    useRatelimitLogsContext();
+  const {
+    realtimeLogs,
+    historicalLogs,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+    totalCount,
+    hasMore,
+  } = useRatelimitLogsQuery({
+    namespaceId,
+    startPolling: isLive,
+    pollIntervalMs: 2000,
+  });
 
   const getRowClassName = (log: RatelimitLog) => {
     const style = getStatusStyle(log.status);
@@ -83,14 +91,13 @@ export const RatelimitLogsTable = () => {
       style.focusRing,
       isSelected && style.selected,
       isLive &&
-        !realtimeLogs.some((realtime) => realtime.request_id === log.request_id) && [
-          "opacity-50",
-          "hover:opacity-100",
-        ],
+        !realtimeLogs.some(
+          (realtime) => realtime.request_id === log.request_id
+        ) && ["opacity-50", "hover:opacity-100"],
       selectedLog && {
         "opacity-50 z-0": !isSelected,
         "opacity-100 z-10": isSelected,
-      },
+      }
     );
   };
 
@@ -108,7 +115,9 @@ export const RatelimitLogsTable = () => {
               value={log.time}
               className={cn(
                 "font-mono group-hover:underline decoration-dotted",
-                selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+                selectedLog &&
+                  selectedLog.request_id !== log.request_id &&
+                  "pointer-events-none"
               )}
             />
           </div>
@@ -118,7 +127,11 @@ export const RatelimitLogsTable = () => {
         key: "identifier",
         header: "Identifier",
         width: "15%",
-        render: (log) => <div className="font-mono truncate mr-1 max-w-40">{log.identifier}</div>,
+        render: (log) => (
+          <div className="font-mono truncate mr-1 max-w-40">
+            {log.identifier}
+          </div>
+        ),
       },
       {
         key: "rejected",
@@ -131,7 +144,7 @@ export const RatelimitLogsTable = () => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono min-w-[70px] inline-block text-center",
-                isSelected ? style.badge.selected : style.badge.default,
+                isSelected ? style.badge.selected : style.badge.default
               )}
             >
               {log.status === 0 ? "Blocked" : "Passed"}
@@ -145,7 +158,9 @@ export const RatelimitLogsTable = () => {
         width: "auto",
         render: (log) => {
           return (
-            <div className="font-mono">{safeParseJson(log.response_body)?.limit ?? "<EMPTY>"}</div>
+            <div className="font-mono">
+              {safeParseJson(log.response_body)?.limit ?? "<EMPTY>"}
+            </div>
           );
         },
       },
@@ -174,7 +189,9 @@ export const RatelimitLogsTable = () => {
                 value={safeParseJson(log.response_body)?.reset ?? "<EMPTY>"}
                 className={cn(
                   "font-mono group-hover:underline decoration-dotted",
-                  selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+                  selectedLog &&
+                    selectedLog.request_id !== log.request_id &&
+                    "pointer-events-none"
                 )}
               />
             </div>
@@ -196,7 +213,7 @@ export const RatelimitLogsTable = () => {
         render: (log) => <LogsTableAction identifier={log.identifier} />,
       },
     ],
-    [selectedLog?.request_id],
+    [selectedLog?.request_id]
   );
 
   return (
@@ -218,9 +235,12 @@ export const RatelimitLogsTable = () => {
         hide: isLoading,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
+            <span>Showing</span>{" "}
+            <span className="text-accent-12">
+              {new Intl.NumberFormat().format(historicalLogs.length)}
+            </span>
             <span>of</span>
-            {totalCount}
+            {new Intl.NumberFormat().format(totalCount)}
             <span>ratelimit requests</span>
           </div>
         ),
@@ -231,8 +251,9 @@ export const RatelimitLogsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              No ratelimit logs yet. Once API requests start coming in, you'll see a detailed view
-              of your rate limits, including passed and blocked requests, across your API endpoints.
+              No ratelimit logs yet. Once API requests start coming in, you'll
+              see a detailed view of your rate limits, including passed and
+              blocked requests, across your API endpoints.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
