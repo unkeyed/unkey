@@ -1,6 +1,8 @@
 "use client";
 
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { AlertCircle, ArrowLeft, GitCompare, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -28,13 +30,17 @@ export default function DiffPage({ params }: Props) {
   // Fetch deployment details if needed in the future
 
   // Fetch all deployments for this project
-  const { data: deploymentsData, isLoading: deploymentsLoading } = trpc.deployment.list.useQuery(
-    undefined,
-    { enabled: !!params.projectId },
-  );
 
-  const deployments =
-    deploymentsData?.deployments?.filter((d) => d.project?.id === params.projectId) || [];
+  const deployments = useLiveQuery((q) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) => eq(deployment.projectId, params.projectId))
+      .join({ environment: collection.environments }, ({ environment, deployment }) =>
+        eq(environment.id, deployment.environmentId),
+      )
+      .orderBy(({ deployment }) => deployment.createdAt, "desc")
+      .limit(100),
+  );
 
   // Fetch the diff data
   const {
@@ -51,33 +57,9 @@ export default function DiffPage({ params }: Props) {
     },
   );
 
-  // Helper function to create human-readable deployment labels
-  interface DeploymentData {
-    id: string;
-    gitCommitSha?: string | null;
-    gitBranch?: string | null;
-    environment: string;
-    createdAt: number;
-    status: string;
-  }
-
-  const getDeploymentLabel = (deployment: DeploymentData) => {
-    const commitSha = deployment.gitCommitSha?.substring(0, 7) || deployment.id.substring(0, 7);
-    const branch = deployment.gitBranch || "unknown";
-    const environment = deployment.environment;
-    const date = new Date(deployment.createdAt).toLocaleDateString();
-
-    return {
-      primary: `${branch}:${commitSha}`,
-      secondary: `${environment} • ${date}`,
-      branch,
-      commitSha,
-      environment,
-      status: deployment.status,
-    };
-  };
-
-  const sortedDeployments = deployments.sort((a, b) => b.createdAt - a.createdAt);
+  const sortedDeployments = deployments.data.sort(
+    (a, b) => b.deployment.createdAt - a.deployment.createdAt,
+  );
 
   const handleCompare = () => {
     if (selectedFromDeployment && selectedToDeployment) {
@@ -141,24 +123,29 @@ export default function DiffPage({ params }: Props) {
                     <Select
                       value={selectedFromDeployment}
                       onValueChange={setSelectedFromDeployment}
-                      disabled={deploymentsLoading}
+                      disabled={deployments.isLoading}
                     >
                       <SelectTrigger className="h-auto">
                         <SelectValue placeholder="Select baseline deployment" />
                       </SelectTrigger>
                       <SelectContent>
-                        {deploymentsLoading ? (
+                        {deployments.isLoading ? (
                           <SelectItem value="loading" disabled>
                             <Loader className="w-4 h-4 mr-2 animate-spin" />
                             Loading deployments...
                           </SelectItem>
-                        ) : deployments.length === 0 ? (
+                        ) : deployments.data.length === 0 ? (
                           <SelectItem value="no-deployments" disabled>
                             No deployments found
                           </SelectItem>
                         ) : (
-                          sortedDeployments.map((deployment) => {
-                            const label = getDeploymentLabel(deployment);
+                          sortedDeployments.map(({ deployment, environment }) => {
+                            const commitSha =
+                              deployment.gitCommitSha?.substring(0, 7) ||
+                              deployment.id.substring(0, 7);
+                            const branch = deployment.gitBranch || "unknown";
+                            const date = new Date(deployment.createdAt).toLocaleDateString();
+
                             return (
                               <SelectItem
                                 key={deployment.id}
@@ -169,20 +156,20 @@ export default function DiffPage({ params }: Props) {
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                       <span className="font-mono text-sm font-medium">
-                                        {label.primary}
+                                        {`${branch}:${commitSha}`}
                                       </span>
                                       <span
                                         className={`text-xs px-2 py-0.5 rounded-full ${
-                                          label.environment === "production"
+                                          environment?.slug === "production"
                                             ? "bg-green-100 text-green-700"
                                             : "bg-blue-100 text-blue-700"
                                         }`}
                                       >
-                                        {label.environment}
+                                        {environment?.slug}
                                       </span>
                                     </div>
                                     <div className="text-xs text-content-subtle">
-                                      {label.secondary}
+                                      {environment?.slug} • ${date}
                                     </div>
                                   </div>
                                 </div>
@@ -214,24 +201,29 @@ export default function DiffPage({ params }: Props) {
                     <Select
                       value={selectedToDeployment}
                       onValueChange={setSelectedToDeployment}
-                      disabled={deploymentsLoading}
+                      disabled={deployments.isLoading}
                     >
                       <SelectTrigger className="h-auto">
                         <SelectValue placeholder="Select comparison deployment" />
                       </SelectTrigger>
                       <SelectContent>
-                        {deploymentsLoading ? (
+                        {deployments.isLoading ? (
                           <SelectItem value="loading" disabled>
                             <Loader className="w-4 h-4 mr-2 animate-spin" />
                             Loading deployments...
                           </SelectItem>
-                        ) : deployments.length === 0 ? (
+                        ) : deployments.data.length === 0 ? (
                           <SelectItem value="no-deployments" disabled>
                             No deployments found
                           </SelectItem>
                         ) : (
-                          sortedDeployments.map((deployment) => {
-                            const label = getDeploymentLabel(deployment);
+                          sortedDeployments.map(({ deployment, environment }) => {
+                            const commitSha =
+                              deployment.gitCommitSha?.substring(0, 7) ||
+                              deployment.id.substring(0, 7);
+                            const branch = deployment.gitBranch || "unknown";
+                            const date = new Date(deployment.createdAt).toLocaleDateString();
+
                             return (
                               <SelectItem
                                 key={deployment.id}
@@ -242,20 +234,20 @@ export default function DiffPage({ params }: Props) {
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                       <span className="font-mono text-sm font-medium">
-                                        {label.primary}
+                                        {`${branch}:${commitSha}`}
                                       </span>
                                       <span
                                         className={`text-xs px-2 py-0.5 rounded-full ${
-                                          label.environment === "production"
+                                          environment?.slug === "production"
                                             ? "bg-green-100 text-green-700"
                                             : "bg-blue-100 text-blue-700"
                                         }`}
                                       >
-                                        {label.environment}
+                                        {environment?.slug}
                                       </span>
                                     </div>
                                     <div className="text-xs text-content-subtle">
-                                      {label.secondary}
+                                      {environment?.slug} • ${date}
                                     </div>
                                   </div>
                                 </div>

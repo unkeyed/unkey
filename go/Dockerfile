@@ -1,3 +1,5 @@
+ARG BASE_IMAGE=gcr.io/distroless/static-debian12:latest
+
 FROM golang:1.25 AS builder
 
 WORKDIR /go/src/github.com/unkeyed/unkey/go
@@ -9,7 +11,8 @@ ARG VERSION
 ENV CGO_ENABLED=0
 RUN go build -o bin/unkey -ldflags="-X 'github.com/unkeyed/unkey/go/pkg/version.Version=${VERSION}'" ./main.go
 
-FROM gcr.io/distroless/static-debian12
+FROM ${BASE_IMAGE}
+
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey /
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey/go
