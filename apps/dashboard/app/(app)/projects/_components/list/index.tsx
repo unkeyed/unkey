@@ -1,7 +1,8 @@
 import { collection } from "@/lib/collections";
-import { useLiveQuery } from "@tanstack/react-db";
+import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
@@ -9,8 +10,15 @@ import { ProjectCardSkeleton } from "./projects-card-skeleton";
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).orderBy(({ project }) => project.updatedAt, "desc"),
+  const { filters } = useProjectsFilters();
+  const projectName = filters.find((f) => f.field === "query")?.value ?? "";
+  const projects = useLiveQuery(
+    (q) =>
+      q
+        .from({ project: collection.projects })
+        .orderBy(({ project }) => project.updatedAt, "desc")
+        .where(({ project }) => ilike(project.name, `%${projectName}%`)),
+    [projectName],
   );
 
   if (projects.isLoading) {
