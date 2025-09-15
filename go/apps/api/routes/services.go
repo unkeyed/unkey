@@ -5,6 +5,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -28,4 +29,5 @@ type Services struct {
 	Caches       caches.Caches
 	Vault        *vault.Service
 	ChproxyToken string
+	UsageLimiter usagelimiter.Service
 }
