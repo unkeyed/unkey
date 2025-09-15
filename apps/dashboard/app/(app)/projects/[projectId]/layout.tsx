@@ -22,7 +22,6 @@ type ProjectLayoutProps = {
   children: React.ReactNode;
 };
 
-const FAKE_DEPLOYMENT_ID = "im-a-fake-deployment-id";
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -32,7 +31,6 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
       value={{
         isDetailsOpen,
         setIsDetailsOpen,
-        activeDeploymentId: FAKE_DEPLOYMENT_ID,
         projectId,
       }}
     >
@@ -64,10 +62,10 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable
+            projectId={projectId}
             tableDistanceToTop={tableDistanceToTop}
             isOpen={isDetailsOpen}
             onClose={() => setIsDetailsOpen(false)}
-            activeDeploymentId={FAKE_DEPLOYMENT_ID}
           />
         </div>
       </div>

@@ -10,29 +10,34 @@ type ProjectDetailsExpandableProps = {
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
-  activeDeploymentId: string;
+  projectId: string;
 };
 
 export const ProjectDetailsExpandable = ({
   tableDistanceToTop,
   isOpen,
   onClose,
-  activeDeploymentId,
+  projectId,
 }: ProjectDetailsExpandableProps) => {
-  const { data } = useLiveQuery((q) =>
+  const query = useLiveQuery((q) =>
     q
-      .from({ deployment: collection.deployments })
-      .where(({ deployment }) => eq(deployment.id, activeDeploymentId)),
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
+
+      .join({ deployment: collection.deployments }, ({ deployment, project }) =>
+        eq(deployment.id, project.activeDeploymentId),
+      )
+      .orderBy(({ project }) => project.id, "asc")
+      .limit(1),
   );
 
-  const deployment = data.at(0);
+  const data = query.data.at(0);
 
-  // Shouldn't happen, because layout handles this case
-  if (!deployment) {
+  if (!data?.deployment) {
     return null;
   }
 
-  const detailSections = createDetailSections(deployment);
+  const detailSections = createDetailSections(data.deployment);
 
   return (
     <div className="flex">
