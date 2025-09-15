@@ -61,10 +61,12 @@ services:
       context: ../go
       dockerfile: ./Dockerfile
     depends_on:
-      - mysql
-      - redis
-      - clickhouse
-      - otel
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_REDIS_URL: "redis://redis:6379"
@@ -207,7 +209,18 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+        required: true
+      s3:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+      clickhouse:
+        condition: service_healthy
+        required: true
     volumes:
       - ./certs:/certs
     environment:
@@ -242,8 +255,12 @@ services:
     ports:
       - "7091:7091"
     depends_on:
-      - mysql
-      - s3
+      mysql:
+        condition: service_healthy
+        required: true
+      s3:
+        condition: service_healthy
+        required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -291,8 +308,12 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - planetscale
-      - agent
+      planetscale:
+        condition: service_started
+        required: true
+      agent:
+        condition: service_started
+        required: true
     env_file:
       - ../apps/dashboard/.env
     environment:

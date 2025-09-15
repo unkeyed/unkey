@@ -281,7 +281,8 @@ func (d *DockerBackend) createContainer(ctx context.Context, name string, imageN
 				},
 			},
 		},
-		AutoRemove: false,
+		NetworkMode: "unkey_default",
+		AutoRemove:  false,
 		Resources: container.Resources{
 			Memory:   1024 * 1024 * 1024, // 1GB
 			NanoCPUs: 1000000000,         // 1 CPU
