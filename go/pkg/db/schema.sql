@@ -304,7 +304,7 @@ CREATE TABLE `environments` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
-	CONSTRAINT `environments_workspace_id_slug_idx` UNIQUE(`workspace_id`,`slug`)
+	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
 CREATE TABLE `projects` (
