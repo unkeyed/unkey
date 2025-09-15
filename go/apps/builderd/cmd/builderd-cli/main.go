@@ -15,9 +15,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// AIDEV-NOTE: CLI tool demonstrating builderd client usage with SPIFFE integration
-// This provides a command-line interface for build operations with proper tenant isolation
-
 func main() {
 	var (
 		serverAddr   = flag.String("server", getEnvOrDefault("UNKEY_BUILDERD_SERVER_ADDRESS", "https://localhost:8082"), "builderd server address")
