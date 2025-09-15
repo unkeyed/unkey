@@ -1,6 +1,4 @@
-import { shouldUseSecureCookies } from "@/lib/auth/cookie-security";
-import { setCookie } from "@/lib/auth/cookies";
-import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
+import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
@@ -49,16 +47,9 @@ export const useWorkspaceStep = (): OnboardingStep => {
         return;
       }
 
-      await setCookie({
-        name: UNKEY_SESSION_COOKIE,
-        value: sessionData.token,
-        options: {
-          httpOnly: true,
-          secure: shouldUseSecureCookies(),
-          sameSite: "strict",
-          path: "/",
-          maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
-        },
+      await setSessionCookie({
+        token: sessionData.token,
+        expiresAt: sessionData.expiresAt,
       });
     },
     onError: (error) => {
