@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import React, { useRef, useState } from "react";
+import type React from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
@@ -56,8 +57,9 @@ export const useWorkspaceStep = (): OnboardingStep => {
           secure: true,
           sameSite: "strict",
           path: "/",
-          maxAge: Math.floor(
-            (sessionData.expiresAt.getTime() - Date.now()) / 1000
+          maxAge: Math.max(
+            0,
+            Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000)
           ),
         },
       });
@@ -105,8 +107,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
     const currentSlug = form.getValues("slug");
     const isSlugDirty = form.formState.dirtyFields.slug;
 
-    // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
-    if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
+    // Only auto-generate if slug hasn't been manually edited
+    if (!slugManuallyEdited) {
       form.setValue("slug", slugify(name), {
         shouldValidate: true,
       });
