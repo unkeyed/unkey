@@ -85,3 +85,7 @@ storage/
 scratch/
 rootfs/
 workspace/
+
+# binaries from make etc
+client/builderd-cli
+cmd/builderd/builderd
