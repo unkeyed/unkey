@@ -267,7 +267,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
-	h.UsageLimiter.Invalidate(ctx, key.ID)
+	if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
+		h.Logger.Error("Failed to invalidate usage limit",
+			"error", err.Error(),
+			"key_id", key.ID,
+		)
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

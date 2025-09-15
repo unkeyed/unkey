@@ -416,11 +416,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateKey.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			UsageLimiter: svc.UsageLimiter,
 		},
 	)
 

@@ -264,11 +264,11 @@ func (d *DockerBackend) createContainer(ctx context.Context, name string, imageN
 	config := &container.Config{
 		Image: imageName,
 		Labels: map[string]string{
-			"unkey.vm.id":         vmID,
-			"unkey.deployment.id": deploymentID,
-			"unkey.managed.by":    "ctrl-fallback",
-			"com.docker.compose.project": "unkey_deployments",
-			"com.docker.compose.service": fmt.Sprintf("vm_%s", vmID),
+			"unkey.vm.id":                         vmID,
+			"unkey.deployment.id":                 deploymentID,
+			"unkey.managed.by":                    "ctrl-fallback",
+			"com.docker.compose.project":          "unkey_deployments",
+			"com.docker.compose.service":          fmt.Sprintf("vm_%s", vmID),
 			"com.docker.compose.container-number": "1",
 		},
 		ExposedPorts: nat.PortSet{
