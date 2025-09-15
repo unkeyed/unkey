@@ -198,7 +198,7 @@ if start_gw:
 
     k8s_resource(
         'gw',
-        port_forwards='6060:6060',
+        port_forwards=['8080:8080', '8443:8443'],
         resource_deps=gw_deps,
         labels=['unkey'],
         auto_init=True,

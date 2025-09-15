@@ -110,11 +110,11 @@ spec:
     app: gw
   ports:
     - name: http
-      port: 80
+      port: 8080
       targetPort: 8080
       protocol: TCP
     - name: https
-      port: 443
+      port: 8443
       targetPort: 8443
       protocol: TCP
-  type: LoadBalancer
+  type: ClusterIP
