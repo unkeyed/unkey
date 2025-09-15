@@ -49,7 +49,7 @@ func ValidateBackendType(backendType string) error {
 }
 
 // NewBackend creates a new deployment backend based on the specified type
-func NewBackend(backendType string, logger logging.Logger) (DeploymentBackend, error) {
+func NewBackend(backendType string, logger logging.Logger, isRunningDocker bool) (DeploymentBackend, error) {
 	// Validate backend type first
 	if err := ValidateBackendType(backendType); err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func NewBackend(backendType string, logger logging.Logger) (DeploymentBackend, e
 	case BackendTypeK8s:
 		return NewK8sBackend(logger)
 	case BackendTypeDocker:
-		return NewDockerBackend(logger)
+		return NewDockerBackend(logger, isRunningDocker)
 	default:
 		return nil, fmt.Errorf("unsupported backend type: %s; allowed values: %q, %q", backendType, BackendTypeK8s, BackendTypeDocker)
 	}
