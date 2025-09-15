@@ -1,10 +1,9 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import type { Deployment } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
 import { CircleInfo, Cloud, CodeBranch, CodeCommit } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
-import React from "react";
 
 type RollbackDialogProps = {
   isOpen: boolean;

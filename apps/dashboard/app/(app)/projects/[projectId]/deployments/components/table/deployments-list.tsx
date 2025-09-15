@@ -363,13 +363,17 @@ export const DeploymentsList = ({ projectId }: Props) => {
         key: "action",
         header: "",
         width: "auto",
-        render: ({ deployment, environment }: { deployment: Deployment; environment?: Environment }) => {
+        render: ({
+          deployment,
+          environment,
+        }: { deployment: Deployment; environment?: Environment }) => {
           // Find current active production deployment for rollback context
           // Based on the collection schema, we'll need to identify current production deployment differently
           const currentActiveDeployment = deployments.data?.find(
-            (d) => d.deployment?.environmentId === environment?.id &&
-                   d.deployment?.status === "ready" &&
-                   d.environment?.slug === "production"
+            (d) =>
+              d.deployment?.environmentId === environment?.id &&
+              d.deployment?.status === "ready" &&
+              d.environment?.slug === "production",
           )?.deployment;
           return (
             <DeploymentListTableActions

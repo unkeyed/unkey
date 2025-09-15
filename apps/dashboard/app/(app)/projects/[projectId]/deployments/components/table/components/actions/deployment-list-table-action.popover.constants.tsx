@@ -20,7 +20,12 @@ export const DeploymentListTableActions = ({
 }: DeploymentListTableActionsProps) => {
   const router = useRouter();
   const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
-  const menuItems = getDeploymentListTableActionItems(deployment, environment, router, setIsRollbackModalOpen);
+  const menuItems = getDeploymentListTableActionItems(
+    deployment,
+    environment,
+    router,
+    setIsRollbackModalOpen,
+  );
 
   return (
     <>

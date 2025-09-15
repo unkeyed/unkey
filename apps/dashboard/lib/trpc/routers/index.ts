@@ -43,7 +43,6 @@ import { listDeployments } from "./deployment/list";
 import { searchDeployments } from "./deployment/llm-search";
 import { listDomains } from "./domains/list";
 import { listEnvironments } from "./environment/list";
-import { rollback } from "./rollback";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -108,6 +107,7 @@ import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRol
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { rollback } from "./rollback";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
