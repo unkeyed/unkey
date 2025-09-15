@@ -34,9 +34,28 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   } = trpc.workspace.getCurrent.useQuery(undefined, {
     staleTime: 1000 * 60 * 5, // 5 minutes
     cacheTime: 1000 * 60 * 15, // 15 minutes
-    retry: 2,
+    retry: (failureCount, error) => {
+      if (
+        error?.message?.includes("workspace not found in context") ||
+        error?.data?.code === "NOT_FOUND" ||
+        error?.data?.code === "UNAUTHORIZED"
+      ) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+    // Return null instead of throwing on certain errors
+    onError: (error) => {
+      if (
+        error?.message?.includes("workspace not found in context") ||
+        error?.data?.code === "NOT_FOUND"
+      ) {
+        // These are expected during initial load - don't log as errors
+        console.debug("Workspace not available in context - user may need to create workspace");
+      }
+    },
   });
 
   const clearCache = useCallback(() => {

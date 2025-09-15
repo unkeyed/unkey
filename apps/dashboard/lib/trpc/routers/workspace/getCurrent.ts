@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { requireUser, t } from "../../trpc";
 
 // Type definition for workspace data with quotas (inferred from Drizzle query)
 type WorkspaceWithQuotas = NonNullable<
@@ -17,55 +17,80 @@ type WorkspaceWithQuotas = NonNullable<
 const workspaceCache = new Map<string, { data: WorkspaceWithQuotas; timestamp: number }>();
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes server-side cache
 
-export const getCurrentWorkspace = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
-  .query(async ({ ctx }) => {
-    const cacheKey = `workspace_${ctx.tenant.id}`;
+export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ ctx }) => {
+  // Handle case where workspace is not in context (initial load scenarios)
+  if (!ctx.workspace) {
+    if (!ctx.tenant?.id) {
+      return null;
+    }
+    // Try to fetch workspace directly from database using tenant/orgId
+    const workspace = await db.query.workspaces.findFirst({
+      where: (table, { eq, and, isNull }) =>
+        and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+      with: {
+        quotas: true,
+      },
+    });
 
-    try {
-      const cached = workspaceCache.get(cacheKey);
-      const now = Date.now();
+    if (!workspace) {
+      return null;
+    }
 
-      // Return cached data if still valid
-      if (cached && now - cached.timestamp < CACHE_TTL) {
-        return cached.data;
-      }
+    const result = { ...workspace, quotas: workspace.quotas };
 
-      // The workspace is already available in context from requireWorkspace middleware
-      // but we need to fetch it with quotas and related data
-      const workspace = await db.query.workspaces.findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
-        with: {
-          quotas: true,
-        },
-      });
+    const cacheKey = `workspace_${ctx.tenant?.id}`;
+    workspaceCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now(),
+    });
 
-      if (!workspace) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Workspace not found",
-        });
-      }
+    return result;
+  }
+  const cacheKey = `workspace_${ctx.tenant?.id}`;
 
-      const result = { ...workspace, quotas: workspace.quotas };
+  try {
+    const cached = workspaceCache.get(cacheKey);
+    const now = Date.now();
 
-      // Cache the result
-      workspaceCache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now(),
-      });
+    // Return cached data if still valid
+    if (cached && now - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
 
-      return result;
-    } catch (error) {
+    // The workspace is already available in context from requireWorkspace middleware
+    // but we need to fetch it with quotas and related data
+    const workspace = await db.query.workspaces.findFirst({
+      where: (table, { eq, and, isNull }) =>
+        and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+      with: {
+        quotas: true,
+      },
+    });
+
+    if (!workspace) {
       throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch workspace data",
-        cause: error,
+        code: "NOT_FOUND",
+        message: "Workspace not found",
       });
     }
-  });
+
+    const result = { ...workspace, quotas: workspace.quotas };
+
+    // Cache the result
+    workspaceCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now(),
+    });
+
+    return result;
+  } catch (error) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to fetch workspace data",
+      cause: error,
+    });
+  }
+});
 
 // Helper to clear cache when workspace changes
 export const clearWorkspaceCache = (orgId: string) => {
