@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -26,11 +27,12 @@ type Response = openapi.V2KeysUpdateCreditsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.updateCredits endpoint
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	UsageLimiter usagelimiter.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -38,7 +40,7 @@ func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
+// Path returns the URL path pattern this route match des
 func (h *Handler) Path() string {
 	return "/v2/keys.updateCredits"
 }
@@ -265,6 +267,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
+	h.UsageLimiter.Invalidate(ctx, key.ID)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
