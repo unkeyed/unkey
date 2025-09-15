@@ -208,6 +208,8 @@ services:
       - "443:443"
     depends_on:
       - mysql
+    volumes:
+      - ./certs:/certs
     environment:
       UNKEY_HTTP_PORT: 80
       UNKEY_HTTPS_PORT: 443
@@ -216,6 +218,7 @@ services:
       UNKEY_DEFAULT_CERT_DOMAIN: "unkey.local"
       UNKEY_MAIN_DOMAIN: "unkey.local"
       UNKEY_CTRL_ADDR: "ctrl:7091"
+      UNKEY_REQUIRE_LOCAL_CERT: true
 
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
       UNKEY_KEYS_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
