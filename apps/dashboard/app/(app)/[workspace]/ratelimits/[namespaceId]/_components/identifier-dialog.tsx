@@ -84,11 +84,14 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(`${workspace?.slug}/ratelimits/${namespaceId}/overrides`);
+        router.push(`/${workspace?.slug}/ratelimits/${namespaceId}/overrides`);
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
-        setError("identifier", { type: "custom", message: "Identifier already exists" });
+        setError("identifier", {
+          type: "custom",
+          message: "Identifier already exists",
+        });
       } else {
         throw error;
       }
