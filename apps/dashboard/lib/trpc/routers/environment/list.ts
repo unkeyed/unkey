@@ -18,7 +18,7 @@ export const listEnvironments = t.procedure
     } catch (_error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch deployments",
+        message: "Failed to fetch environments",
       });
     }
   });
