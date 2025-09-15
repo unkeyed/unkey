@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=gcr.io/distroless/static-debian12:latest
+ARG CGO_ENABLED=0
 
 FROM golang:1.25 AS builder
 
@@ -8,10 +8,15 @@ WORKDIR /go/src/github.com/unkeyed/unkey/go
 COPY . .
 RUN go mod download
 ARG VERSION
-ENV CGO_ENABLED=0
+ARG CGO_ENABLED
+ENV CGO_ENABLED=${CGO_ENABLED}
 RUN go build -o bin/unkey -ldflags="-X 'github.com/unkeyed/unkey/go/pkg/version.Version=${VERSION}'" ./main.go
 
-FROM ${BASE_IMAGE}
+# Use base image that supports CGO binaries when CGO is enabled, static when disabled
+FROM gcr.io/distroless/base-debian12:latest AS base-1
+FROM gcr.io/distroless/static-debian12:latest AS base-0
+
+FROM base-${CGO_ENABLED} AS final
 
 COPY --from=builder /go/src/github.com/unkeyed/unkey/go/bin/unkey /
 

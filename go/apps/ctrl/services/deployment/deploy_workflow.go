@@ -29,31 +29,20 @@ type DeployWorkflow struct {
 }
 
 type DeployWorkflowConfig struct {
-	Logger          logging.Logger
-	DB              db.Database
-	PartitionDB     db.Database
-	MetalD          metaldv1connect.VmServiceClient
-	MetaldBackend   string
-	DefaultDomain   string
-	IsRunningDocker bool
+	Logger        logging.Logger
+	DB            db.Database
+	PartitionDB   db.Database
+	MetalD        metaldv1connect.VmServiceClient
+	DefaultDomain string
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
-	// Create the appropriate deployment backend
-	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger, cfg.IsRunningDocker)
-	if err != nil {
-		// Log error but continue - workflow will fail when trying to use the backend
-		cfg.Logger.Error("failed to initialize deployment backend",
-			"error", err,
-			"fallback", cfg.MetaldBackend)
-	}
-
 	return &DeployWorkflow{
 		db:                cfg.DB,
 		partitionDB:       cfg.PartitionDB,
 		logger:            cfg.Logger,
-		deploymentBackend: deploymentBackend,
+		deploymentBackend: NewMetalDBackend(cfg.MetalD, cfg.Logger),
 		defaultDomain:     cfg.DefaultDomain,
 	}
 }

@@ -231,6 +231,47 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
+  metald:
+    build:
+      context: ../go
+      dockerfile: Dockerfile
+      args:
+        VERSION: "latest"
+        CGO_ENABLED: "1"
+    container_name: metald
+    command: ["run", "metald"]
+    ports:
+      - "8090:8080"
+    depends_on:
+      - mysql
+    volumes:
+      # Mount Docker socket for Docker backend support
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent storage for metald database
+      - metald-data:/var/lib/metald
+    environment:
+      # Server configuration
+      UNKEY_SERVER_ADDRESS: "0.0.0.0"
+      UNKEY_SERVER_PORT: "8080"
+
+      # Backend configuration - use Docker backend for development
+      UNKEY_BACKEND_TYPE: "docker"
+
+      # Database configuration (metald needs its own database for VM state)
+      UNKEY_DATABASE_DATA_DIR: "/var/lib/metald"
+
+      # Asset manager configuration (disabled for local development)
+      UNKEY_ASSET_MANAGER_ENABLED: "false"
+
+      # Billing configuration (disabled for local development)
+      UNKEY_BILLING_ENABLED: "false"
+
+      # TLS configuration (disabled for local development)
+      UNKEY_TLS_MODE: "off"
+
+      # OpenTelemetry configuration
+      UNKEY_OPENTELEMETRY_ENABLED: "false"
+
   ctrl:
     build:
       context: ../go
@@ -244,8 +285,7 @@ services:
     depends_on:
       - mysql
       - s3
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - metald
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
       UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true&interpolateParams=true"
@@ -253,10 +293,8 @@ services:
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_METALD_ADDRESS: "http://metald-aio:8090"
-      UNKEY_METALD_BACKEND: "docker"
+      UNKEY_METALD_ADDRESS: "http://metald:8080"
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
-      UNKEY_DOCKER_RUNNING: "true"
 
       UNKEY_VAULT_S3_URL: "http://s3:3902"
       UNKEY_VAULT_S3_BUCKET: "acme-vault"
@@ -309,49 +347,9 @@ services:
       NODE_ENV: "production"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
-
-  # Unkey Deploy Services - All-in-one development container with all 4 services
-  #
-  #############################################################################
-  # This doesn't run right now while we change the protos and get metald into a
-  # happy state again.
-  #############################################################################
-  #
-  # metald-aio:
-  #   build:
-  #     context: ../go
-  #     dockerfile: deploy/Dockerfile.dev
-  #   platform: linux/amd64
-  #   container_name: metald-aio
-  #   hostname: metald-aio
-  #   privileged: true # Required for systemd
-  #   volumes:
-  #     # Mount Docker socket for metald Docker backend
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     # Persistent storage for development
-  #     - metald-aio-data:/opt
-  #     # Systemd requires these mounts
-  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #   ports:
-  #     # Only expose metald port (agent already uses 8080)
-  #     - "8090:8080" # metald
-  #   depends_on:
-  #     - otel
-  #   environment:
-  #     # Development environment
-  #     - UNKEY_ENVIRONMENT=development
-  #     - UNKEY_LOG_LEVEL=debug
-  #     # Docker backend configuration
-  #     - UNKEY_METALD_BACKEND=docker
-  #     - UNKEY_METALD_DOCKER_HOST=unix:///var/run/docker.sock
-  #     # Service discovery (internal container ports)
-  #     - UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
-  #     - UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-  #     - UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
-  #     - UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
 volumes:
   mysql:
   clickhouse:
   clickhouse-keeper:
   s3:
-  metald-aio-data:
+  metald-data:
