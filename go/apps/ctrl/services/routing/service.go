@@ -358,10 +358,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		slog.String("new_deployment_id", targetDeploymentID),
 	)
 
-	err = db.Query.UpdateProjectActiveDeploymentId(ctx, s.db.RW(), db.UpdateProjectActiveDeploymentIdParams{
-		ID:                 deployment.ProjectID,
-		ActiveDeploymentID: sql.NullString{Valid: true, String: targetDeploymentID},
-		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	err = db.Query.UpdateProjectLiveDeploymentId(ctx, s.db.RW(), db.UpdateProjectLiveDeploymentIdParams{
+		ID:               deployment.ProjectID,
+		LiveDeploymentID: sql.NullString{Valid: true, String: targetDeploymentID},
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to update project active deployment ID",

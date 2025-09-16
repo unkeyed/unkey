@@ -40,7 +40,7 @@ export const RollbackDialog = ({
   hostname,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
-  const rollback = trpc.deploy.rollback.useMutation({
+  const rollback = trpc.deploy.deployment.rollback.useMutation({
     onSuccess: () => {
       utils.invalidate();
       toast.success("Rollback completed", {

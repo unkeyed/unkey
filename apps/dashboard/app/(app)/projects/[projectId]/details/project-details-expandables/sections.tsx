@@ -16,6 +16,7 @@ import {
 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { Avatar } from "../active-deployment-card/git-avatar";
 
 export type DetailItem = {
   icon: ReactNode;
@@ -45,12 +46,18 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
       {
         icon: <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Branch",
-        content: <span className="text-gray-12 font-medium">{details.gitBranch}</span>,
+        content: (
+          <span className="text-gray-12 font-medium truncate max-w-32">{details.gitBranch}</span>
+        ),
       },
       {
         icon: <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />,
         label: "Commit",
-        content: <span className="text-gray-12 font-medium">{details.gitCommitSha}</span>,
+        content: (
+          <span className="text-gray-12 font-medium">
+            {(details.gitCommitSha ?? "").slice(0, 7)}
+          </span>
+        ),
       },
       {
         icon: <MessageWriting className="size-[14px] text-gray-12" size="md-regular" />,
@@ -66,10 +73,9 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
         label: "Author",
         content: (
           <div className="flex gap-2 items-center">
-            <img
-              src={details.gitCommitAuthorAvatarUrl ?? ""}
+            <Avatar
+              src={details.gitCommitAuthorAvatarUrl}
               alt={details.gitCommitAuthorUsername ?? ""}
-              className="rounded-full size-5"
             />
             <span className="font-medium text-grayA-12">{details.gitCommitAuthorUsername}</span>
           </div>
@@ -124,7 +130,8 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
         label: "CPU",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.runtimeConfig.cpus}</span>vCPUs
+            <span className="text-gray-12 font-medium">{details.runtimeConfig.cpus}</span>
+            vCPUs
           </div>
         ),
       },
@@ -133,7 +140,8 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
         label: "Memory",
         content: (
           <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">{details.runtimeConfig.memory}</span>mb
+            <span className="text-gray-12 font-medium">{details.runtimeConfig.memory}</span>
+            mb
           </div>
         ),
       },

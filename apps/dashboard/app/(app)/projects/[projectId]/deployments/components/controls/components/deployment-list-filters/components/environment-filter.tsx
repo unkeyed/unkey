@@ -1,12 +1,13 @@
+import { useProjectLayout } from "@/app/(app)/projects/[projectId]/layout-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFilters } from "../../../../../hooks/use-filters";
 
 export const EnvironmentFilter = () => {
   const { filters, updateFilters } = useFilters();
+  const { collections } = useProjectLayout();
 
-  const environments = useLiveQuery((q) => q.from({ environment: collection.environments }));
+  const environments = useLiveQuery((q) => q.from({ environment: collections.environments }));
 
   return (
     <FilterCheckbox

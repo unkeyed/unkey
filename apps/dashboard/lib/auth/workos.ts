@@ -122,7 +122,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Session validation error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: `${sessionToken.substring(0, 10)}...`,
       });
       return { isValid: false, shouldRefresh: false };
     }
@@ -168,7 +167,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Session refresh error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
       });
       throw error;
     }
@@ -188,7 +186,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return this.transformUserData(user);
     } catch (error) {
-      console.error("Failed to get user:", error);
+      console.error("Failed to get user:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
@@ -208,7 +208,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return this.transformUserData(user.data[0]);
     } catch (error) {
-      console.error("Failed to get user:", error);
+      console.error("Failed to find user:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
@@ -321,7 +323,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Organization switch error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        newOrgId,
       });
       throw error;
     }
@@ -504,7 +505,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         metadata: invitationsList.listMetadata || {},
       };
     } catch (error) {
-      console.error("Failed to get organization invitations list:", error);
+      console.error("Failed to get organization invitations list:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return {
         data: [],
         metadata: {},
@@ -522,7 +525,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return this.transformInvitationData(invitation);
     } catch (error) {
-      console.error("Error retrieving invitation: ", error);
+      console.error("Error retrieving invitation:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
@@ -612,7 +617,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   async verifyAuthCode(params: {
     email: string;
     code: string;
-    invitationToken: string;
+    invitationToken?: string;
   }): Promise<VerificationResult> {
     const { email, code, invitationToken } = params;
 
@@ -702,7 +707,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       };
     } catch (error: unknown) {
       // Handle organization selection required case
-      console.error("verify email: ", error);
+      console.error("Email verification error:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
 
       const authError = error as WorkOSAuthError;
 

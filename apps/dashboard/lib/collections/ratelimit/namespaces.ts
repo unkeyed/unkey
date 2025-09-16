@@ -3,7 +3,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "./client";
+import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),
@@ -27,7 +27,9 @@ export const ratelimitNamespaces = createCollection<RatelimitNamespace>(
         throw new Error("Namespace name is required");
       }
 
-      const mutation = trpcClient.ratelimit.namespace.create.mutate({ name: newNamespace.name });
+      const mutation = trpcClient.ratelimit.namespace.create.mutate({
+        name: newNamespace.name,
+      });
       toast.promise(mutation, {
         loading: "Creating namespace...",
         success: "Namespace created",
@@ -57,7 +59,9 @@ export const ratelimitNamespaces = createCollection<RatelimitNamespace>(
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
-      const mutation = trpcClient.ratelimit.namespace.delete.mutate({ namespaceId: original.id });
+      const mutation = trpcClient.ratelimit.namespace.delete.mutate({
+        namespaceId: original.id,
+      });
       toast.promise(mutation, {
         loading: "Deleting namespace...",
         success: "Namespace deleted",

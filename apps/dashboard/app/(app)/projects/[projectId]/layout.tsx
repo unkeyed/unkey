@@ -1,4 +1,5 @@
 "use client";
+import { collectionManager } from "@/lib/collections";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useState } from "react";
@@ -24,7 +25,9 @@ type ProjectLayoutProps = {
 
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+
+  const collections = collectionManager.getProjectCollections(projectId);
 
   return (
     <ProjectLayoutContext.Provider
@@ -32,6 +35,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         isDetailsOpen,
         setIsDetailsOpen,
         projectId,
+        collections,
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">

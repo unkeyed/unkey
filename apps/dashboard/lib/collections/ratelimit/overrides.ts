@@ -3,7 +3,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "./client";
+import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),
@@ -56,7 +56,9 @@ export const ratelimitOverrides = createCollection<RatelimitOverride>(
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
-      const mutation = trpcClient.ratelimit.override.delete.mutate({ id: original.id });
+      const mutation = trpcClient.ratelimit.override.delete.mutate({
+        id: original.id,
+      });
       toast.promise(mutation, {
         loading: "Deleting override...",
         success: "Override deleted",

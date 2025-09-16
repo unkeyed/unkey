@@ -2,17 +2,15 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { type Deployment, type Environment, collection } from "@/lib/collections";
+import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import ms from "ms";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import type { DeploymentListFilterField } from "../../filters.schema";
-import { useFilters } from "../../hooks/use-filters";
+import { Avatar } from "../../../details/active-deployment-card/git-avatar";
+import { useDeployments } from "../../hooks/use-deployments";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
@@ -41,124 +39,14 @@ const DeploymentListTableActions = dynamic(
 
 const COMPACT_BREAKPOINT = 1200;
 
-type Props = {
-  projectId: string;
-};
-
-export const DeploymentsList = ({ projectId }: Props) => {
-  const { filters } = useFilters();
-
-  const project = useLiveQuery((q) => {
-    return q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .orderBy(({ project }) => project.id, "asc")
-      .limit(1);
-  });
-
-  const activeDeploymentId = project.data.at(0)?.activeDeploymentId;
-
-  const activeDeployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.id, activeDeploymentId))
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
-        .limit(1),
-    [activeDeploymentId],
-  );
-
-  const deployments = useLiveQuery(
-    (q) => {
-      // Query filtered environments
-      // further down below we use this to rightJoin with deployments to filter deployments by environment
-      let environments = q.from({ environment: collection.environments });
-
-      for (const filter of filters) {
-        if (filter.field === "environment") {
-          environments = environments.where(({ environment }) =>
-            eq(environment.slug, filter.value),
-          );
-        }
-      }
-
-      let query = q
-        .from({ deployment: collection.deployments })
-
-        .where(({ deployment }) => eq(deployment.projectId, projectId));
-
-      // add additional where clauses based on filters.
-      // All of these are a locical AND
-
-      const groupedFilters = filters.reduce(
-        (acc, f) => {
-          if (!acc[f.field]) {
-            acc[f.field] = [];
-          }
-          acc[f.field].push(f.value);
-          return acc;
-        },
-        {} as Record<DeploymentListFilterField, (string | number)[]>,
-      );
-      for (const [field, values] of Object.entries(groupedFilters)) {
-        // this is kind of dumb, but `or`s type doesn't allow spreaded args without
-        // specifying the first two
-        const [v1, v2, ...rest] = values;
-        const f = field as DeploymentListFilterField; // I want some typesafety
-        switch (f) {
-          case "status":
-            query = query.where(({ deployment }) =>
-              or(
-                eq(deployment.status, v1),
-                eq(deployment.status, v2),
-                ...rest.map((value) => eq(deployment.status, value)),
-              ),
-            );
-            break;
-          case "branch":
-            query = query.where(({ deployment }) =>
-              or(
-                eq(deployment.gitBranch, v1),
-                eq(deployment.gitBranch, v2),
-                ...rest.map((value) => eq(deployment.gitBranch, value)),
-              ),
-            );
-            break;
-          case "environment":
-            // We already filtered
-            break;
-          case "since":
-            query = query.where(({ deployment }) =>
-              gt(deployment.createdAt, Date.now() - ms(values.at(0) as string)),
-            );
-
-            break;
-          case "startTime":
-            query = query.where(({ deployment }) => gte(deployment.createdAt, values.at(0)));
-            break;
-          case "endTime":
-            query = query.where(({ deployment }) => lte(deployment.createdAt, values.at(0)));
-            break;
-          default:
-            break;
-        }
-      }
-
-      return query
-        .rightJoin({ environment: environments }, ({ environment, deployment }) =>
-          eq(environment.id, deployment.environmentId),
-        )
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
-        .limit(100);
-    },
-    [projectId, filters],
-  );
-
+export const DeploymentsList = () => {
   const [selectedDeployment, setSelectedDeployment] = useState<{
     deployment: Deployment;
     environment?: Environment;
   } | null>(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
+
+  const { activeDeployment, deployments } = useDeployments();
 
   const columns: Column<{
     deployment: Deployment;
@@ -185,7 +73,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
           );
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
-              <div className="flex gap-5 items-center w-full">
+              <div className="flex gap-3 items-center w-full">
                 {iconContainer}
                 <div className="w-[200px]">
                   <div className="flex items-center gap-2">
@@ -197,7 +85,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {deployment.id === activeDeploymentId ? (
+                    {deployment.id === activeDeployment.data.at(0)?.id ? (
                       <EnvStatusBadge variant="current" text="Current" />
                     ) : null}
                   </div>
@@ -291,7 +179,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
           );
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
-              <div className="flex gap-5 items-center w-full">
+              <div className="flex gap-3 items-center w-full">
                 {iconContainer}
                 <div className="w-[200px]">
                   <div className="flex items-center gap-2">
@@ -305,7 +193,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     </div>
                   </div>
                   <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
-                    {deployment.gitCommitSha}
+                    {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
               </div>
@@ -322,12 +210,12 @@ export const DeploymentsList = ({ projectId }: Props) => {
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="flex flex-col items-start pr-[18px] py-1.5">
-                    <div className="flex gap-5 items-center w-full">
-                      <img
-                        src={deployment.gitCommitAuthorAvatarUrl ?? ""}
-                        alt="Author"
-                        className="rounded-full size-5"
+                    <div className="flex gap-3 items-center w-full">
+                      <Avatar
+                        src={deployment.gitCommitAuthorAvatarUrl}
+                        alt={deployment.gitCommitAuthorUsername ?? "Author"}
                       />
+
                       <div className="w-[200px]">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-grayA-12 text-xs">
@@ -369,10 +257,9 @@ export const DeploymentsList = ({ projectId }: Props) => {
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="flex items-center gap-2">
-                    <img
-                      src={deployment.gitCommitAuthorAvatarUrl ?? ""}
-                      alt="Author"
-                      className="rounded-full size-5"
+                    <Avatar
+                      src={deployment.gitCommitAuthorAvatarUrl}
+                      alt={deployment.gitCommitAuthorUsername ?? "Author"}
                     />
                     <span className="font-medium text-grayA-12 text-xs">
                       {deployment.gitCommitAuthorName}
@@ -403,7 +290,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, activeDeployment, activeDeploymentId]);
+  }, [selectedDeployment?.deployment.id, isCompactView, activeDeployment]);
 
   return (
     <VirtualTable

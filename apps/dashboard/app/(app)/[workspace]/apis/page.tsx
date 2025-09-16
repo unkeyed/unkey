@@ -1,8 +1,7 @@
 "use client";
-
+import { PostAuthInvitationHandler } from "@/components/auth/post-auth-invitation-handler";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspace } from "@/providers/workspace-provider";
-
 import { Nodes } from "@unkey/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
@@ -23,6 +22,7 @@ export default function ApisOverviewPage() {
   return (
     workspace && (
       <div>
+        <PostAuthInvitationHandler />
         <Navbar>
           <Navbar.Breadcrumbs icon={<Nodes />}>
             <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/apis`} active>

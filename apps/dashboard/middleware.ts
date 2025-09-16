@@ -13,6 +13,14 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
     return NextResponse.redirect("https://app.unkey.com/gateway-new");
   }
 
+  // Redirect /auth/join to /join to bypass auth layout
+  if (url.pathname === "/auth/join") {
+    const joinUrl = new URL("/join", url);
+    // Preserve all query parameters (including invitation_token)
+    joinUrl.search = url.search;
+    return NextResponse.redirect(joinUrl, 307);
+  }
+
   const AUTH_PROVIDER = env().AUTH_PROVIDER;
   const isEnabled = () => AUTH_PROVIDER !== "local";
 
@@ -23,6 +31,8 @@ export default async function middleware(req: NextRequest, _evt: NextFetchEvent)
     "/auth/sso-callback",
     "/auth/oauth-sign-in",
     "/auth/join",
+    "/join",
+    "/join/success",
     "/favicon.ico",
     "/api/webhooks/stripe",
     "/api/v1/workos/webhooks",
