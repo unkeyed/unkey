@@ -53,15 +53,24 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
         return false;
       }
 
-      // For "workspace not found in context" errors on initial load (post-login scenarios)
-      // Be more aggressive with retries as this is likely a timing issue
+      // For "workspace not found in context" errors - more aggressive retry on post-login
       if (error?.message?.includes("workspace not found in context")) {
-        return failureCount < (initialLoadRef.current ? 5 : 3);
+        // Post-login for existing users needs more retries due to session sync
+        return failureCount < (initialLoadRef.current ? 6 : 3);
       }
 
-      // For NOT_FOUND errors on initial load, retry more aggressively
+      // For NOT_FOUND errors - especially common for existing users post-login
       if (error?.data?.code === "NOT_FOUND") {
-        return failureCount < (initialLoadRef.current ? 3 : 1);
+        return failureCount < (initialLoadRef.current ? 4 : 1);
+      }
+
+      // Pattern validation errors - likely post-login context issues for existing users
+      if (
+        error?.message?.includes("did not match the expected pattern") ||
+        error?.message?.includes("string did not match")
+      ) {
+        // These are usually transient post-login issues, retry aggressively
+        return failureCount < 4;
       }
 
       // For other errors, retry twice
@@ -76,6 +85,23 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     // Return null instead of throwing on certain errors
     onError: (error) => {
       lastErrorRef.current = error;
+
+      // Check for pattern validation errors - common post-login for existing users
+      if (
+        error?.message?.includes("did not match the expected pattern") ||
+        error?.message?.includes("string did not match")
+      ) {
+        console.warn("Post-login workspace context synchronization error:", {
+          message: error.message,
+          data: error.data,
+          shape: error.shape,
+          isInitialLoad: initialLoadRef.current,
+          retryCount: retryCountRef.current,
+        });
+
+        // Don't return early - let the retry logic handle this
+      }
+
       if (
         error?.message?.includes("workspace not found in context") ||
         error?.data?.code === "NOT_FOUND"
@@ -134,12 +160,21 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     // Enhanced error handling for better user experience
     let processedError: TRPCClientErrorLike<Router> | null = null;
     if (error && !isCurrentlyLoading) {
-      // Only surface errors that aren't being automatically retried
+      // Check for errors that should be auto-retried
       const isRetriableContextError = error?.message?.includes("workspace not found in context");
       const isRetriableNotFound = error?.data?.code === "NOT_FOUND";
+      const isRetriablePatternError =
+        error?.message?.includes("did not match the expected pattern") ||
+        error?.message?.includes("string did not match");
+
+      // For post-login scenarios, be more lenient about showing errors during retries
+      const maxRetriesBeforeShow = initialLoadRef.current ? 4 : 3;
 
       // Don't show error if we're in the middle of automatic retries for these cases
-      if (!(isRetriableContextError || isRetriableNotFound) || retryCountRef.current >= 3) {
+      if (
+        !(isRetriableContextError || isRetriableNotFound || isRetriablePatternError) ||
+        retryCountRef.current >= maxRetriesBeforeShow
+      ) {
         processedError = error;
       }
     }

@@ -95,19 +95,26 @@ export default function Layout({ children }: LayoutProps) {
     refetch: refetchWorkspace,
   } = useWorkspace();
 
-  // Auto-retry logic for workspace loading failures on first-time login
+  // Auto-retry logic for workspace loading failures (especially post-login for existing users)
   useEffect(() => {
     if (workspaceError && !workspace && !workspaceLoading && !hasRedirected) {
       const isContextError = workspaceError.message?.includes("workspace not found in context");
       const isNotFoundError = workspaceError?.message?.includes("NOT_FOUND");
+      const isPatternError =
+        workspaceError.message?.includes("did not match the expected pattern") ||
+        workspaceError.message?.includes("string did not match");
 
-      // Only auto-retry for specific transient errors during initial load
-      if ((isContextError || isNotFoundError) && retryAttemptRef.current < 2) {
+      // Auto-retry for transient errors during post-login (especially for existing users)
+      if ((isContextError || isNotFoundError || isPatternError) && retryAttemptRef.current < 3) {
         retryAttemptRef.current += 1;
-        const retryDelay = Math.min(1000 * retryAttemptRef.current, 3000); // 1s, 2s max
+        // Longer delays for post-login session synchronization issues
+        const retryDelay = Math.min(1500 * retryAttemptRef.current, 4500); // 1.5s, 3s, 4.5s
 
         console.debug(
-          `Auto-retrying workspace load (attempt ${retryAttemptRef.current}/2) in ${retryDelay}ms`,
+          `Auto-retrying workspace load for post-login sync (attempt ${retryAttemptRef.current}/3) in ${retryDelay}ms`,
+          {
+            errorType: isPatternError ? "pattern" : isContextError ? "context" : "not_found",
+          },
         );
 
         retryTimeoutRef.current = setTimeout(() => {
@@ -173,10 +180,12 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     // Handle workspace context errors specifically (user needs workspace)
-    // But only after we've exhausted auto-retry attempts
+    // But only after we've exhausted auto-retry attempts for post-login scenarios
     if (
-      workspaceError?.message?.includes("workspace not found in context") &&
-      retryAttemptRef.current >= 2
+      (workspaceError?.message?.includes("workspace not found in context") ||
+        workspaceError?.message?.includes("did not match the expected pattern") ||
+        workspaceError?.message?.includes("string did not match")) &&
+      retryAttemptRef.current >= 3
     ) {
       setHasRedirected(true);
       router.push("/new");
@@ -213,10 +222,13 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   if (workspaceError && !workspace) {
-    // Don't show error state for context errors - these are handled by redirects
+    // Don't show error state for transient post-login errors - these are handled by auto-retry/redirects
     const isContextError = workspaceError.message?.includes("workspace not found in context");
+    const isPatternError =
+      workspaceError.message?.includes("did not match the expected pattern") ||
+      workspaceError.message?.includes("string did not match");
 
-    if (!isContextError) {
+    if (!isContextError && !isPatternError) {
       return (
         <ErrorState
           title="Workspace Error"
