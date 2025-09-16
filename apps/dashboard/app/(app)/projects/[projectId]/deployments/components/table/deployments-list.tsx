@@ -48,6 +48,26 @@ type Props = {
 export const DeploymentsList = ({ projectId }: Props) => {
   const { filters } = useFilters();
 
+  const project = useLiveQuery((q) => {
+    return q
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
+      .orderBy(({ project }) => project.id, "asc")
+      .limit(1);
+  });
+
+  const activeDeploymentId = project.data.at(0)?.activeDeploymentId;
+
+  const activeDeployment = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.id, activeDeploymentId))
+        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .limit(1),
+    [activeDeploymentId],
+  );
+
   const deployments = useLiveQuery(
     (q) => {
       // Query filtered environments
@@ -174,7 +194,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {environment?.slug === "production" ? (
+                    {deployment.id === activeDeploymentId ? (
                       <EnvStatusBadge variant="current" text="Current" />
                     ) : null}
                   </div>
@@ -367,25 +387,17 @@ export const DeploymentsList = ({ projectId }: Props) => {
           deployment,
           environment,
         }: { deployment: Deployment; environment?: Environment }) => {
-          // Find current active production deployment for rollback context
-          // Based on the collection schema, we'll need to identify current production deployment differently
-          const currentActiveDeployment = deployments.data?.find(
-            (d) =>
-              d.deployment?.environmentId === environment?.id &&
-              d.deployment?.status === "ready" &&
-              d.environment?.slug === "production",
-          )?.deployment;
           return (
             <DeploymentListTableActions
               deployment={deployment}
-              currentActiveDeployment={currentActiveDeployment}
+              currentActiveDeployment={activeDeployment.data.at(0)}
               environment={environment}
             />
           );
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, deployments]);
+  }, [selectedDeployment?.deployment.id, isCompactView, deployments, activeDeployment]);
 
   return (
     <VirtualTable

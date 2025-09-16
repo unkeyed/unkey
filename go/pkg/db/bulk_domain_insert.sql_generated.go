@@ -49,6 +49,6 @@ func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertD
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections";
+import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { CircleInfo, Cloud, CodeBranch, CodeCommit } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
@@ -27,6 +27,14 @@ export const RollbackDialog = ({
       toast.success("Rollback completed", {
         description: `Successfully rolled back to deployment ${deployment.id}`,
       });
+      // hack to revalidate
+      try {
+        // @ts-expect-error Their docs say it's here
+        collection.projects.utils.refetch();
+      } catch (error) {
+        console.error("Refetch error:", error);
+      }
+
       onOpenChange(false);
     },
     onError: (error) => {
@@ -47,7 +55,7 @@ export const RollbackDialog = ({
     try {
       await rollback.mutateAsync({
         hostname,
-        targetVersionId: deployment.id,
+        targetDeploymentId: deployment.id,
       });
     } catch (error) {
       console.error("Rollback error:", error);

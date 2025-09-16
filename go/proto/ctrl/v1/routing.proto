@@ -2,24 +2,24 @@ syntax = "proto3";
 
 package ctrl.v1;
 
-option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
 message SetRouteRequest {
   string hostname = 1;
-  string version_id = 2;
-  
+  string deployment_id = 2;
+
   // Optional: for blue-green deployments
-  int32 weight = 3;  // 0-100, defaults to 100 for full cutover
-  
+  int32 weight = 3; // 0-100, defaults to 100 for full cutover
+
   // Required for authorization - must be non-empty and match caller workspace
   // The workspace must exist and the deployment must belong to this workspace
   string workspace_id = 4;
 }
 
 message SetRouteResponse {
-  string previous_version_id = 1;  // What was previously active
+  string previous_deployment_id = 1; // What was previously active
   google.protobuf.Timestamp effective_at = 2;
 }
 
@@ -34,11 +34,11 @@ message GetRouteResponse {
 message ListRoutesRequest {
   string workspace_id = 1;
   string project_id = 2;
-  
+
   // Optional filters
   string environment_id = 3;
-  bool include_preview = 4;  // Include preview/branch routes
-  
+  bool include_preview = 4; // Include preview/branch routes
+
   // Pagination
   int32 page_size = 10;
   string page_token = 11;
@@ -51,20 +51,20 @@ message ListRoutesResponse {
 
 message Route {
   string hostname = 1;
-  string version_id = 2;
+  string deployment_id = 2;
   string workspace_id = 3;
   string project_id = 4;
   string environment_id = 5;
-  
+
   // Traffic configuration
-  int32 weight = 6;  // For blue-green deployments
-  
+  int32 weight = 6; // For blue-green deployments
+
   // Metadata
   bool is_custom_domain = 7;
   bool is_enabled = 8;
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
-  
+
   // TLS info
   bool has_certificate = 11;
   google.protobuf.Timestamp certificate_expires_at = 12;
@@ -73,7 +73,7 @@ message Route {
 // Convenience messages for common operations
 message RollbackRequest {
   string hostname = 1;
-  string target_version_id = 2;
+  string target_deployment_id = 2;
 
   // Required for authorization - must be non-empty and match caller workspace
   // The workspace must exist and the target deployment must belong to this workspace
@@ -86,21 +86,21 @@ message RollbackRequest {
 }
 
 message RollbackResponse {
-  string previous_version_id = 1;
-  string new_version_id = 2;
+  string previous_deployment_id = 1;
+  string new_deployment_id = 2;
   google.protobuf.Timestamp effective_at = 3;
 }
 
 service RoutingService {
   // Update routing for a hostname
   rpc SetRoute(SetRouteRequest) returns (SetRouteResponse) {}
-  
+
   // Get current routing for a hostname
   rpc GetRoute(GetRouteRequest) returns (GetRouteResponse) {}
-  
+
   // List all routes for a workspace/project
   rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse) {}
-  
+
   // Convenience method for rollback (just calls SetRoute internally)
   // Requires workspace_id authorization - validates workspace ownership before routing change
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}

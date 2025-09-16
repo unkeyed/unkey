@@ -2,8 +2,10 @@ package routing
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -37,7 +39,7 @@ func New(database db.Database, partitionDB db.Database, logger logging.Logger) *
 // SetRoute updates routing for a hostname to point to a specific version
 func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetRouteRequest]) (*connect.Response[ctrlv1.SetRouteResponse], error) {
 	hostname := req.Msg.GetHostname()
-	versionID := req.Msg.GetVersionId()
+	deploymentID := req.Msg.GetDeploymentId()
 	workspaceID := req.Msg.GetWorkspaceId()
 
 	// Validate required workspace_id
@@ -62,12 +64,12 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 
 	s.logger.InfoContext(ctx, "setting route",
 		slog.String("hostname", hostname),
-		slog.String("version_id", versionID),
+		slog.String("deployment_id", deploymentID),
 		slog.String("workspace_id", workspaceID),
 	)
 
 	// Get current route to capture what we're switching from
-	var previousVersionID string
+	var previousDeploymentID string
 	var previousAuthConfig *partitionv1.AuthConfig
 	var previousValidationConfig *partitionv1.ValidationConfig
 	currentRoute, err := partitiondb.Query.FindGatewayByHostname(ctx, s.partitionDB.RO(), hostname)
@@ -83,20 +85,20 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 		// Parse existing config to get previous version and auth configs
 		var existingConfig partitionv1.GatewayConfig
 		if err := protojson.Unmarshal(currentRoute.Config, &existingConfig); err == nil {
-			previousVersionID = existingConfig.Deployment.Id
+			previousDeploymentID = existingConfig.Deployment.Id
 			previousAuthConfig = existingConfig.AuthConfig
 			previousValidationConfig = existingConfig.ValidationConfig
 		}
 	}
 
 	// Check if the target version deployment exists and is in ready state
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), versionID)
+	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", versionID))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", deploymentID))
 		}
 		s.logger.ErrorContext(ctx, "failed to get deployment",
-			slog.String("version_id", versionID),
+			slog.String("deployment_id", deploymentID),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
@@ -108,23 +110,23 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 		s.logger.ErrorContext(ctx, "workspace authorization failed in SetRoute",
 			slog.String("requested_workspace_id", workspaceID),
 			slog.String("deployment_workspace_id", deployment.WorkspaceID),
-			slog.String("deployment_id", versionID),
+			slog.String("deployment_id", deploymentID),
 		)
 		return nil, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("deployment not found: %s", versionID))
+			fmt.Errorf("deployment not found: %s", deploymentID))
 	}
 
 	if deployment.Status != db.DeploymentsStatusReady {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("deployment %s is not in ready state, current status: %s", versionID, deployment.Status))
+			fmt.Errorf("deployment %s is not in ready state, current status: %s", deploymentID, deployment.Status))
 	}
 
 	// Only switch traffic if target deployment has running VMs
 	// Get VMs for this deployment to ensure they are running
-	vms, err := partitiondb.Query.FindVMsByDeploymentId(ctx, s.partitionDB.RO(), versionID)
+	vms, err := partitiondb.Query.FindVMsByDeploymentId(ctx, s.partitionDB.RO(), deploymentID)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to find VMs for deployment",
-			slog.String("version_id", versionID),
+			slog.String("deployment_id", deploymentID),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find VMs for deployment: %w", err))
@@ -132,7 +134,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 
 	if len(vms) == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("no VMs available for deployment %s", versionID))
+			fmt.Errorf("no VMs available for deployment %s", deploymentID))
 	}
 
 	// Check that at least some VMs are running
@@ -145,13 +147,13 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 
 	if runningVMCount == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("no running VMs available for deployment %s", versionID))
+			fmt.Errorf("no running VMs available for deployment %s", deploymentID))
 	}
 
 	// Create new gateway configuration
 	gatewayConfig := &partitionv1.GatewayConfig{
 		Deployment: &partitionv1.Deployment{
-			Id:        versionID,
+			Id:        deploymentID,
 			IsEnabled: true,
 		},
 		Vms:              make([]*partitionv1.VM, 0, len(vms)),
@@ -173,7 +175,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to marshal gateway config",
 			slog.String("hostname", hostname),
-			slog.String("version_id", versionID),
+			slog.String("deployment_id", deploymentID),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to marshal gateway config: %w", err))
@@ -191,7 +193,7 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to upsert gateway",
 			slog.String("hostname", hostname),
-			slog.String("version_id", versionID),
+			slog.String("deployment_id", deploymentID),
 			slog.String("workspace_id", deploymentWorkspaceID),
 			slog.String("error", err.Error()),
 		)
@@ -200,14 +202,14 @@ func (s *Service) SetRoute(ctx context.Context, req *connect.Request[ctrlv1.SetR
 
 	s.logger.InfoContext(ctx, "route updated successfully",
 		slog.String("hostname", hostname),
-		slog.String("previous_version_id", previousVersionID),
-		slog.String("new_version_id", versionID),
+		slog.String("previous_deployment_id", previousDeploymentID),
+		slog.String("new_deployment_id", deploymentID),
 		slog.Int("running_vms", runningVMCount),
 	)
 
 	return connect.NewResponse(&ctrlv1.SetRouteResponse{
-		PreviousVersionId: previousVersionID,
-		EffectiveAt:       timestamppb.Now(),
+		PreviousDeploymentId: previousDeploymentID,
+		EffectiveAt:          timestamppb.Now(),
 	}), nil
 }
 
@@ -243,12 +245,12 @@ func (s *Service) GetRoute(ctx context.Context, req *connect.Request[ctrlv1.GetR
 
 	// Convert to API route format
 	route := &ctrlv1.Route{
-		Hostname:  hostname,
-		VersionId: gatewayConfig.Deployment.Id,
-		Weight:    100, // Full traffic routing
-		IsEnabled: gatewayConfig.Deployment.IsEnabled,
-		CreatedAt: timestamppb.Now(), // TODO: Add timestamps to gateway table
-		UpdatedAt: timestamppb.Now(),
+		Hostname:     hostname,
+		DeploymentId: gatewayConfig.Deployment.Id,
+		Weight:       100, // Full traffic routing
+		IsEnabled:    gatewayConfig.Deployment.IsEnabled,
+		CreatedAt:    timestamppb.Now(), // TODO: Add timestamps to gateway table
+		UpdatedAt:    timestamppb.Now(),
 	}
 
 	return connect.NewResponse(&ctrlv1.GetRouteResponse{
@@ -267,12 +269,12 @@ func (s *Service) ListRoutes(ctx context.Context, req *connect.Request[ctrlv1.Li
 // This is the main rollback implementation that the dashboard will call
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
 	hostname := req.Msg.GetHostname()
-	targetVersionID := req.Msg.GetTargetVersionId()
+	targetDeploymentID := req.Msg.GetTargetDeploymentId()
 	workspaceID := req.Msg.GetWorkspaceId()
 
 	s.logger.InfoContext(ctx, "initiating rollback",
 		slog.String("hostname", hostname),
-		slog.String("target_version_id", targetVersionID),
+		slog.String("target_deployment_id", targetDeploymentID),
 		slog.String("workspace_id", workspaceID),
 	)
 
@@ -297,13 +299,13 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	}
 
 	// Get the target deployment and verify it belongs to the workspace
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), targetVersionID)
+	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), targetDeploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", targetVersionID))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", targetDeploymentID))
 		}
 		s.logger.ErrorContext(ctx, "failed to get deployment",
-			slog.String("version_id", targetVersionID),
+			slog.String("deployment_id", targetDeploymentID),
 			slog.String("error", err.Error()),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
@@ -314,10 +316,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		s.logger.ErrorContext(ctx, "workspace authorization failed",
 			slog.String("requested_workspace_id", workspaceID),
 			slog.String("deployment_workspace_id", deployment.WorkspaceID),
-			slog.String("deployment_id", targetVersionID),
+			slog.String("deployment_id", targetDeploymentID),
 		)
 		return nil, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("deployment not found: %s", targetVersionID))
+			fmt.Errorf("deployment not found: %s", targetDeploymentID))
 	}
 
 	// Get current route to capture what we're rolling back from
@@ -327,24 +329,24 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, err
 	}
 
-	var previousVersionID string
+	var previousDeploymentID string
 	if err == nil {
-		previousVersionID = getCurrentResp.Msg.Route.VersionId
+		previousDeploymentID = getCurrentResp.Msg.Route.DeploymentId
 	}
 
 	// Use SetRoute to perform the actual routing change - pass workspace context
 	setRouteReq := &ctrlv1.SetRouteRequest{
-		Hostname:    hostname,
-		VersionId:   targetVersionID,
-		Weight:      100,         // Full cutover for rollback
-		WorkspaceId: workspaceID, // Pass workspace for validation
+		Hostname:     hostname,
+		DeploymentId: targetDeploymentID,
+		Weight:       100,         // Full cutover for rollback
+		WorkspaceId:  workspaceID, // Pass workspace for validation
 	}
 
 	setRouteResp, err := s.SetRoute(ctx, connect.NewRequest(setRouteReq))
 	if err != nil {
 		s.logger.ErrorContext(ctx, "rollback failed",
 			slog.String("hostname", hostname),
-			slog.String("target_version_id", targetVersionID),
+			slog.String("target_deployment_id", targetDeploymentID),
 			slog.String("error", err.Error()),
 		)
 		return nil, err
@@ -352,13 +354,26 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 
 	s.logger.InfoContext(ctx, "rollback completed successfully",
 		slog.String("hostname", hostname),
-		slog.String("previous_version_id", previousVersionID),
-		slog.String("new_version_id", targetVersionID),
+		slog.String("previous_deployment_id", previousDeploymentID),
+		slog.String("new_deployment_id", targetDeploymentID),
 	)
 
+	err = db.Query.UpdateProjectActiveDeploymentId(ctx, s.db.RW(), db.UpdateProjectActiveDeploymentIdParams{
+		ID:                 deployment.ProjectID,
+		ActiveDeploymentID: sql.NullString{Valid: true, String: targetDeploymentID},
+		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to update project active deployment ID",
+			slog.String("project_id", deployment.ProjectID),
+			slog.String("error", err.Error()),
+		)
+		return nil, err
+	}
+
 	return connect.NewResponse(&ctrlv1.RollbackResponse{
-		PreviousVersionId: previousVersionID,
-		NewVersionId:      targetVersionID,
-		EffectiveAt:       setRouteResp.Msg.EffectiveAt,
+		PreviousDeploymentId: previousDeploymentID,
+		NewDeploymentId:      targetDeploymentID,
+		EffectiveAt:          setRouteResp.Msg.EffectiveAt,
 	}), nil
 }

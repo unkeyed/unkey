@@ -356,6 +356,7 @@ services:
       CLICKHOUSE_URL: "http://default:password@clickhouse:8123"
       # Environment
       NODE_ENV: "production"
+      CTRL_URL: "http://ctrl:7091"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
 

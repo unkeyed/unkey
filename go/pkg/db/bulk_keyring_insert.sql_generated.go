@@ -38,6 +38,6 @@ func (q *BulkQueries) InsertKeyrings(ctx context.Context, db DBTX, args []Insert
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

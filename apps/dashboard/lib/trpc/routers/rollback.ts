@@ -12,11 +12,11 @@ export const rollback = t.procedure
   .input(
     z.object({
       hostname: z.string().min(1, "Hostname is required"),
-      targetVersionId: z.string().min(1, "Target version ID is required"),
+      targetDeploymentId: z.string().min(1, "Target version ID is required"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { hostname, targetVersionId } = input;
+    const { hostname, targetDeploymentId } = input;
     const workspaceId = ctx.workspace.id;
 
     // Validate that ctrl service URL is configured
@@ -29,7 +29,7 @@ export const rollback = t.procedure
       // Verify the target deployment exists and belongs to this workspace
       const deployment = await db.query.deployments.findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.id, targetVersionId), eq(table.workspaceId, workspaceId)),
+          and(eq(table.id, targetDeploymentId), eq(table.workspaceId, workspaceId)),
         columns: {
           id: true,
           status: true,
@@ -53,14 +53,14 @@ export const rollback = t.procedure
       if (deployment.status !== "ready") {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: `Deployment ${targetVersionId} is not ready (status: ${deployment.status})`,
+          message: `Deployment ${targetDeploymentId} is not ready (status: ${deployment.status})`,
         });
       }
 
       // Make request to ctrl service rollback endpoint
       const rollbackRequest = {
         hostname,
-        target_version_id: targetVersionId,
+        target_deployment_id: targetDeploymentId,
         workspace_id: workspaceId,
       };
 
@@ -118,11 +118,11 @@ export const rollback = t.procedure
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "deployment.rollback",
-        description: `Rolled back ${hostname} to deployment ${targetVersionId}`,
+        description: `Rolled back ${hostname} to deployment ${targetDeploymentId}`,
         resources: [
           {
             type: "deployment",
-            id: targetVersionId,
+            id: targetDeploymentId,
             name: deployment.project?.name || "Unknown",
           },
         ],
@@ -133,8 +133,8 @@ export const rollback = t.procedure
       });
 
       return {
-        previousVersionId: rollbackResponse.previous_version_id,
-        newVersionId: rollbackResponse.new_version_id,
+        previousDeploymentId: rollbackResponse.previous_deployment_id,
+        newDeploymentId: rollbackResponse.new_deployment_id,
         effectiveAt: rollbackResponse.effective_at,
       };
     } catch (error) {
