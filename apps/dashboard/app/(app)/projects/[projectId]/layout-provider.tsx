@@ -3,7 +3,6 @@ import { createContext, useContext } from "react";
 type ProjectLayoutContextType = {
   isDetailsOpen: boolean;
   setIsDetailsOpen: (open: boolean) => void;
-
   projectId: string;
 };
 
