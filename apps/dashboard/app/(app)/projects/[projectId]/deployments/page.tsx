@@ -1,14 +1,11 @@
 "use client";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useParams } from "next/navigation";
 import { useProjectLayout } from "../layout-provider";
 import { DeploymentsListControlCloud } from "./components/control-cloud";
 import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsList } from "./components/table/deployments-list";
 
 export default function Deployments() {
-  // biome-ignore lint/style/noNonNullAssertion: shut up nextjs
-  const { projectId } = useParams<{ projectId: string }>()!;
   const { isDetailsOpen } = useProjectLayout();
 
   return (
@@ -20,7 +17,7 @@ export default function Deployments() {
     >
       <DeploymentsListControls />
       <DeploymentsListControlCloud />
-      <DeploymentsList projectId={projectId} />
+      <DeploymentsList />
     </div>
   );
 }
