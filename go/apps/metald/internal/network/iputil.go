@@ -25,12 +25,12 @@ func GenerateAvailableIPs(cidr string) (string, error) {
 
 	// Generate IPs
 	ips := make([]string, 0, numHosts-1) // -1 to also exclude gateway
-	
+
 	// Start from the third IP (skip network and gateway)
 	ip := ipnet.IP.Mask(ipnet.Mask)
 	incIP(ip) // Skip network address
 	incIP(ip) // Skip gateway address
-	
+
 	// Generate IPs until we reach the broadcast address
 	broadcast := getBroadcast(ipnet)
 	for i := 0; i < numHosts-1 && !ip.Equal(broadcast); i++ {
@@ -62,10 +62,10 @@ func getBroadcast(ipnet *net.IPNet) net.IP {
 	ip := ipnet.IP.To4()
 	mask := ipnet.Mask
 	broadcast := make(net.IP, len(ip))
-	
+
 	for i := range ip {
 		broadcast[i] = ip[i] | ^mask[i]
 	}
-	
+
 	return broadcast
 }

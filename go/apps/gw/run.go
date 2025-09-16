@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -208,16 +209,26 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(rlSvc.Close)
 
+	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
+		Logger:  logger,
+		DB:      mainDB,
+		Counter: ctr,
+		TTL:     30 * time.Second,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create usage limiter service: %w", err)
+	}
+
 	// Create key service with non-partitioned database
 	keySvc, err := keys.New(keys.Config{
-		Logger:      logger,
-		DB:          mainDB,
-		KeyCache:    caches.VerificationKeyByHash,
-		RateLimiter: rlSvc,
-		RBAC:        rbac.New(),
-		Counter:     ctr,
-		Clickhouse:  ch,
-		Region:      cfg.Region,
+		Logger:       logger,
+		DB:           mainDB,
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		UsageLimiter: ulSvc,
+		Clickhouse:   ch,
+		Region:       cfg.Region,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
