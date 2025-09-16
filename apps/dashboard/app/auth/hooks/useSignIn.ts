@@ -111,7 +111,14 @@ export function useSignIn() {
 
       // Determine where to redirect based on the verification result
       const redirectUrl = (() => {
-        if (isPendingOrgSelection(result)) {
+        // If we have an invitation token, the verifyAuthCode should have handled
+        // the org selection automatically, so we should get a success response
+        if (invitationToken && result.success) {
+          return result.redirectTo;
+        }
+
+        // Only show org selector if we don't have an invitation token
+        if (!invitationToken && isPendingOrgSelection(result)) {
           const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
           return `${SIGN_IN_URL}?orgs=${orgsParam}`;
         }
