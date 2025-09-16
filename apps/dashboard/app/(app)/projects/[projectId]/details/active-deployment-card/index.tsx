@@ -1,6 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ChevronDown,
@@ -15,7 +14,9 @@ import {
 } from "@unkey/icons";
 import { Badge, Button, Card, CopyButton, Input, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useProjectLayout } from "../../layout-provider";
 import { FilterButton } from "./filter-button";
+import { Avatar } from "./git-avatar";
 import { useDeploymentLogs } from "./hooks/use-deployment-logs";
 import { InfoChip } from "./info-chip";
 import { ActiveDeploymentCardSkeleton } from "./skeleton";
@@ -68,9 +69,10 @@ type Props = {
 };
 
 export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
+  const { collections } = useProjectLayout();
   const { data } = useLiveQuery((q) =>
     q
-      .from({ deployment: collection.deployments })
+      .from({ deployment: collections.deployments })
       .where(({ deployment }) => eq(deployment.id, deploymentId)),
   );
 
@@ -103,7 +105,7 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
           <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
             <div className="text-accent-12 font-medium text-xs">{deployment.id}</div>
-            <div className="text-gray-9 text-xs">TODO</div>
+            <div className="text-gray-9 text-xs">{deployment.gitCommitMessage}</div>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -116,7 +118,7 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
           <div className="items-center flex gap-2">
             <div className="flex gap-2 items-center">
               <span className="text-gray-9 text-xs">Created by</span>
-              <img src="TODO" alt="TODO" className="rounded-full size-5" />
+              <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
               <span className="font-medium text-grayA-12 text-xs">
                 {deployment.gitCommitAuthorName}
               </span>
@@ -139,10 +141,14 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
             />
             <div className="flex items-center gap-1.5">
               <InfoChip icon={CodeBranch}>
-                <span className="text-grayA-9 text-xs">{deployment.gitBranch}</span>
+                <span className="text-grayA-9 text-xs truncate max-w-32">
+                  {deployment.gitBranch}
+                </span>
               </InfoChip>
               <InfoChip icon={CodeCommit}>
-                <span className="text-grayA-9 text-xs">{deployment.gitCommitSha}</span>
+                <span className="text-grayA-9 text-xs">
+                  {(deployment.gitCommitSha ?? "").slice(0, 7)}
+                </span>
               </InfoChip>
             </div>
           </div>

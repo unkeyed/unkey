@@ -7,7 +7,7 @@ type UseEnvVarsManagerProps = {
 };
 
 export function useEnvVarsManager({ projectId, environment }: UseEnvVarsManagerProps) {
-  const { data } = trpc.environmentVariables.list.useQuery({ projectId });
+  const { data } = trpc.deploy.environment.list_dummy.useQuery({ projectId });
 
   const envVars = data?.[environment] ?? [];
 

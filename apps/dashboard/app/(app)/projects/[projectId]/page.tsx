@@ -11,12 +11,9 @@ import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
 
 export default function ProjectDetails() {
-  const { isDetailsOpen, projectId } = useProjectLayout();
+  const { isDetailsOpen, projectId, collections } = useProjectLayout();
 
-  const domains = useLiveQuery((q) =>
-    q.from({ domain: collection.domains }).where(({ domain }) => eq(domain.projectId, projectId)),
-  );
-
+  const domains = useLiveQuery((q) => q.from({ domain: collections.domains }));
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
   );
@@ -41,13 +38,13 @@ export default function ProjectDetails() {
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
-        {project.activeDeploymentId ? (
+        {project.liveDeploymentId ? (
           <Section>
             <SectionHeader
               icon={<Cloud size="md-regular" className="text-gray-9" />}
               title="Active Deployment"
             />
-            <ActiveDeploymentCard deploymentId={project.activeDeploymentId} />
+            <ActiveDeploymentCard deploymentId={project.liveDeploymentId} />
           </Section>
         ) : null}
 

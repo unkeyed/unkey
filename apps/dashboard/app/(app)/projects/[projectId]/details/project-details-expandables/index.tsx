@@ -3,6 +3,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Book2, Cube, DoubleChevronRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useProjectLayout } from "../../layout-provider";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
 
@@ -19,13 +20,13 @@ export const ProjectDetailsExpandable = ({
   onClose,
   projectId,
 }: ProjectDetailsExpandableProps) => {
+  const { collections } = useProjectLayout();
   const query = useLiveQuery((q) =>
     q
       .from({ project: collection.projects })
       .where(({ project }) => eq(project.id, projectId))
-
-      .join({ deployment: collection.deployments }, ({ deployment, project }) =>
-        eq(deployment.id, project.activeDeploymentId),
+      .join({ deployment: collections.deployments }, ({ deployment, project }) =>
+        eq(deployment.id, project.liveDeploymentId),
       )
       .orderBy(({ project }) => project.id, "asc")
       .limit(1),
