@@ -51,7 +51,7 @@ export const LogsTableAction = ({
         icon: <Layers3 size="md-regular" />,
         onClick: (e) => {
           e.stopPropagation();
-          router.push(`${workspace?.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
+          router.push(`/${workspace?.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
         },
       },
       {
