@@ -35,9 +35,9 @@ export class ClickHouseProxyClient {
    */
   async insertApiRequests(
     events: Array<{
-      workspace_id: string;
       request_id: string;
       time: number;
+      workspace_id: string;
       host: string;
       method: string;
       path: string;
@@ -50,10 +50,7 @@ export class ClickHouseProxyClient {
       service_latency: number;
       user_agent: string;
       ip_address: string;
-      country: string;
-      city: string;
-      colo: string;
-      continent: string;
+      region: string;
     }>,
   ): Promise<void> {
     await this.sendEvents("/_internal/chproxy/metrics", events);

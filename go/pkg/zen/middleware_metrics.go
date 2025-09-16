@@ -14,7 +14,7 @@ import (
 )
 
 type EventBuffer interface {
-	BufferApiRequest(schema.ApiRequestV1)
+	BufferApiRequest(schema.ApiRequestV2)
 }
 
 type redactionRule struct {
@@ -56,7 +56,7 @@ func redact(in []byte) []byte {
 //	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
 //	    route,
 //	)
-func WithMetrics(eventBuffer EventBuffer) Middleware {
+func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
@@ -64,8 +64,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			serviceLatency := time.Since(start)
 
 			// "method", "path", "status"
-			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
-
+			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(int(s.responseStatus))}
 			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
 			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
 			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
@@ -93,7 +92,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					ipAddress = ips[0]
 				}
 
-				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
+				eventBuffer.BufferApiRequest(schema.ApiRequestV2{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
@@ -109,10 +108,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),
 					IpAddress:       ipAddress,
-					Country:         "",
-					City:            "",
-					Colo:            "",
-					Continent:       "",
+					Region:          region,
 				})
 			}
 			return nextErr

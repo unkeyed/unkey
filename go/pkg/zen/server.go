@@ -54,6 +54,9 @@ type Config struct {
 	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
+
+	// Region specifies the region where the server is located.
+	Region string
 }
 
 // New creates a new server with the provided configuration.
@@ -100,6 +103,7 @@ func New(config Config) (*Server, error) {
 	if config.Flags != nil {
 		flags = *config.Flags
 	}
+
 	s := &Server{
 		mu:          sync.Mutex{},
 		logger:      config.Logger,
@@ -136,6 +140,10 @@ func New(config Config) (*Server, error) {
 // sess := s.getSession().(session.Session[MyRequest, MyResponse]).
 func (s *Server) getSession() any {
 	return s.sessions.Get()
+}
+
+func (s *Server) Region() string {
+	return s.config.Region
 }
 
 // Return the session to the sync pool.

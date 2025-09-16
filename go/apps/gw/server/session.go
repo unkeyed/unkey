@@ -26,7 +26,7 @@ type Session struct {
 	WorkspaceID string
 
 	requestBody    []byte
-	responseStatus int
+	responseStatus int32
 	responseBody   []byte
 }
 
@@ -131,7 +131,7 @@ func (s *Session) Send(status int, body []byte) error {
 // send is the internal method for sending responses.
 func (s *Session) send(status int, body []byte) error {
 	// Store for middleware use
-	s.responseStatus = status
+	s.responseStatus = int32(status)
 	s.responseBody = body
 
 	s.w.WriteHeader(status)

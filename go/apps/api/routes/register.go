@@ -57,7 +57,7 @@ import (
 // this function runs during startup.
 func Register(srv *zen.Server, svc *Services) {
 	withTracing := zen.WithTracing()
-	withMetrics := zen.WithMetrics(svc.ClickHouse)
+	withMetrics := zen.WithMetrics(svc.ClickHouse, srv.Region())
 
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)

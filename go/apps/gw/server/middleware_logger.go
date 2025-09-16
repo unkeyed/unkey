@@ -20,7 +20,7 @@ func WithLogging(logger logging.Logger) Middleware {
 			logger.DebugContext(ctx, "request",
 				slog.String("method", s.r.Method),
 				slog.String("path", s.r.URL.Path),
-				slog.Int("status", s.responseStatus),
+				slog.Int("status", int(s.responseStatus)),
 				slog.Int64("latency", serviceLatency.Milliseconds()),
 			)
 
@@ -28,7 +28,7 @@ func WithLogging(logger logging.Logger) Middleware {
 				logger.ErrorContext(ctx, nextErr.Error(),
 					slog.String("method", s.r.Method),
 					slog.String("path", s.r.URL.Path),
-					slog.Int("status", s.responseStatus))
+					slog.Int("status", int(s.responseStatus)))
 			}
 			return nextErr
 		}

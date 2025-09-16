@@ -21,7 +21,7 @@ type clickhouse struct {
 	logger logging.Logger
 
 	// Batched processors for different event types
-	requests         *batch.BatchProcessor[schema.ApiRequestV1]
+	requests         *batch.BatchProcessor[schema.ApiRequestV2]
 	keyVerifications *batch.BatchProcessor[schema.KeyVerificationRequestV1]
 	ratelimits       *batch.BatchProcessor[schema.RatelimitRequestV1]
 }
@@ -95,15 +95,15 @@ func New(config Config) (*clickhouse, error) {
 		conn:   conn,
 		logger: config.Logger,
 
-		requests: batch.New(batch.Config[schema.ApiRequestV1]{
+		requests: batch.New(batch.Config[schema.ApiRequestV2]{
 			Name:          "api_requests",
 			Drop:          true,
 			BatchSize:     50_000,
 			BufferSize:    200_000,
 			FlushInterval: 5 * time.Second,
 			Consumers:     2,
-			Flush: func(ctx context.Context, rows []schema.ApiRequestV1) {
-				table := "metrics.raw_api_requests_v1"
+			Flush: func(ctx context.Context, rows []schema.ApiRequestV2) {
+				table := "metrics.raw_api_requests_v2"
 				err := flush(ctx, conn, table, rows)
 				if err != nil {
 					config.Logger.Error("failed to flush batch",
@@ -188,7 +188,7 @@ func (c *clickhouse) Shutdown(ctx context.Context) error {
 //
 // Example:
 //
-//	ch.BufferApiRequest(schema.ApiRequestV1{
+//	ch.BufferApiRequest(schema.ApiRequestV2{
 //	    RequestID:      requestID,
 //	    Time:           time.Now().UnixMilli(),
 //	    WorkspaceID:    workspaceID,
@@ -197,7 +197,7 @@ func (c *clickhouse) Shutdown(ctx context.Context) error {
 //	    Path:           r.URL.Path,
 //	    ResponseStatus: status,
 //	})
-func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
+func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV2) {
 	c.requests.Buffer(req)
 }
 

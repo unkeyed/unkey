@@ -16,7 +16,7 @@ import (
 type Bufferer interface {
 	// BufferApiRequest adds an API request event to the buffer.
 	// These are typically HTTP requests to the API with request and response details.
-	BufferApiRequest(schema.ApiRequestV1)
+	BufferApiRequest(schema.ApiRequestV2)
 
 	// BufferKeyVerification adds a key verification event to the buffer.
 	// These represent API key validation operations with their outcomes.

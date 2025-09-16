@@ -40,7 +40,7 @@ type Session struct {
 	WorkspaceID string
 
 	requestBody    []byte
-	responseStatus int
+	responseStatus int32
 	responseBody   []byte
 
 	// ClickHouse request logging control - defaults to true (log by default)
@@ -364,7 +364,7 @@ func (s *Session) AddHeader(key, val string) {
 func (s *Session) send(status int, body []byte) error {
 	// Store the status and body for middleware use
 	// Unlike the headers, we can't access it on the responseWriter
-	s.responseStatus = status
+	s.responseStatus = int32(status)
 	s.responseBody = body
 
 	s.w.WriteHeader(status)
