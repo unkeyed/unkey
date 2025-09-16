@@ -53,19 +53,21 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 		RateLimitMbps:   0,
 	}
 
-	br, brErr := network.CreateBridge(logger, netConfig)
-	if brErr != nil {
-		logger.Info("failed to create bridge",
-			slog.String("error", brErr.Error()),
-		)
-		if err := s.queries.ReleaseNetwork(ctx, n.ID); err != nil { // Delete entry from DB
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
+	br := netConfig.BridgeName
+	// Ignore for now
+	// br, brErr := network.CreateBridge(logger, netConfig)
+	// if brErr != nil {
+	// 	logger.Info("failed to create bridge",
+	// 		slog.String("error", brErr.Error()),
+	// 	)
+	// 	if err := s.queries.ReleaseNetwork(ctx, n.ID); err != nil { // Delete entry from DB
+	// 		return nil, connect.NewError(connect.CodeInternal, err)
+	// 	}
 
-		logger.Debug("cleaned up bridge")
+	// 	logger.Debug("cleaned up bridge")
 
-		return nil, connect.NewError(connect.CodeInternal, brErr)
-	}
+	// 	return nil, connect.NewError(connect.CodeInternal, brErr)
+	// }
 
 	// Generate available IPs for this network
 	availableIPs, ipErr := network.GenerateAvailableIPs(n.BaseNetwork)
@@ -100,10 +102,10 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 	)
 
 	logger.DebugContext(ctx, "creating vms", slog.Int64("count", int64(vmCount)))
-	for vm := range vmCount {
-		id := s.generateVMID(ctx)
+	vmIds := []string{}
 
-		vmid := fmt.Sprintf("ud-%s", id)
+	for vm := range vmCount {
+		vmID := fmt.Sprintf("ud-%s", s.generateVmID(ctx))
 
 		// Pop an available IP from the pool
 		ipRow, popErr := s.queries.PopAvailableIPJSON(ctx, req.Msg.Deployment.GetDeploymentId())
@@ -116,7 +118,7 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 
 		// Now allocate the IP with all required fields
 		ipAlloc, allocErr := s.queries.AllocateIP(ctx, database.AllocateIPParams{
-			VmID:                vmid,
+			VmID:                vmID,
 			IpAddr:              ipRow.JsonExtract.(string),
 			NetworkAllocationID: ipRow.ID,
 		})
@@ -127,7 +129,24 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			return nil, connect.NewError(connect.CodeInternal, allocErr)
 		}
 
-		// CREATION call here
+		// This returns vmID and err
+		_, err := s.backend.CreateVM(ctx, &metaldv1.VmConfig{
+			VcpuCount:     req.Msg.Deployment.GetCpu(),
+			MemorySizeMib: req.Msg.Deployment.GetMemorySizeMib(),
+			Boot:          req.Msg.Deployment.GetImage(),
+			NetworkConfig: "",
+			Console:       nil,
+			Storage:       nil,
+			Id:            vmID,
+			Metadata:      nil,
+		})
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to create VM",
+				slog.String("error", err.Error()),
+			)
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
 
 		logger.Debug("created vm",
 			slog.String("id", ipAlloc.VmID),
@@ -135,37 +154,28 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			slog.Any("requested", vmCount),
 			slog.Any("fulfilled", vm),
 		)
+
+		// ?????????????
+		err = s.backend.BootVM(ctx, vmID)
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to create VM",
+				slog.String("error", err.Error()),
+			)
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		vmIds = append(vmIds, vmID)
 	}
 
 	return connect.NewResponse(&metaldv1.CreateDeploymentResponse{
-		VmIds: []string{"ud-001", "ud-002", "ud-003"},
+		VmIds: vmIds,
 	}), nil
 }
 
 // GetDeployment returns all of the VMs and their state for the passed deployment_id
 func (s *VMService) GetDeployment(ctx context.Context, req *connect.Request[metaldv1.GetDeploymentRequest]) (*connect.Response[metaldv1.GetDeploymentResponse], error) {
-
-	// Sample VMs to "act" against
-	vms := []*metaldv1.GetDeploymentResponse_Vm{
-		{
-			Id:    "ud-001",
-			Host:  "host01.asldkfja.unkey.app",
-			State: metaldv1.VmState_VM_STATE_RUNNING,
-			Port:  8081,
-		},
-		{
-			Id:    "ud-002",
-			Host:  "host02.asldkfja.unkey.app",
-			State: metaldv1.VmState_VM_STATE_CREATED,
-			Port:  8082,
-		},
-		{
-			Id:    "vm-003",
-			Host:  "host03.asldkfja.unkey.app",
-			State: metaldv1.VmState_VM_STATE_RUNNING,
-			Port:  8083,
-		},
-	}
+	req.Msg.GetDeploymentId()
 
 	return connect.NewResponse(&metaldv1.GetDeploymentResponse{
 		DeploymentId: req.Msg.GetDeploymentId(),

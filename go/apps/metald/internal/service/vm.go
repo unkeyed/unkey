@@ -46,7 +46,7 @@ func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *
 	}
 }
 
-func (s *VMService) generateVMID(ctx context.Context) string {
+func (s *VMService) generateVmID(ctx context.Context) string {
 	b := make([]byte, 15)
 	rand.Read(b)
 	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b)[:24]
