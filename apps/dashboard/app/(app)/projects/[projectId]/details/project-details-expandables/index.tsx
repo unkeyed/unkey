@@ -23,7 +23,6 @@ export const ProjectDetailsExpandable = ({
     q
       .from({ project: collection.projects })
       .where(({ project }) => eq(project.id, projectId))
-
       .join({ deployment: collection.deployments }, ({ deployment, project }) =>
         eq(deployment.id, project.activeDeploymentId),
       )

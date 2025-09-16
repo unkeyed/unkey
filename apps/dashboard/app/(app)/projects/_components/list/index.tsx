@@ -12,6 +12,7 @@ const MAX_SKELETON_COUNT = 8;
 export const ProjectsList = () => {
   const { filters } = useProjectsFilters();
   const projectName = filters.find((f) => f.field === "query")?.value ?? "";
+
   const projects = useLiveQuery(
     (q) =>
       q
@@ -21,7 +22,12 @@ export const ProjectsList = () => {
     [projectName],
   );
 
-  if (projects.isLoading) {
+  // Get all deployments and domains to lookup active deployment details
+  const deployments = useLiveQuery((q) => q.from({ deployment: collection.deployments }), []);
+
+  const domains = useLiveQuery((q) => q.from({ domain: collection.domains }), []);
+
+  if (projects.isLoading || deployments.isLoading || domains.isLoading) {
     return (
       <div className="p-4">
         <div
@@ -72,21 +78,32 @@ export const ProjectsList = () => {
         <div
           className="grid gap-4"
           style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 350px))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
           }}
         >
           {projects.data.map((project) => {
+            // Find active deployment and associated domain for this project
+            const activeDeployment = project.activeDeploymentId
+              ? deployments.data.find((d) => d.id === project.activeDeploymentId)
+              : null;
+
+            // Find domain for this project
+            const projectDomain = domains.data.find((d) => d.projectId === project.id);
+
+            // Extract deployment regions for display
+            const regions = activeDeployment?.runtimeConfig.regions.map((r) => r.region) ?? [];
+
             return (
               <ProjectCard
                 projectId={project.id}
                 key={project.id}
                 name={project.name}
-                domain="TODO"
-                commitTitle="Latest deployment"
-                commitDate="TODO"
-                branch="TODO"
-                author="TODO"
-                regions={["us-east-1", "us-west-2", "ap-east-1"]}
+                domain={projectDomain?.domain ?? "No domain configured"}
+                commitTitle={activeDeployment?.gitCommitMessage ?? "No deployments"}
+                commitTimestamp={activeDeployment?.gitCommitTimestamp}
+                branch={activeDeployment?.gitBranch ?? "—"}
+                author={activeDeployment?.gitCommitAuthorName ?? "—"}
+                regions={regions.length > 0 ? regions : ["No deployments"]}
                 repository={project.gitRepositoryUrl || undefined}
                 actions={
                   <ProjectActions projectId={project.id}>

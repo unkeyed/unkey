@@ -41,6 +41,7 @@ import { getDeploymentBuildLogs } from "./deploy/deployment/buildLogs";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
+import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
 import { getEnvs } from "./deploy/envs/list";
 import { createProject } from "./deploy/project/create";
@@ -107,7 +108,6 @@ import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRol
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
-import { rollback } from "./rollback";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -329,10 +329,8 @@ export const router = t.router({
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
       buildLogs: getDeploymentBuildLogs,
+      rollback,
     }),
-  }),
-  deploy: t.router({
-    rollback: rollback,
   }),
 });
 
