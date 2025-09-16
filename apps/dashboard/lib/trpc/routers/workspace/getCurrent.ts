@@ -29,7 +29,7 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
 
     // Try to fetch workspace directly from database using tenant/orgId
     try {
-      const workspace = await db.query.workspaces.findFirst({
+      let workspace = await db.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
           and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
         with: {
@@ -37,8 +37,27 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
         },
       });
 
+      // If no workspace found, this might be a newly created session/workspace
+      // Add a small retry delay for database consistency
       if (!workspace) {
-        console.debug("No workspace found for tenant:", ctx.tenant.id);
+        console.debug("Workspace not found on first attempt, retrying after delay:", {
+          orgId: ctx.tenant.id,
+        });
+
+        // Wait for potential database propagation
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        workspace = await db.query.workspaces.findFirst({
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+          with: {
+            quotas: true,
+          },
+        });
+      }
+
+      if (!workspace) {
+        console.debug("No workspace found for tenant after retry:", ctx.tenant.id);
         return null;
       }
 
@@ -70,7 +89,7 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
 
     // The workspace is already available in context from requireWorkspace middleware
     // but we need to fetch it with quotas and related data
-    const workspace = await db.query.workspaces.findFirst({
+    let workspace = await db.query.workspaces.findFirst({
       where: (table, { eq, and, isNull }) =>
         and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
       with: {
@@ -78,9 +97,27 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
       },
     });
 
+    // Add retry logic for recently created workspaces
+    if (!workspace) {
+      console.debug("Workspace not found in context query, retrying:", {
+        orgId: ctx.tenant.id,
+      });
+
+      // Small delay for database consistency
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      workspace = await db.query.workspaces.findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        with: {
+          quotas: true,
+        },
+      });
+    }
+
     if (!workspace) {
       // Log for debugging but don't throw immediately
-      console.debug("Workspace not found for context tenant:", ctx.tenant.id);
+      console.debug("Workspace not found for context tenant after retry:", ctx.tenant.id);
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Workspace not found",

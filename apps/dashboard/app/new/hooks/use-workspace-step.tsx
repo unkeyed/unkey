@@ -53,8 +53,23 @@ export const useWorkspaceStep = (): OnboardingStep => {
         expiresAt: sessionData.expiresAt,
       });
 
+      // Add a small delay to ensure session is properly synchronized
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Invalidate client-side workspace cache for immediate UI update
       await utils.workspace.getCurrent.invalidate();
+
+      // Clear any workspace-related caches that might cause stale data
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.includes("workspace_cache"))
+          .forEach((key) => localStorage.removeItem(key));
+      } catch {
+        // Ignore localStorage errors
+      }
+
+      // Add another small delay before router refresh to ensure cache invalidation is complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Force a router refresh to ensure the server-side layout
       // re-renders with the new session context and fresh workspace data

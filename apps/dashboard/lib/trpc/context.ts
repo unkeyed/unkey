@@ -18,6 +18,30 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
         where: (table, { eq, and, isNull }) =>
           and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
       });
+
+      // If workspace not found but we have valid auth context,
+      // this might be a newly created session - add small retry delay
+      if (!ws) {
+        console.debug("Workspace not found on first attempt, retrying after delay:", {
+          orgId,
+          userId,
+        });
+
+        // Wait a small amount of time for database consistency
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Try one more time
+        ws = await db.query.workspaces.findFirst({
+          where: (table, { eq, and, isNull }) =>
+            and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        });
+
+        if (!ws) {
+          console.debug(
+            "Workspace still not found after retry - might be first-time login scenario",
+          );
+        }
+      }
     } catch (error) {
       // Log workspace query errors but don't fail context creation
       // This allows the frontend to handle workspace loading gracefully

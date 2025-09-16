@@ -36,6 +36,7 @@ export const useWorkspace = () => {
 export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const retryCountRef = useRef(0);
   const lastErrorRef = useRef<TRPCClientErrorLike<Router> | null>(null);
+  const initialLoadRef = useRef(true);
 
   const {
     data: workspace,
@@ -52,15 +53,15 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
         return false;
       }
 
-      // For "workspace not found in context" errors, retry up to 3 times
-      // This handles first-time login race conditions
+      // For "workspace not found in context" errors on initial load (post-login scenarios)
+      // Be more aggressive with retries as this is likely a timing issue
       if (error?.message?.includes("workspace not found in context")) {
-        return failureCount < 3;
+        return failureCount < (initialLoadRef.current ? 5 : 3);
       }
 
-      // For NOT_FOUND errors, retry once in case it's a timing issue
+      // For NOT_FOUND errors on initial load, retry more aggressively
       if (error?.data?.code === "NOT_FOUND") {
-        return failureCount < 1;
+        return failureCount < (initialLoadRef.current ? 3 : 1);
       }
 
       // For other errors, retry twice
@@ -93,6 +94,8 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
       // Reset retry count and error on successful fetch
       retryCountRef.current = 0;
       lastErrorRef.current = null;
+      // Mark that initial load is complete
+      initialLoadRef.current = false;
     },
   });
 
@@ -109,6 +112,8 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     // Reset retry tracking
     retryCountRef.current = 0;
     lastErrorRef.current = null;
+    // Reset initial load flag to use aggressive retry logic
+    initialLoadRef.current = true;
 
     // Force refetch from server
     return trpcRefetch();
@@ -118,6 +123,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     // Reset retry tracking on manual refetch
     retryCountRef.current = 0;
     lastErrorRef.current = null;
+    // Don't reset initial load flag on manual refetch to maintain standard retry behavior
     return trpcRefetch();
   }, [trpcRefetch]);
 
