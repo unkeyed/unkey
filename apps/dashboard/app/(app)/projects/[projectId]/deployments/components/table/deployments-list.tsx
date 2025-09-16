@@ -11,6 +11,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import ms from "ms";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { Avatar } from "../../../details/active-deployment-card/git-avatar";
 import type { DeploymentListFilterField } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
@@ -185,7 +186,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
           );
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
-              <div className="flex gap-5 items-center w-full">
+              <div className="flex gap-3 items-center w-full">
                 {iconContainer}
                 <div className="w-[200px]">
                   <div className="flex items-center gap-2">
@@ -291,7 +292,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
           );
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
-              <div className="flex gap-5 items-center w-full">
+              <div className="flex gap-3 items-center w-full">
                 {iconContainer}
                 <div className="w-[200px]">
                   <div className="flex items-center gap-2">
@@ -305,7 +306,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     </div>
                   </div>
                   <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
-                    {deployment.gitCommitSha}
+                    {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
               </div>
@@ -322,12 +323,12 @@ export const DeploymentsList = ({ projectId }: Props) => {
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="flex flex-col items-start pr-[18px] py-1.5">
-                    <div className="flex gap-5 items-center w-full">
-                      <img
-                        src={deployment.gitCommitAuthorAvatarUrl ?? ""}
-                        alt="Author"
-                        className="rounded-full size-5"
+                    <div className="flex gap-3 items-center w-full">
+                      <Avatar
+                        src={deployment.gitCommitAuthorAvatarUrl}
+                        alt={deployment.gitCommitAuthorUsername ?? "Author"}
                       />
+
                       <div className="w-[200px]">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-grayA-12 text-xs">
@@ -369,10 +370,9 @@ export const DeploymentsList = ({ projectId }: Props) => {
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="flex items-center gap-2">
-                    <img
-                      src={deployment.gitCommitAuthorAvatarUrl ?? ""}
-                      alt="Author"
-                      className="rounded-full size-5"
+                    <Avatar
+                      src={deployment.gitCommitAuthorAvatarUrl}
+                      alt={deployment.gitCommitAuthorUsername ?? "Author"}
                     />
                     <span className="font-medium text-grayA-12 text-xs">
                       {deployment.gitCommitAuthorName}
