@@ -55,6 +55,7 @@ export const unkeyAuditLogEvents = z.enum([
   "auditLogBucket.create",
   "project.create",
   "environment.create",
+  "deployment.rollback",
 ]);
 
 export const auditLogSchemaV1 = z.object({
