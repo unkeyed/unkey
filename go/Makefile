@@ -16,11 +16,6 @@ PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS
 install:
 	go mod tidy
 
-tools:
-	go install github.com/bufbuild/buf/cmd/buf@v1.57.0
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
-	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.29.0
-
 fmt:
 	go fmt ./...
 	golangci-lint run

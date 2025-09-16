@@ -2,6 +2,7 @@ package metald
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,6 +19,9 @@ import (
 	"github.com/unkeyed/unkey/go/apps/metald/internal/database"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/service"
+
+	"github.com/pressly/goose/v3"
+	_ "github.com/unkeyed/unkey/go/apps/metald/migrations" // Import Go migrations
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
@@ -29,6 +33,9 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
+
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
 // version is set at build time via ldflags
 var version = ""
@@ -213,6 +220,14 @@ func Run(ctx context.Context, cfg Config) error {
 		"mode", cfg.TLS.Mode,
 		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
 
+	// Run database migrations
+	if err := runMigrations(cfg.Database.DataDir, logger); err != nil {
+		logger.Error("failed to run migrations",
+			slog.String("error", err.Error()),
+		)
+		return err
+	}
+
 	// Initialize database
 	db, dbErr := database.NewDatabaseWithLogger(cfg.Database.DataDir, slog.Default())
 	if dbErr != nil {
@@ -276,8 +291,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Create metrics collector
-	instanceID := fmt.Sprintf("metald-%d", time.Now().Unix())
-	metricsCollector := billing.NewMetricsCollector(backend, billingClient, logger, instanceID, billingMetrics)
+	metricsCollector := billing.NewMetricsCollector(backend, billingClient, logger, cfg.InstanceID, billingMetrics)
 
 	// Start heartbeat service
 	metricsCollector.StartHeartbeat()
@@ -483,4 +497,29 @@ func getVersion() string {
 	}
 
 	return version
+}
+
+// runMigrations runs database migrations using goose with embedded migrations
+func runMigrations(dataDir string, logger *slog.Logger) error {
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return fmt.Errorf("failed to set goose dialect: %w", err)
+	}
+
+	// Open database connection
+	db, err := database.NewDatabaseWithLogger(dataDir, logger)
+	if err != nil {
+		return fmt.Errorf("failed to open database for migrations: %w", err)
+	}
+	defer db.Close()
+
+	// Set embedded filesystem as the migration source
+	goose.SetBaseFS(migrationFS)
+
+	// Run migrations from embedded filesystem
+	if err := goose.Up(db.DB(), "migrations"); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	logger.Info("migrations completed successfully")
+	return nil
 }
