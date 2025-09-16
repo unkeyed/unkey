@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronLeft, SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -51,6 +52,7 @@ export function AppSidebar({
 }) {
   const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
+  const { workspace } = useWorkspace();
 
   // Get the current solo mode type based on the route
   const currentSoloModeType = useMemo(() => {
@@ -76,7 +78,10 @@ export function AppSidebar({
   }, [currentSoloModeType]);
 
   // Create base navigation items
-  const baseNavItems = useMemo(() => createWorkspaceNavigation(segments), [segments]);
+  const baseNavItems = useMemo(
+    () => createWorkspaceNavigation(segments, workspace),
+    [segments, workspace],
+  );
 
   const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
     useApiNavigation(baseNavItems);

@@ -1,4 +1,4 @@
-import { useWorkspace } from "@/providers/workspace-provider";
+import type { Workspace } from "@/lib/db";
 import {
   Cube,
   Fingerprint,
@@ -39,8 +39,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
   </div>
 );
 
-export const createWorkspaceNavigation = (segments: string[]) => {
-  const { workspace } = useWorkspace();
+export const createWorkspaceNavigation = (segments: string[], workspace: Workspace | null) => {
   const basePath = `/${workspace?.slug}`;
   return [
     {
