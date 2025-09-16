@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { createProjectRequestSchema } from "@/lib/collections/projects";
+import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { db, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

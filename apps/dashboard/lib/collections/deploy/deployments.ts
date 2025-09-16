@@ -2,7 +2,7 @@
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
-import { queryClient, trpcClient } from "./client";
+import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),
@@ -31,7 +31,6 @@ const schema = z.object({
     cpus: z.number().min(1).max(16),
     memory: z.number().min(1).max(1024),
   }),
-
   // Deployment status
   status: z.enum(["pending", "building", "deploying", "network", "ready", "failed"]),
   createdAt: z.number(),
@@ -39,18 +38,19 @@ const schema = z.object({
 
 export type Deployment = z.infer<typeof schema>;
 
-export const deployments = createCollection<Deployment>(
-  queryCollectionOptions({
-    queryClient,
-    queryKey: ["deployments"],
-    retry: 3,
-    queryFn: () => trpcClient.deploy.deployment.list.query(),
-    getKey: (item) => item.id,
-    onInsert: async () => {
-      throw new Error("Not implemented");
-    },
-    onDelete: async () => {
-      throw new Error("Not implemented");
-    },
-  }),
-);
+export function createDeploymentsCollection(projectId: string) {
+  if (!projectId) {
+    throw new Error("projectId is required to create deployments collection");
+  }
+
+  return createCollection<Deployment>(
+    queryCollectionOptions({
+      queryClient,
+      queryKey: [projectId, "deployments"],
+      retry: 3,
+      queryFn: () => trpcClient.deploy.deployment.list.query({ projectId }),
+      getKey: (item) => item.id,
+      id: `${projectId}-deployments`,
+    }),
+  );
+}

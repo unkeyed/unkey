@@ -1,4 +1,4 @@
-import { collection } from "@/lib/collections";
+import { collection, collectionManager } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -22,12 +22,27 @@ export const ProjectsList = () => {
     [projectName],
   );
 
-  // Get all deployments and domains to lookup active deployment details
-  const deployments = useLiveQuery((q) => q.from({ deployment: collection.deployments }), []);
+  // Get deployments and domains for each project
+  const deploymentQueries = projects.data.map((project) => {
+    const collections = collectionManager.getProjectCollections(project.id);
+    return useLiveQuery((q) => q.from({ deployment: collections.deployments }), [project.id]);
+  });
 
-  const domains = useLiveQuery((q) => q.from({ domain: collection.domains }), []);
+  const domainQueries = projects.data.map((project) => {
+    const collections = collectionManager.getProjectCollections(project.id);
+    return useLiveQuery((q) => q.from({ domain: collections.domains }), [project.id]);
+  });
 
-  if (projects.isLoading || deployments.isLoading || domains.isLoading) {
+  // Flatten the results
+  const allDeployments = deploymentQueries.flatMap((query) => query.data || []);
+  const allDomains = domainQueries.flatMap((query) => query.data || []);
+
+  const isLoading =
+    projects.isLoading ||
+    deploymentQueries.some((q) => q.isLoading) ||
+    domainQueries.some((q) => q.isLoading);
+
+  if (isLoading) {
     return (
       <div className="p-4">
         <div
@@ -84,14 +99,14 @@ export const ProjectsList = () => {
           {projects.data.map((project) => {
             // Find active deployment and associated domain for this project
             const activeDeployment = project.activeDeploymentId
-              ? deployments.data.find((d) => d.id === project.activeDeploymentId)
+              ? allDeployments.find((d) => d.id === project.activeDeploymentId)
               : null;
 
             // Find domain for this project
-            const projectDomain = domains.data.find((d) => d.projectId === project.id);
+            const projectDomain = allDomains.find((d) => d.projectId === project.id);
 
             // Extract deployment regions for display
-            const regions = activeDeployment?.runtimeConfig.regions.map((r) => r.region) ?? [];
+            const regions = activeDeployment?.runtimeConfig?.regions?.map((r) => r.region) ?? [];
 
             return (
               <ProjectCard

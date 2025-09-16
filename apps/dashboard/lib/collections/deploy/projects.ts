@@ -2,7 +2,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "./client";
+import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),

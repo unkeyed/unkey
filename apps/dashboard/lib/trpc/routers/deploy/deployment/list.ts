@@ -1,15 +1,18 @@
 import { db } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 export const listDeployments = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
-  .query(async ({ ctx }) => {
+  .input(z.object({ projectId: z.string() }))
+  .query(async ({ ctx, input }) => {
     try {
-      // Get all deployments for this workspace with project info
+      // Get all deployments for this workspace and specific project
       const deployments = await db.query.deployments.findMany({
-        where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.projectId, input.projectId)),
         columns: {
           id: true,
           projectId: true,

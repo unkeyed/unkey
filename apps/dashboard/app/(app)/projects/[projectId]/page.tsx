@@ -11,12 +11,9 @@ import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
 
 export default function ProjectDetails() {
-  const { isDetailsOpen, projectId } = useProjectLayout();
+  const { isDetailsOpen, projectId, collections } = useProjectLayout();
 
-  const domains = useLiveQuery((q) =>
-    q.from({ domain: collection.domains }).where(({ domain }) => eq(domain.projectId, projectId)),
-  );
-
+  const domains = useLiveQuery((q) => q.from({ domain: collections.domains }));
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
   );

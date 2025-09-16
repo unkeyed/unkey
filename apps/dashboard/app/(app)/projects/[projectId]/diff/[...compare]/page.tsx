@@ -1,12 +1,12 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { AlertCircle, ArrowLeft, GitCompare, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useProjectLayout } from "../../layout-provider";
 import { DiffViewer } from "./components/client";
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
 }
 
 export default function DiffPage({ params }: Props) {
+  const { collections } = useProjectLayout();
   const router = useRouter();
   const [fromDeploymentId, toDeploymentId] = params.compare;
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>(
@@ -33,9 +34,9 @@ export default function DiffPage({ params }: Props) {
 
   const deployments = useLiveQuery((q) =>
     q
-      .from({ deployment: collection.deployments })
+      .from({ deployment: collections.deployments })
       .where(({ deployment }) => eq(deployment.projectId, params.projectId))
-      .join({ environment: collection.environments }, ({ environment, deployment }) =>
+      .join({ environment: collections.environments }, ({ environment, deployment }) =>
         eq(environment.id, deployment.environmentId),
       )
       .orderBy(({ deployment }) => deployment.createdAt, "desc")

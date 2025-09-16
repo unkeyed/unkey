@@ -1,13 +1,14 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { ArrowLeft, GitBranch, GitCommit, GitCompare, Globe, Tag } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useProjectLayout } from "../layout-provider";
 
 export default function DiffSelectionPage(): JSX.Element {
+  const { collections } = useProjectLayout();
   const params = useParams();
   const router = useRouter();
   const projectId = params?.projectId as string;
@@ -18,9 +19,9 @@ export default function DiffSelectionPage(): JSX.Element {
   // Fetch all deployments for this project
   const deployments = useLiveQuery((q) =>
     q
-      .from({ deployment: collection.deployments })
+      .from({ deployment: collections.deployments })
       .where(({ deployment }) => eq(deployment.projectId, params?.projectId))
-      .join({ environment: collection.environments }, ({ environment, deployment }) =>
+      .join({ environment: collections.environments }, ({ environment, deployment }) =>
         eq(environment.id, deployment.environmentId),
       )
       .orderBy(({ deployment }) => deployment.createdAt, "desc")

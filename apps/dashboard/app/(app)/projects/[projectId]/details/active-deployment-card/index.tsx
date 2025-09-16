@@ -1,6 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ChevronDown,
@@ -15,6 +14,7 @@ import {
 } from "@unkey/icons";
 import { Badge, Button, Card, CopyButton, Input, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useProjectLayout } from "../../layout-provider";
 import { FilterButton } from "./filter-button";
 import { Avatar } from "./git-avatar";
 import { useDeploymentLogs } from "./hooks/use-deployment-logs";
@@ -69,9 +69,10 @@ type Props = {
 };
 
 export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
+  const { collections } = useProjectLayout();
   const { data } = useLiveQuery((q) =>
     q
-      .from({ deployment: collection.deployments })
+      .from({ deployment: collections.deployments })
       .where(({ deployment }) => eq(deployment.id, deploymentId)),
   );
 

@@ -5,7 +5,7 @@ import { collection } from "@/lib/collections";
 import {
   type CreateProjectRequestSchema,
   createProjectRequestSchema,
-} from "@/lib/collections/projects";
+} from "@/lib/collections/deploy/projects";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Plus } from "@unkey/icons";

@@ -6,7 +6,7 @@ import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
 
 export const useDeployments = () => {
-  const { projectId } = useProjectLayout();
+  const { projectId, collections } = useProjectLayout();
   const { filters } = useFilters();
 
   const project = useLiveQuery((q) => {
@@ -20,7 +20,7 @@ export const useDeployments = () => {
   const activeDeployment = useLiveQuery(
     (q) =>
       q
-        .from({ deployment: collection.deployments })
+        .from({ deployment: collections.deployments })
         .where(({ deployment }) => eq(deployment.id, activeDeploymentId))
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(1),
@@ -30,7 +30,7 @@ export const useDeployments = () => {
     (q) => {
       // Query filtered environments
       // further down below we use this to rightJoin with deployments to filter deployments by environment
-      let environments = q.from({ environment: collection.environments });
+      let environments = q.from({ environment: collections.environments });
 
       for (const filter of filters) {
         if (filter.field === "environment") {
@@ -41,7 +41,7 @@ export const useDeployments = () => {
       }
 
       let query = q
-        .from({ deployment: collection.deployments })
+        .from({ deployment: collections.deployments })
 
         .where(({ deployment }) => eq(deployment.projectId, projectId));
 
