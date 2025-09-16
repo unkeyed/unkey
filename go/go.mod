@@ -1,6 +1,8 @@
 module github.com/unkeyed/unkey/go
 
-go 1.25.1
+go 1.25
+
+toolchain go1.25.1
 
 require (
 	connectrpc.com/connect v1.18.1
@@ -247,14 +249,6 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/unkeyed/unkey/go/apps/assetmanagerd => ./apps/assetmanagerd
-
-replace github.com/unkeyed/unkey/go/apps/builderd => ./apps/builderd
-
-replace github.com/unkeyed/unkey/go/apps/billaged => ./apps/billaged
-
-replace github.com/unkeyed/unkey/go/apps/metald => ./apps/metald
 
 replace github.com/unkeyed/unkey/go/deploy/pkg/tls => ./deploy/pkg/tls
 

@@ -37,14 +37,12 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { getDeploymentBuildLogs } from "./deploy/project/active-deployment/getBuildLogs";
-import { getDeploymentDetails } from "./deploy/project/active-deployment/getDetails";
-import { createProject } from "./deploy/project/create";
-import { queryDeployments } from "./deploy/project/deployment/list";
-import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
-import { getEnvs } from "./deploy/project/envs/list";
-import { queryProjects } from "./deploy/project/list";
-import { deploymentRouter } from "./deployment";
+import { getDeploymentBuildLogs } from "./deployment/buildLogs";
+import { getOpenApiDiff } from "./deployment/getOpenApiDiff";
+import { listDeployments } from "./deployment/list";
+import { searchDeployments } from "./deployment/llm-search";
+import { listDomains } from "./domains/list";
+import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -82,6 +80,9 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
+import { createProject } from "./project/create";
+import { getEnvs } from "./project/envs/list";
+import { listProjects } from "./project/list";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
@@ -106,6 +107,7 @@ import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRol
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { rollback } from "./rollback";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -310,24 +312,28 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
-  deploy: t.router({
-    project: t.router({
-      list: queryProjects,
-      create: createProject,
-      activeDeployment: t.router({
-        details: getDeploymentDetails,
-        buildLogs: getDeploymentBuildLogs,
-      }),
-      envs: t.router({
-        getEnvs,
-      }),
-      deployment: t.router({
-        list: queryDeployments,
-        search: deploymentListLlmSearch,
-      }),
-    }),
+  project: t.router({
+    list: listProjects,
+    create: createProject,
   }),
-  deployment: deploymentRouter,
+  domain: t.router({
+    list: listDomains,
+  }),
+  deployment: t.router({
+    list: listDeployments,
+    search: searchDeployments,
+    getOpenApiDiff: getOpenApiDiff,
+    buildLogs: getDeploymentBuildLogs,
+  }),
+  environment: t.router({
+    list: listEnvironments,
+  }),
+  environmentVariables: t.router({
+    list: getEnvs,
+  }),
+  deploy: t.router({
+    rollback: rollback,
+  }),
 });
 
 // export type definition of API

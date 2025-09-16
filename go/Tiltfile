@@ -1,0 +1,311 @@
+# Tiltfile for Unkey development
+# This provides an enhanced development experience with hot reloading and unified logs
+
+# Load Tilt extensions
+load('ext://namespace', 'namespace_create')
+load('ext://restart_process', 'docker_build_with_restart')
+
+# Tilt configuration
+config.define_string_list("services", args=False, usage="Services to run (mysql,ctrl,clickhouse,s3,observability,planetscale or all)")
+config.define_bool("debug", args=False, usage="Enable debug mode")
+
+cfg = config.parse()
+services = cfg.get('services', ['all'])
+debug_mode = cfg.get('debug', False)
+
+print("Tilt starting with services: %s" % services)
+
+# Create namespace using the extension with allow_duplicates
+namespace_create('unkey', allow_duplicates=True)
+
+# Define which services to start
+start_mysql = 'all' in services or 'mysql' in services
+start_clickhouse = 'all' in services or 'clickhouse' in services
+start_s3 = 'all' in services or 's3' in services
+start_observability = 'all' in services or 'observability' in services
+start_planetscale = 'all' in services or 'planetscale' in services
+start_api = 'all' in services or 'api' in services
+start_gw = 'all' in services or 'gateway' in services or 'gw' in services
+start_ctrl = 'all' in services or 'ctrl' in services
+start_dashboard = 'all' in services or 'dashboard' in services
+
+# Apply RBAC
+k8s_yaml('k8s/manifests/rbac.yaml')
+
+# Redis service
+redis_started = False
+if start_api:  # Redis is needed by API service
+    print("Setting up Redis...")
+    k8s_yaml('k8s/manifests/redis.yaml')
+    k8s_resource(
+        'redis',
+        port_forwards='6379:6379',
+        resource_deps=[],
+        labels=['database']
+    )
+    redis_started = True
+
+# MySQL service
+if start_mysql:
+    print("Setting up MySQL...")
+    # Only build if image doesn't exist
+    if not local('docker images -q unkey/mysql:latest 2>/dev/null', quiet=True):
+        print("Building MySQL image...")
+        docker_build(
+            'unkey/mysql:latest',
+            '../',  # Build context at repo root
+            dockerfile='../deployment/Dockerfile.mysql'
+        )
+    else:
+        print("Using existing MySQL image")
+    k8s_yaml('k8s/manifests/mysql.yaml')
+    k8s_resource(
+        'mysql',
+        port_forwards='3306:3306',
+        resource_deps=[],
+        labels=['database']
+    )
+
+# ClickHouse service
+if start_clickhouse:
+    print("Setting up ClickHouse...")
+    # Only build if image doesn't exist
+    if not local('docker images -q unkey/clickhouse:latest 2>/dev/null', quiet=True):
+        print("Building ClickHouse image...")
+        docker_build(
+            'unkey/clickhouse:latest',
+            '../',  # Build context at repo root
+            dockerfile='../deployment/Dockerfile.clickhouse'
+        )
+    else:
+        print("Using existing ClickHouse image")
+    k8s_yaml('k8s/manifests/clickhouse.yaml')
+    k8s_resource(
+        'clickhouse',
+        port_forwards='8123:8123',
+        resource_deps=[],
+        labels=['database']
+    )
+
+# S3 (MinIO) service
+if start_s3:
+    print("Setting up S3 (MinIO)...")
+    k8s_yaml('k8s/manifests/s3.yaml')
+    k8s_resource(
+        's3',
+        port_forwards=['9000:9000', '9001:9001'],
+        resource_deps=[],
+        labels=['storage']
+    )
+
+# PlanetScale HTTP driver
+if start_planetscale:
+    print("Setting up PlanetScale HTTP driver...")
+    k8s_yaml('k8s/manifests/planetscale.yaml')
+    deps = ['mysql'] if start_mysql else []
+    k8s_resource(
+        'planetscale',
+        resource_deps=deps,
+        labels=['database']
+    )
+
+# Observability stack
+if start_observability:
+    print("Setting up observability stack...")
+    k8s_yaml('k8s/manifests/observability.yaml')
+    k8s_resource(
+        'prometheus',
+        port_forwards='9090:9090',
+        resource_deps=[],
+        labels=['observability']
+    )
+    k8s_resource(
+        'otel-collector',
+        port_forwards=['4317:4317', '4318:4318'],
+        resource_deps=[],
+        labels=['observability']
+    )
+
+# Build Unkey binary locally (independent of infrastructure)
+if start_api or start_gw or start_ctrl:
+    print("Building Unkey binary...")
+    # Build locally first for faster updates
+    local_resource(
+        'unkey-compile',
+        'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey ./main.go',
+        deps=['./main.go', './pkg', './cmd', './apps'],
+    )
+
+# API service (3 replicas)
+if start_api:
+    print("Setting up API service...")
+
+    docker_build_with_restart(
+        'unkey-api:latest',
+        '.',
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'api'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ],
+        ignore=['./cmd/gw', './cmd/ctrl', './apps/gw', './apps/ctrl']
+    )
+
+    k8s_yaml('k8s/manifests/api.yaml')
+
+    # Build dependency list
+    api_deps = []
+    if start_mysql: api_deps.append('mysql')
+    if start_clickhouse: api_deps.append('clickhouse')
+    if redis_started: api_deps.append('redis')
+
+    # Add compilation dependency for Unkey services
+    api_deps.append('unkey-compile')
+
+    k8s_resource(
+        'api',
+        port_forwards='7070:7070',
+        resource_deps=api_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+    )
+
+# Gateway service (1 replica)
+if start_gw:
+    print("Setting up Gateway service...")
+
+    docker_build_with_restart(
+        'unkey-gw:latest',
+        '.',
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'gw'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ],
+        ignore=['./cmd/api', './cmd/ctrl', './apps/api', './apps/ctrl']
+    )
+
+    k8s_yaml('k8s/manifests/gw.yaml')
+
+    # Build dependency list
+    gw_deps = []
+    if start_mysql: gw_deps.append('mysql')
+    # Add compilation dependency for Unkey services
+    gw_deps.append('unkey-compile')
+
+    k8s_resource(
+        'gw',
+        port_forwards=['8080:8080', '8443:8443'],
+        resource_deps=gw_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+    )
+
+# Ctrl service (1 replica)
+if start_ctrl:
+    print("Setting up Ctrl service...")
+
+    docker_build_with_restart(
+        'unkey-ctrl:latest',
+        '.',
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'ctrl'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ],
+        ignore=['./cmd/api', './cmd/gw', './apps/api', './apps/gw']
+    )
+
+    k8s_yaml('k8s/manifests/ctrl.yaml')
+
+    # Build dependency list
+    ctrl_deps = []
+    if start_mysql: ctrl_deps.append('mysql')
+    if start_s3: ctrl_deps.append('s3')
+    # Add compilation dependency for Unkey services
+    ctrl_deps.append('unkey-compile')
+
+    k8s_resource(
+        'ctrl',
+        port_forwards='7091:7091',
+        resource_deps=ctrl_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+    )
+
+# Dashboard service
+if start_dashboard:
+    print("Setting up Dashboard service...")
+    # Build the dashboard image
+    docker_build(
+        'unkey/dashboard:latest',
+        '../',
+        dockerfile='../apps/dashboard/Dockerfile',
+        live_update=[
+            sync('../apps/dashboard', '/unkey/apps/dashboard'),
+            run('cd /unkey/apps/dashboard && pnpm build', trigger=['**/*.tsx', '**/*.ts', '**/*.css']),
+        ]
+    )
+    k8s_yaml('k8s/manifests/dashboard.yaml')
+
+    # Build dependency list
+    dashboard_deps = []
+    if start_planetscale: dashboard_deps.append('planetscale')
+    if start_clickhouse: dashboard_deps.append('clickhouse')
+
+    k8s_resource(
+        'dashboard',
+        port_forwards='3000:3000',
+        resource_deps=dashboard_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+    )
+
+# Tilt UI customization
+active_services = []
+if redis_started: active_services.append('redis')
+if start_mysql: active_services.append('mysql')
+if start_clickhouse: active_services.append('clickhouse')
+if start_s3: active_services.append('s3')
+if start_planetscale: active_services.append('planetscale')
+if start_observability: active_services.extend(['prometheus', 'otel-collector'])
+if start_api: active_services.append('api')
+if start_gw: active_services.append('gw')
+if start_ctrl: active_services.append('ctrl')
+if start_dashboard: active_services.append('dashboard')
+
+print("""
+Tilt is ready!
+
+Services running: %s
+
+Web UI: http://localhost:10350
+
+Services available via Tilt port forwards:
+Dashboard: http://localhost:3000
+API: http://localhost:7070
+Gateway: http://localhost:6060
+Ctrl: http://localhost:7091
+Prometheus: http://localhost:9090
+S3 Console: http://localhost:9000
+ClickHouse: http://localhost:8123
+
+Tips:
+- Press 's' to open a shell in running containers
+- Press 'r' to manually trigger rebuilds
+- Use 'tilt down' to stop all services
+- Use 'tilt logs <service>' to view specific service logs
+
+Development workflow:
+- Edit Go files -> automatic rebuild & restart
+- View logs in unified Tilt UI
+- Use ingress for service access
+
+""" % ', '.join(active_services))

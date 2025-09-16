@@ -1,9 +1,5 @@
 # Compiled binaries (SECURITY: Never commit compiled binaries)
 build/
-*.exe
-*.dll
-*.so
-*.dylib
 
 # Test binaries, built with `go test -c`
 *.test
@@ -81,9 +77,11 @@ secrets.json
 
 # Local storage directories for development
 data/
-storage/
 scratch/
 rootfs/
 workspace/
 
-sqlc/networks-seed.sql
+# binaries from make etc
+client/metald-cli
+cmd/metald-init/metald-init
+cmd/metald/metald

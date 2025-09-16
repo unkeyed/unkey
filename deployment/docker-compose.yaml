@@ -1,6 +1,8 @@
 name: unkey
 services:
   mysql:
+    networks:
+      - default
     container_name: mysql
     build:
       context: ..
@@ -25,6 +27,8 @@ services:
       interval: 10s
 
   planetscale:
+    networks:
+      - default
     container_name: planetscale
     image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
     command:
@@ -42,6 +46,8 @@ services:
       - 3900:3900
 
   apiv2_lb:
+    networks:
+      - default
     container_name: apiv2_lb
     image: nginx:1.29.0
     volumes:
@@ -53,6 +59,8 @@ services:
       - 7070:7070
 
   apiv2:
+    networks:
+      - default
     deploy:
       replicas: 3
       endpoint_mode: vip
@@ -61,10 +69,12 @@ services:
       context: ../go
       dockerfile: ./Dockerfile
     depends_on:
-      - mysql
-      - redis
-      - clickhouse
-      - otel
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_REDIS_URL: "redis://redis:6379"
@@ -79,6 +89,8 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   redis:
+    networks:
+      - default
     container_name: redis
     image: redis:8.0
     ports:
@@ -91,6 +103,8 @@ services:
       interval: 5s
 
   agent:
+    networks:
+      - default
     container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
@@ -113,6 +127,8 @@ services:
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
   clickhouse:
+    networks:
+      - default
     build:
       context: ..
       dockerfile: deployment/Dockerfile.clickhouse
@@ -145,6 +161,8 @@ services:
       interval: 5s
 
   s3:
+    networks:
+      - default
     container_name: s3
     image: bitnami/minio:2025.4.3
     ports:
@@ -165,6 +183,8 @@ services:
       interval: 5s
 
   api:
+    networks:
+      - default
     container_name: api
     build:
       context: ..
@@ -196,6 +216,8 @@ services:
       - apiv2
 
   gw:
+    networks:
+      - default
     build:
       context: ../go
       dockerfile: Dockerfile
@@ -207,7 +229,18 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+        required: true
+      s3:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+      clickhouse:
+        condition: service_healthy
+        required: true
     volumes:
       - ./certs:/certs
     environment:
@@ -232,6 +265,8 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   ctrl:
+    networks:
+      - default
     build:
       context: ../go
       dockerfile: Dockerfile
@@ -242,8 +277,12 @@ services:
     ports:
       - "7091:7091"
     depends_on:
-      - mysql
-      - s3
+      mysql:
+        condition: service_healthy
+        required: true
+      s3:
+        condition: service_healthy
+        required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -265,6 +304,8 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   otel:
+    networks:
+      - default
     image: grafana/otel-lgtm:0.11.7
     container_name: otel
     hostname: otel
@@ -274,6 +315,8 @@ services:
       - 4318:4318
 
   prometheus:
+    networks:
+      - default
     image: prom/prometheus:v3.5.0
     container_name: prometheus
     ports:
@@ -284,6 +327,8 @@ services:
       - apiv2
 
   dashboard:
+    networks:
+      - default
     build:
       context: ..
       dockerfile: ./apps/dashboard/Dockerfile
@@ -291,8 +336,12 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - planetscale
-      - agent
+      planetscale:
+        condition: service_started
+        required: true
+      agent:
+        condition: service_started
+        required: true
     env_file:
       - ../apps/dashboard/.env
     environment:
@@ -307,6 +356,7 @@ services:
       CLICKHOUSE_URL: "http://default:password@clickhouse:8123"
       # Environment
       NODE_ENV: "production"
+      CTRL_URL: "http://ctrl:7091"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
 
@@ -355,3 +405,6 @@ volumes:
   clickhouse-keeper:
   s3:
   metald-aio-data:
+
+networks:
+  default:
