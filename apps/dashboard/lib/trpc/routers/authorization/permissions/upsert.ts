@@ -92,6 +92,7 @@ export const upsertPermission = t.procedure
             name: input.name,
             slug: input.slug,
             description: input.description,
+            updatedAtM: Date.now(),
           })
           .where(
             and(
@@ -162,6 +163,8 @@ export const upsertPermission = t.procedure
             slug: input.slug,
             description: input.description,
             workspaceId: ctx.workspace.id,
+            createdAtM: Date.now(),
+            updatedAtM: null,
           })
           .catch(() => {
             throw new TRPCError({
