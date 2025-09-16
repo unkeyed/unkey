@@ -1,6 +1,8 @@
 name: unkey
 services:
   mysql:
+    networks:
+      - default
     container_name: mysql
     build:
       context: ..
@@ -23,7 +25,10 @@ services:
       retries: 10
       start_period: 40s
       interval: 10s
+
   planetscale:
+    networks:
+      - default
     container_name: planetscale
     image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
     command:
@@ -39,7 +44,10 @@ services:
         condition: service_healthy
     ports:
       - 3900:3900
+
   apiv2_lb:
+    networks:
+      - default
     container_name: apiv2_lb
     image: nginx:1.29.0
     volumes:
@@ -49,7 +57,10 @@ services:
     ports:
       - 2112:2112
       - 7070:7070
+
   apiv2:
+    networks:
+      - default
     deploy:
       replicas: 3
       endpoint_mode: vip
@@ -58,26 +69,28 @@ services:
       context: ../go
       dockerfile: ./Dockerfile
     depends_on:
-      - mysql
-      - redis
-      - clickhouse
-      - otel
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_REDIS_URL: "redis://redis:6379"
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
       UNKEY_CHPROXY_AUTH_TOKEN: "chproxy-test-token-123"
-      UNKEY_OTEL: true
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318"
-      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      UNKEY_OTEL: false
       VAULT_S3_URL: "http://s3:3902"
       VAULT_S3_BUCKET: "vault"
       VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      # UNKEY_PROMETHEUS_PORT: 2112
+
   redis:
+    networks:
+      - default
     container_name: redis
     image: redis:8.0
     ports:
@@ -88,7 +101,10 @@ services:
       retries: 5
       start_period: 10s
       interval: 5s
+
   agent:
+    networks:
+      - default
     container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
@@ -109,7 +125,10 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
+
   clickhouse:
+    networks:
+      - default
     build:
       context: ..
       dockerfile: deployment/Dockerfile.clickhouse
@@ -142,6 +161,8 @@ services:
       interval: 5s
 
   s3:
+    networks:
+      - default
     container_name: s3
     image: bitnami/minio:2025.4.3
     ports:
@@ -160,7 +181,10 @@ services:
       retries: 10
       start_period: 15s
       interval: 5s
+
   api:
+    networks:
+      - default
     container_name: api
     build:
       context: ..
@@ -192,6 +216,8 @@ services:
       - apiv2
 
   gw:
+    networks:
+      - default
     build:
       context: ../go
       dockerfile: Dockerfile
@@ -200,16 +226,47 @@ services:
     container_name: gw
     command: ["run", "gw"]
     ports:
-      - "6060:6060"
+      - "80:80"
+      - "443:443"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+        required: true
+      s3:
+        condition: service_healthy
+        required: true
+      redis:
+        condition: service_healthy
+        required: true
+      clickhouse:
+        condition: service_healthy
+        required: true
+    volumes:
+      - ./certs:/certs
     environment:
-      UNKEY_HTTP_PORT: 6060
-      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
+      UNKEY_HTTP_PORT: 80
+      UNKEY_HTTPS_PORT: 443
+
+      UNKEY_TLS_ENABLED: true
+      UNKEY_DEFAULT_CERT_DOMAIN: "unkey.local"
+      UNKEY_MAIN_DOMAIN: "unkey.local"
+      UNKEY_CTRL_ADDR: "http://ctrl:7091"
+      UNKEY_REQUIRE_LOCAL_CERT: true
+
+      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
+      UNKEY_KEYS_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-      UNKEY_OTEL: true
+      UNKEY_REDIS_URL: "redis://redis:6379"
+
+      UNKEY_VAULT_S3_URL: "http://s3:3902"
+      UNKEY_VAULT_S3_BUCKET: "acme-vault"
+      UNKEY_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
+      UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
+      UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
   ctrl:
+    networks:
+      - default
     build:
       context: ../go
       dockerfile: Dockerfile
@@ -220,25 +277,35 @@ services:
     ports:
       - "7091:7091"
     depends_on:
-      - mysql
-      # - metald-aio
-      - otel
-      - s3
+      mysql:
+        condition: service_healthy
+        required: true
+      s3:
+        condition: service_healthy
+        required: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      # Database configuration - use existing mysql service
-      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
-      UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true"
-      UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true"
+      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+      UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true&interpolateParams=true"
+      UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_METALD_ADDRESS: "http://metald-aio:8080"
+      UNKEY_METALD_ADDRESS: "http://metald-aio:8090"
+      UNKEY_METALD_BACKEND: "docker"
+      UNKEY_DEFAULT_DOMAIN: "unkey.local"
+      UNKEY_DOCKER_RUNNING: "true"
+
       UNKEY_VAULT_S3_URL: "http://s3:3902"
-      UNKEY_VAULT_S3_BUCKET: "vault"
+      UNKEY_VAULT_S3_BUCKET: "acme-vault"
       UNKEY_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+
   otel:
+    networks:
+      - default
     image: grafana/otel-lgtm:0.11.7
     container_name: otel
     hostname: otel
@@ -246,7 +313,10 @@ services:
       - 3001:3000
       - 4317:4317
       - 4318:4318
+
   prometheus:
+    networks:
+      - default
     image: prom/prometheus:v3.5.0
     container_name: prometheus
     ports:
@@ -255,7 +325,10 @@ services:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
       - apiv2
+
   dashboard:
+    networks:
+      - default
     build:
       context: ..
       dockerfile: ./apps/dashboard/Dockerfile
@@ -263,8 +336,12 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - planetscale
-      - agent
+      planetscale:
+        condition: service_started
+        required: true
+      agent:
+        condition: service_started
+        required: true
     env_file:
       - ../apps/dashboard/.env
     environment:
@@ -279,8 +356,10 @@ services:
       CLICKHOUSE_URL: "http://default:password@clickhouse:8123"
       # Environment
       NODE_ENV: "production"
+      CTRL_URL: "http://ctrl:7091"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
+
   # Unkey Deploy Services - All-in-one development container with all 4 services
   #
   #############################################################################
@@ -326,3 +405,6 @@ volumes:
   clickhouse-keeper:
   s3:
   metald-aio-data:
+
+networks:
+  default:

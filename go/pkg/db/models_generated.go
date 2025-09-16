@@ -674,6 +674,7 @@ type Project struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`

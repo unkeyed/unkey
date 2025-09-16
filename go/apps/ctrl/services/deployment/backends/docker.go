@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/go-connections/nat"
@@ -21,10 +22,11 @@ import (
 
 // DockerBackend implements DeploymentBackend using Docker containers
 type DockerBackend struct {
-	logger       logging.Logger
-	dockerClient *client.Client
-	deployments  map[string]*dockerDeployment
-	mutex        sync.RWMutex
+	logger          logging.Logger
+	dockerClient    *client.Client
+	deployments     map[string]*dockerDeployment
+	mutex           sync.RWMutex
+	isRunningDocker bool // Whether this service is running in Docker
 }
 
 type dockerDeployment struct {
@@ -36,7 +38,7 @@ type dockerDeployment struct {
 }
 
 // NewDockerBackend creates a new Docker backend
-func NewDockerBackend(logger logging.Logger) (*DockerBackend, error) {
+func NewDockerBackend(logger logging.Logger, isRunningDocker bool) (*DockerBackend, error) {
 	dockerClient, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
@@ -54,9 +56,10 @@ func NewDockerBackend(logger logging.Logger) (*DockerBackend, error) {
 	}
 
 	return &DockerBackend{
-		logger:       logger.With("backend", "docker"),
-		dockerClient: dockerClient,
-		deployments:  make(map[string]*dockerDeployment),
+		logger:          logger.With("backend", "docker"),
+		dockerClient:    dockerClient,
+		deployments:     make(map[string]*dockerDeployment),
+		isRunningDocker: isRunningDocker,
 	}, nil
 }
 
@@ -149,15 +152,42 @@ func (d *DockerBackend) GetDeploymentStatus(ctx context.Context, deploymentID st
 		}
 
 		// Get host and port from container
-		host := "localhost"
-		port := int32(8080) // Default port
+		var host string
+		port := int32(8080) // Container internal port
 
-		// Try to get the actual mapped port
-		if inspect.NetworkSettings != nil && inspect.NetworkSettings.Ports != nil {
-			for containerPort, bindings := range inspect.NetworkSettings.Ports {
-				if strings.Contains(string(containerPort), "8080") && len(bindings) > 0 {
-					if p, err := strconv.Atoi(bindings[0].HostPort); err == nil {
-						port = int32(p)
+		// Always use container IP when available (works from inside and outside Docker)
+		if inspect.NetworkSettings != nil {
+			// Try legacy IPAddress field first
+			if inspect.NetworkSettings.IPAddress != "" {
+				host = inspect.NetworkSettings.IPAddress
+				port = int32(8080)
+			} else if inspect.NetworkSettings.Networks != nil {
+				// Try to get IP from any network
+				for _, network := range inspect.NetworkSettings.Networks {
+					if network.IPAddress != "" {
+						host = network.IPAddress
+						port = int32(8080)
+						break
+					}
+				}
+			}
+		}
+
+		// If no container IP found, fall back to external access
+		if host == "" {
+			// Fallback: use external access method
+			if d.isRunningDocker {
+				host = "host.docker.internal"
+			} else {
+				host = "localhost"
+			}
+			// Get the mapped port for external access
+			if inspect.NetworkSettings != nil && inspect.NetworkSettings.Ports != nil {
+				for containerPort, bindings := range inspect.NetworkSettings.Ports {
+					if strings.Contains(string(containerPort), "8080") && len(bindings) > 0 {
+						if p, err := strconv.Atoi(bindings[0].HostPort); err == nil {
+							port = int32(p)
+						}
 					}
 				}
 			}
@@ -234,9 +264,12 @@ func (d *DockerBackend) createContainer(ctx context.Context, name string, imageN
 	config := &container.Config{
 		Image: imageName,
 		Labels: map[string]string{
-			"unkey.vm.id":         vmID,
-			"unkey.deployment.id": deploymentID,
-			"unkey.managed.by":    "ctrl-fallback",
+			"unkey.vm.id":                         vmID,
+			"unkey.deployment.id":                 deploymentID,
+			"unkey.managed.by":                    "ctrl-fallback",
+			"com.docker.compose.project":          "unkey_deployments",
+			"com.docker.compose.service":          fmt.Sprintf("vm_%s", vmID),
+			"com.docker.compose.container-number": "1",
 		},
 		ExposedPorts: nat.PortSet{
 			"8080/tcp": struct{}{},
@@ -259,7 +292,13 @@ func (d *DockerBackend) createContainer(ctx context.Context, name string, imageN
 		},
 	}
 
-	resp, err := d.dockerClient.ContainerCreate(ctx, config, hostConfig, nil, nil, name)
+	networkingConfig := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			"unkey_default": {},
+		},
+	}
+
+	resp, err := d.dockerClient.ContainerCreate(ctx, config, hostConfig, networkingConfig, nil, name)
 	if err != nil {
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}

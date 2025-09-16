@@ -1,0 +1,9 @@
+FROM busybox:latest
+
+# Copy the pre-built binary
+COPY bin/unkey /unkey
+
+LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey/go
+LABEL org.opencontainers.image.description="Unkey API"
+
+ENTRYPOINT ["/unkey"]

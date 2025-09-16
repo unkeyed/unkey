@@ -7,7 +7,8 @@ type UseEnvVarsManagerProps = {
 };
 
 export function useEnvVarsManager({ projectId, environment }: UseEnvVarsManagerProps) {
-  const { data } = trpc.deploy.project.envs.getEnvs.useQuery({ projectId });
+  const { data } = trpc.deploy.environment.list_dummy.useQuery({ projectId });
+
   const envVars = data?.[environment] ?? [];
 
   // Helper to check for duplicate environment variable keys within the current environment.

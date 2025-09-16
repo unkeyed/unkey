@@ -1,17 +1,17 @@
 "use client";
-
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { collection } from "@/lib/collections";
+import {
+  type CreateProjectRequestSchema,
+  createProjectRequestSchema,
+} from "@/lib/collections/deploy/projects";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DuplicateKeyError } from "@tanstack/react-db";
 import { Plus } from "@unkey/icons";
-import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import type { z } from "zod";
-import { createProjectSchema } from "./create-project.schema";
-import { useCreateProject } from "./use-create-project";
-
-type FormValues = z.infer<typeof createProjectSchema>;
 
 export const CreateProjectDialog = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,34 +20,43 @@ export const CreateProjectDialog = () => {
     register,
     handleSubmit,
     setValue,
+    setError,
     reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(createProjectSchema),
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<CreateProjectRequestSchema>({
+    resolver: zodResolver(createProjectRequestSchema),
     defaultValues: {
       name: "",
       slug: "",
       gitRepositoryUrl: "",
     },
+    mode: "onChange",
   });
 
-  const createProject = useCreateProject((data) => {
-    toast.success("Project has been created", {
-      description: `${data.name} is ready to use`,
-    });
-    reset();
-    setIsModalOpen(false);
-  });
-
-  const onSubmitForm = async (values: FormValues) => {
+  const onSubmitForm = async (values: CreateProjectRequestSchema) => {
     try {
-      await createProject.mutateAsync({
+      const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
-        gitRepositoryUrl: values.gitRepositoryUrl || undefined,
+        gitRepositoryUrl: values.gitRepositoryUrl || null,
+        liveDeploymentId: null,
+        updatedAt: null,
+        id: "will-be-replace-by-server",
       });
+      await tx.isPersisted.promise;
+
+      reset();
+      setIsModalOpen(false);
     } catch (error) {
-      console.error("Form submission error:", error);
+      if (error instanceof DuplicateKeyError) {
+        setError("slug", {
+          type: "custom",
+          message: "Project with this slug already exists",
+        });
+      } else {
+        console.error("Form submission error:", error);
+        // The collection's onInsert will handle showing error toasts
+      }
     }
   };
 
@@ -59,7 +68,6 @@ export const CreateProjectDialog = () => {
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
-
     setValue("slug", slug);
   };
 
@@ -91,8 +99,8 @@ export const CreateProjectDialog = () => {
               form="project-form"
               variant="primary"
               size="xlg"
-              disabled={isSubmitting || createProject.isLoading}
-              loading={isSubmitting || createProject.isLoading}
+              disabled={isSubmitting || !isValid}
+              loading={isSubmitting}
               className="w-full rounded-lg"
             >
               Create Project
@@ -119,6 +127,7 @@ export const CreateProjectDialog = () => {
             })}
             placeholder="My Awesome Project"
           />
+
           <FormInput
             required
             label="Slug"
@@ -128,6 +137,7 @@ export const CreateProjectDialog = () => {
             {...register("slug")}
             placeholder="my-awesome-project"
           />
+
           <FormInput
             label="Git Repository URL"
             className="[&_input:first-of-type]:h-[36px]"

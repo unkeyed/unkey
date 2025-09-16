@@ -29,18 +29,19 @@ type DeployWorkflow struct {
 }
 
 type DeployWorkflowConfig struct {
-	Logger        logging.Logger
-	DB            db.Database
-	PartitionDB   db.Database
-	MetalD        metaldv1connect.VmServiceClient
-	MetaldBackend string
-	DefaultDomain string
+	Logger          logging.Logger
+	DB              db.Database
+	PartitionDB     db.Database
+	MetalD          metaldv1connect.VmServiceClient
+	MetaldBackend   string
+	DefaultDomain   string
+	IsRunningDocker bool
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
 	// Create the appropriate deployment backend
-	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger)
+	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger, cfg.IsRunningDocker)
 	if err != nil {
 		// Log error but continue - workflow will fail when trying to use the backend
 		cfg.Logger.Error("failed to initialize deployment backend",
@@ -69,8 +70,6 @@ type DeployRequest struct {
 	KeyspaceID   string `json:"keyspace_id"`
 	DeploymentID string `json:"deployment_id"`
 	DockerImage  string `json:"docker_image"`
-	Hostname     string `json:"hostname"`
-	Domain       string `json:"domain"`
 }
 
 // DeploymentResult holds the deployment outcome
@@ -87,8 +86,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		"docker_image", req.DockerImage,
 		"workspace_id", req.WorkspaceID,
 		"project_id", req.ProjectID,
-		"hostname", req.Hostname)
-
+	)
 	// Log deployment pending
 	err := hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
@@ -245,14 +243,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Generate all domains (custom + auto-generated)
 	allDomains, err := hydra.Step(ctx, "generate-all-domains", func(stepCtx context.Context) ([]string, error) {
 		var domains []string
-
-		// Add custom hostname if provided
-		if req.Hostname != "" {
-			domains = append(domains, req.Hostname)
-		}
 
 		// Generate auto-generated hostname for this deployment
 		gitInfo := git.GetInfo()
@@ -278,7 +270,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		w.logger.Info("generated all domains",
 			"deployment_id", req.DeploymentID,
 			"total_domains", len(domains),
-			"domains", domains)
+			"domains", domains,
+		)
 
 		return domains, nil
 	})
@@ -288,7 +281,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Create database entries for all domains
 	err = hydra.StepVoid(ctx, "create-domain-entries", func(stepCtx context.Context) error {
-
 		// Prepare bulk insert parameters
 		domainParams := make([]db.InsertDomainParams, 0, len(allDomains))
 		currentTime := time.Now().UnixMilli()
@@ -322,13 +314,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Create gateway configs for all domains in bulk (except local ones)
 	err = hydra.StepVoid(ctx, "create-gateway-configs-bulk", func(stepCtx context.Context) error {
-
 		// Prepare gateway configs for all non-local domains
 		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
 
 		for _, domain := range allDomains {
-			if isLocalHostname(domain) {
+			if isLocalHostname(domain, w.defaultDomain) {
 				skippedDomains = append(skippedDomains, domain)
 				continue
 			}
@@ -389,6 +380,16 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			return nil, fmt.Errorf("failed to update deployment %s status to ready: %w", req.DeploymentID, activeErr)
 		}
 		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
+
+		// TODO: This section will be removed in the future in favor of "Promote to Production"
+		err = db.Query.UpdateProjectLiveDeploymentId(stepCtx, w.db.RW(), db.UpdateProjectLiveDeploymentIdParams{
+			ID:               req.ProjectID,
+			LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update project %s active deployment ID to %s: %w", req.ProjectID, req.DeploymentID, err)
+		}
 
 		return &DeploymentResult{
 			DeploymentID: req.DeploymentID,
@@ -596,17 +597,25 @@ func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vm
 	return gatewayConfig, nil
 }
 
-// isLocalHostname checks if a hostname is for local development
-func isLocalHostname(hostname string) bool {
+// isLocalHostname checks if a hostname should be skipped from gateway config creation
+// Returns true for localhost/development domains that shouldn't get gateway configs
+func isLocalHostname(hostname, defaultDomain string) bool {
 	// Lowercase for case-insensitive comparison
 	hostname = strings.ToLower(hostname)
+	defaultDomain = strings.ToLower(defaultDomain)
 
-	// Exact matches for common local hosts
+	// Exact matches for common local hosts - these should be skipped
 	if hostname == "localhost" || hostname == "127.0.0.1" {
 		return true
 	}
 
-	// Check for local-only TLD suffixes
+	// If hostname uses the default domain, it should NOT be skipped (return false)
+	// This allows gateway configs to be created for the default domain
+	if strings.HasSuffix(hostname, "."+defaultDomain) || hostname == defaultDomain {
+		return false
+	}
+
+	// Check for local-only TLD suffixes - these should be skipped
 	// Note: .dev is a real TLD owned by Google, so it's excluded
 	localSuffixes := []string{
 		".local",
