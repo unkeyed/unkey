@@ -39,7 +39,7 @@ export const CreateProjectDialog = () => {
         name: values.name,
         slug: values.slug,
         gitRepositoryUrl: values.gitRepositoryUrl || null,
-        activeDeploymentId: null,
+        liveDeploymentId: null,
         updatedAt: null,
         id: "will-be-replace-by-server",
       });

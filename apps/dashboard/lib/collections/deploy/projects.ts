@@ -10,7 +10,7 @@ const schema = z.object({
   slug: z.string(),
   gitRepositoryUrl: z.string().nullable(),
   updatedAt: z.number().int().nullable(),
-  activeDeploymentId: z.string().nullable(),
+  liveDeploymentId: z.string().nullable(),
 });
 
 export const createProjectRequestSchema = z.object({

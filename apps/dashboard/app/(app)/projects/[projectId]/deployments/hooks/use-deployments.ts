@@ -16,15 +16,15 @@ export const useDeployments = () => {
       .orderBy(({ project }) => project.id, "asc")
       .limit(1);
   });
-  const activeDeploymentId = project.data.at(0)?.activeDeploymentId;
+  const liveDeploymentId = project.data.at(0)?.liveDeploymentId;
   const activeDeployment = useLiveQuery(
     (q) =>
       q
         .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, activeDeploymentId))
+        .where(({ deployment }) => eq(deployment.id, liveDeploymentId))
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(1),
-    [activeDeploymentId],
+    [liveDeploymentId],
   );
   const deployments = useLiveQuery(
     (q) => {
@@ -112,5 +112,9 @@ export const useDeployments = () => {
     [projectId, filters],
   );
 
-  return { deployments, activeDeployment, activeDeploymentId };
+  return {
+    deployments,
+    activeDeployment,
+    activeDeploymentId: liveDeploymentId,
+  };
 };

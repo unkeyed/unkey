@@ -70,7 +70,7 @@ export const createProject = t.procedure
             workspaceId,
             name: input.name,
             slug: input.slug,
-            activeDeploymentId: null,
+            liveDeploymentId: null,
             gitRepositoryUrl: input.gitRepositoryUrl || null,
             defaultBranch: "main",
             deleteProtection: false,

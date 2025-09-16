@@ -382,10 +382,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
 
 		// TODO: This section will be removed in the future in favor of "Promote to Production"
-		err = db.Query.UpdateProjectActiveDeploymentId(stepCtx, w.db.RW(), db.UpdateProjectActiveDeploymentIdParams{
-			ID:                 req.ProjectID,
-			ActiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		err = db.Query.UpdateProjectLiveDeploymentId(stepCtx, w.db.RW(), db.UpdateProjectLiveDeploymentIdParams{
+			ID:               req.ProjectID,
+			LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to update project %s active deployment ID to %s: %w", req.ProjectID, req.DeploymentID, err)

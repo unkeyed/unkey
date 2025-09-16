@@ -38,13 +38,13 @@ export default function ProjectDetails() {
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
-        {project.activeDeploymentId ? (
+        {project.liveDeploymentId ? (
           <Section>
             <SectionHeader
               icon={<Cloud size="md-regular" className="text-gray-9" />}
               title="Active Deployment"
             />
-            <ActiveDeploymentCard deploymentId={project.activeDeploymentId} />
+            <ActiveDeploymentCard deploymentId={project.liveDeploymentId} />
           </Section>
         ) : null}
 

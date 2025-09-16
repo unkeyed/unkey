@@ -16,7 +16,7 @@ export const listProjects = t.procedure
           slug: true,
           updatedAt: true,
           gitRepositoryUrl: true,
-          activeDeploymentId: true,
+          liveDeploymentId: true,
         },
       })
       .catch((error) => {

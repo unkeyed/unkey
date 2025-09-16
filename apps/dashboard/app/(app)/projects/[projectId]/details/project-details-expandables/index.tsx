@@ -26,7 +26,7 @@ export const ProjectDetailsExpandable = ({
       .from({ project: collection.projects })
       .where(({ project }) => eq(project.id, projectId))
       .join({ deployment: collections.deployments }, ({ deployment, project }) =>
-        eq(deployment.id, project.activeDeploymentId),
+        eq(deployment.id, project.liveDeploymentId),
       )
       .orderBy(({ project }) => project.id, "asc")
       .limit(1),

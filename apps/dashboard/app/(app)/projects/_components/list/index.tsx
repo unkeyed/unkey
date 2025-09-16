@@ -98,8 +98,8 @@ export const ProjectsList = () => {
         >
           {projects.data.map((project) => {
             // Find active deployment and associated domain for this project
-            const activeDeployment = project.activeDeploymentId
-              ? allDeployments.find((d) => d.id === project.activeDeploymentId)
+            const activeDeployment = project.liveDeploymentId
+              ? allDeployments.find((d) => d.id === project.liveDeploymentId)
               : null;
 
             // Find domain for this project
