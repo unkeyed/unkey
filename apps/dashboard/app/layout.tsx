@@ -1,8 +1,4 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
-import {
-  NavigationLogger,
-  CachePerformanceLogger,
-} from "@/components/debug/navigation-logger";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
@@ -64,8 +60,6 @@ export default function RootLayout({
           <ReactQueryProvider>
             <ThemeProvider attribute="class">
               <WorkspaceProvider>
-                <NavigationLogger />
-                <CachePerformanceLogger />
                 <Toaster />
                 {children}
                 <CommandMenu />
