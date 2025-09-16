@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
+	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -28,13 +29,60 @@ func TestLimitSuccessfully(t *testing.T) {
 		ClickHouse:              h.ClickHouse,
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:               h.Auditlogs,
 	}
 
 	h.Register(route)
 
+	// Test auto-creation of namespace with audit log
+	t.Run("auto-create namespace with audit log", func(t *testing.T) {
+		// Use a namespace that doesn't exist
+		namespaceName := uid.New("nonexistent")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.create_namespace", "ratelimit.*.limit")
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		req := handler.Request{
+			Namespace:  namespaceName,
+			Identifier: "user_123",
+			Limit:      100,
+			Duration:   60000, // 1 minute in ms
+		}
+
+		// First request should succeed and create the namespace
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.NotNil(t, res.Body)
+		require.True(t, res.Body.Data.Success, "Rate limit should not be exceeded on first request")
+		require.Equal(t, int64(100), res.Body.Data.Limit)
+		require.Equal(t, int64(99), res.Body.Data.Remaining)
+
+		// Verify namespace was created
+		namespace, err := db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        namespaceName,
+		})
+		require.NoError(t, err)
+		require.Equal(t, namespaceName, namespace.Name)
+		require.False(t, namespace.DeletedAtM.Valid, "Namespace should not be deleted")
+
+		// Verify audit log was created for the namespace
+		auditTargets, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), namespace.ID)
+		require.NoError(t, err)
+		require.Len(t, auditTargets, 1, "Should have exactly one audit log entry for the namespace")
+
+		auditTarget := auditTargets[0]
+		require.Equal(t, string(auditlog.RatelimitNamespaceResourceType), auditTarget.AuditLogTarget.Type)
+		require.Equal(t, namespace.ID, auditTarget.AuditLogTarget.ID)
+		require.Equal(t, namespaceName, auditTarget.AuditLogTarget.Name.String)
+		require.Equal(t, string(auditlog.RatelimitNamespaceCreateEvent), auditTarget.AuditLog.Event)
+		require.Contains(t, auditTarget.AuditLog.Display, namespaceName, "Audit log should mention the namespace name")
+	})
+
 	// Test basic rate limiting
 	t.Run("basic rate limiting", func(t *testing.T) {
-
 		namespaceID, namespaceName := createNamespace(t, h)
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
 
@@ -103,7 +151,6 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, req.Identifier, row.Identifier)
 		require.Equal(t, res.Body.Data.Success, row.Passed)
 		require.Equal(t, res.Body.Meta.RequestId, row.RequestID)
-
 	})
 
 	// Test with custom cost
@@ -256,6 +303,87 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, int64(1), res2.Body.Data.Limit)
 		require.Equal(t, int64(0), res2.Body.Data.Remaining)
 	})
+	// Test namespace accepts any characters within length bounds
+	t.Run("namespace accepts any characters within length bounds", func(t *testing.T) {
+		// Test various character types in namespace names
+		testCases := []struct {
+			name          string
+			namespaceName string
+		}{
+			{
+				name:          "special characters",
+				namespaceName: "!@#$%^&*()_+-=[]{}|;':\",./<>?",
+			},
+			{
+				name:          "unicode characters",
+				namespaceName: "αβγδε_测试_테스트_🚀🎉",
+			},
+			{
+				name:          "mixed alphanumeric and special",
+				namespaceName: "test-123_ABC.xyz@domain",
+			},
+			{
+				name:          "spaces and tabs",
+				namespaceName: "namespace with spaces	and	tabs",
+			},
+			{
+				name:          "control characters",
+				namespaceName: "test\nwith\rnewlines\tand\btabs",
+			},
+			{
+				name:          "colon and slash delimiters",
+				namespaceName: "api:v1:calls/outbound",
+			},
+			{
+				name:          "leading and trailing whitespace",
+				namespaceName: "  leading and trailing  ",
+			},
+			{
+				name:          "minimum length (1 char)",
+				namespaceName: "a",
+			},
+			{
+				name:          "maximum length (255 chars)",
+				namespaceName: strings.Repeat("x", 255),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				// Create namespace with the test name
+				namespaceID := uid.New(uid.RatelimitNamespacePrefix)
+				err := db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
+					ID:          namespaceID,
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					Name:        tc.namespaceName,
+					CreatedAt:   time.Now().UnixMilli(),
+				})
+				require.NoError(t, err)
+
+				// Create root key for this namespace
+				rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+
+				headers := http.Header{
+					"Content-Type":  {"application/json"},
+					"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+				}
+
+				req := handler.Request{
+					Namespace:  tc.namespaceName,
+					Identifier: uid.New("test"),
+					Limit:      100,
+					Duration:   60000,
+				}
+
+				// Should be able to use the namespace with any characters
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+				require.Equal(t, 200, res.Status, "expected 200 for namespace: %s", tc.namespaceName)
+				require.NotNil(t, res.Body)
+				require.True(t, res.Body.Data.Success, "Rate limit should succeed for namespace: %s", tc.namespaceName)
+			})
+		}
+	})
+
 	t.Run("rate limiting with active override", func(t *testing.T) {
 		namespaceID, namespaceName := createNamespace(t, h)
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))

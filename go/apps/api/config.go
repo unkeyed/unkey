@@ -78,6 +78,11 @@ type Config struct {
 
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
 	ChproxyToken string
+
+	// MaxRequestBodySize sets the maximum allowed request body size in bytes.
+	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
+	// This helps prevent DoS attacks from excessively large request bodies.
+	MaxRequestBodySize int64
 }
 
 func (c Config) Validate() error {
@@ -94,7 +99,7 @@ func (c Config) Validate() error {
 		if err != nil {
 			return err
 		}
-
 	}
+
 	return nil
 }

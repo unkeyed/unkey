@@ -26,6 +26,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	s.AddHeader("Content-Type", "text/html")
+	s.DisableClickHouseLogging()
+
+	s.AddHeader("Content-Type", "application/yaml")
 	return s.Send(200, openapi.Spec)
 }

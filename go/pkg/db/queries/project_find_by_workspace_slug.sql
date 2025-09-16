@@ -1,8 +1,7 @@
 -- name: FindProjectByWorkspaceSlug :one
-SELECT 
+SELECT
     id,
     workspace_id,
-    partition_id,
     name,
     slug,
     git_repository_url,
@@ -10,5 +9,6 @@ SELECT
     delete_protection,
     created_at,
     updated_at
-FROM projects 
-WHERE workspace_id = ? AND slug = ?;
+FROM projects
+WHERE workspace_id = ? AND slug = ?
+LIMIT 1;

@@ -122,6 +122,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Ratelimit:               svc.Ratelimit,
 			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
 			TestMode:                srv.Flags().TestMode,
+			Auditlogs:               svc.Auditlogs,
 		},
 	)
 
@@ -253,10 +254,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2ApisListKeys.Handler{
-			Logger: svc.Logger,
-			DB:     svc.Database,
-			Keys:   svc.Keys,
-			Vault:  svc.Vault,
+			Logger:   svc.Logger,
+			DB:       svc.Database,
+			Keys:     svc.Keys,
+			Vault:    svc.Vault,
+			ApiCache: svc.Caches.LiveApiByID,
 		},
 	)
 
@@ -414,11 +416,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateKey.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			UsageLimiter: svc.UsageLimiter,
 		},
 	)
 
@@ -450,11 +453,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateCredits.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			UsageLimiter: svc.UsageLimiter,
 		},
 	)
 

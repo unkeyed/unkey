@@ -7,8 +7,14 @@ export const getInvitationList = t.procedure
   .use(requireUser)
   .use(requireOrgAdmin)
   .input(z.string())
-  .query(async ({ input: orgId }) => {
+  .query(async ({ ctx, input: orgId }) => {
     try {
+      if (orgId !== ctx.workspace?.orgId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid organization ID",
+        });
+      }
       return await authProvider.getInvitationList(orgId);
     } catch (error) {
       console.error("Error retrieving organization member list:", error);

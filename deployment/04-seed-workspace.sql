@@ -8,6 +8,7 @@ INSERT INTO workspaces (
   id,
   org_id,
   name,
+  slug,
   created_at_m,
   beta_features,
   features
@@ -15,6 +16,7 @@ INSERT INTO workspaces (
   'ws_local_root',
   'user_REPLACE_ME',
   'Unkey',
+  'unkey',
   UNIX_TIMESTAMP() * 1000,
   '{}',
   '{}'

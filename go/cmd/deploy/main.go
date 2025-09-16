@@ -22,6 +22,7 @@ const (
 
 	// Environment variables
 	EnvWorkspaceID = "UNKEY_WORKSPACE_ID"
+	EnvKeyspaceID  = "UNKEY_KEYSPACE_ID"
 	EnvRegistry    = "UNKEY_REGISTRY"
 
 	// URL prefixes
@@ -82,16 +83,19 @@ var stepSequence = map[string]string{
 type DeployOptions struct {
 	WorkspaceID     string
 	ProjectID       string
+	KeyspaceID      string
 	Context         string
 	Branch          string
 	DockerImage     string
 	Dockerfile      string
 	Commit          string
 	Registry        string
+	Environment     string
 	SkipPush        bool
 	Verbose         bool
 	ControlPlaneURL string
 	AuthToken       string
+	Linux           bool
 }
 
 var DeployFlags = []cli.Flag{
@@ -103,6 +107,7 @@ var DeployFlags = []cli.Flag{
 	// Required flags (can be provided via config file)
 	cli.String("workspace-id", "Workspace ID", cli.EnvVar(EnvWorkspaceID)),
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
+	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar(EnvKeyspaceID)),
 	// Optional flags with defaults
 	cli.String("context", "Build context path"),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
@@ -112,8 +117,10 @@ var DeployFlags = []cli.Flag{
 	cli.String("registry", "Container registry",
 		cli.Default(DefaultRegistry),
 		cli.EnvVar(EnvRegistry)),
+	cli.String("env", "Environment slug to deploy to", cli.Default("preview")),
 	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
+	cli.Bool("linux", "Build Docker image for linux/amd64 platform (for deployment to cloud clusters)"),
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
@@ -133,7 +140,7 @@ Use --init to create a configuration template file. This generates an unkey.json
 
 DEPLOYMENT PROCESS:
 1. Load configuration from unkey.json or flags
-2. Build Docker image from your application  
+2. Build Docker image from your application
 3. Push image to container registry
 4. Create deployment version on Unkey platform
 5. Monitor deployment status until active
@@ -175,6 +182,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	finalConfig := cfg.mergeWithFlags(
 		cmd.String("workspace-id"),
 		cmd.String("project-id"),
+		cmd.String("keyspace-id"),
 		cmd.String("context"),
 	)
 
@@ -185,6 +193,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 	opts := DeployOptions{
 		WorkspaceID:     finalConfig.WorkspaceID,
+		KeyspaceID:      finalConfig.KeyspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
@@ -192,10 +201,12 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Dockerfile:      cmd.String("dockerfile"),
 		Commit:          cmd.String("commit"),
 		Registry:        cmd.String("registry"),
+		Environment:     cmd.String("env"),
 		SkipPush:        cmd.Bool("skip-push"),
 		Verbose:         cmd.Bool("verbose"),
 		ControlPlaneURL: cmd.String("control-plane-url"),
 		AuthToken:       cmd.String("auth-token"),
+		Linux:           cmd.Bool("linux"),
 	}
 
 	return executeDeploy(ctx, opts)
@@ -274,17 +285,17 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 	ui.PrintSuccess(fmt.Sprintf("Deployment created: %s", deploymentId))
 
-	// Track final version for completion info
-	var finalVersion *ctrlv1.Version
+	// Track final deployment for completion info
+	var finalDeployment *ctrlv1.Deployment
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
 		switch event.CurrentStatus {
-		case ctrlv1.VersionStatus_VERSION_STATUS_FAILED:
-			return handleVersionFailure(controlPlane, event.Version, ui)
-		case ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE:
-			// Store version but don't print success, wait for polling to complete
-			finalVersion = event.Version
+		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
+			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
+		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
+			// Store deployment but don't print success, wait for polling to complete
+			finalDeployment = event.Deployment
 		}
 		return nil
 	}
@@ -302,11 +313,11 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Print final success message only after all polling is complete
-	if finalVersion != nil {
+	if finalDeployment != nil {
 		ui.CompleteCurrentStep(MsgDeploymentStepCompleted, true)
 		ui.PrintSuccess(MsgDeploymentCompleted)
 		fmt.Printf("\n")
-		printCompletionInfo(finalVersion)
+		printCompletionInfo(finalDeployment)
 		fmt.Printf("\n")
 	}
 
@@ -349,8 +360,8 @@ func handleStepUpdate(event DeploymentStepEvent, ui *UI) error {
 	return nil
 }
 
-func handleVersionFailure(controlPlane *ControlPlaneClient, version *ctrlv1.Version, ui *UI) error {
-	errorMsg := controlPlane.getFailureMessage(version)
+func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {
+	errorMsg := controlPlane.getFailureMessage(deployment)
 	ui.CompleteCurrentStep(MsgDeploymentFailed, false)
 	ui.PrintError(MsgDeploymentFailed)
 	ui.PrintErrorDetails(errorMsg)
@@ -378,22 +389,22 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 	fmt.Printf("\n")
 }
 
-func printCompletionInfo(version *ctrlv1.Version) {
-	if version == nil || version.GetId() == "" {
+func printCompletionInfo(deployment *ctrlv1.Deployment) {
+	if deployment == nil || deployment.GetId() == "" {
 		fmt.Printf("✓ Deployment completed\n")
 		return
 	}
 
 	fmt.Println()
 	fmt.Println(CompletionTitle)
-	fmt.Printf("  %s: %s\n", CompletionDeploymentID, version.GetId())
+	fmt.Printf("  %s: %s\n", CompletionDeploymentID, deployment.GetId())
 	fmt.Printf("  %s: %s\n", CompletionStatus, CompletionReady)
 	fmt.Printf("  %s: %s\n", CompletionEnvironment, DefaultEnvironment)
 
 	fmt.Println()
 	fmt.Println(CompletionDomains)
 
-	hostnames := version.GetHostnames()
+	hostnames := deployment.GetHostnames()
 	if len(hostnames) > 0 {
 		for _, hostname := range hostnames {
 			if strings.HasPrefix(hostname, LocalhostPrefix) {

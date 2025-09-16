@@ -5,19 +5,20 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
-import { partitions } from "./partitions";
 export const projects = mysqlTable(
   "projects",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    partitionId: varchar("partition_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
 
     // Git configuration
     gitRepositoryUrl: varchar("git_repository_url", { length: 500 }),
+    // this is likely temporary but we need a way to point to the current prod deployment.
+    // in the future I think we want to have a special deployment per environment, but for now this is fine
+    activeDeploymentId: varchar("active_deployment_id", { length: 256 }),
 
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     ...deleteProtection,
@@ -25,7 +26,6 @@ export const projects = mysqlTable(
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    partitionIdx: index("partition_idx").on(table.partitionId),
     workspaceSlugIdx: uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
   }),
 );
@@ -34,10 +34,6 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [projects.workspaceId],
     references: [workspaces.id],
-  }),
-  partition: one(partitions, {
-    fields: [projects.partitionId],
-    references: [partitions.id],
   }),
   deployments: many(deployments),
   // environments: many(projectEnvironments),

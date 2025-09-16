@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -38,12 +39,90 @@ var (
 	ErrBuildTimeout       = errors.New("docker build timed out")
 )
 
+// Precompiled regexes for Docker tag sanitization
+var (
+	// reInvalid matches any characters not allowed in Docker tags (after normalization to lowercase)
+	reInvalid = regexp.MustCompile(`[^a-z0-9._-]+`)
+
+	// reFirstOK matches valid first characters for Docker tags (after normalization)
+	reFirstOK = regexp.MustCompile(`^[a-z0-9_]`)
+
+	// reMultiDash matches consecutive dashes
+	reMultiDash = regexp.MustCompile(`-{2,}`)
+
+	// reFinal validates the complete tag format (after normalization)
+	reFinal = regexp.MustCompile(`^[a-z0-9_][a-z0-9._-]*$`)
+)
+
+// sanitizeDockerTag sanitizes a string to be valid for Docker tags
+// Official Docker tag grammar: /[\w][\w.-]{0,127}/
+// - First char: word character (a-zA-Z0-9_)
+// - Remaining chars: word characters, periods, or dashes
+// - Maximum 128 characters total (enforced later in generateImageTag)
+// - Lowercasing is a policy decision to ensure consistency (Docker tags may be mixed-case)
+func sanitizeDockerTag(input string) string {
+	if input == "" {
+		return "main"
+	}
+
+	// Convert to lowercase as a policy decision for consistency
+	// (Docker tags may be mixed-case but we normalize for predictability)
+	result := strings.ToLower(input)
+
+	// Replace invalid characters with dashes using precompiled regex
+	// Keep only: a-z, 0-9, _, ., -
+	result = reInvalid.ReplaceAllString(result, "-")
+
+	// Ensure first character is a word character (a-z0-9_)
+	// If it starts with . or -, prepend with a valid character
+	if len(result) > 0 && !reFirstOK.MatchString(result) {
+		result = "v" + result
+	}
+
+	// Remove consecutive dashes for cleaner tags using precompiled regex
+	result = reMultiDash.ReplaceAllString(result, "-")
+
+	// Final safety check - ensure we have a valid tag using precompiled regex
+	if result == "" || !reFinal.MatchString(result) {
+		return "main"
+	}
+
+	return result
+}
+
 // generateImageTag creates a unique tag for the Docker image
 func generateImageTag(opts DeployOptions, gitInfo git.Info) string {
+	// Sanitize branch name for Docker tag compatibility
+	cleanBranch := sanitizeDockerTag(opts.Branch)
+
+	// Calculate suffix length to determine maximum branch length
+	var suffix string
+	var suffixLen int
+
 	if gitInfo.ShortSHA != "" {
-		return fmt.Sprintf("%s-%s", opts.Branch, gitInfo.ShortSHA)
+		suffix = gitInfo.ShortSHA
+		suffixLen = len(suffix) + 1 // +1 for the hyphen
+	} else {
+		timestamp := time.Now().Unix()
+		suffix = fmt.Sprintf("%d", timestamp)
+		suffixLen = len(suffix) + 1 // +1 for the hyphen
 	}
-	return fmt.Sprintf("%s-%d", opts.Branch, time.Now().Unix())
+
+	// Calculate maximum allowed branch length to keep final tag ≤ 128 chars
+	const maxTagLength = 128
+	maxBranchLen := maxTagLength - suffixLen
+
+	// Trim branch to fit within the calculated limit (using rune count for multibyte safety)
+	branchRunes := []rune(cleanBranch)
+	if len(branchRunes) > maxBranchLen {
+		branchRunes = branchRunes[:maxBranchLen]
+		cleanBranch = string(branchRunes)
+		// Ensure it doesn't end with a dash after trimming
+		cleanBranch = strings.TrimRight(cleanBranch, "-")
+	}
+
+	// Format the final tag
+	return fmt.Sprintf("%s-%s", cleanBranch, suffix)
 }
 
 // isDockerAvailable checks if Docker is installed and accessible
@@ -69,6 +148,9 @@ func buildImage(ctx context.Context, opts DeployOptions, dockerImage string, ui 
 	buildArgs := []string{"build"}
 	if opts.Dockerfile != DefaultDockerfile {
 		buildArgs = append(buildArgs, "-f", opts.Dockerfile)
+	}
+	if opts.Linux {
+		buildArgs = append(buildArgs, "--platform", "linux/amd64")
 	}
 	buildArgs = append(buildArgs,
 		"-t", dockerImage,

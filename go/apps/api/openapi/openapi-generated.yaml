@@ -1191,7 +1191,7 @@ components:
                         Active sessions continue until their next verification attempt after expiry.
                     example: 1704067200000
                 credits:
-                    "$ref": "#/components/schemas/KeyCreditsData"
+                    "$ref": "#/components/schemas/UpdateKeyCreditsData"
                     description: |
                         Controls usage-based limits for this key through credit consumption.
                         Omitting this field preserves current credit settings, while setting null enables unlimited usage.
@@ -1762,7 +1762,6 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9_./-]*$"
                     description: The id or name of the namespace.
                     example: sms.sign_up
                 cost:
@@ -1826,6 +1825,23 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitLimitResponseData"
+        GoneErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
+                - The resource has been marked as deleted but still exists in the database
+                - The resource is intentionally unavailable but could potentially be restored
+                - The resource cannot be restored through the API or dashboard
+
+                To resolve this error, contact support if you need the resource restored.
         V2RatelimitListOverridesRequestBody:
             additionalProperties: false
             properties:
@@ -2596,6 +2612,57 @@ components:
                 - An empty array indicates the key now has no roles assigned at all
             items:
                 "$ref": "#/components/schemas/Role"
+        UpdateKeyCreditsData:
+            type:
+                - object
+                - "null"
+            description: Credit configuration and remaining balance for this key.
+            properties:
+                remaining:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: Number of credits remaining (null for unlimited). This also clears the refilling schedule.
+                    example: 1000
+                refill:
+                    "$ref": "#/components/schemas/UpdateKeyCreditsRefill"
+            additionalProperties: false
+        UpdateKeyCreditsRefill:
+            type:
+                - object
+                - "null"
+            description: Configuration for automatic credit refill behavior.
+            properties:
+                interval:
+                    type: string
+                    enum:
+                        - daily
+                        - monthly
+                    description: How often credits are automatically refilled.
+                    example: daily
+                amount:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    maximum: 9223372036854776000
+                    description: Number of credits to add during each refill cycle.
+                    example: 1000
+                refillDay:
+                    type: integer
+                    minimum: 1
+                    maximum: 31
+                    description: |
+                        Day of the month for monthly refills (1-31).
+                        Only required when interval is 'monthly'.
+                        For days beyond the month's length, refill occurs on the last day of the month.
+                    example: 15
+            required:
+                - interval
+                - amount
+            additionalProperties: false
         KeysVerifyKeyCredits:
             type: object
             required:
@@ -5671,7 +5738,7 @@ paths:
 
                 Use this for rate limiting beyond API keys - limit users by ID, IPs by address, or any custom identifier. Supports namespace organization, variable costs, and custom overrides.
 
-                **Important**: Always returns HTTP 200. Check the `success` field to determine if the request should proceed.
+                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether the limit is exceeded - check the `success` field in the response to determine if the request should be allowed. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
 
                 **Required Permissions**
 
@@ -5751,7 +5818,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2RatelimitLimitResponseBody'
                     description: |
-                        Rate limit check completed. Always returns HTTP 200 - check the `success` field to determine if the request is allowed.
+                        Rate limit check completed successfully. Check the `success` field to determine if the request is allowed.
                 "400":
                     content:
                         application/json:
@@ -5776,6 +5843,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "410":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoneErrorResponse'
+                    description: Gone - Namespace has been deleted
                 "500":
                     content:
                         application/json:

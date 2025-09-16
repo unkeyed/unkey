@@ -19,28 +19,28 @@ import (
 // DeploymentStatusEvent represents a status change event
 type DeploymentStatusEvent struct {
 	DeploymentID   string
-	PreviousStatus ctrlv1.VersionStatus
-	CurrentStatus  ctrlv1.VersionStatus
-	Version        *ctrlv1.Version
+	PreviousStatus ctrlv1.DeploymentStatus
+	CurrentStatus  ctrlv1.DeploymentStatus
+	Deployment     *ctrlv1.Deployment
 }
 
 // DeploymentStepEvent represents a step update event
 type DeploymentStepEvent struct {
 	DeploymentID string
-	Step         *ctrlv1.VersionStep
-	Status       ctrlv1.VersionStatus
+	Step         *ctrlv1.DeploymentStep
+	Status       ctrlv1.DeploymentStatus
 }
 
 // ControlPlaneClient handles API operations with the control plane
 type ControlPlaneClient struct {
-	client ctrlv1connect.VersionServiceClient
+	client ctrlv1connect.DeploymentServiceClient
 	opts   DeployOptions
 }
 
 // NewControlPlaneClient creates a new control plane client
 func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	httpClient := &http.Client{}
-	client := ctrlv1connect.NewVersionServiceClient(httpClient, opts.ControlPlaneURL)
+	client := ctrlv1connect.NewDeploymentServiceClient(httpClient, opts.ControlPlaneURL)
 
 	return &ControlPlaneClient{
 		client: client,
@@ -50,51 +50,52 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 
 // CreateDeployment creates a new deployment in the control plane
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
-	createReq := connect.NewRequest(&ctrlv1.CreateVersionRequest{
-		WorkspaceId:    c.opts.WorkspaceID,
-		ProjectId:      c.opts.ProjectID,
-		Branch:         c.opts.Branch,
-		SourceType:     ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
-		GitCommitSha:   c.opts.Commit,
-		EnvironmentId:  "env_prod", // TODO: Make this configurable
-		DockerImageTag: dockerImage,
+	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
+		WorkspaceId:     c.opts.WorkspaceID,
+		ProjectId:       c.opts.ProjectID,
+		KeyspaceId:      &c.opts.KeyspaceID,
+		Branch:          c.opts.Branch,
+		SourceType:      ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		GitCommitSha:    c.opts.Commit,
+		EnvironmentSlug: c.opts.Environment,
+		DockerImage:     dockerImage,
 	})
 
 	createReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
 
-	createResp, err := c.client.CreateVersion(ctx, createReq)
+	createResp, err := c.client.CreateDeployment(ctx, createReq)
 	if err != nil {
 		return "", c.handleCreateDeploymentError(err)
 	}
 
-	deploymentId := createResp.Msg.GetVersionId()
-	if deploymentId == "" {
+	deploymentID := createResp.Msg.GetDeploymentId()
+	if deploymentID == "" {
 		return "", fmt.Errorf("empty deployment ID returned from control plane")
 	}
 
-	return deploymentId, nil
+	return deploymentID, nil
 }
 
 // GetDeployment retrieves deployment information from the control plane
-func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId string) (*ctrlv1.Version, error) {
-	getReq := connect.NewRequest(&ctrlv1.GetVersionRequest{
-		VersionId: deploymentId,
+func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId string) (*ctrlv1.Deployment, error) {
+	getReq := connect.NewRequest(&ctrlv1.GetDeploymentRequest{
+		DeploymentId: deploymentId,
 	})
 	getReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
 
-	getResp, err := c.client.GetVersion(ctx, getReq)
+	getResp, err := c.client.GetDeployment(ctx, getReq)
 	if err != nil {
 		return nil, err
 	}
 
-	return getResp.Msg.GetVersion(), nil
+	return getResp.Msg.GetDeployment(), nil
 }
 
 // PollDeploymentStatus polls for deployment changes and calls event handlers
 func (c *ControlPlaneClient) PollDeploymentStatus(
 	ctx context.Context,
 	logger logging.Logger,
-	deploymentId string,
+	deploymentID string,
 	onStatusChange func(DeploymentStatusEvent) error,
 	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
@@ -105,7 +106,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 
 	// Track processed steps by creation time to avoid duplicates
 	processedSteps := make(map[int64]bool)
-	lastStatus := ctrlv1.VersionStatus_VERSION_STATUS_UNSPECIFIED
+	lastStatus := ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 
 	for {
 		select {
@@ -114,21 +115,21 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 		case <-timeout.C:
 			return fmt.Errorf("deployment timeout after 5 minutes")
 		case <-ticker.C:
-			version, err := c.GetDeployment(ctx, deploymentId)
+			deployment, err := c.GetDeployment(ctx, deploymentID)
 			if err != nil {
-				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentId)
+				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentID)
 				continue
 			}
 
-			currentStatus := version.GetStatus()
+			currentStatus := deployment.GetStatus()
 
 			// Handle deployment status changes
 			if currentStatus != lastStatus {
 				event := DeploymentStatusEvent{
-					DeploymentID:   deploymentId,
+					DeploymentID:   deploymentID,
 					PreviousStatus: lastStatus,
 					CurrentStatus:  currentStatus,
-					Version:        version,
+					Deployment:     deployment,
 				}
 
 				if err := onStatusChange(event); err != nil {
@@ -138,12 +139,12 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 			}
 
 			// Process new step updates
-			if err := c.processNewSteps(deploymentId, version.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
+			if err := c.processNewSteps(deploymentID, deployment.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
 				return err
 			}
 
 			// Check for completion
-			if currentStatus == ctrlv1.VersionStatus_VERSION_STATUS_ACTIVE {
+			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY {
 				return nil
 			}
 		}
@@ -152,10 +153,10 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 
 // processNewSteps processes new deployment steps and calls the event handler
 func (c *ControlPlaneClient) processNewSteps(
-	deploymentId string,
-	steps []*ctrlv1.VersionStep,
+	deploymentID string,
+	steps []*ctrlv1.DeploymentStep,
 	processedSteps map[int64]bool,
-	currentStatus ctrlv1.VersionStatus,
+	currentStatus ctrlv1.DeploymentStatus,
 	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
 	for _, step := range steps {
@@ -174,7 +175,7 @@ func (c *ControlPlaneClient) processNewSteps(
 		// Call step update handler
 		if step.GetMessage() != "" {
 			event := DeploymentStepEvent{
-				DeploymentID: deploymentId,
+				DeploymentID: deploymentID,
 				Step:         step,
 				Status:       currentStatus,
 			}
@@ -196,13 +197,13 @@ func (c *ControlPlaneClient) processNewSteps(
 }
 
 // getFailureMessage extracts failure message from version
-func (c *ControlPlaneClient) getFailureMessage(version *ctrlv1.Version) string {
-	if version.GetErrorMessage() != "" {
-		return version.GetErrorMessage()
+func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) string {
+	if deployment.GetErrorMessage() != "" {
+		return deployment.GetErrorMessage()
 	}
 
 	// Check for error in steps
-	for _, step := range version.GetSteps() {
+	for _, step := range deployment.GetSteps() {
 		if step.GetErrorMessage() != "" {
 			return step.GetErrorMessage()
 		}

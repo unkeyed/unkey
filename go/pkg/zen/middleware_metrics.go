@@ -17,6 +17,34 @@ type EventBuffer interface {
 	BufferApiRequest(schema.ApiRequestV1)
 }
 
+type redactionRule struct {
+	regexp      *regexp.Regexp
+	replacement []byte
+}
+
+var redactionRules = []redactionRule{
+	// Redact "key" field values - matches JSON-style key fields with various whitespace combinations
+	{
+		regexp:      regexp.MustCompile(`"key"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: []byte(`"key": "[REDACTED]"`),
+	},
+	// Redact "plaintext" field values - matches JSON-style plaintext fields with various whitespace combinations
+	{
+		regexp:      regexp.MustCompile(`"plaintext"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: []byte(`"plaintext": "[REDACTED]"`),
+	},
+}
+
+func redact(in []byte) []byte {
+	b := in
+
+	for _, rule := range redactionRules {
+		b = rule.regexp.ReplaceAll(b, rule.replacement)
+	}
+
+	return b
+}
+
 // WithMetrics returns middleware that collects metrics about each request,
 // including request counts, latencies, and status codes.
 //
@@ -29,39 +57,11 @@ type EventBuffer interface {
 //	    route,
 //	)
 func WithMetrics(eventBuffer EventBuffer) Middleware {
-	redactions := map[*regexp.Regexp]string{
-		regexp.MustCompile(`"key":\s*"[a-zA-Z0-9_]+"`):       `"key": "[REDACTED]"`,
-		regexp.MustCompile(`"plaintext":\s*"[a-zA-Z0-9_]+"`): `"plaintext": "[REDACTED]"`,
-	}
-
-	redact := func(in []byte) []byte {
-		b := in
-		for r, replacement := range redactions {
-			b = r.ReplaceAll(b, []byte(replacement))
-		}
-		return b
-	}
-
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-
 			start := time.Now()
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
-
-			requestHeaders := []string{}
-			for k, vv := range s.r.Header {
-				if strings.ToLower(k) == "authorization" {
-					requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, "[REDACTED]"))
-				} else {
-					requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
-				}
-			}
-
-			responseHeaders := []string{}
-			for k, vv := range s.w.Header() {
-				responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
-			}
 
 			// "method", "path", "status"
 			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
@@ -70,14 +70,29 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
 			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
 
-			// https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-for
-			ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
-			ipAddress := ""
-			if len(ips) > 0 {
-				ipAddress = ips[0]
-			}
+			// Only log if we should log request to ClickHouse
+			if s.ShouldLogRequestToClickHouse() {
+				requestHeaders := []string{}
+				for k, vv := range s.r.Header {
+					if strings.ToLower(k) == "authorization" {
+						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, "[REDACTED]"))
+					} else {
+						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
+					}
+				}
 
-			if s.r.Header.Get("X-Unkey-Metrics") != "disabled" {
+				responseHeaders := []string{}
+				for k, vv := range s.w.Header() {
+					responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
+				}
+
+				// https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-for
+				ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
+				ipAddress := ""
+				if len(ips) > 0 {
+					ipAddress = ips[0]
+				}
+
 				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),

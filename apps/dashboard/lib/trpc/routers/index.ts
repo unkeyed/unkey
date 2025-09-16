@@ -38,9 +38,12 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { createProject } from "./deploy/project/create";
-import { queryProjects } from "./deploy/project/list";
-import { deploymentRouter } from "./deployment";
+import { getDeploymentBuildLogs } from "./deployment/buildLogs";
+import { getOpenApiDiff } from "./deployment/getOpenApiDiff";
+import { listDeployments } from "./deployment/list";
+import { searchDeployments } from "./deployment/llm-search";
+import { listDomains } from "./domains/list";
+import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -79,17 +82,19 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
+import { createProject } from "./project/create";
+import { getEnvs } from "./project/envs/list";
+import { listProjects } from "./project/list";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
-import { searchNamespace } from "./ratelimit/namespace-search";
-import { queryRatelimitNamespaces } from "./ratelimit/query-keys";
+import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
+import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
-import { queryRatelimitWorkspaceDetails } from "./ratelimit/query-namespace-details";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -104,6 +109,7 @@ import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRol
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { rollback } from "./rollback";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -260,10 +266,8 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      list: listRatelimitNamespaces,
       queryRatelimitLastUsed,
-      query: queryRatelimitNamespaces,
-      queryDetails: queryRatelimitWorkspaceDetails,
-      search: searchNamespace,
       create: createNamespace,
       update: t.router({
         name: updateNamespaceName,
@@ -271,6 +275,7 @@ export const router = t.router({
       delete: deleteNamespace,
     }),
     override: t.router({
+      list: listRatelimitOverrides,
       create: createOverride,
       update: updateOverride,
       delete: deleteOverride,
@@ -311,13 +316,28 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
   }),
-  deploy: t.router({
-    project: t.router({
-      list: queryProjects,
-      create: createProject,
-    }),
+  project: t.router({
+    list: listProjects,
+    create: createProject,
   }),
-  deployment: deploymentRouter,
+  domain: t.router({
+    list: listDomains,
+  }),
+  deployment: t.router({
+    list: listDeployments,
+    search: searchDeployments,
+    getOpenApiDiff: getOpenApiDiff,
+    buildLogs: getDeploymentBuildLogs,
+  }),
+  environment: t.router({
+    list: listEnvironments,
+  }),
+  environmentVariables: t.router({
+    list: getEnvs,
+  }),
+  deploy: t.router({
+    rollback: rollback,
+  }),
 });
 
 // export type definition of API

@@ -4,34 +4,57 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
-	vmprovisionerv1 "github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
+	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
 type DeployWorkflow struct {
-	db           db.Database
-	logger       logging.Logger
-	metaldClient vmprovisionerv1connect.VmServiceClient
+	db                db.Database
+	partitionDB       db.Database
+	logger            logging.Logger
+	deploymentBackend DeploymentBackend
+	defaultDomain     string
+}
+
+type DeployWorkflowConfig struct {
+	Logger          logging.Logger
+	DB              db.Database
+	PartitionDB     db.Database
+	MetalD          metaldv1connect.VmServiceClient
+	MetaldBackend   string
+	DefaultDomain   string
+	IsRunningDocker bool
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
-func NewDeployWorkflow(database db.Database, logger logging.Logger, metaldClient vmprovisionerv1connect.VmServiceClient) *DeployWorkflow {
+func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
+	// Create the appropriate deployment backend
+	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger, cfg.IsRunningDocker)
+	if err != nil {
+		// Log error but continue - workflow will fail when trying to use the backend
+		cfg.Logger.Error("failed to initialize deployment backend",
+			"error", err,
+			"fallback", cfg.MetaldBackend)
+	}
+
 	return &DeployWorkflow{
-		db:           database,
-		logger:       logger,
-		metaldClient: metaldClient,
+		db:                cfg.DB,
+		partitionDB:       cfg.PartitionDB,
+		logger:            cfg.Logger,
+		deploymentBackend: deploymentBackend,
+		defaultDomain:     cfg.DefaultDomain,
 	}
 }
 
@@ -44,30 +67,9 @@ func (w *DeployWorkflow) Name() string {
 type DeployRequest struct {
 	WorkspaceID  string `json:"workspace_id"`
 	ProjectID    string `json:"project_id"`
+	KeyspaceID   string `json:"keyspace_id"`
 	DeploymentID string `json:"deployment_id"`
 	DockerImage  string `json:"docker_image"`
-}
-
-// BuildInfo holds build metadata from initialization step
-type BuildInfo struct {
-	BuildID     string `json:"build_id"`
-	WorkspaceID string `json:"workspace_id"`
-	ProjectID   string `json:"project_id"`
-	VersionID   string `json:"version_id"`
-	DockerImage string `json:"docker_image"`
-}
-
-// SubmissionResult holds the result of build submission
-type SubmissionResult struct {
-	BuildID   string `json:"build_id"`
-	Submitted bool   `json:"submitted"`
-}
-
-// BuildResult holds the final build outcome
-type BuildResult struct {
-	BuildID  string `json:"build_id"`
-	Status   string `json:"status"`
-	ErrorMsg string `json:"error_message,omitempty"`
 }
 
 // DeploymentResult holds the deployment outcome
@@ -83,60 +85,25 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		"deployment_id", req.DeploymentID,
 		"docker_image", req.DockerImage,
 		"workspace_id", req.WorkspaceID,
-		"project_id", req.ProjectID)
-
-	// Step 1: Generate build ID
-	buildID, err := hydra.Step(ctx, "generate-build-id", func(stepCtx context.Context) (string, error) {
-		id := uid.New(uid.BuildPrefix)
-		w.logger.Info("generated build ID", "build_id", id)
-		return id, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to generate build ID", "error", err)
-		return err
-	}
-
-	w.logger.Info("proceeding with build", "build_id", buildID)
-
-	// Step 2: Log deployment pending
-	err = hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
+		"project_id", req.ProjectID,
+	)
+	// Log deployment pending
+	err := hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "pending",
-			Message:      sql.NullString{String: "Deployment queued and ready to start", Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log deployment pending", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 3: Insert build into database
-	err = hydra.StepVoid(ctx, "insert-build", func(stepCtx context.Context) error {
-		w.logger.Info("inserting build into database", "build_id", buildID)
-		insertErr := db.Query.InsertBuild(stepCtx, w.db.RW(), db.InsertBuildParams{
-			ID:           buildID,
 			WorkspaceID:  req.WorkspaceID,
 			ProjectID:    req.ProjectID,
 			DeploymentID: req.DeploymentID,
+			Status:       "pending",
+			Message:      "Deployment queued and ready to start",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
-		if insertErr != nil {
-			return fmt.Errorf("failed to create build record: %w", insertErr)
-		}
-		w.logger.Info("build record created successfully", "build_id", buildID)
-		return nil
 	})
 	if err != nil {
-		w.logger.Error("failed to insert build", "error", err, "build_id", buildID)
 		return err
 	}
 
-	// Step 4: Update version status to building
+	// Update version status to building
 	_, err = hydra.Step(ctx, "update-version-building", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("updating deployment status to building", "deployment_id", req.DeploymentID)
 		updateErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusBuilding,
@@ -145,167 +112,43 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		if updateErr != nil {
 			return nil, fmt.Errorf("failed to update version status to building: %w", updateErr)
 		}
-		w.logger.Info("deployment status updated to building", "deployment_id", req.DeploymentID)
 		return &struct{}{}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to initialize build", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	// Step 5: Update build status to running
-	_, err = hydra.Step(ctx, "update-build-running", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("updating build status to running", "build_id", buildID)
-		now := time.Now().UnixMilli()
-		runningErr := db.Query.UpdateBuildStatus(stepCtx, w.db.RW(), db.UpdateBuildStatusParams{
-			ID:     buildID,
-			Status: db.BuildsStatusRunning,
-			Now:    sql.NullInt64{Valid: true, Int64: now},
-		})
-		if runningErr != nil {
-			return nil, fmt.Errorf("failed to update build status to running: %w", runningErr)
+	deployment, err := hydra.Step(ctx, "create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
+		if w.deploymentBackend == nil {
+			return nil, fmt.Errorf("deployment backend not initialized")
 		}
-		return &struct{}{}, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to update build status to running", "error", err, "build_id", buildID)
-		return err
-	}
 
-	// Step 6: Log downloading Docker image
-	err = hydra.StepVoid(ctx, "log-downloading-docker-image", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "downloading_docker_image",
-			Message:      sql.NullString{String: fmt.Sprintf("Downloading Docker image: %s", req.DockerImage), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log downloading Docker image", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 7: Create VM (network call to metald)
-	createResult, err := hydra.Step(ctx, "metald-create-vm", func(stepCtx context.Context) (*vmprovisionerv1.CreateVmResponse, error) {
-		w.logger.Info("creating VM for deployment", "deployment_id", req.DeploymentID, "docker_image", req.DockerImage, "workspace_id", req.WorkspaceID, "project_id", req.ProjectID)
-
-		// Create VM configuration for Docker backend
-		vmConfig := &vmprovisionerv1.VmConfig{
-			Cpu: &vmprovisionerv1.CpuConfig{
-				VcpuCount: 1,
-			},
-			Memory: &vmprovisionerv1.MemoryConfig{
-				SizeBytes: 536870912, // 512MB
-			},
-			Boot: &vmprovisionerv1.BootConfig{
-				KernelPath: "/boot/vmlinux",
-				InitrdPath: "/boot/initrd",
-				KernelArgs: "console=ttyS0 quiet",
-			},
-			Storage: []*vmprovisionerv1.StorageDevice{{
-				Id:   "root",
-				Path: "/dev/vda",
-			}},
-			Metadata: map[string]string{
-				"docker_image":  req.DockerImage,
-				"exposed_ports": "8080/tcp",
-				"env_vars":      "PORT=8080",
-				"version_id":    req.DeploymentID,
-				"workspace_id":  req.WorkspaceID,
-				"project_id":    req.ProjectID,
-				"created_by":    "deploy-workflow",
+		// Create deployment request
+		deploymentReq := &metaldv1.CreateDeploymentRequest{
+			Deployment: &metaldv1.DeploymentRequest{
+				DeploymentId:  req.DeploymentID,
+				Image:         req.DockerImage,
+				VmCount:       1,
+				Cpu:           1,
+				MemorySizeMib: 1024,
 			},
 		}
 
-		// Make real metald CreateVm call
-		resp, err := w.metaldClient.CreateVm(stepCtx, connect.NewRequest(&vmprovisionerv1.CreateVmRequest{
-			Config: vmConfig,
-		}))
+		resp, err := w.deploymentBackend.CreateDeployment(stepCtx, deploymentReq)
 		if err != nil {
-			w.logger.Error("metald CreateVm call failed", "error", err, "docker_image", req.DockerImage)
-			return nil, fmt.Errorf("failed to create VM: %w", err)
+			return nil, fmt.Errorf("failed to create deployment for image %s: %w", req.DockerImage, err)
 		}
 
-		w.logger.Info("VM created successfully", "vm_id", resp.Msg.VmId, "state", resp.Msg.State.String(), "docker_image", req.DockerImage)
-
-		return resp.Msg, nil
+		return resp, nil
 	})
 	if err != nil {
-		w.logger.Error("VM creation failed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	w.logger.Info("VM creation completed", "vm_id", createResult.VmId, "state", createResult.State.String())
+	w.logger.Info("deployment created", "deployment_id", req.DeploymentID, "vm_count", len(deployment.GetVmIds()))
 
-	// Step 8: Log building rootfs
-	err = hydra.StepVoid(ctx, "log-building-rootfs", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "building_rootfs",
-			Message:      sql.NullString{String: fmt.Sprintf("Building rootfs from Docker image: %s", req.DockerImage), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log building rootfs", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 9: Log uploading rootfs
-	err = hydra.StepVoid(ctx, "log-uploading-rootfs", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "uploading_rootfs",
-			Message:      sql.NullString{String: "Uploading rootfs image to storage", Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log uploading rootfs", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 10: Update build status to succeeded
-	_, err = hydra.Step(ctx, "update-build-succeeded", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("updating build status to succeeded", "build_id", buildID)
-		successErr := db.Query.UpdateBuildSucceeded(stepCtx, w.db.RW(), db.UpdateBuildSucceededParams{
-			ID:  buildID,
-			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-		if successErr != nil {
-			return nil, fmt.Errorf("failed to update build status to succeeded: %w", successErr)
-		}
-		w.logger.Info("build status updated to succeeded", "build_id", buildID)
-		return &struct{}{}, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to update build status to succeeded", "error", err, "build_id", buildID)
-		return err
-	}
-
-	// Step 11: Log creating VM
-	err = hydra.StepVoid(ctx, "log-creating-vm", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "creating_vm",
-			Message:      sql.NullString{String: fmt.Sprintf("Creating VM for version: %s", req.DeploymentID), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log creating VM", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 12: Update version status to deploying
+	// Update version status to deploying
 	_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
-		w.logger.Info("starting deployment", "deployment_id", req.DeploymentID)
-
 		deployingErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusDeploying,
@@ -317,89 +160,93 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return &struct{}{}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to update version status to deploying", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	// Step 13: Skip VM status polling for Docker backend (VM is immediately ready)
-	w.logger.Info("skipping VM status polling for Docker backend", "vm_id", createResult.VmId)
+	createdVMs, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*metaldv1.GetDeploymentResponse_Vm, error) {
+		instances := make(map[string]*metaldv1.GetDeploymentResponse_Vm)
 
-	// Step 14: Boot VM (network call to metald)
-	_, err = hydra.Step(ctx, "metald-boot-vm", func(stepCtx context.Context) (*vmprovisionerv1.BootVmResponse, error) {
-		w.logger.Info("booting VM", "vm_id", createResult.VmId)
+		for i := range 300 {
+			time.Sleep(time.Second)
+			if i%10 == 0 { // Log every 10 seconds instead of every second
+				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
+			}
 
-		// Make real metald BootVm call
-		resp, err := w.metaldClient.BootVm(stepCtx, connect.NewRequest(&vmprovisionerv1.BootVmRequest{
-			VmId: createResult.VmId,
-		}))
-		if err != nil {
-			w.logger.Error("metald BootVm call failed", "error", err, "vm_id", createResult.VmId)
-			return nil, fmt.Errorf("failed to boot VM: %w", err)
+			if w.deploymentBackend == nil {
+				return nil, fmt.Errorf("deployment backend not initialized")
+			}
+
+			vms, err := w.deploymentBackend.GetDeployment(stepCtx, req.DeploymentID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get deployment %s: %w", req.DeploymentID, err)
+			}
+
+			allReady := true
+			for _, instance := range vms {
+				known, ok := instances[instance.Id]
+				if !ok || known.State != instance.State {
+					upsertParams := partitiondb.UpsertVMParams{
+						ID:            instance.Id,
+						DeploymentID:  req.DeploymentID,
+						Address:       sql.NullString{Valid: true, String: fmt.Sprintf("%s:%d", instance.Host, instance.Port)},
+						CpuMillicores: 1000,                         // TODO derive from spec
+						MemoryMb:      1024,                         // TODO derive from spec
+						Status:        partitiondb.VmsStatusRunning, // TODO
+					}
+
+					w.logger.Info("upserting VM to database",
+						"vm_id", instance.Id,
+						"deployment_id", req.DeploymentID,
+						"address", fmt.Sprintf("%s:%d", instance.Host, instance.Port),
+						"status", "running")
+
+					if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
+					}
+
+					w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
+
+					instances[instance.Id] = instance
+				}
+
+				w.logger.Debug("checking VM readiness", "vm_id", instance.Id, "state", instance.State.String())
+				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
+					allReady = false
+					w.logger.Debug("vm not ready", "vm_id", instance.Id, "state", instance.State.String())
+				}
+			}
+
+			if allReady {
+				w.logger.Info("all VMs ready, deployment complete",
+					"deployment_id", req.DeploymentID,
+					"vm_count", len(vms),
+					"vms", func() []string {
+						var ids []string
+						for _, vm := range vms {
+							ids = append(ids, vm.Id)
+						}
+						return ids
+					}())
+
+				return vms, nil
+			}
+
+			w.logger.Debug("deployment not ready yet, continuing to poll",
+				"deployment_id", req.DeploymentID,
+				"iteration", i,
+				"all_ready", allReady)
 		}
 
-		if !resp.Msg.Success {
-			w.logger.Error("VM boot was not successful", "vm_id", createResult.VmId, "state", resp.Msg.State.String())
-			return nil, fmt.Errorf("VM boot was not successful, state: %s", resp.Msg.State.String())
-		}
-
-		w.logger.Info("VM booted successfully", "vm_id", createResult.VmId, "state", resp.Msg.State.String())
-		return resp.Msg, nil
+		return nil, fmt.Errorf("deployment never became ready")
 	})
 	if err != nil {
-		w.logger.Error("VM boot failed", "error", err, "vm_id", createResult.VmId)
 		return err
 	}
 
-	w.logger.Info("VM boot completed successfully", "vm_id", createResult.VmId)
+	allDomains, err := hydra.Step(ctx, "generate-all-domains", func(stepCtx context.Context) ([]string, error) {
+		var domains []string
 
-	// Step 15: Get VM info to retrieve port mappings
-	vmInfo, err := hydra.Step(ctx, "metald-get-vm-info", func(stepCtx context.Context) (*vmprovisionerv1.GetVmInfoResponse, error) {
-		w.logger.Info("getting VM info for port mappings", "vm_id", createResult.VmId)
-
-		resp, err := w.metaldClient.GetVmInfo(stepCtx, connect.NewRequest(&vmprovisionerv1.GetVmInfoRequest{
-			VmId: createResult.VmId,
-		}))
-		if err != nil {
-			w.logger.Error("metald GetVmInfo call failed", "error", err, "vm_id", createResult.VmId)
-			return nil, fmt.Errorf("failed to get VM info: %w", err)
-		}
-
-		if resp.Msg.NetworkInfo != nil {
-			w.logger.Info("VM info retrieved successfully", "vm_id", createResult.VmId, "port_mappings", len(resp.Msg.NetworkInfo.PortMappings))
-		} else {
-			w.logger.Warn("VM info retrieved but no network info", "vm_id", createResult.VmId)
-		}
-
-		return resp.Msg, nil
-	})
-	if err != nil {
-		w.logger.Error("failed to get VM info", "error", err, "vm_id", createResult.VmId)
-		return err
-	}
-
-	// Step 16: Log booting VM
-	err = hydra.StepVoid(ctx, "log-booting-vm", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "booting_vm",
-			Message:      sql.NullString{String: fmt.Sprintf("VM booted successfully: %s", createResult.VmId), Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log booting VM", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 17: Assign domains (create route entries)
-	assignedHostnames, err := hydra.Step(ctx, "assign-domains", func(stepCtx context.Context) ([]string, error) {
-		w.logger.Info("assigning domains to version", "deployment_id", req.DeploymentID)
-
-		var hostnames []string
-
-		// Generate primary hostname for this deployment
-		// Use Git info for hostname generation
+		// Generate auto-generated hostname for this deployment
 		gitInfo := git.GetInfo()
 		branch := "main"               // Default branch
 		identifier := req.DeploymentID // Use full version ID as identifier
@@ -413,291 +260,364 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 		}
 
-		// Generate hostnames: branch-identifier-workspace.unkey.app
-		// Replace underscores with dashes for valid hostname format
-		cleanIdentifier := strings.ReplaceAll(identifier, "_", "-")
-		primaryHostname := fmt.Sprintf("%s-%s-%s.unkey.app", branch, cleanIdentifier, req.WorkspaceID)
+		// Generate primary hostname: branch-identifier-workspace.domain
+		cleanIdentifier := strings.ToLower(strings.ReplaceAll(identifier, "_", "-"))
+		cleanBranch := strings.ToLower(strings.ReplaceAll(branch, "/", "-"))
+		cleanWorkspaceID := strings.ToLower(req.WorkspaceID)
+		autoGeneratedHostname := fmt.Sprintf("%s-%s-%s.%s", cleanBranch, cleanIdentifier, cleanWorkspaceID, w.defaultDomain)
+		domains = append(domains, autoGeneratedHostname)
 
-		// Create route entry for primary hostname
-		routeID := uid.New("route")
-		insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
-			ID:           routeID,
-			WorkspaceID:  req.WorkspaceID,
-			ProjectID:    req.ProjectID,
-			Hostname:     primaryHostname,
-			DeploymentID: req.DeploymentID,
-			IsEnabled:    true,
-			CreatedAt:    time.Now().UnixMilli(),
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-		if insertErr != nil {
-			w.logger.Error("failed to create route", "error", insertErr, "hostname", primaryHostname, "deployment_id", req.DeploymentID)
-			return nil, fmt.Errorf("failed to create route for hostname %s: %w", primaryHostname, insertErr)
-		}
+		w.logger.Info("generated all domains",
+			"deployment_id", req.DeploymentID,
+			"total_domains", len(domains),
+			"domains", domains,
+		)
 
-		hostnames = append(hostnames, primaryHostname)
-		w.logger.Info("primary domain assigned successfully", "hostname", primaryHostname, "deployment_id", req.DeploymentID, "route_id", routeID)
-
-		// Add localhost:port hostname for development
-		w.logger.Info("checking for port mappings", "has_network_info", vmInfo.NetworkInfo != nil, "port_mappings_count", func() int {
-			if vmInfo.NetworkInfo != nil {
-				return len(vmInfo.NetworkInfo.PortMappings)
-			}
-			return 0
-		}())
-
-		if vmInfo.NetworkInfo != nil && len(vmInfo.NetworkInfo.PortMappings) > 0 {
-			for _, portMapping := range vmInfo.NetworkInfo.PortMappings {
-				localhostHostname := fmt.Sprintf("localhost:%d", portMapping.HostPort)
-
-				// Create route entry for localhost:port
-				localhostRouteID := uid.New("route")
-				insertErr := db.Query.InsertHostnameRoute(stepCtx, w.db.RW(), db.InsertHostnameRouteParams{
-					ID:           localhostRouteID,
-					WorkspaceID:  req.WorkspaceID,
-					ProjectID:    req.ProjectID,
-					Hostname:     localhostHostname,
-					DeploymentID: req.DeploymentID,
-					IsEnabled:    true,
-					CreatedAt:    time.Now().UnixMilli(),
-					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
-				if insertErr != nil {
-					w.logger.Error("failed to create localhost route", "error", insertErr, "hostname", localhostHostname, "deployment_id", req.DeploymentID)
-					return nil, fmt.Errorf("failed to create route for hostname %s: %w", localhostHostname, insertErr)
-				}
-
-				hostnames = append(hostnames, localhostHostname)
-				w.logger.Info("localhost domain assigned successfully", "hostname", localhostHostname, "deployment_id", req.DeploymentID, "route_id", localhostRouteID, "container_port", portMapping.ContainerPort, "host_port", portMapping.HostPort)
-			}
-		}
-
-		return hostnames, nil
+		return domains, nil
 	})
 	if err != nil {
-		w.logger.Error("domain assignment failed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	// Step 18: Log assigning domains
-	err = hydra.StepVoid(ctx, "log-assigning-domains", func(stepCtx context.Context) error {
-		var message string
-		if len(assignedHostnames) > 0 {
-			message = fmt.Sprintf("Assigned hostnames: %s", strings.Join(assignedHostnames, ", "))
-		} else {
-			message = "Domain assignment completed"
-		}
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
-			Status:       "assigning_domains",
-			Message:      sql.NullString{String: message, Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	})
-	if err != nil {
-		w.logger.Error("failed to log assigning domains", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
+	// Create database entries for all domains
+	err = hydra.StepVoid(ctx, "create-domain-entries", func(stepCtx context.Context) error {
 
-	// Step 19: Update version status to active
-	_, err = hydra.Step(ctx, "update-version-active", func(stepCtx context.Context) (*DeploymentResult, error) {
-		completionTime := time.Now().UnixMilli()
-		w.logger.Info("updating deployment status to active", "deployment_id", req.DeploymentID, "completion_time", completionTime)
-		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:        req.DeploymentID,
-			Status:    db.DeploymentsStatusActive,
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
-		})
-		if activeErr != nil {
-			w.logger.Error("failed to update version status to active", "error", activeErr, "deployment_id", req.DeploymentID)
-			return nil, fmt.Errorf("failed to update version status to active: %w", activeErr)
+		// Prepare bulk insert parameters
+		domainParams := make([]db.InsertDomainParams, 0, len(allDomains))
+		currentTime := time.Now().UnixMilli()
+
+		for _, domain := range allDomains {
+			domainID := uid.New("domain")
+			domainParams = append(domainParams, db.InsertDomainParams{
+				ID:           domainID,
+				WorkspaceID:  req.WorkspaceID,
+				ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
+				Domain:       domain,
+				DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+				CreatedAt:    currentTime,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: currentTime},
+				Type:         db.DomainsTypeCustom,
+			})
 		}
 
-		w.logger.Info("deployment complete", "deployment_id", req.DeploymentID, "status", "active")
-
-		return &DeploymentResult{
-			DeploymentID: req.DeploymentID,
-			Status:       "active",
-		}, nil
-	})
-	if err != nil {
-		w.logger.Error("deployment failed", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 19.1: Health check container (using host port mapping)
-	err = hydra.StepVoid(ctx, "health-check-container", func(stepCtx context.Context) error {
-		if vmInfo.NetworkInfo == nil || len(vmInfo.NetworkInfo.PortMappings) == 0 {
-			return fmt.Errorf("no port mappings available for container health check")
+		// Perform bulk insert
+		if err := db.BulkQuery.InsertDomains(stepCtx, w.db.RW(), domainParams); err != nil {
+			return fmt.Errorf("failed to create %d domain entries for deployment %s: %w", len(allDomains), req.DeploymentID, err)
 		}
 
-		// Find the port mapping for container port 8080
-		var hostPort int32
-		for _, portMapping := range vmInfo.NetworkInfo.PortMappings {
-			if portMapping.ContainerPort == 8080 {
-				hostPort = portMapping.HostPort
-				break
-			}
-		}
+		w.logger.Info("domain entries created in bulk", "deployment_id", req.DeploymentID, "domain_count", len(allDomains))
 
-		if hostPort == 0 {
-			return fmt.Errorf("no host port mapping found for container port 8080")
-		}
-
-		// Try multiple host addresses to reach the Docker host
-		// Prioritize Docker's magic domain names
-		hostAddresses := []string{
-			"host.docker.internal",    // Docker Desktop (Windows/Mac) and some Linux setups
-			"gateway.docker.internal", // Docker gateway
-			"172.17.0.1",              // Default Docker bridge gateway
-			"172.18.0.1",              // Alternative Docker bridge
-		}
-
-		client := &http.Client{Timeout: 10 * time.Second}
-
-		for _, hostAddr := range hostAddresses {
-			healthURL := fmt.Sprintf("http://%s:%d/v1/liveness", hostAddr, hostPort)
-			w.logger.Info("trying container health check", "url", healthURL, "host_port", hostPort, "deployment_id", req.DeploymentID)
-
-			resp, err := client.Get(healthURL)
-			if err != nil {
-				w.logger.Warn("health check failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
-				continue
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode == http.StatusOK {
-				w.logger.Info("container is healthy", "host_addr", hostAddr, "deployment_id", req.DeploymentID)
-				return nil
-			}
-
-			w.logger.Warn("health check returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
-		}
-
-		return fmt.Errorf("health check failed on all host addresses: %v", hostAddresses)
-	})
-	if err != nil {
-		w.logger.Error("container health check failed", "error", err, "deployment_id", req.DeploymentID)
-		// Don't fail the deployment, just skip OpenAPI scraping
-	}
-
-	// Step 19.2: Scrape OpenAPI spec from container (using host port mapping)
-	openapiSpec, err := hydra.Step(ctx, "scrape-openapi-spec", func(stepCtx context.Context) (string, error) {
-		if vmInfo.NetworkInfo == nil || len(vmInfo.NetworkInfo.PortMappings) == 0 {
-			w.logger.Warn("no port mappings available for OpenAPI scraping", "deployment_id", req.DeploymentID)
-			return "", nil
-		}
-
-		// Find the port mapping for container port 8080
-		var hostPort int32
-		for _, portMapping := range vmInfo.NetworkInfo.PortMappings {
-			if portMapping.ContainerPort == 8080 {
-				hostPort = portMapping.HostPort
-				break
-			}
-		}
-
-		if hostPort == 0 {
-			w.logger.Warn("no host port mapping found for container port 8080", "deployment_id", req.DeploymentID)
-			return "", nil
-		}
-
-		// Try multiple host addresses to reach the Docker host
-		hostAddresses := []string{
-			"host.docker.internal",    // Docker Desktop (Windows/Mac) and some Linux setups
-			"gateway.docker.internal", // Docker gateway
-			"172.17.0.1",              // Default Docker bridge gateway
-			"172.18.0.1",              // Alternative Docker bridge
-		}
-
-		client := &http.Client{Timeout: 10 * time.Second}
-
-		for _, hostAddr := range hostAddresses {
-			openapiURL := fmt.Sprintf("http://%s:%d/openapi.yaml", hostAddr, hostPort)
-			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", hostPort, "deployment_id", req.DeploymentID)
-
-			resp, err := client.Get(openapiURL)
-			if err != nil {
-				w.logger.Warn("OpenAPI scraping failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
-				continue
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				w.logger.Warn("OpenAPI endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
-				continue
-			}
-
-			// Read the OpenAPI spec
-			specBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
-				continue
-			}
-
-			w.logger.Info("OpenAPI spec scraped successfully", "host_addr", hostAddr, "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
-			return string(specBytes), nil
-		}
-
-		return "", fmt.Errorf("failed to scrape OpenAPI spec from all host addresses: %v", hostAddresses)
-	})
-	if err != nil {
-		w.logger.Error("failed to scrape OpenAPI spec", "error", err, "deployment_id", req.DeploymentID)
-		return err
-	}
-
-	// Step 19.3: Store OpenAPI spec in database
-	err = hydra.StepVoid(ctx, "store-openapi-spec", func(stepCtx context.Context) error {
-		if openapiSpec == "" {
-			w.logger.Info("no OpenAPI spec to store", "deployment_id", req.DeploymentID)
-			return nil
-		}
-
-		// Store in database
-		err := db.Query.UpdateDeploymentOpenapiSpec(stepCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
-			ID:          req.DeploymentID,
-			OpenapiSpec: sql.NullString{String: openapiSpec, Valid: true},
-			UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-		if err != nil {
-			w.logger.Warn("failed to store OpenAPI spec in database", "error", err, "deployment_id", req.DeploymentID)
-			return nil // Don't fail the deployment
-		}
-
-		w.logger.Info("OpenAPI spec stored in database successfully", "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
 		return nil
 	})
 	if err != nil {
-		w.logger.Error("failed to store OpenAPI spec", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	// Step 20: Log completed
+	// Create gateway configs for all domains in bulk (except local ones)
+	err = hydra.StepVoid(ctx, "create-gateway-configs-bulk", func(stepCtx context.Context) error {
+		// Prepare gateway configs for all non-local domains
+		var gatewayParams []partitiondb.UpsertGatewayParams
+		var skippedDomains []string
+
+		for _, domain := range allDomains {
+			if isLocalHostname(domain, w.defaultDomain) {
+				skippedDomains = append(skippedDomains, domain)
+				continue
+			}
+
+			// Create gateway config for this domain
+			gatewayConfig, err := w.createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
+			if err != nil {
+				w.logger.Error("failed to create gateway config for domain",
+					"domain", domain,
+					"error", err,
+					"deployment_id", req.DeploymentID)
+				// Continue with other domains rather than failing the entire deployment
+				continue
+			}
+
+			// Marshal protobuf to bytes
+			configBytes, err := protojson.Marshal(gatewayConfig)
+			if err != nil {
+				w.logger.Error("failed to marshal gateway config", "error", err, "domain", domain)
+				continue
+			}
+
+			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
+				WorkspaceID: req.WorkspaceID,
+				Hostname:    domain,
+				Config:      configBytes,
+			})
+		}
+
+		// Perform bulk upsert for all gateway configs
+		if len(gatewayParams) > 0 {
+			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, w.partitionDB.RW(), gatewayParams); err != nil {
+				return fmt.Errorf("failed to upsert %d gateway configs for deployment %s: %w", len(gatewayParams), req.DeploymentID, err)
+			}
+		}
+
+		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+			DeploymentID: req.DeploymentID,
+			Status:       db.DeploymentStepsStatusAssigningDomains,
+			Message:      fmt.Sprintf("Created %d gateway configs for %d domains (skipped %d local domains)", len(gatewayParams), len(allDomains), len(skippedDomains)),
+			CreatedAt:    time.Now().UnixMilli(),
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	// Update deployment status to ready
+	_, err = hydra.Step(ctx, "update-deployment-ready", func(stepCtx context.Context) (*DeploymentResult, error) {
+		w.logger.Info("updating deployment status to ready", "deployment_id", req.DeploymentID)
+		completionTime := time.Now().UnixMilli()
+		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+			ID:        req.DeploymentID,
+			Status:    db.DeploymentsStatusReady,
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
+		})
+		if activeErr != nil {
+			return nil, fmt.Errorf("failed to update deployment %s status to ready: %w", req.DeploymentID, activeErr)
+		}
+		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
+
+		return &DeploymentResult{
+			DeploymentID: req.DeploymentID,
+			Status:       "ready",
+		}, nil
+	})
+	if err != nil {
+		return err
+	}
+	/*
+
+		// Step 23: Scrape OpenAPI spec from container (using host port mapping)
+		openapiSpec, err := hydra.Step(ctx, "scrape-openapi-spec", func(stepCtx context.Context) (string, error) {
+
+			// Find the port mapping for container port 8080
+			var hostPort int32
+			for _, portMapping := range vmInfo.NetworkInfo.PortMappings {
+				if portMapping.ContainerPort == 8080 {
+					hostPort = portMapping.HostPort
+					break
+				}
+			}
+
+			if hostPort == 0 {
+				w.logger.Warn("no host port mapping found for container port 8080", "deployment_id", req.DeploymentID)
+				return "", nil
+			}
+
+			// Try multiple host addresses to reach the Docker host
+			hostAddresses := []string{
+				"host.docker.internal",    // Docker Desktop (Windows/Mac) and some Linux setups
+				"gateway.docker.internal", // Docker gateway
+				"172.17.0.1",              // Default Docker bridge gateway
+				"172.18.0.1",              // Alternative Docker bridge
+			}
+
+			client := &http.Client{Timeout: 10 * time.Second}
+
+			for _, hostAddr := range hostAddresses {
+				openapiURL := fmt.Sprintf("http://%s:%d/openapi.yaml", hostAddr, hostPort)
+				w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", hostPort, "deployment_id", req.DeploymentID)
+
+				resp, err := client.Get(openapiURL)
+				if err != nil {
+					w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					continue
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					continue
+				}
+
+				// Read the OpenAPI spec
+				specBytes, err := io.ReadAll(resp.Body)
+				if err != nil {
+					w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					continue
+				}
+
+				w.logger.Info("openapi spec scraped successfully", "host_addr", hostAddr, "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
+				return string(specBytes), nil
+			}
+
+			return "", fmt.Errorf("failed to scrape OpenAPI spec from all host addresses: %v", hostAddresses)
+		})
+		if err != nil {
+			return err
+		}
+
+		// Step 24: Update gateway config with OpenAPI spec
+		err = hydra.StepVoid(ctx, "update-gateway-config-openapi", func(stepCtx context.Context) error {
+			// Only update if we have both hostname and OpenAPI spec
+			if req.Hostname == "" || openapiSpec == "" {
+				w.logger.Info("skipping gateway config OpenAPI update",
+					"has_hostname", req.Hostname != "",
+					"has_openapi_spec", openapiSpec != "",
+					"deployment_id", req.DeploymentID)
+				return nil
+			}
+
+			w.logger.Info("updating gateway config with OpenAPI spec", "hostname", req.Hostname, "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
+
+			// Fetch existing gateway config
+			existingConfig, err := partitiondb.Query.FindGatewayByHostname(stepCtx, w.partitionDB.RO(), req.Hostname)
+			if err != nil {
+				return fmt.Errorf("failed to fetch existing gateway config for %s: %w", req.Hostname, err)
+			}
+
+			// Unmarshal existing config
+			// IMPORTANT: Gateway configs are stored as JSON in the database for compatibility with the gateway service
+			var gatewayConfig partitionv1.GatewayConfig
+			if err := protojson.Unmarshal(existingConfig.Config, &gatewayConfig); err != nil {
+				return fmt.Errorf("failed to unmarshal existing gateway config for %s: %w", req.Hostname, err)
+			}
+
+			// Add or update ValidationConfig with OpenAPI spec
+			if gatewayConfig.ValidationConfig == nil {
+				gatewayConfig.ValidationConfig = &partitionv1.ValidationConfig{}
+			}
+			gatewayConfig.ValidationConfig.OpenapiSpec = openapiSpec
+
+			// Marshal updated config
+			// Gateway configs must be stored as JSON for compatibility with the gateway service
+			configBytes, err := protojson.Marshal(&gatewayConfig)
+			if err != nil {
+				return fmt.Errorf("failed to marshal updated gateway config: %w", err)
+			}
+
+			// Update gateway config in partition database
+			params := partitiondb.UpsertGatewayParams{
+				Hostname: req.Hostname,
+				Config:   configBytes,
+			}
+
+			if err := partitiondb.Query.UpsertGateway(stepCtx, w.partitionDB.RW(), params); err != nil {
+				return fmt.Errorf("failed to update gateway config with OpenAPI spec for %s: %w", req.Hostname, err)
+			}
+
+			w.logger.Info("gateway config updated with OpenAPI spec successfully", "hostname", req.Hostname, "deployment_id", req.DeploymentID)
+			return nil
+		})
+		if err != nil {
+			// Don't fail the deployment for this
+		}
+
+		// Step 25: Store OpenAPI spec in database
+		err = hydra.StepVoid(ctx, "store-openapi-spec", func(stepCtx context.Context) error {
+			if openapiSpec == "" {
+				w.logger.Info("no OpenAPI spec to store", "deployment_id", req.DeploymentID)
+				return nil
+			}
+
+			// Store in database
+			err := db.Query.UpdateDeploymentOpenapiSpec(stepCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
+				ID:          req.DeploymentID,
+				OpenapiSpec: sql.NullString{String: openapiSpec, Valid: true},
+				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+			if err != nil {
+				w.logger.Warn("failed to store OpenAPI spec in database", "error", err, "deployment_id", req.DeploymentID)
+				return nil // Don't fail the deployment
+			}
+
+			w.logger.Info("openapi spec stored in database successfully", "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+	*/
+	// Log deployment completed
 	err = hydra.StepVoid(ctx, "log-completed", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "completed",
-			Message:      sql.NullString{String: "Version deployment completed successfully", Valid: true},
-			ErrorMessage: sql.NullString{String: "", Valid: false},
+			Message:      "Deployment completed successfully",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to log completed", "error", err, "deployment_id", req.DeploymentID)
 		return err
 	}
 
-	w.logger.Info("deployment workflow stage completed successfully", "deployment_id", req.DeploymentID, "vm_id", createResult.VmId)
-
 	w.logger.Info("deployment workflow completed",
-		"execution_id", ctx.ExecutionID(),
-		"build_id", buildID,
 		"deployment_id", req.DeploymentID,
 		"status", "succeeded",
-		"workspace_id", req.WorkspaceID,
-		"project_id", req.ProjectID,
-		"docker_image", req.DockerImage)
+		"domains", len(allDomains))
 
 	return nil
+}
+
+// createGatewayConfig creates a gateway configuration protobuf object
+//
+// ENCODING POLICY FOR GATEWAY CONFIGS:
+// Gateway configs are stored as JSON (using protojson.Marshal) for easier debugging
+// and readability during development/demo. This makes it simpler to inspect and
+// modify configs directly in the database.
+// IMPORTANT: Always use protojson.Marshal for writes and protojson.Unmarshal for reads.
+func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
+	// Create VM protobuf objects for gateway config
+	gatewayConfig := &partitionv1.GatewayConfig{
+		Deployment: &partitionv1.Deployment{
+			Id:        deploymentID,
+			IsEnabled: true,
+		},
+		Vms: make([]*partitionv1.VM, len(vms)),
+	}
+
+	for i, vm := range vms {
+		gatewayConfig.Vms[i] = &partitionv1.VM{
+			Id: vm.Id,
+		}
+	}
+
+	// Only add AuthConfig if we have a KeyspaceID
+	if keyspaceID != "" {
+		gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
+			KeyAuthId: keyspaceID,
+		}
+	}
+
+	return gatewayConfig, nil
+}
+
+// isLocalHostname checks if a hostname should be skipped from gateway config creation
+// Returns true for localhost/development domains that shouldn't get gateway configs
+func isLocalHostname(hostname, defaultDomain string) bool {
+	// Lowercase for case-insensitive comparison
+	hostname = strings.ToLower(hostname)
+	defaultDomain = strings.ToLower(defaultDomain)
+
+	// Exact matches for common local hosts - these should be skipped
+	if hostname == "localhost" || hostname == "127.0.0.1" {
+		return true
+	}
+
+	// If hostname uses the default domain, it should NOT be skipped (return false)
+	// This allows gateway configs to be created for the default domain
+	if strings.HasSuffix(hostname, "."+defaultDomain) || hostname == defaultDomain {
+		return false
+	}
+
+	// Check for local-only TLD suffixes - these should be skipped
+	// Note: .dev is a real TLD owned by Google, so it's excluded
+	localSuffixes := []string{
+		".local",
+		".test",
+	}
+
+	for _, suffix := range localSuffixes {
+		if strings.HasSuffix(hostname, suffix) {
+			return true
+		}
+	}
+
+	return false
 }

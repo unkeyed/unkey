@@ -74,6 +74,35 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Request Entity Too Large errors
+			case codes.UserErrorsBadRequestRequestBodyTooLarge:
+				return s.JSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Request Entity Too Large",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusRequestEntityTooLarge,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Request Entity Too Large errors
+			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
+				return s.JSON(http.StatusGone, openapi.GoneErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Resource Gone",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusGone,
+					},
+				})
+
 			// Unauthorized errors
 			case
 				codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
@@ -201,6 +230,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				"requestId", s.RequestID(),
 				"publicMessage", fault.UserFacingMessage(err),
 			)
+
 			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),

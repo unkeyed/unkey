@@ -186,12 +186,11 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
 
-	redisKey := fmt.Sprintf("credits:%s", req.KeyId)
+	redisKey := s.redisKey(req.KeyId)
 
 	// Attempt decrement if key already exists in Redis
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
-		metrics.UsagelimiterFallbackOperations.Inc()
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -202,6 +201,15 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 
 	// Key exists in Redis - use the explicit success flag from decrement
 	return s.handleResult(req, remaining, success)
+}
+
+func (s *counterService) Invalidate(ctx context.Context, keyID string) error {
+	return s.counter.Delete(ctx, s.redisKey(keyID))
+
+}
+
+func (s *counterService) redisKey(keyID string) string {
+	return fmt.Sprintf("credits:%s", keyID)
 }
 
 // handleResult processes the result of a decrement operation using an explicit success flag.
@@ -215,7 +223,6 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 		})
 
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
-		metrics.UsagelimiterCreditsProcessed.Add(float64(req.Cost))
 
 		return UsageResponse{Valid: true, Remaining: int32(remaining)}, nil
 	}
@@ -232,7 +239,10 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
 
-	limit, err := db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
+		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+	})
+
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
@@ -262,7 +272,6 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 
 	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, initValue, s.ttl)
 	if err != nil {
-		metrics.UsagelimiterFallbackOperations.Inc()
 		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
 		return s.dbFallback.Limit(ctx, req)
 	}
@@ -281,7 +290,6 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	// Another node already initialized the key, check if we have enough after decrement
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
-		metrics.UsagelimiterFallbackOperations.Inc()
 		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyId", req.KeyId)
 		return s.dbFallback.Limit(ctx, req)
 	}
