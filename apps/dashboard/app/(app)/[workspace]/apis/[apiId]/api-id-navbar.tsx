@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import type { Workspace } from "@unkey/db";
 import { ChevronExpandY, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
+import { CreateKeyDialog } from "./_components/create-key";
 
 // Types for better type safety
 interface ApiLayoutData {
@@ -170,10 +171,19 @@ const NavbarContent = ({
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
-        <NavbarActionButton disabled>
-          <Plus />
-          Create new key
-        </NavbarActionButton>
+        {layoutData.keyAuth ? (
+          <CreateKeyDialog
+            keyspaceId={layoutData.keyAuth.id}
+            apiId={currentApi.id}
+            copyIdValue={currentApi.id}
+            keyspaceDefaults={currentApi.keyspaceDefaults}
+          />
+        ) : (
+          <NavbarActionButton disabled>
+            <Plus />
+            Create new key
+          </NavbarActionButton>
+        )}
       </Navbar>
     </div>
   );
