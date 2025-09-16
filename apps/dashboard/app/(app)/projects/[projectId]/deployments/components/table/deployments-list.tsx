@@ -160,7 +160,10 @@ export const DeploymentsList = ({ projectId }: Props) => {
   } | null>(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
 
-  const columns: Column<{ deployment: Deployment; environment?: Environment }>[] = useMemo(() => {
+  const columns: Column<{
+    deployment: Deployment;
+    environment?: Environment;
+  }>[] = useMemo(() => {
     return [
       {
         key: "deployment_id",
@@ -386,7 +389,10 @@ export const DeploymentsList = ({ projectId }: Props) => {
         render: ({
           deployment,
           environment,
-        }: { deployment: Deployment; environment?: Environment }) => {
+        }: {
+          deployment: Deployment;
+          environment?: Environment;
+        }) => {
           return (
             <DeploymentListTableActions
               deployment={deployment}
@@ -397,7 +403,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, deployments, activeDeployment]);
+  }, [selectedDeployment?.deployment.id, isCompactView, activeDeployment, activeDeploymentId]);
 
   return (
     <VirtualTable
