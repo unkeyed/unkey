@@ -21,30 +21,41 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
   // Handle case where workspace is not in context (initial load scenarios)
   if (!ctx.workspace) {
     if (!ctx.tenant?.id) {
+      // During first-time login, tenant might not be available yet
+      // Return null to allow frontend retry logic to handle this
+      console.debug("No tenant ID available in context - user may be in auth setup phase");
       return null;
     }
+
     // Try to fetch workspace directly from database using tenant/orgId
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
-      with: {
-        quotas: true,
-      },
-    });
+    try {
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        with: {
+          quotas: true,
+        },
+      });
 
-    if (!workspace) {
+      if (!workspace) {
+        console.debug("No workspace found for tenant:", ctx.tenant.id);
+        return null;
+      }
+
+      const result = { ...workspace, quotas: workspace.quotas };
+
+      const cacheKey = `workspace_${ctx.tenant?.id}`;
+      workspaceCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now(),
+      });
+
+      return result;
+    } catch (error) {
+      console.warn("Failed to fetch workspace directly:", error);
+      // Return null instead of throwing to allow frontend retry logic
       return null;
     }
-
-    const result = { ...workspace, quotas: workspace.quotas };
-
-    const cacheKey = `workspace_${ctx.tenant?.id}`;
-    workspaceCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now(),
-    });
-
-    return result;
   }
   const cacheKey = `workspace_${ctx.tenant?.id}`;
 
@@ -68,6 +79,8 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
     });
 
     if (!workspace) {
+      // Log for debugging but don't throw immediately
+      console.debug("Workspace not found for context tenant:", ctx.tenant.id);
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Workspace not found",
@@ -84,6 +97,13 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
 
     return result;
   } catch (error) {
+    // If it's already a TRPCError, re-throw it
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+
+    // For database errors, provide more context
+    console.warn("Database error fetching workspace:", error);
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to fetch workspace data",

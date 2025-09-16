@@ -8,7 +8,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { Button, Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
 
 interface LayoutProps {
@@ -65,6 +65,8 @@ function ErrorState({ title, message, onRetry, retryLabel = "Try again" }: Error
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const [hasRedirected, setHasRedirected] = useState(false);
+  const retryAttemptRef = useRef(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {
     data: user,
     isLoading: userLoading,
@@ -92,6 +94,53 @@ export default function Layout({ children }: LayoutProps) {
     error: workspaceError,
     refetch: refetchWorkspace,
   } = useWorkspace();
+
+  // Auto-retry logic for workspace loading failures on first-time login
+  useEffect(() => {
+    if (workspaceError && !workspace && !workspaceLoading && !hasRedirected) {
+      const isContextError = workspaceError.message?.includes("workspace not found in context");
+      const isNotFoundError = workspaceError?.message?.includes("NOT_FOUND");
+
+      // Only auto-retry for specific transient errors during initial load
+      if ((isContextError || isNotFoundError) && retryAttemptRef.current < 2) {
+        retryAttemptRef.current += 1;
+        const retryDelay = Math.min(1000 * retryAttemptRef.current, 3000); // 1s, 2s max
+
+        console.debug(
+          `Auto-retrying workspace load (attempt ${retryAttemptRef.current}/2) in ${retryDelay}ms`,
+        );
+
+        retryTimeoutRef.current = setTimeout(() => {
+          refetchWorkspace();
+        }, retryDelay);
+
+        return () => {
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+          }
+        };
+      }
+    }
+
+    // Reset retry count on successful workspace load
+    if (workspace && !workspaceError) {
+      retryAttemptRef.current = 0;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    }
+  }, [workspaceError, workspace, workspaceLoading, hasRedirected, refetchWorkspace]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle auth and workspace redirects
   useEffect(() => {
@@ -124,7 +173,11 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     // Handle workspace context errors specifically (user needs workspace)
-    if (workspaceError?.message?.includes("workspace not found in context")) {
+    // But only after we've exhausted auto-retry attempts
+    if (
+      workspaceError?.message?.includes("workspace not found in context") &&
+      retryAttemptRef.current >= 2
+    ) {
       setHasRedirected(true);
       router.push("/new");
       return;
