@@ -70,8 +70,6 @@ type DeployRequest struct {
 	KeyspaceID   string `json:"keyspace_id"`
 	DeploymentID string `json:"deployment_id"`
 	DockerImage  string `json:"docker_image"`
-	Hostname     string `json:"hostname"`
-	Domain       string `json:"domain"`
 }
 
 // DeploymentResult holds the deployment outcome
@@ -88,8 +86,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		"docker_image", req.DockerImage,
 		"workspace_id", req.WorkspaceID,
 		"project_id", req.ProjectID,
-		"hostname", req.Hostname)
-
+	)
 	// Log deployment pending
 	err := hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
 		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
@@ -246,14 +243,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	// Generate all domains (custom + auto-generated)
 	allDomains, err := hydra.Step(ctx, "generate-all-domains", func(stepCtx context.Context) ([]string, error) {
 		var domains []string
-
-		// Add custom hostname if provided
-		if req.Hostname != "" {
-			domains = append(domains, req.Hostname)
-		}
 
 		// Generate auto-generated hostname for this deployment
 		gitInfo := git.GetInfo()
@@ -279,7 +270,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		w.logger.Info("generated all domains",
 			"deployment_id", req.DeploymentID,
 			"total_domains", len(domains),
-			"domains", domains)
+			"domains", domains,
+		)
 
 		return domains, nil
 	})

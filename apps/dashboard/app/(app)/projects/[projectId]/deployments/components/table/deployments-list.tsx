@@ -48,6 +48,26 @@ type Props = {
 export const DeploymentsList = ({ projectId }: Props) => {
   const { filters } = useFilters();
 
+  const project = useLiveQuery((q) => {
+    return q
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
+      .orderBy(({ project }) => project.id, "asc")
+      .limit(1);
+  });
+
+  const activeDeploymentId = project.data.at(0)?.activeDeploymentId;
+
+  const activeDeployment = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.id, activeDeploymentId))
+        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .limit(1),
+    [activeDeploymentId],
+  );
+
   const deployments = useLiveQuery(
     (q) => {
       // Query filtered environments
@@ -140,7 +160,10 @@ export const DeploymentsList = ({ projectId }: Props) => {
   } | null>(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
 
-  const columns: Column<{ deployment: Deployment; environment?: Environment }>[] = useMemo(() => {
+  const columns: Column<{
+    deployment: Deployment;
+    environment?: Environment;
+  }>[] = useMemo(() => {
     return [
       {
         key: "deployment_id",
@@ -174,7 +197,7 @@ export const DeploymentsList = ({ projectId }: Props) => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {environment?.slug === "production" ? (
+                    {deployment.id === activeDeploymentId ? (
                       <EnvStatusBadge variant="current" text="Current" />
                     ) : null}
                   </div>
@@ -363,12 +386,24 @@ export const DeploymentsList = ({ projectId }: Props) => {
         key: "action",
         header: "",
         width: "auto",
-        render: ({ deployment }: { deployment: Deployment }) => {
-          return <DeploymentListTableActions deployment={deployment} />;
+        render: ({
+          deployment,
+          environment,
+        }: {
+          deployment: Deployment;
+          environment?: Environment;
+        }) => {
+          return (
+            <DeploymentListTableActions
+              deployment={deployment}
+              currentActiveDeployment={activeDeployment.data.at(0)}
+              environment={environment}
+            />
+          );
         },
       },
     ];
-  }, [selectedDeployment, isCompactView]);
+  }, [selectedDeployment?.deployment.id, isCompactView, activeDeployment, activeDeploymentId]);
 
   return (
     <VirtualTable

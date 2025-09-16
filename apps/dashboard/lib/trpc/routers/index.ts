@@ -107,6 +107,7 @@ import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRol
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
+import { rollback } from "./rollback";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -329,6 +330,9 @@ export const router = t.router({
       getOpenApiDiff: getOpenApiDiff,
       buildLogs: getDeploymentBuildLogs,
     }),
+  }),
+  deploy: t.router({
+    rollback: rollback,
   }),
 });
 

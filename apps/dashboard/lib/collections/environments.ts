@@ -43,6 +43,24 @@ export const environments = createCollection<Environment>(
       //  });
       //  await p;
     },
+    onUpdate: async () => {
+      throw new Error("Not implemented");
+      //  const { changes: updatedNamespace } = transaction.mutations[0];
+      //
+      //  const p = trpcClient.deploy.project.update.mutate(schema.parse({
+      //    id: updatedNamespace.id,
+      //    name: updatedNamespace.name,
+      //    slug: updatedNamespace.slug,
+      //    gitRepositoryUrl: updatedNamespace.gitRepositoryUrl ?? null,
+      //    updatedAt: new Date(),
+      //  }));
+      //  toast.promise(p, {
+      //    loading: "Updating project...",
+      //    success: "Project updated",
+      //    error: "Failed to update project",
+      //  });
+      //  await p;
+    },
     onDelete: async () => {
       throw new Error("Not implemented");
       //   const { original } = transaction.mutations[0];

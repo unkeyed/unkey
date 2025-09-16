@@ -31,13 +31,29 @@ export const statusIndicator = (
 ) => {
   switch (status) {
     case "pending":
-      return { variant: "warning" as const, icon: CircleWarning, text: "Queued" };
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Queued",
+      };
     case "building":
-      return { variant: "warning" as const, icon: CircleWarning, text: "Building" };
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Building",
+      };
     case "deploying":
-      return { variant: "warning" as const, icon: CircleWarning, text: "Deploying" };
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Deploying",
+      };
     case "network":
-      return { variant: "warning" as const, icon: CircleWarning, text: "Assigning Domains" };
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Assigning Domains",
+      };
     case "ready":
       return { variant: "success" as const, icon: CircleCheck, text: "Ready" };
     case "failed":
@@ -84,7 +100,7 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
     <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">
       <div className="flex w-full justify-between items-center px-[22px]">
         <div className="flex gap-5 items-center">
-          <StatusIndicator />
+          <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
             <div className="text-accent-12 font-medium text-xs">{deployment.id}</div>
             <div className="text-gray-9 text-xs">TODO</div>
