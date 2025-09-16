@@ -18,26 +18,28 @@ export function NavigationLogger() {
     const timestamp = new Date().toISOString();
     console.log(`🧭 [${timestamp}] Navigation changed:`, {
       pathname,
-      workspaceFromCache: workspace ? {
-        id: workspace.id,
-        name: workspace.name,
-        loadedFromCache: !isLoading
-      } : null,
+      workspaceFromCache: workspace
+        ? {
+            id: workspace.id,
+            name: workspace.name,
+            loadedFromCache: !isLoading,
+          }
+        : null,
       isLoading,
-      hasError: !!error
+      hasError: !!error,
     });
   }, [pathname, workspace, isLoading, error]);
 
   // Add test navigation functions to window for manual testing
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Test function to navigate and check cache behavior
-      window.testWorkspaceCache = {
+      // Create test functions and attach to window
+      const testFunctions = {
         // Navigate to different pages to test cache
         testNavigation: () => {
           console.log("🧪 Starting cache navigation test...");
 
-          const originalPath = pathname;
+          const originalPath = pathname || "/";
 
           // Navigate to home and back to test cache retention
           router.push("/");
@@ -63,17 +65,23 @@ export function NavigationLogger() {
             workspaceName: workspace?.name,
             isLoading,
             hasError: !!error,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
-        }
+        },
       };
 
+      // Attach to window with any type to avoid TypeScript errors
+      (window as any).testWorkspaceCache = testFunctions;
+
       // Log available test functions
-      console.log("🛠️ Cache testing functions available on window.testWorkspaceCache:", {
-        testNavigation: "Navigate away and back to test cache retention",
-        testRerender: "Trigger re-render to test cache",
-        logCacheState: "Log current cache state"
-      });
+      console.log(
+        "🛠️ Cache testing functions available:",
+        "Run window.testWorkspaceCache.testNavigation() to test navigation caching"
+      );
+      console.log(
+        "🛠️ Available functions:",
+        Object.keys(testFunctions).join(", ")
+      );
     }
   }, [pathname, router, workspace, isLoading, error]);
 
@@ -102,7 +110,7 @@ export function CachePerformanceLogger() {
         duration: `${duration.toFixed(2)}ms`,
         likely: duration < 50 ? "FROM_CACHE" : "FROM_NETWORK",
         workspaceName: workspace.name,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }, [isLoading, workspace]);
