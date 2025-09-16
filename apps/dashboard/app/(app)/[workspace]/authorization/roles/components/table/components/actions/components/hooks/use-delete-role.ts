@@ -6,10 +6,10 @@ export const useDeleteRole = (
 ) => {
   const trpcUtils = trpc.useUtils();
   const deleteRole = trpc.authorization.roles.delete.useMutation({
-    onSuccess(_, variables) {
+    onSuccess(data, variables) {
       trpcUtils.authorization.roles.invalidate();
 
-      const roleCount = variables.roleIds.length;
+      const roleCount = data.deletedCount;
       const isPlural = roleCount > 1;
 
       toast.success(isPlural ? "Roles Deleted" : "Role Deleted", {

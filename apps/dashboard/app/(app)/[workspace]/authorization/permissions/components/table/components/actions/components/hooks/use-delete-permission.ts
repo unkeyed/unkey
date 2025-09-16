@@ -9,9 +9,9 @@ export const useDeletePermission = (
 ) => {
   const trpcUtils = trpc.useUtils();
   const deletePermission = trpc.authorization.permissions.delete.useMutation({
-    onSuccess(_, variables) {
+    onSuccess(data, variables) {
       trpcUtils.authorization.permissions.invalidate();
-      const permissionCount = variables.permissionIds.length;
+      const permissionCount = data.deletedCount;
       const isPlural = permissionCount > 1;
       toast.success(isPlural ? "Permissions Deleted" : "Permission Deleted", {
         description: isPlural

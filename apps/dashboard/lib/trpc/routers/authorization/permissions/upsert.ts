@@ -130,11 +130,11 @@ export const upsertPermission = t.procedure
       } else {
         // Create mode - check for both name and slug conflicts
         const [nameConflict, slugConflict] = await Promise.all([
-          tx.query.permissions.findFirst({
+          await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
               and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
           }),
-          tx.query.permissions.findFirst({
+          await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
               and(eq(table.workspaceId, ctx.workspace.id), eq(table.slug, input.slug)),
           }),
