@@ -53,6 +53,7 @@ type RoutingServiceClient interface {
 	// List all routes for a workspace/project
 	ListRoutes(context.Context, *connect.Request[v1.ListRoutesRequest]) (*connect.Response[v1.ListRoutesResponse], error)
 	// Convenience method for rollback (just calls SetRoute internally)
+	// Requires workspace_id authorization - validates workspace ownership before routing change
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 }
 
@@ -131,6 +132,7 @@ type RoutingServiceHandler interface {
 	// List all routes for a workspace/project
 	ListRoutes(context.Context, *connect.Request[v1.ListRoutesRequest]) (*connect.Response[v1.ListRoutesResponse], error)
 	// Convenience method for rollback (just calls SetRoute internally)
+	// Requires workspace_id authorization - validates workspace ownership before routing change
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 }
 
