@@ -304,7 +304,7 @@ CREATE TABLE `environments` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
-	CONSTRAINT `environments_workspace_id_slug_idx` UNIQUE(`workspace_id`,`slug`)
+	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
 CREATE TABLE `projects` (
@@ -313,7 +313,7 @@ CREATE TABLE `projects` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`git_repository_url` varchar(500),
-	`active_deployment_id` varchar(256),
+	`live_deployment_id` varchar(256),
 	`default_branch` varchar(256) DEFAULT 'main',
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
@@ -415,4 +415,3 @@ CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
-

@@ -5,23 +5,15 @@ import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
-const TITLE_EMPTY_DEFAULT = "Select Time Range";
-
 export const DeploymentListDatetime = () => {
-  const [title, setTitle] = useState<string | null>(TITLE_EMPTY_DEFAULT);
+  const [title, setTitle] = useState<string | null>(null);
   const { filters, updateFilters } = useFilters();
 
-  // If none of the filters are set anymore we should reset the title
-  // This can happen when the user manually clears a filter in the url
-  // or in the filter cloud
   useEffect(() => {
-    for (const filter of filters) {
-      if (["startTime", "endTime", "since"].includes(filter.field)) {
-        return;
-      }
+    if (!title) {
+      setTitle("Last 12 hours");
     }
-    setTitle(TITLE_EMPTY_DEFAULT);
-  }, [filters]);
+  }, [title]);
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))

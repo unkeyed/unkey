@@ -281,7 +281,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	// Create database entries for all domains
 	err = hydra.StepVoid(ctx, "create-domain-entries", func(stepCtx context.Context) error {
-
 		// Prepare bulk insert parameters
 		domainParams := make([]db.InsertDomainParams, 0, len(allDomains))
 		currentTime := time.Now().UnixMilli()
@@ -381,6 +380,16 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			return nil, fmt.Errorf("failed to update deployment %s status to ready: %w", req.DeploymentID, activeErr)
 		}
 		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
+
+		// TODO: This section will be removed in the future in favor of "Promote to Production"
+		err = db.Query.UpdateProjectLiveDeploymentId(stepCtx, w.db.RW(), db.UpdateProjectLiveDeploymentIdParams{
+			ID:               req.ProjectID,
+			LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update project %s active deployment ID to %s: %w", req.ProjectID, req.DeploymentID, err)
+		}
 
 		return &DeploymentResult{
 			DeploymentID: req.DeploymentID,
