@@ -189,6 +189,12 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
+	//FindEnvironmentByWorkspaceAndSlug
+	//
+	//  SELECT id, workspace_id, project_id, slug, description
+	//  FROM environments
+	//  WHERE workspace_id = ? AND slug = ?
+	FindEnvironmentByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByWorkspaceAndSlugParams) (FindEnvironmentByWorkspaceAndSlugRow, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -584,7 +590,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE id = ?
-	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
 	//FindProjectByWorkspaceSlug
 	//
 	//  SELECT
@@ -600,7 +606,7 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
-	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error)
+	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -1668,6 +1674,12 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
+	//UpdateProjectActiveDeploymentId
+	//
+	//  UPDATE projects
+	//  SET active_deployment_id = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateProjectActiveDeploymentId(ctx context.Context, db DBTX, arg UpdateProjectActiveDeploymentIdParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`

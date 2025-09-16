@@ -86,6 +86,10 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		// Local Certificate Configuration
+		cli.Bool("require-local-cert", "Generate and use self-signed certificate for *.unkey.local if it doesn't exist",
+			cli.EnvVar("UNKEY_REQUIRE_LOCAL_CERT")),
 	},
 	Action: action,
 }
@@ -142,6 +146,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3:         vaultS3Config,
+
+		// Local Certificate configuration
+		RequireLocalCert: cmd.Bool("require-local-cert"),
 	}
 
 	err := config.Validate()

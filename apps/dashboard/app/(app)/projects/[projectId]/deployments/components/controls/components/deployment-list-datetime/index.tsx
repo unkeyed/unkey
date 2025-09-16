@@ -2,12 +2,26 @@ import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
+const TITLE_EMPTY_DEFAULT = "Select Time Range";
+
 export const DeploymentListDatetime = () => {
-  const [title, setTitle] = useState<string | null>("Last 12 hours");
+  const [title, setTitle] = useState<string | null>(TITLE_EMPTY_DEFAULT);
   const { filters, updateFilters } = useFilters();
+
+  // If none of the filters are set anymore we should reset the title
+  // This can happen when the user manually clears a filter in the url
+  // or in the filter cloud
+  useEffect(() => {
+    for (const filter of filters) {
+      if (["startTime", "endTime", "since"].includes(filter.field)) {
+        return;
+      }
+    }
+    setTitle(TITLE_EMPTY_DEFAULT);
+  }, [filters]);
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))

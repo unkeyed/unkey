@@ -85,6 +85,10 @@ type Config struct {
 	Acme AcmeConfig
 
 	DefaultDomain string
+
+	// IsRunningDocker indicates whether this service is running inside a Docker container
+	// Affects host address resolution for container-to-container communication
+	IsRunningDocker bool
 }
 
 func (c Config) Validate() error {

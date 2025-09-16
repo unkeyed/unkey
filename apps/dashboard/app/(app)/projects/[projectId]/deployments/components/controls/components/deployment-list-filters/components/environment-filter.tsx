@@ -1,31 +1,27 @@
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { collection } from "@/lib/collections";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useFilters } from "../../../../../hooks/use-filters";
-
-type EnvironmentOption = {
-  id: number;
-  environment: string;
-  checked: boolean;
-};
-
-const options: EnvironmentOption[] = [
-  { id: 1, environment: "production", checked: false },
-  { id: 2, environment: "preview", checked: false },
-] as const;
 
 export const EnvironmentFilter = () => {
   const { filters, updateFilters } = useFilters();
 
+  const environments = useLiveQuery((q) => q.from({ environment: collection.environments }));
+
   return (
     <FilterCheckbox
-      options={options}
+      options={environments.data.map((environment, i) => ({
+        id: i,
+        slug: environment.slug,
+      }))}
       filterField="environment"
-      checkPath="environment"
+      checkPath="slug"
       selectionMode="single"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs capitalize">{checkbox.environment}</div>
+        <div className="text-accent-12 text-xs capitalize">{checkbox.slug}</div>
       )}
       createFilterValue={(option) => ({
-        value: option.environment,
+        value: option.slug,
       })}
       filters={filters}
       updateFilters={updateFilters}

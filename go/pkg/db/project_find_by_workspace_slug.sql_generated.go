@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findProjectByWorkspaceSlug = `-- name: FindProjectByWorkspaceSlug :one
@@ -30,6 +31,18 @@ type FindProjectByWorkspaceSlugParams struct {
 	Slug        string `db:"slug"`
 }
 
+type FindProjectByWorkspaceSlugRow struct {
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+}
+
 // FindProjectByWorkspaceSlug
 //
 //	SELECT
@@ -45,9 +58,9 @@ type FindProjectByWorkspaceSlugParams struct {
 //	FROM projects
 //	WHERE workspace_id = ? AND slug = ?
 //	LIMIT 1
-func (q *Queries) FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error) {
+func (q *Queries) FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error) {
 	row := db.QueryRowContext(ctx, findProjectByWorkspaceSlug, arg.WorkspaceID, arg.Slug)
-	var i Project
+	var i FindProjectByWorkspaceSlugRow
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,

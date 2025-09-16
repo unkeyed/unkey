@@ -1,6 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { ArrowLeft, GitBranch, GitCommit, GitCompare, Globe, Tag } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -15,39 +16,16 @@ export default function DiffSelectionPage(): JSX.Element {
   const [selectedToDeployment, setSelectedToDeployment] = useState<string>("");
 
   // Fetch all deployments for this project
-  const { data: deploymentsData, isLoading: deploymentsLoading } = trpc.deployment.list.useQuery(
-    undefined,
-    { enabled: !!projectId },
+  const deployments = useLiveQuery((q) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) => eq(deployment.projectId, params?.projectId))
+      .join({ environment: collection.environments }, ({ environment, deployment }) =>
+        eq(environment.id, deployment.environmentId),
+      )
+      .orderBy(({ deployment }) => deployment.createdAt, "desc")
+      .limit(100),
   );
-
-  const deployments =
-    deploymentsData?.deployments?.filter((d) => d.project?.id === projectId) || [];
-
-  // Helper function to create human-readable deployment labels
-  interface DeploymentData {
-    id: string;
-    gitCommitSha?: string | null;
-    gitBranch?: string | null;
-    environment: string;
-    createdAt: number;
-    status: string;
-  }
-
-  const getDeploymentLabel = (deployment: DeploymentData) => {
-    const commitSha = deployment.gitCommitSha?.substring(0, 7) || deployment.id.substring(0, 7);
-    const branch = deployment.gitBranch || "unknown";
-    const environment = deployment.environment;
-    const date = new Date(deployment.createdAt).toLocaleDateString();
-
-    return {
-      primary: `${branch}:${commitSha}`,
-      secondary: `${environment} • ${date}`,
-      branch,
-      commitSha,
-      environment,
-      status: deployment.status,
-    };
-  };
 
   const handleCompare = () => {
     if (selectedFromDeployment && selectedToDeployment) {
@@ -55,7 +33,9 @@ export default function DiffSelectionPage(): JSX.Element {
     }
   };
 
-  const sortedDeployments = deployments.sort((a, b) => b.createdAt - a.createdAt);
+  const sortedDeployments = deployments.data.sort(
+    (a, b) => b.deployment.createdAt - a.deployment.createdAt,
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,23 +83,27 @@ export default function DiffSelectionPage(): JSX.Element {
                 <Select
                   value={selectedFromDeployment}
                   onValueChange={setSelectedFromDeployment}
-                  disabled={deploymentsLoading || deployments.length === 0}
+                  disabled={deployments.isLoading || deployments.data.length === 0}
                 >
                   <SelectTrigger className="h-auto">
                     <SelectValue placeholder="Select baseline deployment" />
                   </SelectTrigger>
                   <SelectContent>
-                    {deploymentsLoading ? (
+                    {deployments.isLoading ? (
                       <SelectItem value="loading" disabled>
                         Loading deployments...
                       </SelectItem>
-                    ) : deployments.length === 0 ? (
+                    ) : deployments.data.length === 0 ? (
                       <SelectItem value="no-deployments" disabled>
                         No deployments found
                       </SelectItem>
                     ) : (
-                      sortedDeployments.map((deployment) => {
-                        const label = getDeploymentLabel(deployment);
+                      sortedDeployments.map(({ deployment, environment }) => {
+                        const commitSha =
+                          deployment.gitCommitSha?.substring(0, 7) || deployment.id.substring(0, 7);
+                        const branch = deployment.gitBranch || "unknown";
+                        const date = new Date(deployment.createdAt).toLocaleDateString();
+
                         return (
                           <SelectItem
                             key={deployment.id}
@@ -131,37 +115,39 @@ export default function DiffSelectionPage(): JSX.Element {
                                 <div className="flex items-center gap-2 mb-1">
                                   <GitBranch className="w-3 h-3 text-content-subtle" />
                                   <span className="font-mono text-sm font-medium">
-                                    {label.primary}
+                                    {branch}:{commitSha}
                                   </span>
                                   <div className="flex items-center gap-1">
-                                    {label.environment === "production" ? (
+                                    {environment?.slug === "production" ? (
                                       <Globe className="w-3 h-3 text-green-600" />
                                     ) : (
                                       <Tag className="w-3 h-3 text-blue-600" />
                                     )}
                                     <span
                                       className={`text-xs px-2 py-0.5 rounded-full ${
-                                        label.environment === "production"
+                                        environment?.slug === "production"
                                           ? "bg-green-100 text-green-700"
                                           : "bg-blue-100 text-blue-700"
                                       }`}
                                     >
-                                      {label.environment}
+                                      {environment?.slug}
                                     </span>
                                   </div>
                                 </div>
                                 <div className="text-xs text-content-subtle flex items-center gap-2">
-                                  <span>{label.secondary}</span>
+                                  <span>
+                                    {environment?.slug} • {date}
+                                  </span>
                                   <span
                                     className={`px-2 py-0.5 rounded text-xs ${
-                                      label.status === "active"
+                                      deployment.status === "ready"
                                         ? "bg-green-100 text-green-700"
-                                        : label.status === "failed"
+                                        : deployment.status === "failed"
                                           ? "bg-red-100 text-red-700"
                                           : "bg-gray-100 text-gray-700"
                                     }`}
                                   >
-                                    {label.status}
+                                    {deployment.status}
                                   </span>
                                 </div>
                               </div>
@@ -189,23 +175,26 @@ export default function DiffSelectionPage(): JSX.Element {
                 <Select
                   value={selectedToDeployment}
                   onValueChange={setSelectedToDeployment}
-                  disabled={deploymentsLoading || deployments.length === 0}
+                  disabled={deployments.isLoading || deployments.data.length === 0}
                 >
                   <SelectTrigger className="h-auto">
                     <SelectValue placeholder="Select comparison deployment" />
                   </SelectTrigger>
                   <SelectContent>
-                    {deploymentsLoading ? (
+                    {deployments.isLoading ? (
                       <SelectItem value="loading" disabled>
                         Loading deployments...
                       </SelectItem>
-                    ) : deployments.length === 0 ? (
+                    ) : deployments.data.length === 0 ? (
                       <SelectItem value="no-deployments" disabled>
                         No deployments found
                       </SelectItem>
                     ) : (
-                      sortedDeployments.map((deployment) => {
-                        const label = getDeploymentLabel(deployment);
+                      sortedDeployments.map(({ deployment, environment }) => {
+                        const commitSha =
+                          deployment.gitCommitSha?.substring(0, 7) || deployment.id.substring(0, 7);
+                        const branch = deployment.gitBranch || "unknown";
+                        const date = new Date(deployment.createdAt).toLocaleDateString();
                         return (
                           <SelectItem
                             key={deployment.id}
@@ -217,37 +206,39 @@ export default function DiffSelectionPage(): JSX.Element {
                                 <div className="flex items-center gap-2 mb-1">
                                   <GitBranch className="w-3 h-3 text-content-subtle" />
                                   <span className="font-mono text-sm font-medium">
-                                    {label.primary}
+                                    {branch}:{commitSha}
                                   </span>
                                   <div className="flex items-center gap-1">
-                                    {label.environment === "production" ? (
+                                    {environment?.slug === "production" ? (
                                       <Globe className="w-3 h-3 text-green-600" />
                                     ) : (
                                       <Tag className="w-3 h-3 text-blue-600" />
                                     )}
                                     <span
                                       className={`text-xs px-2 py-0.5 rounded-full ${
-                                        label.environment === "production"
+                                        environment?.slug === "production"
                                           ? "bg-green-100 text-green-700"
                                           : "bg-blue-100 text-blue-700"
                                       }`}
                                     >
-                                      {label.environment}
+                                      {environment?.slug}
                                     </span>
                                   </div>
                                 </div>
                                 <div className="text-xs text-content-subtle flex items-center gap-2">
-                                  <span>{label.secondary}</span>
+                                  <span>
+                                    {environment?.slug} • {date}
+                                  </span>
                                   <span
                                     className={`px-2 py-0.5 rounded text-xs ${
-                                      label.status === "active"
+                                      deployment.status === "ready"
                                         ? "bg-green-100 text-green-700"
-                                        : label.status === "failed"
+                                        : deployment.status === "failed"
                                           ? "bg-red-100 text-red-700"
                                           : "bg-gray-100 text-gray-700"
                                     }`}
                                   >
-                                    {label.status}
+                                    {deployment.status}
                                   </span>
                                 </div>
                               </div>
@@ -287,8 +278,10 @@ export default function DiffSelectionPage(): JSX.Element {
                   <GitCommit className="w-3 h-3 text-green-600" />
                   <span>
                     From: {(() => {
-                      const deployment = deployments.find((d) => d.id === selectedFromDeployment);
-                      return deployment ? getDeploymentLabel(deployment).primary : "Unknown";
+                      const deployment = deployments.data.find(
+                        (d) => d.deployment.id === selectedFromDeployment,
+                      );
+                      return deployment ? deployment.deployment.id : "Unknown";
                     })()}
                   </span>
                 </div>
@@ -297,8 +290,10 @@ export default function DiffSelectionPage(): JSX.Element {
                   <GitCommit className="w-3 h-3 text-blue-600" />
                   <span>
                     To: {(() => {
-                      const deployment = deployments.find((d) => d.id === selectedToDeployment);
-                      return deployment ? getDeploymentLabel(deployment).primary : "Unknown";
+                      const deployment = deployments.data.find(
+                        (d) => d.deployment.id === selectedToDeployment,
+                      );
+                      return deployment ? deployment.deployment.id : "Unknown";
                     })()}
                   </span>
                 </div>

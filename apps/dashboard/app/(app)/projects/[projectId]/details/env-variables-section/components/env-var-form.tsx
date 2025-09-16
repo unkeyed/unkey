@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { type EnvVar, type EnvVarFormData, EnvVarFormSchema } from "../types";
@@ -29,8 +28,7 @@ export function EnvVarForm({
   autoFocus = false,
   className = "w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0",
 }: EnvVarFormProps) {
-  const trpcUtils = trpc.useUtils();
-
+  console.debug(projectId);
   // TODO: Add mutations when available
   // const upsertMutation = trpc.deploy.project.envs.upsert.useMutation();
 
@@ -71,7 +69,7 @@ export function EnvVarForm({
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Invalidate to refresh data
-      await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
+      // await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
 
       onSuccess();
     } catch (error) {

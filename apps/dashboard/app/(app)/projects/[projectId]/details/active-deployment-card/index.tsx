@@ -1,6 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ChevronDown,
   CircleCheck,
@@ -8,14 +9,12 @@ import {
   CircleXMark,
   CodeBranch,
   CodeCommit,
-  FolderCloud,
   Layers3,
   Magnifier,
   TriangleWarning2,
 } from "@unkey/icons";
 import { Badge, Button, Card, CopyButton, Input, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useProjectLayout } from "../../layout-provider";
 import { FilterButton } from "./filter-button";
 import { useDeploymentLogs } from "./hooks/use-deployment-logs";
 import { InfoChip } from "./info-chip";
@@ -27,24 +26,55 @@ const ANIMATION_STYLES = {
   slideIn: "transition-all duration-500 ease-out",
 } as const;
 
-export const STATUS_CONFIG = {
-  success: { variant: "success" as const, icon: CircleCheck, text: "Active" },
-  failed: { variant: "error" as const, icon: CircleWarning, text: "Error" },
-  pending: {
-    variant: "warning" as const,
-    icon: CircleWarning,
-    text: "Pending",
-  },
-} as const;
+export const statusIndicator = (
+  status: "pending" | "building" | "deploying" | "network" | "ready" | "failed",
+) => {
+  switch (status) {
+    case "pending":
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Queued",
+      };
+    case "building":
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Building",
+      };
+    case "deploying":
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Deploying",
+      };
+    case "network":
+      return {
+        variant: "warning" as const,
+        icon: CircleWarning,
+        text: "Assigning Domains",
+      };
+    case "ready":
+      return { variant: "success" as const, icon: CircleCheck, text: "Ready" };
+    case "failed":
+      return { variant: "error" as const, icon: CircleWarning, text: "Error" };
+  }
 
-export function ActiveDeploymentCard() {
-  const { activeDeploymentId } = useProjectLayout();
+  return { variant: "error" as const, icon: CircleWarning, text: "Unknown" };
+};
 
-  // Get the cached deployment details
-  const trpcUtil = trpc.useUtils();
-  const deploymentDetails = trpcUtil.deploy.project.activeDeployment.details.getData({
-    deploymentId: activeDeploymentId,
-  });
+type Props = {
+  deploymentId: string;
+};
+
+export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) => eq(deployment.id, deploymentId)),
+  );
+
+  const deployment = data.at(0);
 
   const {
     logFilter,
@@ -58,23 +88,22 @@ export function ActiveDeploymentCard() {
     handleFilterChange,
     handleSearchChange,
     scrollRef,
-  } = useDeploymentLogs({ deploymentId: activeDeploymentId });
+  } = useDeploymentLogs({ deploymentId });
 
-  if (!deploymentDetails) {
+  if (!deployment) {
     return <ActiveDeploymentCardSkeleton />;
   }
 
-  const statusConfig = STATUS_CONFIG[deploymentDetails.buildStatus];
-  const [imageName, imageTag] = deploymentDetails.image.split(":");
+  const statusConfig = statusIndicator(deployment.status);
 
   return (
     <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">
       <div className="flex w-full justify-between items-center px-[22px]">
         <div className="flex gap-5 items-center">
-          <StatusIndicator />
+          <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
-            <div className="text-accent-12 font-medium text-xs">v_alpha001</div>
-            <div className="text-gray-9 text-xs">{deploymentDetails.description}</div>
+            <div className="text-accent-12 font-medium text-xs">{deployment.id}</div>
+            <div className="text-gray-9 text-xs">TODO</div>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -87,13 +116,9 @@ export function ActiveDeploymentCard() {
           <div className="items-center flex gap-2">
             <div className="flex gap-2 items-center">
               <span className="text-gray-9 text-xs">Created by</span>
-              <img
-                src={deploymentDetails.author.avatar}
-                alt={deploymentDetails.author.name}
-                className="rounded-full size-5"
-              />
+              <img src="TODO" alt="TODO" className="rounded-full size-5" />
               <span className="font-medium text-grayA-12 text-xs">
-                {deploymentDetails.author.name}
+                {deployment.gitCommitAuthorName}
               </span>
             </div>
           </div>
@@ -108,24 +133,18 @@ export function ActiveDeploymentCard() {
         <div className="pb-2.5 pt-2 flex justify-between items-center px-3">
           <div className="flex items-center gap-2.5">
             <TimestampInfo
-              value={deploymentDetails.createdAt}
+              value={deployment.createdAt}
               displayType="relative"
               className="text-grayA-9 text-xs"
             />
             <div className="flex items-center gap-1.5">
               <InfoChip icon={CodeBranch}>
-                <span className="text-grayA-9 text-xs">{deploymentDetails.branch}</span>
+                <span className="text-grayA-9 text-xs">{deployment.gitBranch}</span>
               </InfoChip>
               <InfoChip icon={CodeCommit}>
-                <span className="text-grayA-9 text-xs">{deploymentDetails.commit}</span>
+                <span className="text-grayA-9 text-xs">{deployment.gitCommitSha}</span>
               </InfoChip>
             </div>
-            <span className="text-grayA-9 text-xs">using image</span>
-            <InfoChip icon={FolderCloud}>
-              <div className="text-grayA-10 text-xs">
-                <span className="text-gray-12 font-medium">{imageName}</span>:{imageTag}
-              </div>
-            </InfoChip>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="text-grayA-9 text-xs">Build logs</div>
@@ -244,4 +263,4 @@ export function ActiveDeploymentCard() {
       </div>
     </Card>
   );
-}
+};

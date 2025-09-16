@@ -139,25 +139,21 @@ type CreateDeploymentRequest struct {
 	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Branch      string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Source information
-	SourceType   SourceType `protobuf:"varint,4,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
-	GitCommitSha string     `protobuf:"bytes,5,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"` // For git sources
-	// Optional environment override (defaults based on branch)
-	EnvironmentId string `protobuf:"bytes,7,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// Docker image support
-	DockerImageTag string `protobuf:"bytes,8,opt,name=docker_image_tag,json=dockerImageTag,proto3" json:"docker_image_tag,omitempty"` // e.g. "ghcr.io/user/app:sha256..."
-	// Gateway hostname for routing
-	Hostname string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	// Keyspace ID for authentication
-	KeyspaceId string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
+	EnvironmentSlug string     `protobuf:"bytes,4,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
+	SourceType      SourceType `protobuf:"varint,5,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
+	DockerImage     string     `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
 	// Extended git information
-	GitCommitMessage    string `protobuf:"bytes,6,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
-	GitCommitAuthorName string `protobuf:"bytes,11,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
+	GitCommitSha        string `protobuf:"bytes,7,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"` // For git sources
+	GitCommitMessage    string `protobuf:"bytes,8,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
+	GitCommitAuthorName string `protobuf:"bytes,9,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
 	// TODO: Add GitHub API integration to lookup username/avatar from email
-	GitCommitAuthorUsername  string `protobuf:"bytes,12,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
-	GitCommitAuthorAvatarUrl string `protobuf:"bytes,13,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
-	GitCommitTimestamp       int64  `protobuf:"varint,14,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	GitCommitAuthorUsername  string `protobuf:"bytes,10,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
+	GitCommitAuthorAvatarUrl string `protobuf:"bytes,11,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
+	GitCommitTimestamp       int64  `protobuf:"varint,12,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
+	// Keyspace ID for authentication
+	KeyspaceId    *string `protobuf:"bytes,13,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateDeploymentRequest) Reset() {
@@ -211,6 +207,13 @@ func (x *CreateDeploymentRequest) GetBranch() string {
 	return ""
 }
 
+func (x *CreateDeploymentRequest) GetEnvironmentSlug() string {
+	if x != nil {
+		return x.EnvironmentSlug
+	}
+	return ""
+}
+
 func (x *CreateDeploymentRequest) GetSourceType() SourceType {
 	if x != nil {
 		return x.SourceType
@@ -218,37 +221,16 @@ func (x *CreateDeploymentRequest) GetSourceType() SourceType {
 	return SourceType_SOURCE_TYPE_UNSPECIFIED
 }
 
+func (x *CreateDeploymentRequest) GetDockerImage() string {
+	if x != nil {
+		return x.DockerImage
+	}
+	return ""
+}
+
 func (x *CreateDeploymentRequest) GetGitCommitSha() string {
 	if x != nil {
 		return x.GitCommitSha
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetDockerImageTag() string {
-	if x != nil {
-		return x.DockerImageTag
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetHostname() string {
-	if x != nil {
-		return x.Hostname
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetKeyspaceId() string {
-	if x != nil {
-		return x.KeyspaceId
 	}
 	return ""
 }
@@ -286,6 +268,13 @@ func (x *CreateDeploymentRequest) GetGitCommitTimestamp() int64 {
 		return x.GitCommitTimestamp
 	}
 	return 0
+}
+
+func (x *CreateDeploymentRequest) GetKeyspaceId() string {
+	if x != nil && x.KeyspaceId != nil {
+		return *x.KeyspaceId
+	}
+	return ""
 }
 
 type CreateDeploymentResponse struct {
@@ -860,26 +849,26 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xef\x04\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xe5\x04\n" +
 	"\x17CreateDeploymentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
-	"\x06branch\x18\x03 \x01(\tR\x06branch\x124\n" +
-	"\vsource_type\x18\x04 \x01(\x0e2\x13.ctrl.v1.SourceTypeR\n" +
-	"sourceType\x12$\n" +
-	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12%\n" +
-	"\x0eenvironment_id\x18\a \x01(\tR\renvironmentId\x12(\n" +
-	"\x10docker_image_tag\x18\b \x01(\tR\x0edockerImageTag\x12\x1a\n" +
-	"\bhostname\x18\t \x01(\tR\bhostname\x12\x1f\n" +
-	"\vkeyspace_id\x18\n" +
-	" \x01(\tR\n" +
-	"keyspaceId\x12,\n" +
-	"\x12git_commit_message\x18\x06 \x01(\tR\x10gitCommitMessage\x123\n" +
-	"\x16git_commit_author_name\x18\v \x01(\tR\x13gitCommitAuthorName\x12;\n" +
-	"\x1agit_commit_author_username\x18\f \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
-	"\x1cgit_commit_author_avatar_url\x18\r \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
-	"\x14git_commit_timestamp\x18\x0e \x01(\x03R\x12gitCommitTimestamp\"r\n" +
+	"\x06branch\x18\x03 \x01(\tR\x06branch\x12)\n" +
+	"\x10environment_slug\x18\x04 \x01(\tR\x0fenvironmentSlug\x124\n" +
+	"\vsource_type\x18\x05 \x01(\x0e2\x13.ctrl.v1.SourceTypeR\n" +
+	"sourceType\x12!\n" +
+	"\fdocker_image\x18\x06 \x01(\tR\vdockerImage\x12$\n" +
+	"\x0egit_commit_sha\x18\a \x01(\tR\fgitCommitSha\x12,\n" +
+	"\x12git_commit_message\x18\b \x01(\tR\x10gitCommitMessage\x123\n" +
+	"\x16git_commit_author_name\x18\t \x01(\tR\x13gitCommitAuthorName\x12;\n" +
+	"\x1agit_commit_author_username\x18\n" +
+	" \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
+	"\x1cgit_commit_author_avatar_url\x18\v \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
+	"\x14git_commit_timestamp\x18\f \x01(\x03R\x12gitCommitTimestamp\x12$\n" +
+	"\vkeyspace_id\x18\r \x01(\tH\x00R\n" +
+	"keyspaceId\x88\x01\x01B\x0e\n" +
+	"\f_keyspace_id\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
@@ -1006,6 +995,7 @@ func file_ctrl_v1_deployment_proto_init() {
 	if File_ctrl_v1_deployment_proto != nil {
 		return
 	}
+	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

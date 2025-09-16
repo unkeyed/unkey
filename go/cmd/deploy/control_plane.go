@@ -51,15 +51,14 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 // CreateDeployment creates a new deployment in the control plane
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:    c.opts.WorkspaceID,
-		ProjectId:      c.opts.ProjectID,
-		KeyspaceId:     c.opts.KeyspaceID,
-		Branch:         c.opts.Branch,
-		SourceType:     ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
-		GitCommitSha:   c.opts.Commit,
-		EnvironmentId:  "env_prod", // TODO: Make this configurable
-		DockerImageTag: dockerImage,
-		Hostname:       c.opts.Hostname,
+		WorkspaceId:     c.opts.WorkspaceID,
+		ProjectId:       c.opts.ProjectID,
+		KeyspaceId:      &c.opts.KeyspaceID,
+		Branch:          c.opts.Branch,
+		SourceType:      ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		GitCommitSha:    c.opts.Commit,
+		EnvironmentSlug: c.opts.Environment,
+		DockerImage:     dockerImage,
 	})
 
 	createReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)

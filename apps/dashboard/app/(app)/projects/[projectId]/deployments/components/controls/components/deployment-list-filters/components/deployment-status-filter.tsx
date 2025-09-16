@@ -7,7 +7,6 @@ type StatusOption = {
   id: number;
   status: GroupedDeploymentStatus;
   display: string;
-  checked: boolean;
 };
 
 const baseOptions: StatusOption[] = [
@@ -15,25 +14,21 @@ const baseOptions: StatusOption[] = [
     id: 1,
     status: "pending",
     display: "Pending",
-    checked: false,
   },
   {
     id: 2,
-    status: "building",
-    display: "Building",
-    checked: false,
+    status: "deploying",
+    display: "Deploying",
   },
   {
     id: 3,
-    status: "completed",
+    status: "ready",
     display: "Ready",
-    checked: false,
   },
   {
     id: 4,
     status: "failed",
     display: "Failed",
-    checked: false,
   },
 ];
 

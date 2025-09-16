@@ -186,7 +186,7 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
 
-	redisKey := fmt.Sprintf("credits:%s", req.KeyId)
+	redisKey := s.redisKey(req.KeyId)
 
 	// Attempt decrement if key already exists in Redis
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
@@ -201,6 +201,15 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 
 	// Key exists in Redis - use the explicit success flag from decrement
 	return s.handleResult(req, remaining, success)
+}
+
+func (s *counterService) Invalidate(ctx context.Context, keyID string) error {
+	return s.counter.Delete(ctx, s.redisKey(keyID))
+
+}
+
+func (s *counterService) redisKey(keyID string) string {
+	return fmt.Sprintf("credits:%s", keyID)
 }
 
 // handleResult processes the result of a decrement operation using an explicit success flag.

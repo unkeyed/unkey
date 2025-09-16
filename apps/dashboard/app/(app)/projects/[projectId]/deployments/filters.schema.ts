@@ -9,21 +9,18 @@ import { z } from "zod";
 
 export const DEPLOYMENT_STATUSES = [
   "pending",
-  "downloading_docker_image",
-  "building_rootfs",
-  "uploading_rootfs",
-  "creating_vm",
-  "booting_vm",
-  "assigning_domains",
-  "completed",
+  "building",
+  "deploying",
+  "network",
+  "ready",
   "failed",
 ] as const;
 
 // Define grouped statuses for client filtering
 const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
-  "building", // represents all building states
-  "completed",
+  "deploying", // represents all deploying states
+  "ready",
   "failed",
 ] as const;
 
@@ -93,17 +90,10 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
   switch (groupedStatus) {
     case "pending":
       return ["pending"];
-    case "building":
-      return [
-        "downloading_docker_image",
-        "building_rootfs",
-        "uploading_rootfs",
-        "creating_vm",
-        "booting_vm",
-        "assigning_domains",
-      ];
-    case "completed":
-      return ["completed"];
+    case "deploying":
+      return ["building", "deploying", "network"];
+    case "ready":
+      return ["ready"];
     case "failed":
       return ["failed"];
     default:

@@ -11,9 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
+	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 func TestKeyUpdateCreditsSuccess(t *testing.T) {
@@ -21,11 +23,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:    h.Logger,
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
+		Logger:       h.Logger,
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
 	}
 
 	h.Register(route)
@@ -163,5 +166,53 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
 		require.EqualValues(t, key.RemainingRequests.Int32, shouldBeRemaining)
+	})
+
+	t.Run("counter cache invalidation after credit update", func(t *testing.T) {
+		// Create a new key with initial credits for this test
+		initialCredits := int32(100)
+		cacheTestKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+			Name:        &keyName,
+			Remaining:   &initialCredits,
+		})
+
+		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, cacheTestKey.Key)
+		require.NoError(t, err)
+
+		err = authBefore.Verify(ctx, keys.WithCredits(1))
+		require.NoError(t, err)
+
+		require.True(t, authBefore.Key.RemainingRequests.Valid)
+		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+
+		// Update the key's credits
+		newCredits := int64(50)
+		updateReq := handler.Request{
+			KeyId:     cacheTestKey.KeyID,
+			Operation: openapi.Set,
+			Value:     nullable.NewNullableWithValue(newCredits),
+		}
+
+		updateRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, updateReq)
+		require.Equal(t, 200, updateRes.Status)
+		require.NotNil(t, updateRes.Body)
+
+		// Verify the response shows updated credits
+		updatedRemaining, err := updateRes.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, newCredits, updatedRemaining)
+
+		// Verify the key again to check if cache was properly invalidated
+		authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, cacheTestKey.Key)
+		require.NoError(t, err)
+
+		err = authAfter.Verify(ctx, keys.WithCredits(1))
+		require.NoError(t, err)
+
+		require.True(t, authAfter.Key.RemainingRequests.Valid)
+		require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+
 	})
 }

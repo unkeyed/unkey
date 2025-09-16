@@ -1,3 +1,4 @@
+import { getAuthCookieOptions } from "@/lib/auth/cookie-security";
 import { setCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
@@ -18,11 +19,8 @@ export async function POST(request: Request) {
       name: UNKEY_SESSION_COOKIE,
       value: newToken,
       options: {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000), // Convert to seconds
+        ...getAuthCookieOptions(),
+        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000), // seconds
       },
     });
 

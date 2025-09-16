@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/cache"
@@ -30,11 +31,12 @@ type (
 )
 
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	UsageLimiter usagelimiter.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -613,6 +615,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
+	if req.Credits.IsSpecified() {
+		if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
+			h.Logger.Error("Failed to invalidate usage limit",
+				"error", err.Error(),
+				"key_id", key.ID,
+			)
+		}
+	}
 
 	// Return success response
 	return s.JSON(http.StatusOK, Response{
