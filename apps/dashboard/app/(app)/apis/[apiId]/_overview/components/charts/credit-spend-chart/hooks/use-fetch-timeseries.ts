@@ -2,13 +2,12 @@ import { formatTimestampForChart } from "@/components/logs/chart/utils/format-ti
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
-import type { KeysOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
+import type { KeysOverviewQueryTimeseriesPayload } from "../../bar-chart/query-timeseries.schema";
 
-export const useFetchVerificationTimeseries = (apiId: string | null) => {
+export const useFetchCreditSpendTimeseries = (apiId: string | null) => {
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -88,14 +87,19 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
         }
 
         case "outcomes": {
-          type ValidOutcome = (typeof KEY_VERIFICATION_OUTCOMES)[number];
-          if (
-            typeof filter.value === "string" &&
-            KEY_VERIFICATION_OUTCOMES.includes(filter.value as ValidOutcome)
-          ) {
+          // For credit spend, we might want to include all outcomes to show credit consumption patterns
+          if (typeof filter.value === "string") {
             params.outcomes?.filters?.push({
-              operator: "is", // outcomes only support 'is' operator
-              value: filter.value as ValidOutcome,
+              operator: "is",
+              value: filter.value as
+                | "VALID"
+                | "INSUFFICIENT_PERMISSIONS"
+                | "RATE_LIMITED"
+                | "FORBIDDEN"
+                | "DISABLED"
+                | "EXPIRED"
+                | "USAGE_EXCEEDED"
+                | "",
             });
           }
           break;
@@ -127,39 +131,11 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
     }
 
     return data.timeseries.map((ts) => {
-      const result = {
+      return {
         displayX: formatTimestampForChart(ts.x, data.granularity),
         originalTimestamp: ts.x,
-        valid: ts.y.valid,
-        total: ts.y.total,
-        success: ts.y.valid,
-        error: ts.y.total - ts.y.valid,
-      };
-
-      const outcomeFields: Record<string, number> = {};
-      if (ts.y.rate_limited_count !== undefined) {
-        outcomeFields.rate_limited = ts.y.rate_limited_count;
-      }
-      if (ts.y.insufficient_permissions_count !== undefined) {
-        outcomeFields.insufficient_permissions = ts.y.insufficient_permissions_count;
-      }
-      if (ts.y.forbidden_count !== undefined) {
-        outcomeFields.forbidden = ts.y.forbidden_count;
-      }
-      if (ts.y.disabled_count !== undefined) {
-        outcomeFields.disabled = ts.y.disabled_count;
-      }
-      if (ts.y.expired_count !== undefined) {
-        outcomeFields.expired = ts.y.expired_count;
-      }
-      if (ts.y.usage_exceeded_count !== undefined) {
-        outcomeFields.usage_exceeded = ts.y.usage_exceeded_count;
-      }
-
-      return {
-        ...result,
-        ...outcomeFields,
         spent_credits: ts.y.spent_credits ?? 0,
+        total: ts.y.spent_credits ?? 0,
       };
     });
   }, [data]);

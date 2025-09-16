@@ -56,6 +56,7 @@ type NotFoundResponse = {
   api?: never;
   ratelimit?: never;
   remaining?: never;
+  spentCredits?: number;
 };
 
 type InvalidResponse = {
@@ -84,6 +85,7 @@ type InvalidResponse = {
   permissions: string[];
   roles: string[];
   message?: string;
+  spentCredits?: number;
 };
 
 type ValidResponse = {
@@ -109,6 +111,7 @@ type ValidResponse = {
   authorizedWorkspaceId: string;
   permissions: string[];
   roles: string[];
+  spentCredits?: number;
 };
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
@@ -396,7 +399,7 @@ export class KeyService {
     }
 
     if (!data) {
-      return Ok({ valid: false, code: "NOT_FOUND" });
+      return Ok({ valid: false, code: "NOT_FOUND", spentCredits: 0 });
     }
 
     // Quick fix
@@ -436,6 +439,7 @@ export class KeyService {
         permissions: data.permissions,
         roles: data.roles,
         message: "the key is disabled",
+        spentCredits: 0,
       });
     }
 
@@ -449,6 +453,7 @@ export class KeyService {
         permissions: data.permissions,
         roles: data.roles,
         message: `the key does not belong to ${req.apiId}`,
+        spentCredits: 0,
       });
     }
 
@@ -469,6 +474,7 @@ export class KeyService {
           permissions: data.permissions,
           roles: data.roles,
           message: `the key has expired on ${new Date(expires).toISOString()}`,
+          spentCredits: 0,
         });
       }
     }
@@ -485,6 +491,7 @@ export class KeyService {
           code: "FORBIDDEN",
           permissions: data.permissions,
           roles: data.roles,
+          spentCredits: 0,
         });
       }
 
@@ -498,6 +505,7 @@ export class KeyService {
           code: "FORBIDDEN",
           permissions: data.permissions,
           roles: data.roles,
+          spentCredits: 0,
         });
       }
     }
@@ -542,6 +550,7 @@ export class KeyService {
           permissions: data.permissions,
           roles: data.roles,
           message: rbacResp.val.message,
+          spentCredits: 0,
         });
       }
     }
@@ -612,10 +621,13 @@ export class KeyService {
         ratelimit,
         permissions: data.permissions,
         roles: data.roles,
+        spentCredits: 0,
       });
     }
 
     let remaining: number | undefined = undefined;
+    let spentCredits = 0;
+
     if (data.key.remaining !== null) {
       const t0 = performance.now();
       const cost = req.remaining?.cost ?? DEFAULT_REMAINING_COST;
@@ -636,7 +648,10 @@ export class KeyService {
       });
 
       remaining = limited.remaining;
-      if (!limited.valid) {
+      if (limited.valid) {
+        // Credits were successfully spent
+        spentCredits = cost;
+      } else {
         return Ok({
           key: data.key,
           api: data.api,
@@ -653,6 +668,7 @@ export class KeyService {
           authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
           permissions: data.permissions,
           roles: data.roles,
+          spentCredits: 0, // No credits spent if usage exceeded
         });
       }
     }
@@ -672,6 +688,7 @@ export class KeyService {
       authorizedWorkspaceId: data.key.forWorkspaceId ?? data.key.workspaceId,
       permissions: data.permissions,
       roles: data.roles,
+      spentCredits,
     });
   }
 
