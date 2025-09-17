@@ -1,9 +1,0 @@
-FROM busybox:latest
-
-# Copy the pre-built metald binary
-COPY bin/unkey-metald /unkey-metald
-
-LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey/go
-LABEL org.opencontainers.image.description="Unkey Metald"
-
-ENTRYPOINT ["/unkey-metald"]

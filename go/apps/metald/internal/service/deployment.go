@@ -208,9 +208,6 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 
-		// VM status tracking is now handled by the backend
-		logger.Debug("VM booted, status tracked by backend", slog.String("vm_id", vmID))
-
 		vmIds = append(vmIds, vmID)
 	}
 

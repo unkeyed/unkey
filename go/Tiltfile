@@ -137,14 +137,6 @@ if start_api or start_gw or start_ctrl or start_metald:
         deps=['./main.go', './pkg', './cmd', './apps'],
     )
 
-    # Separate compilation for metald with CGO enabled (needed for SQLite)
-    # Build inside Docker container to get proper Linux CGO support
-    if start_metald:
-        local_resource(
-            'unkey-metald-compile',
-            'docker run --rm -v $(pwd):/workspace -w /workspace golang:1.25 sh -c "CGO_ENABLED=1 go build -o bin/unkey-metald ./main.go"',
-            deps=['./main.go', './pkg', './cmd', './apps'],
-        )
 
 # API service (3 replicas)
 if start_api:
@@ -256,11 +248,11 @@ if start_metald:
     docker_build_with_restart(
         'unkey-metald:latest',
         '.',
-        dockerfile='Dockerfile.metald',
-        entrypoint=['/unkey-metald', 'run', 'metald'],
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'metald'],
         only=['./bin'],
         live_update=[
-            sync('./bin/unkey-metald', '/unkey-metald'),
+            sync('./bin/unkey', '/unkey'),
         ],
         ignore=['./cmd/api', './cmd/gw', './cmd/ctrl', './apps/api', './apps/gw', './apps/ctrl']
     )
@@ -270,8 +262,8 @@ if start_metald:
     # Build dependency list
     metald_deps = []
     # Metald uses SQLite so no MySQL dependency needed
-    # Add compilation dependency for metald
-    metald_deps.append('unkey-metald-compile')
+    # Add compilation dependency for Unkey services
+    metald_deps.append('unkey-compile')
 
     k8s_resource(
         'metald',
