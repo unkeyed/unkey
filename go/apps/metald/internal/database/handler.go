@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/unkeyed/unkey/go/apps/metald/migrations" // Import Go migrations
+	_ "github.com/unkeyed/unkey/go/apps/metald/migrations"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
