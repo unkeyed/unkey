@@ -15,11 +15,13 @@ before:
 
 builds:
   - env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     goos:
       - linux
+      # - darwin
     goarch:
       - amd64
+      # - arm64
     binary: unkey
 
     ldflags:
@@ -48,7 +50,7 @@ kos:
     bare: true
     platforms:
       - linux/amd64
-      - linux/arm64
+      # - linux/arm64
 
 changelog:
   use: github
