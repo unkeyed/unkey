@@ -18,9 +18,12 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 	var domains []string
 
 	if gitSha != "" {
-		domains = append(
-			domains,
-			fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, gitSha[:7], workspaceSlug, apex),
+		short := gitSha
+		if len(short) > 7 {
+			short = short[:7]
+		}
+		domains = append(domains,
+			fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
 		)
 	}
 
