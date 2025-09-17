@@ -86,7 +86,7 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        if (!sub.trial_end || !sub.items?.data?.[0]?.price?.id || !sub.customer) {
+        if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
           return new Response("OK");
         }
 
@@ -151,14 +151,14 @@ async function alertSlack(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:bugeyes: New customer ${name} signed up for a two week trial`,
+            text: `:bugeyes: New customer ${name} signed up`,
           },
         },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `A new trial for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `,
+            text: `A new subscription for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `,
           },
         },
       ],
