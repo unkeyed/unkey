@@ -1,4 +1,5 @@
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { getAuth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Code, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
@@ -7,8 +8,14 @@ import Stripe from "stripe";
 export const dynamic = "force-dynamic";
 
 export default async function StripeRedirect() {
-  const { workspace } = useWorkspaceWithRedirect();
+  const { orgId } = await getAuth();
 
+  const ws = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+  });
+  if (!ws) {
+    return redirect("/new");
+  }
   const e = stripeEnv();
   if (!e) {
     return (
@@ -33,7 +40,7 @@ export default async function StripeRedirect() {
     : "http://localhost:3000";
 
   const session = await stripe.checkout.sessions.create({
-    client_reference_id: workspace.id,
+    client_reference_id: ws.id,
     billing_address_collection: "auto",
     mode: "setup",
     success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,

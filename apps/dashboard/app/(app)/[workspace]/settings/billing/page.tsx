@@ -1,20 +1,32 @@
+import { getAuth } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
+import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatNumber } from "@/lib/fmt";
 import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
-  const { workspace, quotas } = useWorkspaceWithRedirect();
+  const { orgId } = await getAuth();
 
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    with: {
+      quotas: true,
+    },
+  });
+
+  if (!workspace) {
+    return redirect("/new");
+  }
   const e = stripeEnv();
   if (!e) {
     return (
@@ -127,11 +139,11 @@ export default async function BillingPage() {
 
     workspace.stripeCustomerId
       ? await stripe.subscriptions
-        .list({
-          customer: workspace.stripeCustomerId,
-          status: "canceled",
-        })
-        .then((res) => res.data.length > 0)
+          .list({
+            customer: workspace.stripeCustomerId,
+            status: "canceled",
+          })
+          .then((res) => res.data.length > 0)
       : false,
   ]);
 
@@ -152,16 +164,16 @@ export default async function BillingPage() {
         products={products}
         usage={{
           current: usedVerifications + usedRatelimits,
-          max: quotas?.requestsPerMonth ?? 150_000,
+          max: workspace.quotas?.requestsPerMonth ?? 150_000,
         }}
         subscription={
           subscription
             ? {
-              id: subscription.id,
-              status: subscription.status,
-              trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
-              cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
-            }
+                id: subscription.id,
+                status: subscription.status,
+                trialUntil: subscription.trial_end ? subscription.trial_end * 1000 : undefined,
+                cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
+              }
             : undefined
         }
         currentProductId={subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined}
