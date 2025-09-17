@@ -53,8 +53,9 @@ func (s *Service) CreateDeployment(
 				req.Msg.GetProjectId(), req.Msg.GetWorkspaceId()))
 	}
 
-	env, err := db.Query.FindEnvironmentByWorkspaceAndSlug(ctx, s.db.RO(), db.FindEnvironmentByWorkspaceAndSlugParams{
+	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
+		ProjectID:   project.ID,
 		Slug:        req.Msg.GetEnvironmentSlug(),
 	})
 	if err != nil {
@@ -146,11 +147,12 @@ func (s *Service) CreateDeployment(
 
 	// Start the deployment workflow directly
 	deployReq := &DeployRequest{
-		WorkspaceID:  req.Msg.GetWorkspaceId(),
-		ProjectID:    req.Msg.GetProjectId(),
-		DeploymentID: deploymentID,
-		DockerImage:  req.Msg.GetDockerImage(),
-		KeyspaceID:   req.Msg.GetKeyspaceId(),
+		WorkspaceID:   req.Msg.GetWorkspaceId(),
+		ProjectID:     req.Msg.GetProjectId(),
+		EnvironmentID: env.ID,
+		DeploymentID:  deploymentID,
+		DockerImage:   req.Msg.GetDockerImage(),
+		KeyspaceID:    req.Msg.GetKeyspaceId(),
 	}
 
 	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,

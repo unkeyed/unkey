@@ -58,7 +58,8 @@ export const DeploymentsList = () => {
         header: "Deployment ID",
         width: "20%",
         headerClassName: "pl-[18px]",
-        render: ({ deployment, environment }) => {
+        render: ({ deployment }) => {
+          const isProduction = deployment.id === activeDeployment.data.at(0)?.id;
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
@@ -85,12 +86,10 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {deployment.id === activeDeployment.data.at(0)?.id ? (
-                      <EnvStatusBadge variant="current" text="Current" />
-                    ) : null}
+                    {isProduction ? <EnvStatusBadge variant="current" text="Current" /> : null}
                   </div>
                   <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
-                    {environment?.slug}
+                    {isProduction ? "Production" : "Preview"}
                   </div>
                 </div>
               </div>
