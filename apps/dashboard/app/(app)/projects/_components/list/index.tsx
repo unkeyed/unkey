@@ -1,7 +1,8 @@
 import { collection } from "@/lib/collections";
-import { useLiveQuery } from "@tanstack/react-db";
+import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
@@ -9,8 +10,15 @@ import { ProjectCardSkeleton } from "./projects-card-skeleton";
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).orderBy(({ project }) => project.updatedAt, "desc"),
+  const { filters } = useProjectsFilters();
+  const projectName = filters.find((f) => f.field === "query")?.value ?? "";
+
+  const projects = useLiveQuery(
+    (q) =>
+      q
+        .from({ project: collection.projects })
+        .where(({ project }) => ilike(project.name, `%${projectName}%`)),
+    [projectName],
   );
 
   if (projects.isLoading) {
@@ -38,8 +46,9 @@ export const ProjectsList = () => {
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Projects Found</Empty.Title>
           <Empty.Description className="text-left">
-            There are no projects configured yet. Create your first project to start deploying and
-            managing your applications.
+            {projectName
+              ? `No projects found matching "${projectName}". Try a different search term.`
+              : "There are no projects configured yet. Create your first project to start deploying and managing your applications."}
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
             <a
@@ -59,44 +68,40 @@ export const ProjectsList = () => {
   }
 
   return (
-    <>
-      <div className="p-4">
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 350px))",
-          }}
-        >
-          {projects.data.map((project) => {
-            return (
-              <ProjectCard
-                projectId={project.id}
-                key={project.id}
-                name={project.name}
-                domain="TODO"
-                commitTitle="Latest deployment"
-                commitDate="TODO"
-                branch="TODO"
-                author="TODO"
-                regions={["us-east-1", "us-west-2", "ap-east-1"]}
-                repository={project.gitRepositoryUrl || undefined}
-                actions={
-                  <ProjectActions projectId={project.id}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mb-auto shrink-0"
-                      title="Project actions"
-                    >
-                      <Dots size="sm-regular" />
-                    </Button>
-                  </ProjectActions>
-                }
-              />
-            );
-          })}
-        </div>
+    <div className="p-4">
+      <div
+        className="grid gap-4"
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
+        }}
+      >
+        {projects.data.map((project) => (
+          <ProjectCard
+            projectId={project.id}
+            key={project.id}
+            name={project.name}
+            domain={project.domain}
+            commitTitle={project.commitTitle}
+            commitTimestamp={project.commitTimestamp}
+            branch={project.branch}
+            author={project.author}
+            regions={project.regions}
+            repository={project.gitRepositoryUrl || undefined}
+            actions={
+              <ProjectActions projectId={project.id}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="mb-auto shrink-0"
+                  title="Project actions"
+                >
+                  <Dots size="sm-regular" />
+                </Button>
+              </ProjectActions>
+            }
+          />
+        ))}
       </div>
-    </>
+    </div>
   );
 };
