@@ -23,7 +23,6 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golangci/golangci-lint/v2 v2.4.0
 	github.com/lmittmann/tint v1.1.1
-	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/maypok86/otter v1.2.4
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
@@ -66,6 +65,7 @@ require (
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
+	modernc.org/sqlite v1.39.0
 )
 
 require (
@@ -469,7 +469,6 @@ require (
 	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.38.2 // indirect
 	mvdan.cc/gofumpt v0.8.0 // indirect
 	mvdan.cc/unparam v0.0.0-20250301125049-0df0534333a4 // indirect
 	pluginrpc.com/pluginrpc v0.5.0 // indirect

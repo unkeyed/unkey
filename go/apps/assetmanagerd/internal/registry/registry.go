@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/oklog/ulid/v2"
 	assetv1 "github.com/unkeyed/unkey/go/gen/proto/assetmanagerd/v1"
+	_ "modernc.org/sqlite"
 )
 
 // Registry manages asset metadata in SQLite
