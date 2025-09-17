@@ -1,8 +1,8 @@
 "use client";
 
 import { Navbar } from "@/components/navigation/navbar";
-import { Fingerprint } from "@unkey/icons";
 import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { Fingerprint } from "@unkey/icons";
 
 type NavigationProps = {
   readonly identityId: string;

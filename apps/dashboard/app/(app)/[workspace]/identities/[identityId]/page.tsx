@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -17,6 +16,7 @@ import { Badge, Button, Code, CopyButton } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Navigation } from "./navigation";
 
 type Props = {

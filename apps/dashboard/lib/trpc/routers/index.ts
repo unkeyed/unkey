@@ -48,8 +48,10 @@ import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
+import { getIdentityById } from "./identity/getById";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
+import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -316,9 +318,11 @@ export const router = t.router({
     }),
   }),
   identity: t.router({
+    searchWithRelations: searchIdentitiesWithRelations,
     create: createIdentity,
     query: queryIdentities,
     search: searchIdentities,
+    getById: getIdentityById,
   }),
   deploy: t.router({
     project: t.router({
