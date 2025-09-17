@@ -42,6 +42,12 @@ export const CreateProjectDialog = () => {
         liveDeploymentId: null,
         updatedAt: null,
         id: "will-be-replace-by-server",
+        author: "will-be-replace-by-server",
+        branch: "will-be-replace-by-server",
+        commitTimestamp: Date.now(),
+        commitTitle: "will-be-replace-by-server",
+        domain: "will-be-replace-by-server",
+        regions: [],
       });
       await tx.isPersisted.promise;
 

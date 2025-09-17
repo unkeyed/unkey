@@ -189,12 +189,14 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
-	//FindEnvironmentByWorkspaceAndSlug
+	//FindEnvironmentByProjectIdAndSlug
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
 	//  FROM environments
-	//  WHERE workspace_id = ? AND slug = ?
-	FindEnvironmentByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByWorkspaceAndSlugParams) (FindEnvironmentByWorkspaceAndSlugRow, error)
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND slug = ?
+	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at

@@ -50,52 +50,52 @@ type TimeInterval = {
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
-    table: "ratelimits.ratelimits_per_minute_v1",
+    table: "default.ratelimits_per_minute_v2",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "ratelimits.ratelimits_per_minute_v1",
+    table: "default.ratelimits_per_minute_v2",
     step: "MINUTES",
     stepSize: 5,
   },
   fifteenMinutes: {
-    table: "ratelimits.ratelimits_per_minute_v1",
+    table: "default.ratelimits_per_minute_v2",
     step: "MINUTES",
     stepSize: 15,
   },
   thirtyMinutes: {
-    table: "ratelimits.ratelimits_per_minute_v1",
+    table: "default.ratelimits_per_minute_v2",
     step: "MINUTES",
     stepSize: 30,
   },
   hour: {
-    table: "ratelimits.ratelimits_per_hour_v1",
+    table: "default.ratelimits_per_hour_v2",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "ratelimits.ratelimits_per_hour_v1",
+    table: "default.ratelimits_per_hour_v2",
     step: "HOURS",
     stepSize: 2,
   },
   fourHours: {
-    table: "ratelimits.ratelimits_per_hour_v1",
+    table: "default.ratelimits_per_hour_v2",
     step: "HOURS",
     stepSize: 4,
   },
   sixHours: {
-    table: "ratelimits.ratelimits_per_hour_v1",
+    table: "default.ratelimits_per_hour_v2",
     step: "HOURS",
     stepSize: 6,
   },
   day: {
-    table: "ratelimits.ratelimits_per_day_v1",
+    table: "default.ratelimits_per_day_v2",
     step: "DAY",
     stepSize: 1,
   },
   month: {
-    table: "ratelimits.ratelimits_per_month_v1",
+    table: "default.ratelimits_per_month_v2",
     step: "MONTH",
     stepSize: 1,
   },
@@ -223,7 +223,7 @@ export function getRatelimitLastUsed(ch: Querier) {
     SELECT
       identifier,
       max(time) as time
-    FROM ratelimits.ratelimits_last_used_v1
+    FROM default.ratelimits_last_used_v2
     WHERE
       workspace_id = {workspaceId: String}
       AND namespace_id = {namespaceId: String}
@@ -286,7 +286,7 @@ export const ratelimitLogs = z.object({
   response_body: z.string(),
   service_latency: z.number().int(),
   user_agent: z.string(),
-  colo: z.string(),
+  region: z.string(),
 });
 
 export type RatelimitLog = z.infer<typeof ratelimitLogs>;
@@ -351,7 +351,7 @@ WITH filtered_ratelimits AS (
         namespace_id,
         identifier,
         toUInt8(passed) as status
-    FROM ratelimits.raw_ratelimits_v1 r
+    FROM default.ratelimits_raw_v2 r
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
@@ -362,7 +362,7 @@ WITH filtered_ratelimits AS (
             {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
         )
 )
-SELECT 
+SELECT
     fr.request_id,
     fr.time,
     fr.workspace_id,
@@ -379,10 +379,10 @@ SELECT
     m.response_body,
     m.service_latency,
     m.user_agent,
-    m.colo
+    m.region
 FROM filtered_ratelimits fr
 LEFT JOIN (
-    SELECT 
+    SELECT
         request_id,
         host,
         method,
@@ -394,8 +394,8 @@ LEFT JOIN (
         response_body,
         service_latency,
         user_agent,
-        colo
-    FROM metrics.raw_api_requests_v1
+        region
+    FROM default.api_requests_raw_v2
     WHERE workspace_id = {workspaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
 ) m ON fr.request_id = m.request_id
@@ -409,7 +409,7 @@ LIMIT {limit: Int}`,
       query: `
 SELECT
     count(*) as total_count
-FROM ratelimits.raw_ratelimits_v1 r
+FROM default.ratelimits_raw_v2 r
 WHERE workspace_id = {workspaceId: String}
     AND namespace_id = {namespaceId: String}
     AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
@@ -614,7 +614,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         time,
         identifier,
         toUInt8(passed) as status
-    FROM ratelimits.raw_ratelimits_v1
+    FROM default.ratelimits_raw_v2
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
@@ -623,7 +623,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         ${cursorCondition}
 ),
 aggregated_data AS (
-    SELECT 
+    SELECT
         identifier,
         max(time) as last_request_time,
         max(request_id) as last_request_id,
@@ -632,7 +632,7 @@ aggregated_data AS (
     FROM filtered_ratelimits
     GROUP BY identifier
 )
-SELECT 
+SELECT
     identifier,
     last_request_time as time,
     last_request_id as request_id,
@@ -649,7 +649,7 @@ LIMIT {limit: Int}`,
       query: `
 SELECT
     count(DISTINCT identifier) as total_count
-FROM ratelimits.raw_ratelimits_v1
+FROM default.ratelimits_raw_v2
 WHERE workspace_id = {workspaceId: String}
     AND namespace_id = {namespaceId: String}
     AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
@@ -699,47 +699,47 @@ export type RatelimitLatencyTimeseriesParams = z.infer<typeof ratelimitLatencyTi
 
 const LATENCY_INTERVALS: Record<string, TimeInterval> = {
   minute: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_minute_v2",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_minute_v2",
     step: "MINUTES",
     stepSize: 5,
   },
   fifteenMinutes: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_minute_v2",
     step: "MINUTES",
     stepSize: 15,
   },
   thirtyMinutes: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_minute_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_minute_v2",
     step: "MINUTES",
     stepSize: 30,
   },
   hour: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_hour_v2",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_hour_v2",
     step: "HOURS",
     stepSize: 2,
   },
   fourHours: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_hour_v2",
     step: "HOURS",
     stepSize: 4,
   },
   sixHours: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_hour_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_hour_v2",
     step: "HOURS",
     stepSize: 6,
   },
   day: {
-    table: "ratelimits.ratelimits_identifier_latency_stats_per_day_v1",
+    table: "default.ratelimits_identifier_latency_stats_per_day_v2",
     step: "DAY",
     stepSize: 1,
   },

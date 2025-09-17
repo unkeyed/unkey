@@ -9,7 +9,7 @@ type ProjectCardProps = {
   name: string;
   domain: string;
   commitTitle: string;
-  commitTimestamp?: number;
+  commitTimestamp?: number | null;
   branch: string;
   author: string;
   regions: string[];

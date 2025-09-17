@@ -17,7 +17,7 @@ export function getLatestVerifications(ch: Querier) {
      outcome,
      region,
      tags
-    FROM verifications.raw_key_verifications_v1
+    FROM default.key_verifications_raw_v2
     WHERE workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND key_id = {keyId: String}

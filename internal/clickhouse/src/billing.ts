@@ -13,7 +13,7 @@ export function getBillableRatelimits(ch: Querier) {
       query: `
     SELECT
       sum(count) as count
-    FROM billing.billable_ratelimits_per_month_v1
+    FROM default.billable_ratelimits_per_month_v2
     WHERE workspace_id = {workspaceId: String}
     AND year = {year: Int64}
     AND month = {month: Int64}
@@ -48,7 +48,7 @@ export function getBillableVerifications(ch: Querier) {
       query: `
     SELECT
       sum(count) as count
-    FROM billing.billable_verifications_per_month_v2
+    FROM default.billable_verifications_per_month_v2
     WHERE workspace_id = {workspaceId: String}
     AND year = {year: Int64}
     AND month = {month: Int64}
