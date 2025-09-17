@@ -28,7 +28,7 @@ func New(dbPath string, logger *slog.Logger) (*Registry, error) {
 	}
 
 	// Open database
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL")
+	db, err := sql.Open("sqlite", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

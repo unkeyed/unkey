@@ -30,7 +30,7 @@ func NewDatabaseWithLogger(dataDir string, logger *slog.Logger) (*Database, erro
 	}
 
 	dbPath := filepath.Join(dataDir, "metald.db")
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=-64000&_foreign_keys=ON")
+	db, err := sql.Open("sqlite", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=-64000&_foreign_keys=ON")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

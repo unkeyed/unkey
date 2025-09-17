@@ -270,7 +270,7 @@ services:
       dockerfile: Dockerfile
       args:
         VERSION: "latest"
-        CGO_ENABLED: "1"
+        CGO_ENABLED: "0"
     container_name: metald
     command: ["run", "metald"]
     ports:
