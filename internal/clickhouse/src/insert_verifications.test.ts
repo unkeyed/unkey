@@ -39,5 +39,5 @@ test(
     expect(latestVerifications.val![0].time).toBe(verification.time);
     expect(latestVerifications.val![0].outcome).toBe("VALID");
     expect(latestVerifications.val![0].region).toBe(verification.region);
-  }
+  },
 );
