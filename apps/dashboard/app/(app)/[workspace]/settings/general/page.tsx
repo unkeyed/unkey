@@ -1,8 +1,6 @@
 "use client";
-import { useWorkspace } from "@/providers/workspace-provider";
-import { Loading } from "@unkey/ui";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+
+import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
@@ -12,26 +10,7 @@ import { UpdateWorkspaceName } from "./update-workspace-name";
  */
 
 export default function SettingsPage() {
-  const { workspace, isLoading } = useWorkspace();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && !workspace) {
-      router.replace("/new");
-    }
-  }, [isLoading, workspace, router]);
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen w-full">
-        <Loading size={18} />
-      </div>
-    );
-  }
-
-  if (!workspace) {
-    return null;
-  }
+  const { workspace } = useWorkspaceWithRedirect();
 
   return (
     <div>

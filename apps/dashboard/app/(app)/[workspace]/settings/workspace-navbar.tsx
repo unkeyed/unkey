@@ -3,7 +3,7 @@
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
@@ -39,11 +39,7 @@ export const WorkspaceNavbar = ({
     text: string;
   };
 }) => {
-  const { workspace } = useWorkspace();
-
-  if (!workspace) {
-    return null;
-  }
+  const { workspace } = useWorkspaceWithRedirect();
 
   return (
     <div className="flex flex-col w-full h-full">

@@ -1,6 +1,6 @@
 "use client";
+import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 import { trpc } from "@/lib/trpc/client";
-import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -9,13 +9,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export function UpdateWorkspaceName() {
-  const { workspace, isLoading } = useWorkspace();
+  const { workspace } = useWorkspaceWithRedirect();
   const router = useRouter();
   const utils = trpc.useUtils();
-
-  if (!workspace && !isLoading) {
-    router.replace("/new");
-  }
 
   const [name, setName] = useState(workspace?.name);
 
