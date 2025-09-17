@@ -17,9 +17,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// In-memory tracking of deployments to VM IDs
+// In-memory tracking of deployments to VM IDs and IPs
 var (
 	deploymentVMs = make(map[string][]string) // deployment_id -> vm_ids
+	vmIPs         = make(map[string]string)   // vm_id -> ip_address
 	deploymentMu  sync.RWMutex
 )
 
@@ -192,11 +193,10 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			slog.Any("fulfilled", vm),
 		)
 
-		// VM tracking is now handled by the backend (in-memory for K8s/Docker)
-		logger.Debug("VM created, tracking handled by backend",
-			slog.String("vm_id", vmID),
-			slog.String("deployment_id", req.Msg.GetDeployment().DeploymentId),
-		)
+		// Store VM IP for tracking
+		deploymentMu.Lock()
+		vmIPs[vmID] = ipAlloc.IpAddr
+		deploymentMu.Unlock()
 
 		// Not sure if we should boot it as well??
 		err = s.backend.BootVM(ctx, vmID)
@@ -257,9 +257,18 @@ func (s *VMService) GetDeployment(ctx context.Context, req *connect.Request[meta
 			continue // Skip missing VMs
 		}
 
+		// Get VM IP from in-memory tracking
+		deploymentMu.RLock()
+		vmIP := vmIPs[vmID]
+		deploymentMu.RUnlock()
+
+		if vmIP == "" {
+			vmIP = "unknown" // Fallback if IP not found
+		}
+
 		vmResponse = append(vmResponse, &metaldv1.GetDeploymentResponse_Vm{
 			Id:    vmID,
-			Host:  "unknown", // We don't track IPs in this simple approach
+			Host:  vmIP,
 			Port:  8080,
 			State: vmInfo.State,
 		})

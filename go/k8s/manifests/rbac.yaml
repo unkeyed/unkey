@@ -32,10 +32,6 @@ rules:
     resources: ["jobs"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Namespace management for deployment isolation
-  - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Events access for debugging
   - apiGroups: [""]
