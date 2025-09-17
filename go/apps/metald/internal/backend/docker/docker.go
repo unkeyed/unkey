@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/types"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Compile-time interface checks
@@ -28,17 +27,7 @@ var _ types.VMListProvider = (*Backend)(nil)
 type Backend struct {
 	logger          logging.Logger
 	dockerClient    *client.Client
-	vms             map[string]*vmInfo
-	mutex           sync.RWMutex
 	isRunningDocker bool // Whether this service is running in Docker
-}
-
-type vmInfo struct {
-	vmID        string
-	containerID string
-	config      *metaldv1.VmConfig
-	state       metaldv1.VmState
-	createdAt   time.Time
 }
 
 // New creates a new Docker backend
@@ -62,14 +51,18 @@ func New(logger logging.Logger, isRunningDocker bool) (*Backend, error) {
 	return &Backend{
 		logger:          logger.With("backend", "docker"),
 		dockerClient:    dockerClient,
-		vms:             make(map[string]*vmInfo),
 		isRunningDocker: isRunningDocker,
 	}, nil
 }
 
 // CreateVM creates a new Docker container as a VM
 func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
-	vmID := uid.New("vm")
+	// Use the provided VM ID from config
+	vmID := config.Id
+	if vmID == "" {
+		return "", fmt.Errorf("VM ID is required")
+	}
+
 	b.logger.Info("creating Docker VM",
 		"vm_id", vmID,
 		"image", config.Boot)
@@ -85,8 +78,8 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		return "", fmt.Errorf("failed to pull image: %w", err)
 	}
 
-	// Create container configuration
-	containerName := fmt.Sprintf("unkey-vm-%s", vmID)
+	// Use VM ID directly as container name
+	containerName := vmID
 	containerConfig := &container.Config{
 		Image: imageName,
 		Labels: map[string]string{
@@ -127,17 +120,6 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
 
-	// Store VM info
-	b.mutex.Lock()
-	b.vms[vmID] = &vmInfo{
-		vmID:        vmID,
-		containerID: resp.ID,
-		config:      config,
-		state:       metaldv1.VmState_VM_STATE_CREATED,
-		createdAt:   time.Now(),
-	}
-	b.mutex.Unlock()
-
 	b.logger.Info("Docker VM created",
 		"vm_id", vmID,
 		"container_id", resp.ID)
@@ -147,29 +129,17 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 
 // DeleteVM removes a Docker container VM
 func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
-	b.mutex.Lock()
-	vm, exists := b.vms[vmID]
-	if exists {
-		delete(b.vms, vmID)
-	}
-	b.mutex.Unlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
 	// Stop container if running
-	if err := b.dockerClient.ContainerStop(ctx, vm.containerID, container.StopOptions{}); err != nil {
+	if err := b.dockerClient.ContainerStop(ctx, vmID, container.StopOptions{}); err != nil {
 		if !errdefs.IsNotFound(err) {
 			b.logger.Error("failed to stop container",
 				"vm_id", vmID,
-				"container_id", vm.containerID,
 				"error", err)
 		}
 	}
 
 	// Remove container
-	if err := b.dockerClient.ContainerRemove(ctx, vm.containerID, container.RemoveOptions{
+	if err := b.dockerClient.ContainerRemove(ctx, vmID, container.RemoveOptions{
 		Force: true,
 	}); err != nil {
 		if !errdefs.IsNotFound(err) {
@@ -183,22 +153,10 @@ func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
 
 // BootVM starts a Docker container VM
 func (b *Backend) BootVM(ctx context.Context, vmID string) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
-	if err := b.dockerClient.ContainerStart(ctx, vm.containerID, container.StartOptions{}); err != nil {
+	// Docker client accepts both container ID and container name
+	if err := b.dockerClient.ContainerStart(ctx, vmID, container.StartOptions{}); err != nil {
 		return fmt.Errorf("failed to start container: %w", err)
 	}
-
-	// Update state
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_RUNNING
-	b.mutex.Unlock()
 
 	b.logger.Info("Docker VM booted", "vm_id", vmID)
 	return nil
@@ -211,23 +169,15 @@ func (b *Backend) ShutdownVM(ctx context.Context, vmID string) error {
 
 // ShutdownVMWithOptions gracefully stops a Docker container VM with options
 func (b *Backend) ShutdownVMWithOptions(ctx context.Context, vmID string, force bool, timeoutSeconds int32) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
 	timeout := int(timeoutSeconds)
 	stopOptions := container.StopOptions{
 		Timeout: &timeout,
 	}
 
-	if err := b.dockerClient.ContainerStop(ctx, vm.containerID, stopOptions); err != nil {
+	if err := b.dockerClient.ContainerStop(ctx, vmID, stopOptions); err != nil {
 		if force {
 			// Force kill if graceful stop fails
-			if killErr := b.dockerClient.ContainerKill(ctx, vm.containerID, "KILL"); killErr != nil {
+			if killErr := b.dockerClient.ContainerKill(ctx, vmID, "KILL"); killErr != nil {
 				return fmt.Errorf("failed to force kill container: %w", killErr)
 			}
 		} else {
@@ -235,33 +185,15 @@ func (b *Backend) ShutdownVMWithOptions(ctx context.Context, vmID string, force 
 		}
 	}
 
-	// Update state
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_SHUTDOWN
-	b.mutex.Unlock()
-
 	b.logger.Info("Docker VM shutdown", "vm_id", vmID, "force", force)
 	return nil
 }
 
 // PauseVM pauses a Docker container VM
 func (b *Backend) PauseVM(ctx context.Context, vmID string) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
-	if err := b.dockerClient.ContainerPause(ctx, vm.containerID); err != nil {
+	if err := b.dockerClient.ContainerPause(ctx, vmID); err != nil {
 		return fmt.Errorf("failed to pause container: %w", err)
 	}
-
-	// Update state
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_PAUSED
-	b.mutex.Unlock()
 
 	b.logger.Info("Docker VM paused", "vm_id", vmID)
 	return nil
@@ -269,22 +201,9 @@ func (b *Backend) PauseVM(ctx context.Context, vmID string) error {
 
 // ResumeVM resumes a paused Docker container VM
 func (b *Backend) ResumeVM(ctx context.Context, vmID string) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
-	if err := b.dockerClient.ContainerUnpause(ctx, vm.containerID); err != nil {
+	if err := b.dockerClient.ContainerUnpause(ctx, vmID); err != nil {
 		return fmt.Errorf("failed to unpause container: %w", err)
 	}
-
-	// Update state
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_RUNNING
-	b.mutex.Unlock()
 
 	b.logger.Info("Docker VM resumed", "vm_id", vmID)
 	return nil
@@ -292,23 +211,10 @@ func (b *Backend) ResumeVM(ctx context.Context, vmID string) error {
 
 // RebootVM restarts a Docker container VM
 func (b *Backend) RebootVM(ctx context.Context, vmID string) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
 	timeout := int(30)
-	if err := b.dockerClient.ContainerRestart(ctx, vm.containerID, container.StopOptions{Timeout: &timeout}); err != nil {
+	if err := b.dockerClient.ContainerRestart(ctx, vmID, container.StopOptions{Timeout: &timeout}); err != nil {
 		return fmt.Errorf("failed to restart container: %w", err)
 	}
-
-	// State remains RUNNING after reboot
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_RUNNING
-	b.mutex.Unlock()
 
 	b.logger.Info("Docker VM rebooted", "vm_id", vmID)
 	return nil
@@ -316,21 +222,13 @@ func (b *Backend) RebootVM(ctx context.Context, vmID string) error {
 
 // GetVMInfo retrieves current VM state and configuration
 func (b *Backend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, error) {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return nil, fmt.Errorf("VM %s not found", vmID)
-	}
-
 	// Get current container state
-	inspect, err := b.dockerClient.ContainerInspect(ctx, vm.containerID)
+	inspect, err := b.dockerClient.ContainerInspect(ctx, vmID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inspect container: %w", err)
 	}
 
-	// Update state based on container state
+	// Determine state based on container state
 	state := metaldv1.VmState_VM_STATE_UNSPECIFIED
 	if inspect.State.Running {
 		state = metaldv1.VmState_VM_STATE_RUNNING
@@ -342,29 +240,30 @@ func (b *Backend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, er
 		state = metaldv1.VmState_VM_STATE_CREATED
 	}
 
-	// Update cached state
-	b.mutex.Lock()
-	vm.state = state
-	b.mutex.Unlock()
+	// Reconstruct config from container labels and inspect data
+	config := &metaldv1.VmConfig{
+		Id:    vmID,
+		Boot:  inspect.Config.Image,
+	}
+
+	// Extract resources if set
+	if inspect.HostConfig.Resources.Memory > 0 {
+		config.MemorySizeMib = uint64(inspect.HostConfig.Resources.Memory / (1024 * 1024))
+	}
+	if inspect.HostConfig.Resources.NanoCPUs > 0 {
+		config.VcpuCount = uint32(inspect.HostConfig.Resources.NanoCPUs / 1000000000)
+	}
 
 	return &types.VMInfo{
-		Config: vm.config,
+		Config: config,
 		State:  state,
 	}, nil
 }
 
 // GetVMMetrics retrieves current VM resource usage metrics
 func (b *Backend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return nil, fmt.Errorf("VM %s not found", vmID)
-	}
-
 	// Get container stats
-	stats, err := b.dockerClient.ContainerStats(ctx, vm.containerID, false)
+	stats, err := b.dockerClient.ContainerStats(ctx, vmID, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container stats: %w", err)
 	}
@@ -413,15 +312,45 @@ func (b *Backend) Ping(ctx context.Context) error {
 
 // ListVMs returns a list of all VMs managed by this backend
 func (b *Backend) ListVMs() []types.ListableVMInfo {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
+	ctx := context.Background()
+	containers, err := b.dockerClient.ContainerList(ctx, container.ListOptions{
+		All: true,
+		Filters: filters.NewArgs(
+			filters.Arg("label", "unkey.managed.by=metald"),
+		),
+	})
+	if err != nil {
+		b.logger.Error("failed to list containers", "error", err)
+		return []types.ListableVMInfo{}
+	}
 
-	vms := make([]types.ListableVMInfo, 0, len(b.vms))
-	for _, vm := range b.vms {
+	vms := make([]types.ListableVMInfo, 0, len(containers))
+	for _, c := range containers {
+		vmID := c.Labels["unkey.vm.id"]
+		if vmID == "" {
+			// Fallback to container name since we set container name = VM ID
+			vmID = c.Names[0]
+		}
+
+		// Determine state from container state
+		state := metaldv1.VmState_VM_STATE_CREATED
+		if c.State == "running" {
+			state = metaldv1.VmState_VM_STATE_RUNNING
+		} else if c.State == "paused" {
+			state = metaldv1.VmState_VM_STATE_PAUSED
+		} else if c.State == "exited" || c.State == "dead" {
+			state = metaldv1.VmState_VM_STATE_SHUTDOWN
+		}
+
+		config := &metaldv1.VmConfig{
+			Id:   vmID,
+			Boot: c.Image,
+		}
+
 		vms = append(vms, types.ListableVMInfo{
-			ID:     vm.vmID,
-			State:  vm.state,
-			Config: vm.config,
+			ID:     vmID,
+			State:  state,
+			Config: config,
 		})
 	}
 	return vms

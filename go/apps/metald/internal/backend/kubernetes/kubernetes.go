@@ -7,7 +7,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -21,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/types"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Compile-time interface checks
@@ -33,20 +31,7 @@ type Backend struct {
 	logger     logging.Logger
 	clientset  *kubernetes.Clientset
 	namespace  string
-	vms        map[string]*vmInfo
-	mutex      sync.RWMutex
 	ttlSeconds int32 // TTL for auto-termination (0 = no TTL)
-}
-
-type vmInfo struct {
-	vmID        string
-	podName     string
-	serviceName string
-	config      *metaldv1.VmConfig
-	state       metaldv1.VmState
-	createdAt   time.Time
-	useJob      bool
-	jobName     string
 }
 
 // New creates a new Kubernetes backend
@@ -76,14 +61,18 @@ func New(logger logging.Logger) (*Backend, error) {
 		logger:     logger.With("backend", "kubernetes"),
 		clientset:  clientset,
 		namespace:  namespace,
-		vms:        make(map[string]*vmInfo),
 		ttlSeconds: 7200, // 2 hours default TTL for auto-cleanup
 	}, nil
 }
 
 // CreateVM creates a new Kubernetes pod as a VM
 func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
-	vmID := uid.New("vm")
+	// Use the provided VM ID from config
+	vmID := config.Id
+	if vmID == "" {
+		return "", fmt.Errorf("VM ID is required")
+	}
+
 	b.logger.Info("creating Kubernetes VM",
 		"vm_id", vmID,
 		"image", config.Boot,
@@ -95,8 +84,9 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		return "", fmt.Errorf("boot image is required")
 	}
 
-	// Generate RFC1123-compliant names
-	podName, serviceName := b.sanitizeK8sNames(vmID)
+	// Use VM ID directly as pod/service name (it should already be RFC1123-compliant)
+	podName := vmID
+	serviceName := vmID
 	jobName := fmt.Sprintf("job-%s", podName)
 
 	// Use Jobs with TTL for auto-cleanup
@@ -235,20 +225,6 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		return "", fmt.Errorf("failed to create service: %w", err)
 	}
 
-	// Store VM info
-	b.mutex.Lock()
-	b.vms[vmID] = &vmInfo{
-		vmID:        vmID,
-		podName:     podName,
-		serviceName: serviceName,
-		config:      config,
-		state:       metaldv1.VmState_VM_STATE_CREATED,
-		createdAt:   time.Now(),
-		useJob:      useJob,
-		jobName:     jobName,
-	}
-	b.mutex.Unlock()
-
 	b.logger.Info("Kubernetes VM created",
 		"vm_id", vmID,
 		"pod_name", podName,
@@ -259,32 +235,19 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 
 // DeleteVM removes a Kubernetes pod VM
 func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
-	b.mutex.Lock()
-	vm, exists := b.vms[vmID]
-	if exists {
-		delete(b.vms, vmID)
-	}
-	b.mutex.Unlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
 
 	// Delete service
-	if err := b.clientset.CoreV1().Services(b.namespace).Delete(ctx, vm.serviceName, metav1.DeleteOptions{}); err != nil {
+	if err := b.clientset.CoreV1().Services(b.namespace).Delete(ctx, vmID, metav1.DeleteOptions{}); err != nil {
 		b.logger.Error("failed to delete service",
 			"vm_id", vmID,
-			"service_name", vm.serviceName,
 			"error", err)
 	}
 
-	// Delete pod or job
-	if vm.useJob {
-		if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, vm.jobName, metav1.DeleteOptions{}); err != nil {
-			return fmt.Errorf("failed to delete job: %w", err)
-		}
-	} else {
-		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, vm.podName, metav1.DeleteOptions{}); err != nil {
+	// Try deleting as job first, then as pod
+	jobName := fmt.Sprintf("job-%s", vmID)
+	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, jobName, metav1.DeleteOptions{}); err != nil {
+		// Not a job, try deleting as pod
+		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, vmID, metav1.DeleteOptions{}); err != nil {
 			return fmt.Errorf("failed to delete pod: %w", err)
 		}
 	}
@@ -295,19 +258,7 @@ func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
 
 // BootVM starts a Kubernetes pod VM (no-op since pods auto-start)
 func (b *Backend) BootVM(ctx context.Context, vmID string) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
-	// Kubernetes pods start automatically, so we just update state if needed
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_RUNNING
-	b.mutex.Unlock()
-
+	// Kubernetes pods start automatically, nothing to do
 	b.logger.Info("Kubernetes VM boot requested", "vm_id", vmID)
 	return nil
 }
@@ -319,14 +270,6 @@ func (b *Backend) ShutdownVM(ctx context.Context, vmID string) error {
 
 // ShutdownVMWithOptions gracefully stops a Kubernetes pod VM with options
 func (b *Backend) ShutdownVMWithOptions(ctx context.Context, vmID string, force bool, timeoutSeconds int32) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
 	gracePeriodSeconds := int64(timeoutSeconds)
 	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: &gracePeriodSeconds,
@@ -338,23 +281,14 @@ func (b *Backend) ShutdownVMWithOptions(ctx context.Context, vmID string, force 
 		deleteOptions.GracePeriodSeconds = &gracePeriodSeconds
 	}
 
-	// Delete the pod (or job will handle pod deletion)
-	if vm.useJob {
-		// For jobs, delete the job which will stop the pod
-		if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, vm.jobName, deleteOptions); err != nil {
-			return fmt.Errorf("failed to delete job: %w", err)
-		}
-	} else {
-		// For standalone pods, delete the pod directly
-		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, vm.podName, deleteOptions); err != nil {
+	// Try deleting as job first, then as pod
+	jobName := fmt.Sprintf("job-%s", vmID)
+	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, jobName, deleteOptions); err != nil {
+		// Not a job, try deleting as pod
+		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, vmID, deleteOptions); err != nil {
 			return fmt.Errorf("failed to delete pod: %w", err)
 		}
 	}
-
-	// Update state
-	b.mutex.Lock()
-	vm.state = metaldv1.VmState_VM_STATE_SHUTDOWN
-	b.mutex.Unlock()
 
 	b.logger.Info("Kubernetes VM shutdown", "vm_id", vmID, "force", force)
 	return nil
@@ -372,24 +306,13 @@ func (b *Backend) ResumeVM(ctx context.Context, vmID string) error {
 
 // RebootVM restarts a Kubernetes pod VM
 func (b *Backend) RebootVM(ctx context.Context, vmID string) error {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("VM %s not found", vmID)
-	}
-
-	// For Kubernetes, reboot means delete and recreate the pod
-	// This is simplified - in production you might want to use a deployment with rolling restart
-	if vm.useJob {
-		// Cannot restart a job - would need to delete and recreate
-		return fmt.Errorf("reboot not supported for job-based VMs, use delete and recreate")
-	}
-
-	// Delete the pod (it will be recreated if managed by a deployment)
-	if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, vm.podName, metav1.DeleteOptions{}); err != nil {
-		return fmt.Errorf("failed to delete pod for reboot: %w", err)
+	// For Kubernetes, we delete the pod/job (it will be recreated if desired)
+	jobName := fmt.Sprintf("job-%s", vmID)
+	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, jobName, metav1.DeleteOptions{}); err != nil {
+		// Not a job, try deleting as pod
+		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, vmID, metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("failed to delete pod for reboot: %w", err)
+		}
 	}
 
 	b.logger.Info("Kubernetes VM rebooted", "vm_id", vmID)
@@ -398,82 +321,43 @@ func (b *Backend) RebootVM(ctx context.Context, vmID string) error {
 
 // GetVMInfo retrieves current VM state and configuration
 func (b *Backend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, error) {
-	b.mutex.RLock()
-	vm, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return nil, fmt.Errorf("VM %s not found", vmID)
+	// Try to get pod info first
+	pod, err := b.clientset.CoreV1().Pods(b.namespace).Get(ctx, vmID, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod info: %w", err)
 	}
 
-	// Get current pod state
-	var state metaldv1.VmState
-	if vm.useJob {
-		// Check job status
-		job, err := b.clientset.BatchV1().Jobs(b.namespace).Get(ctx, vm.jobName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get job: %w", err)
-		}
-
-		if job.Status.Succeeded > 0 {
-			state = metaldv1.VmState_VM_STATE_RUNNING
-		} else if job.Status.Failed > 0 {
-			state = metaldv1.VmState_VM_STATE_SHUTDOWN
-		} else if job.Status.Active > 0 {
-			state = metaldv1.VmState_VM_STATE_RUNNING
-		} else {
-			state = metaldv1.VmState_VM_STATE_CREATED
-		}
-	} else {
-		// Check pod status
-		pod, err := b.clientset.CoreV1().Pods(b.namespace).Get(ctx, vm.podName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get pod: %w", err)
-		}
-
-		switch pod.Status.Phase {
-		case corev1.PodRunning:
-			state = metaldv1.VmState_VM_STATE_RUNNING
-		case corev1.PodPending:
-			state = metaldv1.VmState_VM_STATE_CREATED
-		case corev1.PodSucceeded, corev1.PodFailed:
-			state = metaldv1.VmState_VM_STATE_SHUTDOWN
-		default:
-			state = metaldv1.VmState_VM_STATE_UNSPECIFIED
-		}
+	// Determine state based on pod phase
+	state := metaldv1.VmState_VM_STATE_UNSPECIFIED
+	switch pod.Status.Phase {
+	case "Pending":
+		state = metaldv1.VmState_VM_STATE_CREATED
+	case "Running":
+		state = metaldv1.VmState_VM_STATE_RUNNING
+	case "Succeeded", "Failed":
+		state = metaldv1.VmState_VM_STATE_SHUTDOWN
 	}
 
-	// Update cached state
-	b.mutex.Lock()
-	vm.state = state
-	b.mutex.Unlock()
+	// Reconstruct config from pod spec
+	config := &metaldv1.VmConfig{
+		Id: vmID,
+	}
+	if len(pod.Spec.Containers) > 0 {
+		config.Boot = pod.Spec.Containers[0].Image
+	}
 
 	return &types.VMInfo{
-		Config: vm.config,
+		Config: config,
 		State:  state,
 	}, nil
 }
 
 // GetVMMetrics retrieves current VM resource usage metrics
 func (b *Backend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) {
-	b.mutex.RLock()
-	_, exists := b.vms[vmID]
-	b.mutex.RUnlock()
-
-	if !exists {
-		return nil, fmt.Errorf("VM %s not found", vmID)
-	}
-
-	// Note: Full metrics would require the metrics server client
-	// For now, return basic metrics with timestamp
+	// Kubernetes metrics require metrics-server, which may not be available
+	// Return basic metrics for now
 	return &types.VMMetrics{
 		Timestamp: time.Now(),
-		// Note: Kubernetes metrics server integration would provide:
-		// - CPU usage from container stats
-		// - Memory usage from container stats
-		// Disk and network I/O would need additional monitoring (e.g., Prometheus)
-		CpuTimeNanos:     0, // Would be populated from metrics server
-		MemoryUsageBytes: 0, // Would be populated from metrics server
 		DiskReadBytes:    0, // Not available from standard K8s metrics
 		DiskWriteBytes:   0, // Not available from standard K8s metrics
 		NetworkRxBytes:   0, // Not available from standard K8s metrics
@@ -493,15 +377,42 @@ func (b *Backend) Ping(ctx context.Context) error {
 
 // ListVMs returns a list of all VMs managed by this backend
 func (b *Backend) ListVMs() []types.ListableVMInfo {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
+	ctx := context.Background()
+	pods, err := b.clientset.CoreV1().Pods(b.namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "unkey.managed.by=metald",
+	})
+	if err != nil {
+		b.logger.Error("failed to list pods", "error", err)
+		return []types.ListableVMInfo{}
+	}
 
-	vms := make([]types.ListableVMInfo, 0, len(b.vms))
-	for _, vm := range b.vms {
+	vms := make([]types.ListableVMInfo, 0, len(pods.Items))
+	for _, pod := range pods.Items {
+		vmID := pod.Labels["unkey.vm.id"]
+		if vmID == "" {
+			vmID = pod.Name
+		}
+
+		// Determine state from pod phase
+		state := metaldv1.VmState_VM_STATE_CREATED
+		switch pod.Status.Phase {
+		case "Running":
+			state = metaldv1.VmState_VM_STATE_RUNNING
+		case "Succeeded", "Failed":
+			state = metaldv1.VmState_VM_STATE_SHUTDOWN
+		}
+
+		config := &metaldv1.VmConfig{
+			Id: vmID,
+		}
+		if len(pod.Spec.Containers) > 0 {
+			config.Boot = pod.Spec.Containers[0].Image
+		}
+
 		vms = append(vms, types.ListableVMInfo{
-			ID:     vm.vmID,
-			State:  vm.state,
-			Config: vm.config,
+			ID:     vmID,
+			State:  state,
+			Config: config,
 		})
 	}
 	return vms

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/metald/internal/database"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/network"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -30,83 +31,102 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 	logger := s.logger.With("deployment_id", req.Msg.GetDeployment().GetDeploymentId())
 	vmCount := req.Msg.GetDeployment().GetVmCount()
 
-	n, netErr := s.queries.AllocateNetwork(ctx)
-	if netErr != nil {
-		logger.Info("failed to allocate network",
-			slog.String("error", netErr.Error()),
+	nwAlloc, err := s.queries.GetNetworkAllocation(ctx, req.Msg.GetDeployment().DeploymentId)
+	if err != nil && !db.IsNotFound(err) {
+		logger.Info("failed to get network allocation",
+			slog.String("error", err.Error()),
 		)
-		return nil, connect.NewError(connect.CodeInternal, netErr)
+
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	_, bn, bnErr := net.ParseCIDR(n.BaseNetwork)
-	if bnErr != nil {
-		logger.Info("failed to parse network",
-			slog.String("error", bnErr.Error()),
+	if db.IsNotFound(err) {
+		n, netErr := s.queries.AllocateNetwork(ctx)
+		if netErr != nil {
+			logger.Info("failed to allocate network",
+				slog.String("error", netErr.Error()),
+			)
+			return nil, connect.NewError(connect.CodeInternal, netErr)
+		}
+
+		_, bn, bnErr := net.ParseCIDR(n.BaseNetwork)
+		if bnErr != nil {
+			logger.Info("failed to parse network",
+				slog.String("error", bnErr.Error()),
+			)
+			return nil, connect.NewError(connect.CodeInternal, netErr)
+		}
+
+		netConfig := network.Config{
+			BaseNetwork:     bn,
+			BridgeName:      network.GenerateID(),
+			DNSServers:      []string{"4.2.2.2", "4.2.2.1"},
+			EnableIPv6:      false,
+			EnableRateLimit: false,
+			RateLimitMbps:   0,
+		}
+
+		br := netConfig.BridgeName
+		// Ignore for now
+		// br, brErr := network.CreateBridge(logger, netConfig)
+		// if brErr != nil {
+		// 	logger.Info("failed to create bridge",
+		// 		slog.String("error", brErr.Error()),
+		// 	)
+		// 	if err := s.queries.ReleaseNetwork(ctx, n.ID); err != nil { // Delete entry from DB
+		// 		return nil, connect.NewError(connect.CodeInternal, err)
+		// 	}
+
+		// 	logger.Debug("cleaned up bridge")
+
+		// 	return nil, connect.NewError(connect.CodeInternal, brErr)
+		// }
+
+		// Generate available IPs for this network
+		availableIPs, ipErr := network.GenerateAvailableIPs(n.BaseNetwork)
+		if ipErr != nil {
+			logger.ErrorContext(ctx, "failed to generate available IPs",
+				slog.String("error", ipErr.Error()),
+			)
+			return nil, connect.NewError(connect.CodeInternal, ipErr)
+		}
+
+		na, naErr := s.queries.CreateNetworkAllocation(ctx, database.CreateNetworkAllocationParams{
+			DeploymentID: req.Msg.Deployment.GetDeploymentId(),
+			BridgeName:   br,
+			NetworkID:    n.ID,
+			AvailableIps: availableIPs,
+		})
+		if naErr != nil {
+			logger.ErrorContext(ctx, "failed to save network allocation",
+				slog.String("error", naErr.Error()),
+			)
+			return nil, connect.NewError(connect.CodeInternal, naErr)
+		}
+
+		logger.Debug("network allocated",
+			slog.Any("network_cidr", netConfig.BaseNetwork.String()),
+			slog.Any("network_id", na.ID),
 		)
-		return nil, connect.NewError(connect.CodeInternal, netErr)
-	}
 
-	netConfig := network.Config{
-		BaseNetwork:     bn,
-		BridgeName:      network.GenerateID(),
-		DNSServers:      []string{"4.2.2.2", "4.2.2.1"},
-		EnableIPv6:      false,
-		EnableRateLimit: false,
-		RateLimitMbps:   0,
-	}
-
-	br := netConfig.BridgeName
-	// Ignore for now
-	// br, brErr := network.CreateBridge(logger, netConfig)
-	// if brErr != nil {
-	// 	logger.Info("failed to create bridge",
-	// 		slog.String("error", brErr.Error()),
-	// 	)
-	// 	if err := s.queries.ReleaseNetwork(ctx, n.ID); err != nil { // Delete entry from DB
-	// 		return nil, connect.NewError(connect.CodeInternal, err)
-	// 	}
-
-	// 	logger.Debug("cleaned up bridge")
-
-	// 	return nil, connect.NewError(connect.CodeInternal, brErr)
-	// }
-
-	// Generate available IPs for this network
-	availableIPs, ipErr := network.GenerateAvailableIPs(n.BaseNetwork)
-	if ipErr != nil {
-		logger.ErrorContext(ctx, "failed to generate available IPs",
-			slog.String("error", ipErr.Error()),
+		logger.Debug("bridge allocated",
+			slog.Any("network_cidr", netConfig.BaseNetwork.String()),
+			slog.String("bridge_id", br),
 		)
-		return nil, connect.NewError(connect.CodeInternal, ipErr)
+
+		nwAlloc = database.GetNetworkAllocationRow{
+			ID:           na.ID,
+			DeploymentID: na.DeploymentID,
+			NetworkID:    na.NetworkID,
+			BridgeName:   na.BridgeName,
+			AvailableIps: na.AvailableIps,
+			AllocatedAt:  na.AllocatedAt,
+			BaseNetwork:  n.BaseNetwork,
+		}
 	}
-
-	logger.Info("BridgeName is %s", br)
-	na, naErr := s.queries.CreateNetworkAllocation(ctx, database.CreateNetworkAllocationParams{
-		DeploymentID: req.Msg.Deployment.GetDeploymentId(),
-		BridgeName:   br,
-		NetworkID:    n.ID,
-		AvailableIps: availableIPs,
-	})
-	if naErr != nil {
-		logger.ErrorContext(ctx, "failed to save network allocation",
-			slog.String("error", naErr.Error()),
-		)
-		return nil, connect.NewError(connect.CodeInternal, naErr)
-	}
-
-	logger.Debug("network allocated",
-		slog.Any("network_cidr", netConfig.BaseNetwork.String()),
-		slog.Any("network_id", na.ID),
-	)
-
-	logger.Debug("bridge allocated",
-		slog.Any("network_cidr", netConfig.BaseNetwork.String()),
-		slog.String("bridge_id", br),
-	)
 
 	logger.DebugContext(ctx, "creating vms", slog.Int64("count", int64(vmCount)))
 	vmIds := []string{}
-
 	for vm := range vmCount {
 		vmID := fmt.Sprintf("ud-%s", s.generateVmID(ctx))
 
@@ -169,11 +189,11 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			StorageConfig: sql.NullString{String: "", Valid: false},
 			Metadata:      sql.NullString{String: "", Valid: false},
 			IpAddress:     sql.NullString{String: ipRow.Column1, Valid: true},
-			BridgeName:    sql.NullString{String: na.BridgeName, Valid: true},
+			BridgeName:    sql.NullString{String: nwAlloc.BridgeName, Valid: true},
 			Status:        int64(types.VMStatusCreated),
 		})
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to create VM",
+			logger.ErrorContext(ctx, "failed to create VM in db",
 				slog.String("error", err.Error()),
 			)
 		}
@@ -181,7 +201,7 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 		// Not sure if we should boot it as well??
 		err = s.backend.BootVM(ctx, vmID)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to create VM",
+			logger.ErrorContext(ctx, "failed to boot VM",
 				slog.String("error", err.Error()),
 			)
 
