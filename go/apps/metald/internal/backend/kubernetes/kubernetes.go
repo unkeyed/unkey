@@ -96,7 +96,10 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 	// Determine namespace - use deployment-specific namespace for isolation
 	targetNamespace := b.namespace
 	if deploymentID, ok := networkInfo["deployment_id"]; ok && deploymentID != "" {
-		targetNamespace = fmt.Sprintf("unkey-deployment-%s", strings.ToLower(deploymentID))
+		// Sanitize deployment ID for Kubernetes namespace (RFC 1123)
+		sanitizedDeploymentID := strings.ToLower(deploymentID)
+		sanitizedDeploymentID = strings.ReplaceAll(sanitizedDeploymentID, "_", "-")
+		targetNamespace = fmt.Sprintf("unkey-deployment-%s", sanitizedDeploymentID)
 
 		// Ensure namespace exists
 		if err := b.ensureNamespace(ctx, targetNamespace, deploymentID); err != nil {
@@ -109,10 +112,11 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			"deployment_id", deploymentID)
 	}
 
-	// Use VM ID directly as pod/service name (it should already be RFC1123-compliant)
-	podName := vmID
-	serviceName := vmID
-	jobName := fmt.Sprintf("job-%s", podName)
+	// Sanitize VM ID for Kubernetes resources (RFC 1123)
+	sanitizedVMID := strings.ToLower(vmID)
+	podName := sanitizedVMID
+	serviceName := sanitizedVMID
+	jobName := fmt.Sprintf("job-%s", sanitizedVMID)
 
 	// Use Jobs with TTL for auto-cleanup
 	useJob := b.ttlSeconds > 0
@@ -151,16 +155,13 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 	}
 	podAnnotations := map[string]string{}
 
-	// Set specific IP if provided in network config
+	// Note: Specific IP allocation via CNI annotations is not reliable across all K8s setups
+	// For now, let Kubernetes assign IPs naturally and rely on Service discovery
 	if allocatedIP, ok := networkInfo["allocated_ip"]; ok && allocatedIP != "" {
-		// Using CNI annotation for IP assignment (works with most CNIs like Calico, Cilium)
-		podAnnotations["cni.projectcalico.org/ipAddrs"] = fmt.Sprintf("[\"%s\"]", allocatedIP)
-		// Alternative annotation for other CNIs
-		podAnnotations["k8s.v1.cni.cncf.io/networks"] = fmt.Sprintf(`[{"name":"default","ips":["%s"]}]`, allocatedIP)
-
-		b.logger.Info("requesting specific IP for pod",
+		b.logger.Info("metald allocated IP (for reference only)",
 			"vm_id", vmID,
-			"ip", allocatedIP)
+			"allocated_ip", allocatedIP,
+			"note", "using K8s service discovery instead of static IP")
 	}
 
 	podTemplate := corev1.PodTemplateSpec{

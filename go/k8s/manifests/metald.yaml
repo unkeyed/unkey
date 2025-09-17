@@ -74,21 +74,6 @@ spec:
             - name: metald-data
               mountPath: /var/lib/metald
 
-          # Health checks
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 5
-
       volumes:
         - name: metald-data
           persistentVolumeClaim:
