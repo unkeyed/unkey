@@ -50,7 +50,10 @@ export class ClickHouseProxyClient {
       service_latency: number;
       user_agent: string;
       ip_address: string;
-      region: string;
+      country: string;
+      city: string;
+      colo: string;
+      continent: string;
     }>,
   ): Promise<void> {
     await this.sendEvents("/_internal/chproxy/metrics", events);

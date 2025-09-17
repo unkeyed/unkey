@@ -5,7 +5,7 @@ import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
 // INSERTION
 export function insertVerification(ch: Inserter) {
   return ch.insert({
-    table: "default.key_verifications_raw_v2",
+    table: "verifications.raw_key_verifications_v1",
     schema: z.object({
       request_id: z.string(),
       time: z.number().int(),
