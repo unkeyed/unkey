@@ -1,7 +1,6 @@
 "use client";
 
-import { useWorkspace } from "@/providers/workspace-provider";
-import { redirect, useRouter } from "next/navigation";
+import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 import { ApisNavbar } from "../../../api-id-navbar";
 import { KeyDetailsLogsClient } from "./logs-client";
 
@@ -9,14 +8,7 @@ export default function KeyDetailsPage(props: {
   params: { apiId: string; keyAuthId: string; keyId: string };
 }) {
   const { apiId, keyAuthId: keyspaceId, keyId } = props.params;
-  const { workspace, error } = useWorkspace();
-  const router = useRouter();
-
-  if (!workspace || error) {
-    return redirect("/new");
-  }
-
-  router.replace(`/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`);
+  const { workspace } = useWorkspaceWithRedirect();
   return (
     <div className="w-full">
       <ApisNavbar
