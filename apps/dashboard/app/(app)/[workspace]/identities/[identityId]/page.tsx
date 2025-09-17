@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-
 import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -19,6 +18,7 @@ import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { Navigation } from "./navigation";
+
 type Props = {
   params: {
     identityId: string;

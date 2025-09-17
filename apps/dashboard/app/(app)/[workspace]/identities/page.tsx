@@ -12,6 +12,7 @@ import { z } from "zod";
 import { SearchField } from "./filter";
 import { Navigation } from "./navigation";
 import { Row } from "./row";
+import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 
 export const dynamic = "force-dynamic";
 
@@ -34,29 +35,9 @@ export default async function Page(props: Props) {
   const search = validatedParams.search ?? "";
   const limit = validatedParams.limit ? Number.parseInt(validatedParams.limit, 10) : DEFAULT_LIMIT;
 
-  const { orgId } = await getAuth();
+  const { workspace } = useWorkspaceWithRedirect();
 
-  let workspace: Awaited<ReturnType<typeof db.query.workspaces.findFirst>>;
-  try {
-    workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq }) => eq(table.orgId, orgId),
-    });
-  } catch (error) {
-    console.error({
-      message: "Failed to fetch workspace for identities page",
-      orgId,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-
-    // Redirect to sign-in page on database failure
-    return redirect("/auth/sign-in");
-  }
-
-  if (!workspace) {
-    return redirect("/auth/sign-in");
-  }
-
+  
   if (!workspace.betaFeatures.identities) {
     return <OptIn title="Identities" description="Identities are in beta" feature="identities" />;
   }
