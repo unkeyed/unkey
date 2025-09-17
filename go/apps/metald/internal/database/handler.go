@@ -35,6 +35,8 @@ func NewDatabaseWithLogger(dataDir string, logger *slog.Logger) (*Database, erro
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	logger.Info("database opened", slog.String("path", dbPath))
+
 	queries := New(db)
 	database := &Database{
 		Queries: queries,

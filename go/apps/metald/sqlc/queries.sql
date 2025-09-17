@@ -27,7 +27,7 @@ UPDATE network_allocations
 SET available_ips = json_remove(available_ips, '$[0]')
 WHERE deployment_id = ?
 AND json_array_length(available_ips) > 0
-RETURNING json_extract(available_ips, '$[0]') as allocated_ip, id;
+RETURNING CAST(json_extract(available_ips, '$[0]') AS TEXT) AS ip, id;
 
 -- name: AllocateIP :one
 INSERT INTO ip_allocations (vm_id, ip_addr, network_allocation_id)
@@ -69,3 +69,38 @@ SELECT
     (SELECT COUNT(*) FROM networks WHERE is_allocated = 0) as available_networks,
     (SELECT COUNT(*) FROM network_allocations) as active_deployments,
     (SELECT COUNT(*) FROM ip_allocations) as allocated_ips;
+
+-- name: CreateVM :one
+INSERT INTO vms (
+    vm_id,
+    deployment_id,
+    vcpu_count,
+    memory_size_mib,
+    boot,
+    network_config,
+    console_config,
+    storage_config,
+    metadata,
+    ip_address,
+    bridge_name,
+    status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING *;
+
+-- name: GetVMsByDeployment :many
+SELECT * FROM vms
+WHERE deployment_id = ?
+ORDER BY created_at;
+
+-- name: GetVM :one
+SELECT * FROM vms
+WHERE vm_id = ?;
+
+-- name: UpdateVMStatus :exec
+UPDATE vms
+SET status = ?,
+    error_message = ?,
+    updated_at = ?,
+    started_at = ?,
+    stopped_at = ?
+WHERE vm_id = ?;

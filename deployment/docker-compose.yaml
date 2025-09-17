@@ -284,26 +284,26 @@ services:
       - ./data/metald:/var/lib/metald
     environment:
       # Server configuration
-      UNKEY_SERVER_ADDRESS: "0.0.0.0"
-      UNKEY_SERVER_PORT: "8080"
+      UNKEY_METALD_ADDRESS: "0.0.0.0"
+      UNKEY_METALD_PORT: "8080"
 
       # Backend configuration - use Docker backend for development
-      UNKEY_BACKEND_TYPE: "docker"
+      UNKEY_METALD_BACKEND: "docker"
 
       # Database configuration (metald needs its own database for VM state)
-      UNKEY_DATABASE_DATA_DIR: "/var/lib/metald"
+      UNKEY_METALD_DATABASE_DIR: "/var/lib/metald"
 
       # Asset manager configuration (disabled for local development)
-      UNKEY_ASSET_MANAGER_ENABLED: "false"
+      UNKEY_METALD_ASSETMANAGER_ENABLED: "false"
 
       # Billing configuration (disabled for local development)
-      UNKEY_BILLING_ENABLED: "false"
+      UNKEY_METALD_BILLING_ENABLED: "false"
 
       # TLS configuration (disabled for local development)
-      UNKEY_TLS_MODE: "off"
+      UNKEY_METALD_TLS_MODE: "disabled"
 
       # OpenTelemetry configuration
-      UNKEY_OPENTELEMETRY_ENABLED: "false"
+      UNKEY_METALD_OTEL_ENABLED: "false"
 
   ctrl:
     networks:
