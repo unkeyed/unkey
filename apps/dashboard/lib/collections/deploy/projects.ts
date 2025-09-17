@@ -11,6 +11,14 @@ const schema = z.object({
   gitRepositoryUrl: z.string().nullable(),
   updatedAt: z.number().int().nullable(),
   liveDeploymentId: z.string().nullable(),
+  // Flattened deployment fields for UI
+  commitTitle: z.string(),
+  branch: z.string(),
+  author: z.string(),
+  commitTimestamp: z.number().int().nullable(),
+  regions: z.array(z.string()),
+  // Domain field
+  domain: z.string(),
 });
 
 export const createProjectRequestSchema = z.object({
