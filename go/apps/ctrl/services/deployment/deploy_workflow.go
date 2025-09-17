@@ -65,11 +65,12 @@ func (w *DeployWorkflow) Name() string {
 
 // DeployRequest defines the input for the deploy workflow
 type DeployRequest struct {
-	WorkspaceID  string `json:"workspace_id"`
-	ProjectID    string `json:"project_id"`
-	KeyspaceID   string `json:"keyspace_id"`
-	DeploymentID string `json:"deployment_id"`
-	DockerImage  string `json:"docker_image"`
+	WorkspaceID   string `json:"workspace_id"`
+	ProjectID     string `json:"project_id"`
+	KeyspaceID    string `json:"keyspace_id"`
+	DeploymentID  string `json:"deployment_id"`
+	EnvironmentID string `json:"environment_id"`
+	DockerImage   string `json:"docker_image"`
 }
 
 // DeploymentResult holds the deployment outcome
