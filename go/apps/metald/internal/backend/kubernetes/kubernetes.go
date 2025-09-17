@@ -231,7 +231,29 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		}
 	}
 
-	// Create service to expose the VM
+	// Create service to expose the VM with specific ClusterIP
+	serviceSpec := corev1.ServiceSpec{
+		Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
+		Selector: map[string]string{
+			"unkey.vm.id": vmID,
+		},
+		Ports: []corev1.ServicePort{
+			{
+				Port:       8080,
+				TargetPort: intstr.FromInt(8080),
+				Protocol:   corev1.ProtocolTCP,
+			},
+		},
+	}
+
+	// Set specific ClusterIP if provided in network config
+	if allocatedIP, ok := networkInfo["allocated_ip"]; ok && allocatedIP != "" {
+		serviceSpec.ClusterIP = allocatedIP
+		b.logger.Info("setting service ClusterIP to allocated IP",
+			"vm_id", vmID,
+			"cluster_ip", allocatedIP)
+	}
+
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
@@ -245,19 +267,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 				"unkey.deployment.id": networkInfo["deployment_id"],
 			},
 		},
-		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
-			Selector: map[string]string{
-				"unkey.vm.id": vmID,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Port:       8080,
-					TargetPort: intstr.FromInt(8080),
-					Protocol:   corev1.ProtocolTCP,
-				},
-			},
-		},
+		Spec: serviceSpec,
 	}
 
 	_, err := b.clientset.CoreV1().Services(targetNamespace).Create(ctx, service, metav1.CreateOptions{})
@@ -403,11 +413,11 @@ func (b *Backend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetri
 	// Kubernetes metrics require metrics-server, which may not be available
 	// Return basic metrics for now
 	return &types.VMMetrics{
-		Timestamp: time.Now(),
-		DiskReadBytes:    0, // Not available from standard K8s metrics
-		DiskWriteBytes:   0, // Not available from standard K8s metrics
-		NetworkRxBytes:   0, // Not available from standard K8s metrics
-		NetworkTxBytes:   0, // Not available from standard K8s metrics
+		Timestamp:      time.Now(),
+		DiskReadBytes:  0, // Not available from standard K8s metrics
+		DiskWriteBytes: 0, // Not available from standard K8s metrics
+		NetworkRxBytes: 0, // Not available from standard K8s metrics
+		NetworkTxBytes: 0, // Not available from standard K8s metrics
 	}, nil
 }
 

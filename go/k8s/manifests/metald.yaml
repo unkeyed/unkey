@@ -42,6 +42,12 @@ spec:
             - name: UNKEY_METALD_BACKEND
               value: "k8s"
 
+            # Network configuration - use K8s service CIDR for OrbStack
+            - name: UNKEY_METALD_NETWORK_CIDR
+              value: "192.168.194.128/25"  # OrbStack's exact service CIDR
+            - name: UNKEY_METALD_SUBNET_PREFIX
+              value: "29"  # Smaller subnets (8 IPs each) to fit in /25 range
+
             # Database configuration (metald needs its own database for VM state)
             - name: UNKEY_METALD_DATABASE_DIR
               value: "/var/lib/metald"

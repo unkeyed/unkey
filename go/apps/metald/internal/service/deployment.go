@@ -2,21 +2,25 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
-	"time"
+	"sync"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/database"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/network"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+)
+
+// In-memory tracking of deployments to VM IDs
+var (
+	deploymentVMs = make(map[string][]string) // deployment_id -> vm_ids
+	deploymentMu  sync.RWMutex
 )
 
 // CreateDeployment allocates a network, generates IDs etc
@@ -188,25 +192,11 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			slog.Any("fulfilled", vm),
 		)
 
-		_, err = s.queries.CreateVM(ctx, database.CreateVMParams{
-			VmID:          vmID,
-			DeploymentID:  req.Msg.GetDeployment().DeploymentId,
-			VcpuCount:     int64(req.Msg.Deployment.GetCpu()),
-			MemorySizeMib: int64(req.Msg.Deployment.GetMemorySizeMib()),
-			Boot:          req.Msg.Deployment.GetImage(),
-			NetworkConfig: sql.NullString{String: "", Valid: false},
-			ConsoleConfig: sql.NullString{String: "", Valid: false},
-			StorageConfig: sql.NullString{String: "", Valid: false},
-			Metadata:      sql.NullString{String: "", Valid: false},
-			IpAddress:     sql.NullString{String: ipRow.Column1, Valid: true},
-			BridgeName:    sql.NullString{String: nwAlloc.BridgeName, Valid: true},
-			Status:        int64(types.VMStatusCreated),
-		})
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to create VM in db",
-				slog.String("error", err.Error()),
-			)
-		}
+		// VM tracking is now handled by the backend (in-memory for K8s/Docker)
+		logger.Debug("VM created, tracking handled by backend",
+			slog.String("vm_id", vmID),
+			slog.String("deployment_id", req.Msg.GetDeployment().DeploymentId),
+		)
 
 		// Not sure if we should boot it as well??
 		err = s.backend.BootVM(ctx, vmID)
@@ -218,23 +208,16 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 
-		now := time.Now().UnixMilli()
-		err = s.queries.UpdateVMStatus(ctx, database.UpdateVMStatusParams{
-			VmID:         vmID,
-			Status:       int64(types.VMStatusRunning),
-			ErrorMessage: sql.NullString{String: "", Valid: false},
-			UpdatedAt:    now,
-			StartedAt:    sql.NullInt64{Valid: true, Int64: now},
-			StoppedAt:    sql.NullInt64{Valid: false, Int64: 0},
-		})
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to update VM status",
-				slog.String("error", err.Error()),
-			)
-		}
+		// VM status tracking is now handled by the backend
+		logger.Debug("VM booted, status tracked by backend", slog.String("vm_id", vmID))
 
 		vmIds = append(vmIds, vmID)
 	}
+
+	// Track all VM IDs for this deployment
+	deploymentMu.Lock()
+	deploymentVMs[req.Msg.GetDeployment().DeploymentId] = vmIds
+	deploymentMu.Unlock()
 
 	return connect.NewResponse(&metaldv1.CreateDeploymentResponse{
 		VmIds: vmIds,
@@ -253,23 +236,33 @@ func (s *VMService) GetDeployment(ctx context.Context, req *connect.Request[meta
 
 	logger := s.logger.With("deployment_id", req.Msg.GetDeploymentId())
 
-	vms, err := s.queries.GetVMsByDeployment(ctx, req.Msg.GetDeploymentId())
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to get VMs",
-			slog.String("error", err.Error()),
-		)
+	// Get VM IDs from in-memory tracking
+	deploymentMu.RLock()
+	vmIDs := deploymentVMs[req.Msg.GetDeploymentId()]
+	deploymentMu.RUnlock()
 
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if len(vmIDs) == 0 {
+		return connect.NewResponse(&metaldv1.GetDeploymentResponse{
+			DeploymentId: req.Msg.GetDeploymentId(),
+			Vms:          []*metaldv1.GetDeploymentResponse_Vm{},
+		}), nil
 	}
 
-	vmResponse := make([]*metaldv1.GetDeploymentResponse_Vm, len(vms))
-	for i, vm := range vms {
-		vmResponse[i] = &metaldv1.GetDeploymentResponse_Vm{
-			Id:    vm.VmID,
-			Host:  vm.IpAddress.String,
-			Port:  8080,
-			State: types.VMStatus(vm.Status).ToProtoVmState(),
+	// Get VM info from backend for each VM ID
+	var vmResponse []*metaldv1.GetDeploymentResponse_Vm
+	for _, vmID := range vmIDs {
+		vmInfo, err := s.backend.GetVMInfo(ctx, vmID)
+		if err != nil {
+			logger.Warn("failed to get VM info", slog.String("vm_id", vmID), slog.String("error", err.Error()))
+			continue // Skip missing VMs
 		}
+
+		vmResponse = append(vmResponse, &metaldv1.GetDeploymentResponse_Vm{
+			Id:    vmID,
+			Host:  "unknown", // We don't track IPs in this simple approach
+			Port:  8080,
+			State: vmInfo.State,
+		})
 	}
 
 	return connect.NewResponse(&metaldv1.GetDeploymentResponse{

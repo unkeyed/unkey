@@ -13,20 +13,16 @@ type Querier interface {
 	// queries.sql
 	AllocateNetwork(ctx context.Context) (Network, error)
 	CreateNetworkAllocation(ctx context.Context, arg CreateNetworkAllocationParams) (NetworkAllocation, error)
-	CreateVM(ctx context.Context, arg CreateVMParams) (Vm, error)
 	DeleteIPAllocationsForNetwork(ctx context.Context, networkAllocationID int64) error
 	DeleteNetworkAllocation(ctx context.Context, deploymentID string) error
 	GetAvailableIPCount(ctx context.Context, deploymentID string) (interface{}, error)
 	GetIPAllocation(ctx context.Context, vmID string) (IpAllocation, error)
 	GetNetworkAllocation(ctx context.Context, deploymentID string) (GetNetworkAllocationRow, error)
 	GetNetworkStats(ctx context.Context) (GetNetworkStatsRow, error)
-	GetVM(ctx context.Context, vmID string) (Vm, error)
-	GetVMsByDeployment(ctx context.Context, deploymentID string) ([]Vm, error)
 	PopAvailableIPJSON(ctx context.Context, deploymentID string) (PopAvailableIPJSONRow, error)
 	ReleaseIP(ctx context.Context, vmID string) error
 	ReleaseNetwork(ctx context.Context, id int64) error
 	ReturnIPJSON(ctx context.Context, arg ReturnIPJSONParams) error
-	UpdateVMStatus(ctx context.Context, arg UpdateVMStatusParams) error
 }
 
 var _ Querier = (*Queries)(nil)

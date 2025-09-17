@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/pressly/goose/v3"
 )
@@ -14,9 +15,22 @@ func init() {
 }
 
 func upSeedNetworks(tx *sql.Tx) error {
-	// Generate and insert /26 subnets from 10.0.0.0/8
-	rootCIDR := "10.0.0.0/8"
+	// Get network CIDR from environment variable, default to 10.0.0.0/8
+	rootCIDR := os.Getenv("UNKEY_METALD_NETWORK_CIDR")
+	if rootCIDR == "" {
+		rootCIDR = "10.0.0.0/8"
+	}
+
+	// Get subnet prefix from environment variable, default to /26
 	subnetPrefix := 26
+	if envPrefix := os.Getenv("UNKEY_METALD_SUBNET_PREFIX"); envPrefix != "" {
+		var err error
+		if _, err = fmt.Sscanf(envPrefix, "%d", &subnetPrefix); err != nil {
+			return fmt.Errorf("invalid UNKEY_METALD_SUBNET_PREFIX %s: %w", envPrefix, err)
+		}
+	}
+
+	fmt.Printf("Seeding networks from %s with /%d subnets\n", rootCIDR, subnetPrefix)
 
 	_, rootNet, err := net.ParseCIDR(rootCIDR)
 	if err != nil {

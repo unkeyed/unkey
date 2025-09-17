@@ -69,38 +69,3 @@ SELECT
     (SELECT COUNT(*) FROM networks WHERE is_allocated = 0) as available_networks,
     (SELECT COUNT(*) FROM network_allocations) as active_deployments,
     (SELECT COUNT(*) FROM ip_allocations) as allocated_ips;
-
--- name: CreateVM :one
-INSERT INTO vms (
-    vm_id,
-    deployment_id,
-    vcpu_count,
-    memory_size_mib,
-    boot,
-    network_config,
-    console_config,
-    storage_config,
-    metadata,
-    ip_address,
-    bridge_name,
-    status
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING *;
-
--- name: GetVMsByDeployment :many
-SELECT * FROM vms
-WHERE deployment_id = ?
-ORDER BY created_at;
-
--- name: GetVM :one
-SELECT * FROM vms
-WHERE vm_id = ?;
-
--- name: UpdateVMStatus :exec
-UPDATE vms
-SET status = ?,
-    error_message = ?,
-    updated_at = ?,
-    started_at = ?,
-    stopped_at = ?
-WHERE vm_id = ?;

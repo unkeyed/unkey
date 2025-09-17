@@ -30,23 +30,3 @@ type NetworkAllocation struct {
 	AvailableIps string       `db:"available_ips" json:"available_ips"`
 	AllocatedAt  sql.NullTime `db:"allocated_at" json:"allocated_at"`
 }
-
-type Vm struct {
-	VmID          string         `db:"vm_id" json:"vm_id"`
-	DeploymentID  string         `db:"deployment_id" json:"deployment_id"`
-	VcpuCount     int64          `db:"vcpu_count" json:"vcpu_count"`
-	MemorySizeMib int64          `db:"memory_size_mib" json:"memory_size_mib"`
-	Boot          string         `db:"boot" json:"boot"`
-	NetworkConfig sql.NullString `db:"network_config" json:"network_config"`
-	ConsoleConfig sql.NullString `db:"console_config" json:"console_config"`
-	StorageConfig sql.NullString `db:"storage_config" json:"storage_config"`
-	Metadata      sql.NullString `db:"metadata" json:"metadata"`
-	IpAddress     sql.NullString `db:"ip_address" json:"ip_address"`
-	BridgeName    sql.NullString `db:"bridge_name" json:"bridge_name"`
-	Status        int64          `db:"status" json:"status"`
-	ErrorMessage  sql.NullString `db:"error_message" json:"error_message"`
-	CreatedAt     int64          `db:"created_at" json:"created_at"`
-	UpdatedAt     int64          `db:"updated_at" json:"updated_at"`
-	StartedAt     sql.NullInt64  `db:"started_at" json:"started_at"`
-	StoppedAt     sql.NullInt64  `db:"stopped_at" json:"stopped_at"`
-}

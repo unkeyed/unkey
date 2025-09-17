@@ -88,77 +88,6 @@ func (q *Queries) CreateNetworkAllocation(ctx context.Context, arg CreateNetwork
 	return i, err
 }
 
-const createVM = `-- name: CreateVM :one
-INSERT INTO vms (
-    vm_id,
-    deployment_id,
-    vcpu_count,
-    memory_size_mib,
-    boot,
-    network_config,
-    console_config,
-    storage_config,
-    metadata,
-    ip_address,
-    bridge_name,
-    status
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING vm_id, deployment_id, vcpu_count, memory_size_mib, boot, network_config, console_config, storage_config, metadata, ip_address, bridge_name, status, error_message, created_at, updated_at, started_at, stopped_at
-`
-
-type CreateVMParams struct {
-	VmID          string         `db:"vm_id" json:"vm_id"`
-	DeploymentID  string         `db:"deployment_id" json:"deployment_id"`
-	VcpuCount     int64          `db:"vcpu_count" json:"vcpu_count"`
-	MemorySizeMib int64          `db:"memory_size_mib" json:"memory_size_mib"`
-	Boot          string         `db:"boot" json:"boot"`
-	NetworkConfig sql.NullString `db:"network_config" json:"network_config"`
-	ConsoleConfig sql.NullString `db:"console_config" json:"console_config"`
-	StorageConfig sql.NullString `db:"storage_config" json:"storage_config"`
-	Metadata      sql.NullString `db:"metadata" json:"metadata"`
-	IpAddress     sql.NullString `db:"ip_address" json:"ip_address"`
-	BridgeName    sql.NullString `db:"bridge_name" json:"bridge_name"`
-	Status        int64          `db:"status" json:"status"`
-}
-
-func (q *Queries) CreateVM(ctx context.Context, arg CreateVMParams) (Vm, error) {
-	row := q.db.QueryRowContext(ctx, createVM,
-		arg.VmID,
-		arg.DeploymentID,
-		arg.VcpuCount,
-		arg.MemorySizeMib,
-		arg.Boot,
-		arg.NetworkConfig,
-		arg.ConsoleConfig,
-		arg.StorageConfig,
-		arg.Metadata,
-		arg.IpAddress,
-		arg.BridgeName,
-		arg.Status,
-	)
-	var i Vm
-	err := row.Scan(
-		&i.VmID,
-		&i.DeploymentID,
-		&i.VcpuCount,
-		&i.MemorySizeMib,
-		&i.Boot,
-		&i.NetworkConfig,
-		&i.ConsoleConfig,
-		&i.StorageConfig,
-		&i.Metadata,
-		&i.IpAddress,
-		&i.BridgeName,
-		&i.Status,
-		&i.ErrorMessage,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.StartedAt,
-		&i.StoppedAt,
-	)
-	return i, err
-}
-
 const deleteIPAllocationsForNetwork = `-- name: DeleteIPAllocationsForNetwork :exec
 DELETE FROM ip_allocations
 WHERE network_allocation_id = ?
@@ -268,83 +197,6 @@ func (q *Queries) GetNetworkStats(ctx context.Context) (GetNetworkStatsRow, erro
 	return i, err
 }
 
-const getVM = `-- name: GetVM :one
-SELECT vm_id, deployment_id, vcpu_count, memory_size_mib, boot, network_config, console_config, storage_config, metadata, ip_address, bridge_name, status, error_message, created_at, updated_at, started_at, stopped_at FROM vms
-WHERE vm_id = ?
-`
-
-func (q *Queries) GetVM(ctx context.Context, vmID string) (Vm, error) {
-	row := q.db.QueryRowContext(ctx, getVM, vmID)
-	var i Vm
-	err := row.Scan(
-		&i.VmID,
-		&i.DeploymentID,
-		&i.VcpuCount,
-		&i.MemorySizeMib,
-		&i.Boot,
-		&i.NetworkConfig,
-		&i.ConsoleConfig,
-		&i.StorageConfig,
-		&i.Metadata,
-		&i.IpAddress,
-		&i.BridgeName,
-		&i.Status,
-		&i.ErrorMessage,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.StartedAt,
-		&i.StoppedAt,
-	)
-	return i, err
-}
-
-const getVMsByDeployment = `-- name: GetVMsByDeployment :many
-SELECT vm_id, deployment_id, vcpu_count, memory_size_mib, boot, network_config, console_config, storage_config, metadata, ip_address, bridge_name, status, error_message, created_at, updated_at, started_at, stopped_at FROM vms
-WHERE deployment_id = ?
-ORDER BY created_at
-`
-
-func (q *Queries) GetVMsByDeployment(ctx context.Context, deploymentID string) ([]Vm, error) {
-	rows, err := q.db.QueryContext(ctx, getVMsByDeployment, deploymentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Vm
-	for rows.Next() {
-		var i Vm
-		if err := rows.Scan(
-			&i.VmID,
-			&i.DeploymentID,
-			&i.VcpuCount,
-			&i.MemorySizeMib,
-			&i.Boot,
-			&i.NetworkConfig,
-			&i.ConsoleConfig,
-			&i.StorageConfig,
-			&i.Metadata,
-			&i.IpAddress,
-			&i.BridgeName,
-			&i.Status,
-			&i.ErrorMessage,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.StartedAt,
-			&i.StoppedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const popAvailableIPJSON = `-- name: PopAvailableIPJSON :one
 UPDATE network_allocations
 SET available_ips = json_remove(available_ips, '$[0]')
@@ -398,36 +250,5 @@ type ReturnIPJSONParams struct {
 
 func (q *Queries) ReturnIPJSON(ctx context.Context, arg ReturnIPJSONParams) error {
 	_, err := q.db.ExecContext(ctx, returnIPJSON, arg.JsonInsert, arg.DeploymentID)
-	return err
-}
-
-const updateVMStatus = `-- name: UpdateVMStatus :exec
-UPDATE vms
-SET status = ?,
-    error_message = ?,
-    updated_at = ?,
-    started_at = ?,
-    stopped_at = ?
-WHERE vm_id = ?
-`
-
-type UpdateVMStatusParams struct {
-	Status       int64          `db:"status" json:"status"`
-	ErrorMessage sql.NullString `db:"error_message" json:"error_message"`
-	UpdatedAt    int64          `db:"updated_at" json:"updated_at"`
-	StartedAt    sql.NullInt64  `db:"started_at" json:"started_at"`
-	StoppedAt    sql.NullInt64  `db:"stopped_at" json:"stopped_at"`
-	VmID         string         `db:"vm_id" json:"vm_id"`
-}
-
-func (q *Queries) UpdateVMStatus(ctx context.Context, arg UpdateVMStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateVMStatus,
-		arg.Status,
-		arg.ErrorMessage,
-		arg.UpdatedAt,
-		arg.StartedAt,
-		arg.StoppedAt,
-		arg.VmID,
-	)
 	return err
 }

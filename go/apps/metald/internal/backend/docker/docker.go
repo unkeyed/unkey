@@ -57,7 +57,6 @@ func New(logger logging.Logger, isRunningDocker bool) (*Backend, error) {
 	}, nil
 }
 
-
 // calculateGatewayIP calculates the gateway IP for a subnet (usually .1)
 func calculateGatewayIP(subnet string) (string, error) {
 	_, ipnet, err := net.ParseCIDR(subnet)
@@ -114,8 +113,8 @@ func (b *Backend) createCustomNetwork(ctx context.Context, deploymentID, subnet 
 			"com.docker.network.bridge.enable_icc":           "true",
 		},
 		Labels: map[string]string{
-			"unkey.managed.by":     "metald",
-			"unkey.deployment.id":  deploymentID,
+			"unkey.managed.by":    "metald",
+			"unkey.deployment.id": deploymentID,
 		},
 	}
 
@@ -402,8 +401,8 @@ func (b *Backend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, er
 
 	// Reconstruct config from container labels and inspect data
 	config := &metaldv1.VmConfig{
-		Id:    vmID,
-		Boot:  inspect.Config.Image,
+		Id:   vmID,
+		Boot: inspect.Config.Image,
 	}
 
 	// Extract resources if set

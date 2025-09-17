@@ -109,10 +109,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	deployment, err := hydra.Step(ctx, "create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
-		if w.metaldClient == nil {
-			return nil, fmt.Errorf("metald client not initialized")
-		}
-
 		// Create deployment request
 		deploymentReq := &metaldv1.CreateDeploymentRequest{
 			Deployment: &metaldv1.DeploymentRequest{
@@ -160,10 +156,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			time.Sleep(time.Second)
 			if i%10 == 0 { // Log every 10 seconds instead of every second
 				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
-			}
-
-			if w.metaldClient == nil {
-				return nil, fmt.Errorf("metald client not initialized")
 			}
 
 			resp, err := w.metaldClient.GetDeployment(stepCtx, connect.NewRequest(&metaldv1.GetDeploymentRequest{
