@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -152,12 +153,21 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			return nil, connect.NewError(connect.CodeInternal, allocErr)
 		}
 
+		// Pass network info to backend via NetworkConfig (JSON)
+		networkInfo := map[string]string{
+			"deployment_id": req.Msg.Deployment.GetDeploymentId(),
+			"subnet":        nwAlloc.BaseNetwork,
+			"allocated_ip":  ipRow.Column1,
+			"bridge_name":   nwAlloc.BridgeName,
+		}
+		networkConfigJSON, _ := json.Marshal(networkInfo)
+
 		// This returns vmID and err
 		_, err := s.backend.CreateVM(ctx, &metaldv1.VmConfig{
 			VcpuCount:     req.Msg.Deployment.GetCpu(),
 			MemorySizeMib: req.Msg.Deployment.GetMemorySizeMib(),
 			Boot:          req.Msg.Deployment.GetImage(),
-			NetworkConfig: "",
+			NetworkConfig: string(networkConfigJSON),
 			Console:       nil,
 			Storage:       nil,
 			Id:            vmID,

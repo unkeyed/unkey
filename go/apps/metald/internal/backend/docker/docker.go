@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/go-connections/nat"
@@ -55,6 +57,81 @@ func New(logger logging.Logger, isRunningDocker bool) (*Backend, error) {
 	}, nil
 }
 
+
+// calculateGatewayIP calculates the gateway IP for a subnet (usually .1)
+func calculateGatewayIP(subnet string) (string, error) {
+	_, ipnet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return "", fmt.Errorf("invalid subnet: %w", err)
+	}
+
+	// Get the first IP in the subnet (network address)
+	ip := ipnet.IP.Mask(ipnet.Mask)
+
+	// Increment to get the first usable IP (gateway)
+	ip[len(ip)-1]++
+
+	return ip.String(), nil
+}
+
+// createCustomNetwork creates a Docker network for the deployment
+func (b *Backend) createCustomNetwork(ctx context.Context, deploymentID, subnet string) (string, error) {
+	networkName := fmt.Sprintf("unkey-deployment-%s", deploymentID)
+
+	// Check if network already exists
+	networks, err := b.dockerClient.NetworkList(ctx, network.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("name", networkName)),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list networks: %w", err)
+	}
+
+	if len(networks) > 0 {
+		b.logger.Info("network already exists", "network", networkName)
+		return networks[0].ID, nil
+	}
+
+	// Calculate gateway IP
+	gatewayIP, err := calculateGatewayIP(subnet)
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate gateway IP: %w", err)
+	}
+
+	// Create new network
+	networkConfig := network.CreateOptions{
+		Driver: "bridge",
+		IPAM: &network.IPAM{
+			Driver: "default",
+			Config: []network.IPAMConfig{
+				{
+					Subnet:  subnet,
+					Gateway: gatewayIP,
+				},
+			},
+		},
+		Options: map[string]string{
+			"com.docker.network.bridge.enable_ip_masquerade": "true",
+			"com.docker.network.bridge.enable_icc":           "true",
+		},
+		Labels: map[string]string{
+			"unkey.managed.by":     "metald",
+			"unkey.deployment.id":  deploymentID,
+		},
+	}
+
+	resp, err := b.dockerClient.NetworkCreate(ctx, networkName, networkConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to create network: %w", err)
+	}
+
+	b.logger.Info("created custom network",
+		"network", networkName,
+		"subnet", subnet,
+		"gateway", gatewayIP)
+
+	return resp.ID, nil
+}
+
 // CreateVM creates a new Docker container as a VM
 func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (string, error) {
 	// Use the provided VM ID from config
@@ -71,6 +148,14 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 	imageName := config.Boot
 	if imageName == "" {
 		return "", fmt.Errorf("boot image (Docker image) is required")
+	}
+
+	// Parse network configuration
+	var networkInfo map[string]string
+	if config.NetworkConfig != "" {
+		if err := json.Unmarshal([]byte(config.NetworkConfig), &networkInfo); err != nil {
+			return "", fmt.Errorf("failed to parse network config: %w", err)
+		}
 	}
 
 	// Pull image if not present
@@ -114,8 +199,38 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		Resources:  resources,
 	}
 
+	var networkingConfig *network.NetworkingConfig
+
+	// If we have network info, create/use custom network
+	if deploymentID, ok := networkInfo["deployment_id"]; ok {
+		subnet := networkInfo["subnet"]
+		allocatedIP := networkInfo["allocated_ip"]
+
+		// Create custom network for this deployment
+		_, err := b.createCustomNetwork(ctx, deploymentID, subnet)
+		if err != nil {
+			return "", fmt.Errorf("failed to create custom network: %w", err)
+		}
+
+		networkName := fmt.Sprintf("unkey-deployment-%s", deploymentID)
+		networkingConfig = &network.NetworkingConfig{
+			EndpointsConfig: map[string]*network.EndpointSettings{
+				networkName: {
+					IPAMConfig: &network.EndpointIPAMConfig{
+						IPv4Address: allocatedIP,
+					},
+				},
+			},
+		}
+
+		b.logger.Info("using custom network",
+			"vm_id", vmID,
+			"network", networkName,
+			"ip", allocatedIP)
+	}
+
 	// Create the container
-	resp, err := b.dockerClient.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, containerName)
+	resp, err := b.dockerClient.ContainerCreate(ctx, containerConfig, hostConfig, networkingConfig, nil, containerName)
 	if err != nil {
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
@@ -129,6 +244,12 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 
 // DeleteVM removes a Docker container VM
 func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
+	// Get container info to find which networks it's connected to
+	inspect, err := b.dockerClient.ContainerInspect(ctx, vmID)
+	if err != nil && !errdefs.IsNotFound(err) {
+		b.logger.Warn("failed to inspect container", "vm_id", vmID, "error", err)
+	}
+
 	// Stop container if running
 	if err := b.dockerClient.ContainerStop(ctx, vmID, container.StopOptions{}); err != nil {
 		if !errdefs.IsNotFound(err) {
@@ -147,8 +268,47 @@ func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
 		}
 	}
 
+	// Clean up deployment networks if this was the last container
+	if inspect.ID != "" {
+		for networkName := range inspect.NetworkSettings.Networks {
+			if strings.HasPrefix(networkName, "unkey-deployment-") {
+				b.cleanupNetworkIfEmpty(ctx, networkName)
+			}
+		}
+	}
+
 	b.logger.Info("Docker VM deleted", "vm_id", vmID)
 	return nil
+}
+
+// cleanupNetworkIfEmpty removes a deployment network if no containers are using it
+func (b *Backend) cleanupNetworkIfEmpty(ctx context.Context, networkName string) {
+	// Get network info
+	networkInfo, err := b.dockerClient.NetworkInspect(ctx, networkName, network.InspectOptions{})
+	if err != nil {
+		b.logger.Warn("failed to inspect network", "network", networkName, "error", err)
+		return
+	}
+
+	// Count VM containers (containers managed by metald)
+	vmContainers := 0
+	for _, endpoint := range networkInfo.Containers {
+		// Count containers that look like VM containers
+		if strings.HasPrefix(endpoint.Name, "ud-") || strings.Contains(endpoint.Name, "unkey-vm") {
+			vmContainers++
+		}
+	}
+
+	// If no VM containers are left, remove the network
+	if vmContainers == 0 {
+		// Remove the network
+		err := b.dockerClient.NetworkRemove(ctx, networkName)
+		if err != nil {
+			b.logger.Warn("failed to remove empty network", "network", networkName, "error", err)
+		} else {
+			b.logger.Info("cleaned up empty deployment network", "network", networkName)
+		}
+	}
 }
 
 // BootVM starts a Docker container VM

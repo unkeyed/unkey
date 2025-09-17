@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -84,6 +85,30 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		return "", fmt.Errorf("boot image is required")
 	}
 
+	// Parse network configuration
+	var networkInfo map[string]string
+	if config.NetworkConfig != "" {
+		if err := json.Unmarshal([]byte(config.NetworkConfig), &networkInfo); err != nil {
+			return "", fmt.Errorf("failed to parse network config: %w", err)
+		}
+	}
+
+	// Determine namespace - use deployment-specific namespace for isolation
+	targetNamespace := b.namespace
+	if deploymentID, ok := networkInfo["deployment_id"]; ok && deploymentID != "" {
+		targetNamespace = fmt.Sprintf("unkey-deployment-%s", strings.ToLower(deploymentID))
+
+		// Ensure namespace exists
+		if err := b.ensureNamespace(ctx, targetNamespace, deploymentID); err != nil {
+			return "", fmt.Errorf("failed to ensure namespace: %w", err)
+		}
+
+		b.logger.Info("using deployment namespace",
+			"vm_id", vmID,
+			"namespace", targetNamespace,
+			"deployment_id", deploymentID)
+	}
+
 	// Use VM ID directly as pod/service name (it should already be RFC1123-compliant)
 	podName := vmID
 	serviceName := vmID
@@ -119,13 +144,29 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		resources.Limits[corev1.ResourceMemory] = resource.MustParse(memLimit)
 	}
 
-	// Create pod template
+	// Create pod template with optional specific IP
+	podLabels := map[string]string{
+		"unkey.vm.id":      vmID,
+		"unkey.managed.by": "metald",
+	}
+	podAnnotations := map[string]string{}
+
+	// Set specific IP if provided in network config
+	if allocatedIP, ok := networkInfo["allocated_ip"]; ok && allocatedIP != "" {
+		// Using CNI annotation for IP assignment (works with most CNIs like Calico, Cilium)
+		podAnnotations["cni.projectcalico.org/ipAddrs"] = fmt.Sprintf("[\"%s\"]", allocatedIP)
+		// Alternative annotation for other CNIs
+		podAnnotations["k8s.v1.cni.cncf.io/networks"] = fmt.Sprintf(`[{"name":"default","ips":["%s"]}]`, allocatedIP)
+
+		b.logger.Info("requesting specific IP for pod",
+			"vm_id", vmID,
+			"ip", allocatedIP)
+	}
+
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"unkey.vm.id":      vmID,
-				"unkey.managed.by": "metald",
-			},
+			Labels:      podLabels,
+			Annotations: podAnnotations,
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever, // Required for Jobs
@@ -150,7 +191,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		job := &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      jobName,
-				Namespace: b.namespace,
+				Namespace: targetNamespace,
 				Labels: map[string]string{
 					"unkey.vm.id":      vmID,
 					"unkey.managed.by": "metald",
@@ -165,7 +206,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			},
 		}
 
-		_, err := b.clientset.BatchV1().Jobs(b.namespace).Create(ctx, job, metav1.CreateOptions{})
+		_, err := b.clientset.BatchV1().Jobs(targetNamespace).Create(ctx, job, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create job: %w", err)
 		}
@@ -174,7 +215,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      podName,
-				Namespace: b.namespace,
+				Namespace: targetNamespace,
 				Labels: map[string]string{
 					"unkey.vm.id":      vmID,
 					"unkey.managed.by": "metald",
@@ -183,7 +224,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			Spec: podTemplate.Spec,
 		}
 
-		_, err := b.clientset.CoreV1().Pods(b.namespace).Create(ctx, pod, metav1.CreateOptions{})
+		_, err := b.clientset.CoreV1().Pods(targetNamespace).Create(ctx, pod, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create pod: %w", err)
 		}
@@ -193,10 +234,14 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: b.namespace,
+			Namespace: targetNamespace,
 			Labels: map[string]string{
 				"unkey.vm.id":      vmID,
 				"unkey.managed.by": "metald",
+			},
+			Annotations: map[string]string{
+				// Add annotation to help gateway discovery
+				"unkey.deployment.id": networkInfo["deployment_id"],
 			},
 		},
 		Spec: corev1.ServiceSpec{
@@ -214,13 +259,13 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		},
 	}
 
-	_, err := b.clientset.CoreV1().Services(b.namespace).Create(ctx, service, metav1.CreateOptions{})
+	_, err := b.clientset.CoreV1().Services(targetNamespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
 		// Clean up pod/job if service creation fails
 		if useJob {
-			b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, jobName, metav1.DeleteOptions{})
+			b.clientset.BatchV1().Jobs(targetNamespace).Delete(ctx, jobName, metav1.DeleteOptions{})
 		} else {
-			b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, podName, metav1.DeleteOptions{})
+			b.clientset.CoreV1().Pods(targetNamespace).Delete(ctx, podName, metav1.DeleteOptions{})
 		}
 		return "", fmt.Errorf("failed to create service: %w", err)
 	}
@@ -483,4 +528,37 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// ensureNamespace creates a namespace for the deployment if it doesn't exist
+func (b *Backend) ensureNamespace(ctx context.Context, namespace, deploymentID string) error {
+	// Check if namespace already exists
+	_, err := b.clientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err == nil {
+		// Namespace already exists
+		return nil
+	}
+
+	// Create namespace with labels for identification and management
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+			Labels: map[string]string{
+				"unkey.deployment.id": deploymentID,
+				"unkey.managed.by":    "metald",
+				"unkey.type":          "deployment",
+			},
+		},
+	}
+
+	_, err = b.clientset.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+	}
+
+	b.logger.Info("created deployment namespace",
+		"namespace", namespace,
+		"deployment_id", deploymentID)
+
+	return nil
 }
