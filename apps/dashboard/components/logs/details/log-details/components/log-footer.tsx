@@ -1,16 +1,18 @@
 "use client";
-import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { cn } from "@/lib/utils";
-import type { Log } from "@unkey/clickhouse/src/logs";
 import { Badge, TimestampInfo } from "@unkey/ui";
+import type { SupportedLogTypes } from "..";
 
 type Props = {
-  log: Log;
+  log: SupportedLogTypes;
 };
 
+export const YELLOW_STATES = ["RATE_LIMITED", "EXPIRED", "USAGE_EXCEEDED"];
+export const RED_STATES = ["DISABLED", "FORBIDDEN", "INSUFFICIENT_PERMISSIONS"];
 const DEFAULT_OUTCOME = "VALID";
+
 export const LogFooter = ({ log }: Props) => {
   return (
     <RequestResponseDetails
@@ -64,9 +66,9 @@ export const LogFooter = ({ log }: Props) => {
               <Badge
                 className={cn(
                   {
-                    "text-amber-11 bg-amber-3 hover:bg-amber-3 font-medium":
+                    "text-warning-11 bg-warning-3 hover:bg-warning-3 font-medium":
                       YELLOW_STATES.includes(contentCopy),
-                    "text-red-11 bg-red-3 hover:bg-red-3 font-medium":
+                    "text-error-11 bg-error-3 hover:bg-error-3 font-medium":
                       RED_STATES.includes(contentCopy),
                   },
                   "uppercase",
