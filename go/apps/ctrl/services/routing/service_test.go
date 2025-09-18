@@ -59,6 +59,7 @@ func TestDeploymentStatusValidation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Create loop-scoped copy
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -220,6 +221,7 @@ func TestWorkspaceAuthorization(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Create loop-scoped copy
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -559,6 +561,7 @@ func TestSetRouteWorkspaceValidation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Create loop-scoped copy
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

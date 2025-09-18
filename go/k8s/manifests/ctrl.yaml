@@ -71,6 +71,8 @@ spec:
               value: "false"
             - name: UNKEY_METALD_BACKEND
               value: "k8s"
+            - name: UNKEY_DEFAULT_DOMAIN
+              value: "unkey.local"
           command: ["/unkey", "run", "ctrl"]
       initContainers:
         - name: wait-for-dependencies
