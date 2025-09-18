@@ -53,6 +53,21 @@ func (s *Service) CreateDeployment(
 				req.Msg.GetProjectId(), req.Msg.GetWorkspaceId()))
 	}
 
+	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+		WorkspaceID: req.Msg.GetWorkspaceId(),
+		ProjectID:   project.ID,
+		Slug:        req.Msg.GetEnvironmentSlug(),
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("environment '%s' not found in workspace '%s'",
+					req.Msg.GetEnvironmentSlug(), req.Msg.GetWorkspaceId()))
+		}
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup environment: %w", err))
+	}
+
 	// Get git branch name for the deployment
 	gitBranch := req.Msg.GetBranch()
 	if gitBranch == "" {
@@ -84,7 +99,7 @@ func (s *Service) CreateDeployment(
 	}
 
 	// Generate deployment ID
-	deploymentID := uid.New("deployment")
+	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
 	// Sanitize input values before persisting
@@ -96,11 +111,15 @@ func (s *Service) CreateDeployment(
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:                  deploymentID,
-		WorkspaceID:         req.Msg.GetWorkspaceId(),
-		ProjectID:           req.Msg.GetProjectId(),
-		EnvironmentID:       req.Msg.GetEnvironmentId(),
-		RuntimeConfig:       json.RawMessage("{}"),
+		ID:            deploymentID,
+		WorkspaceID:   req.Msg.GetWorkspaceId(),
+		ProjectID:     req.Msg.GetProjectId(),
+		EnvironmentID: env.ID,
+		RuntimeConfig: json.RawMessage(`{
+		"regions": [{"region":"us-east-1", "vmCount": 1}],
+		"cpus": 2,
+		"memory": 2048
+		}`),
 		OpenapiSpec:         sql.NullString{String: "", Valid: false},
 		Status:              db.DeploymentsStatusPending,
 		CreatedAt:           now,
@@ -123,17 +142,17 @@ func (s *Service) CreateDeployment(
 		"deployment_id", deploymentID,
 		"workspace_id", req.Msg.GetWorkspaceId(),
 		"project_id", req.Msg.GetProjectId(),
-		"environment", req.Msg.GetEnvironmentId(),
-		"docker_image", req.Msg.GetDockerImageTag())
+		"environment", env.ID,
+	)
 
 	// Start the deployment workflow directly
 	deployReq := &DeployRequest{
-		WorkspaceID:  req.Msg.GetWorkspaceId(),
-		ProjectID:    req.Msg.GetProjectId(),
-		DeploymentID: deploymentID,
-		DockerImage:  req.Msg.GetDockerImageTag(),
-		KeyspaceID:   req.Msg.GetKeyspaceId(),
-		Hostname:     req.Msg.GetHostname(),
+		WorkspaceID:   req.Msg.GetWorkspaceId(),
+		ProjectID:     req.Msg.GetProjectId(),
+		EnvironmentID: env.ID,
+		DeploymentID:  deploymentID,
+		DockerImage:   req.Msg.GetDockerImage(),
+		KeyspaceID:    req.Msg.GetKeyspaceId(),
 	}
 
 	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,

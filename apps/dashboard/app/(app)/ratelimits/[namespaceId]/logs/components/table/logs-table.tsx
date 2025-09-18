@@ -188,7 +188,7 @@ export const RatelimitLogsTable = () => {
         key: "region",
         header: "Region",
         width: "10%",
-        render: (log) => <div className="font-mono">{log.colo}</div>,
+        render: (log) => <div className="font-mono">{log.region}</div>,
       },
       {
         key: "actions",

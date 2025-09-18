@@ -8,10 +8,10 @@ export function getActiveWorkspacesPerMonth(ch: Querier) {
   return async () => {
     const query = ch.query({
       query: `
-    SELECT 
-      count(DISTINCT workspace_id) as workspaces,      
+    SELECT
+      count(DISTINCT workspace_id) as workspaces,
       time
-    FROM business.active_workspaces_per_month_v1
+    FROM default.active_workspaces_per_month_v2
     GROUP BY time
     ORDER BY time ASC
     ;`,

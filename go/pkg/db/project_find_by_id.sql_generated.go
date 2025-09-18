@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findProjectById = `-- name: FindProjectById :one
@@ -24,6 +25,18 @@ FROM projects
 WHERE id = ?
 `
 
+type FindProjectByIdRow struct {
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+}
+
 // FindProjectById
 //
 //	SELECT
@@ -38,9 +51,9 @@ WHERE id = ?
 //	    updated_at
 //	FROM projects
 //	WHERE id = ?
-func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Project, error) {
+func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error) {
 	row := db.QueryRowContext(ctx, findProjectById, id)
-	var i Project
+	var i FindProjectByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,

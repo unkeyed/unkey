@@ -37,14 +37,16 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { getDeploymentBuildLogs } from "./deploy/project/active-deployment/getBuildLogs";
-import { getDeploymentDetails } from "./deploy/project/active-deployment/getDetails";
+import { getDeploymentBuildLogs } from "./deploy/deployment/buildLogs";
+import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { listDeployments } from "./deploy/deployment/list";
+import { searchDeployments } from "./deploy/deployment/llm-search";
+import { rollback } from "./deploy/deployment/rollback";
+import { listDomains } from "./deploy/domains/list";
+import { getEnvs } from "./deploy/envs/list";
 import { createProject } from "./deploy/project/create";
-import { queryDeployments } from "./deploy/project/deployment/list";
-import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
-import { getEnvs } from "./deploy/project/envs/list";
-import { queryProjects } from "./deploy/project/list";
-import { deploymentRouter } from "./deployment";
+import { listProjects } from "./deploy/project/list";
+import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
@@ -312,22 +314,24 @@ export const router = t.router({
   }),
   deploy: t.router({
     project: t.router({
-      list: queryProjects,
+      list: listProjects,
       create: createProject,
-      activeDeployment: t.router({
-        details: getDeploymentDetails,
-        buildLogs: getDeploymentBuildLogs,
-      }),
-      envs: t.router({
-        getEnvs,
-      }),
-      deployment: t.router({
-        list: queryDeployments,
-        search: deploymentListLlmSearch,
-      }),
+    }),
+    environment: t.router({
+      list_dummy: getEnvs,
+      list: listEnvironments,
+    }),
+    domain: t.router({
+      list: listDomains,
+    }),
+    deployment: t.router({
+      list: listDeployments,
+      search: searchDeployments,
+      getOpenApiDiff: getOpenApiDiff,
+      buildLogs: getDeploymentBuildLogs,
+      rollback,
     }),
   }),
-  deployment: deploymentRouter,
 });
 
 // export type definition of API
