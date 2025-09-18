@@ -28,6 +28,7 @@ type Session struct {
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
+	error          error
 }
 
 // init initializes the session with a new request and response writer.
@@ -57,6 +58,30 @@ func (s *Session) Request() *http.Request {
 // ResponseWriter returns the underlying http.ResponseWriter.
 func (s *Session) ResponseWriter() http.ResponseWriter {
 	return s.w
+}
+
+// CaptureResponseWriter returns a ResponseWriter that captures the response body.
+// It returns the wrapper and a function to retrieve the captured data.
+func (s *Session) CaptureResponseWriter() (http.ResponseWriter, func()) {
+	wrapper := &captureResponseWriter{
+		ResponseWriter: s.w,
+		statusCode:     http.StatusOK, // Default to 200 if not set
+	}
+
+	// Return a function to store captured data back in session
+	capture := func() {
+		s.responseStatus = wrapper.statusCode
+		s.responseBody = wrapper.body
+	}
+
+	return wrapper, capture
+}
+
+// SetError stores the error for logging purposes.
+func (s *Session) SetError(err error) {
+	if s.error == nil {
+		s.error = err
+	}
 }
 
 // UserAgent returns the User-Agent header from the request.
@@ -154,6 +179,7 @@ func (s *Session) reset() {
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
+	s.error = nil
 }
 
 // wrapResponseWriter wraps http.ResponseWriter to capture the status code.
@@ -177,6 +203,35 @@ func (w *wrapResponseWriter) Write(b []byte) (int, error) {
 	if !w.written {
 		w.WriteHeader(http.StatusOK)
 	}
+
+	return w.ResponseWriter.Write(b)
+}
+
+// captureResponseWriter wraps http.ResponseWriter to capture the status code and response body.
+type captureResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+	body       []byte
+	written    bool
+}
+
+func (w *captureResponseWriter) WriteHeader(code int) {
+	if w.written {
+		return // Already written, don't write again
+	}
+
+	w.statusCode = code
+	w.written = true
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *captureResponseWriter) Write(b []byte) (int, error) {
+	if !w.written {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	// Capture the body
+	w.body = append(w.body, b...)
 
 	return w.ResponseWriter.Write(b)
 }

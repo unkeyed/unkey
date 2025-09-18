@@ -169,7 +169,7 @@ if start_api:
         resource_deps=api_deps,
         labels=['unkey'],
         auto_init=True,
-        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+        trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
 # Gateway service (1 replica)
@@ -202,7 +202,7 @@ if start_gw:
         resource_deps=gw_deps,
         labels=['unkey'],
         auto_init=True,
-        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+        trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
 # Ctrl service (1 replica)
@@ -236,7 +236,7 @@ if start_ctrl:
         resource_deps=ctrl_deps,
         labels=['unkey'],
         auto_init=True,
-        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+        trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
 # Dashboard service

@@ -68,8 +68,13 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		)
 	}
 
-	// Forward the request using the proxy service
-	err = h.Proxy.Forward(ctx, *targetURL, sess.ResponseWriter(), req)
+	// Forward the request using the proxy service with response capture
+	captureWriter, captureFunc := sess.CaptureResponseWriter()
+	err = h.Proxy.Forward(ctx, *targetURL, captureWriter, req)
+
+	// Capture the response data back to session after forwarding
+	captureFunc()
+
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Proxy.ProxyForwardFailed.URN()),
