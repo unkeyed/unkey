@@ -5,7 +5,7 @@ import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 import { useGatewayLogsFilters } from "../../../hooks/use-gateway-logs-filters";
-import type { queryLogsPayload } from "../query-logs.schema";
+import type { queryLogsPayload } from "../query-gateway-logs.schema";
 
 // Constants
 const REALTIME_DATA_LIMIT = 100;

@@ -3,10 +3,10 @@ import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { cn } from "@/lib/utils";
 import { Badge, TimestampInfo } from "@unkey/ui";
-import type { SupportedLogTypes } from "..";
+import type { StandardLogTypes } from "..";
 
 type Props = {
-  log: SupportedLogTypes;
+  log: StandardLogTypes;
 };
 
 export const YELLOW_STATES = ["RATE_LIMITED", "EXPIRED", "USAGE_EXCEEDED"];

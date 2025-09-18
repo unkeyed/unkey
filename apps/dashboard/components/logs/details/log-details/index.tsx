@@ -2,6 +2,7 @@
 import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { cn } from "@/lib/utils";
+import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
@@ -19,18 +20,25 @@ const createPanelStyle = (distanceToTop: number) => ({
   paddingBottom: "1rem",
 });
 
-export type SupportedLogTypes = Log | RatelimitLog;
+export type StandardLogTypes = Log | RatelimitLog;
+export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog;
 
-const LogDetailsContext = createContext<{
+type LogDetailsContextValue = {
   animated: boolean;
   isOpen: boolean;
   log: SupportedLogTypes;
-}>({ animated: false, isOpen: true, log: {} as SupportedLogTypes });
+};
+
+const LogDetailsContext = createContext<LogDetailsContextValue>({
+  animated: false,
+  isOpen: true,
+  log: {} as SupportedLogTypes,
+});
 
 const useLogDetailsContext = () => useContext(LogDetailsContext);
 
-// Helper functions
-const createLogSections = (log: SupportedLogTypes) => [
+// Helper functions for standard logs
+const createLogSections = (log: Log | RatelimitLog) => [
   {
     title: "Request Header",
     content: log.request_headers.length ? log.request_headers : EMPTY_TEXT,
@@ -56,8 +64,28 @@ const createLogSections = (log: SupportedLogTypes) => [
 ];
 
 const createMetaContent = (log: SupportedLogTypes) => {
-  const meta = extractResponseField(log, "meta");
-  return JSON.stringify(meta, null, 2) === "null" ? EMPTY_TEXT : JSON.stringify(meta, null, 2);
+  // Handle KeysOverviewLog meta differently
+  if ("key_details" in log && (log.key_details as { meta: string })?.meta) {
+    try {
+      const parsedMeta = JSON.parse((log.key_details as { meta: string })?.meta);
+      return JSON.stringify(parsedMeta, null, 2);
+    } catch {
+      return EMPTY_TEXT;
+    }
+  }
+
+  // Standard log meta handling
+  if ("request_body" in log || "response_body" in log) {
+    const meta = extractResponseField(log as Log | RatelimitLog, "meta");
+    return JSON.stringify(meta, null, 2) === "null" ? EMPTY_TEXT : JSON.stringify(meta, null, 2);
+  }
+
+  return EMPTY_TEXT;
+};
+
+// Type guards
+const isStandardLog = (log: SupportedLogTypes): log is Log | RatelimitLog => {
+  return "request_headers" in log && "response_headers" in log;
 };
 
 // Main LogDetails component
@@ -168,7 +196,7 @@ const Section = ({ children, delay = 0, translateX = "translate-x-8" }: SectionP
   );
 };
 
-// Standard log sections
+// Standard log sections (only works for standard logs)
 const Sections = ({
   startDelay = 150,
   staggerDelay = 50,
@@ -177,6 +205,12 @@ const Sections = ({
   staggerDelay?: number;
 }) => {
   const { log } = useLogDetailsContext();
+
+  if (!isStandardLog(log)) {
+    console.warn("LogDetails.Sections can only be used with standard logs (Log | RatelimitLog)");
+    return null;
+  }
+
   const sections = createLogSections(log);
 
   return (
@@ -184,6 +218,28 @@ const Sections = ({
       {sections.map((section, index) => (
         <Section key={section.title} delay={startDelay + index * staggerDelay}>
           <LogSection details={section.content} title={section.title} />
+        </Section>
+      ))}
+    </>
+  );
+};
+
+// Custom sections wrapper for flexible content
+type CustomSectionsProps = {
+  children: ReactNode;
+  startDelay?: number;
+  staggerDelay?: number;
+};
+
+const CustomSections = ({ children, startDelay = 150, staggerDelay = 50 }: CustomSectionsProps) => {
+  const childArray = Array.isArray(children) ? children : [children];
+
+  return (
+    <>
+      {childArray.map((child, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: its fine
+        <Section key={index} delay={startDelay + index * staggerDelay}>
+          {child}
         </Section>
       ))}
     </>
@@ -221,30 +277,44 @@ const Meta = ({ delay = 400 }: { delay?: number }) => {
   );
 };
 
-// Header compound component
+// Generic Header wrapper - allows any header component or falls back to default
 const Header = ({
   delay = 100,
+  translateX = "translate-x-6" as const,
   onClose,
+  children,
 }: {
   delay?: number;
-  onClose: () => void;
+  translateX?: "translate-x-6" | "translate-x-8";
+  onClose?: () => void;
+  children?: ReactNode;
 }) => {
   const { log } = useLogDetailsContext();
 
   return (
-    <Section delay={delay} translateX="translate-x-6">
-      <LogHeader log={log} onClose={onClose} />
+    <Section delay={delay} translateX={translateX}>
+      {children ||
+        (onClose &&
+          (isStandardLog(log) ? (
+            <LogHeader log={log as StandardLogTypes} onClose={onClose} />
+          ) : null))}
     </Section>
   );
 };
 
-// Footer compound component
-const Footer = ({ delay = 375 }: { delay?: number }) => {
+// Generic Footer wrapper - allows any footer component or falls back to default
+const Footer = ({
+  delay = 375,
+  children,
+}: {
+  delay?: number;
+  children?: ReactNode;
+}) => {
   const { log } = useLogDetailsContext();
 
   return (
     <Section delay={delay}>
-      <LogFooter log={log} />
+      {children || (isStandardLog(log) ? <LogFooter log={log} /> : null)}
     </Section>
   );
 };
@@ -252,6 +322,7 @@ const Footer = ({ delay = 375 }: { delay?: number }) => {
 // Compound components
 LogDetails.Section = Section;
 LogDetails.Sections = Sections;
+LogDetails.CustomSections = CustomSections;
 LogDetails.Spacer = Spacer;
 LogDetails.Meta = Meta;
 LogDetails.Header = Header;

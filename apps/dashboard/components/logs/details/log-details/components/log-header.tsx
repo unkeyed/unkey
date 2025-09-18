@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
-import type { SupportedLogTypes } from "..";
+import type { StandardLogTypes } from "..";
 
 type Props = {
-  log: SupportedLogTypes;
+  log: StandardLogTypes;
   onClose: () => void;
 };
 
