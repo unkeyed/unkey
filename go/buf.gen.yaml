@@ -10,7 +10,3 @@ plugins:
     out: ../internal/proto/generated
     opt: target=ts
     include_imports: true
-  - remote: buf.build/connectrpc/es:v1.6.1
-    out: ../internal/proto/generated
-    opt: target=ts
-    include_imports: true
