@@ -6,6 +6,7 @@ import {
 } from "@workos-inc/node";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
+import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie } from "./cookies";
 import { getAuth } from "./get-auth";
 import {
@@ -121,7 +122,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Session validation error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: `${sessionToken.substring(0, 10)}...`,
       });
       return { isValid: false, shouldRefresh: false };
     }
@@ -167,7 +167,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Session refresh error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        token: sessionToken ? `${sessionToken.substring(0, 10)}...` : "no token",
       });
       throw error;
     }
@@ -187,7 +186,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return this.transformUserData(user);
     } catch (error) {
-      console.error("Failed to get user:", error);
+      console.error("Failed to get user:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
@@ -207,7 +208,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return this.transformUserData(user.data[0]);
     } catch (error) {
-      console.error("Failed to get user:", error);
+      console.error("Failed to find user:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
@@ -320,7 +323,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error("Organization switch error:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        newOrgId,
       });
       throw error;
     }
@@ -503,7 +505,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         metadata: invitationsList.listMetadata || {},
       };
     } catch (error) {
-      console.error("Failed to get organization invitations list:", error);
+      console.error("Failed to get organization invitations list:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return {
         data: [],
         metadata: {},
@@ -521,7 +525,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return this.transformInvitationData(invitation);
     } catch (error) {
-      console.error("Error retrieving invitation: ", error);
+      console.error("Error retrieving invitation:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
@@ -611,7 +617,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   async verifyAuthCode(params: {
     email: string;
     code: string;
-    invitationToken: string;
+    invitationToken?: string;
   }): Promise<VerificationResult> {
     const { email, code, invitationToken } = params;
 
@@ -638,11 +644,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: true,
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -661,11 +663,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: true,
-                httpOnly: true,
-                sameSite: "lax",
-              },
+              options: { ...getAuthCookieOptions() },
             },
           ],
         };
@@ -703,17 +701,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: true,
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
     } catch (error: unknown) {
       // Handle organization selection required case
-      console.error("verify email: ", error);
+      console.error("Email verification error:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
 
       const authError = error as WorkOSAuthError;
 
@@ -728,11 +724,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: true,
-                httpOnly: true,
-                sameSite: "lax",
-              },
+              options: { ...getAuthCookieOptions() },
             },
           ],
         };
@@ -768,11 +760,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: true,
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -850,11 +838,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           {
             name: UNKEY_SESSION_COOKIE,
             value: sealedSession,
-            options: {
-              secure: true,
-              httpOnly: true,
-              sameSite: "lax",
-            },
+            options: { ...getAuthCookieOptions() },
           },
         ],
       };
@@ -872,12 +856,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: true,
-                httpOnly: true,
-                sameSite: "lax",
-                maxAge: 60, // user has 60 seconds to select an org before the cookie expires
-              },
+              options: { ...getAuthCookieOptions(), maxAge: 60 },
             },
           ],
         };
@@ -899,12 +878,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             {
               name: PENDING_SESSION_COOKIE,
               value: authError.rawData.pending_authentication_token,
-              options: {
-                secure: true,
-                httpOnly: true,
-                sameSite: "lax",
-                maxAge: 60 * 10, // user has 10 mins seconds to verify their email before the cookie expires
-              },
+              options: { ...getAuthCookieOptions(), maxAge: 60 * 10 },
             },
           ],
         };

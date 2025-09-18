@@ -1,5 +1,5 @@
 import { CodeBranch, Cube, User } from "@unkey/icons";
-import { InfoTooltip, Loading } from "@unkey/ui";
+import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
@@ -9,7 +9,7 @@ type ProjectCardProps = {
   name: string;
   domain: string;
   commitTitle: string;
-  commitDate: string;
+  commitTimestamp?: number | null;
   branch: string;
   author: string;
   regions: string[];
@@ -22,7 +22,7 @@ export const ProjectCard = ({
   name,
   domain,
   commitTitle,
-  commitDate,
+  commitTimestamp,
   branch,
   author,
   regions,
@@ -58,7 +58,7 @@ export const ProjectCard = ({
           {/*Top Section > Project Name*/}
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
-              href="#"
+              href={`/projects/${projectId}`}
               className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
             >
               {name}
@@ -90,7 +90,11 @@ export const ProjectCard = ({
           </Link>
         </InfoTooltip>
         <div className="flex gap-2 items-center min-w-0">
-          <span className="text-xs text-gray-11">{commitDate} on</span>
+          {commitTimestamp ? (
+            <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
+          ) : (
+            <span className="text-xs text-gray-12 truncate max-w-[70px]">No deployments</span>
+          )}
           <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
           <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
             <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>

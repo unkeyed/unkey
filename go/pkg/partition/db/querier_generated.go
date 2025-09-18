@@ -27,6 +27,12 @@ type Querier interface {
 	//
 	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
 	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
+	//FindVMsByDeploymentId
+	//
+	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status
+	//  FROM vms
+	//  WHERE deployment_id = ?
+	FindVMsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Vm, error)
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)

@@ -60,8 +60,8 @@ type LocalBackendAdapter struct {
 	logger  logging.Logger
 }
 
-func NewLocalBackendAdapter(backendType string, logger logging.Logger) (*LocalBackendAdapter, error) {
-	backend, err := backends.NewBackend(backendType, logger)
+func NewLocalBackendAdapter(backendType string, logger logging.Logger, isRunningDocker bool) (*LocalBackendAdapter, error) {
+	backend, err := backends.NewBackend(backendType, logger, isRunningDocker)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +117,10 @@ func (f *LocalBackendAdapter) Name() string {
 }
 
 // NewDeploymentBackend creates the appropriate backend based on configuration
-func NewDeploymentBackend(metalDClient metaldv1connect.VmServiceClient, fallbackType string, logger logging.Logger) (DeploymentBackend, error) {
+func NewDeploymentBackend(metalDClient metaldv1connect.VmServiceClient, fallbackType string, logger logging.Logger, isRunningDocker bool) (DeploymentBackend, error) {
 	if fallbackType != "" {
 		logger.Info("using local deployment backend", "type", fallbackType)
-		return NewLocalBackendAdapter(fallbackType, logger)
+		return NewLocalBackendAdapter(fallbackType, logger, isRunningDocker)
 	}
 
 	if metalDClient == nil {

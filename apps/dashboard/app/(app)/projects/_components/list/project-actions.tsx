@@ -1,8 +1,7 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Project } from "@/lib/trpc/routers/deploy/project/list";
-import { Clone, Gear, Layers3, Link4, Trash } from "@unkey/icons";
+import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -10,19 +9,17 @@ import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 type ProjectActionsProps = {
-  project: Project;
+  projectId: string;
 };
 
-export const ProjectActions = ({ project, children }: PropsWithChildren<ProjectActionsProps>) => {
+export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
-  const menuItems = getProjectActionItems(project, router);
+  const menuItems = getProjectActionItems(projectId, router);
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
 
-const getProjectActionItems = (project: Project, router: AppRouterInstance): MenuItem[] => {
-  const primaryHostname = project.hostnames[0]?.hostname;
-
+const getProjectActionItems = (projectId: string, router: AppRouterInstance): MenuItem[] => {
   return [
     {
       id: "favorite-project",
@@ -32,24 +29,13 @@ const getProjectActionItems = (project: Project, router: AppRouterInstance): Men
       divider: true,
     },
     {
-      id: "view-project",
-      label: "View live API",
-      icon: <Link4 size="md-regular" />,
-      onClick: () => {
-        if (primaryHostname) {
-          window.open(`https://${primaryHostname}`, "_blank", "noopener,noreferrer");
-        }
-      },
-      disabled: !primaryHostname,
-    },
-    {
       id: "copy-project-id",
       label: "Copy project ID",
       className: "mt-1",
       icon: <Clone size="md-regular" />,
       onClick: () => {
         navigator.clipboard
-          .writeText(project.id)
+          .writeText(projectId)
           .then(() => {
             toast.success("Project ID copied to clipboard");
           })
@@ -67,7 +53,7 @@ const getProjectActionItems = (project: Project, router: AppRouterInstance): Men
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
-        router.push(`/projects/${project.id}/deployments/${fakeDeploymentId}/logs`);
+        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/logs`);
       },
     },
     {
@@ -77,7 +63,7 @@ const getProjectActionItems = (project: Project, router: AppRouterInstance): Men
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
-        router.push(`/projects/${project.id}/deployments/${fakeDeploymentId}/settings`);
+        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/settings`);
       },
       divider: true,
     },

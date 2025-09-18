@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -178,15 +179,25 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(rlSvc.Close)
 
+	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
+		Logger:  logger,
+		DB:      db,
+		Counter: ctr,
+		TTL:     60 * time.Second,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create usage limiter service: %w", err)
+	}
+
 	keySvc, err := keys.New(keys.Config{
-		Logger:      logger,
-		DB:          db,
-		KeyCache:    caches.VerificationKeyByHash,
-		RateLimiter: rlSvc,
-		RBAC:        rbac.New(),
-		Clickhouse:  ch,
-		Region:      cfg.Region,
-		Counter:     ctr,
+		Logger:       logger,
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -234,6 +245,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:       caches,
 		Vault:        vaultSvc,
 		ChproxyToken: cfg.ChproxyToken,
+		UsageLimiter: ulSvc,
 	})
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)
