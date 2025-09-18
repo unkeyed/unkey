@@ -68,7 +68,7 @@ export const ProjectSubNavigation = ({
       id: "gateway-logs",
       label: "Gateway Logs",
       icon: Layers3,
-      path: `/projects/${projectId}/logs`,
+      path: `/projects/${projectId}/gateway-logs`,
     },
   ];
 

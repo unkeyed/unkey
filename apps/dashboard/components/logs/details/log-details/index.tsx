@@ -111,7 +111,7 @@ export const LogDetails = ({
     }
   };
 
-  const baseClasses = "bg-gray-1 dark:bg-black font-mono drop-shadow-2xl z-20";
+  const baseClasses = "bg-gray-1 font-mono drop-shadow-2xl z-20";
   const animationClasses = animated
     ? cn(
         "transition-all duration-300 ease-out",
