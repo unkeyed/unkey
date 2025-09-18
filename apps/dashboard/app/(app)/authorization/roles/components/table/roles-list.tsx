@@ -23,8 +23,7 @@ import { useRolesListQuery } from "./hooks/use-roles-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
 export const RolesList = () => {
-  const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
-    useRolesListQuery();
+  const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useRolesListQuery();
   const [selectedRole, setSelectedRole] = useState<RoleBasic | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
@@ -57,14 +56,12 @@ export const RolesList = () => {
               className={cn(
                 "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5"
+                isSelected && "bg-grayA-5",
               )}
               onMouseEnter={() => setHoveredRoleName(role.name)}
               onMouseLeave={() => setHoveredRoleName(null)}
             >
-              {!isSelected && !isHovered && (
-                <Tag size="sm-regular" className="text-gray-12" />
-              )}
+              {!isSelected && !isHovered && <Tag size="sm-regular" className="text-gray-12" />}
               {(isSelected || isHovered) && (
                 <Checkbox
                   checked={isSelected}
@@ -147,7 +144,7 @@ export const RolesList = () => {
         },
       },
     ],
-    [selectedRoles, toggleSelection, hoveredRoleName, selectedRole?.roleId]
+    [selectedRoles, toggleSelection, hoveredRoleName, selectedRole?.roleId],
   );
 
   return (
@@ -166,17 +163,12 @@ export const RolesList = () => {
         buttonText: "Load more roles",
         hasMore,
         headerContent: (
-          <SelectionControls
-            selectedRoles={selectedRoles}
-            setSelectedRoles={setSelectedRoles}
-          />
+          <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
         ),
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>{" "}
-            <span className="text-accent-12">
-              {formatNumberFull(roles.length)}
-            </span>
+            <span className="text-accent-12">{formatNumberFull(roles.length)}</span>
             <span>of</span>
             {formatNumberFull(totalCount)}
             <span>roles</span>
@@ -189,8 +181,8 @@ export const RolesList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Roles Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no roles configured yet. Create your first role to start
-              managing permissions and access control.
+              There are no roles configured yet. Create your first role to start managing
+              permissions and access control.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
@@ -219,7 +211,7 @@ export const RolesList = () => {
             key={column.key}
             className={cn(
               "text-xs align-middle whitespace-nowrap",
-              column.key === "role" ? "py-[6px]" : "py-1"
+              column.key === "role" ? "py-[6px]" : "py-1",
             )}
             style={{ height: `${rowHeight}px` }}
           >

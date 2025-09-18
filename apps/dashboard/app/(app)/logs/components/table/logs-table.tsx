@@ -87,7 +87,7 @@ const WarningIcon = ({ status }: { status: number }) => (
       WARNING_ICON_STYLES.base,
       status < 300 && "invisible",
       status >= 400 && status < 500 && WARNING_ICON_STYLES.warning,
-      status >= 500 && WARNING_ICON_STYLES.error
+      status >= 500 && WARNING_ICON_STYLES.error,
     )}
   />
 );
@@ -108,27 +108,17 @@ const additionalColumns: Column<Log>[] = [
     .join(" "),
   width: "auto",
   render: (log: Log) => (
-    <div className="font-mono whitespace-nowrap truncate w-[500px]">
-      {log[key as keyof Log]}
-    </div>
+    <div className="font-mono whitespace-nowrap truncate w-[500px]">{log[key as keyof Log]}</div>
   ),
 }));
 
 export const LogsTable = () => {
-  const { displayProperties, setSelectedLog, selectedLog, isLive } =
-    useLogsContext();
-  const {
-    realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    hasMore,
-    total,
-  } = useLogsQuery({
-    startPolling: isLive,
-    pollIntervalMs: 2000,
-  });
+  const { displayProperties, setSelectedLog, selectedLog, isLive } = useLogsContext();
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, total } =
+    useLogsQuery({
+      startPolling: isLive,
+      pollIntervalMs: 2000,
+    });
 
   const getRowClassName = (log: Log) => {
     const style = getStatusStyle(log.response_status);
@@ -142,13 +132,14 @@ export const LogsTable = () => {
       style.focusRing,
       isSelected && style.selected,
       isLive &&
-        !realtimeLogs.some(
-          (realtime) => realtime.request_id === log.request_id
-        ) && ["opacity-50", "hover:opacity-100"],
+        !realtimeLogs.some((realtime) => realtime.request_id === log.request_id) && [
+          "opacity-50",
+          "hover:opacity-100",
+        ],
       selectedLog && {
         "opacity-50 z-0": !isSelected,
         "opacity-100 z-10": isSelected,
-      }
+      },
     );
   };
   // biome-ignore lint/correctness/useExhaustiveDependencies: it's okay
@@ -163,9 +154,7 @@ export const LogsTable = () => {
             value={log.time}
             className={cn(
               "font-mono group-hover:underline decoration-dotted",
-              selectedLog &&
-                selectedLog.request_id !== log.request_id &&
-                "pointer-events-none"
+              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
             )}
           />
         ),
@@ -181,13 +170,11 @@ export const LogsTable = () => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-                isSelected ? style.badge.selected : style.badge.default
+                isSelected ? style.badge.selected : style.badge.default,
               )}
             >
               {log.response_status}{" "}
-              {extractResponseField(log, "code")
-                ? `| ${extractResponseField(log, "code")}`
-                : ""}
+              {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
             </Badge>
           );
         },
@@ -204,7 +191,7 @@ export const LogsTable = () => {
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
                 isSelected
                   ? STATUS_STYLES.success.badge.selected
-                  : STATUS_STYLES.success.badge.default
+                  : STATUS_STYLES.success.badge.default,
               )}
             >
               {log.method}
@@ -219,13 +206,12 @@ export const LogsTable = () => {
         render: (log) => <div className="font-mono pr-4">{log.path}</div>,
       },
     ],
-    [selectedLog?.request_id]
+    [selectedLog?.request_id],
   );
 
   const visibleColumns = useMemo(() => {
     const filtered = [...basicColumns, ...additionalColumns].filter(
-      (column) =>
-        isDisplayProperty(column.key) && displayProperties.has(column.key)
+      (column) => isDisplayProperty(column.key) && displayProperties.has(column.key),
     );
 
     // If we have visible columns
@@ -266,9 +252,7 @@ export const LogsTable = () => {
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>{" "}
-            <span className="text-accent-12">
-              {formatNumberFull(historicalLogs.length)}
-            </span>
+            <span className="text-accent-12">{formatNumberFull(historicalLogs.length)}</span>
             <span>of</span>
             {formatNumberFull(total)}
             <span>requests</span>
@@ -281,9 +265,8 @@ export const LogsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. We collect all
-              API requests, giving you a clear history to find problems or debug
-              issues.
+              Keep track of all activity within your workspace. We collect all API requests, giving
+              you a clear history to find problems or debug issues.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

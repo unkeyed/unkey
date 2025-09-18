@@ -14,9 +14,7 @@ import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../root-key/root-key-dialog";
 
 // Type guard function to check if a string is a valid UnkeyPermission
-const isUnkeyPermission = (
-  permissionName: string
-): permissionName is UnkeyPermission => {
+const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermission => {
   const result = unkeyPermissionValidation.safeParse(permissionName);
   return result.success;
 };
@@ -35,25 +33,22 @@ import { getRowClassName } from "./utils/get-row-class";
 
 const RootKeysTableActions = dynamic(
   () =>
-    import(
-      "./components/actions/root-keys-table-action.popover.constants"
-    ).then((mod) => mod.RootKeysTableActions),
+    import("./components/actions/root-keys-table-action.popover.constants").then(
+      (mod) => mod.RootKeysTableActions,
+    ),
   {
     loading: () => (
       <button
         type="button"
         className={cn(
           "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
-          "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7"
+          "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
         )}
       >
-        <Dots
-          className="group-hover:text-gray-12 text-gray-11"
-          size="sm-regular"
-        />
+        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
       </button>
     ),
-  }
+  },
 );
 
 export const RootKeysList = () => {
@@ -81,7 +76,7 @@ export const RootKeysList = () => {
   // Memoize the row className function
   const getRowClassNameMemoized = useCallback(
     (rootKey: RootKey) => getRowClassName(rootKey, selectedRootKey),
-    [selectedRootKey]
+    [selectedRootKey],
   );
 
   // Memoize the loadMoreFooterProps to prevent unnecessary re-renders
@@ -93,16 +88,14 @@ export const RootKeysList = () => {
       countInfoText: (
         <div className="flex gap-2">
           <span>Showing</span>{" "}
-          <span className="text-accent-12">
-            {formatNumberFull(rootKeys.length)}
-          </span>
+          <span className="text-accent-12">{formatNumberFull(rootKeys.length)}</span>
           <span>of</span>
           {formatNumberFull(totalCount)}
           <span>root keys</span>
         </div>
       ),
     }),
-    [isLoading, hasMore, rootKeys.length, totalCount]
+    [isLoading, hasMore, rootKeys.length, totalCount],
   );
 
   // Memoize the emptyState to prevent unnecessary re-renders
@@ -113,8 +106,8 @@ export const RootKeysList = () => {
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Root Keys Found</Empty.Title>
           <Empty.Description className="text-left">
-            There are no root keys configured yet. Create your first root key to
-            start managing permissions and access control.
+            There are no root keys configured yet. Create your first root key to start managing
+            permissions and access control.
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
             <a
@@ -132,7 +125,7 @@ export const RootKeysList = () => {
         </Empty>
       </div>
     ),
-    []
+    [],
   );
 
   // Memoize the config to prevent unnecessary re-renders
@@ -143,7 +136,7 @@ export const RootKeysList = () => {
       rowBorders: true,
       containerPadding: "px-0",
     }),
-    []
+    [],
   );
 
   // Memoize the keyExtractor to prevent unnecessary re-renders
@@ -163,7 +156,7 @@ export const RootKeysList = () => {
           key={column.key}
           className={cn(
             "text-xs align-middle whitespace-nowrap",
-            column.key === "root_key" ? "py-[6px]" : "py-1"
+            column.key === "root_key" ? "py-[6px]" : "py-1",
           )}
           style={{ height: `${rowHeight}px` }}
         >
@@ -175,7 +168,7 @@ export const RootKeysList = () => {
           {column.key === "action" && <ActionColumnSkeleton />}
         </td>
       )),
-    []
+    [],
   );
 
   // Memoize the existingKey object to prevent unnecessary re-renders
@@ -186,9 +179,7 @@ export const RootKeysList = () => {
 
     // Guard against undefined permissions and use type guard function
     const permissions = editingKey.permissions ?? [];
-    const validatedPermissions = permissions
-      .map((p) => p.name)
-      .filter(isUnkeyPermission);
+    const validatedPermissions = permissions.map((p) => p.name).filter(isUnkeyPermission);
 
     return {
       id: editingKey.id,
@@ -211,7 +202,7 @@ export const RootKeysList = () => {
               className={cn(
                 "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5"
+                isSelected && "bg-grayA-5",
               )}
             >
               <Key2 size="sm-regular" className="text-gray-12" />
@@ -225,9 +216,7 @@ export const RootKeysList = () => {
                   <div
                     className={cn(
                       "font-medium truncate leading-4 text-[13px]",
-                      rootKey.name
-                        ? "text-accent-12"
-                        : "text-gray-9 italic font-normal"
+                      rootKey.name ? "text-accent-12" : "text-gray-9 italic font-normal",
                     )}
                   >
                     {rootKey.name ?? "Unnamed Root Key"}
@@ -246,8 +235,8 @@ export const RootKeysList = () => {
           <InfoTooltip
             content={
               <p>
-                This is the first part of the key to visually match it. We don't
-                store the full key for security reasons.
+                This is the first part of the key to visually match it. We don't store the full key
+                for security reasons.
               </p>
             }
           >
@@ -278,9 +267,7 @@ export const RootKeysList = () => {
           return (
             <TimestampInfo
               value={rootKey.createdAt}
-              className={cn(
-                "font-mono group-hover:underline decoration-dotted"
-              )}
+              className={cn("font-mono group-hover:underline decoration-dotted")}
             />
           );
         },
@@ -303,13 +290,11 @@ export const RootKeysList = () => {
         header: "",
         width: "auto",
         render: (rootKey) => {
-          return (
-            <RootKeysTableActions rootKey={rootKey} onEditKey={handleEditKey} />
-          );
+          return <RootKeysTableActions rootKey={rootKey} onEditKey={handleEditKey} />;
         },
       },
     ],
-    [selectedRootKeyId, handleEditKey]
+    [selectedRootKeyId, handleEditKey],
   );
 
   return (

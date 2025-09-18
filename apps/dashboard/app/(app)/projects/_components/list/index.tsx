@@ -39,8 +39,8 @@ export const ProjectsList = () => {
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Projects Found</Empty.Title>
           <Empty.Description className="text-left">
-            There are no projects configured yet. Create your first project to
-            start deploying and managing your applications.
+            There are no projects configured yet. Create your first project to start deploying and
+            managing your applications.
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
             <a
@@ -69,8 +69,7 @@ export const ProjectsList = () => {
           }}
         >
           {projects.map((project) => {
-            const primaryHostname =
-              project.hostnames[0]?.hostname || "No domain";
+            const primaryHostname = project.hostnames[0]?.hostname || "No domain";
             return (
               <ProjectCard
                 projectId={project.id}
@@ -78,9 +77,7 @@ export const ProjectsList = () => {
                 name={project.name}
                 domain={primaryHostname}
                 commitTitle="Latest deployment"
-                commitDate={new Date(
-                  project.updatedAt || project.createdAt
-                ).toLocaleDateString()}
+                commitDate={new Date(project.updatedAt || project.createdAt).toLocaleDateString()}
                 branch={project.branch || "main"}
                 author="Unknown"
                 regions={["us-east-1", "us-west-2", "ap-east-1"]}
@@ -115,13 +112,9 @@ export const ProjectsList = () => {
           countInfoText={
             <div className="flex gap-2">
               <span>Viewing</span>
-              <span className="text-accent-12">
-                {formatNumberFull(projects.length)}
-              </span>
+              <span className="text-accent-12">{formatNumberFull(projects.length)}</span>
               <span>of</span>
-              <span className="text-grayA-12">
-                {formatNumberFull(totalCount)}
-              </span>
+              <span className="text-grayA-12">{formatNumberFull(totalCount)}</span>
               <span>projects</span>
             </div>
           }

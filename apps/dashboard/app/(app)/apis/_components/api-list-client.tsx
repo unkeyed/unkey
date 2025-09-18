@@ -31,7 +31,7 @@ export const ApiListClient = () => {
     { limit: DEFAULT_LIMIT },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
-    }
+    },
   );
 
   const allApis = useMemo(() => {
@@ -62,11 +62,7 @@ export const ApiListClient = () => {
 
   return (
     <div className="flex flex-col">
-      <ApiListControls
-        apiList={allApis}
-        onApiListChange={setApiList}
-        onSearch={setIsSearching}
-      />
+      <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
 
       {isLoading ? (
@@ -91,11 +87,7 @@ export const ApiListClient = () => {
             </div>
 
             {!isSearching && hasNextPage && (
-              <Button
-                onClick={loadMore}
-                disabled={isFetchingNextPage}
-                size="md"
-              >
+              <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
                 {isFetchingNextPage ? (
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />

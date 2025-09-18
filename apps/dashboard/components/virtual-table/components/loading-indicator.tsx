@@ -59,14 +59,12 @@ export const LoadMoreFooter = ({
           onClick={handleOpen}
           className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
           title={`${buttonText} • ${formatNumberFull(
-            totalVisible
+            totalVisible,
           )} of ${formatNumberFull(totalCount)} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-gray-9 font-medium">
-                {countInfoText}
-              </span>
+              <span className="text-[11px] text-gray-9 font-medium">{countInfoText}</span>
             </div>
             <div className="w-px h-3 bg-gray-6" />
             <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
@@ -119,9 +117,7 @@ export const LoadMoreFooter = ({
               animation: "fadeInUp 0.3s ease-out 0.3s both",
             }}
           >
-            {countInfoText && (
-              <div className="transition-all duration-200">{countInfoText}</div>
-            )}
+            {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
             {!countInfoText && (
               <div className="flex gap-2 transition-all duration-200">
                 <span>Viewing</span>
