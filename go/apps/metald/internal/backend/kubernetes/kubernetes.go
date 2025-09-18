@@ -58,7 +58,7 @@ func New(logger logging.Logger) (*Backend, error) {
 		logger:     logger.With("backend", "kubernetes"),
 		clientset:  clientset,
 		namespace:  namespace,
-		ttlSeconds: 7200, // 2 hours default TTL for auto-cleanup
+		ttlSeconds: 7_200, // 2 hours default TTL for auto-cleanup
 	}, nil
 }
 
@@ -153,6 +153,9 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		},
 	}
 
+	// Create owner reference for service cleanup
+	var ownerRef *metav1.OwnerReference
+
 	// This creates a job to kill the VM after the given TTL
 	if useJob {
 		// Create Job with TTL for auto-termination
@@ -174,9 +177,18 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			},
 		}
 
-		_, err := b.clientset.BatchV1().Jobs(b.namespace).Create(ctx, job, metav1.CreateOptions{})
+		createdJob, err := b.clientset.BatchV1().Jobs(b.namespace).Create(ctx, job, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create job: %w", err)
+		}
+
+		// Set owner reference so service gets deleted with job
+		ownerRef = &metav1.OwnerReference{
+			APIVersion: "batch/v1",
+			Kind:       "Job",
+			Name:       createdJob.Name,
+			UID:        createdJob.UID,
+			Controller: ptr.P(true),
 		}
 	} else {
 		// Create regular Pod
@@ -192,9 +204,18 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			Spec: podTemplate.Spec,
 		}
 
-		_, err := b.clientset.CoreV1().Pods(b.namespace).Create(ctx, pod, metav1.CreateOptions{})
+		createdPod, err := b.clientset.CoreV1().Pods(b.namespace).Create(ctx, pod, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create pod: %w", err)
+		}
+
+		// Set owner reference so service gets deleted with pod
+		ownerRef = &metav1.OwnerReference{
+			APIVersion: "v1",
+			Kind:       "Pod",
+			Name:       createdPod.Name,
+			UID:        createdPod.UID,
+			Controller: ptr.P(true),
 		}
 	}
 
@@ -237,13 +258,24 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		Spec: serviceSpec,
 	}
 
+	// Add owner reference so service is garbage collected with the job/pod
+	if ownerRef != nil {
+		service.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*ownerRef}
+	}
+
 	_, err := b.clientset.CoreV1().Services(b.namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
 		// Clean up pod/job if service creation fails
 		if useJob {
-			b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{})
+			propagationPolicy := metav1.DeletePropagationBackground
+			b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{
+				PropagationPolicy: &propagationPolicy,
+			})
 		} else {
-			b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, podName, metav1.DeleteOptions{})
+			propagationPolicy := metav1.DeletePropagationBackground
+			b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, podName, metav1.DeleteOptions{
+				PropagationPolicy: &propagationPolicy,
+			})
 		}
 
 		return "", fmt.Errorf("failed to create service: %w", err)
@@ -264,14 +296,19 @@ func (b *Backend) DeleteVM(ctx context.Context, vmID string) error {
 	sanitizedVMID := strings.ToLower(vmID)
 
 	// Delete service
-	if err := b.clientset.CoreV1().Services(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{}); err != nil {
+	propagationPolicy := metav1.DeletePropagationBackground
+	if err := b.clientset.CoreV1().Services(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}); err != nil {
 		b.logger.Error("failed to delete service",
 			"vm_id", vmID,
 			"error", err)
 	}
 
 	// Try deleting as job first, then as pod
-	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{}); err != nil {
+	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}); err != nil {
 		// Not a job, try deleting as pod
 		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{}); err != nil {
 			return fmt.Errorf("failed to delete pod: %w", err)
@@ -311,6 +348,8 @@ func (b *Backend) ShutdownVMWithOptions(ctx context.Context, vmID string, force 
 	sanitizedVMID := strings.ToLower(vmID)
 
 	// Try deleting as job first, then as pod
+	propagationPolicy := metav1.DeletePropagationBackground
+	deleteOptions.PropagationPolicy = &propagationPolicy
 	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, deleteOptions); err != nil {
 		// Not a job, try deleting as pod
 		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, sanitizedVMID, deleteOptions); err != nil {
@@ -338,7 +377,10 @@ func (b *Backend) RebootVM(ctx context.Context, vmID string) error {
 	sanitizedVMID := strings.ToLower(vmID)
 
 	// For Kubernetes, we delete the pod/job (it will be recreated if desired)
-	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{}); err != nil {
+	propagationPolicy := metav1.DeletePropagationBackground
+	if err := b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}); err != nil {
 		// Not a job, try deleting as pod
 		if err := b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{}); err != nil {
 			return fmt.Errorf("failed to delete pod for reboot: %w", err)

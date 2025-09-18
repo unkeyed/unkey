@@ -42,7 +42,8 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 
 	// Cleanup old allocations for old pods (older than 2hrs)
 	if s.backend.Type() == string(types.BackendTypeKubernetes) {
-		staleTime := time.Now().Add(-5 * time.Minute)
+		staleTime := time.Now().Add(-(2*time.Hour + 5*time.Minute))
+
 		if err := s.queries.CleanupStaleIPAllocations(ctx, sql.NullTime{Time: staleTime, Valid: true}); err != nil && !db.IsNotFound(err) {
 			logger.Warn("failed to cleanup stale IP allocations",
 				slog.String("error", err.Error()),
