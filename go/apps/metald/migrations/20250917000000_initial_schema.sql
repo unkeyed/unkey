@@ -1,5 +1,5 @@
--- schema.sql
-
+-- +goose Up
+-- Initial schema for metald network management
 CREATE TABLE networks (
   id INTEGER PRIMARY KEY,
   base_network TEXT UNIQUE NOT NULL,  -- CIDR notation: "10.0.0.16/28"
@@ -36,3 +36,9 @@ CREATE INDEX idx_ip_allocations_network
 
 CREATE INDEX idx_network_allocations_deployment
   ON network_allocations(deployment_id);
+
+-- +goose Down
+-- Drop all tables
+DROP TABLE IF EXISTS ip_allocations;
+DROP TABLE IF EXISTS network_allocations;
+DROP TABLE IF EXISTS networks;

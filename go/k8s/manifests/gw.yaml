@@ -30,7 +30,7 @@ spec:
             - name: UNKEY_HTTPS_PORT
               value: "8443"
             - name: UNKEY_TLS_ENABLED
-              value: "false"
+              value: "true"
             # Instance Identification
             - name: UNKEY_PLATFORM
               value: "kubernetes"
@@ -40,10 +40,12 @@ spec:
               value: "local"
             - name: UNKEY_GATEWAY_ID
               value: "gw-dev"
-            - name: UNKEY_DEFAULT_CERT_DOMAIN
-              value: ""
             - name: UNKEY_MAIN_DOMAIN
               value: ""
+            - name: UNKEY_DEFAULT_CERT_DOMAIN
+              value: "unkey.local"
+            - name: UNKEY_REQUIRE_LOCAL_CERT
+              value: "true"
             - name: UNKEY_CTRL_ADDR
               value: "ctrl:7091"
             # Database Configuration - Partitioned (for gateway operations)
