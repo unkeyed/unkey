@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: minio
-          image: bitnami/minio:2025.7.23
+          image: bitnamilegacy/minio:2025.7.23
           ports:
             - containerPort: 9000
               name: api

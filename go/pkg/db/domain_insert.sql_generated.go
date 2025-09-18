@@ -18,8 +18,12 @@ INSERT INTO domains (
     deployment_id,
     domain,
     type,
-    created_at
+    sticky,
+    created_at,
+    updated_at
 ) VALUES (
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -28,22 +32,24 @@ INSERT INTO domains (
     ?,
     ?
 ) ON DUPLICATE KEY UPDATE
-    workspace_id = VALUES(workspace_id),
-    project_id = VALUES(project_id),
-    deployment_id = VALUES(deployment_id),
-    type = VALUES(type),
+    workspace_id = ?,
+    project_id = ?,
+    deployment_id = ?,
+    type = ?,
+    sticky = ?,
     updated_at = ?
 `
 
 type InsertDomainParams struct {
-	ID           string         `db:"id"`
-	WorkspaceID  string         `db:"workspace_id"`
-	ProjectID    sql.NullString `db:"project_id"`
-	DeploymentID sql.NullString `db:"deployment_id"`
-	Domain       string         `db:"domain"`
-	Type         DomainsType    `db:"type"`
-	CreatedAt    int64          `db:"created_at"`
-	UpdatedAt    sql.NullInt64  `db:"updated_at"`
+	ID           string            `db:"id"`
+	WorkspaceID  string            `db:"workspace_id"`
+	ProjectID    sql.NullString    `db:"project_id"`
+	DeploymentID sql.NullString    `db:"deployment_id"`
+	Domain       string            `db:"domain"`
+	Type         DomainsType       `db:"type"`
+	Sticky       NullDomainsSticky `db:"sticky"`
+	CreatedAt    int64             `db:"created_at"`
+	UpdatedAt    sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertDomain
@@ -55,8 +61,12 @@ type InsertDomainParams struct {
 //	    deployment_id,
 //	    domain,
 //	    type,
-//	    created_at
+//	    sticky,
+//	    created_at,
+//	    updated_at
 //	) VALUES (
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -65,10 +75,11 @@ type InsertDomainParams struct {
 //	    ?,
 //	    ?
 //	) ON DUPLICATE KEY UPDATE
-//	    workspace_id = VALUES(workspace_id),
-//	    project_id = VALUES(project_id),
-//	    deployment_id = VALUES(deployment_id),
-//	    type = VALUES(type),
+//	    workspace_id = ?,
+//	    project_id = ?,
+//	    deployment_id = ?,
+//	    type = ?,
+//	    sticky = ?,
 //	    updated_at = ?
 func (q *Queries) InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error {
 	_, err := db.ExecContext(ctx, insertDomain,
@@ -78,7 +89,14 @@ func (q *Queries) InsertDomain(ctx context.Context, db DBTX, arg InsertDomainPar
 		arg.DeploymentID,
 		arg.Domain,
 		arg.Type,
+		arg.Sticky,
 		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.WorkspaceID,
+		arg.ProjectID,
+		arg.DeploymentID,
+		arg.Type,
+		arg.Sticky,
 		arg.UpdatedAt,
 	)
 	return err

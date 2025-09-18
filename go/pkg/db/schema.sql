@@ -370,6 +370,8 @@ CREATE TABLE `domains` (
 	`deployment_id` varchar(256),
 	`domain` varchar(256) NOT NULL,
 	`type` enum('custom','wildcard') NOT NULL,
+	`sticky` enum('branch','environment','live'),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `domains_id` PRIMARY KEY(`id`)
@@ -415,3 +417,4 @@ CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
+

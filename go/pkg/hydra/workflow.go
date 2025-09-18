@@ -248,6 +248,7 @@ func (w *workflowWrapper[TReq]) Run(ctx WorkflowContext, req any) error {
 	err := w.wrapped.Run(wctx, typedReq)
 	if err != nil {
 		tracing.RecordError(span, err)
+
 		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 	} else {
 		span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))

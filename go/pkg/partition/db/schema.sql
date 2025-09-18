@@ -10,6 +10,7 @@ USE `partition_001`;
 CREATE TABLE gateways (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `workspace_id` varchar(255) NOT NULL,
+  `deployment_id` varchar(255) NOT NULL,
   `hostname` varchar(255) NOT NULL,
   `config` blob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
   PRIMARY KEY (`id`),

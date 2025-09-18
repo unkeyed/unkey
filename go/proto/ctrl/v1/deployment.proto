@@ -130,10 +130,23 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
+message RollbackRequest {
+  string project_id = 1;
+  string target_deployment_id = 2;
+}
+
+message RollbackResponse {
+  // the rolled back domains
+  repeated string domains = 1;
+}
+
 service DeploymentService {
   // Create a new deployment
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
+
+// Reassign the sticky domains of the projects live deployment to the target deployment
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
 }

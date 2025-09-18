@@ -326,7 +326,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			// Create gateway config for this domain
-			gatewayConfig, err := w.createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
+			gatewayConfig, err := createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
 			if err != nil {
 				w.logger.Error("failed to create gateway config for domain",
 					"domain", domain,
@@ -344,9 +344,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
-				WorkspaceID: req.WorkspaceID,
-				Hostname:    domain,
-				Config:      configBytes,
+				WorkspaceID:  req.WorkspaceID,
+				DeploymentID: req.DeploymentID,
+				Hostname:     domain,
+				Config:       configBytes,
 			})
 		}
 
@@ -572,7 +573,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 // and readability during development/demo. This makes it simpler to inspect and
 // modify configs directly in the database.
 // IMPORTANT: Always use protojson.Marshal for writes and protojson.Unmarshal for reads.
-func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
+func createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
 		Deployment: &partitionv1.Deployment{

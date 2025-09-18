@@ -173,7 +173,7 @@ type Querier interface {
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error)
 	//FindDomainByDomain
 	//
-	//  SELECT id, workspace_id, project_id, deployment_id, domain, type, created_at, updated_at FROM domains WHERE domain = ?
+	//  SELECT id, workspace_id, project_id, deployment_id, domain, type, sticky, is_rolled_back, created_at, updated_at FROM domains WHERE domain = ?
 	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
 	//FindDomainsByDeploymentId
 	//
@@ -183,6 +183,8 @@ type Querier interface {
 	//      project_id,
 	//      domain,
 	//      deployment_id,
+	//      sticky,
+	//      is_rolled_back,
 	//      created_at,
 	//      updated_at
 	//  FROM domains
@@ -588,6 +590,7 @@ type Querier interface {
 	//      git_repository_url,
 	//      default_branch,
 	//      delete_protection,
+	//      live_deployment_id,
 	//      created_at,
 	//      updated_at
 	//  FROM projects
@@ -897,8 +900,12 @@ type Querier interface {
 	//      deployment_id,
 	//      domain,
 	//      type,
-	//      created_at
+	//      sticky,
+	//      created_at,
+	//      updated_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -907,10 +914,11 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE
-	//      workspace_id = VALUES(workspace_id),
-	//      project_id = VALUES(project_id),
-	//      deployment_id = VALUES(deployment_id),
-	//      type = VALUES(type),
+	//      workspace_id = ?,
+	//      project_id = ?,
+	//      deployment_id = ?,
+	//      type = ?,
+	//      sticky = ?,
 	//      updated_at = ?
 	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
 	//InsertIdentity
@@ -1509,6 +1517,13 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	//RollbackDomain
+	//
+	//  UPDATE domains
+	//  SET deployment_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	RollbackDomain(ctx context.Context, db DBTX, arg RollbackDomainParams) error
 	//SoftDeleteApi
 	//
 	//  UPDATE apis
