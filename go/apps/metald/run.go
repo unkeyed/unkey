@@ -1,12 +1,10 @@
-//go:build linux
-// +build linux
-
-package main
+package metald
 
 import (
 	"context"
+	"database/sql"
+	"embed"
 	"errors"
-	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,14 +15,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/unkeyed/unkey/go/apps/metald/internal/assetmanager"
-	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/firecracker"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/billing"
-	"github.com/unkeyed/unkey/go/apps/metald/internal/config"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/database"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/observability"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/service"
+
+	"github.com/pressly/goose/v3"
+	_ "github.com/unkeyed/unkey/go/apps/metald/migrations" // Import Go migrations
 	healthpkg "github.com/unkeyed/unkey/go/deploy/pkg/health"
 	"github.com/unkeyed/unkey/go/deploy/pkg/observability/interceptors"
 	tlspkg "github.com/unkeyed/unkey/go/deploy/pkg/tls"
@@ -37,54 +35,121 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
+//go:embed migrations/*.sql
+var migrationFS embed.FS
+
 // version is set at build time via ldflags
 var version = ""
 
-// getVersion returns the version string, with fallback to debug.ReadBuildInfo
-func getVersion() string {
-	// If version was set via ldflags (production builds), use it
-	if version != "" {
-		return version
-	}
-
-	// Fallback to debug.ReadBuildInfo for development/module builds
-	if info, ok := debug.ReadBuildInfo(); ok {
-		// Use the module version if available
-		if info.Main.Version != "(devel)" && info.Main.Version != "" {
-			return info.Main.Version
-		}
-
-		// Try to get version from VCS info
-		for _, setting := range info.Settings {
-			if setting.Key == "vcs.revision" && len(setting.Value) >= 7 {
-				return "dev-" + setting.Value[:7] // First 8 chars of commit hash
-			}
-		}
-
-		return "dev"
-	}
-
-	return version
+// Config represents the complete configuration for metald
+type Config struct {
+	Server        ServerConfig
+	Backend       BackendConfig
+	Database      DatabaseConfig
+	AssetManager  AssetManagerConfig
+	Billing       BillingConfig
+	TLS           TLSConfig
+	OpenTelemetry OpenTelemetryConfig
+	InstanceID    string
 }
 
-func main() {
+// ServerConfig contains server settings
+type ServerConfig struct {
+	Address string
+	Port    string
+}
+
+// BackendConfig contains backend settings
+type BackendConfig struct {
+	Type   string // firecracker, docker, or k8s
+	Jailer JailerConfig
+}
+
+// JailerConfig contains jailer settings (firecracker only)
+type JailerConfig struct {
+	UID           uint32
+	GID           uint32
+	ChrootBaseDir string
+}
+
+// DatabaseConfig contains database settings
+type DatabaseConfig struct {
+	DataDir string
+}
+
+// AssetManagerConfig contains asset manager settings
+type AssetManagerConfig struct {
+	Enabled  bool
+	Endpoint string
+}
+
+// BillingConfig contains billing settings
+type BillingConfig struct {
+	Enabled  bool
+	Endpoint string
+	MockMode bool
+}
+
+// TLSConfig contains TLS settings
+type TLSConfig struct {
+	Mode              string // disabled, file, or spiffe
+	CertFile          string
+	KeyFile           string
+	CAFile            string
+	SPIFFESocketPath  string
+	EnableCertCaching bool
+	CertCacheTTL      string
+}
+
+// OpenTelemetryConfig contains OpenTelemetry settings
+type OpenTelemetryConfig struct {
+	Enabled                      bool
+	ServiceName                  string
+	ServiceVersion               string
+	TracingSamplingRate          float64
+	OTLPEndpoint                 string
+	PrometheusEnabled            bool
+	PrometheusPort               string
+	PrometheusInterface          string
+	HighCardinalityLabelsEnabled bool
+}
+
+// Validate validates the configuration
+func (c *Config) Validate() error {
+	// Validate backend type
+	switch c.Backend.Type {
+	case "firecracker", "docker", "k8s":
+		// Valid backend types
+	default:
+		return fmt.Errorf("invalid backend type: %s (must be firecracker, docker, or k8s)", c.Backend.Type)
+	}
+
+	// Validate TLS mode
+	switch c.TLS.Mode {
+	case "disabled", "file", "spiffe":
+		// Valid TLS modes
+	default:
+		return fmt.Errorf("invalid TLS mode: %s (must be disabled, file, or spiffe)", c.TLS.Mode)
+	}
+
+	// If TLS mode is file, ensure cert and key files are provided
+	if c.TLS.Mode == "file" {
+		if c.TLS.CertFile == "" || c.TLS.KeyFile == "" {
+			return fmt.Errorf("TLS mode is 'file' but cert or key file not provided")
+		}
+	}
+
+	// Validate sampling rate
+	if c.OpenTelemetry.TracingSamplingRate < 0 || c.OpenTelemetry.TracingSamplingRate > 1 {
+		return fmt.Errorf("invalid tracing sampling rate: %f (must be between 0 and 1)", c.OpenTelemetry.TracingSamplingRate)
+	}
+
+	return nil
+}
+
+// Run starts the metald service with the given configuration
+func Run(ctx context.Context, cfg Config) error {
 	startTime := time.Now()
-
-	var (
-		showHelp    = flag.Bool("help", false, "Show help information")
-		showVersion = flag.Bool("version", false, "Show version information")
-	)
-	flag.Parse()
-
-	if *showHelp {
-		printUsage()
-		os.Exit(0)
-	}
-
-	if *showVersion {
-		printVersion()
-		os.Exit(0)
-	}
 
 	// Initialize structured logger with JSON output
 	//exhaustruct:ignore
@@ -97,31 +162,20 @@ func main() {
 	logger.Info("starting metald",
 		slog.String("version", getVersion()),
 		slog.String("go_version", runtime.Version()),
-	)
-
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		logger.Error("failed to load configuration",
-			slog.String("error", err.Error()),
-		)
-		os.Exit(1)
-	}
-
-	logger.Info("configuration loaded",
-		slog.String("address", cfg.Server.Address),
-		slog.String("port", cfg.Server.Port),
-		slog.Bool("otel_enabled", cfg.OpenTelemetry.Enabled),
+		slog.String("backend", cfg.Backend.Type),
+		slog.String("instance_id", cfg.InstanceID),
 	)
 
 	// Initialize OpenTelemetry
-	ctx := context.Background()
-	otelProviders, err := observability.InitProviders(ctx, cfg, getVersion(), logger)
+	otelProviders, err := observability.InitProviders(ctx, convertToInternalConfig(&cfg), getVersion(), logger)
 	if err != nil {
 		logger.Error("failed to initialize OpenTelemetry",
 			slog.String("error", err.Error()),
 		)
-		os.Exit(1)
+
+		return err
 	}
+
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -132,18 +186,7 @@ func main() {
 		}
 	}()
 
-	if cfg.OpenTelemetry.Enabled {
-		logger.Info("OpenTelemetry initialized",
-			slog.String("service_name", cfg.OpenTelemetry.ServiceName),
-			slog.String("service_version", cfg.OpenTelemetry.ServiceVersion),
-			slog.Float64("sampling_rate", cfg.OpenTelemetry.TracingSamplingRate),
-			slog.String("otlp_endpoint", cfg.OpenTelemetry.OTLPEndpoint),
-			slog.Bool("prometheus_enabled", cfg.OpenTelemetry.PrometheusEnabled),
-			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
-		)
-	}
-
-	// Initialize TLS provider (defaults to disabled)
+	// Initialize TLS provider
 	//exhaustruct:ignore
 	tlsConfig := tlspkg.Config{
 		Mode:              tlspkg.Mode(cfg.TLS.Mode),
@@ -153,6 +196,7 @@ func main() {
 		SPIFFESocketPath:  cfg.TLS.SPIFFESocketPath,
 		EnableCertCaching: cfg.TLS.EnableCertCaching,
 	}
+
 	// Parse certificate cache TTL
 	if cfg.TLS.CertCacheTTL != "" {
 		if duration, parseErr := time.ParseDuration(cfg.TLS.CertCacheTTL); parseErr == nil {
@@ -163,13 +207,13 @@ func main() {
 				"error", parseErr)
 		}
 	}
+
 	tlsProvider, err := tlspkg.NewProvider(ctx, tlsConfig)
 	if err != nil {
-		// AIDEV-BUSINESS_RULE: TLS/SPIFFE is required - fatal error if it fails
 		logger.Error("TLS initialization failed",
 			"error", err,
 			"mode", cfg.TLS.Mode)
-		os.Exit(1)
+		return err
 	}
 	defer tlsProvider.Close()
 
@@ -177,94 +221,40 @@ func main() {
 		"mode", cfg.TLS.Mode,
 		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
 
+	// Initialize database
 	db, dbErr := database.NewDatabaseWithLogger(cfg.Database.DataDir, slog.Default())
 	if dbErr != nil {
 		logger.Error("failed to get DB",
 			slog.String("error", dbErr.Error()),
 		)
-		os.Exit(1)
+		return dbErr
+	}
+	defer db.Close()
+
+	// Run database migrations
+	if err := runMigrations(cfg.Database.DataDir, logger, db.DB()); err != nil {
+		logger.Error("failed to run migrations", slog.String("error", err.Error()))
+		return err
 	}
 
 	// Initialize backend based on configuration
-	var backend types.Backend
-	switch cfg.Backend.Type {
-	case types.BackendTypeFirecracker:
-		// Base directory for VM data
-		baseDir := "/opt/metald/vms"
-
-		// Create AssetManager client for asset preparation
-		var assetClient assetmanager.Client
-		if cfg.AssetManager.Enabled {
-			// Use TLS-enabled HTTP client
-			httpClient := tlsProvider.HTTPClient()
-			assetClient, err = assetmanager.NewClientWithHTTP(&cfg.AssetManager, logger, httpClient)
-			if err != nil {
-				logger.Error("failed to create assetmanager client",
-					slog.String("error", err.Error()),
-				)
-				os.Exit(1)
-			}
-			logger.Info("initialized assetmanager client",
-				slog.String("endpoint", cfg.AssetManager.Endpoint),
-			)
-		} else {
-			// Use noop client if assetmanager is disabled
-			assetClient, _ = assetmanager.NewClient(&cfg.AssetManager, logger)
-			logger.Info("assetmanager disabled, using noop client")
-		}
-
-		sdkClient, err := firecracker.NewClient(logger, assetClient, &cfg.Backend.Jailer, baseDir)
-		if err != nil {
-			logger.Error("failed to create firecracker client",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
-
-		logger.Info("initialized firecracker backend",
-			slog.String("firecracker_binary", "/usr/local/bin/firecracker"),
-			slog.Uint64("uid", uint64(cfg.Backend.Jailer.UID)),
-			slog.Uint64("gid", uint64(cfg.Backend.Jailer.GID)),
-			slog.String("chroot_base", cfg.Backend.Jailer.ChrootBaseDir),
+	backend, err := initializeBackend(ctx, &cfg, logger, tlsProvider)
+	if err != nil {
+		logger.Error("failed to initialize backend",
+			slog.String("error", err.Error()),
+			slog.String("backend", cfg.Backend.Type),
 		)
-
-		backend = sdkClient
-	case types.BackendTypeDocker:
-		// // AIDEV-NOTE: Docker backend for development - creates containers instead of VMs
-		// logger.Info("initializing Docker backend for development")
-
-		// dockerClient, err := docker.NewDockerBackend(logger, docker.DefaultDockerBackendConfig())
-		// if err != nil {
-		// 	logger.Error("failed to create Docker backend",
-		// 		slog.String("error", err.Error()),
-		// 	)
-		// 	os.Exit(1)
-		// }
-
-		// backend = dockerClient
-		// logger.Info("Docker backend initialized successfully")
-	default:
-		logger.Error("unsupported backend type",
-			slog.String("backend", string(cfg.Backend.Type)),
-		)
-		os.Exit(1)
+		return err
 	}
 
-	// Create billing client based on configuration
+	// Create billing client
 	var billingClient billing.BillingClient
 	if cfg.Billing.Enabled {
 		if cfg.Billing.MockMode {
 			billingClient = billing.NewMockBillingClient(logger)
 			logger.Info("initialized mock billing client")
 		} else {
-			// Use TLS-enabled HTTP client
 			httpClient := tlsProvider.HTTPClient()
-			// AIDEV-NOTE: Enhanced debug logging for service connection initialization
-			logger.Debug("attempting to initialize billing client",
-				slog.String("endpoint", cfg.Billing.Endpoint),
-				slog.String("tls_mode", cfg.TLS.Mode),
-				slog.Bool("mock_mode", cfg.Billing.MockMode),
-			)
 			billingClient = billing.NewConnectRPCBillingClientWithHTTP(cfg.Billing.Endpoint, logger, httpClient)
 			logger.Info("initialized ConnectRPC billing client",
 				"endpoint", cfg.Billing.Endpoint,
@@ -280,13 +270,12 @@ func main() {
 	var vmMetrics *observability.VMMetrics
 	var billingMetrics *observability.BillingMetrics
 	if cfg.OpenTelemetry.Enabled {
-		var err error
 		vmMetrics, err = observability.NewVMMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
 		if err != nil {
 			logger.Error("failed to initialize VM metrics",
 				slog.String("error", err.Error()),
 			)
-			os.Exit(1)
+			return err
 		}
 
 		billingMetrics, err = observability.NewBillingMetrics(logger, cfg.OpenTelemetry.HighCardinalityLabelsEnabled)
@@ -294,7 +283,7 @@ func main() {
 			logger.Error("failed to initialize billing metrics",
 				slog.String("error", err.Error()),
 			)
-			os.Exit(1)
+			return err
 		}
 		logger.Info("VM and billing metrics initialized",
 			slog.Bool("high_cardinality_enabled", cfg.OpenTelemetry.HighCardinalityLabelsEnabled),
@@ -302,8 +291,7 @@ func main() {
 	}
 
 	// Create metrics collector
-	instanceID := fmt.Sprintf("metald-%d", time.Now().Unix())
-	metricsCollector := billing.NewMetricsCollector(backend, billingClient, logger, instanceID, billingMetrics)
+	metricsCollector := billing.NewMetricsCollector(backend, billingClient, logger, cfg.InstanceID, billingMetrics)
 
 	// Start heartbeat service
 	metricsCollector.StartHeartbeat()
@@ -322,7 +310,7 @@ func main() {
 		interceptors.WithServiceName("metald"),
 		interceptors.WithLogger(logger),
 		interceptors.WithActiveRequestsMetric(true),
-		interceptors.WithRequestDurationMetric(true), // Match existing behavior
+		interceptors.WithRequestDurationMetric(true),
 		interceptors.WithErrorResampling(true),
 		interceptors.WithPanicStackTrace(true),
 	}
@@ -332,10 +320,10 @@ func main() {
 		interceptorOpts = append(interceptorOpts, interceptors.WithMeter(otel.Meter("metald")))
 	}
 
-	// Get default interceptors (tenant auth, metrics, logging)
+	// Get default interceptors
 	sharedInterceptors := interceptors.NewDefaultInterceptors("metald", interceptorOpts...)
 
-	// Add shared interceptors (convert UnaryInterceptorFunc to Interceptor)
+	// Add shared interceptors
 	for _, interceptor := range sharedInterceptors {
 		interceptorList = append(interceptorList, connect.Interceptor(interceptor))
 	}
@@ -345,6 +333,9 @@ func main() {
 		connect.WithInterceptors(interceptorList...),
 	)
 	mux.Handle(path, handler)
+
+	// Add health endpoint
+	mux.HandleFunc("/health", healthHandler)
 
 	// Add Prometheus metrics endpoint if enabled
 	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
@@ -357,26 +348,23 @@ func main() {
 	// Create HTTP server with H2C support for gRPC
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Address, cfg.Server.Port)
 
-	// AIDEV-NOTE: Removed otelhttp.NewHandler to prevent double-span issues
-	// The OTEL interceptor in the ConnectRPC handler already handles tracing
 	var httpHandler http.Handler = mux
 
 	// Configure server with optional TLS and security timeouts
 	server := &http.Server{
 		Addr:           addr,
 		Handler:        h2c.NewHandler(httpHandler, &http2.Server{}), //nolint:exhaustruct
-		ReadTimeout:    30 * time.Second,                             // Time to read request headers
-		WriteTimeout:   30 * time.Second,                             // Time to write response
-		IdleTimeout:    120 * time.Second,                            // Keep-alive timeout
-		MaxHeaderBytes: 1 << 20,                                      // 1MB max header size
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		IdleTimeout:    120 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1MB max header size
 	}
 
 	// Apply TLS configuration if enabled
 	serverTLSConfig, _ := tlsProvider.ServerTLSConfig()
 	if serverTLSConfig != nil {
 		server.TLSConfig = serverTLSConfig
-		// For TLS, we need to use regular handler, not h2c
-		server.Handler = httpHandler
+		server.Handler = httpHandler // For TLS, use regular handler, not h2c
 	}
 
 	// Start main server in goroutine
@@ -386,7 +374,6 @@ func main() {
 				slog.String("address", addr),
 				slog.String("tls_mode", cfg.TLS.Mode),
 			)
-			// Empty strings for cert/key paths - SPIFFE provides them in memory
 			if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				logger.Error("server failed",
 					slog.String("error", err.Error()),
@@ -409,7 +396,6 @@ func main() {
 	// Start Prometheus server on separate port if enabled
 	var promServer *http.Server
 	if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.PrometheusEnabled {
-		// AIDEV-NOTE: Use configured interface, defaulting to localhost for security
 		promAddr := fmt.Sprintf("%s:%s", cfg.OpenTelemetry.PrometheusInterface, cfg.OpenTelemetry.PrometheusPort)
 		promMux := http.NewServeMux()
 		promMux.Handle("/metrics", promhttp.Handler())
@@ -445,18 +431,18 @@ func main() {
 	logger.Info("shutting down server")
 
 	// Graceful shutdown with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Shutdown all servers
 	var shutdownErrors []error
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		shutdownErrors = append(shutdownErrors, fmt.Errorf("main server: %w", err))
 	}
 
 	if promServer != nil {
-		if err := promServer.Shutdown(ctx); err != nil {
+		if err := promServer.Shutdown(shutdownCtx); err != nil {
 			shutdownErrors = append(shutdownErrors, fmt.Errorf("prometheus server: %w", err))
 		}
 	}
@@ -465,43 +451,68 @@ func main() {
 		logger.Error("failed to shutdown servers gracefully",
 			slog.String("error", errors.Join(shutdownErrors...).Error()),
 		)
-		os.Exit(1)
+		return errors.Join(shutdownErrors...)
 	}
 
 	logger.Info("server shutdown complete")
+	return nil
 }
 
-// printUsage displays help information
-func printUsage() {
-	fmt.Printf("Metald API Server\n\n")
-	fmt.Printf("Usage: %s [OPTIONS]\n\n", os.Args[0])
-	fmt.Printf("Options:\n")
-	flag.PrintDefaults()
-	fmt.Printf("\nEnvironment Variables:\n")
-	fmt.Printf("  UNKEY_METALD_PORT                Server port (default: 8080)\n")
-	fmt.Printf("  UNKEY_METALD_ADDRESS             Bind address (default: 0.0.0.0)\n")
-	fmt.Printf("  UNKEY_METALD_BACKEND             Backend type (default: firecracker)\n")
-	fmt.Printf("\nOpenTelemetry Configuration:\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_ENABLED              Enable OpenTelemetry (default: false)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_SERVICE_NAME         Service name (default: vmm-controlplane)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_SERVICE_VERSION      Service version (default: 0.1.0)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_SAMPLING_RATE        Trace sampling rate 0.0-1.0 (default: 1.0)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_ENDPOINT             OTLP endpoint (default: localhost:4318)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_PROMETHEUS_ENABLED   Enable Prometheus metrics (default: true)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_PROMETHEUS_PORT      Prometheus metrics port on 0.0.0.0 (default: 9464)\n")
-	fmt.Printf("  UNKEY_METALD_OTEL_HIGH_CARDINALITY_ENABLED  Enable high-cardinality labels (default: false)\n")
-	fmt.Printf("\nJailer Configuration (Integrated):\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_UID                User ID for jailer process (default: 1000)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_GID                Group ID for jailer process (default: 1000)\n")
-	fmt.Printf("  UNKEY_METALD_JAILER_CHROOT_DIR         Chroot base directory (default: /srv/jailer)\n")
-	fmt.Printf("\nExamples:\n")
-	fmt.Printf("  %s                                    # Start metald with default configuration\n", os.Args[0])
-	fmt.Printf("  sudo %s                               # Start metald as root (required for networking)\n", os.Args[0])
+// initializeBackend creates the appropriate backend based on configuration
+func initializeBackend(ctx context.Context, cfg *Config, logger *slog.Logger, tlsProvider tlspkg.Provider) (types.Backend, error) {
+	switch cfg.Backend.Type {
+	case "firecracker":
+		return initializeFirecrackerBackend(ctx, cfg, logger, tlsProvider)
+	case "docker":
+		return initializeDockerBackend(ctx, cfg, logger)
+	case "k8s":
+		return initializeK8sBackend(ctx, cfg, logger)
+	default:
+		return nil, fmt.Errorf("unsupported backend type: %s", cfg.Backend.Type)
+	}
 }
 
-// printVersion displays version information
-func printVersion() {
-	fmt.Printf("Metald API Server\n")
-	fmt.Printf("Version: %s\n", getVersion())
-	fmt.Printf("Built with: %s\n", runtime.Version())
+// getVersion returns the version string, with fallback to debug.ReadBuildInfo
+func getVersion() string {
+	// If version was set via ldflags (production builds), use it
+	if version != "" {
+		return version
+	}
+
+	// Fallback to debug.ReadBuildInfo for development/module builds
+	if info, ok := debug.ReadBuildInfo(); ok {
+		// Use the module version if available
+		if info.Main.Version != "(devel)" && info.Main.Version != "" {
+			return info.Main.Version
+		}
+
+		// Try to get version from VCS info
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" && len(setting.Value) >= 7 {
+				return "dev-" + setting.Value[:7] // First 8 chars of commit hash
+			}
+		}
+
+		return "dev"
+	}
+
+	return version
+}
+
+// runMigrations runs database migrations using goose with embedded migrations
+func runMigrations(dataDir string, logger *slog.Logger, db *sql.DB) error {
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return fmt.Errorf("failed to set goose dialect: %w", err)
+	}
+
+	// Set embedded filesystem as the migration source
+	goose.SetBaseFS(migrationFS)
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	logger.Info("migrations completed successfully")
+
+	return nil
 }
