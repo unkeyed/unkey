@@ -144,9 +144,9 @@ export const RatelimitLogsTable = () => {
         header: "Limit",
         width: "auto",
         render: (log) => {
-          return (
-            <div className="font-mono">{safeParseJson(log.response_body)?.limit ?? "<EMPTY>"}</div>
-          );
+          const body = safeParseJson(log.response_body);
+          const parsedLimit = body?.limit || body?.data?.limit;
+          return <div className="font-mono">{parsedLimit ?? "<EMPTY>"}</div>;
         },
       },
       {
@@ -167,11 +167,13 @@ export const RatelimitLogsTable = () => {
         header: "Resets At",
         width: "auto",
         render: (log) => {
-          const parsedReset = safeParseJson(log.response_body)?.reset;
+          const body = safeParseJson(log.response_body);
+          const parsedReset = body?.reset || body?.data?.reset;
+
           return parsedReset ? (
             <div className="font-mono">
               <TimestampInfo
-                value={safeParseJson(log.response_body)?.reset ?? "<EMPTY>"}
+                value={parsedReset ?? "<EMPTY>"}
                 className={cn(
                   "font-mono group-hover:underline decoration-dotted",
                   selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
@@ -187,7 +189,7 @@ export const RatelimitLogsTable = () => {
         key: "region",
         header: "Region",
         width: "10%",
-        render: (log) => <div className="font-mono">{log.colo}</div>,
+        render: (log) => <div className="font-mono">{log.region}</div>,
       },
       {
         key: "actions",

@@ -6,3 +6,9 @@ plugins:
   - remote: buf.build/connectrpc/go:v1.18.1
     out: gen/proto
     opt: paths=source_relative
+  - remote: buf.build/bufbuild/es:v1.10.0
+    out: ../internal/proto/generated
+    opt: target=ts
+  - remote: buf.build/connectrpc/es:v1.6.1
+    out: ../internal/proto/generated
+    opt: target=ts
