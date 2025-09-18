@@ -50,7 +50,9 @@ func sluggify(s string) string {
 	s = strings.TrimSpace(s)
 
 	// Remove all non-alphanumeric characters except spaces
-	s = nonAlphanumericRegex.ReplaceAllString(s, "")
+	s = nonAlphanumericRegex.ReplaceAllString(s, " ")
+	s = strings.ReplaceAll(s, "-", " ")
+	s = strings.ReplaceAll(s, "_", " ")
 
 	// Replace multiple spaces with single space
 	s = multipleSpacesRegex.ReplaceAllString(s, " ")
