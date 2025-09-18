@@ -29,6 +29,25 @@ WHERE deployment_id = ?
 AND json_array_length(available_ips) > 0
 RETURNING CAST(json_extract(available_ips, '$[0]') AS TEXT) AS ip, id;
 
+-- name: CleanupStaleIPAllocations :exec
+DELETE FROM ip_allocations
+WHERE network_allocation_id IN (
+    SELECT id FROM network_allocations na
+    WHERE na.allocated_at < ?
+);
+
+-- name: ReleaseStaleNetworks :exec
+UPDATE networks
+SET is_allocated = 0
+WHERE id IN (
+    SELECT network_id FROM network_allocations na
+    WHERE na.allocated_at < ?
+);
+
+-- name: DeleteStaleNetworkAllocations :exec
+DELETE FROM network_allocations
+WHERE allocated_at < ?;
+
 -- name: AllocateIP :one
 INSERT INTO ip_allocations (vm_id, ip_addr, network_allocation_id)
 VALUES (?, ?, ?)

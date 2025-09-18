@@ -56,6 +56,19 @@ func (q *Queries) AllocateNetwork(ctx context.Context) (Network, error) {
 	return i, err
 }
 
+const cleanupStaleIPAllocations = `-- name: CleanupStaleIPAllocations :exec
+DELETE FROM ip_allocations
+WHERE network_allocation_id IN (
+    SELECT id FROM network_allocations na
+    WHERE na.allocated_at < ?
+)
+`
+
+func (q *Queries) CleanupStaleIPAllocations(ctx context.Context, allocatedAt sql.NullTime) error {
+	_, err := q.db.ExecContext(ctx, cleanupStaleIPAllocations, allocatedAt)
+	return err
+}
+
 const createNetworkAllocation = `-- name: CreateNetworkAllocation :one
 INSERT INTO network_allocations (deployment_id, network_id, available_ips, bridge_name)
 VALUES (?, ?, ?, ?)
@@ -105,6 +118,16 @@ WHERE deployment_id = ?
 
 func (q *Queries) DeleteNetworkAllocation(ctx context.Context, deploymentID string) error {
 	_, err := q.db.ExecContext(ctx, deleteNetworkAllocation, deploymentID)
+	return err
+}
+
+const deleteStaleNetworkAllocations = `-- name: DeleteStaleNetworkAllocations :exec
+DELETE FROM network_allocations
+WHERE allocated_at < ?
+`
+
+func (q *Queries) DeleteStaleNetworkAllocations(ctx context.Context, allocatedAt sql.NullTime) error {
+	_, err := q.db.ExecContext(ctx, deleteStaleNetworkAllocations, allocatedAt)
 	return err
 }
 
@@ -234,6 +257,20 @@ WHERE id = ?
 
 func (q *Queries) ReleaseNetwork(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, releaseNetwork, id)
+	return err
+}
+
+const releaseStaleNetworks = `-- name: ReleaseStaleNetworks :exec
+UPDATE networks
+SET is_allocated = 0
+WHERE id IN (
+    SELECT network_id FROM network_allocations na
+    WHERE na.allocated_at < ?
+)
+`
+
+func (q *Queries) ReleaseStaleNetworks(ctx context.Context, allocatedAt sql.NullTime) error {
+	_, err := q.db.ExecContext(ctx, releaseStaleNetworks, allocatedAt)
 	return err
 }
 

@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
 	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/types"
@@ -38,6 +40,29 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 	logger := s.logger.With("deployment_id", req.Msg.GetDeployment().GetDeploymentId())
 	vmCount := req.Msg.GetDeployment().GetVmCount()
 
+	// Cleanup old allocations for old pods (older than 2hrs)
+	if s.backend.Type() == string(types.BackendTypeKubernetes) {
+		staleTime := time.Now().Add(-5 * time.Minute)
+		if err := s.queries.CleanupStaleIPAllocations(ctx, sql.NullTime{Time: staleTime, Valid: true}); err != nil && !db.IsNotFound(err) {
+			logger.Warn("failed to cleanup stale IP allocations",
+				slog.String("error", err.Error()),
+			)
+		}
+
+		if err := s.queries.ReleaseStaleNetworks(ctx, sql.NullTime{Time: staleTime, Valid: true}); err != nil && !db.IsNotFound(err) {
+			logger.Warn("failed to release stale networks",
+				slog.String("error", err.Error()),
+			)
+		}
+
+		if err := s.queries.DeleteStaleNetworkAllocations(ctx, sql.NullTime{Time: staleTime, Valid: true}); err != nil && !db.IsNotFound(err) {
+			logger.Warn("failed to delete stale network allocations",
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	// We need to acquire a network allocation for the deployment and create one if it doesn't exist yet.
 	nwAlloc, err := s.queries.GetNetworkAllocation(ctx, req.Msg.GetDeployment().DeploymentId)
 	if err != nil && !db.IsNotFound(err) {
 		logger.Info("failed to get network allocation",

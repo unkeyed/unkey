@@ -124,7 +124,8 @@ func (b *Backend) createCustomNetwork(ctx context.Context, deploymentID, subnet 
 	b.logger.Info("created custom network",
 		"network", networkName,
 		"subnet", subnet,
-		"gateway", gatewayIP)
+		"gateway", gatewayIP,
+	)
 
 	return resp.ID, nil
 }
@@ -223,7 +224,8 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		b.logger.Info("using custom network",
 			"vm_id", vmID,
 			"network", networkName,
-			"ip", allocatedIP)
+			"ip", allocatedIP,
+		)
 	}
 
 	// Create the container
@@ -464,6 +466,7 @@ func (b *Backend) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Docker daemon ping failed: %w", err)
 	}
+
 	return nil
 }
 
@@ -491,12 +494,15 @@ func (b *Backend) ListVMs() []types.ListableVMInfo {
 
 		// Determine state from container state
 		state := metaldv1.VmState_VM_STATE_CREATED
-		if c.State == "running" {
+		switch c.State {
+		case "running":
 			state = metaldv1.VmState_VM_STATE_RUNNING
-		} else if c.State == "paused" {
+		case "paused":
 			state = metaldv1.VmState_VM_STATE_PAUSED
-		} else if c.State == "exited" || c.State == "dead" {
+		case "exited", "dead":
 			state = metaldv1.VmState_VM_STATE_SHUTDOWN
+		default:
+			state = metaldv1.VmState_VM_STATE_UNSPECIFIED
 		}
 
 		config := &metaldv1.VmConfig{

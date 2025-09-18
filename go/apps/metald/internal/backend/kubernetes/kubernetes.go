@@ -48,9 +48,6 @@ func New(logger logging.Logger) (*Backend, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes clientset: %w", err)
 	}
 
-	// Note: Metrics client would be created here if k8s.io/metrics was available
-	// For now, metrics collection is disabled
-
 	// Get namespace from service account or use default
 	namespace := "default"
 	if ns, err := readNamespaceFromServiceAccount(); err == nil && ns != "" {
@@ -92,9 +89,6 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		}
 	}
 
-	// Use metald's namespace for all VMs - no need for deployment isolation
-	targetNamespace := b.namespace
-
 	// Sanitize VM ID for Kubernetes resources (RFC 1123)
 	sanitizedVMID := strings.ToLower(vmID)
 	podName := sanitizedVMID
@@ -131,21 +125,11 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 	}
 
 	// Create pod template with optional specific IP
+	podAnnotations := map[string]string{}
 	podLabels := map[string]string{
 		"unkey.vm.id":      vmID,
 		"unkey.managed.by": "metald",
 	}
-	podAnnotations := map[string]string{}
-
-	// Note: Specific IP allocation via CNI annotations is not reliable across all K8s setups
-	// For now, let Kubernetes assign IPs naturally and rely on Service discovery
-	if allocatedIP, ok := networkInfo["allocated_ip"]; ok && allocatedIP != "" {
-		b.logger.Info("metald allocated IP (for reference only)",
-			"vm_id", vmID,
-			"allocated_ip", allocatedIP,
-			"note", "using K8s service discovery instead of static IP")
-	}
-
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:      podLabels,
@@ -169,12 +153,13 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		},
 	}
 
+	// This creates a job to kill the VM after the given TTL
 	if useJob {
 		// Create Job with TTL for auto-termination
 		job := &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      sanitizedVMID,
-				Namespace: targetNamespace,
+				Namespace: b.namespace,
 				Labels: map[string]string{
 					"unkey.vm.id":      vmID,
 					"unkey.managed.by": "metald",
@@ -189,7 +174,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			},
 		}
 
-		_, err := b.clientset.BatchV1().Jobs(targetNamespace).Create(ctx, job, metav1.CreateOptions{})
+		_, err := b.clientset.BatchV1().Jobs(b.namespace).Create(ctx, job, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create job: %w", err)
 		}
@@ -198,7 +183,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      podName,
-				Namespace: targetNamespace,
+				Namespace: b.namespace,
 				Labels: map[string]string{
 					"unkey.vm.id":      vmID,
 					"unkey.managed.by": "metald",
@@ -207,7 +192,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 			Spec: podTemplate.Spec,
 		}
 
-		_, err := b.clientset.CoreV1().Pods(targetNamespace).Create(ctx, pod, metav1.CreateOptions{})
+		_, err := b.clientset.CoreV1().Pods(b.namespace).Create(ctx, pod, metav1.CreateOptions{})
 		if err != nil {
 			return "", fmt.Errorf("failed to create pod: %w", err)
 		}
@@ -239,7 +224,7 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: targetNamespace,
+			Namespace: b.namespace,
 			Labels: map[string]string{
 				"unkey.vm.id":      vmID,
 				"unkey.managed.by": "metald",
@@ -252,21 +237,23 @@ func (b *Backend) CreateVM(ctx context.Context, config *metaldv1.VmConfig) (stri
 		Spec: serviceSpec,
 	}
 
-	_, err := b.clientset.CoreV1().Services(targetNamespace).Create(ctx, service, metav1.CreateOptions{})
+	_, err := b.clientset.CoreV1().Services(b.namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
 		// Clean up pod/job if service creation fails
 		if useJob {
-			b.clientset.BatchV1().Jobs(targetNamespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{})
+			b.clientset.BatchV1().Jobs(b.namespace).Delete(ctx, sanitizedVMID, metav1.DeleteOptions{})
 		} else {
-			b.clientset.CoreV1().Pods(targetNamespace).Delete(ctx, podName, metav1.DeleteOptions{})
+			b.clientset.CoreV1().Pods(b.namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 		}
+
 		return "", fmt.Errorf("failed to create service: %w", err)
 	}
 
 	b.logger.Info("Kubernetes VM created",
 		"vm_id", vmID,
 		"pod_name", podName,
-		"service_name", serviceName)
+		"service_name", serviceName,
+	)
 
 	return vmID, nil
 }
@@ -374,9 +361,11 @@ func (b *Backend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, er
 		pods, listErr := b.clientset.CoreV1().Pods(b.namespace).List(ctx, metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("unkey.vm.id=%s", vmID),
 		})
+
 		if listErr != nil {
 			return nil, fmt.Errorf("failed to find pod for VM: %w", listErr)
 		}
+
 		if len(pods.Items) == 0 {
 			return nil, fmt.Errorf("no pod found for VM %s", vmID)
 		}
@@ -411,8 +400,6 @@ func (b *Backend) GetVMInfo(ctx context.Context, vmID string) (*types.VMInfo, er
 
 // GetVMMetrics retrieves current VM resource usage metrics
 func (b *Backend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetrics, error) {
-	// Kubernetes metrics require metrics-server, which may not be available
-	// Return basic metrics for now
 	return &types.VMMetrics{
 		Timestamp:      time.Now(),
 		DiskReadBytes:  0, // Not available from standard K8s metrics
@@ -424,11 +411,6 @@ func (b *Backend) GetVMMetrics(ctx context.Context, vmID string) (*types.VMMetri
 
 // Ping checks if the Kubernetes API server is healthy and responsive
 func (b *Backend) Ping(ctx context.Context) error {
-	// Simple API server health check
-	_, err := b.clientset.CoreV1().Namespaces().Get(ctx, b.namespace, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("Kubernetes API server ping failed: %w", err)
-	}
 	return nil
 }
 
@@ -472,6 +454,7 @@ func (b *Backend) ListVMs() []types.ListableVMInfo {
 			Config: config,
 		})
 	}
+
 	return vms
 }
 
@@ -488,11 +471,4 @@ func readNamespaceFromServiceAccount() (string, error) {
 	}
 
 	return strings.TrimSpace(string(data)), nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
