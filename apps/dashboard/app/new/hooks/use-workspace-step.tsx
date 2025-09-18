@@ -107,8 +107,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
     const currentSlug = form.getValues("slug");
     const isSlugDirty = form.formState.dirtyFields.slug;
 
-    // Only auto-generate if slug hasn't been manually edited
-    if (!slugManuallyEdited) {
+    // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
+    if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
       form.setValue("slug", slugify(name), {
         shouldValidate: true,
       });
