@@ -81,6 +81,7 @@ func TestNotFoundErrors(t *testing.T) {
 			ID:        otherWorkspaceID,
 			OrgID:     uid.New("test_org"),
 			Name:      "Other Workspace",
+			Slug:      uid.New("slug"),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)

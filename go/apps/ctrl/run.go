@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -13,14 +14,16 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/routing"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/go/gen/proto/metal/vmprovisioner/v1/vmprovisionerv1connect"
+	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
@@ -171,7 +174,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	httpClient.Timeout = 30 * time.Second
 
-	metaldClient := vmprovisionerv1connect.NewVmServiceClient(
+	metaldClient := metaldv1connect.NewVmServiceClient(
 		httpClient,
 		cfg.MetaldAddress,
 		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
@@ -186,7 +189,14 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("metald client configured", "address", cfg.MetaldAddress, "auth_mode", authMode)
 
 	// Register deployment workflow with Hydra worker
-	deployWorkflow := deployment.NewDeployWorkflow(database, partitionDB, logger, metaldClient)
+	deployWorkflow := deployment.NewDeployWorkflow(deployment.DeployWorkflowConfig{
+		Logger:        logger,
+		DB:            database,
+		PartitionDB:   partitionDB,
+		MetaldBackend: cfg.MetaldBackend,
+		MetalD:        metaldClient,
+		DefaultDomain: cfg.DefaultDomain,
+	})
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
 	if err != nil {
 		return fmt.Errorf("unable to register deployment workflow: %w", err)
@@ -199,6 +209,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	mux.Handle(ctrlv1connect.NewRoutingServiceHandler(routing.New(database, partitionDB, logger)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
@@ -257,7 +268,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	if cfg.AcmeEnabled {
+	if cfg.Acme.Enabled {
 		acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
 			DB:          database,
 			Logger:      logger,
@@ -275,8 +286,75 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 		err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
 		if err != nil {
-			logger.Error("failed to set HTTP-01 provider", "error", err)
 			return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
+		}
+
+		// Set up Cloudflare DNS-01 challenge provider if enabled
+		if cfg.Acme.Cloudflare.Enabled {
+			cloudflareProvider, err := providers.NewCloudflareProvider(providers.CloudflareProviderConfig{
+				DB:            database,
+				Logger:        logger,
+				APIToken:      cfg.Acme.Cloudflare.ApiToken,
+				DefaultDomain: cfg.DefaultDomain,
+			})
+			if err != nil {
+				logger.Error("failed to create Cloudflare DNS provider", "error", err)
+				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", err)
+			}
+
+			err = acmeClient.Challenge.SetDNS01Provider(cloudflareProvider)
+			if err != nil {
+				logger.Error("failed to set DNS-01 provider", "error", err)
+				return fmt.Errorf("failed to set DNS-01 provider: %w", err)
+			}
+
+			logger.Info("Cloudflare DNS-01 challenge provider configured")
+
+			if cfg.DefaultDomain != "" {
+				wildcardDomain := "*." + cfg.DefaultDomain
+
+				// Check if we already have a challenge or certificate for the wildcard domain
+				_, err := db.Query.FindDomainByDomain(ctx, database.RO(), wildcardDomain)
+				if err != nil && !db.IsNotFound(err) {
+					logger.Error("Failed to check existing wildcard domain", "error", err, "domain", wildcardDomain)
+				} else if db.IsNotFound(err) {
+					now := time.Now().UnixMilli()
+					domainID := uid.New("domain")
+
+					// Insert domain record
+					err = db.Query.InsertDomain(ctx, database.RW(), db.InsertDomainParams{
+						ID:          domainID,
+						WorkspaceID: "unkey", // Default workspace for wildcard cert
+						Domain:      wildcardDomain,
+						CreatedAt:   now,
+						UpdatedAt:   sql.NullInt64{Valid: true, Int64: now},
+						Type:        db.DomainsTypeCustom,
+					})
+					if err != nil {
+						logger.Error("Failed to create wildcard domain", "error", err, "domain", wildcardDomain)
+					} else {
+						// Insert challenge record
+						expiresAt := time.Now().Add(90 * 24 * time.Hour).UnixMilli() // 90 days
+
+						err = db.Query.InsertAcmeChallenge(ctx, database.RW(), db.InsertAcmeChallengeParams{
+							WorkspaceID:   "unkey",
+							DomainID:      domainID,
+							Token:         "",
+							Authorization: "",
+							Status:        db.AcmeChallengesStatusWaiting,
+							Type:          db.AcmeChallengesTypeDNS01, // Use DNS-01 for wildcard
+							CreatedAt:     now,
+							UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+							ExpiresAt:     expiresAt,
+						})
+						if err != nil {
+							logger.Error("Failed to create wildcard challenge", "error", err, "domain", wildcardDomain)
+						} else {
+							logger.Info("Created wildcard domain and challenge", "domain", wildcardDomain)
+						}
+					}
+				}
+			}
 		}
 
 		// Register deployment workflow with Hydra worker
@@ -296,19 +374,28 @@ func Run(ctx context.Context, cfg Config) error {
 		go func() {
 			logger.Info("Starting cert worker")
 
+			// HTTP-01 challenges are always available (we always set up HTTP provider)
+			supportedTypes := []db.AcmeChallengesType{db.AcmeChallengesTypeHTTP01}
+
+			// DNS-01 challenges require Cloudflare to be enabled
+			if cfg.Acme.Cloudflare.Enabled {
+				supportedTypes = append(supportedTypes, db.AcmeChallengesTypeDNS01)
+			}
+
 			registerErr := hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
-				challenges, err := db.Query.ListExecutableChallenges(ctx, database.RO())
+				executableChallenges, err := db.Query.ListExecutableChallenges(ctx, database.RO(), supportedTypes)
 				if err != nil {
 					logger.Error("Failed to start workflow", "error", err)
 					return err
 				}
 
-				logger.Info("Starting certificate challenges", "count", len(challenges))
+				logger.Info("Starting certificate challenges",
+					"executable_challenges", len(executableChallenges),
+					"supported_types", supportedTypes)
 
-				for _, challenge := range challenges {
+				for _, challenge := range executableChallenges {
 					executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
 						acme.CertificateChallengeRequest{
-							ID:          challenge.ID,
 							WorkspaceID: challenge.WorkspaceID,
 							Domain:      challenge.Domain,
 						},
@@ -333,6 +420,7 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 		}()
 	}
+
 	// Start Hydra worker
 	go func() {
 		logger.Info("Starting Hydra workflow worker")

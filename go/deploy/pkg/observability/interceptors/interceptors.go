@@ -66,7 +66,6 @@ func NewDefaultInterceptors(serviceName string, opts ...Option) []connect.UnaryI
 	allOpts = append(defaultOpts, allOpts...)
 
 	return []connect.UnaryInterceptorFunc{
-		NewTenantAuthInterceptor(allOpts...),
 		NewMetricsInterceptor(allOpts...),
 		NewLoggingInterceptor(allOpts...),
 	}

@@ -27,6 +27,12 @@ type Querier interface {
 	//
 	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
 	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
+	//FindVMsByDeploymentId
+	//
+	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status
+	//  FROM vms
+	//  WHERE deployment_id = ?
+	FindVMsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Vm, error)
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
@@ -39,8 +45,11 @@ type Querier interface {
 	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
 	//UpsertGateway
 	//
-	//  INSERT INTO gateways (hostname, config)
-	//  VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config)
+	//  INSERT INTO gateways (workspace_id, hostname, config)
+	//  VALUES (?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      config = VALUES(config),
+	//      workspace_id = VALUES(workspace_id)
 	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
 	//UpsertVM
 	//

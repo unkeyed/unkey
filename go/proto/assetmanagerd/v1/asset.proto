@@ -1,0 +1,273 @@
+syntax = "proto3";
+
+package assetmanagerd.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/assetmanagerd/v1;assetmanagerdv1";
+
+// AssetManagerService manages VM assets (kernels, rootfs images) across the
+// infrastructure
+service AssetManagerService {
+  // Upload and register an asset in one operation
+  rpc UploadAsset(stream UploadAssetRequest) returns (UploadAssetResponse);
+
+  // Register a new asset (called by builderd after creating images)
+  rpc RegisterAsset(RegisterAssetRequest) returns (RegisterAssetResponse);
+
+  // Get asset location and metadata
+  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+
+  // List available assets with filtering
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+
+  // Mark asset as in-use (reference counting for GC)
+  rpc AcquireAsset(AcquireAssetRequest) returns (AcquireAssetResponse);
+
+  // Release asset reference (decrements ref count)
+  rpc ReleaseAsset(ReleaseAssetRequest) returns (ReleaseAssetResponse);
+
+  // Delete an asset (only if ref count is 0)
+  rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
+
+  // Trigger garbage collection of unused assets
+  rpc GarbageCollect(GarbageCollectRequest) returns (GarbageCollectResponse);
+
+  // Pre-stage assets for a specific host/jailer
+  rpc PrepareAssets(PrepareAssetsRequest) returns (PrepareAssetsResponse);
+
+  // Query assets with automatic build triggering if not found
+  // This is the enhanced version of ListAssets that supports automatic asset creation
+  rpc QueryAssets(QueryAssetsRequest) returns (QueryAssetsResponse);
+}
+
+enum AssetType {
+  ASSET_TYPE_UNSPECIFIED = 0;
+  ASSET_TYPE_KERNEL = 1;
+  ASSET_TYPE_ROOTFS = 2;
+  ASSET_TYPE_INITRD = 3;
+  ASSET_TYPE_DISK_IMAGE = 4;
+}
+
+enum AssetStatus {
+  ASSET_STATUS_UNSPECIFIED = 0;
+  ASSET_STATUS_UPLOADING = 1;
+  ASSET_STATUS_AVAILABLE = 2;
+  ASSET_STATUS_DELETING = 3;
+  ASSET_STATUS_ERROR = 4;
+}
+
+enum StorageBackend {
+  STORAGE_BACKEND_UNSPECIFIED = 0;
+  STORAGE_BACKEND_LOCAL = 1;
+  STORAGE_BACKEND_S3 = 2;
+  STORAGE_BACKEND_HTTP = 3;
+  STORAGE_BACKEND_NFS = 4;
+}
+
+message Asset {
+  string id = 1;
+  string name = 2;
+  AssetType type = 3;
+  AssetStatus status = 4;
+
+  // Storage information
+  StorageBackend backend = 5;
+  string location = 6; // Path or URL depending on backend
+  int64 size_bytes = 7;
+  string checksum = 8; // SHA256
+
+  // Metadata
+  map<string, string> labels = 9;
+  string created_by = 10; // e.g., "builderd", "manual"
+  int64 created_at = 11;  // Unix timestamp
+  int64 last_accessed_at = 12;
+
+  // Reference counting for GC
+  int32 reference_count = 13;
+
+  // Build information (if created by builderd)
+  string build_id = 14;
+  string source_image = 15;
+}
+
+message UploadAssetRequest {
+  oneof data {
+    UploadAssetMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message UploadAssetMetadata {
+  string name = 1;
+  AssetType type = 2;
+  int64 size_bytes = 3;
+  map<string, string> labels = 4;
+  string created_by = 5;
+  string build_id = 6;
+  string source_image = 7;
+  string id = 8; // Optional: specific asset ID to use
+}
+
+message UploadAssetResponse {
+  Asset asset = 1;
+}
+
+message RegisterAssetRequest {
+  string name = 1;
+  AssetType type = 2;
+  StorageBackend backend = 3;
+  string location = 4;
+  int64 size_bytes = 5;
+  string checksum = 6;
+  map<string, string> labels = 7;
+  string created_by = 8;
+
+  // Optional build information
+  string build_id = 9;
+  string source_image = 10;
+
+  // Optional: specific asset ID to use (if not provided, one will be generated)
+  string id = 11;
+}
+
+message RegisterAssetResponse { Asset asset = 1; }
+
+message GetAssetRequest {
+  string id = 1;
+
+  // If true, ensures asset is available locally (downloads if needed)
+  bool ensure_local = 2;
+}
+
+message GetAssetResponse {
+  Asset asset = 1;
+
+  // Local path if ensure_local was true
+  string local_path = 2;
+}
+
+message ListAssetsRequest {
+  // Filter by type
+  AssetType type = 1;
+
+  // Filter by status
+  AssetStatus status = 2;
+
+  // Filter by labels (all must match)
+  map<string, string> label_selector = 3;
+
+  // Pagination
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListAssetsResponse {
+  repeated Asset assets = 1;
+  string next_page_token = 2;
+}
+
+message AcquireAssetRequest {
+  string asset_id = 1;
+  string acquired_by = 2; // e.g., "vm-123"
+  int64 ttl_seconds = 3;  // Optional auto-release after TTL
+}
+
+message AcquireAssetResponse {
+  Asset asset = 1;
+  string lease_id = 2; // Use this for release
+}
+
+message ReleaseAssetRequest { string lease_id = 1; }
+
+message ReleaseAssetResponse { Asset asset = 1; }
+
+message DeleteAssetRequest {
+  string id = 1;
+  bool force = 2; // Delete even if ref count > 0
+}
+
+message DeleteAssetResponse {
+  bool deleted = 1;
+  string message = 2;
+}
+
+message GarbageCollectRequest {
+  // Delete assets not accessed in this many seconds
+  int64 max_age_seconds = 1;
+
+  // Delete assets with 0 references
+  bool delete_unreferenced = 2;
+
+  // Dry run - just return what would be deleted
+  bool dry_run = 3;
+}
+
+message GarbageCollectResponse {
+  repeated Asset deleted_assets = 1;
+  int64 bytes_freed = 2;
+}
+
+message PrepareAssetsRequest {
+  repeated string asset_ids = 1;
+  string target_path = 2;  // e.g., jailer chroot path
+  string prepared_for = 3; // e.g., "vm-123"
+}
+
+message PrepareAssetsResponse {
+  map<string, string> asset_paths = 1; // asset_id -> local path
+}
+
+// QueryAssetsRequest is similar to ListAssetsRequest but with build options
+message QueryAssetsRequest {
+  // Filter by type
+  AssetType type = 1;
+
+  // Filter by status
+  AssetStatus status = 2;
+
+  // Filter by labels (all must match)
+  map<string, string> label_selector = 3;
+
+  // Pagination
+  int32 page_size = 4;
+  string page_token = 5;
+
+  // Build options - if asset not found and these are set, trigger build
+  BuildOptions build_options = 6;
+}
+
+// BuildOptions controls automatic asset creation
+message BuildOptions {
+  // Enable automatic building if assets don't exist
+  bool enable_auto_build = 1;
+
+  // Wait for build completion before returning
+  bool wait_for_completion = 2;
+
+  // Timeout for build operation (seconds)
+  int32 build_timeout_seconds = 3;
+
+  // Additional labels to add to the built asset
+  map<string, string> build_labels = 4;
+
+  // Suggested asset ID to use when registering the built asset
+  // This allows the caller to know the asset ID before it's built
+  string suggested_asset_id = 5;
+}
+
+// QueryAssetsResponse includes build information if builds were triggered
+message QueryAssetsResponse {
+  repeated Asset assets = 1;
+  string next_page_token = 2;
+
+  // Information about any builds that were triggered
+  repeated BuildInfo triggered_builds = 3;
+}
+
+// BuildInfo provides information about triggered builds
+message BuildInfo {
+  string build_id = 1;
+  string docker_image = 2;
+  string status = 3; // "pending", "building", "completed", "failed"
+  string error_message = 4;
+  string asset_id = 5; // Asset ID if build completed and asset was registered
+}

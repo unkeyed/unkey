@@ -2,12 +2,18 @@ import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const DeploymentListDatetime = () => {
-  const [title, setTitle] = useState<string | null>("Last 12 hours");
+  const [title, setTitle] = useState<string | null>(null);
   const { filters, updateFilters } = useFilters();
+
+  useEffect(() => {
+    if (!title) {
+      setTitle("Last 12 hours");
+    }
+  }, [title]);
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))

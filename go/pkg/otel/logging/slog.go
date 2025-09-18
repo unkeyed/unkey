@@ -12,7 +12,6 @@ import (
 
 var handler slog.Handler
 
-
 func init() {
 	level := slog.LevelInfo
 	if os.Getenv("DEBUG") != "" {
@@ -59,7 +58,6 @@ func logAttrs(l *slog.Logger, ctx context.Context, level slog.Level, msg string,
 	r.AddAttrs(attrs...)
 	_ = l.Handler().Handle(ctx, r)
 }
-
 
 // logger implements the Logger interface using Go's standard slog package.
 type logger struct {

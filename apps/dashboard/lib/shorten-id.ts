@@ -1,5 +1,5 @@
 /**
- * Shortens an ID by keeping a specified number of characters from the start and end,
+ * Shortens an ID by keeping a specified number of characters from the start (after prefix) and end,
  * with customizable separator in between.
  */
 export function shortenId(
@@ -16,7 +16,7 @@ export function shortenId(
   } = {},
 ): string {
   const {
-    startChars = 8,
+    startChars = 4,
     endChars = 4,
     separator = "...",
     minLength = startChars + endChars + 3,
@@ -41,8 +41,14 @@ export function shortenId(
     return id;
   }
 
-  const start = id.substring(0, startChars);
-  const end = id.substring(id.length - endChars);
-
-  return `${start}${separator}${end}`;
+  const [prefix, rest] = id.includes("_") ? id.split("_", 2) : [null, id];
+  let s = "";
+  if (prefix) {
+    s += prefix;
+    s += "_";
+  }
+  s += rest.substring(0, startChars);
+  s += separator;
+  s += rest.substring(rest.length - endChars);
+  return s;
 }

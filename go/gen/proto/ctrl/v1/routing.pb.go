@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/ctrl/v1/routing.proto
+// source: ctrl/v1/routing.proto
 
 package ctrlv1
 
@@ -23,18 +23,21 @@ const (
 )
 
 type SetRouteRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Hostname  string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	VersionId string                 `protobuf:"bytes,2,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Hostname     string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	DeploymentId string                 `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	// Optional: for blue-green deployments
-	Weight        int32 `protobuf:"varint,3,opt,name=weight,proto3" json:"weight,omitempty"` // 0-100, defaults to 100 for full cutover
+	Weight int32 `protobuf:"varint,3,opt,name=weight,proto3" json:"weight,omitempty"` // 0-100, defaults to 100 for full cutover
+	// Required for authorization - must be non-empty and match caller workspace
+	// The workspace must exist and the deployment must belong to this workspace
+	WorkspaceId   string `protobuf:"bytes,4,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SetRouteRequest) Reset() {
 	*x = SetRouteRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[0]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +49,7 @@ func (x *SetRouteRequest) String() string {
 func (*SetRouteRequest) ProtoMessage() {}
 
 func (x *SetRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[0]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +62,7 @@ func (x *SetRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRouteRequest.ProtoReflect.Descriptor instead.
 func (*SetRouteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SetRouteRequest) GetHostname() string {
@@ -69,9 +72,9 @@ func (x *SetRouteRequest) GetHostname() string {
 	return ""
 }
 
-func (x *SetRouteRequest) GetVersionId() string {
+func (x *SetRouteRequest) GetDeploymentId() string {
 	if x != nil {
-		return x.VersionId
+		return x.DeploymentId
 	}
 	return ""
 }
@@ -83,17 +86,24 @@ func (x *SetRouteRequest) GetWeight() int32 {
 	return 0
 }
 
+func (x *SetRouteRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
 type SetRouteResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	PreviousVersionId string                 `protobuf:"bytes,1,opt,name=previous_version_id,json=previousVersionId,proto3" json:"previous_version_id,omitempty"` // What was previously active
-	EffectiveAt       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	PreviousDeploymentId string                 `protobuf:"bytes,1,opt,name=previous_deployment_id,json=previousDeploymentId,proto3" json:"previous_deployment_id,omitempty"` // What was previously active
+	EffectiveAt          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *SetRouteResponse) Reset() {
 	*x = SetRouteResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[1]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +115,7 @@ func (x *SetRouteResponse) String() string {
 func (*SetRouteResponse) ProtoMessage() {}
 
 func (x *SetRouteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[1]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,12 +128,12 @@ func (x *SetRouteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRouteResponse.ProtoReflect.Descriptor instead.
 func (*SetRouteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SetRouteResponse) GetPreviousVersionId() string {
+func (x *SetRouteResponse) GetPreviousDeploymentId() string {
 	if x != nil {
-		return x.PreviousVersionId
+		return x.PreviousDeploymentId
 	}
 	return ""
 }
@@ -144,7 +154,7 @@ type GetRouteRequest struct {
 
 func (x *GetRouteRequest) Reset() {
 	*x = GetRouteRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[2]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +166,7 @@ func (x *GetRouteRequest) String() string {
 func (*GetRouteRequest) ProtoMessage() {}
 
 func (x *GetRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[2]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +179,7 @@ func (x *GetRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRouteRequest.ProtoReflect.Descriptor instead.
 func (*GetRouteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetRouteRequest) GetHostname() string {
@@ -188,7 +198,7 @@ type GetRouteResponse struct {
 
 func (x *GetRouteResponse) Reset() {
 	*x = GetRouteResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[3]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +210,7 @@ func (x *GetRouteResponse) String() string {
 func (*GetRouteResponse) ProtoMessage() {}
 
 func (x *GetRouteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[3]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +223,7 @@ func (x *GetRouteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRouteResponse.ProtoReflect.Descriptor instead.
 func (*GetRouteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRouteResponse) GetRoute() *Route {
@@ -239,7 +249,7 @@ type ListRoutesRequest struct {
 
 func (x *ListRoutesRequest) Reset() {
 	*x = ListRoutesRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[4]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +261,7 @@ func (x *ListRoutesRequest) String() string {
 func (*ListRoutesRequest) ProtoMessage() {}
 
 func (x *ListRoutesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[4]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +274,7 @@ func (x *ListRoutesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutesRequest.ProtoReflect.Descriptor instead.
 func (*ListRoutesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListRoutesRequest) GetWorkspaceId() string {
@@ -319,7 +329,7 @@ type ListRoutesResponse struct {
 
 func (x *ListRoutesResponse) Reset() {
 	*x = ListRoutesResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[5]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +341,7 @@ func (x *ListRoutesResponse) String() string {
 func (*ListRoutesResponse) ProtoMessage() {}
 
 func (x *ListRoutesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[5]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +354,7 @@ func (x *ListRoutesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutesResponse.ProtoReflect.Descriptor instead.
 func (*ListRoutesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListRoutesResponse) GetRoutes() []*Route {
@@ -364,7 +374,7 @@ func (x *ListRoutesResponse) GetNextPageToken() string {
 type Route struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Hostname      string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	VersionId     string                 `protobuf:"bytes,2,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
+	DeploymentId  string                 `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	WorkspaceId   string                 `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	ProjectId     string                 `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentId string                 `protobuf:"bytes,5,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
@@ -384,7 +394,7 @@ type Route struct {
 
 func (x *Route) Reset() {
 	*x = Route{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[6]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -396,7 +406,7 @@ func (x *Route) String() string {
 func (*Route) ProtoMessage() {}
 
 func (x *Route) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[6]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -409,7 +419,7 @@ func (x *Route) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Route.ProtoReflect.Descriptor instead.
 func (*Route) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Route) GetHostname() string {
@@ -419,9 +429,9 @@ func (x *Route) GetHostname() string {
 	return ""
 }
 
-func (x *Route) GetVersionId() string {
+func (x *Route) GetDeploymentId() string {
 	if x != nil {
-		return x.VersionId
+		return x.DeploymentId
 	}
 	return ""
 }
@@ -498,16 +508,24 @@ func (x *Route) GetCertificateExpiresAt() *timestamppb.Timestamp {
 
 // Convenience messages for common operations
 type RollbackRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Hostname        string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	TargetVersionId string                 `protobuf:"bytes,2,opt,name=target_version_id,json=targetVersionId,proto3" json:"target_version_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Hostname           string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	TargetDeploymentId string                 `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	// Required for authorization - must be non-empty and match caller workspace
+	// The workspace must exist and the target deployment must belong to this workspace
+	//
+	// Error codes:
+	// - INVALID_ARGUMENT: workspace_id is empty or missing
+	// - NOT_FOUND: workspace doesn't exist or deployment not found in workspace
+	// - FAILED_PRECONDITION: deployment not in ready state or no running VMs
+	WorkspaceId   string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RollbackRequest) Reset() {
 	*x = RollbackRequest{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[7]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +537,7 @@ func (x *RollbackRequest) String() string {
 func (*RollbackRequest) ProtoMessage() {}
 
 func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[7]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +550,7 @@ func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
 func (*RollbackRequest) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RollbackRequest) GetHostname() string {
@@ -542,25 +560,32 @@ func (x *RollbackRequest) GetHostname() string {
 	return ""
 }
 
-func (x *RollbackRequest) GetTargetVersionId() string {
+func (x *RollbackRequest) GetTargetDeploymentId() string {
 	if x != nil {
-		return x.TargetVersionId
+		return x.TargetDeploymentId
+	}
+	return ""
+}
+
+func (x *RollbackRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
 	}
 	return ""
 }
 
 type RollbackResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	PreviousVersionId string                 `protobuf:"bytes,1,opt,name=previous_version_id,json=previousVersionId,proto3" json:"previous_version_id,omitempty"`
-	NewVersionId      string                 `protobuf:"bytes,2,opt,name=new_version_id,json=newVersionId,proto3" json:"new_version_id,omitempty"`
-	EffectiveAt       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	PreviousDeploymentId string                 `protobuf:"bytes,1,opt,name=previous_deployment_id,json=previousDeploymentId,proto3" json:"previous_deployment_id,omitempty"`
+	NewDeploymentId      string                 `protobuf:"bytes,2,opt,name=new_deployment_id,json=newDeploymentId,proto3" json:"new_deployment_id,omitempty"`
+	EffectiveAt          *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *RollbackResponse) Reset() {
 	*x = RollbackResponse{}
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[8]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -572,7 +597,7 @@ func (x *RollbackResponse) String() string {
 func (*RollbackResponse) ProtoMessage() {}
 
 func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_ctrl_v1_routing_proto_msgTypes[8]
+	mi := &file_ctrl_v1_routing_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -585,19 +610,19 @@ func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
 func (*RollbackResponse) Descriptor() ([]byte, []int) {
-	return file_proto_ctrl_v1_routing_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_routing_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *RollbackResponse) GetPreviousVersionId() string {
+func (x *RollbackResponse) GetPreviousDeploymentId() string {
 	if x != nil {
-		return x.PreviousVersionId
+		return x.PreviousDeploymentId
 	}
 	return ""
 }
 
-func (x *RollbackResponse) GetNewVersionId() string {
+func (x *RollbackResponse) GetNewDeploymentId() string {
 	if x != nil {
-		return x.NewVersionId
+		return x.NewDeploymentId
 	}
 	return ""
 }
@@ -609,18 +634,18 @@ func (x *RollbackResponse) GetEffectiveAt() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_proto_ctrl_v1_routing_proto protoreflect.FileDescriptor
+var File_ctrl_v1_routing_proto protoreflect.FileDescriptor
 
-const file_proto_ctrl_v1_routing_proto_rawDesc = "" +
+const file_ctrl_v1_routing_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/ctrl/v1/routing.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"d\n" +
+	"\x15ctrl/v1/routing.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8d\x01\n" +
 	"\x0fSetRouteRequest\x12\x1a\n" +
-	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1d\n" +
-	"\n" +
-	"version_id\x18\x02 \x01(\tR\tversionId\x12\x16\n" +
-	"\x06weight\x18\x03 \x01(\x05R\x06weight\"\x81\x01\n" +
-	"\x10SetRouteResponse\x12.\n" +
-	"\x13previous_version_id\x18\x01 \x01(\tR\x11previousVersionId\x12=\n" +
+	"\bhostname\x18\x01 \x01(\tR\bhostname\x12#\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12\x16\n" +
+	"\x06weight\x18\x03 \x01(\x05R\x06weight\x12!\n" +
+	"\fworkspace_id\x18\x04 \x01(\tR\vworkspaceId\"\x87\x01\n" +
+	"\x10SetRouteResponse\x124\n" +
+	"\x16previous_deployment_id\x18\x01 \x01(\tR\x14previousDeploymentId\x12=\n" +
 	"\feffective_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAt\"-\n" +
 	"\x0fGetRouteRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\"8\n" +
@@ -638,11 +663,10 @@ const file_proto_ctrl_v1_routing_proto_rawDesc = "" +
 	"page_token\x18\v \x01(\tR\tpageToken\"d\n" +
 	"\x12ListRoutesResponse\x12&\n" +
 	"\x06routes\x18\x01 \x03(\v2\x0e.ctrl.v1.RouteR\x06routes\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xfd\x03\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x04\n" +
 	"\x05Route\x12\x1a\n" +
-	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1d\n" +
-	"\n" +
-	"version_id\x18\x02 \x01(\tR\tversionId\x12!\n" +
+	"\bhostname\x18\x01 \x01(\tR\bhostname\x12#\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12!\n" +
 	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
@@ -657,13 +681,14 @@ const file_proto_ctrl_v1_routing_proto_rawDesc = "" +
 	"updated_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12'\n" +
 	"\x0fhas_certificate\x18\v \x01(\bR\x0ehasCertificate\x12P\n" +
-	"\x16certificate_expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x14certificateExpiresAt\"Y\n" +
+	"\x16certificate_expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x14certificateExpiresAt\"\x82\x01\n" +
 	"\x0fRollbackRequest\x12\x1a\n" +
-	"\bhostname\x18\x01 \x01(\tR\bhostname\x12*\n" +
-	"\x11target_version_id\x18\x02 \x01(\tR\x0ftargetVersionId\"\xa7\x01\n" +
-	"\x10RollbackResponse\x12.\n" +
-	"\x13previous_version_id\x18\x01 \x01(\tR\x11previousVersionId\x12$\n" +
-	"\x0enew_version_id\x18\x02 \x01(\tR\fnewVersionId\x12=\n" +
+	"\bhostname\x18\x01 \x01(\tR\bhostname\x120\n" +
+	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\xb3\x01\n" +
+	"\x10RollbackResponse\x124\n" +
+	"\x16previous_deployment_id\x18\x01 \x01(\tR\x14previousDeploymentId\x12*\n" +
+	"\x11new_deployment_id\x18\x02 \x01(\tR\x0fnewDeploymentId\x12=\n" +
 	"\feffective_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAt2\xa2\x02\n" +
 	"\x0eRoutingService\x12A\n" +
 	"\bSetRoute\x12\x18.ctrl.v1.SetRouteRequest\x1a\x19.ctrl.v1.SetRouteResponse\"\x00\x12A\n" +
@@ -673,19 +698,19 @@ const file_proto_ctrl_v1_routing_proto_rawDesc = "" +
 	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
-	file_proto_ctrl_v1_routing_proto_rawDescOnce sync.Once
-	file_proto_ctrl_v1_routing_proto_rawDescData []byte
+	file_ctrl_v1_routing_proto_rawDescOnce sync.Once
+	file_ctrl_v1_routing_proto_rawDescData []byte
 )
 
-func file_proto_ctrl_v1_routing_proto_rawDescGZIP() []byte {
-	file_proto_ctrl_v1_routing_proto_rawDescOnce.Do(func() {
-		file_proto_ctrl_v1_routing_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_routing_proto_rawDesc), len(file_proto_ctrl_v1_routing_proto_rawDesc)))
+func file_ctrl_v1_routing_proto_rawDescGZIP() []byte {
+	file_ctrl_v1_routing_proto_rawDescOnce.Do(func() {
+		file_ctrl_v1_routing_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ctrl_v1_routing_proto_rawDesc), len(file_ctrl_v1_routing_proto_rawDesc)))
 	})
-	return file_proto_ctrl_v1_routing_proto_rawDescData
+	return file_ctrl_v1_routing_proto_rawDescData
 }
 
-var file_proto_ctrl_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_ctrl_v1_routing_proto_goTypes = []any{
+var file_ctrl_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ctrl_v1_routing_proto_goTypes = []any{
 	(*SetRouteRequest)(nil),       // 0: ctrl.v1.SetRouteRequest
 	(*SetRouteResponse)(nil),      // 1: ctrl.v1.SetRouteResponse
 	(*GetRouteRequest)(nil),       // 2: ctrl.v1.GetRouteRequest
@@ -697,7 +722,7 @@ var file_proto_ctrl_v1_routing_proto_goTypes = []any{
 	(*RollbackResponse)(nil),      // 8: ctrl.v1.RollbackResponse
 	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
 }
-var file_proto_ctrl_v1_routing_proto_depIdxs = []int32{
+var file_ctrl_v1_routing_proto_depIdxs = []int32{
 	9,  // 0: ctrl.v1.SetRouteResponse.effective_at:type_name -> google.protobuf.Timestamp
 	6,  // 1: ctrl.v1.GetRouteResponse.route:type_name -> ctrl.v1.Route
 	6,  // 2: ctrl.v1.ListRoutesResponse.routes:type_name -> ctrl.v1.Route
@@ -720,26 +745,26 @@ var file_proto_ctrl_v1_routing_proto_depIdxs = []int32{
 	0,  // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_proto_ctrl_v1_routing_proto_init() }
-func file_proto_ctrl_v1_routing_proto_init() {
-	if File_proto_ctrl_v1_routing_proto != nil {
+func init() { file_ctrl_v1_routing_proto_init() }
+func file_ctrl_v1_routing_proto_init() {
+	if File_ctrl_v1_routing_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ctrl_v1_routing_proto_rawDesc), len(file_proto_ctrl_v1_routing_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_routing_proto_rawDesc), len(file_ctrl_v1_routing_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_ctrl_v1_routing_proto_goTypes,
-		DependencyIndexes: file_proto_ctrl_v1_routing_proto_depIdxs,
-		MessageInfos:      file_proto_ctrl_v1_routing_proto_msgTypes,
+		GoTypes:           file_ctrl_v1_routing_proto_goTypes,
+		DependencyIndexes: file_ctrl_v1_routing_proto_depIdxs,
+		MessageInfos:      file_ctrl_v1_routing_proto_msgTypes,
 	}.Build()
-	File_proto_ctrl_v1_routing_proto = out.File
-	file_proto_ctrl_v1_routing_proto_goTypes = nil
-	file_proto_ctrl_v1_routing_proto_depIdxs = nil
+	File_ctrl_v1_routing_proto = out.File
+	file_ctrl_v1_routing_proto_goTypes = nil
+	file_ctrl_v1_routing_proto_depIdxs = nil
 }

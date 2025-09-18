@@ -1,6 +1,6 @@
 [Unit]
 Description=AssetManagerd VM Asset Management Service (Development)
-Documentation=https://github.com/unkeyed/unkey/go/deploy/assetmanagerd
+Documentation=https://github.com/unkeyed/unkey/go/assetmanagerd
 After=network.target
 Wants=network.target
 

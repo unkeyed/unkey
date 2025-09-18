@@ -448,9 +448,8 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeChallenge struct {
-	ID            uint64               `db:"id"`
-	WorkspaceID   string               `db:"workspace_id"`
 	DomainID      string               `db:"domain_id"`
+	WorkspaceID   string               `db:"workspace_id"`
 	Token         string               `db:"token"`
 	Type          AcmeChallengesType   `db:"type"`
 	Authorization string               `db:"authorization"`
@@ -675,6 +674,7 @@ type Project struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
@@ -771,6 +771,7 @@ type Workspace struct {
 	ID                   string             `db:"id"`
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`
+	Slug                 string             `db:"slug"`
 	PartitionID          sql.NullString     `db:"partition_id"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`

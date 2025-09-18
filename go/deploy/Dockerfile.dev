@@ -28,7 +28,7 @@ WORKDIR /src/go
 
 # Build assetmanagerd
 FROM build-base AS build-assetmanagerd
-WORKDIR /src/go/deploy/assetmanagerd
+WORKDIR /src/go/assetmanagerd
 RUN go build -o assetmanagerd ./cmd/assetmanagerd
 
 # Build billaged
@@ -65,7 +65,7 @@ RUN mkdir -p /opt/assetmanagerd/{cache,data} && \
 RUN chown -R billaged:billaged /opt/billaged /var/log/billaged
 
 # Copy built binaries from respective build stages
-COPY --from=build-assetmanagerd /src/go/deploy/assetmanagerd/assetmanagerd /usr/local/bin/
+COPY --from=build-assetmanagerd /src/go/assetmanagerd/assetmanagerd /usr/local/bin/
 COPY --from=build-billaged /src/go/deploy/billaged/billaged /usr/local/bin/
 COPY --from=build-builderd /src/go/deploy/builderd/builderd /usr/local/bin/
 COPY --from=build-metald /src/go/deploy/metald/metald /usr/local/bin/

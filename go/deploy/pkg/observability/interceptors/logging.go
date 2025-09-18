@@ -15,8 +15,6 @@ import (
 
 // NewLoggingInterceptor creates a ConnectRPC interceptor that provides structured logging
 // for all RPC calls, including request/response details, timing, and error information.
-//
-// AIDEV-NOTE: This interceptor provides consistent logging across all Unkey services
 func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 	options := applyOptions(opts)
 
@@ -28,7 +26,6 @@ func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (resp connect.AnyResponse, err error) {
-			// AIDEV-NOTE: Panic recovery in logging interceptor for defense in depth
 			// Preserves existing errors and logs panic details for debugging
 			defer func() {
 				if r := recover(); r != nil {
@@ -66,21 +63,7 @@ func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				slog.String("procedure", procedure),
 				slog.String("method", methodName),
 				slog.String("protocol", req.Peer().Protocol),
-				slog.String("peer_addr", req.Peer().Addr),
 				slog.String("trace_id", traceID),
-			}
-
-			// Add user agent if present
-			if userAgent := req.Header().Get("User-Agent"); userAgent != "" {
-				requestAttrs = append(requestAttrs, slog.String("user_agent", userAgent))
-			}
-
-			// Add tenant info if available
-			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-				requestAttrs = append(requestAttrs,
-					slog.String("tenant_id", tenantCtx.TenantID),
-					slog.String("customer_id", tenantCtx.CustomerID),
-				)
 			}
 
 			// Log request
@@ -90,7 +73,7 @@ func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						err = connect.NewError(connect.CodeInternal, fmt.Errorf("handler panic: %v", r))
+						err = connect.NewError(connect.CodeInternal, fmt.Errorf("logging handler panic: %v", r))
 					}
 				}()
 				resp, err = next(ctx, req)
@@ -105,13 +88,6 @@ func NewLoggingInterceptor(opts ...Option) connect.UnaryInterceptorFunc {
 				slog.String("procedure", procedure),
 				slog.Duration("duration", duration),
 				slog.String("trace_id", traceID),
-			}
-
-			// Add tenant info if available
-			if tenantCtx, ok := TenantFromContext(ctx); ok && tenantCtx.TenantID != "" {
-				responseAttrs = append(responseAttrs,
-					slog.String("tenant_id", tenantCtx.TenantID),
-				)
 			}
 
 			// Log response based on error status

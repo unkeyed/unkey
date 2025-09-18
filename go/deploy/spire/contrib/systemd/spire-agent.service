@@ -3,28 +3,20 @@ Description=SPIRE Agent
 Documentation=https://spiffe.io/docs/latest/
 After=network.target
 Wants=network-online.target
-# AIDEV-NOTE: Agent can start independently of server
 # Server connection will retry if not available
 
 [Service]
 Type=simple
-# AIDEV-NOTE: Run as root to enable workload attestation via /proc
 User=root
 Group=root
 
-# AIDEV-NOTE: Systemd-managed directory creation
 # StateDirectory creates persistent directories under /var/lib
 StateDirectory=spire/agent spire/agent/data spire/agent/keys
 StateDirectoryMode=0755
 
-# AIDEV-NOTE: Additional permission setup
 ExecStartPre=/bin/bash -c 'chmod 700 /var/lib/spire/agent/keys'
-# AIDEV-NOTE: Join token mode - no bootstrap bundle needed
-
-# AIDEV-NOTE: Main agent process with wrapper script for join token support
 ExecStart=/opt/spire/bin/spire-agent-wrapper.sh
 
-# AIDEV-NOTE: Graceful shutdown
 ExecStop=/bin/kill -SIGTERM $MAINPID
 TimeoutStopSec=30
 
@@ -35,14 +27,11 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=spire-agent
 
-# AIDEV-SECURITY: Relaxed security settings to ensure socket accessibility
-# Most security features disabled to prevent namespace isolation
 NoNewPrivileges=true
 PrivateTmp=no
 ProtectSystem=no
 ProtectHome=no
 ReadWritePaths=/var/lib/spire/agent
-# AIDEV-NOTE: Need read access to validate workload binaries
 ReadOnlyPaths=/usr/bin /usr/local/bin /opt
 # Keep some basic protections
 RestrictRealtime=true
@@ -59,17 +48,13 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 
-# AIDEV-NOTE: Supplementary groups for workload API access
 # SupplementaryGroups would be added here if services run under separate users
 
-# AIDEV-NOTE: Environment configuration for auto-joining
-Environment="UNKEY_SPIRE_TRUST_DOMAIN=development.unkey.app"
+Environment="UNKEY_SPIRE_TRUST_DOMAIN=development.unkey.cloud"
 Environment="UNKEY_SPIRE_LOG_LEVEL=INFO"
 Environment="UNKEY_SPIRE_SERVER_URL=https://localhost:8085"
-# AIDEV-NOTE: Join token for automatic startup registration
 # Set this in environment-specific drop-ins for security
 # Environment="UNKEY_SPIRE_JOIN_TOKEN=your-long-lived-token-here"
-# AIDEV-NOTE: Override these in environment-specific drop-ins
 # e.g., /etc/systemd/system/spire-agent.service.d/environment.conf
 
 [Install]

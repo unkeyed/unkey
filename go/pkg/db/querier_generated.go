@@ -10,6 +10,12 @@ import (
 )
 
 type Querier interface {
+	//ClearAcmeChallengeTokens
+	//
+	//  UPDATE acme_challenges
+	//  SET token = ?, authorization = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -115,7 +121,7 @@ type Querier interface {
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	//FindAcmeChallengeByToken
 	//
-	//  SELECT id, workspace_id, domain_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	//  SELECT domain_id, workspace_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
 	//FindAcmeUserByWorkspaceID
 	//
@@ -183,6 +189,14 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
+	//FindEnvironmentByProjectIdAndSlug
+	//
+	//  SELECT id, workspace_id, project_id, slug, description
+	//  FROM environments
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND slug = ?
+	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -310,7 +324,7 @@ type Querier interface {
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.id, ws.org_id, ws.name, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -401,7 +415,7 @@ type Querier interface {
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.id, ws.org_id, ws.name, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -578,7 +592,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE id = ?
-	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
 	//FindProjectByWorkspaceSlug
 	//
 	//  SELECT
@@ -594,7 +608,7 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
-	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (Project, error)
+	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -693,7 +707,7 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, org_id, name, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, org_id, name, slug, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//HardDeleteWorkspace
@@ -1187,6 +1201,7 @@ type Querier interface {
 	//      id,
 	//      org_id,
 	//      name,
+	//      slug,
 	//      created_at_m,
 	//      tier,
 	//      beta_features,
@@ -1198,7 +1213,8 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//       ?,
+	//      ?,
+	//      ?,
 	//      'Free',
 	//      '{}',
 	//      '{}',
@@ -1216,11 +1232,12 @@ type Querier interface {
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListExecutableChallenges
 	//
-	//  SELECT dc.id, dc.workspace_id, d.domain FROM acme_challenges dc
+	//  SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
 	//  JOIN domains d ON dc.domain_id = d.id
-	//  WHERE dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY))
+	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+	//  AND dc.type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
-	ListExecutableChallenges(ctx context.Context, db DBTX) ([]ListExecutableChallengesRow, error)
+	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1484,7 +1501,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.org_id, w.name, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.id, w.org_id, w.name, w.slug, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -1537,10 +1554,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
-	//UpdateAcmeChallengeExpiresAt
-	//
-	//  UPDATE acme_challenges SET expires_at = ? WHERE id = ?
-	UpdateAcmeChallengeExpiresAt(ctx context.Context, db DBTX, arg UpdateAcmeChallengeExpiresAtParams) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges
@@ -1559,6 +1572,12 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE domain_id = ? AND status = 'waiting'
 	UpdateAcmeChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateAcmeChallengeTryClaimingParams) error
+	//UpdateAcmeChallengeVerifiedWithExpiry
+	//
+	//  UPDATE acme_challenges
+	//  SET status = ?, expires_at = ?, updated_at = ?
+	//  WHERE domain_id = ?
+	UpdateAcmeChallengeVerifiedWithExpiry(ctx context.Context, db DBTX, arg UpdateAcmeChallengeVerifiedWithExpiryParams) error
 	//UpdateAcmeUserRegistrationURI
 	//
 	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
@@ -1657,6 +1676,12 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
+	//UpdateProjectLiveDeploymentId
+	//
+	//  UPDATE projects
+	//  SET live_deployment_id = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateProjectLiveDeploymentId(ctx context.Context, db DBTX, arg UpdateProjectLiveDeploymentIdParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
