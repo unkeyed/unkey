@@ -1,4 +1,4 @@
-import type { App, Context } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertGenericAuditLogs, insertUnkeyAuditLog } from "@/pkg/audit";
@@ -383,47 +383,5 @@ export const registerV1RatelimitLimit = (app: App) =>
       success: ratelimitResponse.passed,
     };
 
-    c.executionCtx.waitUntil(replayToAws(c, req, res).catch(() => {}));
     return c.json(res);
   });
-
-async function replayToAws(
-  c: Context,
-  req: V1RatelimitLimitRequest,
-  res: V1RatelimitLimitResponse,
-): Promise<void> {
-  const { metrics, logger } = c.get("services");
-
-  logger.info("replaying to aws");
-  const t0 = performance.now();
-  const resp = await fetch("https://api.unkey.com/v2/ratelimit.limit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: c.req.header("authorization") ?? "",
-      "X-Unkey-Metrics": "disabled",
-    },
-    body: JSON.stringify({
-      namespace: req.namespace,
-      identifier: req.identifier,
-      limit: req.limit,
-      duration: req.duration,
-      cost: req.cost,
-    }),
-  });
-  const awsLatency = performance.now() - t0;
-
-  const body = await resp.json<{ data: { success: boolean } }>();
-
-  logger.info("aws response", {
-    status: resp.status,
-    body: body,
-  });
-
-  metrics.emit({
-    metric: "metric.ratelimit.aws",
-    awsLatency,
-    awsPassed: body.data.success,
-    cfPassed: res.success,
-  });
-}
