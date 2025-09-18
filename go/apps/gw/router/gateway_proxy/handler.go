@@ -35,7 +35,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 	// Strip port from hostname for database lookup (Host header may include port)
 	hostname := routing.ExtractHostname(req)
 
-	config, err := h.RoutingService.GetConfig(ctx, hostname)
+	configWithWorkspace, err := h.RoutingService.GetConfig(ctx, hostname)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
@@ -43,6 +43,10 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			fault.Public("Service configuration not found"),
 		)
 	}
+
+	// Set workspace ID in session
+	sess.WorkspaceID = configWithWorkspace.WorkspaceID
+	config := configWithWorkspace.Config
 
 	// Handle request validation if configured
 	if h.Validator != nil {

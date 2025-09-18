@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -32,12 +33,39 @@ type Session struct {
 }
 
 // init initializes the session with a new request and response writer.
-func (s *Session) init(w http.ResponseWriter, r *http.Request) {
+func (s *Session) init(w http.ResponseWriter, r *http.Request) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.startTime = time.Now()
 	s.w = w
 	s.r = r
 	s.WorkspaceID = ""
+
+	// Read and cache the request body so metrics middleware can access it even on early errors.
+	// We need to replace r.Body with a fresh reader afterwards so other middleware
+	// can still read the body if necessary.
+	var err error
+	s.requestBody, err = io.ReadAll(s.r.Body)
+	closeErr := s.r.Body.Close()
+
+	// Handle read errors
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Internal("unable to read request body"),
+			fault.Public("The request body could not be read."),
+		)
+	}
+
+	// Handle close error
+	if closeErr != nil {
+		return fault.Wrap(closeErr,
+			fault.Internal("failed to close request body"),
+			fault.Public("An error occurred processing the request."),
+		)
+	}
+
+	// Replace body with a fresh reader for subsequent middleware
+	s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
+	return nil
 }
 
 // RequestID returns the unique request ID for this session.
