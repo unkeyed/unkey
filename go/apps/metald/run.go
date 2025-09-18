@@ -2,6 +2,7 @@ package metald
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"errors"
 	"fmt"
@@ -220,14 +221,6 @@ func Run(ctx context.Context, cfg Config) error {
 		"mode", cfg.TLS.Mode,
 		"spiffe_enabled", cfg.TLS.Mode == "spiffe")
 
-	// Run database migrations
-	if err := runMigrations(cfg.Database.DataDir, logger); err != nil {
-		logger.Error("failed to run migrations",
-			slog.String("error", err.Error()),
-		)
-		return err
-	}
-
 	// Initialize database
 	db, dbErr := database.NewDatabaseWithLogger(cfg.Database.DataDir, slog.Default())
 	if dbErr != nil {
@@ -235,6 +228,13 @@ func Run(ctx context.Context, cfg Config) error {
 			slog.String("error", dbErr.Error()),
 		)
 		return dbErr
+	}
+	defer db.Close()
+
+	// Run database migrations
+	if err := runMigrations(cfg.Database.DataDir, logger, db.DB()); err != nil {
+		logger.Error("failed to run migrations", slog.String("error", err.Error()))
+		return err
 	}
 
 	// Initialize backend based on configuration
@@ -500,26 +500,19 @@ func getVersion() string {
 }
 
 // runMigrations runs database migrations using goose with embedded migrations
-func runMigrations(dataDir string, logger *slog.Logger) error {
+func runMigrations(dataDir string, logger *slog.Logger, db *sql.DB) error {
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
 
-	// Open database connection
-	db, err := database.NewDatabaseWithLogger(dataDir, logger)
-	if err != nil {
-		return fmt.Errorf("failed to open database for migrations: %w", err)
-	}
-	defer db.Close()
-
 	// Set embedded filesystem as the migration source
 	goose.SetBaseFS(migrationFS)
 
-	// Run migrations from embedded filesystem
-	if err := goose.Up(db.DB(), "migrations"); err != nil {
+	if err := goose.Up(db, "migrations"); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	logger.Info("migrations completed successfully")
+
 	return nil
 }

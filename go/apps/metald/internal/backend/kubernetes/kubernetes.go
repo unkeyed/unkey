@@ -475,6 +475,11 @@ func (b *Backend) ListVMs() []types.ListableVMInfo {
 	return vms
 }
 
+// Type returns the backend type as a string for metrics
+func (b *Backend) Type() string {
+	return string(types.BackendTypeKubernetes)
+}
+
 // Helper methods
 func readNamespaceFromServiceAccount() (string, error) {
 	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")

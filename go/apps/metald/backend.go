@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/docker"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/kubernetes"
@@ -81,44 +80,10 @@ func initializeDockerBackend(ctx context.Context, cfg *Config, logger *slog.Logg
 	// Create logging.Logger from slog.Logger
 	loggingLogger := logging.New().With("backend", "docker")
 
-	isRunningDocker := isRunningInDocker()
-
-	backend, err := docker.New(loggingLogger, isRunningDocker)
+	backend, err := docker.New(loggingLogger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Docker backend: %w", err)
 	}
 
 	return backend, nil
-}
-
-// isRunningInDocker checks if the current process is running inside a Docker container
-func isRunningInDocker() bool {
-	// Check for .dockerenv file (common Docker indicator)
-	if _, err := os.Stat("/.dockerenv"); err == nil {
-		return true
-	}
-
-	// Check cgroup for docker indication
-	if data, err := os.ReadFile("/proc/1/cgroup"); err == nil {
-		content := string(data)
-		if contains(content, "docker") || contains(content, "containerd") {
-			return true
-		}
-	}
-
-	return false
-}
-
-// contains checks if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && indexOfSubstring(s, substr) >= 0
-}
-
-func indexOfSubstring(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
 }

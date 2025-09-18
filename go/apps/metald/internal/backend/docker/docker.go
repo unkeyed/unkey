@@ -27,13 +27,12 @@ var _ types.VMListProvider = (*Backend)(nil)
 
 // Backend implements types.Backend using Docker containers
 type Backend struct {
-	logger          logging.Logger
-	dockerClient    *client.Client
-	isRunningDocker bool // Whether this service is running in Docker
+	logger       logging.Logger
+	dockerClient *client.Client
 }
 
 // New creates a new Docker backend
-func New(logger logging.Logger, isRunningDocker bool) (*Backend, error) {
+func New(logger logging.Logger) (*Backend, error) {
 	dockerClient, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
@@ -51,9 +50,8 @@ func New(logger logging.Logger, isRunningDocker bool) (*Backend, error) {
 	}
 
 	return &Backend{
-		logger:          logger.With("backend", "docker"),
-		dockerClient:    dockerClient,
-		isRunningDocker: isRunningDocker,
+		logger:       logger.With("backend", "docker"),
+		dockerClient: dockerClient,
 	}, nil
 }
 
@@ -513,6 +511,11 @@ func (b *Backend) ListVMs() []types.ListableVMInfo {
 		})
 	}
 	return vms
+}
+
+// Type returns the backend type as a string for metrics
+func (b *Backend) Type() string {
+	return string(types.BackendTypeDocker)
 }
 
 // Helper methods

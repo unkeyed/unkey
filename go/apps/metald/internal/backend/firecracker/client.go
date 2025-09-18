@@ -92,5 +92,10 @@ func (c *Client) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// Type returns the backend type as a string for metrics
+func (c *Client) Type() string {
+	return string(types.BackendTypeFirecracker)
+}
+
 // Ensure Client implements Backend interface
 var _ types.Backend = (*Client)(nil)

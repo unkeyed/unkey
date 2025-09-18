@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/metald/internal/backend/types"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/database"
 	"github.com/unkeyed/unkey/go/apps/metald/internal/network"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
@@ -72,21 +73,28 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			RateLimitMbps:   0,
 		}
 
-		br := netConfig.BridgeName
-		// Ignore for now
-		// br, brErr := network.CreateBridge(logger, netConfig)
-		// if brErr != nil {
-		// 	logger.Info("failed to create bridge",
-		// 		slog.String("error", brErr.Error()),
-		// 	)
-		// 	if err := s.queries.ReleaseNetwork(ctx, n.ID); err != nil { // Delete entry from DB
-		// 		return nil, connect.NewError(connect.CodeInternal, err)
-		// 	}
+		var br string
 
-		// 	logger.Debug("cleaned up bridge")
+		if s.backend.Type() == string(types.BackendTypeFirecracker) {
+			fBr, brErr := network.CreateBridge(logger, netConfig)
+			if brErr != nil {
+				logger.Info("failed to create bridge",
+					slog.String("error", brErr.Error()),
+				)
 
-		// 	return nil, connect.NewError(connect.CodeInternal, brErr)
-		// }
+				if err := s.queries.ReleaseNetwork(ctx, n.ID); err != nil { // Delete entry from DB
+					return nil, connect.NewError(connect.CodeInternal, err)
+				}
+
+				logger.Debug("cleaned up bridge")
+
+				return nil, connect.NewError(connect.CodeInternal, brErr)
+			}
+
+			br = fBr
+		} else {
+			br = netConfig.BridgeName
+		}
 
 		// Generate available IPs for this network
 		availableIPs, ipErr := network.GenerateAvailableIPs(n.BaseNetwork)
@@ -94,6 +102,7 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			logger.ErrorContext(ctx, "failed to generate available IPs",
 				slog.String("error", ipErr.Error()),
 			)
+
 			return nil, connect.NewError(connect.CodeInternal, ipErr)
 		}
 
@@ -107,6 +116,7 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			logger.ErrorContext(ctx, "failed to save network allocation",
 				slog.String("error", naErr.Error()),
 			)
+
 			return nil, connect.NewError(connect.CodeInternal, naErr)
 		}
 
@@ -142,6 +152,7 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			logger.ErrorContext(ctx, "failed to pop available IP",
 				slog.String("error", popErr.Error()),
 			)
+
 			return nil, connect.NewError(connect.CodeInternal, popErr)
 		}
 
@@ -155,17 +166,17 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 			logger.ErrorContext(ctx, "failed to pop available IP",
 				slog.String("error", allocErr.Error()),
 			)
+
 			return nil, connect.NewError(connect.CodeInternal, allocErr)
 		}
 
-		// Pass network info to backend via NetworkConfig (JSON)
-		networkInfo := map[string]string{
+		// Pass network info to backend via NetworkConfig
+		networkConfigJSON, _ := json.Marshal(map[string]string{
 			"deployment_id": req.Msg.Deployment.GetDeploymentId(),
 			"subnet":        nwAlloc.BaseNetwork,
 			"allocated_ip":  ipRow.Column1,
 			"bridge_name":   nwAlloc.BridgeName,
-		}
-		networkConfigJSON, _ := json.Marshal(networkInfo)
+		})
 
 		// This returns vmID and err
 		_, err := s.backend.CreateVM(ctx, &metaldv1.VmConfig{
@@ -198,7 +209,7 @@ func (s *VMService) CreateDeployment(ctx context.Context, req *connect.Request[m
 		vmIPs[vmID] = ipAlloc.IpAddr
 		deploymentMu.Unlock()
 
-		// Not sure if we should boot it as well??
+		// For now boot the VM directly once it's been created
 		err = s.backend.BootVM(ctx, vmID)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to boot VM",
@@ -233,7 +244,7 @@ func (s *VMService) GetDeployment(ctx context.Context, req *connect.Request[meta
 
 	logger := s.logger.With("deployment_id", req.Msg.GetDeploymentId())
 
-	// Get VM IDs from in-memory tracking
+	// Get VM IDs from in-memory tracking, this should later be replaced via a DB read.
 	deploymentMu.RLock()
 	vmIDs := deploymentVMs[req.Msg.GetDeploymentId()]
 	deploymentMu.RUnlock()
@@ -266,7 +277,7 @@ func (s *VMService) GetDeployment(ctx context.Context, req *connect.Request[meta
 		vmResponse = append(vmResponse, &metaldv1.GetDeploymentResponse_Vm{
 			Id:    vmID,
 			Host:  vmIP,
-			Port:  8080,
+			Port:  8080, // For now just force the port to 8080 as this is what k8s/docker uses
 			State: vmInfo.State,
 		})
 	}

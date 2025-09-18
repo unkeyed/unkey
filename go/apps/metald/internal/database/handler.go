@@ -48,10 +48,12 @@ func NewDatabaseWithLogger(dataDir string, logger *slog.Logger) (*Database, erro
 	return database, nil
 }
 
+// Expose Close for graceful shutdown with migrations
 func (db *Database) Close() error {
 	return db.db.Close()
 }
 
+// Expose underlying database connection for migrations
 func (db *Database) DB() *sql.DB {
 	return db.db
 }

@@ -270,7 +270,6 @@ services:
       dockerfile: Dockerfile
       args:
         VERSION: "latest"
-        CGO_ENABLED: "0"
     container_name: metald
     command: ["run", "metald"]
     ports:
@@ -290,7 +289,7 @@ services:
       # Backend configuration - use Docker backend for development
       UNKEY_METALD_BACKEND: "docker"
 
-      # Database configuration (metald needs its own database for VM state)
+      # Database configuration
       UNKEY_METALD_DATABASE_DIR: "/var/lib/metald"
 
       # Asset manager configuration (disabled for local development)
@@ -323,6 +322,9 @@ services:
         required: true
       s3:
         condition: service_healthy
+        required: true
+      metald:
+        condition: service_started
         required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

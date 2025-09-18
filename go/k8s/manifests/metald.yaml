@@ -20,8 +20,6 @@ spec:
         unkey.component: gateway
     spec:
       serviceAccountName: unkey-serviceaccount
-      # Enable host networking for Docker socket access if needed
-      # hostNetwork: true  # Uncomment if Docker backend needs host networking
       containers:
         - name: metald
           image: unkey-metald:latest
@@ -44,7 +42,8 @@ spec:
 
             # Network configuration - use K8s service CIDR for OrbStack
             - name: UNKEY_METALD_NETWORK_CIDR
-              value: "192.168.194.128/25" # OrbStack's exact service CIDR
+              value: "192.168.194.128/25" # OrbStack's default service CIDR
+
             - name: UNKEY_METALD_SUBNET_PREFIX
               value: "29" # Smaller subnets (8 IPs each) to fit in /25 range
 
