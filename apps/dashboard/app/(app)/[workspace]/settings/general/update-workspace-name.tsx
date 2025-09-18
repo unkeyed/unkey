@@ -1,6 +1,6 @@
 "use client";
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export function UpdateWorkspaceName() {
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
   const router = useRouter();
   const utils = trpc.useUtils();
 
@@ -21,7 +21,9 @@ export function UpdateWorkspaceName() {
       .string()
       .trim()
       .min(3, { message: "Workspace name must be at least 3 characters long" })
-      .max(50, { message: "Workspace name must be less than 50 characters long" }),
+      .max(50, {
+        message: "Workspace name must be less than 50 characters long",
+      }),
   });
 
   const {
@@ -63,7 +65,10 @@ export function UpdateWorkspaceName() {
       return toast.error("Workspace not found");
     }
 
-    await updateName.mutateAsync({ workspaceId: workspace.id, name: values.workspaceName });
+    await updateName.mutateAsync({
+      workspaceId: workspace.id,
+      name: values.workspaceName,
+    });
   };
 
   return (

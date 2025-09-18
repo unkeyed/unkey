@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "@/lib/auth/utils";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { Laptop2, MoonStars, Sun } from "@unkey/icons";
 import { useTheme } from "next-themes";
 import type React from "react";
@@ -32,6 +33,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
 }) => {
   const { data: user, isLoading } = trpc.user.getCurrentUser.useQuery();
   const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
 
   const displayName = user?.fullName ?? user?.email ?? "";
 
@@ -87,6 +89,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
             asChild
             className="cursor-pointer"
             onClick={async () => {
+              queryClient.clear();
               await signOut();
             }}
           >

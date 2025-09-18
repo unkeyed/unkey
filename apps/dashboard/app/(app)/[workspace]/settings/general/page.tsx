@@ -1,6 +1,6 @@
 "use client";
 
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
@@ -10,7 +10,7 @@ import { UpdateWorkspaceName } from "./update-workspace-name";
  */
 
 export default function SettingsPage() {
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
 
   return (
     <div>
@@ -23,7 +23,7 @@ export default function SettingsPage() {
           <div className="w-full flex flex-col">
             <UpdateWorkspaceName />
             {/* <UpdateWorkspaceImage /> */}
-            <CopyWorkspaceId workspaceId={workspace.id} />
+            {workspace && <CopyWorkspaceId workspaceId={workspace.id} />}
           </div>
         </div>
       </div>

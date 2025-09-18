@@ -30,17 +30,17 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5, // 5 minutes
-            // Keep cache for 10 minutes
-            cacheTime: 1000 * 60 * 10,
+            staleTime: 1000 * 60 * 2, // 2 minutes (reduced for security)
+            // Keep cache for 5 minutes (reduced from 10)
+            cacheTime: 1000 * 60 * 5,
             // Retry failed queries 1 time instead of default 3
             retry: 1,
             // Will refetch only if the data is stale
             refetchOnWindowFocus: true,
             // Minimize connection issues by retrying when reconnecting
             refetchOnReconnect: true,
-            // Show stale data while refetching
-            keepPreviousData: true,
+            // Don't show stale data to prevent user data leakage
+            keepPreviousData: false,
           },
         },
       }),

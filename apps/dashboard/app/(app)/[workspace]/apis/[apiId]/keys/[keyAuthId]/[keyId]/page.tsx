@@ -1,6 +1,6 @@
 "use client";
 
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ApisNavbar } from "../../../api-id-navbar";
 import { KeyDetailsLogsClient } from "./logs-client";
 
@@ -8,7 +8,7 @@ export default function KeyDetailsPage(props: {
   params: { apiId: string; keyAuthId: string; keyId: string };
 }) {
   const { apiId, keyAuthId: keyspaceId, keyId } = props.params;
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
   return (
     <div className="w-full">
       <ApisNavbar

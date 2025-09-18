@@ -1,6 +1,6 @@
 "use client";
 
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
 type Props = {
@@ -11,14 +11,14 @@ type Props = {
 
 export default function SettingsPage(props: Props) {
   const { apiId } = props.params;
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
 
   return (
     <div>
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace.slug}/apis/${apiId}/settings`,
+          href: `/${workspace?.slug}/apis/${apiId}/settings`,
           text: "Settings",
         }}
       />

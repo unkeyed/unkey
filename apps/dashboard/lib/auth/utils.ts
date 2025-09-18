@@ -7,7 +7,10 @@ import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE } from "./types";
 
 // Helper function for ensuring a signed-in user
-export async function requireAuth(): Promise<{ userId: string | null; orgId: string | null }> {
+export async function requireAuth(): Promise<{
+  userId: string | null;
+  orgId: string | null;
+}> {
   const authResult = await getAuth();
   if (!authResult.userId) {
     redirect("/auth/sign-in");
@@ -33,7 +36,6 @@ export async function requireEmailMatch(params: {
 
 // Sign Out
 export async function signOut(): Promise<void> {
-  await requireAuth();
   //const signOutUrl = await auth.getSignOutUrl();
   await deleteCookie(UNKEY_SESSION_COOKIE);
   redirect("/auth/sign-in");

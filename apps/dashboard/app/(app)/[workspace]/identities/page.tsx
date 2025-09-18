@@ -1,7 +1,7 @@
 "use client";
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
@@ -30,9 +30,9 @@ export default function Page(props: Props) {
   const search = validatedParams.search ?? "";
   const limit = validatedParams.limit ? Number.parseInt(validatedParams.limit, 10) : DEFAULT_LIMIT;
 
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
 
-  if (!workspace.betaFeatures.identities) {
+  if (!workspace?.betaFeatures.identities) {
     return <OptIn title="Identities" description="Identities are in beta" feature="identities" />;
   }
 

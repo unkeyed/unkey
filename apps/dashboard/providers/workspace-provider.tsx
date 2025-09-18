@@ -1,7 +1,10 @@
 "use client";
 
+import type { AuthenticatedUser } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
+import { baseQueryOptions, createRetryFn, isWorkOSRedirect } from "@/lib/utils/trpc";
+import { useQueryClient } from "@tanstack/react-query";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { Quotas, Workspace } from "@unkey/db";
 import type React from "react";
@@ -10,17 +13,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
 } from "react";
 
 interface WorkspaceContextType {
+  user: AuthenticatedUser | null;
   workspace: Workspace | null;
   quotas: Quotas | null;
   isLoading: boolean;
   error: TRPCClientErrorLike<Router> | null;
   refetch: () => void;
-  clearCache: () => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -34,160 +38,103 @@ export const useWorkspace = () => {
 };
 
 export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const retryCountRef = useRef(0);
-  const lastErrorRef = useRef<TRPCClientErrorLike<Router> | null>(null);
-  const initialLoadRef = useRef(true);
+  const queryClient = useQueryClient();
+  const previousUserIdRef = useRef<string | null>(null);
 
-  const {
-    data: workspace,
-    isLoading,
-    error,
-    refetch: trpcRefetch,
-    isFetching,
-  } = trpc.workspace.getCurrent.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 15, // 15 minutes
-    retry: (failureCount, error) => {
-      // Don't retry on definitive auth/workspace errors
-      if (error?.data?.code === "UNAUTHORIZED" || error?.data?.code === "FORBIDDEN") {
-        return false;
-      }
-
-      // For "workspace not found in context" errors - more aggressive retry on post-login
-      if (error?.message?.includes("workspace not found in context")) {
-        // Post-login for existing users needs more retries due to session sync
-        return failureCount < (initialLoadRef.current ? 6 : 3);
-      }
-
-      // For NOT_FOUND errors - especially common for existing users post-login
-      if (error?.data?.code === "NOT_FOUND") {
-        return failureCount < (initialLoadRef.current ? 4 : 1);
-      }
-
-      // Pattern validation errors - likely post-login context issues for existing users
-      if (
-        error?.message?.includes("did not match the expected pattern") ||
-        error?.message?.includes("string did not match")
-      ) {
-        // These are usually transient post-login issues, retry aggressively
-        return failureCount < 4;
-      }
-
-      // For other errors, retry twice
-      return failureCount < 2;
-    },
-    retryDelay: (attemptIndex) => {
-      // Exponential backoff: 500ms, 1s, 2s
-      return Math.min(500 * 2 ** attemptIndex, 2000);
-    },
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-    // Return null instead of throwing on certain errors
-    onError: (error) => {
-      lastErrorRef.current = error;
-
-      // Check for pattern validation errors - common post-login for existing users
-      if (
-        error?.message?.includes("did not match the expected pattern") ||
-        error?.message?.includes("string did not match")
-      ) {
-        console.warn("Post-login workspace context synchronization error:", {
-          message: error.message,
-          data: error.data,
-          shape: error.shape,
-          isInitialLoad: initialLoadRef.current,
-          retryCount: retryCountRef.current,
-        });
-
-        // Don't return early - let the retry logic handle this
-      }
-
-      if (
-        error?.message?.includes("workspace not found in context") ||
-        error?.data?.code === "NOT_FOUND"
-      ) {
-        // These might be expected during initial load - log as debug
-        console.debug(
-          "Workspace not available in context - user may need to create workspace",
-          error,
-        );
-      } else {
-        // Log other errors for debugging
-        console.warn("Workspace loading error:", error);
-      }
-    },
-    onSuccess: () => {
-      // Reset retry count and error on successful fetch
-      retryCountRef.current = 0;
-      lastErrorRef.current = null;
-      // Mark that initial load is complete
-      initialLoadRef.current = false;
-    },
+  // Get user state first
+  const userQuery = trpc.user.getCurrentUser.useQuery(undefined, {
+    ...baseQueryOptions,
+    retry: createRetryFn(2),
+    refetchInterval: 1000 * 60 * 10, // 10 minutes
   });
 
-  const clearCache = useCallback(() => {
-    // Clear any client-side workspace caches
-    try {
-      Object.keys(localStorage)
-        .filter((key) => key.includes("workspace_cache"))
-        .forEach((key) => localStorage.removeItem(key));
-    } catch (_error) {
-      // don't throw error
-    }
+  const { data: user, isLoading: userLoading, error: userError } = userQuery;
 
-    // Reset retry tracking
-    retryCountRef.current = 0;
-    lastErrorRef.current = null;
-    // Reset initial load flag to use aggressive retry logic
-    initialLoadRef.current = true;
+  // Only fetch workspace if user data is ready and valid
+  const shouldEnableWorkspaceQuery = useMemo(
+    () => Boolean(!userLoading && user?.id && user?.orgId && !userError),
+    [userLoading, user?.id, user?.orgId, userError],
+  );
 
-    // Force refetch from server
-    return trpcRefetch();
-  }, [trpcRefetch]);
+  const workspaceQuery = trpc.workspace.getCurrent.useQuery(undefined, {
+    ...baseQueryOptions,
+    enabled: shouldEnableWorkspaceQuery,
+    retry: createRetryFn(3), // Allow one extra retry for workspace
+  });
 
+  const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
+
+  // Memoize refetch function to prevent unnecessary re-renders
   const refetch = useCallback(async () => {
-    // Reset retry tracking on manual refetch
-    retryCountRef.current = 0;
-    lastErrorRef.current = null;
-    // Don't reset initial load flag on manual refetch to maintain standard retry behavior
-    return trpcRefetch();
-  }, [trpcRefetch]);
+    await Promise.all([userQuery.refetch(), workspaceQuery.refetch()]);
+  }, [userQuery.refetch, workspaceQuery.refetch]);
 
-  const value: WorkspaceContextType = useMemo(() => {
-    // If we're currently loading or fetching, show loading state
-    const isCurrentlyLoading = isLoading || isFetching;
+  // Monitor user ID changes and clear cache when user switches
+  useEffect(() => {
+    const currentUserId = user?.id || null;
+    const previousUserId = previousUserIdRef.current;
 
-    // Enhanced error handling for better user experience
-    let processedError: TRPCClientErrorLike<Router> | null = null;
-    if (error && !isCurrentlyLoading) {
-      // Check for errors that should be auto-retried
-      const isRetriableContextError = error?.message?.includes("workspace not found in context");
-      const isRetriableNotFound = error?.data?.code === "NOT_FOUND";
-      const isRetriablePatternError =
-        error?.message?.includes("did not match the expected pattern") ||
-        error?.message?.includes("string did not match");
-
-      // For post-login scenarios, be more lenient about showing errors during retries
-      const maxRetriesBeforeShow = initialLoadRef.current ? 4 : 3;
-
-      // Don't show error if we're in the middle of automatic retries for these cases
-      if (
-        !(isRetriableContextError || isRetriableNotFound || isRetriablePatternError) ||
-        retryCountRef.current >= maxRetriesBeforeShow
-      ) {
-        processedError = error;
-      }
+    // If user changed (including from null to user or user to null)
+    if (previousUserId !== null && currentUserId !== previousUserId) {
+      queryClient.clear();
     }
+
+    previousUserIdRef.current = currentUserId;
+  }, [user?.id, queryClient]);
+
+  // Monitor authentication failures and clear cache when needed
+  useMemo(() => {
+    const hasAuthError =
+      userError?.data?.code === "UNAUTHORIZED" ||
+      userError?.data?.code === "FORBIDDEN" ||
+      workspaceError?.data?.code === "UNAUTHORIZED" ||
+      workspaceError?.data?.code === "FORBIDDEN";
+
+    if (hasAuthError) {
+      // Clear all queries when auth fails to prevent stale data
+      queryClient.clear();
+    }
+  }, [userError, workspaceError, queryClient]);
+
+  // Compute context value with proper error handling
+  const value: WorkspaceContextType = useMemo(() => {
+    // Handle WorkOS redirects by showing loading state
+    const hasWorkOSRedirect = isWorkOSRedirect(userError) || isWorkOSRedirect(workspaceError);
+
+    if (hasWorkOSRedirect) {
+      return {
+        user: null,
+        workspace: null,
+        quotas: null,
+        isLoading: true,
+        error: null,
+        refetch,
+      };
+    }
+
+    const isLoading = userLoading || (shouldEnableWorkspaceQuery && workspaceLoading);
+
+    // Only surface errors when not loading
+    const error = isLoading ? null : userError || workspaceError || null;
 
     return {
+      user: user ?? null,
       workspace: workspace ?? null,
       quotas: workspace?.quotas ?? null,
-      isLoading: isCurrentlyLoading,
-      error: processedError,
+      isLoading,
+      error,
       refetch,
-      clearCache,
     };
-  }, [workspace, isLoading, isFetching, error, refetch, clearCache]);
+  }, [
+    user,
+    workspace,
+    userLoading,
+    workspaceLoading,
+    shouldEnableWorkspaceQuery,
+    userError,
+    workspaceError,
+    refetch,
+  ]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };

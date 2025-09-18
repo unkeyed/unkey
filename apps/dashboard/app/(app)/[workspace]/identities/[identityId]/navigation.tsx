@@ -1,7 +1,7 @@
 "use client";
 
 import { Navbar } from "@/components/navigation/navbar";
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Fingerprint } from "@unkey/icons";
 
 type NavigationProps = {
@@ -9,7 +9,7 @@ type NavigationProps = {
 };
 
 export function Navigation({ identityId }: NavigationProps): JSX.Element {
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
 
   return (
     <Navbar>

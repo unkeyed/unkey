@@ -1,13 +1,13 @@
 "use client";
 
-import { useWorkspaceWithRedirect } from "@/hooks/use-workspace-with-redirect";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useRouter } from "next/navigation";
 
 export default function WorkspacePage() {
   const router = useRouter();
-  const { workspace } = useWorkspaceWithRedirect();
+  const { workspace } = useWorkspace();
 
-  router.replace(`/${workspace.slug}/apis`);
+  router.replace(`/${workspace?.slug}/apis`);
 
   return null;
 }
