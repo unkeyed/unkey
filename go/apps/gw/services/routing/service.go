@@ -68,6 +68,14 @@ func (s *service) GetConfig(ctx context.Context, host string) (*ConfigWithWorksp
 		}, nil
 	}, caches.DefaultFindFirstOp)
 
+	if err != nil && !db.IsNotFound(err) {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("error loading gateway configuration"),
+			fault.Public("Failed to load gateway configuration"),
+		)
+	}
+
 	if db.IsNotFound(err) || hit == cache.Null {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
