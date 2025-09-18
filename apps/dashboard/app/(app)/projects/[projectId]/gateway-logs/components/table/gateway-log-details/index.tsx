@@ -2,11 +2,12 @@
 import { LogDetails } from "@/components/logs/details/log-details";
 import { useGatewayLogsContext } from "../../../context/gateway-logs-provider";
 
+const ANIMATION_DELAY = 350;
+
 type Props = {
   distanceToTop: number;
 };
 
-const ANIMATION_DELAY = 350;
 export const GatewayLogDetails = ({ distanceToTop }: Props) => {
   const { setSelectedLog, selectedLog: log } = useGatewayLogsContext();
 
