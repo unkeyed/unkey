@@ -3,11 +3,11 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   HandleCertificateVerificationRequest,
   HandleCertificateVerificationResponse,
-} from "./acme_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./acme_pb.js";
 
 /**
  * @generated from service ctrl.v1.AcmeService

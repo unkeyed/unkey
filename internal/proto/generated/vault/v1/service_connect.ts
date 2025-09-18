@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   CreateDEKRequest,
   CreateDEKResponse,
@@ -18,8 +19,7 @@ import {
   ReEncryptDEKsResponse,
   ReEncryptRequest,
   ReEncryptResponse,
-} from "./service_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./service_pb.js";
 
 /**
  * @generated from service vault.v1.VaultService

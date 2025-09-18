@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -103,6 +104,7 @@ type workflowContext struct {
 	workerID        string
 	db              *sql.DB
 	marshaller      Marshaller
+	logger          logging.Logger
 	stepTimeout     time.Duration
 	stepMaxAttempts int32
 }

@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   NotifyPossibleGapRequest,
   NotifyPossibleGapResponse,
@@ -14,8 +15,7 @@ import {
   SendHeartbeatResponse,
   SendMetricsBatchRequest,
   SendMetricsBatchResponse,
-} from "./billing_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./billing_pb.js";
 
 /**
  * @generated from service billaged.v1.BillingService

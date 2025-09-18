@@ -2,17 +2,21 @@
 // @generated from file billaged/v1/billing.proto (package billaged.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file billaged/v1/billing.proto.
  */
-export const file_billaged_v1_billing: GenFile = /*@__PURE__*/
-  fileDesc("ChliaWxsYWdlZC92MS9iaWxsaW5nLnByb3RvEgtiaWxsYWdlZC52MSLVAQoJVk1NZXRyaWNzEi0KCXRpbWVzdGFtcBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFgoOY3B1X3RpbWVfbmFub3MYAiABKAMSGgoSbWVtb3J5X3VzYWdlX2J5dGVzGAMgASgDEhcKD2Rpc2tfcmVhZF9ieXRlcxgEIAEoAxIYChBkaXNrX3dyaXRlX2J5dGVzGAUgASgDEhgKEG5ldHdvcmtfcnhfYnl0ZXMYBiABKAMSGAoQbmV0d29ya190eF9ieXRlcxgHIAEoAyJmChdTZW5kTWV0cmljc0JhdGNoUmVxdWVzdBINCgV2bV9pZBgBIAEoCRITCgtjdXN0b21lcl9pZBgCIAEoCRInCgdtZXRyaWNzGAMgAygLMhYuYmlsbGFnZWQudjEuVk1NZXRyaWNzIjwKGFNlbmRNZXRyaWNzQmF0Y2hSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIEg8KB21lc3NhZ2UYAiABKAkiPwoUU2VuZEhlYXJ0YmVhdFJlcXVlc3QSEwoLaW5zdGFuY2VfaWQYASABKAkSEgoKYWN0aXZlX3ZtcxgCIAMoCSIoChVTZW5kSGVhcnRiZWF0UmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCJQChZOb3RpZnlWbVN0YXJ0ZWRSZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEhMKC2N1c3RvbWVyX2lkGAIgASgJEhIKCnN0YXJ0X3RpbWUYAyABKAMiKgoXTm90aWZ5Vm1TdGFydGVkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCI6ChZOb3RpZnlWbVN0b3BwZWRSZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEhEKCXN0b3BfdGltZRgCIAEoAyIqChdOb3RpZnlWbVN0b3BwZWRSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIlEKGE5vdGlmeVBvc3NpYmxlR2FwUmVxdWVzdBINCgV2bV9pZBgBIAEoCRIRCglsYXN0X3NlbnQYAiABKAMSEwoLcmVzdW1lX3RpbWUYAyABKAMiLAoZTm90aWZ5UG9zc2libGVHYXBSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIMukDCg5CaWxsaW5nU2VydmljZRJfChBTZW5kTWV0cmljc0JhdGNoEiQuYmlsbGFnZWQudjEuU2VuZE1ldHJpY3NCYXRjaFJlcXVlc3QaJS5iaWxsYWdlZC52MS5TZW5kTWV0cmljc0JhdGNoUmVzcG9uc2USVgoNU2VuZEhlYXJ0YmVhdBIhLmJpbGxhZ2VkLnYxLlNlbmRIZWFydGJlYXRSZXF1ZXN0GiIuYmlsbGFnZWQudjEuU2VuZEhlYXJ0YmVhdFJlc3BvbnNlElwKD05vdGlmeVZtU3RhcnRlZBIjLmJpbGxhZ2VkLnYxLk5vdGlmeVZtU3RhcnRlZFJlcXVlc3QaJC5iaWxsYWdlZC52MS5Ob3RpZnlWbVN0YXJ0ZWRSZXNwb25zZRJcCg9Ob3RpZnlWbVN0b3BwZWQSIy5iaWxsYWdlZC52MS5Ob3RpZnlWbVN0b3BwZWRSZXF1ZXN0GiQuYmlsbGFnZWQudjEuTm90aWZ5Vm1TdG9wcGVkUmVzcG9uc2USYgoRTm90aWZ5UG9zc2libGVHYXASJS5iaWxsYWdlZC52MS5Ob3RpZnlQb3NzaWJsZUdhcFJlcXVlc3QaJi5iaWxsYWdlZC52MS5Ob3RpZnlQb3NzaWJsZUdhcFJlc3BvbnNlQj5aPGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vYmlsbGFnZWQvdjE7YmlsbGFnZWR2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+export const file_billaged_v1_billing: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChliaWxsYWdlZC92MS9iaWxsaW5nLnByb3RvEgtiaWxsYWdlZC52MSLVAQoJVk1NZXRyaWNzEi0KCXRpbWVzdGFtcBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFgoOY3B1X3RpbWVfbmFub3MYAiABKAMSGgoSbWVtb3J5X3VzYWdlX2J5dGVzGAMgASgDEhcKD2Rpc2tfcmVhZF9ieXRlcxgEIAEoAxIYChBkaXNrX3dyaXRlX2J5dGVzGAUgASgDEhgKEG5ldHdvcmtfcnhfYnl0ZXMYBiABKAMSGAoQbmV0d29ya190eF9ieXRlcxgHIAEoAyJmChdTZW5kTWV0cmljc0JhdGNoUmVxdWVzdBINCgV2bV9pZBgBIAEoCRITCgtjdXN0b21lcl9pZBgCIAEoCRInCgdtZXRyaWNzGAMgAygLMhYuYmlsbGFnZWQudjEuVk1NZXRyaWNzIjwKGFNlbmRNZXRyaWNzQmF0Y2hSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIEg8KB21lc3NhZ2UYAiABKAkiPwoUU2VuZEhlYXJ0YmVhdFJlcXVlc3QSEwoLaW5zdGFuY2VfaWQYASABKAkSEgoKYWN0aXZlX3ZtcxgCIAMoCSIoChVTZW5kSGVhcnRiZWF0UmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCJQChZOb3RpZnlWbVN0YXJ0ZWRSZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEhMKC2N1c3RvbWVyX2lkGAIgASgJEhIKCnN0YXJ0X3RpbWUYAyABKAMiKgoXTm90aWZ5Vm1TdGFydGVkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCI6ChZOb3RpZnlWbVN0b3BwZWRSZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEhEKCXN0b3BfdGltZRgCIAEoAyIqChdOb3RpZnlWbVN0b3BwZWRSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIlEKGE5vdGlmeVBvc3NpYmxlR2FwUmVxdWVzdBINCgV2bV9pZBgBIAEoCRIRCglsYXN0X3NlbnQYAiABKAMSEwoLcmVzdW1lX3RpbWUYAyABKAMiLAoZTm90aWZ5UG9zc2libGVHYXBSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIMukDCg5CaWxsaW5nU2VydmljZRJfChBTZW5kTWV0cmljc0JhdGNoEiQuYmlsbGFnZWQudjEuU2VuZE1ldHJpY3NCYXRjaFJlcXVlc3QaJS5iaWxsYWdlZC52MS5TZW5kTWV0cmljc0JhdGNoUmVzcG9uc2USVgoNU2VuZEhlYXJ0YmVhdBIhLmJpbGxhZ2VkLnYxLlNlbmRIZWFydGJlYXRSZXF1ZXN0GiIuYmlsbGFnZWQudjEuU2VuZEhlYXJ0YmVhdFJlc3BvbnNlElwKD05vdGlmeVZtU3RhcnRlZBIjLmJpbGxhZ2VkLnYxLk5vdGlmeVZtU3RhcnRlZFJlcXVlc3QaJC5iaWxsYWdlZC52MS5Ob3RpZnlWbVN0YXJ0ZWRSZXNwb25zZRJcCg9Ob3RpZnlWbVN0b3BwZWQSIy5iaWxsYWdlZC52MS5Ob3RpZnlWbVN0b3BwZWRSZXF1ZXN0GiQuYmlsbGFnZWQudjEuTm90aWZ5Vm1TdG9wcGVkUmVzcG9uc2USYgoRTm90aWZ5UG9zc2libGVHYXASJS5iaWxsYWdlZC52MS5Ob3RpZnlQb3NzaWJsZUdhcFJlcXVlc3QaJi5iaWxsYWdlZC52MS5Ob3RpZnlQb3NzaWJsZUdhcFJlc3BvbnNlQj5aPGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vYmlsbGFnZWQvdjE7YmlsbGFnZWR2MWIGcHJvdG8z",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * @generated from message billaged.v1.VMMetrics
@@ -58,7 +62,8 @@ export type VMMetrics = Message<"billaged.v1.VMMetrics"> & {
  * Describes the message billaged.v1.VMMetrics.
  * Use `create(VMMetricsSchema)` to create a new message.
  */
-export const VMMetricsSchema: GenMessage<VMMetrics> = /*@__PURE__*/
+export const VMMetricsSchema: GenMessage<VMMetrics> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 0);
 
 /**
@@ -85,7 +90,8 @@ export type SendMetricsBatchRequest = Message<"billaged.v1.SendMetricsBatchReque
  * Describes the message billaged.v1.SendMetricsBatchRequest.
  * Use `create(SendMetricsBatchRequestSchema)` to create a new message.
  */
-export const SendMetricsBatchRequestSchema: GenMessage<SendMetricsBatchRequest> = /*@__PURE__*/
+export const SendMetricsBatchRequestSchema: GenMessage<SendMetricsBatchRequest> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 1);
 
 /**
@@ -107,7 +113,8 @@ export type SendMetricsBatchResponse = Message<"billaged.v1.SendMetricsBatchResp
  * Describes the message billaged.v1.SendMetricsBatchResponse.
  * Use `create(SendMetricsBatchResponseSchema)` to create a new message.
  */
-export const SendMetricsBatchResponseSchema: GenMessage<SendMetricsBatchResponse> = /*@__PURE__*/
+export const SendMetricsBatchResponseSchema: GenMessage<SendMetricsBatchResponse> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 2);
 
 /**
@@ -129,7 +136,8 @@ export type SendHeartbeatRequest = Message<"billaged.v1.SendHeartbeatRequest"> &
  * Describes the message billaged.v1.SendHeartbeatRequest.
  * Use `create(SendHeartbeatRequestSchema)` to create a new message.
  */
-export const SendHeartbeatRequestSchema: GenMessage<SendHeartbeatRequest> = /*@__PURE__*/
+export const SendHeartbeatRequestSchema: GenMessage<SendHeartbeatRequest> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 3);
 
 /**
@@ -146,7 +154,8 @@ export type SendHeartbeatResponse = Message<"billaged.v1.SendHeartbeatResponse">
  * Describes the message billaged.v1.SendHeartbeatResponse.
  * Use `create(SendHeartbeatResponseSchema)` to create a new message.
  */
-export const SendHeartbeatResponseSchema: GenMessage<SendHeartbeatResponse> = /*@__PURE__*/
+export const SendHeartbeatResponseSchema: GenMessage<SendHeartbeatResponse> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 4);
 
 /**
@@ -173,7 +182,8 @@ export type NotifyVmStartedRequest = Message<"billaged.v1.NotifyVmStartedRequest
  * Describes the message billaged.v1.NotifyVmStartedRequest.
  * Use `create(NotifyVmStartedRequestSchema)` to create a new message.
  */
-export const NotifyVmStartedRequestSchema: GenMessage<NotifyVmStartedRequest> = /*@__PURE__*/
+export const NotifyVmStartedRequestSchema: GenMessage<NotifyVmStartedRequest> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 5);
 
 /**
@@ -190,7 +200,8 @@ export type NotifyVmStartedResponse = Message<"billaged.v1.NotifyVmStartedRespon
  * Describes the message billaged.v1.NotifyVmStartedResponse.
  * Use `create(NotifyVmStartedResponseSchema)` to create a new message.
  */
-export const NotifyVmStartedResponseSchema: GenMessage<NotifyVmStartedResponse> = /*@__PURE__*/
+export const NotifyVmStartedResponseSchema: GenMessage<NotifyVmStartedResponse> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 6);
 
 /**
@@ -212,7 +223,8 @@ export type NotifyVmStoppedRequest = Message<"billaged.v1.NotifyVmStoppedRequest
  * Describes the message billaged.v1.NotifyVmStoppedRequest.
  * Use `create(NotifyVmStoppedRequestSchema)` to create a new message.
  */
-export const NotifyVmStoppedRequestSchema: GenMessage<NotifyVmStoppedRequest> = /*@__PURE__*/
+export const NotifyVmStoppedRequestSchema: GenMessage<NotifyVmStoppedRequest> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 7);
 
 /**
@@ -229,7 +241,8 @@ export type NotifyVmStoppedResponse = Message<"billaged.v1.NotifyVmStoppedRespon
  * Describes the message billaged.v1.NotifyVmStoppedResponse.
  * Use `create(NotifyVmStoppedResponseSchema)` to create a new message.
  */
-export const NotifyVmStoppedResponseSchema: GenMessage<NotifyVmStoppedResponse> = /*@__PURE__*/
+export const NotifyVmStoppedResponseSchema: GenMessage<NotifyVmStoppedResponse> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 8);
 
 /**
@@ -256,7 +269,8 @@ export type NotifyPossibleGapRequest = Message<"billaged.v1.NotifyPossibleGapReq
  * Describes the message billaged.v1.NotifyPossibleGapRequest.
  * Use `create(NotifyPossibleGapRequestSchema)` to create a new message.
  */
-export const NotifyPossibleGapRequestSchema: GenMessage<NotifyPossibleGapRequest> = /*@__PURE__*/
+export const NotifyPossibleGapRequestSchema: GenMessage<NotifyPossibleGapRequest> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 9);
 
 /**
@@ -273,7 +287,8 @@ export type NotifyPossibleGapResponse = Message<"billaged.v1.NotifyPossibleGapRe
  * Describes the message billaged.v1.NotifyPossibleGapResponse.
  * Use `create(NotifyPossibleGapResponseSchema)` to create a new message.
  */
-export const NotifyPossibleGapResponseSchema: GenMessage<NotifyPossibleGapResponse> = /*@__PURE__*/
+export const NotifyPossibleGapResponseSchema: GenMessage<NotifyPossibleGapResponse> =
+  /*@__PURE__*/
   messageDesc(file_billaged_v1_billing, 10);
 
 /**
@@ -287,7 +302,7 @@ export const BillingService: GenService<{
     methodKind: "unary";
     input: typeof SendMetricsBatchRequestSchema;
     output: typeof SendMetricsBatchResponseSchema;
-  },
+  };
   /**
    * @generated from rpc billaged.v1.BillingService.SendHeartbeat
    */
@@ -295,7 +310,7 @@ export const BillingService: GenService<{
     methodKind: "unary";
     input: typeof SendHeartbeatRequestSchema;
     output: typeof SendHeartbeatResponseSchema;
-  },
+  };
   /**
    * @generated from rpc billaged.v1.BillingService.NotifyVmStarted
    */
@@ -303,7 +318,7 @@ export const BillingService: GenService<{
     methodKind: "unary";
     input: typeof NotifyVmStartedRequestSchema;
     output: typeof NotifyVmStartedResponseSchema;
-  },
+  };
   /**
    * @generated from rpc billaged.v1.BillingService.NotifyVmStopped
    */
@@ -311,7 +326,7 @@ export const BillingService: GenService<{
     methodKind: "unary";
     input: typeof NotifyVmStoppedRequestSchema;
     output: typeof NotifyVmStoppedResponseSchema;
-  },
+  };
   /**
    * @generated from rpc billaged.v1.BillingService.NotifyPossibleGap
    */
@@ -319,7 +334,5 @@ export const BillingService: GenService<{
     methodKind: "unary";
     input: typeof NotifyPossibleGapRequestSchema;
     output: typeof NotifyPossibleGapResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_billaged_v1_billing, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_billaged_v1_billing, 0);

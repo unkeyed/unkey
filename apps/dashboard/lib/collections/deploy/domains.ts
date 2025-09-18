@@ -9,6 +9,8 @@ const schema = z.object({
   domain: z.string(),
   type: z.enum(["custom", "wildcard"]),
   projectId: z.string().nullable(),
+  deploymentId: z.string().nullable(),
+  sticky: z.enum(["branch", "environment", "live"]).nullable(),
 });
 
 export type Domain = z.infer<typeof schema>;
@@ -26,6 +28,6 @@ export function createDomainsCollection(projectId: string) {
       queryFn: () => trpcClient.deploy.domain.list.query({ projectId }),
       getKey: (item) => item.id,
       id: `${projectId}-domains`,
-    }),
+    })
   );
 }

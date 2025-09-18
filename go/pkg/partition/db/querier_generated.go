@@ -68,7 +68,6 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      workspace_id = ?,
 	//      deployment_id = ?,
-	//      hostname = ?,
 	//      config = ?
 	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
 	//UpsertVM

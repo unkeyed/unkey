@@ -25,7 +25,6 @@ VALUES (
 ON DUPLICATE KEY UPDATE
     workspace_id = ?,
     deployment_id = ?,
-    hostname = ?,
     config = ?
 `
 
@@ -53,7 +52,6 @@ type UpsertGatewayParams struct {
 //	ON DUPLICATE KEY UPDATE
 //	    workspace_id = ?,
 //	    deployment_id = ?,
-//	    hostname = ?,
 //	    config = ?
 func (q *Queries) UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error {
 	_, err := db.ExecContext(ctx, upsertGateway,
@@ -63,7 +61,6 @@ func (q *Queries) UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayP
 		arg.Config,
 		arg.WorkspaceID,
 		arg.DeploymentID,
-		arg.Hostname,
 		arg.Config,
 	)
 	return err

@@ -24,7 +24,7 @@ export const useDeployments = () => {
         .where(({ deployment }) => eq(deployment.id, liveDeploymentId))
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(1),
-    [liveDeploymentId]
+    [liveDeploymentId],
   ).data.at(0);
   const deployments = useLiveQuery(
     (q) => {
@@ -35,7 +35,7 @@ export const useDeployments = () => {
       for (const filter of filters) {
         if (filter.field === "environment") {
           environments = environments.where(({ environment }) =>
-            eq(environment.slug, filter.value)
+            eq(environment.slug, filter.value),
           );
         }
       }
@@ -48,13 +48,16 @@ export const useDeployments = () => {
       // add additional where clauses based on filters.
       // All of these are a locical AND
 
-      const groupedFilters = filters.reduce((acc, f) => {
-        if (!acc[f.field]) {
-          acc[f.field] = [];
-        }
-        acc[f.field].push(f.value);
-        return acc;
-      }, {} as Record<DeploymentListFilterField, (string | number)[]>);
+      const groupedFilters = filters.reduce(
+        (acc, f) => {
+          if (!acc[f.field]) {
+            acc[f.field] = [];
+          }
+          acc[f.field].push(f.value);
+          return acc;
+        },
+        {} as Record<DeploymentListFilterField, (string | number)[]>,
+      );
       for (const [field, values] of Object.entries(groupedFilters)) {
         // this is kind of dumb, but `or`s type doesn't allow spreaded args without
         // specifying the first two
@@ -66,8 +69,8 @@ export const useDeployments = () => {
               or(
                 eq(deployment.status, v1),
                 eq(deployment.status, v2),
-                ...rest.map((value) => eq(deployment.status, value))
-              )
+                ...rest.map((value) => eq(deployment.status, value)),
+              ),
             );
             break;
           case "branch":
@@ -75,8 +78,8 @@ export const useDeployments = () => {
               or(
                 eq(deployment.gitBranch, v1),
                 eq(deployment.gitBranch, v2),
-                ...rest.map((value) => eq(deployment.gitBranch, value))
-              )
+                ...rest.map((value) => eq(deployment.gitBranch, value)),
+              ),
             );
             break;
           case "environment":
@@ -84,19 +87,15 @@ export const useDeployments = () => {
             break;
           case "since":
             query = query.where(({ deployment }) =>
-              gt(deployment.createdAt, Date.now() - ms(values.at(0) as string))
+              gt(deployment.createdAt, Date.now() - ms(values.at(0) as string)),
             );
 
             break;
           case "startTime":
-            query = query.where(({ deployment }) =>
-              gte(deployment.createdAt, values.at(0))
-            );
+            query = query.where(({ deployment }) => gte(deployment.createdAt, values.at(0)));
             break;
           case "endTime":
-            query = query.where(({ deployment }) =>
-              lte(deployment.createdAt, values.at(0))
-            );
+            query = query.where(({ deployment }) => lte(deployment.createdAt, values.at(0)));
             break;
           default:
             break;
@@ -104,15 +103,13 @@ export const useDeployments = () => {
       }
 
       return query
-        .rightJoin(
-          { environment: environments },
-          ({ environment, deployment }) =>
-            eq(environment.id, deployment.environmentId)
+        .rightJoin({ environment: environments }, ({ environment, deployment }) =>
+          eq(environment.id, deployment.environmentId),
         )
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(100);
     },
-    [projectId, filters]
+    [projectId, filters],
   );
 
   return {

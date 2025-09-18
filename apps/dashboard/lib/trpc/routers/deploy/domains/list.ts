@@ -1,5 +1,11 @@
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -12,12 +18,17 @@ export const listDomains = t.procedure
     return await db.query.domains
       .findMany({
         where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.projectId, input.projectId)),
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.projectId, input.projectId)
+          ),
         columns: {
           id: true,
           domain: true,
           projectId: true,
+          deploymentId: true,
           type: true,
+          sticky: true,
         },
       })
       .catch((error) => {

@@ -2,17 +2,21 @@
 // @generated from file builderd/v1/builder.proto (package builderd.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file builderd/v1/builder.proto.
  */
-export const file_builderd_v1_builder: GenFile = /*@__PURE__*/
-  fileDesc("ChlidWlsZGVyZC92MS9idWlsZGVyLnByb3RvEgtidWlsZGVyZC52MSK/AQoLQnVpbGRTb3VyY2USNgoMZG9ja2VyX2ltYWdlGAEgASgLMh4uYnVpbGRlcmQudjEuRG9ja2VySW1hZ2VTb3VyY2VIABI6Cg5naXRfcmVwb3NpdG9yeRgCIAEoCzIgLmJ1aWxkZXJkLnYxLkdpdFJlcG9zaXRvcnlTb3VyY2VIABItCgdhcmNoaXZlGAMgASgLMhouYnVpbGRlcmQudjEuQXJjaGl2ZVNvdXJjZUgAQg0KC3NvdXJjZV90eXBlImAKEURvY2tlckltYWdlU291cmNlEhEKCWltYWdlX3VyaRgBIAEoCRIlCgRhdXRoGAIgASgLMhcuYnVpbGRlcmQudjEuRG9ja2VyQXV0aBIRCglwdWxsX3RhZ3MYAyADKAkiUQoKRG9ja2VyQXV0aBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRINCgV0b2tlbhgDIAEoCRIQCghyZWdpc3RyeRgEIAEoCSJ1ChNHaXRSZXBvc2l0b3J5U291cmNlEhYKDnJlcG9zaXRvcnlfdXJsGAEgASgJEgsKA3JlZhgCIAEoCRIVCg1idWlsZF9jb250ZXh0GAMgASgJEiIKBGF1dGgYBCABKAsyFC5idWlsZGVyZC52MS5HaXRBdXRoIk0KB0dpdEF1dGgSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSDwoHc3NoX2tleRgDIAEoCRINCgV0b2tlbhgEIAEoCSJRCg1BcmNoaXZlU291cmNlEhMKC2FyY2hpdmVfdXJsGAEgASgJEhQKDGFyY2hpdmVfdHlwZRgCIAEoCRIVCg1idWlsZF9jb250ZXh0GAMgASgJIooBCgtCdWlsZFRhcmdldBI0Cg5taWNyb3ZtX3Jvb3RmcxgBIAEoCzIaLmJ1aWxkZXJkLnYxLk1pY3JvVk1Sb290ZnNIABI2Cg9jb250YWluZXJfaW1hZ2UYAiABKAsyGy5idWlsZGVyZC52MS5Db250YWluZXJJbWFnZUgAQg0KC3RhcmdldF90eXBlIsYBCg1NaWNyb1ZNUm9vdGZzEjAKDWluaXRfc3RyYXRlZ3kYASABKA4yGS5idWlsZGVyZC52MS5Jbml0U3RyYXRlZ3kSMgoOcnVudGltZV9jb25maWcYAiABKAsyGi5idWlsZGVyZC52MS5SdW50aW1lQ29uZmlnEjcKDG9wdGltaXphdGlvbhgDIAEoCzIhLmJ1aWxkZXJkLnYxLk9wdGltaXphdGlvblNldHRpbmdzEhYKDnByZXNlcnZlX3BhdGhzGAQgAygJIjQKDkNvbnRhaW5lckltYWdlEhIKCmJhc2VfaW1hZ2UYASABKAkSDgoGbGF5ZXJzGAIgAygJItYBCg1SdW50aW1lQ29uZmlnEg8KB2NvbW1hbmQYASADKAkSEgoKZW50cnlwb2ludBgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCRJACgtlbnZpcm9ubWVudBgEIAMoCzIrLmJ1aWxkZXJkLnYxLlJ1bnRpbWVDb25maWcuRW52aXJvbm1lbnRFbnRyeRIVCg1leHBvc2VkX3BvcnRzGAUgAygJGjIKEEVudmlyb25tZW50RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKrAQoUT3B0aW1pemF0aW9uU2V0dGluZ3MSGwoTc3RyaXBfZGVidWdfc3ltYm9scxgBIAEoCBIZChFjb21wcmVzc19iaW5hcmllcxgCIAEoCBITCgtyZW1vdmVfZG9jcxgDIAEoCBIUCgxyZW1vdmVfY2FjaGUYBCABKAgSFgoOcHJlc2VydmVfcGF0aHMYBSADKAkSGAoQZXhjbHVkZV9wYXR0ZXJucxgGIAMoCSLsAQoNQnVpbGRTdHJhdGVneRI8Cg5kb2NrZXJfZXh0cmFjdBgBIAEoCzIiLmJ1aWxkZXJkLnYxLkRvY2tlckV4dHJhY3RTdHJhdGVneUgAEiwKBmdvX2FwaRgCIAEoCzIaLmJ1aWxkZXJkLnYxLkdvQXBpU3RyYXRlZ3lIABIvCgdzaW5hdHJhGAMgASgLMhwuYnVpbGRlcmQudjEuU2luYXRyYVN0cmF0ZWd5SAASLQoGbm9kZWpzGAQgASgLMhsuYnVpbGRlcmQudjEuTm9kZWpzU3RyYXRlZ3lIAEIPCg1zdHJhdGVneV90eXBlImYKFURvY2tlckV4dHJhY3RTdHJhdGVneRIXCg9wcmVzZXJ2ZV9sYXllcnMYASABKAgSGgoSZmxhdHRlbl9maWxlc3lzdGVtGAIgASgIEhgKEGV4Y2x1ZGVfcGF0dGVybnMYAyADKAkiYgoNR29BcGlTdHJhdGVneRISCgpnb192ZXJzaW9uGAEgASgJEhMKC2J1aWxkX2ZsYWdzGAIgAygJEhQKDG1haW5fcGFja2FnZRgDIAEoCRISCgplbmFibGVfY2dvGAQgASgIIsgBCg9TaW5hdHJhU3RyYXRlZ3kSFAoMcnVieV92ZXJzaW9uGAEgASgJEhQKDGdlbWZpbGVfcGF0aBgCIAEoCRITCgtyYWNrX3NlcnZlchgDIAEoCRJBCgtyYWNrX2NvbmZpZxgEIAMoCzIsLmJ1aWxkZXJkLnYxLlNpbmF0cmFTdHJhdGVneS5SYWNrQ29uZmlnRW50cnkaMQoPUmFja0NvbmZpZ0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEicAoOTm9kZWpzU3RyYXRlZ3kSFAoMbm9kZV92ZXJzaW9uGAEgASgJEhcKD3BhY2thZ2VfbWFuYWdlchgCIAEoCRIUCgxzdGFydF9zY3JpcHQYAyABKAkSGQoRZW5hYmxlX3Byb2R1Y3Rpb24YBCABKAgipAIKC0J1aWxkQ29uZmlnEigKBnNvdXJjZRgBIAEoCzIYLmJ1aWxkZXJkLnYxLkJ1aWxkU291cmNlEigKBnRhcmdldBgCIAEoCzIYLmJ1aWxkZXJkLnYxLkJ1aWxkVGFyZ2V0EiwKCHN0cmF0ZWd5GAMgASgLMhouYnVpbGRlcmQudjEuQnVpbGRTdHJhdGVneRISCgpidWlsZF9uYW1lGAQgASgJEjQKBmxhYmVscxgFIAMoCzIkLmJ1aWxkZXJkLnYxLkJ1aWxkQ29uZmlnLkxhYmVsc0VudHJ5EhoKEnN1Z2dlc3RlZF9hc3NldF9pZBgGIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIo0BCg5CdWlsZElzb2xhdGlvbhISCgpzYW5kYm94X2lkGAEgASgJEhkKEW5ldHdvcmtfbmFtZXNwYWNlGAIgASgJEhwKFGZpbGVzeXN0ZW1fbmFtZXNwYWNlGAMgASgJEhkKEXNlY3VyaXR5X2NvbnRleHRzGAQgAygJEhMKC2Nncm91cF9wYXRoGAUgASgJIoIDCg1JbWFnZU1ldGFkYXRhEhYKDm9yaWdpbmFsX2ltYWdlGAEgASgJEhQKDGltYWdlX2RpZ2VzdBgCIAEoCRIOCgZsYXllcnMYAyADKAkSNgoGbGFiZWxzGAQgAygLMiYuYnVpbGRlcmQudjEuSW1hZ2VNZXRhZGF0YS5MYWJlbHNFbnRyeRIPCgdjb21tYW5kGAUgAygJEhIKCmVudHJ5cG9pbnQYBiADKAkSEwoLd29ya2luZ19kaXIYByABKAkSMAoDZW52GAggAygLMiMuYnVpbGRlcmQudjEuSW1hZ2VNZXRhZGF0YS5FbnZFbnRyeRIVCg1leHBvc2VkX3BvcnRzGAkgAygJEgwKBHVzZXIYCiABKAkSDwoHdm9sdW1lcxgLIAMoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiuQIKDEJ1aWxkTWV0cmljcxIYChBwdWxsX2R1cmF0aW9uX21zGAEgASgDEhsKE2V4dHJhY3RfZHVyYXRpb25fbXMYAiABKAMSGQoRYnVpbGRfZHVyYXRpb25fbXMYAyABKAMSHAoUb3B0aW1pemVfZHVyYXRpb25fbXMYBCABKAMSGQoRdG90YWxfZHVyYXRpb25fbXMYBSABKAMSGwoTb3JpZ2luYWxfc2l6ZV9ieXRlcxgGIAEoAxIZChFyb290ZnNfc2l6ZV9ieXRlcxgHIAEoAxIZChFjb21wcmVzc2lvbl9yYXRpbxgIIAEoAxIZChFtZW1vcnlfcGVha19ieXRlcxgJIAEoAxIYChBkaXNrX3VzYWdlX2J5dGVzGAogASgDEhYKDmNwdV9jb3Jlc191c2VkGAsgASgFIrQECghCdWlsZEpvYhIQCghidWlsZF9pZBgBIAEoCRIoCgZjb25maWcYAiABKAsyGC5idWlsZGVyZC52MS5CdWlsZENvbmZpZxImCgVzdGF0ZRgDIAEoDjIXLmJ1aWxkZXJkLnYxLkJ1aWxkU3RhdGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtyb290ZnNfcGF0aBgHIAEoCRIZChFyb290ZnNfc2l6ZV9ieXRlcxgIIAEoAxIXCg9yb290ZnNfY2hlY2tzdW0YCSABKAkSMgoOaW1hZ2VfbWV0YWRhdGEYCiABKAsyGi5idWlsZGVyZC52MS5JbWFnZU1ldGFkYXRhEioKB21ldHJpY3MYCyABKAsyGS5idWlsZGVyZC52MS5CdWlsZE1ldHJpY3MSLgoJaXNvbGF0aW9uGAwgASgLMhsuYnVpbGRlcmQudjEuQnVpbGRJc29sYXRpb24SFQoNZXJyb3JfbWVzc2FnZRgNIAEoCRISCgpidWlsZF9sb2dzGA4gAygJEhgKEHByb2dyZXNzX3BlcmNlbnQYDyABKAUSFAoMY3VycmVudF9zdGVwGBAgASgJIvIBChdTdHJlYW1CdWlsZExvZ3NSZXNwb25zZRItCgl0aW1lc3RhbXAYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBWxldmVsGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSEQoJY29tcG9uZW50GAQgASgJEkQKCG1ldGFkYXRhGAUgAygLMjIuYnVpbGRlcmQudjEuU3RyZWFtQnVpbGRMb2dzUmVzcG9uc2UuTWV0YWRhdGFFbnRyeRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPgoSQ3JlYXRlQnVpbGRSZXF1ZXN0EigKBmNvbmZpZxgBIAEoCzIYLmJ1aWxkZXJkLnYxLkJ1aWxkQ29uZmlnIpQBChNDcmVhdGVCdWlsZFJlc3BvbnNlEhAKCGJ1aWxkX2lkGAEgASgJEiYKBXN0YXRlGAIgASgOMhcuYnVpbGRlcmQudjEuQnVpbGRTdGF0ZRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtyb290ZnNfcGF0aBgEIAEoCSI2Cg9HZXRCdWlsZFJlcXVlc3QSEAoIYnVpbGRfaWQYASABKAkSEQoJdGVuYW50X2lkGAIgASgJIjgKEEdldEJ1aWxkUmVzcG9uc2USJAoFYnVpbGQYASABKAsyFS5idWlsZGVyZC52MS5CdWlsZEpvYiJpChFMaXN0QnVpbGRzUmVxdWVzdBItCgxzdGF0ZV9maWx0ZXIYASADKA4yFy5idWlsZGVyZC52MS5CdWlsZFN0YXRlEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJImkKEkxpc3RCdWlsZHNSZXNwb25zZRIlCgZidWlsZHMYASADKAsyFS5idWlsZGVyZC52MS5CdWlsZEpvYhIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiJgoSQ2FuY2VsQnVpbGRSZXF1ZXN0EhAKCGJ1aWxkX2lkGAEgASgJIk4KE0NhbmNlbEJ1aWxkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCBImCgVzdGF0ZRgCIAEoDjIXLmJ1aWxkZXJkLnYxLkJ1aWxkU3RhdGUiNQoSRGVsZXRlQnVpbGRSZXF1ZXN0EhAKCGJ1aWxkX2lkGAEgASgJEg0KBWZvcmNlGAIgASgIIiYKE0RlbGV0ZUJ1aWxkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCI6ChZTdHJlYW1CdWlsZExvZ3NSZXF1ZXN0EhAKCGJ1aWxkX2lkGAEgASgJEg4KBmZvbGxvdxgCIAEoCCKHAQoUR2V0QnVpbGRTdGF0c1JlcXVlc3QSEQoJdGVuYW50X2lkGAEgASgJEi4KCnN0YXJ0X3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiwKCGVuZF90aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLkAQoVR2V0QnVpbGRTdGF0c1Jlc3BvbnNlEhQKDHRvdGFsX2J1aWxkcxgBIAEoBRIZChFzdWNjZXNzZnVsX2J1aWxkcxgCIAEoBRIVCg1mYWlsZWRfYnVpbGRzGAMgASgFEhkKEWF2Z19idWlsZF90aW1lX21zGAQgASgDEhsKE3RvdGFsX3N0b3JhZ2VfYnl0ZXMYBSABKAMSHQoVdG90YWxfY29tcHV0ZV9taW51dGVzGAYgASgDEiwKDXJlY2VudF9idWlsZHMYByADKAsyFS5idWlsZGVyZC52MS5CdWlsZEpvYiqVAgoKQnVpbGRTdGF0ZRIbChdCVUlMRF9TVEFURV9VTlNQRUNJRklFRBAAEhcKE0JVSUxEX1NUQVRFX1BFTkRJTkcQARIXChNCVUlMRF9TVEFURV9QVUxMSU5HEAISGgoWQlVJTERfU1RBVEVfRVhUUkFDVElORxADEhgKFEJVSUxEX1NUQVRFX0JVSUxESU5HEAQSGgoWQlVJTERfU1RBVEVfT1BUSU1JWklORxAFEhkKFUJVSUxEX1NUQVRFX0NPTVBMRVRFRBAGEhYKEkJVSUxEX1NUQVRFX0ZBSUxFRBAHEhkKFUJVSUxEX1NUQVRFX0NBTkNFTExFRBAIEhgKFEJVSUxEX1NUQVRFX0NMRUFOSU5HEAkqiwEKClRlbmFudFRpZXISGwoXVEVOQU5UX1RJRVJfVU5TUEVDSUZJRUQQABIUChBURU5BTlRfVElFUl9GUkVFEAESEwoPVEVOQU5UX1RJRVJfUFJPEAISGgoWVEVOQU5UX1RJRVJfRU5URVJQUklTRRADEhkKFVRFTkFOVF9USUVSX0RFRElDQVRFRBAEKnkKDEluaXRTdHJhdGVneRIdChlJTklUX1NUUkFURUdZX1VOU1BFQ0lGSUVEEAASFgoSSU5JVF9TVFJBVEVHWV9USU5JEAESGAoUSU5JVF9TVFJBVEVHWV9ESVJFQ1QQAhIYChRJTklUX1NUUkFURUdZX0NVU1RPTRADMtYECg5CdWlsZGVyU2VydmljZRJQCgtDcmVhdGVCdWlsZBIfLmJ1aWxkZXJkLnYxLkNyZWF0ZUJ1aWxkUmVxdWVzdBogLmJ1aWxkZXJkLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2USRwoIR2V0QnVpbGQSHC5idWlsZGVyZC52MS5HZXRCdWlsZFJlcXVlc3QaHS5idWlsZGVyZC52MS5HZXRCdWlsZFJlc3BvbnNlEk0KCkxpc3RCdWlsZHMSHi5idWlsZGVyZC52MS5MaXN0QnVpbGRzUmVxdWVzdBofLmJ1aWxkZXJkLnYxLkxpc3RCdWlsZHNSZXNwb25zZRJQCgtDYW5jZWxCdWlsZBIfLmJ1aWxkZXJkLnYxLkNhbmNlbEJ1aWxkUmVxdWVzdBogLmJ1aWxkZXJkLnYxLkNhbmNlbEJ1aWxkUmVzcG9uc2USUAoLRGVsZXRlQnVpbGQSHy5idWlsZGVyZC52MS5EZWxldGVCdWlsZFJlcXVlc3QaIC5idWlsZGVyZC52MS5EZWxldGVCdWlsZFJlc3BvbnNlEl4KD1N0cmVhbUJ1aWxkTG9ncxIjLmJ1aWxkZXJkLnYxLlN0cmVhbUJ1aWxkTG9nc1JlcXVlc3QaJC5idWlsZGVyZC52MS5TdHJlYW1CdWlsZExvZ3NSZXNwb25zZTABElYKDUdldEJ1aWxkU3RhdHMSIS5idWlsZGVyZC52MS5HZXRCdWlsZFN0YXRzUmVxdWVzdBoiLmJ1aWxkZXJkLnYxLkdldEJ1aWxkU3RhdHNSZXNwb25zZUI+WjxnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2J1aWxkZXJkL3YxO2J1aWxkZXJkdjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+export const file_builderd_v1_builder: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChlidWlsZGVyZC92MS9idWlsZGVyLnByb3RvEgtidWlsZGVyZC52MSK/AQoLQnVpbGRTb3VyY2USNgoMZG9ja2VyX2ltYWdlGAEgASgLMh4uYnVpbGRlcmQudjEuRG9ja2VySW1hZ2VTb3VyY2VIABI6Cg5naXRfcmVwb3NpdG9yeRgCIAEoCzIgLmJ1aWxkZXJkLnYxLkdpdFJlcG9zaXRvcnlTb3VyY2VIABItCgdhcmNoaXZlGAMgASgLMhouYnVpbGRlcmQudjEuQXJjaGl2ZVNvdXJjZUgAQg0KC3NvdXJjZV90eXBlImAKEURvY2tlckltYWdlU291cmNlEhEKCWltYWdlX3VyaRgBIAEoCRIlCgRhdXRoGAIgASgLMhcuYnVpbGRlcmQudjEuRG9ja2VyQXV0aBIRCglwdWxsX3RhZ3MYAyADKAkiUQoKRG9ja2VyQXV0aBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRINCgV0b2tlbhgDIAEoCRIQCghyZWdpc3RyeRgEIAEoCSJ1ChNHaXRSZXBvc2l0b3J5U291cmNlEhYKDnJlcG9zaXRvcnlfdXJsGAEgASgJEgsKA3JlZhgCIAEoCRIVCg1idWlsZF9jb250ZXh0GAMgASgJEiIKBGF1dGgYBCABKAsyFC5idWlsZGVyZC52MS5HaXRBdXRoIk0KB0dpdEF1dGgSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSDwoHc3NoX2tleRgDIAEoCRINCgV0b2tlbhgEIAEoCSJRCg1BcmNoaXZlU291cmNlEhMKC2FyY2hpdmVfdXJsGAEgASgJEhQKDGFyY2hpdmVfdHlwZRgCIAEoCRIVCg1idWlsZF9jb250ZXh0GAMgASgJIooBCgtCdWlsZFRhcmdldBI0Cg5taWNyb3ZtX3Jvb3RmcxgBIAEoCzIaLmJ1aWxkZXJkLnYxLk1pY3JvVk1Sb290ZnNIABI2Cg9jb250YWluZXJfaW1hZ2UYAiABKAsyGy5idWlsZGVyZC52MS5Db250YWluZXJJbWFnZUgAQg0KC3RhcmdldF90eXBlIsYBCg1NaWNyb1ZNUm9vdGZzEjAKDWluaXRfc3RyYXRlZ3kYASABKA4yGS5idWlsZGVyZC52MS5Jbml0U3RyYXRlZ3kSMgoOcnVudGltZV9jb25maWcYAiABKAsyGi5idWlsZGVyZC52MS5SdW50aW1lQ29uZmlnEjcKDG9wdGltaXphdGlvbhgDIAEoCzIhLmJ1aWxkZXJkLnYxLk9wdGltaXphdGlvblNldHRpbmdzEhYKDnByZXNlcnZlX3BhdGhzGAQgAygJIjQKDkNvbnRhaW5lckltYWdlEhIKCmJhc2VfaW1hZ2UYASABKAkSDgoGbGF5ZXJzGAIgAygJItYBCg1SdW50aW1lQ29uZmlnEg8KB2NvbW1hbmQYASADKAkSEgoKZW50cnlwb2ludBgCIAMoCRITCgt3b3JraW5nX2RpchgDIAEoCRJACgtlbnZpcm9ubWVudBgEIAMoCzIrLmJ1aWxkZXJkLnYxLlJ1bnRpbWVDb25maWcuRW52aXJvbm1lbnRFbnRyeRIVCg1leHBvc2VkX3BvcnRzGAUgAygJGjIKEEVudmlyb25tZW50RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKrAQoUT3B0aW1pemF0aW9uU2V0dGluZ3MSGwoTc3RyaXBfZGVidWdfc3ltYm9scxgBIAEoCBIZChFjb21wcmVzc19iaW5hcmllcxgCIAEoCBITCgtyZW1vdmVfZG9jcxgDIAEoCBIUCgxyZW1vdmVfY2FjaGUYBCABKAgSFgoOcHJlc2VydmVfcGF0aHMYBSADKAkSGAoQZXhjbHVkZV9wYXR0ZXJucxgGIAMoCSLsAQoNQnVpbGRTdHJhdGVneRI8Cg5kb2NrZXJfZXh0cmFjdBgBIAEoCzIiLmJ1aWxkZXJkLnYxLkRvY2tlckV4dHJhY3RTdHJhdGVneUgAEiwKBmdvX2FwaRgCIAEoCzIaLmJ1aWxkZXJkLnYxLkdvQXBpU3RyYXRlZ3lIABIvCgdzaW5hdHJhGAMgASgLMhwuYnVpbGRlcmQudjEuU2luYXRyYVN0cmF0ZWd5SAASLQoGbm9kZWpzGAQgASgLMhsuYnVpbGRlcmQudjEuTm9kZWpzU3RyYXRlZ3lIAEIPCg1zdHJhdGVneV90eXBlImYKFURvY2tlckV4dHJhY3RTdHJhdGVneRIXCg9wcmVzZXJ2ZV9sYXllcnMYASABKAgSGgoSZmxhdHRlbl9maWxlc3lzdGVtGAIgASgIEhgKEGV4Y2x1ZGVfcGF0dGVybnMYAyADKAkiYgoNR29BcGlTdHJhdGVneRISCgpnb192ZXJzaW9uGAEgASgJEhMKC2J1aWxkX2ZsYWdzGAIgAygJEhQKDG1haW5fcGFja2FnZRgDIAEoCRISCgplbmFibGVfY2dvGAQgASgIIsgBCg9TaW5hdHJhU3RyYXRlZ3kSFAoMcnVieV92ZXJzaW9uGAEgASgJEhQKDGdlbWZpbGVfcGF0aBgCIAEoCRITCgtyYWNrX3NlcnZlchgDIAEoCRJBCgtyYWNrX2NvbmZpZxgEIAMoCzIsLmJ1aWxkZXJkLnYxLlNpbmF0cmFTdHJhdGVneS5SYWNrQ29uZmlnRW50cnkaMQoPUmFja0NvbmZpZ0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEicAoOTm9kZWpzU3RyYXRlZ3kSFAoMbm9kZV92ZXJzaW9uGAEgASgJEhcKD3BhY2thZ2VfbWFuYWdlchgCIAEoCRIUCgxzdGFydF9zY3JpcHQYAyABKAkSGQoRZW5hYmxlX3Byb2R1Y3Rpb24YBCABKAgipAIKC0J1aWxkQ29uZmlnEigKBnNvdXJjZRgBIAEoCzIYLmJ1aWxkZXJkLnYxLkJ1aWxkU291cmNlEigKBnRhcmdldBgCIAEoCzIYLmJ1aWxkZXJkLnYxLkJ1aWxkVGFyZ2V0EiwKCHN0cmF0ZWd5GAMgASgLMhouYnVpbGRlcmQudjEuQnVpbGRTdHJhdGVneRISCgpidWlsZF9uYW1lGAQgASgJEjQKBmxhYmVscxgFIAMoCzIkLmJ1aWxkZXJkLnYxLkJ1aWxkQ29uZmlnLkxhYmVsc0VudHJ5EhoKEnN1Z2dlc3RlZF9hc3NldF9pZBgGIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIo0BCg5CdWlsZElzb2xhdGlvbhISCgpzYW5kYm94X2lkGAEgASgJEhkKEW5ldHdvcmtfbmFtZXNwYWNlGAIgASgJEhwKFGZpbGVzeXN0ZW1fbmFtZXNwYWNlGAMgASgJEhkKEXNlY3VyaXR5X2NvbnRleHRzGAQgAygJEhMKC2Nncm91cF9wYXRoGAUgASgJIoIDCg1JbWFnZU1ldGFkYXRhEhYKDm9yaWdpbmFsX2ltYWdlGAEgASgJEhQKDGltYWdlX2RpZ2VzdBgCIAEoCRIOCgZsYXllcnMYAyADKAkSNgoGbGFiZWxzGAQgAygLMiYuYnVpbGRlcmQudjEuSW1hZ2VNZXRhZGF0YS5MYWJlbHNFbnRyeRIPCgdjb21tYW5kGAUgAygJEhIKCmVudHJ5cG9pbnQYBiADKAkSEwoLd29ya2luZ19kaXIYByABKAkSMAoDZW52GAggAygLMiMuYnVpbGRlcmQudjEuSW1hZ2VNZXRhZGF0YS5FbnZFbnRyeRIVCg1leHBvc2VkX3BvcnRzGAkgAygJEgwKBHVzZXIYCiABKAkSDwoHdm9sdW1lcxgLIAMoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiuQIKDEJ1aWxkTWV0cmljcxIYChBwdWxsX2R1cmF0aW9uX21zGAEgASgDEhsKE2V4dHJhY3RfZHVyYXRpb25fbXMYAiABKAMSGQoRYnVpbGRfZHVyYXRpb25fbXMYAyABKAMSHAoUb3B0aW1pemVfZHVyYXRpb25fbXMYBCABKAMSGQoRdG90YWxfZHVyYXRpb25fbXMYBSABKAMSGwoTb3JpZ2luYWxfc2l6ZV9ieXRlcxgGIAEoAxIZChFyb290ZnNfc2l6ZV9ieXRlcxgHIAEoAxIZChFjb21wcmVzc2lvbl9yYXRpbxgIIAEoAxIZChFtZW1vcnlfcGVha19ieXRlcxgJIAEoAxIYChBkaXNrX3VzYWdlX2J5dGVzGAogASgDEhYKDmNwdV9jb3Jlc191c2VkGAsgASgFIrQECghCdWlsZEpvYhIQCghidWlsZF9pZBgBIAEoCRIoCgZjb25maWcYAiABKAsyGC5idWlsZGVyZC52MS5CdWlsZENvbmZpZxImCgVzdGF0ZRgDIAEoDjIXLmJ1aWxkZXJkLnYxLkJ1aWxkU3RhdGUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtyb290ZnNfcGF0aBgHIAEoCRIZChFyb290ZnNfc2l6ZV9ieXRlcxgIIAEoAxIXCg9yb290ZnNfY2hlY2tzdW0YCSABKAkSMgoOaW1hZ2VfbWV0YWRhdGEYCiABKAsyGi5idWlsZGVyZC52MS5JbWFnZU1ldGFkYXRhEioKB21ldHJpY3MYCyABKAsyGS5idWlsZGVyZC52MS5CdWlsZE1ldHJpY3MSLgoJaXNvbGF0aW9uGAwgASgLMhsuYnVpbGRlcmQudjEuQnVpbGRJc29sYXRpb24SFQoNZXJyb3JfbWVzc2FnZRgNIAEoCRISCgpidWlsZF9sb2dzGA4gAygJEhgKEHByb2dyZXNzX3BlcmNlbnQYDyABKAUSFAoMY3VycmVudF9zdGVwGBAgASgJIvIBChdTdHJlYW1CdWlsZExvZ3NSZXNwb25zZRItCgl0aW1lc3RhbXAYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBWxldmVsGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSEQoJY29tcG9uZW50GAQgASgJEkQKCG1ldGFkYXRhGAUgAygLMjIuYnVpbGRlcmQudjEuU3RyZWFtQnVpbGRMb2dzUmVzcG9uc2UuTWV0YWRhdGFFbnRyeRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPgoSQ3JlYXRlQnVpbGRSZXF1ZXN0EigKBmNvbmZpZxgBIAEoCzIYLmJ1aWxkZXJkLnYxLkJ1aWxkQ29uZmlnIpQBChNDcmVhdGVCdWlsZFJlc3BvbnNlEhAKCGJ1aWxkX2lkGAEgASgJEiYKBXN0YXRlGAIgASgOMhcuYnVpbGRlcmQudjEuQnVpbGRTdGF0ZRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtyb290ZnNfcGF0aBgEIAEoCSI2Cg9HZXRCdWlsZFJlcXVlc3QSEAoIYnVpbGRfaWQYASABKAkSEQoJdGVuYW50X2lkGAIgASgJIjgKEEdldEJ1aWxkUmVzcG9uc2USJAoFYnVpbGQYASABKAsyFS5idWlsZGVyZC52MS5CdWlsZEpvYiJpChFMaXN0QnVpbGRzUmVxdWVzdBItCgxzdGF0ZV9maWx0ZXIYASADKA4yFy5idWlsZGVyZC52MS5CdWlsZFN0YXRlEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJImkKEkxpc3RCdWlsZHNSZXNwb25zZRIlCgZidWlsZHMYASADKAsyFS5idWlsZGVyZC52MS5CdWlsZEpvYhIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiJgoSQ2FuY2VsQnVpbGRSZXF1ZXN0EhAKCGJ1aWxkX2lkGAEgASgJIk4KE0NhbmNlbEJ1aWxkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCBImCgVzdGF0ZRgCIAEoDjIXLmJ1aWxkZXJkLnYxLkJ1aWxkU3RhdGUiNQoSRGVsZXRlQnVpbGRSZXF1ZXN0EhAKCGJ1aWxkX2lkGAEgASgJEg0KBWZvcmNlGAIgASgIIiYKE0RlbGV0ZUJ1aWxkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCI6ChZTdHJlYW1CdWlsZExvZ3NSZXF1ZXN0EhAKCGJ1aWxkX2lkGAEgASgJEg4KBmZvbGxvdxgCIAEoCCKHAQoUR2V0QnVpbGRTdGF0c1JlcXVlc3QSEQoJdGVuYW50X2lkGAEgASgJEi4KCnN0YXJ0X3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiwKCGVuZF90aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLkAQoVR2V0QnVpbGRTdGF0c1Jlc3BvbnNlEhQKDHRvdGFsX2J1aWxkcxgBIAEoBRIZChFzdWNjZXNzZnVsX2J1aWxkcxgCIAEoBRIVCg1mYWlsZWRfYnVpbGRzGAMgASgFEhkKEWF2Z19idWlsZF90aW1lX21zGAQgASgDEhsKE3RvdGFsX3N0b3JhZ2VfYnl0ZXMYBSABKAMSHQoVdG90YWxfY29tcHV0ZV9taW51dGVzGAYgASgDEiwKDXJlY2VudF9idWlsZHMYByADKAsyFS5idWlsZGVyZC52MS5CdWlsZEpvYiqVAgoKQnVpbGRTdGF0ZRIbChdCVUlMRF9TVEFURV9VTlNQRUNJRklFRBAAEhcKE0JVSUxEX1NUQVRFX1BFTkRJTkcQARIXChNCVUlMRF9TVEFURV9QVUxMSU5HEAISGgoWQlVJTERfU1RBVEVfRVhUUkFDVElORxADEhgKFEJVSUxEX1NUQVRFX0JVSUxESU5HEAQSGgoWQlVJTERfU1RBVEVfT1BUSU1JWklORxAFEhkKFUJVSUxEX1NUQVRFX0NPTVBMRVRFRBAGEhYKEkJVSUxEX1NUQVRFX0ZBSUxFRBAHEhkKFUJVSUxEX1NUQVRFX0NBTkNFTExFRBAIEhgKFEJVSUxEX1NUQVRFX0NMRUFOSU5HEAkqiwEKClRlbmFudFRpZXISGwoXVEVOQU5UX1RJRVJfVU5TUEVDSUZJRUQQABIUChBURU5BTlRfVElFUl9GUkVFEAESEwoPVEVOQU5UX1RJRVJfUFJPEAISGgoWVEVOQU5UX1RJRVJfRU5URVJQUklTRRADEhkKFVRFTkFOVF9USUVSX0RFRElDQVRFRBAEKnkKDEluaXRTdHJhdGVneRIdChlJTklUX1NUUkFURUdZX1VOU1BFQ0lGSUVEEAASFgoSSU5JVF9TVFJBVEVHWV9USU5JEAESGAoUSU5JVF9TVFJBVEVHWV9ESVJFQ1QQAhIYChRJTklUX1NUUkFURUdZX0NVU1RPTRADMtYECg5CdWlsZGVyU2VydmljZRJQCgtDcmVhdGVCdWlsZBIfLmJ1aWxkZXJkLnYxLkNyZWF0ZUJ1aWxkUmVxdWVzdBogLmJ1aWxkZXJkLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2USRwoIR2V0QnVpbGQSHC5idWlsZGVyZC52MS5HZXRCdWlsZFJlcXVlc3QaHS5idWlsZGVyZC52MS5HZXRCdWlsZFJlc3BvbnNlEk0KCkxpc3RCdWlsZHMSHi5idWlsZGVyZC52MS5MaXN0QnVpbGRzUmVxdWVzdBofLmJ1aWxkZXJkLnYxLkxpc3RCdWlsZHNSZXNwb25zZRJQCgtDYW5jZWxCdWlsZBIfLmJ1aWxkZXJkLnYxLkNhbmNlbEJ1aWxkUmVxdWVzdBogLmJ1aWxkZXJkLnYxLkNhbmNlbEJ1aWxkUmVzcG9uc2USUAoLRGVsZXRlQnVpbGQSHy5idWlsZGVyZC52MS5EZWxldGVCdWlsZFJlcXVlc3QaIC5idWlsZGVyZC52MS5EZWxldGVCdWlsZFJlc3BvbnNlEl4KD1N0cmVhbUJ1aWxkTG9ncxIjLmJ1aWxkZXJkLnYxLlN0cmVhbUJ1aWxkTG9nc1JlcXVlc3QaJC5idWlsZGVyZC52MS5TdHJlYW1CdWlsZExvZ3NSZXNwb25zZTABElYKDUdldEJ1aWxkU3RhdHMSIS5idWlsZGVyZC52MS5HZXRCdWlsZFN0YXRzUmVxdWVzdBoiLmJ1aWxkZXJkLnYxLkdldEJ1aWxkU3RhdHNSZXNwb25zZUI+WjxnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2J1aWxkZXJkL3YxO2J1aWxkZXJkdjFiBnByb3RvMw",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * Build source types - extensible for future build types
@@ -23,34 +27,39 @@ export type BuildSource = Message<"builderd.v1.BuildSource"> & {
   /**
    * @generated from oneof builderd.v1.BuildSource.source_type
    */
-  sourceType: {
-    /**
-     * @generated from field: builderd.v1.DockerImageSource docker_image = 1;
-     */
-    value: DockerImageSource;
-    case: "dockerImage";
-  } | {
-    /**
-     * @generated from field: builderd.v1.GitRepositorySource git_repository = 2;
-     */
-    value: GitRepositorySource;
-    case: "gitRepository";
-  } | {
-    /**
-     * Future: nix_flake = 4, buildpack = 5, etc.
-     *
-     * @generated from field: builderd.v1.ArchiveSource archive = 3;
-     */
-    value: ArchiveSource;
-    case: "archive";
-  } | { case: undefined; value?: undefined };
+  sourceType:
+    | {
+        /**
+         * @generated from field: builderd.v1.DockerImageSource docker_image = 1;
+         */
+        value: DockerImageSource;
+        case: "dockerImage";
+      }
+    | {
+        /**
+         * @generated from field: builderd.v1.GitRepositorySource git_repository = 2;
+         */
+        value: GitRepositorySource;
+        case: "gitRepository";
+      }
+    | {
+        /**
+         * Future: nix_flake = 4, buildpack = 5, etc.
+         *
+         * @generated from field: builderd.v1.ArchiveSource archive = 3;
+         */
+        value: ArchiveSource;
+        case: "archive";
+      }
+    | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message builderd.v1.BuildSource.
  * Use `create(BuildSourceSchema)` to create a new message.
  */
-export const BuildSourceSchema: GenMessage<BuildSource> = /*@__PURE__*/
+export const BuildSourceSchema: GenMessage<BuildSource> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 0);
 
 /**
@@ -85,7 +94,8 @@ export type DockerImageSource = Message<"builderd.v1.DockerImageSource"> & {
  * Describes the message builderd.v1.DockerImageSource.
  * Use `create(DockerImageSourceSchema)` to create a new message.
  */
-export const DockerImageSourceSchema: GenMessage<DockerImageSource> = /*@__PURE__*/
+export const DockerImageSourceSchema: GenMessage<DockerImageSource> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 1);
 
 /**
@@ -117,7 +127,8 @@ export type DockerAuth = Message<"builderd.v1.DockerAuth"> & {
  * Describes the message builderd.v1.DockerAuth.
  * Use `create(DockerAuthSchema)` to create a new message.
  */
-export const DockerAuthSchema: GenMessage<DockerAuth> = /*@__PURE__*/
+export const DockerAuthSchema: GenMessage<DockerAuth> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 2);
 
 /**
@@ -157,7 +168,8 @@ export type GitRepositorySource = Message<"builderd.v1.GitRepositorySource"> & {
  * Describes the message builderd.v1.GitRepositorySource.
  * Use `create(GitRepositorySourceSchema)` to create a new message.
  */
-export const GitRepositorySourceSchema: GenMessage<GitRepositorySource> = /*@__PURE__*/
+export const GitRepositorySourceSchema: GenMessage<GitRepositorySource> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 3);
 
 /**
@@ -189,7 +201,8 @@ export type GitAuth = Message<"builderd.v1.GitAuth"> & {
  * Describes the message builderd.v1.GitAuth.
  * Use `create(GitAuthSchema)` to create a new message.
  */
-export const GitAuthSchema: GenMessage<GitAuth> = /*@__PURE__*/
+export const GitAuthSchema: GenMessage<GitAuth> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 4);
 
 /**
@@ -224,7 +237,8 @@ export type ArchiveSource = Message<"builderd.v1.ArchiveSource"> & {
  * Describes the message builderd.v1.ArchiveSource.
  * Use `create(ArchiveSourceSchema)` to create a new message.
  */
-export const ArchiveSourceSchema: GenMessage<ArchiveSource> = /*@__PURE__*/
+export const ArchiveSourceSchema: GenMessage<ArchiveSource> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 5);
 
 /**
@@ -236,28 +250,32 @@ export type BuildTarget = Message<"builderd.v1.BuildTarget"> & {
   /**
    * @generated from oneof builderd.v1.BuildTarget.target_type
    */
-  targetType: {
-    /**
-     * @generated from field: builderd.v1.MicroVMRootfs microvm_rootfs = 1;
-     */
-    value: MicroVMRootfs;
-    case: "microvmRootfs";
-  } | {
-    /**
-     * Future: wasm_module = 3, lambda_layer = 4, etc.
-     *
-     * @generated from field: builderd.v1.ContainerImage container_image = 2;
-     */
-    value: ContainerImage;
-    case: "containerImage";
-  } | { case: undefined; value?: undefined };
+  targetType:
+    | {
+        /**
+         * @generated from field: builderd.v1.MicroVMRootfs microvm_rootfs = 1;
+         */
+        value: MicroVMRootfs;
+        case: "microvmRootfs";
+      }
+    | {
+        /**
+         * Future: wasm_module = 3, lambda_layer = 4, etc.
+         *
+         * @generated from field: builderd.v1.ContainerImage container_image = 2;
+         */
+        value: ContainerImage;
+        case: "containerImage";
+      }
+    | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message builderd.v1.BuildTarget.
  * Use `create(BuildTargetSchema)` to create a new message.
  */
-export const BuildTargetSchema: GenMessage<BuildTarget> = /*@__PURE__*/
+export const BuildTargetSchema: GenMessage<BuildTarget> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 6);
 
 /**
@@ -291,7 +309,8 @@ export type MicroVMRootfs = Message<"builderd.v1.MicroVMRootfs"> & {
  * Describes the message builderd.v1.MicroVMRootfs.
  * Use `create(MicroVMRootfsSchema)` to create a new message.
  */
-export const MicroVMRootfsSchema: GenMessage<MicroVMRootfs> = /*@__PURE__*/
+export const MicroVMRootfsSchema: GenMessage<MicroVMRootfs> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 7);
 
 /**
@@ -315,7 +334,8 @@ export type ContainerImage = Message<"builderd.v1.ContainerImage"> & {
  * Describes the message builderd.v1.ContainerImage.
  * Use `create(ContainerImageSchema)` to create a new message.
  */
-export const ContainerImageSchema: GenMessage<ContainerImage> = /*@__PURE__*/
+export const ContainerImageSchema: GenMessage<ContainerImage> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 8);
 
 /**
@@ -362,7 +382,8 @@ export type RuntimeConfig = Message<"builderd.v1.RuntimeConfig"> & {
  * Describes the message builderd.v1.RuntimeConfig.
  * Use `create(RuntimeConfigSchema)` to create a new message.
  */
-export const RuntimeConfigSchema: GenMessage<RuntimeConfig> = /*@__PURE__*/
+export const RuntimeConfigSchema: GenMessage<RuntimeConfig> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 9);
 
 /**
@@ -416,7 +437,8 @@ export type OptimizationSettings = Message<"builderd.v1.OptimizationSettings"> &
  * Describes the message builderd.v1.OptimizationSettings.
  * Use `create(OptimizationSettingsSchema)` to create a new message.
  */
-export const OptimizationSettingsSchema: GenMessage<OptimizationSettings> = /*@__PURE__*/
+export const OptimizationSettingsSchema: GenMessage<OptimizationSettings> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 10);
 
 /**
@@ -428,40 +450,46 @@ export type BuildStrategy = Message<"builderd.v1.BuildStrategy"> & {
   /**
    * @generated from oneof builderd.v1.BuildStrategy.strategy_type
    */
-  strategyType: {
-    /**
-     * @generated from field: builderd.v1.DockerExtractStrategy docker_extract = 1;
-     */
-    value: DockerExtractStrategy;
-    case: "dockerExtract";
-  } | {
-    /**
-     * @generated from field: builderd.v1.GoApiStrategy go_api = 2;
-     */
-    value: GoApiStrategy;
-    case: "goApi";
-  } | {
-    /**
-     * @generated from field: builderd.v1.SinatraStrategy sinatra = 3;
-     */
-    value: SinatraStrategy;
-    case: "sinatra";
-  } | {
-    /**
-     * Future: python_wsgi = 5, rust_binary = 6, etc.
-     *
-     * @generated from field: builderd.v1.NodejsStrategy nodejs = 4;
-     */
-    value: NodejsStrategy;
-    case: "nodejs";
-  } | { case: undefined; value?: undefined };
+  strategyType:
+    | {
+        /**
+         * @generated from field: builderd.v1.DockerExtractStrategy docker_extract = 1;
+         */
+        value: DockerExtractStrategy;
+        case: "dockerExtract";
+      }
+    | {
+        /**
+         * @generated from field: builderd.v1.GoApiStrategy go_api = 2;
+         */
+        value: GoApiStrategy;
+        case: "goApi";
+      }
+    | {
+        /**
+         * @generated from field: builderd.v1.SinatraStrategy sinatra = 3;
+         */
+        value: SinatraStrategy;
+        case: "sinatra";
+      }
+    | {
+        /**
+         * Future: python_wsgi = 5, rust_binary = 6, etc.
+         *
+         * @generated from field: builderd.v1.NodejsStrategy nodejs = 4;
+         */
+        value: NodejsStrategy;
+        case: "nodejs";
+      }
+    | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message builderd.v1.BuildStrategy.
  * Use `create(BuildStrategySchema)` to create a new message.
  */
-export const BuildStrategySchema: GenMessage<BuildStrategy> = /*@__PURE__*/
+export const BuildStrategySchema: GenMessage<BuildStrategy> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 11);
 
 /**
@@ -496,7 +524,8 @@ export type DockerExtractStrategy = Message<"builderd.v1.DockerExtractStrategy">
  * Describes the message builderd.v1.DockerExtractStrategy.
  * Use `create(DockerExtractStrategySchema)` to create a new message.
  */
-export const DockerExtractStrategySchema: GenMessage<DockerExtractStrategy> = /*@__PURE__*/
+export const DockerExtractStrategySchema: GenMessage<DockerExtractStrategy> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 12);
 
 /**
@@ -536,7 +565,8 @@ export type GoApiStrategy = Message<"builderd.v1.GoApiStrategy"> & {
  * Describes the message builderd.v1.GoApiStrategy.
  * Use `create(GoApiStrategySchema)` to create a new message.
  */
-export const GoApiStrategySchema: GenMessage<GoApiStrategy> = /*@__PURE__*/
+export const GoApiStrategySchema: GenMessage<GoApiStrategy> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 13);
 
 /**
@@ -578,7 +608,8 @@ export type SinatraStrategy = Message<"builderd.v1.SinatraStrategy"> & {
  * Describes the message builderd.v1.SinatraStrategy.
  * Use `create(SinatraStrategySchema)` to create a new message.
  */
-export const SinatraStrategySchema: GenMessage<SinatraStrategy> = /*@__PURE__*/
+export const SinatraStrategySchema: GenMessage<SinatraStrategy> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 14);
 
 /**
@@ -620,7 +651,8 @@ export type NodejsStrategy = Message<"builderd.v1.NodejsStrategy"> & {
  * Describes the message builderd.v1.NodejsStrategy.
  * Use `create(NodejsStrategySchema)` to create a new message.
  */
-export const NodejsStrategySchema: GenMessage<NodejsStrategy> = /*@__PURE__*/
+export const NodejsStrategySchema: GenMessage<NodejsStrategy> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 15);
 
 /**
@@ -681,7 +713,8 @@ export type BuildConfig = Message<"builderd.v1.BuildConfig"> & {
  * Describes the message builderd.v1.BuildConfig.
  * Use `create(BuildConfigSchema)` to create a new message.
  */
-export const BuildConfigSchema: GenMessage<BuildConfig> = /*@__PURE__*/
+export const BuildConfigSchema: GenMessage<BuildConfig> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 16);
 
 /**
@@ -730,7 +763,8 @@ export type BuildIsolation = Message<"builderd.v1.BuildIsolation"> & {
  * Describes the message builderd.v1.BuildIsolation.
  * Use `create(BuildIsolationSchema)` to create a new message.
  */
-export const BuildIsolationSchema: GenMessage<BuildIsolation> = /*@__PURE__*/
+export const BuildIsolationSchema: GenMessage<BuildIsolation> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 17);
 
 /**
@@ -821,7 +855,8 @@ export type ImageMetadata = Message<"builderd.v1.ImageMetadata"> & {
  * Describes the message builderd.v1.ImageMetadata.
  * Use `create(ImageMetadataSchema)` to create a new message.
  */
-export const ImageMetadataSchema: GenMessage<ImageMetadata> = /*@__PURE__*/
+export const ImageMetadataSchema: GenMessage<ImageMetadata> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 18);
 
 /**
@@ -912,7 +947,8 @@ export type BuildMetrics = Message<"builderd.v1.BuildMetrics"> & {
  * Describes the message builderd.v1.BuildMetrics.
  * Use `create(BuildMetricsSchema)` to create a new message.
  */
-export const BuildMetricsSchema: GenMessage<BuildMetrics> = /*@__PURE__*/
+export const BuildMetricsSchema: GenMessage<BuildMetrics> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 19);
 
 /**
@@ -1032,7 +1068,8 @@ export type BuildJob = Message<"builderd.v1.BuildJob"> & {
  * Describes the message builderd.v1.BuildJob.
  * Use `create(BuildJobSchema)` to create a new message.
  */
-export const BuildJobSchema: GenMessage<BuildJob> = /*@__PURE__*/
+export const BuildJobSchema: GenMessage<BuildJob> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 20);
 
 /**
@@ -1075,7 +1112,8 @@ export type StreamBuildLogsResponse = Message<"builderd.v1.StreamBuildLogsRespon
  * Describes the message builderd.v1.StreamBuildLogsResponse.
  * Use `create(StreamBuildLogsResponseSchema)` to create a new message.
  */
-export const StreamBuildLogsResponseSchema: GenMessage<StreamBuildLogsResponse> = /*@__PURE__*/
+export const StreamBuildLogsResponseSchema: GenMessage<StreamBuildLogsResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 21);
 
 /**
@@ -1094,7 +1132,8 @@ export type CreateBuildRequest = Message<"builderd.v1.CreateBuildRequest"> & {
  * Describes the message builderd.v1.CreateBuildRequest.
  * Use `create(CreateBuildRequestSchema)` to create a new message.
  */
-export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> = /*@__PURE__*/
+export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 22);
 
 /**
@@ -1128,7 +1167,8 @@ export type CreateBuildResponse = Message<"builderd.v1.CreateBuildResponse"> & {
  * Describes the message builderd.v1.CreateBuildResponse.
  * Use `create(CreateBuildResponseSchema)` to create a new message.
  */
-export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> = /*@__PURE__*/
+export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 23);
 
 /**
@@ -1152,7 +1192,8 @@ export type GetBuildRequest = Message<"builderd.v1.GetBuildRequest"> & {
  * Describes the message builderd.v1.GetBuildRequest.
  * Use `create(GetBuildRequestSchema)` to create a new message.
  */
-export const GetBuildRequestSchema: GenMessage<GetBuildRequest> = /*@__PURE__*/
+export const GetBuildRequestSchema: GenMessage<GetBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 24);
 
 /**
@@ -1169,7 +1210,8 @@ export type GetBuildResponse = Message<"builderd.v1.GetBuildResponse"> & {
  * Describes the message builderd.v1.GetBuildResponse.
  * Use `create(GetBuildResponseSchema)` to create a new message.
  */
-export const GetBuildResponseSchema: GenMessage<GetBuildResponse> = /*@__PURE__*/
+export const GetBuildResponseSchema: GenMessage<GetBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 25);
 
 /**
@@ -1196,7 +1238,8 @@ export type ListBuildsRequest = Message<"builderd.v1.ListBuildsRequest"> & {
  * Describes the message builderd.v1.ListBuildsRequest.
  * Use `create(ListBuildsRequestSchema)` to create a new message.
  */
-export const ListBuildsRequestSchema: GenMessage<ListBuildsRequest> = /*@__PURE__*/
+export const ListBuildsRequestSchema: GenMessage<ListBuildsRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 26);
 
 /**
@@ -1223,7 +1266,8 @@ export type ListBuildsResponse = Message<"builderd.v1.ListBuildsResponse"> & {
  * Describes the message builderd.v1.ListBuildsResponse.
  * Use `create(ListBuildsResponseSchema)` to create a new message.
  */
-export const ListBuildsResponseSchema: GenMessage<ListBuildsResponse> = /*@__PURE__*/
+export const ListBuildsResponseSchema: GenMessage<ListBuildsResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 27);
 
 /**
@@ -1240,7 +1284,8 @@ export type CancelBuildRequest = Message<"builderd.v1.CancelBuildRequest"> & {
  * Describes the message builderd.v1.CancelBuildRequest.
  * Use `create(CancelBuildRequestSchema)` to create a new message.
  */
-export const CancelBuildRequestSchema: GenMessage<CancelBuildRequest> = /*@__PURE__*/
+export const CancelBuildRequestSchema: GenMessage<CancelBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 28);
 
 /**
@@ -1262,7 +1307,8 @@ export type CancelBuildResponse = Message<"builderd.v1.CancelBuildResponse"> & {
  * Describes the message builderd.v1.CancelBuildResponse.
  * Use `create(CancelBuildResponseSchema)` to create a new message.
  */
-export const CancelBuildResponseSchema: GenMessage<CancelBuildResponse> = /*@__PURE__*/
+export const CancelBuildResponseSchema: GenMessage<CancelBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 29);
 
 /**
@@ -1286,7 +1332,8 @@ export type DeleteBuildRequest = Message<"builderd.v1.DeleteBuildRequest"> & {
  * Describes the message builderd.v1.DeleteBuildRequest.
  * Use `create(DeleteBuildRequestSchema)` to create a new message.
  */
-export const DeleteBuildRequestSchema: GenMessage<DeleteBuildRequest> = /*@__PURE__*/
+export const DeleteBuildRequestSchema: GenMessage<DeleteBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 30);
 
 /**
@@ -1303,7 +1350,8 @@ export type DeleteBuildResponse = Message<"builderd.v1.DeleteBuildResponse"> & {
  * Describes the message builderd.v1.DeleteBuildResponse.
  * Use `create(DeleteBuildResponseSchema)` to create a new message.
  */
-export const DeleteBuildResponseSchema: GenMessage<DeleteBuildResponse> = /*@__PURE__*/
+export const DeleteBuildResponseSchema: GenMessage<DeleteBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 31);
 
 /**
@@ -1327,7 +1375,8 @@ export type StreamBuildLogsRequest = Message<"builderd.v1.StreamBuildLogsRequest
  * Describes the message builderd.v1.StreamBuildLogsRequest.
  * Use `create(StreamBuildLogsRequestSchema)` to create a new message.
  */
-export const StreamBuildLogsRequestSchema: GenMessage<StreamBuildLogsRequest> = /*@__PURE__*/
+export const StreamBuildLogsRequestSchema: GenMessage<StreamBuildLogsRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 32);
 
 /**
@@ -1354,7 +1403,8 @@ export type GetBuildStatsRequest = Message<"builderd.v1.GetBuildStatsRequest"> &
  * Describes the message builderd.v1.GetBuildStatsRequest.
  * Use `create(GetBuildStatsRequestSchema)` to create a new message.
  */
-export const GetBuildStatsRequestSchema: GenMessage<GetBuildStatsRequest> = /*@__PURE__*/
+export const GetBuildStatsRequestSchema: GenMessage<GetBuildStatsRequest> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 33);
 
 /**
@@ -1401,7 +1451,8 @@ export type GetBuildStatsResponse = Message<"builderd.v1.GetBuildStatsResponse">
  * Describes the message builderd.v1.GetBuildStatsResponse.
  * Use `create(GetBuildStatsResponseSchema)` to create a new message.
  */
-export const GetBuildStatsResponseSchema: GenMessage<GetBuildStatsResponse> = /*@__PURE__*/
+export const GetBuildStatsResponseSchema: GenMessage<GetBuildStatsResponse> =
+  /*@__PURE__*/
   messageDesc(file_builderd_v1_builder, 34);
 
 /**
@@ -1482,7 +1533,8 @@ export enum BuildState {
 /**
  * Describes the enum builderd.v1.BuildState.
  */
-export const BuildStateSchema: GenEnum<BuildState> = /*@__PURE__*/
+export const BuildStateSchema: GenEnum<BuildState> =
+  /*@__PURE__*/
   enumDesc(file_builderd_v1_builder, 0);
 
 /**
@@ -1528,7 +1580,8 @@ export enum TenantTier {
 /**
  * Describes the enum builderd.v1.TenantTier.
  */
-export const TenantTierSchema: GenEnum<TenantTier> = /*@__PURE__*/
+export const TenantTierSchema: GenEnum<TenantTier> =
+  /*@__PURE__*/
   enumDesc(file_builderd_v1_builder, 1);
 
 /**
@@ -1567,7 +1620,8 @@ export enum InitStrategy {
 /**
  * Describes the enum builderd.v1.InitStrategy.
  */
-export const InitStrategySchema: GenEnum<InitStrategy> = /*@__PURE__*/
+export const InitStrategySchema: GenEnum<InitStrategy> =
+  /*@__PURE__*/
   enumDesc(file_builderd_v1_builder, 2);
 
 /**
@@ -1585,7 +1639,7 @@ export const BuilderService: GenService<{
     methodKind: "unary";
     input: typeof CreateBuildRequestSchema;
     output: typeof CreateBuildResponseSchema;
-  },
+  };
   /**
    * Get build status and progress
    *
@@ -1595,7 +1649,7 @@ export const BuilderService: GenService<{
     methodKind: "unary";
     input: typeof GetBuildRequestSchema;
     output: typeof GetBuildResponseSchema;
-  },
+  };
   /**
    * List builds with filtering (tenant-scoped)
    *
@@ -1605,7 +1659,7 @@ export const BuilderService: GenService<{
     methodKind: "unary";
     input: typeof ListBuildsRequestSchema;
     output: typeof ListBuildsResponseSchema;
-  },
+  };
   /**
    * Cancel a running build
    *
@@ -1615,7 +1669,7 @@ export const BuilderService: GenService<{
     methodKind: "unary";
     input: typeof CancelBuildRequestSchema;
     output: typeof CancelBuildResponseSchema;
-  },
+  };
   /**
    * Delete a build and its artifacts
    *
@@ -1625,7 +1679,7 @@ export const BuilderService: GenService<{
     methodKind: "unary";
     input: typeof DeleteBuildRequestSchema;
     output: typeof DeleteBuildResponseSchema;
-  },
+  };
   /**
    * Stream build logs in real-time
    *
@@ -1635,7 +1689,7 @@ export const BuilderService: GenService<{
     methodKind: "server_streaming";
     input: typeof StreamBuildLogsRequestSchema;
     output: typeof StreamBuildLogsResponseSchema;
-  },
+  };
   /**
    * Get build statistics
    *
@@ -1645,7 +1699,5 @@ export const BuilderService: GenService<{
     methodKind: "unary";
     input: typeof GetBuildStatsRequestSchema;
     output: typeof GetBuildStatsResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_builderd_v1_builder, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_builderd_v1_builder, 0);

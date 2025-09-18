@@ -2,17 +2,21 @@
 // @generated from file metald/v1/deployment.proto (package metald.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { VmState } from "./vm_pb";
 import { file_metald_v1_vm } from "./vm_pb";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metald/v1/deployment.proto.
  */
-export const file_metald_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChptZXRhbGQvdjEvZGVwbG95bWVudC5wcm90bxIJbWV0YWxkLnYxInEKEURlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSDQoFaW1hZ2UYAiABKAkSEAoIdm1fY291bnQYAyABKA0SCwoDY3B1GAQgASgNEhcKD21lbW9yeV9zaXplX21pYhgFIAEoBCJLChdDcmVhdGVEZXBsb3ltZW50UmVxdWVzdBIwCgpkZXBsb3ltZW50GAEgASgLMhwubWV0YWxkLnYxLkRlcGxveW1lbnRSZXF1ZXN0IioKGENyZWF0ZURlcGxveW1lbnRSZXNwb25zZRIOCgZ2bV9pZHMYASADKAkiSwoXVXBkYXRlRGVwbG95bWVudFJlcXVlc3QSMAoKZGVwbG95bWVudBgBIAEoCzIcLm1ldGFsZC52MS5EZXBsb3ltZW50UmVxdWVzdCIqChhVcGRhdGVEZXBsb3ltZW50UmVzcG9uc2USDgoGdm1faWRzGAEgAygJIjAKF0RlbGV0ZURlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiGgoYRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkisQEKFUdldERlcGxveW1lbnRSZXNwb25zZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEjAKA3ZtcxgCIAMoCzIjLm1ldGFsZC52MS5HZXREZXBsb3ltZW50UmVzcG9uc2UuVm0aTwoCVm0SCgoCaWQYASABKAkSDAoEaG9zdBgCIAEoCRIhCgVzdGF0ZRgDIAEoDjISLm1ldGFsZC52MS5WbVN0YXRlEgwKBHBvcnQYBCABKA1COlo4Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9tZXRhbGQvdjE7bWV0YWxkdjFiBnByb3RvMw", [file_metald_v1_vm]);
+export const file_metald_v1_deployment: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChptZXRhbGQvdjEvZGVwbG95bWVudC5wcm90bxIJbWV0YWxkLnYxInEKEURlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSDQoFaW1hZ2UYAiABKAkSEAoIdm1fY291bnQYAyABKA0SCwoDY3B1GAQgASgNEhcKD21lbW9yeV9zaXplX21pYhgFIAEoBCJLChdDcmVhdGVEZXBsb3ltZW50UmVxdWVzdBIwCgpkZXBsb3ltZW50GAEgASgLMhwubWV0YWxkLnYxLkRlcGxveW1lbnRSZXF1ZXN0IioKGENyZWF0ZURlcGxveW1lbnRSZXNwb25zZRIOCgZ2bV9pZHMYASADKAkiSwoXVXBkYXRlRGVwbG95bWVudFJlcXVlc3QSMAoKZGVwbG95bWVudBgBIAEoCzIcLm1ldGFsZC52MS5EZXBsb3ltZW50UmVxdWVzdCIqChhVcGRhdGVEZXBsb3ltZW50UmVzcG9uc2USDgoGdm1faWRzGAEgAygJIjAKF0RlbGV0ZURlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiGgoYRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkisQEKFUdldERlcGxveW1lbnRSZXNwb25zZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEjAKA3ZtcxgCIAMoCzIjLm1ldGFsZC52MS5HZXREZXBsb3ltZW50UmVzcG9uc2UuVm0aTwoCVm0SCgoCaWQYASABKAkSDAoEaG9zdBgCIAEoCRIhCgVzdGF0ZRgDIAEoDjISLm1ldGFsZC52MS5WbVN0YXRlEgwKBHBvcnQYBCABKA1COlo4Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9tZXRhbGQvdjE7bWV0YWxkdjFiBnByb3RvMw",
+    [file_metald_v1_vm],
+  );
 
 /**
  * @generated from message metald.v1.DeploymentRequest
@@ -48,7 +52,8 @@ export type DeploymentRequest = Message<"metald.v1.DeploymentRequest"> & {
  * Describes the message metald.v1.DeploymentRequest.
  * Use `create(DeploymentRequestSchema)` to create a new message.
  */
-export const DeploymentRequestSchema: GenMessage<DeploymentRequest> = /*@__PURE__*/
+export const DeploymentRequestSchema: GenMessage<DeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 0);
 
 /**
@@ -65,7 +70,8 @@ export type CreateDeploymentRequest = Message<"metald.v1.CreateDeploymentRequest
  * Describes the message metald.v1.CreateDeploymentRequest.
  * Use `create(CreateDeploymentRequestSchema)` to create a new message.
  */
-export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> = /*@__PURE__*/
+export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 1);
 
 /**
@@ -82,7 +88,8 @@ export type CreateDeploymentResponse = Message<"metald.v1.CreateDeploymentRespon
  * Describes the message metald.v1.CreateDeploymentResponse.
  * Use `create(CreateDeploymentResponseSchema)` to create a new message.
  */
-export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> = /*@__PURE__*/
+export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 2);
 
 /**
@@ -99,7 +106,8 @@ export type UpdateDeploymentRequest = Message<"metald.v1.UpdateDeploymentRequest
  * Describes the message metald.v1.UpdateDeploymentRequest.
  * Use `create(UpdateDeploymentRequestSchema)` to create a new message.
  */
-export const UpdateDeploymentRequestSchema: GenMessage<UpdateDeploymentRequest> = /*@__PURE__*/
+export const UpdateDeploymentRequestSchema: GenMessage<UpdateDeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 3);
 
 /**
@@ -116,7 +124,8 @@ export type UpdateDeploymentResponse = Message<"metald.v1.UpdateDeploymentRespon
  * Describes the message metald.v1.UpdateDeploymentResponse.
  * Use `create(UpdateDeploymentResponseSchema)` to create a new message.
  */
-export const UpdateDeploymentResponseSchema: GenMessage<UpdateDeploymentResponse> = /*@__PURE__*/
+export const UpdateDeploymentResponseSchema: GenMessage<UpdateDeploymentResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 4);
 
 /**
@@ -133,20 +142,21 @@ export type DeleteDeploymentRequest = Message<"metald.v1.DeleteDeploymentRequest
  * Describes the message metald.v1.DeleteDeploymentRequest.
  * Use `create(DeleteDeploymentRequestSchema)` to create a new message.
  */
-export const DeleteDeploymentRequestSchema: GenMessage<DeleteDeploymentRequest> = /*@__PURE__*/
+export const DeleteDeploymentRequestSchema: GenMessage<DeleteDeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 5);
 
 /**
  * @generated from message metald.v1.DeleteDeploymentResponse
  */
-export type DeleteDeploymentResponse = Message<"metald.v1.DeleteDeploymentResponse"> & {
-};
+export type DeleteDeploymentResponse = Message<"metald.v1.DeleteDeploymentResponse"> & {};
 
 /**
  * Describes the message metald.v1.DeleteDeploymentResponse.
  * Use `create(DeleteDeploymentResponseSchema)` to create a new message.
  */
-export const DeleteDeploymentResponseSchema: GenMessage<DeleteDeploymentResponse> = /*@__PURE__*/
+export const DeleteDeploymentResponseSchema: GenMessage<DeleteDeploymentResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 6);
 
 /**
@@ -163,7 +173,8 @@ export type GetDeploymentRequest = Message<"metald.v1.GetDeploymentRequest"> & {
  * Describes the message metald.v1.GetDeploymentRequest.
  * Use `create(GetDeploymentRequestSchema)` to create a new message.
  */
-export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> = /*@__PURE__*/
+export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 7);
 
 /**
@@ -185,7 +196,8 @@ export type GetDeploymentResponse = Message<"metald.v1.GetDeploymentResponse"> &
  * Describes the message metald.v1.GetDeploymentResponse.
  * Use `create(GetDeploymentResponseSchema)` to create a new message.
  */
-export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> = /*@__PURE__*/
+export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 8);
 
 /**
@@ -217,6 +229,6 @@ export type GetDeploymentResponse_Vm = Message<"metald.v1.GetDeploymentResponse.
  * Describes the message metald.v1.GetDeploymentResponse.Vm.
  * Use `create(GetDeploymentResponse_VmSchema)` to create a new message.
  */
-export const GetDeploymentResponse_VmSchema: GenMessage<GetDeploymentResponse_Vm> = /*@__PURE__*/
+export const GetDeploymentResponse_VmSchema: GenMessage<GetDeploymentResponse_Vm> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_deployment, 8, 0);
-

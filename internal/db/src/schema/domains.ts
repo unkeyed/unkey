@@ -1,10 +1,4 @@
-import {
-  boolean,
-  index,
-  mysqlEnum,
-  mysqlTable,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { boolean, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const domains = mysqlTable(
@@ -37,5 +31,5 @@ export const domains = mysqlTable(
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
     projectIdx: index("project_idx").on(table.projectId),
-  })
+  }),
 );

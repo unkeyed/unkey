@@ -4,16 +4,48 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { BootVmRequestSchema, BootVmResponseSchema, CreateVmRequestSchema, CreateVmResponseSchema, DeleteVmRequestSchema, DeleteVmResponseSchema, GetVmInfoRequestSchema, GetVmInfoResponseSchema, ListVmsRequestSchema, ListVmsResponseSchema, PauseVmRequestSchema, PauseVmResponseSchema, RebootVmRequestSchema, RebootVmResponseSchema, ResumeVmRequestSchema, ResumeVmResponseSchema, ShutdownVmRequestSchema, ShutdownVmResponseSchema } from "./vm_pb";
-import { file_metald_v1_vm } from "./vm_pb";
-import type { CreateDeploymentRequestSchema, CreateDeploymentResponseSchema, DeleteDeploymentRequestSchema, DeleteDeploymentResponseSchema, GetDeploymentRequestSchema, GetDeploymentResponseSchema, UpdateDeploymentRequestSchema, UpdateDeploymentResponseSchema } from "./deployment_pb";
+import type {
+  CreateDeploymentRequestSchema,
+  CreateDeploymentResponseSchema,
+  DeleteDeploymentRequestSchema,
+  DeleteDeploymentResponseSchema,
+  GetDeploymentRequestSchema,
+  GetDeploymentResponseSchema,
+  UpdateDeploymentRequestSchema,
+  UpdateDeploymentResponseSchema,
+} from "./deployment_pb";
 import { file_metald_v1_deployment } from "./deployment_pb";
+import type {
+  BootVmRequestSchema,
+  BootVmResponseSchema,
+  CreateVmRequestSchema,
+  CreateVmResponseSchema,
+  DeleteVmRequestSchema,
+  DeleteVmResponseSchema,
+  GetVmInfoRequestSchema,
+  GetVmInfoResponseSchema,
+  ListVmsRequestSchema,
+  ListVmsResponseSchema,
+  PauseVmRequestSchema,
+  PauseVmResponseSchema,
+  RebootVmRequestSchema,
+  RebootVmResponseSchema,
+  ResumeVmRequestSchema,
+  ResumeVmResponseSchema,
+  ShutdownVmRequestSchema,
+  ShutdownVmResponseSchema,
+} from "./vm_pb";
+import { file_metald_v1_vm } from "./vm_pb";
 
 /**
  * Describes the file metald/v1/metald.proto.
  */
-export const file_metald_v1_metald: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhbGQvdjEvbWV0YWxkLnByb3RvEgltZXRhbGQudjEy4AcKCVZtU2VydmljZRJbChBDcmVhdGVEZXBsb3ltZW50EiIubWV0YWxkLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiMubWV0YWxkLnYxLkNyZWF0ZURlcGxveW1lbnRSZXNwb25zZRJbChBVcGRhdGVEZXBsb3ltZW50EiIubWV0YWxkLnYxLlVwZGF0ZURlcGxveW1lbnRSZXF1ZXN0GiMubWV0YWxkLnYxLlVwZGF0ZURlcGxveW1lbnRSZXNwb25zZRJbChBEZWxldGVEZXBsb3ltZW50EiIubWV0YWxkLnYxLkRlbGV0ZURlcGxveW1lbnRSZXF1ZXN0GiMubWV0YWxkLnYxLkRlbGV0ZURlcGxveW1lbnRSZXNwb25zZRJSCg1HZXREZXBsb3ltZW50Eh8ubWV0YWxkLnYxLkdldERlcGxveW1lbnRSZXF1ZXN0GiAubWV0YWxkLnYxLkdldERlcGxveW1lbnRSZXNwb25zZRJDCghDcmVhdGVWbRIaLm1ldGFsZC52MS5DcmVhdGVWbVJlcXVlc3QaGy5tZXRhbGQudjEuQ3JlYXRlVm1SZXNwb25zZRJDCghEZWxldGVWbRIaLm1ldGFsZC52MS5EZWxldGVWbVJlcXVlc3QaGy5tZXRhbGQudjEuRGVsZXRlVm1SZXNwb25zZRI9CgZCb290Vm0SGC5tZXRhbGQudjEuQm9vdFZtUmVxdWVzdBoZLm1ldGFsZC52MS5Cb290Vm1SZXNwb25zZRJJCgpTaHV0ZG93blZtEhwubWV0YWxkLnYxLlNodXRkb3duVm1SZXF1ZXN0Gh0ubWV0YWxkLnYxLlNodXRkb3duVm1SZXNwb25zZRJACgdQYXVzZVZtEhkubWV0YWxkLnYxLlBhdXNlVm1SZXF1ZXN0GhoubWV0YWxkLnYxLlBhdXNlVm1SZXNwb25zZRJDCghSZXN1bWVWbRIaLm1ldGFsZC52MS5SZXN1bWVWbVJlcXVlc3QaGy5tZXRhbGQudjEuUmVzdW1lVm1SZXNwb25zZRJDCghSZWJvb3RWbRIaLm1ldGFsZC52MS5SZWJvb3RWbVJlcXVlc3QaGy5tZXRhbGQudjEuUmVib290Vm1SZXNwb25zZRJGCglHZXRWbUluZm8SGy5tZXRhbGQudjEuR2V0Vm1JbmZvUmVxdWVzdBocLm1ldGFsZC52MS5HZXRWbUluZm9SZXNwb25zZRJACgdMaXN0Vm1zEhkubWV0YWxkLnYxLkxpc3RWbXNSZXF1ZXN0GhoubWV0YWxkLnYxLkxpc3RWbXNSZXNwb25zZUI6WjhnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL21ldGFsZC92MTttZXRhbGR2MWIGcHJvdG8z", [file_metald_v1_vm, file_metald_v1_deployment]);
+export const file_metald_v1_metald: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChZtZXRhbGQvdjEvbWV0YWxkLnByb3RvEgltZXRhbGQudjEy4AcKCVZtU2VydmljZRJbChBDcmVhdGVEZXBsb3ltZW50EiIubWV0YWxkLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiMubWV0YWxkLnYxLkNyZWF0ZURlcGxveW1lbnRSZXNwb25zZRJbChBVcGRhdGVEZXBsb3ltZW50EiIubWV0YWxkLnYxLlVwZGF0ZURlcGxveW1lbnRSZXF1ZXN0GiMubWV0YWxkLnYxLlVwZGF0ZURlcGxveW1lbnRSZXNwb25zZRJbChBEZWxldGVEZXBsb3ltZW50EiIubWV0YWxkLnYxLkRlbGV0ZURlcGxveW1lbnRSZXF1ZXN0GiMubWV0YWxkLnYxLkRlbGV0ZURlcGxveW1lbnRSZXNwb25zZRJSCg1HZXREZXBsb3ltZW50Eh8ubWV0YWxkLnYxLkdldERlcGxveW1lbnRSZXF1ZXN0GiAubWV0YWxkLnYxLkdldERlcGxveW1lbnRSZXNwb25zZRJDCghDcmVhdGVWbRIaLm1ldGFsZC52MS5DcmVhdGVWbVJlcXVlc3QaGy5tZXRhbGQudjEuQ3JlYXRlVm1SZXNwb25zZRJDCghEZWxldGVWbRIaLm1ldGFsZC52MS5EZWxldGVWbVJlcXVlc3QaGy5tZXRhbGQudjEuRGVsZXRlVm1SZXNwb25zZRI9CgZCb290Vm0SGC5tZXRhbGQudjEuQm9vdFZtUmVxdWVzdBoZLm1ldGFsZC52MS5Cb290Vm1SZXNwb25zZRJJCgpTaHV0ZG93blZtEhwubWV0YWxkLnYxLlNodXRkb3duVm1SZXF1ZXN0Gh0ubWV0YWxkLnYxLlNodXRkb3duVm1SZXNwb25zZRJACgdQYXVzZVZtEhkubWV0YWxkLnYxLlBhdXNlVm1SZXF1ZXN0GhoubWV0YWxkLnYxLlBhdXNlVm1SZXNwb25zZRJDCghSZXN1bWVWbRIaLm1ldGFsZC52MS5SZXN1bWVWbVJlcXVlc3QaGy5tZXRhbGQudjEuUmVzdW1lVm1SZXNwb25zZRJDCghSZWJvb3RWbRIaLm1ldGFsZC52MS5SZWJvb3RWbVJlcXVlc3QaGy5tZXRhbGQudjEuUmVib290Vm1SZXNwb25zZRJGCglHZXRWbUluZm8SGy5tZXRhbGQudjEuR2V0Vm1JbmZvUmVxdWVzdBocLm1ldGFsZC52MS5HZXRWbUluZm9SZXNwb25zZRJACgdMaXN0Vm1zEhkubWV0YWxkLnYxLkxpc3RWbXNSZXF1ZXN0GhoubWV0YWxkLnYxLkxpc3RWbXNSZXNwb25zZUI6WjhnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL21ldGFsZC92MTttZXRhbGR2MWIGcHJvdG8z",
+    [file_metald_v1_vm, file_metald_v1_deployment],
+  );
 
 /**
  * VmService provides unified VM management across different hypervisor backends
@@ -35,7 +67,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof CreateDeploymentRequestSchema;
     output: typeof CreateDeploymentResponseSchema;
-  },
+  };
   /**
    * UpdateDeployment
    *
@@ -45,7 +77,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof UpdateDeploymentRequestSchema;
     output: typeof UpdateDeploymentResponseSchema;
-  },
+  };
   /**
    * DeleteDeployment
    *
@@ -55,7 +87,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof DeleteDeploymentRequestSchema;
     output: typeof DeleteDeploymentResponseSchema;
-  },
+  };
   /**
    * GetDeployment
    *
@@ -65,7 +97,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof GetDeploymentRequestSchema;
     output: typeof GetDeploymentResponseSchema;
-  },
+  };
   /**
    * CreateVm creates a new virtual machine
    *
@@ -75,7 +107,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof CreateVmRequestSchema;
     output: typeof CreateVmResponseSchema;
-  },
+  };
   /**
    * DeleteVm removes a virtual machine
    *
@@ -85,7 +117,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof DeleteVmRequestSchema;
     output: typeof DeleteVmResponseSchema;
-  },
+  };
   /**
    * BootVm starts a created virtual machine
    *
@@ -95,7 +127,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof BootVmRequestSchema;
     output: typeof BootVmResponseSchema;
-  },
+  };
   /**
    * ShutdownVm gracefully stops a running virtual machine
    *
@@ -105,7 +137,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof ShutdownVmRequestSchema;
     output: typeof ShutdownVmResponseSchema;
-  },
+  };
   /**
    * PauseVm pauses a running virtual machine
    *
@@ -115,7 +147,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof PauseVmRequestSchema;
     output: typeof PauseVmResponseSchema;
-  },
+  };
   /**
    * ResumeVm resumes a paused virtual machine
    *
@@ -125,7 +157,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof ResumeVmRequestSchema;
     output: typeof ResumeVmResponseSchema;
-  },
+  };
   /**
    * RebootVm restarts a running virtual machine
    *
@@ -135,7 +167,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof RebootVmRequestSchema;
     output: typeof RebootVmResponseSchema;
-  },
+  };
   /**
    * GetVmInfo retrieves virtual machine status and configuration
    *
@@ -145,7 +177,7 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof GetVmInfoRequestSchema;
     output: typeof GetVmInfoResponseSchema;
-  },
+  };
   /**
    * ListVms lists all virtual machines managed by this service
    *
@@ -155,7 +187,5 @@ export const VmService: GenService<{
     methodKind: "unary";
     input: typeof ListVmsRequestSchema;
     output: typeof ListVmsResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_metald_v1_metald, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_metald_v1_metald, 0);

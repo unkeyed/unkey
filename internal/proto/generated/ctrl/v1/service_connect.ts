@@ -3,8 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { LivenessRequest, LivenessResponse } from "./service_pb";
 import { MethodKind } from "@bufbuild/protobuf";
+import { LivenessRequest, LivenessResponse } from "./service_pb.js";
 
 /**
  * @generated from service ctrl.v1.CtrlService

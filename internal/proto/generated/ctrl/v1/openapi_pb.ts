@@ -2,15 +2,18 @@
 // @generated from file ctrl/v1/openapi.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/openapi.proto.
  */
-export const file_ctrl_v1_openapi: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL29wZW5hcGkucHJvdG8SB2N0cmwudjEiRwoVR2V0T3BlbkFwaURpZmZSZXF1ZXN0EhYKDm9sZF92ZXJzaW9uX2lkGAEgASgJEhYKDm5ld192ZXJzaW9uX2lkGAIgASgJIoYBCg5DaGFuZ2Vsb2dFbnRyeRIKCgJpZBgBIAEoCRIMCgR0ZXh0GAIgASgJEg0KBWxldmVsGAMgASgFEhEKCW9wZXJhdGlvbhgEIAEoCRIZCgxvcGVyYXRpb25faWQYBSABKAlIAIgBARIMCgRwYXRoGAYgASgJQg8KDV9vcGVyYXRpb25faWQiQgoLRGlmZlN1bW1hcnkSDAoEZGlmZhgBIAEoCBIlCgdkZXRhaWxzGAIgASgLMhQuY3RybC52MS5EaWZmRGV0YWlscyJ/CgtEaWZmRGV0YWlscxImCgllbmRwb2ludHMYASABKAsyEy5jdHJsLnYxLkRpZmZDb3VudHMSIgoFcGF0aHMYAiABKAsyEy5jdHJsLnYxLkRpZmZDb3VudHMSJAoHc2NoZW1hcxgDIAEoCzITLmN0cmwudjEuRGlmZkNvdW50cyI+CgpEaWZmQ291bnRzEg0KBWFkZGVkGAEgASgFEg8KB2RlbGV0ZWQYAiABKAUSEAoIbW9kaWZpZWQYAyABKAUihwEKFkdldE9wZW5BcGlEaWZmUmVzcG9uc2USJQoHc3VtbWFyeRgBIAEoCzIULmN0cmwudjEuRGlmZlN1bW1hcnkSHAoUaGFzX2JyZWFraW5nX2NoYW5nZXMYAiABKAgSKAoHY2hhbmdlcxgDIAMoCzIXLmN0cmwudjEuQ2hhbmdlbG9nRW50cnkyZQoOT3BlbkFwaVNlcnZpY2USUwoOR2V0T3BlbkFwaURpZmYSHi5jdHJsLnYxLkdldE9wZW5BcGlEaWZmUmVxdWVzdBofLmN0cmwudjEuR2V0T3BlbkFwaURpZmZSZXNwb25zZSIAQjZaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjFiBnByb3RvMw");
+export const file_ctrl_v1_openapi: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChVjdHJsL3YxL29wZW5hcGkucHJvdG8SB2N0cmwudjEiRwoVR2V0T3BlbkFwaURpZmZSZXF1ZXN0EhYKDm9sZF92ZXJzaW9uX2lkGAEgASgJEhYKDm5ld192ZXJzaW9uX2lkGAIgASgJIoYBCg5DaGFuZ2Vsb2dFbnRyeRIKCgJpZBgBIAEoCRIMCgR0ZXh0GAIgASgJEg0KBWxldmVsGAMgASgFEhEKCW9wZXJhdGlvbhgEIAEoCRIZCgxvcGVyYXRpb25faWQYBSABKAlIAIgBARIMCgRwYXRoGAYgASgJQg8KDV9vcGVyYXRpb25faWQiQgoLRGlmZlN1bW1hcnkSDAoEZGlmZhgBIAEoCBIlCgdkZXRhaWxzGAIgASgLMhQuY3RybC52MS5EaWZmRGV0YWlscyJ/CgtEaWZmRGV0YWlscxImCgllbmRwb2ludHMYASABKAsyEy5jdHJsLnYxLkRpZmZDb3VudHMSIgoFcGF0aHMYAiABKAsyEy5jdHJsLnYxLkRpZmZDb3VudHMSJAoHc2NoZW1hcxgDIAEoCzITLmN0cmwudjEuRGlmZkNvdW50cyI+CgpEaWZmQ291bnRzEg0KBWFkZGVkGAEgASgFEg8KB2RlbGV0ZWQYAiABKAUSEAoIbW9kaWZpZWQYAyABKAUihwEKFkdldE9wZW5BcGlEaWZmUmVzcG9uc2USJQoHc3VtbWFyeRgBIAEoCzIULmN0cmwudjEuRGlmZlN1bW1hcnkSHAoUaGFzX2JyZWFraW5nX2NoYW5nZXMYAiABKAgSKAoHY2hhbmdlcxgDIAMoCzIXLmN0cmwudjEuQ2hhbmdlbG9nRW50cnkyZQoOT3BlbkFwaVNlcnZpY2USUwoOR2V0T3BlbkFwaURpZmYSHi5jdHJsLnYxLkdldE9wZW5BcGlEaWZmUmVxdWVzdBofLmN0cmwudjEuR2V0T3BlbkFwaURpZmZSZXNwb25zZSIAQjZaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjFiBnByb3RvMw",
+  );
 
 /**
  * @generated from message ctrl.v1.GetOpenApiDiffRequest
@@ -31,7 +34,8 @@ export type GetOpenApiDiffRequest = Message<"ctrl.v1.GetOpenApiDiffRequest"> & {
  * Describes the message ctrl.v1.GetOpenApiDiffRequest.
  * Use `create(GetOpenApiDiffRequestSchema)` to create a new message.
  */
-export const GetOpenApiDiffRequestSchema: GenMessage<GetOpenApiDiffRequest> = /*@__PURE__*/
+export const GetOpenApiDiffRequestSchema: GenMessage<GetOpenApiDiffRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_openapi, 0);
 
 /**
@@ -73,7 +77,8 @@ export type ChangelogEntry = Message<"ctrl.v1.ChangelogEntry"> & {
  * Describes the message ctrl.v1.ChangelogEntry.
  * Use `create(ChangelogEntrySchema)` to create a new message.
  */
-export const ChangelogEntrySchema: GenMessage<ChangelogEntry> = /*@__PURE__*/
+export const ChangelogEntrySchema: GenMessage<ChangelogEntry> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_openapi, 1);
 
 /**
@@ -95,7 +100,8 @@ export type DiffSummary = Message<"ctrl.v1.DiffSummary"> & {
  * Describes the message ctrl.v1.DiffSummary.
  * Use `create(DiffSummarySchema)` to create a new message.
  */
-export const DiffSummarySchema: GenMessage<DiffSummary> = /*@__PURE__*/
+export const DiffSummarySchema: GenMessage<DiffSummary> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_openapi, 2);
 
 /**
@@ -122,7 +128,8 @@ export type DiffDetails = Message<"ctrl.v1.DiffDetails"> & {
  * Describes the message ctrl.v1.DiffDetails.
  * Use `create(DiffDetailsSchema)` to create a new message.
  */
-export const DiffDetailsSchema: GenMessage<DiffDetails> = /*@__PURE__*/
+export const DiffDetailsSchema: GenMessage<DiffDetails> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_openapi, 3);
 
 /**
@@ -149,7 +156,8 @@ export type DiffCounts = Message<"ctrl.v1.DiffCounts"> & {
  * Describes the message ctrl.v1.DiffCounts.
  * Use `create(DiffCountsSchema)` to create a new message.
  */
-export const DiffCountsSchema: GenMessage<DiffCounts> = /*@__PURE__*/
+export const DiffCountsSchema: GenMessage<DiffCounts> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_openapi, 4);
 
 /**
@@ -176,7 +184,8 @@ export type GetOpenApiDiffResponse = Message<"ctrl.v1.GetOpenApiDiffResponse"> &
  * Describes the message ctrl.v1.GetOpenApiDiffResponse.
  * Use `create(GetOpenApiDiffResponseSchema)` to create a new message.
  */
-export const GetOpenApiDiffResponseSchema: GenMessage<GetOpenApiDiffResponse> = /*@__PURE__*/
+export const GetOpenApiDiffResponseSchema: GenMessage<GetOpenApiDiffResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_openapi, 5);
 
 /**
@@ -190,7 +199,5 @@ export const OpenApiService: GenService<{
     methodKind: "unary";
     input: typeof GetOpenApiDiffRequestSchema;
     output: typeof GetOpenApiDiffResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_ctrl_v1_openapi, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_openapi, 0);

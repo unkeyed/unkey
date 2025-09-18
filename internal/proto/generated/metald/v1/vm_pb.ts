@@ -2,6 +2,7 @@
 // @generated from file metald/v1/vm.proto (package metald.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
@@ -10,13 +11,16 @@ import type { NetworkStats } from "./network_pb";
 import { file_metald_v1_network } from "./network_pb";
 import type { StorageDevice, StorageStats } from "./storage_pb";
 import { file_metald_v1_storage } from "./storage_pb";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metald/v1/vm.proto.
  */
-export const file_metald_v1_vm: GenFile = /*@__PURE__*/
-  fileDesc("ChJtZXRhbGQvdjEvdm0ucHJvdG8SCW1ldGFsZC52MSKlAgoIVm1Db25maWcSEgoKdmNwdV9jb3VudBgBIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYAiABKAQSDAoEYm9vdBgDIAEoCRIWCg5uZXR3b3JrX2NvbmZpZxgEIAEoCRIpCgdjb25zb2xlGAUgASgLMhgubWV0YWxkLnYxLkNvbnNvbGVDb25maWcSKQoHc3RvcmFnZRgGIAEoCzIYLm1ldGFsZC52MS5TdG9yYWdlRGV2aWNlEgoKAmlkGAcgASgJEjMKCG1ldGFkYXRhGAggAygLMiEubWV0YWxkLnYxLlZtQ29uZmlnLk1ldGFkYXRhRW50cnkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImEKDkxpc3RWbXNSZXF1ZXN0EigKDHN0YXRlX2ZpbHRlchgBIAMoDjISLm1ldGFsZC52MS5WbVN0YXRlEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIl8KD0xpc3RWbXNSZXNwb25zZRIeCgN2bXMYASADKAsyES5tZXRhbGQudjEuVm1JbmZvEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCRITCgt0b3RhbF9jb3VudBgDIAEoBCJFCg9DcmVhdGVWbVJlcXVlc3QSDQoFdm1faWQYASABKAkSIwoGY29uZmlnGAIgASgLMhMubWV0YWxkLnYxLlZtQ29uZmlnIiYKCEVuZHBvaW50EgwKBGhvc3QYASABKAkSDAoEcG9ydBgCIAEoDSJcChBDcmVhdGVWbVJlc3BvbnNlEiEKBXN0YXRlGAEgASgOMhIubWV0YWxkLnYxLlZtU3RhdGUSJQoIZW5kcG9pbnQYAiABKAsyEy5tZXRhbGQudjEuRW5kcG9pbnQiLwoPRGVsZXRlVm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEg0KBWZvcmNlGAIgASgIIiMKEERlbGV0ZVZtUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCIeCg1Cb290Vm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJIjMKDkJvb3RWbVJlc3BvbnNlEiEKBXN0YXRlGAIgASgOMhIubWV0YWxkLnYxLlZtU3RhdGUiSgoRU2h1dGRvd25WbVJlcXVlc3QSDQoFdm1faWQYASABKAkSDQoFZm9yY2UYAiABKAgSFwoPdGltZW91dF9zZWNvbmRzGAMgASgFIjcKElNodXRkb3duVm1SZXNwb25zZRIhCgVzdGF0ZRgCIAEoDjISLm1ldGFsZC52MS5WbVN0YXRlIh8KDlBhdXNlVm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJIjQKD1BhdXNlVm1SZXNwb25zZRIhCgVzdGF0ZRgCIAEoDjISLm1ldGFsZC52MS5WbVN0YXRlIiAKD1Jlc3VtZVZtUmVxdWVzdBINCgV2bV9pZBgBIAEoCSI1ChBSZXN1bWVWbVJlc3BvbnNlEiEKBXN0YXRlGAIgASgOMhIubWV0YWxkLnYxLlZtU3RhdGUiLwoPUmVib290Vm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEg0KBWZvcmNlGAIgASgIIjUKEFJlYm9vdFZtUmVzcG9uc2USIQoFc3RhdGUYAiABKA4yEi5tZXRhbGQudjEuVm1TdGF0ZSIhChBHZXRWbUluZm9SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJIooCChFHZXRWbUluZm9SZXNwb25zZRINCgV2bV9pZBgBIAEoCRIjCgZjb25maWcYAiABKAsyEy5tZXRhbGQudjEuVm1Db25maWcSIQoFc3RhdGUYAyABKA4yEi5tZXRhbGQudjEuVm1TdGF0ZRIlCgdtZXRyaWNzGAQgASgLMhQubWV0YWxkLnYxLlZtTWV0cmljcxJDCgxiYWNrZW5kX2luZm8YBSADKAsyLS5tZXRhbGQudjEuR2V0Vm1JbmZvUmVzcG9uc2UuQmFja2VuZEluZm9FbnRyeRoyChBCYWNrZW5kSW5mb0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiuAEKCVZtTWV0cmljcxIZChFjcHVfdXNhZ2VfcGVyY2VudBgBIAEoARIYChBtZW1vcnlfdXNhZ2VfbWliGAIgASgEEi4KDW5ldHdvcmtfc3RhdHMYAyABKAsyFy5tZXRhbGQudjEuTmV0d29ya1N0YXRzEi4KDXN0b3JhZ2Vfc3RhdHMYBCABKAsyFy5tZXRhbGQudjEuU3RvcmFnZVN0YXRzEhYKDnVwdGltZV9zZWNvbmRzGAUgASgDItECCgZWbUluZm8SDQoFdm1faWQYASABKAkSIQoFc3RhdGUYAiABKA4yEi5tZXRhbGQudjEuVm1TdGF0ZRISCgp2Y3B1X2NvdW50GAMgASgFEhcKD21lbW9yeV9zaXplX21pYhgEIAEoBBI1ChFjcmVhdGVkX3RpbWVzdGFtcBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoSbW9kaWZpZWRfdGltZXN0YW1wGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIxCghtZXRhZGF0YRgHIAMoCzIfLm1ldGFsZC52MS5WbUluZm8uTWV0YWRhdGFFbnRyeRIVCg1kZXBsb3ltZW50X2lkGAggASgJGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLIAQoJQ3B1Q29uZmlnEhIKCnZjcHVfY291bnQYASABKAUSFgoObWF4X3ZjcHVfY291bnQYAiABKAUSKAoIdG9wb2xvZ3kYAyABKAsyFi5tZXRhbGQudjEuQ3B1VG9wb2xvZ3kSNAoIZmVhdHVyZXMYBCADKAsyIi5tZXRhbGQudjEuQ3B1Q29uZmlnLkZlYXR1cmVzRW50cnkaLwoNRmVhdHVyZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlIKC0NwdVRvcG9sb2d5Eg8KB3NvY2tldHMYASABKAUSGAoQY29yZXNfcGVyX3NvY2tldBgCIAEoBRIYChB0aHJlYWRzX3Blcl9jb3JlGAMgASgFIo4BCgxNZW1vcnlDb25maWcSFwoPbWVtb3J5X3NpemVfbWliGAEgASgDEjUKB2JhY2tpbmcYAiADKAsyJC5tZXRhbGQudjEuTWVtb3J5Q29uZmlnLkJhY2tpbmdFbnRyeRouCgxCYWNraW5nRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASK9AQoKQm9vdENvbmZpZxITCgtrZXJuZWxfcGF0aBgBIAEoCRITCgtpbml0cmRfcGF0aBgCIAEoCRITCgtrZXJuZWxfYXJncxgDIAEoCRI8Cgxib290X29wdGlvbnMYBCADKAsyJi5tZXRhbGQudjEuQm9vdENvbmZpZy5Cb290T3B0aW9uc0VudHJ5GjIKEEJvb3RPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJVCg1Db25zb2xlQ29uZmlnEg8KB2VuYWJsZWQYASABKAgSDgoGb3V0cHV0GAIgASgJEg0KBWlucHV0GAMgASgJEhQKDGNvbnNvbGVfdHlwZRgEIAEoCSp7CgdWbVN0YXRlEhgKFFZNX1NUQVRFX1VOU1BFQ0lGSUVEEAASFAoQVk1fU1RBVEVfQ1JFQVRFRBABEhQKEFZNX1NUQVRFX1JVTk5JTkcQAhITCg9WTV9TVEFURV9QQVVTRUQQAxIVChFWTV9TVEFURV9TSFVURE9XThAEQjpaOGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vbWV0YWxkL3YxO21ldGFsZHYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_metald_v1_network, file_metald_v1_storage]);
+export const file_metald_v1_vm: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChJtZXRhbGQvdjEvdm0ucHJvdG8SCW1ldGFsZC52MSKlAgoIVm1Db25maWcSEgoKdmNwdV9jb3VudBgBIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYAiABKAQSDAoEYm9vdBgDIAEoCRIWCg5uZXR3b3JrX2NvbmZpZxgEIAEoCRIpCgdjb25zb2xlGAUgASgLMhgubWV0YWxkLnYxLkNvbnNvbGVDb25maWcSKQoHc3RvcmFnZRgGIAEoCzIYLm1ldGFsZC52MS5TdG9yYWdlRGV2aWNlEgoKAmlkGAcgASgJEjMKCG1ldGFkYXRhGAggAygLMiEubWV0YWxkLnYxLlZtQ29uZmlnLk1ldGFkYXRhRW50cnkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImEKDkxpc3RWbXNSZXF1ZXN0EigKDHN0YXRlX2ZpbHRlchgBIAMoDjISLm1ldGFsZC52MS5WbVN0YXRlEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIl8KD0xpc3RWbXNSZXNwb25zZRIeCgN2bXMYASADKAsyES5tZXRhbGQudjEuVm1JbmZvEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCRITCgt0b3RhbF9jb3VudBgDIAEoBCJFCg9DcmVhdGVWbVJlcXVlc3QSDQoFdm1faWQYASABKAkSIwoGY29uZmlnGAIgASgLMhMubWV0YWxkLnYxLlZtQ29uZmlnIiYKCEVuZHBvaW50EgwKBGhvc3QYASABKAkSDAoEcG9ydBgCIAEoDSJcChBDcmVhdGVWbVJlc3BvbnNlEiEKBXN0YXRlGAEgASgOMhIubWV0YWxkLnYxLlZtU3RhdGUSJQoIZW5kcG9pbnQYAiABKAsyEy5tZXRhbGQudjEuRW5kcG9pbnQiLwoPRGVsZXRlVm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEg0KBWZvcmNlGAIgASgIIiMKEERlbGV0ZVZtUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCIeCg1Cb290Vm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJIjMKDkJvb3RWbVJlc3BvbnNlEiEKBXN0YXRlGAIgASgOMhIubWV0YWxkLnYxLlZtU3RhdGUiSgoRU2h1dGRvd25WbVJlcXVlc3QSDQoFdm1faWQYASABKAkSDQoFZm9yY2UYAiABKAgSFwoPdGltZW91dF9zZWNvbmRzGAMgASgFIjcKElNodXRkb3duVm1SZXNwb25zZRIhCgVzdGF0ZRgCIAEoDjISLm1ldGFsZC52MS5WbVN0YXRlIh8KDlBhdXNlVm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJIjQKD1BhdXNlVm1SZXNwb25zZRIhCgVzdGF0ZRgCIAEoDjISLm1ldGFsZC52MS5WbVN0YXRlIiAKD1Jlc3VtZVZtUmVxdWVzdBINCgV2bV9pZBgBIAEoCSI1ChBSZXN1bWVWbVJlc3BvbnNlEiEKBXN0YXRlGAIgASgOMhIubWV0YWxkLnYxLlZtU3RhdGUiLwoPUmVib290Vm1SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJEg0KBWZvcmNlGAIgASgIIjUKEFJlYm9vdFZtUmVzcG9uc2USIQoFc3RhdGUYAiABKA4yEi5tZXRhbGQudjEuVm1TdGF0ZSIhChBHZXRWbUluZm9SZXF1ZXN0Eg0KBXZtX2lkGAEgASgJIooCChFHZXRWbUluZm9SZXNwb25zZRINCgV2bV9pZBgBIAEoCRIjCgZjb25maWcYAiABKAsyEy5tZXRhbGQudjEuVm1Db25maWcSIQoFc3RhdGUYAyABKA4yEi5tZXRhbGQudjEuVm1TdGF0ZRIlCgdtZXRyaWNzGAQgASgLMhQubWV0YWxkLnYxLlZtTWV0cmljcxJDCgxiYWNrZW5kX2luZm8YBSADKAsyLS5tZXRhbGQudjEuR2V0Vm1JbmZvUmVzcG9uc2UuQmFja2VuZEluZm9FbnRyeRoyChBCYWNrZW5kSW5mb0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiuAEKCVZtTWV0cmljcxIZChFjcHVfdXNhZ2VfcGVyY2VudBgBIAEoARIYChBtZW1vcnlfdXNhZ2VfbWliGAIgASgEEi4KDW5ldHdvcmtfc3RhdHMYAyABKAsyFy5tZXRhbGQudjEuTmV0d29ya1N0YXRzEi4KDXN0b3JhZ2Vfc3RhdHMYBCABKAsyFy5tZXRhbGQudjEuU3RvcmFnZVN0YXRzEhYKDnVwdGltZV9zZWNvbmRzGAUgASgDItECCgZWbUluZm8SDQoFdm1faWQYASABKAkSIQoFc3RhdGUYAiABKA4yEi5tZXRhbGQudjEuVm1TdGF0ZRISCgp2Y3B1X2NvdW50GAMgASgFEhcKD21lbW9yeV9zaXplX21pYhgEIAEoBBI1ChFjcmVhdGVkX3RpbWVzdGFtcBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoSbW9kaWZpZWRfdGltZXN0YW1wGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIxCghtZXRhZGF0YRgHIAMoCzIfLm1ldGFsZC52MS5WbUluZm8uTWV0YWRhdGFFbnRyeRIVCg1kZXBsb3ltZW50X2lkGAggASgJGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLIAQoJQ3B1Q29uZmlnEhIKCnZjcHVfY291bnQYASABKAUSFgoObWF4X3ZjcHVfY291bnQYAiABKAUSKAoIdG9wb2xvZ3kYAyABKAsyFi5tZXRhbGQudjEuQ3B1VG9wb2xvZ3kSNAoIZmVhdHVyZXMYBCADKAsyIi5tZXRhbGQudjEuQ3B1Q29uZmlnLkZlYXR1cmVzRW50cnkaLwoNRmVhdHVyZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlIKC0NwdVRvcG9sb2d5Eg8KB3NvY2tldHMYASABKAUSGAoQY29yZXNfcGVyX3NvY2tldBgCIAEoBRIYChB0aHJlYWRzX3Blcl9jb3JlGAMgASgFIo4BCgxNZW1vcnlDb25maWcSFwoPbWVtb3J5X3NpemVfbWliGAEgASgDEjUKB2JhY2tpbmcYAiADKAsyJC5tZXRhbGQudjEuTWVtb3J5Q29uZmlnLkJhY2tpbmdFbnRyeRouCgxCYWNraW5nRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASK9AQoKQm9vdENvbmZpZxITCgtrZXJuZWxfcGF0aBgBIAEoCRITCgtpbml0cmRfcGF0aBgCIAEoCRITCgtrZXJuZWxfYXJncxgDIAEoCRI8Cgxib290X29wdGlvbnMYBCADKAsyJi5tZXRhbGQudjEuQm9vdENvbmZpZy5Cb290T3B0aW9uc0VudHJ5GjIKEEJvb3RPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJVCg1Db25zb2xlQ29uZmlnEg8KB2VuYWJsZWQYASABKAgSDgoGb3V0cHV0GAIgASgJEg0KBWlucHV0GAMgASgJEhQKDGNvbnNvbGVfdHlwZRgEIAEoCSp7CgdWbVN0YXRlEhgKFFZNX1NUQVRFX1VOU1BFQ0lGSUVEEAASFAoQVk1fU1RBVEVfQ1JFQVRFRBABEhQKEFZNX1NUQVRFX1JVTk5JTkcQAhITCg9WTV9TVEFURV9QQVVTRUQQAxIVChFWTV9TVEFURV9TSFVURE9XThAEQjpaOGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vbWV0YWxkL3YxO21ldGFsZHYxYgZwcm90bzM",
+    [file_google_protobuf_timestamp, file_metald_v1_network, file_metald_v1_storage],
+  );
 
 /**
  * Unified VM configuration that works across different hypervisors
@@ -85,8 +89,7 @@ export type VmConfig = Message<"metald.v1.VmConfig"> & {
  * Describes the message metald.v1.VmConfig.
  * Use `create(VmConfigSchema)` to create a new message.
  */
-export const VmConfigSchema: GenMessage<VmConfig> = /*@__PURE__*/
-  messageDesc(file_metald_v1_vm, 0);
+export const VmConfigSchema: GenMessage<VmConfig> = /*@__PURE__*/ messageDesc(file_metald_v1_vm, 0);
 
 /**
  * @generated from message metald.v1.ListVmsRequest
@@ -116,7 +119,8 @@ export type ListVmsRequest = Message<"metald.v1.ListVmsRequest"> & {
  * Describes the message metald.v1.ListVmsRequest.
  * Use `create(ListVmsRequestSchema)` to create a new message.
  */
-export const ListVmsRequestSchema: GenMessage<ListVmsRequest> = /*@__PURE__*/
+export const ListVmsRequestSchema: GenMessage<ListVmsRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 1);
 
 /**
@@ -143,7 +147,8 @@ export type ListVmsResponse = Message<"metald.v1.ListVmsResponse"> & {
  * Describes the message metald.v1.ListVmsResponse.
  * Use `create(ListVmsResponseSchema)` to create a new message.
  */
-export const ListVmsResponseSchema: GenMessage<ListVmsResponse> = /*@__PURE__*/
+export const ListVmsResponseSchema: GenMessage<ListVmsResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 2);
 
 /**
@@ -171,7 +176,8 @@ export type CreateVmRequest = Message<"metald.v1.CreateVmRequest"> & {
  * Describes the message metald.v1.CreateVmRequest.
  * Use `create(CreateVmRequestSchema)` to create a new message.
  */
-export const CreateVmRequestSchema: GenMessage<CreateVmRequest> = /*@__PURE__*/
+export const CreateVmRequestSchema: GenMessage<CreateVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 3);
 
 /**
@@ -193,8 +199,7 @@ export type Endpoint = Message<"metald.v1.Endpoint"> & {
  * Describes the message metald.v1.Endpoint.
  * Use `create(EndpointSchema)` to create a new message.
  */
-export const EndpointSchema: GenMessage<Endpoint> = /*@__PURE__*/
-  messageDesc(file_metald_v1_vm, 4);
+export const EndpointSchema: GenMessage<Endpoint> = /*@__PURE__*/ messageDesc(file_metald_v1_vm, 4);
 
 /**
  * @generated from message metald.v1.CreateVmResponse
@@ -219,7 +224,8 @@ export type CreateVmResponse = Message<"metald.v1.CreateVmResponse"> & {
  * Describes the message metald.v1.CreateVmResponse.
  * Use `create(CreateVmResponseSchema)` to create a new message.
  */
-export const CreateVmResponseSchema: GenMessage<CreateVmResponse> = /*@__PURE__*/
+export const CreateVmResponseSchema: GenMessage<CreateVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 5);
 
 /**
@@ -243,7 +249,8 @@ export type DeleteVmRequest = Message<"metald.v1.DeleteVmRequest"> & {
  * Describes the message metald.v1.DeleteVmRequest.
  * Use `create(DeleteVmRequestSchema)` to create a new message.
  */
-export const DeleteVmRequestSchema: GenMessage<DeleteVmRequest> = /*@__PURE__*/
+export const DeleteVmRequestSchema: GenMessage<DeleteVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 6);
 
 /**
@@ -260,7 +267,8 @@ export type DeleteVmResponse = Message<"metald.v1.DeleteVmResponse"> & {
  * Describes the message metald.v1.DeleteVmResponse.
  * Use `create(DeleteVmResponseSchema)` to create a new message.
  */
-export const DeleteVmResponseSchema: GenMessage<DeleteVmResponse> = /*@__PURE__*/
+export const DeleteVmResponseSchema: GenMessage<DeleteVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 7);
 
 /**
@@ -277,7 +285,8 @@ export type BootVmRequest = Message<"metald.v1.BootVmRequest"> & {
  * Describes the message metald.v1.BootVmRequest.
  * Use `create(BootVmRequestSchema)` to create a new message.
  */
-export const BootVmRequestSchema: GenMessage<BootVmRequest> = /*@__PURE__*/
+export const BootVmRequestSchema: GenMessage<BootVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 8);
 
 /**
@@ -294,7 +303,8 @@ export type BootVmResponse = Message<"metald.v1.BootVmResponse"> & {
  * Describes the message metald.v1.BootVmResponse.
  * Use `create(BootVmResponseSchema)` to create a new message.
  */
-export const BootVmResponseSchema: GenMessage<BootVmResponse> = /*@__PURE__*/
+export const BootVmResponseSchema: GenMessage<BootVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 9);
 
 /**
@@ -325,7 +335,8 @@ export type ShutdownVmRequest = Message<"metald.v1.ShutdownVmRequest"> & {
  * Describes the message metald.v1.ShutdownVmRequest.
  * Use `create(ShutdownVmRequestSchema)` to create a new message.
  */
-export const ShutdownVmRequestSchema: GenMessage<ShutdownVmRequest> = /*@__PURE__*/
+export const ShutdownVmRequestSchema: GenMessage<ShutdownVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 10);
 
 /**
@@ -342,7 +353,8 @@ export type ShutdownVmResponse = Message<"metald.v1.ShutdownVmResponse"> & {
  * Describes the message metald.v1.ShutdownVmResponse.
  * Use `create(ShutdownVmResponseSchema)` to create a new message.
  */
-export const ShutdownVmResponseSchema: GenMessage<ShutdownVmResponse> = /*@__PURE__*/
+export const ShutdownVmResponseSchema: GenMessage<ShutdownVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 11);
 
 /**
@@ -359,7 +371,8 @@ export type PauseVmRequest = Message<"metald.v1.PauseVmRequest"> & {
  * Describes the message metald.v1.PauseVmRequest.
  * Use `create(PauseVmRequestSchema)` to create a new message.
  */
-export const PauseVmRequestSchema: GenMessage<PauseVmRequest> = /*@__PURE__*/
+export const PauseVmRequestSchema: GenMessage<PauseVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 12);
 
 /**
@@ -376,7 +389,8 @@ export type PauseVmResponse = Message<"metald.v1.PauseVmResponse"> & {
  * Describes the message metald.v1.PauseVmResponse.
  * Use `create(PauseVmResponseSchema)` to create a new message.
  */
-export const PauseVmResponseSchema: GenMessage<PauseVmResponse> = /*@__PURE__*/
+export const PauseVmResponseSchema: GenMessage<PauseVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 13);
 
 /**
@@ -393,7 +407,8 @@ export type ResumeVmRequest = Message<"metald.v1.ResumeVmRequest"> & {
  * Describes the message metald.v1.ResumeVmRequest.
  * Use `create(ResumeVmRequestSchema)` to create a new message.
  */
-export const ResumeVmRequestSchema: GenMessage<ResumeVmRequest> = /*@__PURE__*/
+export const ResumeVmRequestSchema: GenMessage<ResumeVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 14);
 
 /**
@@ -410,7 +425,8 @@ export type ResumeVmResponse = Message<"metald.v1.ResumeVmResponse"> & {
  * Describes the message metald.v1.ResumeVmResponse.
  * Use `create(ResumeVmResponseSchema)` to create a new message.
  */
-export const ResumeVmResponseSchema: GenMessage<ResumeVmResponse> = /*@__PURE__*/
+export const ResumeVmResponseSchema: GenMessage<ResumeVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 15);
 
 /**
@@ -434,7 +450,8 @@ export type RebootVmRequest = Message<"metald.v1.RebootVmRequest"> & {
  * Describes the message metald.v1.RebootVmRequest.
  * Use `create(RebootVmRequestSchema)` to create a new message.
  */
-export const RebootVmRequestSchema: GenMessage<RebootVmRequest> = /*@__PURE__*/
+export const RebootVmRequestSchema: GenMessage<RebootVmRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 16);
 
 /**
@@ -451,7 +468,8 @@ export type RebootVmResponse = Message<"metald.v1.RebootVmResponse"> & {
  * Describes the message metald.v1.RebootVmResponse.
  * Use `create(RebootVmResponseSchema)` to create a new message.
  */
-export const RebootVmResponseSchema: GenMessage<RebootVmResponse> = /*@__PURE__*/
+export const RebootVmResponseSchema: GenMessage<RebootVmResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 17);
 
 /**
@@ -468,7 +486,8 @@ export type GetVmInfoRequest = Message<"metald.v1.GetVmInfoRequest"> & {
  * Describes the message metald.v1.GetVmInfoRequest.
  * Use `create(GetVmInfoRequestSchema)` to create a new message.
  */
-export const GetVmInfoRequestSchema: GenMessage<GetVmInfoRequest> = /*@__PURE__*/
+export const GetVmInfoRequestSchema: GenMessage<GetVmInfoRequest> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 18);
 
 /**
@@ -507,7 +526,8 @@ export type GetVmInfoResponse = Message<"metald.v1.GetVmInfoResponse"> & {
  * Describes the message metald.v1.GetVmInfoResponse.
  * Use `create(GetVmInfoResponseSchema)` to create a new message.
  */
-export const GetVmInfoResponseSchema: GenMessage<GetVmInfoResponse> = /*@__PURE__*/
+export const GetVmInfoResponseSchema: GenMessage<GetVmInfoResponse> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 19);
 
 /**
@@ -554,7 +574,8 @@ export type VmMetrics = Message<"metald.v1.VmMetrics"> & {
  * Describes the message metald.v1.VmMetrics.
  * Use `create(VmMetricsSchema)` to create a new message.
  */
-export const VmMetricsSchema: GenMessage<VmMetrics> = /*@__PURE__*/
+export const VmMetricsSchema: GenMessage<VmMetrics> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 20);
 
 /**
@@ -614,8 +635,7 @@ export type VmInfo = Message<"metald.v1.VmInfo"> & {
  * Describes the message metald.v1.VmInfo.
  * Use `create(VmInfoSchema)` to create a new message.
  */
-export const VmInfoSchema: GenMessage<VmInfo> = /*@__PURE__*/
-  messageDesc(file_metald_v1_vm, 21);
+export const VmInfoSchema: GenMessage<VmInfo> = /*@__PURE__*/ messageDesc(file_metald_v1_vm, 21);
 
 /**
  * @generated from message metald.v1.CpuConfig
@@ -654,7 +674,8 @@ export type CpuConfig = Message<"metald.v1.CpuConfig"> & {
  * Describes the message metald.v1.CpuConfig.
  * Use `create(CpuConfigSchema)` to create a new message.
  */
-export const CpuConfigSchema: GenMessage<CpuConfig> = /*@__PURE__*/
+export const CpuConfigSchema: GenMessage<CpuConfig> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 22);
 
 /**
@@ -681,7 +702,8 @@ export type CpuTopology = Message<"metald.v1.CpuTopology"> & {
  * Describes the message metald.v1.CpuTopology.
  * Use `create(CpuTopologySchema)` to create a new message.
  */
-export const CpuTopologySchema: GenMessage<CpuTopology> = /*@__PURE__*/
+export const CpuTopologySchema: GenMessage<CpuTopology> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 23);
 
 /**
@@ -707,7 +729,8 @@ export type MemoryConfig = Message<"metald.v1.MemoryConfig"> & {
  * Describes the message metald.v1.MemoryConfig.
  * Use `create(MemoryConfigSchema)` to create a new message.
  */
-export const MemoryConfigSchema: GenMessage<MemoryConfig> = /*@__PURE__*/
+export const MemoryConfigSchema: GenMessage<MemoryConfig> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 24);
 
 /**
@@ -747,7 +770,8 @@ export type BootConfig = Message<"metald.v1.BootConfig"> & {
  * Describes the message metald.v1.BootConfig.
  * Use `create(BootConfigSchema)` to create a new message.
  */
-export const BootConfigSchema: GenMessage<BootConfig> = /*@__PURE__*/
+export const BootConfigSchema: GenMessage<BootConfig> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 25);
 
 /**
@@ -787,7 +811,8 @@ export type ConsoleConfig = Message<"metald.v1.ConsoleConfig"> & {
  * Describes the message metald.v1.ConsoleConfig.
  * Use `create(ConsoleConfigSchema)` to create a new message.
  */
-export const ConsoleConfigSchema: GenMessage<ConsoleConfig> = /*@__PURE__*/
+export const ConsoleConfigSchema: GenMessage<ConsoleConfig> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_vm, 26);
 
 /**
@@ -825,6 +850,4 @@ export enum VmState {
 /**
  * Describes the enum metald.v1.VmState.
  */
-export const VmStateSchema: GenEnum<VmState> = /*@__PURE__*/
-  enumDesc(file_metald_v1_vm, 0);
-
+export const VmStateSchema: GenEnum<VmState> = /*@__PURE__*/ enumDesc(file_metald_v1_vm, 0);

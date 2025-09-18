@@ -12,7 +12,6 @@ import (
 const bulkUpsertGateway = `INSERT INTO gateways ( workspace_id, deployment_id, hostname, config ) VALUES %s ON DUPLICATE KEY UPDATE
     workspace_id = ?,
     deployment_id = ?,
-    hostname = ?,
     config = ?`
 
 // UpsertGateway performs bulk insert in a single query
@@ -43,11 +42,10 @@ func (q *BulkQueries) UpsertGateway(ctx context.Context, db DBTX, args []UpsertG
 	if len(args) > 0 {
 		allArgs = append(allArgs, args[0].WorkspaceID)
 		allArgs = append(allArgs, args[0].DeploymentID)
-		allArgs = append(allArgs, args[0].Hostname)
 		allArgs = append(allArgs, args[0].Config)
 	}
 
 	// Execute the bulk insert
-	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-	return err
+    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+    return err
 }

@@ -2,15 +2,18 @@
 // @generated from file metald/v1/network.proto (package metald.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metald/v1/network.proto.
  */
-export const file_metald_v1_network: GenFile = /*@__PURE__*/
-  fileDesc("ChdtZXRhbGQvdjEvbmV0d29yay5wcm90bxIJbWV0YWxkLnYxIngKDE5ldHdvcmtTdGF0cxIWCg5ieXRlc19yZWNlaXZlZBgBIAEoAxIZChFieXRlc190cmFuc21pdHRlZBgCIAEoAxIYChBwYWNrZXRzX3JlY2VpdmVkGAMgASgDEhsKE3BhY2tldHNfdHJhbnNtaXR0ZWQYBCABKAMiogMKEE5ldHdvcmtJbnRlcmZhY2USCgoCaWQYASABKAkSEwoLbWFjX2FkZHJlc3MYAiABKAkSEgoKdGFwX2RldmljZRgDIAEoCRIWCg5pbnRlcmZhY2VfdHlwZRgEIAEoCRI5CgdvcHRpb25zGAUgAygLMigubWV0YWxkLnYxLk5ldHdvcmtJbnRlcmZhY2UuT3B0aW9uc0VudHJ5EioKC2lwdjRfY29uZmlnGAYgASgLMhUubWV0YWxkLnYxLklQdjRDb25maWcSKgoLaXB2Nl9jb25maWcYByABKAsyFS5tZXRhbGQudjEuSVB2NkNvbmZpZxIkCgRtb2RlGAggASgOMhYubWV0YWxkLnYxLk5ldHdvcmtNb2RlEisKDXJ4X3JhdGVfbGltaXQYCiABKAsyFC5tZXRhbGQudjEuUmF0ZUxpbWl0EisKDXR4X3JhdGVfbGltaXQYCyABKAsyFC5tZXRhbGQudjEuUmF0ZUxpbWl0Gi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImIKCklQdjRDb25maWcSDwoHYWRkcmVzcxgBIAEoCRIPCgduZXRtYXNrGAIgASgJEg8KB2dhdGV3YXkYAyABKAkSEwoLZG5zX3NlcnZlcnMYBCADKAkSDAoEZGhjcBgFIAEoCCKZAQoKSVB2NkNvbmZpZxIPCgdhZGRyZXNzGAEgASgJEhUKDXByZWZpeF9sZW5ndGgYAiABKAUSDwoHZ2F0ZXdheRgDIAEoCRITCgtkbnNfc2VydmVycxgEIAMoCRINCgVzbGFhYxgFIAEoCBIaChJwcml2YWN5X2V4dGVuc2lvbnMYBiABKAgSEgoKbGlua19sb2NhbBgHIAEoCSJCCglSYXRlTGltaXQSEQoJYmFuZHdpZHRoGAEgASgDEhMKC3JlZmlsbF90aW1lGAIgASgDEg0KBWJ1cnN0GAMgASgDKoABCgtOZXR3b3JrTW9kZRIcChhORVRXT1JLX01PREVfVU5TUEVDSUZJRUQQABIbChdORVRXT1JLX01PREVfRFVBTF9TVEFDSxABEhoKFk5FVFdPUktfTU9ERV9JUFY0X09OTFkQAhIaChZORVRXT1JLX01PREVfSVBWNl9PTkxZEANCOlo4Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9tZXRhbGQvdjE7bWV0YWxkdjFiBnByb3RvMw");
+export const file_metald_v1_network: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChdtZXRhbGQvdjEvbmV0d29yay5wcm90bxIJbWV0YWxkLnYxIngKDE5ldHdvcmtTdGF0cxIWCg5ieXRlc19yZWNlaXZlZBgBIAEoAxIZChFieXRlc190cmFuc21pdHRlZBgCIAEoAxIYChBwYWNrZXRzX3JlY2VpdmVkGAMgASgDEhsKE3BhY2tldHNfdHJhbnNtaXR0ZWQYBCABKAMiogMKEE5ldHdvcmtJbnRlcmZhY2USCgoCaWQYASABKAkSEwoLbWFjX2FkZHJlc3MYAiABKAkSEgoKdGFwX2RldmljZRgDIAEoCRIWCg5pbnRlcmZhY2VfdHlwZRgEIAEoCRI5CgdvcHRpb25zGAUgAygLMigubWV0YWxkLnYxLk5ldHdvcmtJbnRlcmZhY2UuT3B0aW9uc0VudHJ5EioKC2lwdjRfY29uZmlnGAYgASgLMhUubWV0YWxkLnYxLklQdjRDb25maWcSKgoLaXB2Nl9jb25maWcYByABKAsyFS5tZXRhbGQudjEuSVB2NkNvbmZpZxIkCgRtb2RlGAggASgOMhYubWV0YWxkLnYxLk5ldHdvcmtNb2RlEisKDXJ4X3JhdGVfbGltaXQYCiABKAsyFC5tZXRhbGQudjEuUmF0ZUxpbWl0EisKDXR4X3JhdGVfbGltaXQYCyABKAsyFC5tZXRhbGQudjEuUmF0ZUxpbWl0Gi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImIKCklQdjRDb25maWcSDwoHYWRkcmVzcxgBIAEoCRIPCgduZXRtYXNrGAIgASgJEg8KB2dhdGV3YXkYAyABKAkSEwoLZG5zX3NlcnZlcnMYBCADKAkSDAoEZGhjcBgFIAEoCCKZAQoKSVB2NkNvbmZpZxIPCgdhZGRyZXNzGAEgASgJEhUKDXByZWZpeF9sZW5ndGgYAiABKAUSDwoHZ2F0ZXdheRgDIAEoCRITCgtkbnNfc2VydmVycxgEIAMoCRINCgVzbGFhYxgFIAEoCBIaChJwcml2YWN5X2V4dGVuc2lvbnMYBiABKAgSEgoKbGlua19sb2NhbBgHIAEoCSJCCglSYXRlTGltaXQSEQoJYmFuZHdpZHRoGAEgASgDEhMKC3JlZmlsbF90aW1lGAIgASgDEg0KBWJ1cnN0GAMgASgDKoABCgtOZXR3b3JrTW9kZRIcChhORVRXT1JLX01PREVfVU5TUEVDSUZJRUQQABIbChdORVRXT1JLX01PREVfRFVBTF9TVEFDSxABEhoKFk5FVFdPUktfTU9ERV9JUFY0X09OTFkQAhIaChZORVRXT1JLX01PREVfSVBWNl9PTkxZEANCOlo4Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9tZXRhbGQvdjE7bWV0YWxkdjFiBnByb3RvMw",
+  );
 
 /**
  * @generated from message metald.v1.NetworkStats
@@ -41,7 +44,8 @@ export type NetworkStats = Message<"metald.v1.NetworkStats"> & {
  * Describes the message metald.v1.NetworkStats.
  * Use `create(NetworkStatsSchema)` to create a new message.
  */
-export const NetworkStatsSchema: GenMessage<NetworkStats> = /*@__PURE__*/
+export const NetworkStatsSchema: GenMessage<NetworkStats> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_network, 0);
 
 /**
@@ -125,7 +129,8 @@ export type NetworkInterface = Message<"metald.v1.NetworkInterface"> & {
  * Describes the message metald.v1.NetworkInterface.
  * Use `create(NetworkInterfaceSchema)` to create a new message.
  */
-export const NetworkInterfaceSchema: GenMessage<NetworkInterface> = /*@__PURE__*/
+export const NetworkInterfaceSchema: GenMessage<NetworkInterface> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_network, 1);
 
 /**
@@ -174,7 +179,8 @@ export type IPv4Config = Message<"metald.v1.IPv4Config"> & {
  * Describes the message metald.v1.IPv4Config.
  * Use `create(IPv4ConfigSchema)` to create a new message.
  */
-export const IPv4ConfigSchema: GenMessage<IPv4Config> = /*@__PURE__*/
+export const IPv4ConfigSchema: GenMessage<IPv4Config> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_network, 2);
 
 /**
@@ -237,7 +243,8 @@ export type IPv6Config = Message<"metald.v1.IPv6Config"> & {
  * Describes the message metald.v1.IPv6Config.
  * Use `create(IPv6ConfigSchema)` to create a new message.
  */
-export const IPv6ConfigSchema: GenMessage<IPv6Config> = /*@__PURE__*/
+export const IPv6ConfigSchema: GenMessage<IPv6Config> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_network, 3);
 
 /**
@@ -272,7 +279,8 @@ export type RateLimit = Message<"metald.v1.RateLimit"> & {
  * Describes the message metald.v1.RateLimit.
  * Use `create(RateLimitSchema)` to create a new message.
  */
-export const RateLimitSchema: GenMessage<RateLimit> = /*@__PURE__*/
+export const RateLimitSchema: GenMessage<RateLimit> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_network, 4);
 
 /**
@@ -311,6 +319,6 @@ export enum NetworkMode {
 /**
  * Describes the enum metald.v1.NetworkMode.
  */
-export const NetworkModeSchema: GenEnum<NetworkMode> = /*@__PURE__*/
+export const NetworkModeSchema: GenEnum<NetworkMode> =
+  /*@__PURE__*/
   enumDesc(file_metald_v1_network, 0);
-

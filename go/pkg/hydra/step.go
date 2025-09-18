@@ -140,12 +140,12 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 			INSERT INTO workflow_steps (
 			    id, execution_id, step_name, status, output_data, error_message,
 			    started_at, completed_at, max_attempts, remaining_attempts, namespace
-			) 
+			)
 			SELECT ?, ?, ?, ?, ?, ?,
 			       ?, ?, ?, ?, ?
 			WHERE EXISTS (
-			    SELECT 1 FROM leases 
-			    WHERE resource_id = ? AND kind = 'workflow' 
+			    SELECT 1 FROM leases
+			    WHERE resource_id = ? AND kind = 'workflow'
 			    AND worker_id = ? AND expires_at > ?
 			)`,
 			stepID,
@@ -182,12 +182,12 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 		// Update existing step to running status with lease validation
 		now := time.Now().UnixMilli()
 		updateResult, updateErr := wctx.db.ExecContext(wctx.ctx, `
-			UPDATE workflow_steps 
+			UPDATE workflow_steps
 			SET status = ?, completed_at = ?, output_data = ?, error_message = ?
 			WHERE workflow_steps.namespace = ? AND execution_id = ? AND step_name = ?
 			  AND EXISTS (
-			    SELECT 1 FROM leases 
-			    WHERE resource_id = ? AND kind = 'workflow' 
+			    SELECT 1 FROM leases
+			    WHERE resource_id = ? AND kind = 'workflow'
 			    AND worker_id = ? AND expires_at > ?
 			  )`,
 			store.WorkflowStepsStatusRunning,
@@ -236,6 +236,7 @@ func Step[TResponse any](ctx WorkflowContext, stepName string, fn func(context.C
 	response, err := fn(stepCtx)
 	if err != nil {
 		tracing.RecordError(span, err)
+		wctx.logger.Error("step execution failed", "error", err.Error())
 		span.SetAttributes(attribute.String("hydra.step.status", "failed"))
 
 		if markErr := wctx.markStepFailed(stepName, err.Error()); markErr != nil {

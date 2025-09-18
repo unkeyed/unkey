@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   AcquireAssetRequest,
   AcquireAssetResponse,
@@ -24,8 +25,7 @@ import {
   ReleaseAssetResponse,
   UploadAssetRequest,
   UploadAssetResponse,
-} from "./asset_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./asset_pb.js";
 
 /**
  * AssetManagerService manages VM assets (kernels, rootfs images) across the

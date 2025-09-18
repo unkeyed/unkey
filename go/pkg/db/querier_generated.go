@@ -191,6 +191,12 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
+	//FindEnvironmentById
+	//
+	//  SELECT id, workspace_id, project_id, slug, description
+	//  FROM environments
+	//  WHERE id = ?
+	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
 	//  SELECT id, workspace_id, project_id, slug, description

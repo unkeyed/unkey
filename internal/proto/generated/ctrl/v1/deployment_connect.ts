@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   CreateDeploymentRequest,
   CreateDeploymentResponse,
@@ -10,8 +11,7 @@ import {
   GetDeploymentResponse,
   RollbackRequest,
   RollbackResponse,
-} from "./deployment_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./deployment_pb.js";
 
 /**
  * @generated from service ctrl.v1.DeploymentService

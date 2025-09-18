@@ -2,15 +2,18 @@
 // @generated from file metald/v1/storage.proto (package metald.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metald/v1/storage.proto.
  */
-export const file_metald_v1_storage: GenFile = /*@__PURE__*/
-  fileDesc("ChdtZXRhbGQvdjEvc3RvcmFnZS5wcm90bxIJbWV0YWxkLnYxImwKDFN0b3JhZ2VTdGF0cxISCgpieXRlc19yZWFkGAEgASgDEhUKDWJ5dGVzX3dyaXR0ZW4YAiABKAMSFwoPcmVhZF9vcGVyYXRpb25zGAMgASgDEhgKEHdyaXRlX29wZXJhdGlvbnMYBCABKAMi1AEKDVN0b3JhZ2VEZXZpY2USCgoCaWQYASABKAkSDAoEcGF0aBgCIAEoCRIRCglyZWFkX29ubHkYAyABKAgSFgoOaXNfcm9vdF9kZXZpY2UYBCABKAgSFgoOaW50ZXJmYWNlX3R5cGUYBSABKAkSNgoHb3B0aW9ucxgGIAMoCzIlLm1ldGFsZC52MS5TdG9yYWdlRGV2aWNlLk9wdGlvbnNFbnRyeRouCgxPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUI6WjhnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL21ldGFsZC92MTttZXRhbGR2MWIGcHJvdG8z");
+export const file_metald_v1_storage: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChdtZXRhbGQvdjEvc3RvcmFnZS5wcm90bxIJbWV0YWxkLnYxImwKDFN0b3JhZ2VTdGF0cxISCgpieXRlc19yZWFkGAEgASgDEhUKDWJ5dGVzX3dyaXR0ZW4YAiABKAMSFwoPcmVhZF9vcGVyYXRpb25zGAMgASgDEhgKEHdyaXRlX29wZXJhdGlvbnMYBCABKAMi1AEKDVN0b3JhZ2VEZXZpY2USCgoCaWQYASABKAkSDAoEcGF0aBgCIAEoCRIRCglyZWFkX29ubHkYAyABKAgSFgoOaXNfcm9vdF9kZXZpY2UYBCABKAgSFgoOaW50ZXJmYWNlX3R5cGUYBSABKAkSNgoHb3B0aW9ucxgGIAMoCzIlLm1ldGFsZC52MS5TdG9yYWdlRGV2aWNlLk9wdGlvbnNFbnRyeRouCgxPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUI6WjhnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL21ldGFsZC92MTttZXRhbGR2MWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message metald.v1.StorageStats
@@ -41,7 +44,8 @@ export type StorageStats = Message<"metald.v1.StorageStats"> & {
  * Describes the message metald.v1.StorageStats.
  * Use `create(StorageStatsSchema)` to create a new message.
  */
-export const StorageStatsSchema: GenMessage<StorageStats> = /*@__PURE__*/
+export const StorageStatsSchema: GenMessage<StorageStats> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_storage, 0);
 
 /**
@@ -95,6 +99,6 @@ export type StorageDevice = Message<"metald.v1.StorageDevice"> & {
  * Describes the message metald.v1.StorageDevice.
  * Use `create(StorageDeviceSchema)` to create a new message.
  */
-export const StorageDeviceSchema: GenMessage<StorageDevice> = /*@__PURE__*/
+export const StorageDeviceSchema: GenMessage<StorageDevice> =
+  /*@__PURE__*/
   messageDesc(file_metald_v1_storage, 1);
-

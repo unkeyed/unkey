@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   CancelBuildRequest,
   CancelBuildResponse,
@@ -18,8 +19,7 @@ import {
   ListBuildsResponse,
   StreamBuildLogsRequest,
   StreamBuildLogsResponse,
-} from "./builder_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./builder_pb.js";
 
 /**
  * BuilderService provides multi-tenant build execution for various source types

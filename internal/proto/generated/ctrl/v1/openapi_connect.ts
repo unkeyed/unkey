@@ -3,8 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetOpenApiDiffRequest, GetOpenApiDiffResponse } from "./openapi_pb";
 import { MethodKind } from "@bufbuild/protobuf";
+import { GetOpenApiDiffRequest, GetOpenApiDiffResponse } from "./openapi_pb.js";
 
 /**
  * @generated from service ctrl.v1.OpenApiService

@@ -2,15 +2,18 @@
 // @generated from file assetmanagerd/v1/asset.proto (package assetmanagerd.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file assetmanagerd/v1/asset.proto.
  */
-export const file_assetmanagerd_v1_asset: GenFile = /*@__PURE__*/
-  fileDesc("Chxhc3NldG1hbmFnZXJkL3YxL2Fzc2V0LnByb3RvEhBhc3NldG1hbmFnZXJkLnYxIs0DCgVBc3NldBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEikKBHR5cGUYAyABKA4yGy5hc3NldG1hbmFnZXJkLnYxLkFzc2V0VHlwZRItCgZzdGF0dXMYBCABKA4yHS5hc3NldG1hbmFnZXJkLnYxLkFzc2V0U3RhdHVzEjEKB2JhY2tlbmQYBSABKA4yIC5hc3NldG1hbmFnZXJkLnYxLlN0b3JhZ2VCYWNrZW5kEhAKCGxvY2F0aW9uGAYgASgJEhIKCnNpemVfYnl0ZXMYByABKAMSEAoIY2hlY2tzdW0YCCABKAkSMwoGbGFiZWxzGAkgAygLMiMuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldC5MYWJlbHNFbnRyeRISCgpjcmVhdGVkX2J5GAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAMSGAoQbGFzdF9hY2Nlc3NlZF9hdBgMIAEoAxIXCg9yZWZlcmVuY2VfY291bnQYDSABKAUSEAoIYnVpbGRfaWQYDiABKAkSFAoMc291cmNlX2ltYWdlGA8gASgJGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiaAoSVXBsb2FkQXNzZXRSZXF1ZXN0EjkKCG1ldGFkYXRhGAEgASgLMiUuYXNzZXRtYW5hZ2VyZC52MS5VcGxvYWRBc3NldE1ldGFkYXRhSAASDwoFY2h1bmsYAiABKAxIAEIGCgRkYXRhIpwCChNVcGxvYWRBc3NldE1ldGFkYXRhEgwKBG5hbWUYASABKAkSKQoEdHlwZRgCIAEoDjIbLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRUeXBlEhIKCnNpemVfYnl0ZXMYAyABKAMSQQoGbGFiZWxzGAQgAygLMjEuYXNzZXRtYW5hZ2VyZC52MS5VcGxvYWRBc3NldE1ldGFkYXRhLkxhYmVsc0VudHJ5EhIKCmNyZWF0ZWRfYnkYBSABKAkSEAoIYnVpbGRfaWQYBiABKAkSFAoMc291cmNlX2ltYWdlGAcgASgJEgoKAmlkGAggASgJGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPQoTVXBsb2FkQXNzZXRSZXNwb25zZRImCgVhc3NldBgBIAEoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQi9QIKFFJlZ2lzdGVyQXNzZXRSZXF1ZXN0EgwKBG5hbWUYASABKAkSKQoEdHlwZRgCIAEoDjIbLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRUeXBlEjEKB2JhY2tlbmQYAyABKA4yIC5hc3NldG1hbmFnZXJkLnYxLlN0b3JhZ2VCYWNrZW5kEhAKCGxvY2F0aW9uGAQgASgJEhIKCnNpemVfYnl0ZXMYBSABKAMSEAoIY2hlY2tzdW0YBiABKAkSQgoGbGFiZWxzGAcgAygLMjIuYXNzZXRtYW5hZ2VyZC52MS5SZWdpc3RlckFzc2V0UmVxdWVzdC5MYWJlbHNFbnRyeRISCgpjcmVhdGVkX2J5GAggASgJEhAKCGJ1aWxkX2lkGAkgASgJEhQKDHNvdXJjZV9pbWFnZRgKIAEoCRIKCgJpZBgLIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KFVJlZ2lzdGVyQXNzZXRSZXNwb25zZRImCgVhc3NldBgBIAEoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQiMwoPR2V0QXNzZXRSZXF1ZXN0EgoKAmlkGAEgASgJEhQKDGVuc3VyZV9sb2NhbBgCIAEoCCJOChBHZXRBc3NldFJlc3BvbnNlEiYKBWFzc2V0GAEgASgLMhcuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldBISCgpsb2NhbF9wYXRoGAIgASgJIpoCChFMaXN0QXNzZXRzUmVxdWVzdBIpCgR0eXBlGAEgASgOMhsuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldFR5cGUSLQoGc3RhdHVzGAIgASgOMh0uYXNzZXRtYW5hZ2VyZC52MS5Bc3NldFN0YXR1cxJOCg5sYWJlbF9zZWxlY3RvchgDIAMoCzI2LmFzc2V0bWFuYWdlcmQudjEuTGlzdEFzc2V0c1JlcXVlc3QuTGFiZWxTZWxlY3RvckVudHJ5EhEKCXBhZ2Vfc2l6ZRgEIAEoBRISCgpwYWdlX3Rva2VuGAUgASgJGjQKEkxhYmVsU2VsZWN0b3JFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKEkxpc3RBc3NldHNSZXNwb25zZRInCgZhc3NldHMYASADKAsyFy5hc3NldG1hbmFnZXJkLnYxLkFzc2V0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJRChNBY3F1aXJlQXNzZXRSZXF1ZXN0EhAKCGFzc2V0X2lkGAEgASgJEhMKC2FjcXVpcmVkX2J5GAIgASgJEhMKC3R0bF9zZWNvbmRzGAMgASgDIlAKFEFjcXVpcmVBc3NldFJlc3BvbnNlEiYKBWFzc2V0GAEgASgLMhcuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldBIQCghsZWFzZV9pZBgCIAEoCSInChNSZWxlYXNlQXNzZXRSZXF1ZXN0EhAKCGxlYXNlX2lkGAEgASgJIj4KFFJlbGVhc2VBc3NldFJlc3BvbnNlEiYKBWFzc2V0GAEgASgLMhcuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldCIvChJEZWxldGVBc3NldFJlcXVlc3QSCgoCaWQYASABKAkSDQoFZm9yY2UYAiABKAgiNwoTRGVsZXRlQXNzZXRSZXNwb25zZRIPCgdkZWxldGVkGAEgASgIEg8KB21lc3NhZ2UYAiABKAkiXgoVR2FyYmFnZUNvbGxlY3RSZXF1ZXN0EhcKD21heF9hZ2Vfc2Vjb25kcxgBIAEoAxIbChNkZWxldGVfdW5yZWZlcmVuY2VkGAIgASgIEg8KB2RyeV9ydW4YAyABKAgiXgoWR2FyYmFnZUNvbGxlY3RSZXNwb25zZRIvCg5kZWxldGVkX2Fzc2V0cxgBIAMoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQSEwoLYnl0ZXNfZnJlZWQYAiABKAMiVAoUUHJlcGFyZUFzc2V0c1JlcXVlc3QSEQoJYXNzZXRfaWRzGAEgAygJEhMKC3RhcmdldF9wYXRoGAIgASgJEhQKDHByZXBhcmVkX2ZvchgDIAEoCSKYAQoVUHJlcGFyZUFzc2V0c1Jlc3BvbnNlEkwKC2Fzc2V0X3BhdGhzGAEgAygLMjcuYXNzZXRtYW5hZ2VyZC52MS5QcmVwYXJlQXNzZXRzUmVzcG9uc2UuQXNzZXRQYXRoc0VudHJ5GjEKD0Fzc2V0UGF0aHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBItMCChJRdWVyeUFzc2V0c1JlcXVlc3QSKQoEdHlwZRgBIAEoDjIbLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRUeXBlEi0KBnN0YXR1cxgCIAEoDjIdLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRTdGF0dXMSTwoObGFiZWxfc2VsZWN0b3IYAyADKAsyNy5hc3NldG1hbmFnZXJkLnYxLlF1ZXJ5QXNzZXRzUmVxdWVzdC5MYWJlbFNlbGVjdG9yRW50cnkSEQoJcGFnZV9zaXplGAQgASgFEhIKCnBhZ2VfdG9rZW4YBSABKAkSNQoNYnVpbGRfb3B0aW9ucxgGIAEoCzIeLmFzc2V0bWFuYWdlcmQudjEuQnVpbGRPcHRpb25zGjQKEkxhYmVsU2VsZWN0b3JFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIvwBCgxCdWlsZE9wdGlvbnMSGQoRZW5hYmxlX2F1dG9fYnVpbGQYASABKAgSGwoTd2FpdF9mb3JfY29tcGxldGlvbhgCIAEoCBIdChVidWlsZF90aW1lb3V0X3NlY29uZHMYAyABKAUSRQoMYnVpbGRfbGFiZWxzGAQgAygLMi8uYXNzZXRtYW5hZ2VyZC52MS5CdWlsZE9wdGlvbnMuQnVpbGRMYWJlbHNFbnRyeRIaChJzdWdnZXN0ZWRfYXNzZXRfaWQYBSABKAkaMgoQQnVpbGRMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIo4BChNRdWVyeUFzc2V0c1Jlc3BvbnNlEicKBmFzc2V0cxgBIAMoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEjUKEHRyaWdnZXJlZF9idWlsZHMYAyADKAsyGy5hc3NldG1hbmFnZXJkLnYxLkJ1aWxkSW5mbyJsCglCdWlsZEluZm8SEAoIYnVpbGRfaWQYASABKAkSFAoMZG9ja2VyX2ltYWdlGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIVCg1lcnJvcl9tZXNzYWdlGAQgASgJEhAKCGFzc2V0X2lkGAUgASgJKocBCglBc3NldFR5cGUSGgoWQVNTRVRfVFlQRV9VTlNQRUNJRklFRBAAEhUKEUFTU0VUX1RZUEVfS0VSTkVMEAESFQoRQVNTRVRfVFlQRV9ST09URlMQAhIVChFBU1NFVF9UWVBFX0lOSVRSRBADEhkKFUFTU0VUX1RZUEVfRElTS19JTUFHRRAEKpYBCgtBc3NldFN0YXR1cxIcChhBU1NFVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIaChZBU1NFVF9TVEFUVVNfVVBMT0FESU5HEAESGgoWQVNTRVRfU1RBVFVTX0FWQUlMQUJMRRACEhkKFUFTU0VUX1NUQVRVU19ERUxFVElORxADEhYKEkFTU0VUX1NUQVRVU19FUlJPUhAEKpcBCg5TdG9yYWdlQmFja2VuZBIfChtTVE9SQUdFX0JBQ0tFTkRfVU5TUEVDSUZJRUQQABIZChVTVE9SQUdFX0JBQ0tFTkRfTE9DQUwQARIWChJTVE9SQUdFX0JBQ0tFTkRfUzMQAhIYChRTVE9SQUdFX0JBQ0tFTkRfSFRUUBADEhcKE1NUT1JBR0VfQkFDS0VORF9ORlMQBDK+BwoTQXNzZXRNYW5hZ2VyU2VydmljZRJcCgtVcGxvYWRBc3NldBIkLmFzc2V0bWFuYWdlcmQudjEuVXBsb2FkQXNzZXRSZXF1ZXN0GiUuYXNzZXRtYW5hZ2VyZC52MS5VcGxvYWRBc3NldFJlc3BvbnNlKAESYAoNUmVnaXN0ZXJBc3NldBImLmFzc2V0bWFuYWdlcmQudjEuUmVnaXN0ZXJBc3NldFJlcXVlc3QaJy5hc3NldG1hbmFnZXJkLnYxLlJlZ2lzdGVyQXNzZXRSZXNwb25zZRJRCghHZXRBc3NldBIhLmFzc2V0bWFuYWdlcmQudjEuR2V0QXNzZXRSZXF1ZXN0GiIuYXNzZXRtYW5hZ2VyZC52MS5HZXRBc3NldFJlc3BvbnNlElcKCkxpc3RBc3NldHMSIy5hc3NldG1hbmFnZXJkLnYxLkxpc3RBc3NldHNSZXF1ZXN0GiQuYXNzZXRtYW5hZ2VyZC52MS5MaXN0QXNzZXRzUmVzcG9uc2USXQoMQWNxdWlyZUFzc2V0EiUuYXNzZXRtYW5hZ2VyZC52MS5BY3F1aXJlQXNzZXRSZXF1ZXN0GiYuYXNzZXRtYW5hZ2VyZC52MS5BY3F1aXJlQXNzZXRSZXNwb25zZRJdCgxSZWxlYXNlQXNzZXQSJS5hc3NldG1hbmFnZXJkLnYxLlJlbGVhc2VBc3NldFJlcXVlc3QaJi5hc3NldG1hbmFnZXJkLnYxLlJlbGVhc2VBc3NldFJlc3BvbnNlEloKC0RlbGV0ZUFzc2V0EiQuYXNzZXRtYW5hZ2VyZC52MS5EZWxldGVBc3NldFJlcXVlc3QaJS5hc3NldG1hbmFnZXJkLnYxLkRlbGV0ZUFzc2V0UmVzcG9uc2USYwoOR2FyYmFnZUNvbGxlY3QSJy5hc3NldG1hbmFnZXJkLnYxLkdhcmJhZ2VDb2xsZWN0UmVxdWVzdBooLmFzc2V0bWFuYWdlcmQudjEuR2FyYmFnZUNvbGxlY3RSZXNwb25zZRJgCg1QcmVwYXJlQXNzZXRzEiYuYXNzZXRtYW5hZ2VyZC52MS5QcmVwYXJlQXNzZXRzUmVxdWVzdBonLmFzc2V0bWFuYWdlcmQudjEuUHJlcGFyZUFzc2V0c1Jlc3BvbnNlEloKC1F1ZXJ5QXNzZXRzEiQuYXNzZXRtYW5hZ2VyZC52MS5RdWVyeUFzc2V0c1JlcXVlc3QaJS5hc3NldG1hbmFnZXJkLnYxLlF1ZXJ5QXNzZXRzUmVzcG9uc2VCSFpGZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9hc3NldG1hbmFnZXJkL3YxO2Fzc2V0bWFuYWdlcmR2MWIGcHJvdG8z");
+export const file_assetmanagerd_v1_asset: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "Chxhc3NldG1hbmFnZXJkL3YxL2Fzc2V0LnByb3RvEhBhc3NldG1hbmFnZXJkLnYxIs0DCgVBc3NldBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEikKBHR5cGUYAyABKA4yGy5hc3NldG1hbmFnZXJkLnYxLkFzc2V0VHlwZRItCgZzdGF0dXMYBCABKA4yHS5hc3NldG1hbmFnZXJkLnYxLkFzc2V0U3RhdHVzEjEKB2JhY2tlbmQYBSABKA4yIC5hc3NldG1hbmFnZXJkLnYxLlN0b3JhZ2VCYWNrZW5kEhAKCGxvY2F0aW9uGAYgASgJEhIKCnNpemVfYnl0ZXMYByABKAMSEAoIY2hlY2tzdW0YCCABKAkSMwoGbGFiZWxzGAkgAygLMiMuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldC5MYWJlbHNFbnRyeRISCgpjcmVhdGVkX2J5GAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAMSGAoQbGFzdF9hY2Nlc3NlZF9hdBgMIAEoAxIXCg9yZWZlcmVuY2VfY291bnQYDSABKAUSEAoIYnVpbGRfaWQYDiABKAkSFAoMc291cmNlX2ltYWdlGA8gASgJGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiaAoSVXBsb2FkQXNzZXRSZXF1ZXN0EjkKCG1ldGFkYXRhGAEgASgLMiUuYXNzZXRtYW5hZ2VyZC52MS5VcGxvYWRBc3NldE1ldGFkYXRhSAASDwoFY2h1bmsYAiABKAxIAEIGCgRkYXRhIpwCChNVcGxvYWRBc3NldE1ldGFkYXRhEgwKBG5hbWUYASABKAkSKQoEdHlwZRgCIAEoDjIbLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRUeXBlEhIKCnNpemVfYnl0ZXMYAyABKAMSQQoGbGFiZWxzGAQgAygLMjEuYXNzZXRtYW5hZ2VyZC52MS5VcGxvYWRBc3NldE1ldGFkYXRhLkxhYmVsc0VudHJ5EhIKCmNyZWF0ZWRfYnkYBSABKAkSEAoIYnVpbGRfaWQYBiABKAkSFAoMc291cmNlX2ltYWdlGAcgASgJEgoKAmlkGAggASgJGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPQoTVXBsb2FkQXNzZXRSZXNwb25zZRImCgVhc3NldBgBIAEoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQi9QIKFFJlZ2lzdGVyQXNzZXRSZXF1ZXN0EgwKBG5hbWUYASABKAkSKQoEdHlwZRgCIAEoDjIbLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRUeXBlEjEKB2JhY2tlbmQYAyABKA4yIC5hc3NldG1hbmFnZXJkLnYxLlN0b3JhZ2VCYWNrZW5kEhAKCGxvY2F0aW9uGAQgASgJEhIKCnNpemVfYnl0ZXMYBSABKAMSEAoIY2hlY2tzdW0YBiABKAkSQgoGbGFiZWxzGAcgAygLMjIuYXNzZXRtYW5hZ2VyZC52MS5SZWdpc3RlckFzc2V0UmVxdWVzdC5MYWJlbHNFbnRyeRISCgpjcmVhdGVkX2J5GAggASgJEhAKCGJ1aWxkX2lkGAkgASgJEhQKDHNvdXJjZV9pbWFnZRgKIAEoCRIKCgJpZBgLIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KFVJlZ2lzdGVyQXNzZXRSZXNwb25zZRImCgVhc3NldBgBIAEoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQiMwoPR2V0QXNzZXRSZXF1ZXN0EgoKAmlkGAEgASgJEhQKDGVuc3VyZV9sb2NhbBgCIAEoCCJOChBHZXRBc3NldFJlc3BvbnNlEiYKBWFzc2V0GAEgASgLMhcuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldBISCgpsb2NhbF9wYXRoGAIgASgJIpoCChFMaXN0QXNzZXRzUmVxdWVzdBIpCgR0eXBlGAEgASgOMhsuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldFR5cGUSLQoGc3RhdHVzGAIgASgOMh0uYXNzZXRtYW5hZ2VyZC52MS5Bc3NldFN0YXR1cxJOCg5sYWJlbF9zZWxlY3RvchgDIAMoCzI2LmFzc2V0bWFuYWdlcmQudjEuTGlzdEFzc2V0c1JlcXVlc3QuTGFiZWxTZWxlY3RvckVudHJ5EhEKCXBhZ2Vfc2l6ZRgEIAEoBRISCgpwYWdlX3Rva2VuGAUgASgJGjQKEkxhYmVsU2VsZWN0b3JFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKEkxpc3RBc3NldHNSZXNwb25zZRInCgZhc3NldHMYASADKAsyFy5hc3NldG1hbmFnZXJkLnYxLkFzc2V0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJRChNBY3F1aXJlQXNzZXRSZXF1ZXN0EhAKCGFzc2V0X2lkGAEgASgJEhMKC2FjcXVpcmVkX2J5GAIgASgJEhMKC3R0bF9zZWNvbmRzGAMgASgDIlAKFEFjcXVpcmVBc3NldFJlc3BvbnNlEiYKBWFzc2V0GAEgASgLMhcuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldBIQCghsZWFzZV9pZBgCIAEoCSInChNSZWxlYXNlQXNzZXRSZXF1ZXN0EhAKCGxlYXNlX2lkGAEgASgJIj4KFFJlbGVhc2VBc3NldFJlc3BvbnNlEiYKBWFzc2V0GAEgASgLMhcuYXNzZXRtYW5hZ2VyZC52MS5Bc3NldCIvChJEZWxldGVBc3NldFJlcXVlc3QSCgoCaWQYASABKAkSDQoFZm9yY2UYAiABKAgiNwoTRGVsZXRlQXNzZXRSZXNwb25zZRIPCgdkZWxldGVkGAEgASgIEg8KB21lc3NhZ2UYAiABKAkiXgoVR2FyYmFnZUNvbGxlY3RSZXF1ZXN0EhcKD21heF9hZ2Vfc2Vjb25kcxgBIAEoAxIbChNkZWxldGVfdW5yZWZlcmVuY2VkGAIgASgIEg8KB2RyeV9ydW4YAyABKAgiXgoWR2FyYmFnZUNvbGxlY3RSZXNwb25zZRIvCg5kZWxldGVkX2Fzc2V0cxgBIAMoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQSEwoLYnl0ZXNfZnJlZWQYAiABKAMiVAoUUHJlcGFyZUFzc2V0c1JlcXVlc3QSEQoJYXNzZXRfaWRzGAEgAygJEhMKC3RhcmdldF9wYXRoGAIgASgJEhQKDHByZXBhcmVkX2ZvchgDIAEoCSKYAQoVUHJlcGFyZUFzc2V0c1Jlc3BvbnNlEkwKC2Fzc2V0X3BhdGhzGAEgAygLMjcuYXNzZXRtYW5hZ2VyZC52MS5QcmVwYXJlQXNzZXRzUmVzcG9uc2UuQXNzZXRQYXRoc0VudHJ5GjEKD0Fzc2V0UGF0aHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBItMCChJRdWVyeUFzc2V0c1JlcXVlc3QSKQoEdHlwZRgBIAEoDjIbLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRUeXBlEi0KBnN0YXR1cxgCIAEoDjIdLmFzc2V0bWFuYWdlcmQudjEuQXNzZXRTdGF0dXMSTwoObGFiZWxfc2VsZWN0b3IYAyADKAsyNy5hc3NldG1hbmFnZXJkLnYxLlF1ZXJ5QXNzZXRzUmVxdWVzdC5MYWJlbFNlbGVjdG9yRW50cnkSEQoJcGFnZV9zaXplGAQgASgFEhIKCnBhZ2VfdG9rZW4YBSABKAkSNQoNYnVpbGRfb3B0aW9ucxgGIAEoCzIeLmFzc2V0bWFuYWdlcmQudjEuQnVpbGRPcHRpb25zGjQKEkxhYmVsU2VsZWN0b3JFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIvwBCgxCdWlsZE9wdGlvbnMSGQoRZW5hYmxlX2F1dG9fYnVpbGQYASABKAgSGwoTd2FpdF9mb3JfY29tcGxldGlvbhgCIAEoCBIdChVidWlsZF90aW1lb3V0X3NlY29uZHMYAyABKAUSRQoMYnVpbGRfbGFiZWxzGAQgAygLMi8uYXNzZXRtYW5hZ2VyZC52MS5CdWlsZE9wdGlvbnMuQnVpbGRMYWJlbHNFbnRyeRIaChJzdWdnZXN0ZWRfYXNzZXRfaWQYBSABKAkaMgoQQnVpbGRMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIo4BChNRdWVyeUFzc2V0c1Jlc3BvbnNlEicKBmFzc2V0cxgBIAMoCzIXLmFzc2V0bWFuYWdlcmQudjEuQXNzZXQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEjUKEHRyaWdnZXJlZF9idWlsZHMYAyADKAsyGy5hc3NldG1hbmFnZXJkLnYxLkJ1aWxkSW5mbyJsCglCdWlsZEluZm8SEAoIYnVpbGRfaWQYASABKAkSFAoMZG9ja2VyX2ltYWdlGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIVCg1lcnJvcl9tZXNzYWdlGAQgASgJEhAKCGFzc2V0X2lkGAUgASgJKocBCglBc3NldFR5cGUSGgoWQVNTRVRfVFlQRV9VTlNQRUNJRklFRBAAEhUKEUFTU0VUX1RZUEVfS0VSTkVMEAESFQoRQVNTRVRfVFlQRV9ST09URlMQAhIVChFBU1NFVF9UWVBFX0lOSVRSRBADEhkKFUFTU0VUX1RZUEVfRElTS19JTUFHRRAEKpYBCgtBc3NldFN0YXR1cxIcChhBU1NFVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIaChZBU1NFVF9TVEFUVVNfVVBMT0FESU5HEAESGgoWQVNTRVRfU1RBVFVTX0FWQUlMQUJMRRACEhkKFUFTU0VUX1NUQVRVU19ERUxFVElORxADEhYKEkFTU0VUX1NUQVRVU19FUlJPUhAEKpcBCg5TdG9yYWdlQmFja2VuZBIfChtTVE9SQUdFX0JBQ0tFTkRfVU5TUEVDSUZJRUQQABIZChVTVE9SQUdFX0JBQ0tFTkRfTE9DQUwQARIWChJTVE9SQUdFX0JBQ0tFTkRfUzMQAhIYChRTVE9SQUdFX0JBQ0tFTkRfSFRUUBADEhcKE1NUT1JBR0VfQkFDS0VORF9ORlMQBDK+BwoTQXNzZXRNYW5hZ2VyU2VydmljZRJcCgtVcGxvYWRBc3NldBIkLmFzc2V0bWFuYWdlcmQudjEuVXBsb2FkQXNzZXRSZXF1ZXN0GiUuYXNzZXRtYW5hZ2VyZC52MS5VcGxvYWRBc3NldFJlc3BvbnNlKAESYAoNUmVnaXN0ZXJBc3NldBImLmFzc2V0bWFuYWdlcmQudjEuUmVnaXN0ZXJBc3NldFJlcXVlc3QaJy5hc3NldG1hbmFnZXJkLnYxLlJlZ2lzdGVyQXNzZXRSZXNwb25zZRJRCghHZXRBc3NldBIhLmFzc2V0bWFuYWdlcmQudjEuR2V0QXNzZXRSZXF1ZXN0GiIuYXNzZXRtYW5hZ2VyZC52MS5HZXRBc3NldFJlc3BvbnNlElcKCkxpc3RBc3NldHMSIy5hc3NldG1hbmFnZXJkLnYxLkxpc3RBc3NldHNSZXF1ZXN0GiQuYXNzZXRtYW5hZ2VyZC52MS5MaXN0QXNzZXRzUmVzcG9uc2USXQoMQWNxdWlyZUFzc2V0EiUuYXNzZXRtYW5hZ2VyZC52MS5BY3F1aXJlQXNzZXRSZXF1ZXN0GiYuYXNzZXRtYW5hZ2VyZC52MS5BY3F1aXJlQXNzZXRSZXNwb25zZRJdCgxSZWxlYXNlQXNzZXQSJS5hc3NldG1hbmFnZXJkLnYxLlJlbGVhc2VBc3NldFJlcXVlc3QaJi5hc3NldG1hbmFnZXJkLnYxLlJlbGVhc2VBc3NldFJlc3BvbnNlEloKC0RlbGV0ZUFzc2V0EiQuYXNzZXRtYW5hZ2VyZC52MS5EZWxldGVBc3NldFJlcXVlc3QaJS5hc3NldG1hbmFnZXJkLnYxLkRlbGV0ZUFzc2V0UmVzcG9uc2USYwoOR2FyYmFnZUNvbGxlY3QSJy5hc3NldG1hbmFnZXJkLnYxLkdhcmJhZ2VDb2xsZWN0UmVxdWVzdBooLmFzc2V0bWFuYWdlcmQudjEuR2FyYmFnZUNvbGxlY3RSZXNwb25zZRJgCg1QcmVwYXJlQXNzZXRzEiYuYXNzZXRtYW5hZ2VyZC52MS5QcmVwYXJlQXNzZXRzUmVxdWVzdBonLmFzc2V0bWFuYWdlcmQudjEuUHJlcGFyZUFzc2V0c1Jlc3BvbnNlEloKC1F1ZXJ5QXNzZXRzEiQuYXNzZXRtYW5hZ2VyZC52MS5RdWVyeUFzc2V0c1JlcXVlc3QaJS5hc3NldG1hbmFnZXJkLnYxLlF1ZXJ5QXNzZXRzUmVzcG9uc2VCSFpGZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9hc3NldG1hbmFnZXJkL3YxO2Fzc2V0bWFuYWdlcmR2MWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message assetmanagerd.v1.Asset
@@ -112,7 +115,8 @@ export type Asset = Message<"assetmanagerd.v1.Asset"> & {
  * Describes the message assetmanagerd.v1.Asset.
  * Use `create(AssetSchema)` to create a new message.
  */
-export const AssetSchema: GenMessage<Asset> = /*@__PURE__*/
+export const AssetSchema: GenMessage<Asset> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 0);
 
 /**
@@ -122,26 +126,30 @@ export type UploadAssetRequest = Message<"assetmanagerd.v1.UploadAssetRequest"> 
   /**
    * @generated from oneof assetmanagerd.v1.UploadAssetRequest.data
    */
-  data: {
-    /**
-     * @generated from field: assetmanagerd.v1.UploadAssetMetadata metadata = 1;
-     */
-    value: UploadAssetMetadata;
-    case: "metadata";
-  } | {
-    /**
-     * @generated from field: bytes chunk = 2;
-     */
-    value: Uint8Array;
-    case: "chunk";
-  } | { case: undefined; value?: undefined };
+  data:
+    | {
+        /**
+         * @generated from field: assetmanagerd.v1.UploadAssetMetadata metadata = 1;
+         */
+        value: UploadAssetMetadata;
+        case: "metadata";
+      }
+    | {
+        /**
+         * @generated from field: bytes chunk = 2;
+         */
+        value: Uint8Array;
+        case: "chunk";
+      }
+    | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message assetmanagerd.v1.UploadAssetRequest.
  * Use `create(UploadAssetRequestSchema)` to create a new message.
  */
-export const UploadAssetRequestSchema: GenMessage<UploadAssetRequest> = /*@__PURE__*/
+export const UploadAssetRequestSchema: GenMessage<UploadAssetRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 1);
 
 /**
@@ -195,7 +203,8 @@ export type UploadAssetMetadata = Message<"assetmanagerd.v1.UploadAssetMetadata"
  * Describes the message assetmanagerd.v1.UploadAssetMetadata.
  * Use `create(UploadAssetMetadataSchema)` to create a new message.
  */
-export const UploadAssetMetadataSchema: GenMessage<UploadAssetMetadata> = /*@__PURE__*/
+export const UploadAssetMetadataSchema: GenMessage<UploadAssetMetadata> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 2);
 
 /**
@@ -212,7 +221,8 @@ export type UploadAssetResponse = Message<"assetmanagerd.v1.UploadAssetResponse"
  * Describes the message assetmanagerd.v1.UploadAssetResponse.
  * Use `create(UploadAssetResponseSchema)` to create a new message.
  */
-export const UploadAssetResponseSchema: GenMessage<UploadAssetResponse> = /*@__PURE__*/
+export const UploadAssetResponseSchema: GenMessage<UploadAssetResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 3);
 
 /**
@@ -283,7 +293,8 @@ export type RegisterAssetRequest = Message<"assetmanagerd.v1.RegisterAssetReques
  * Describes the message assetmanagerd.v1.RegisterAssetRequest.
  * Use `create(RegisterAssetRequestSchema)` to create a new message.
  */
-export const RegisterAssetRequestSchema: GenMessage<RegisterAssetRequest> = /*@__PURE__*/
+export const RegisterAssetRequestSchema: GenMessage<RegisterAssetRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 4);
 
 /**
@@ -300,7 +311,8 @@ export type RegisterAssetResponse = Message<"assetmanagerd.v1.RegisterAssetRespo
  * Describes the message assetmanagerd.v1.RegisterAssetResponse.
  * Use `create(RegisterAssetResponseSchema)` to create a new message.
  */
-export const RegisterAssetResponseSchema: GenMessage<RegisterAssetResponse> = /*@__PURE__*/
+export const RegisterAssetResponseSchema: GenMessage<RegisterAssetResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 5);
 
 /**
@@ -324,7 +336,8 @@ export type GetAssetRequest = Message<"assetmanagerd.v1.GetAssetRequest"> & {
  * Describes the message assetmanagerd.v1.GetAssetRequest.
  * Use `create(GetAssetRequestSchema)` to create a new message.
  */
-export const GetAssetRequestSchema: GenMessage<GetAssetRequest> = /*@__PURE__*/
+export const GetAssetRequestSchema: GenMessage<GetAssetRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 6);
 
 /**
@@ -348,7 +361,8 @@ export type GetAssetResponse = Message<"assetmanagerd.v1.GetAssetResponse"> & {
  * Describes the message assetmanagerd.v1.GetAssetResponse.
  * Use `create(GetAssetResponseSchema)` to create a new message.
  */
-export const GetAssetResponseSchema: GenMessage<GetAssetResponse> = /*@__PURE__*/
+export const GetAssetResponseSchema: GenMessage<GetAssetResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 7);
 
 /**
@@ -393,7 +407,8 @@ export type ListAssetsRequest = Message<"assetmanagerd.v1.ListAssetsRequest"> & 
  * Describes the message assetmanagerd.v1.ListAssetsRequest.
  * Use `create(ListAssetsRequestSchema)` to create a new message.
  */
-export const ListAssetsRequestSchema: GenMessage<ListAssetsRequest> = /*@__PURE__*/
+export const ListAssetsRequestSchema: GenMessage<ListAssetsRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 8);
 
 /**
@@ -415,7 +430,8 @@ export type ListAssetsResponse = Message<"assetmanagerd.v1.ListAssetsResponse"> 
  * Describes the message assetmanagerd.v1.ListAssetsResponse.
  * Use `create(ListAssetsResponseSchema)` to create a new message.
  */
-export const ListAssetsResponseSchema: GenMessage<ListAssetsResponse> = /*@__PURE__*/
+export const ListAssetsResponseSchema: GenMessage<ListAssetsResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 9);
 
 /**
@@ -446,7 +462,8 @@ export type AcquireAssetRequest = Message<"assetmanagerd.v1.AcquireAssetRequest"
  * Describes the message assetmanagerd.v1.AcquireAssetRequest.
  * Use `create(AcquireAssetRequestSchema)` to create a new message.
  */
-export const AcquireAssetRequestSchema: GenMessage<AcquireAssetRequest> = /*@__PURE__*/
+export const AcquireAssetRequestSchema: GenMessage<AcquireAssetRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 10);
 
 /**
@@ -470,7 +487,8 @@ export type AcquireAssetResponse = Message<"assetmanagerd.v1.AcquireAssetRespons
  * Describes the message assetmanagerd.v1.AcquireAssetResponse.
  * Use `create(AcquireAssetResponseSchema)` to create a new message.
  */
-export const AcquireAssetResponseSchema: GenMessage<AcquireAssetResponse> = /*@__PURE__*/
+export const AcquireAssetResponseSchema: GenMessage<AcquireAssetResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 11);
 
 /**
@@ -487,7 +505,8 @@ export type ReleaseAssetRequest = Message<"assetmanagerd.v1.ReleaseAssetRequest"
  * Describes the message assetmanagerd.v1.ReleaseAssetRequest.
  * Use `create(ReleaseAssetRequestSchema)` to create a new message.
  */
-export const ReleaseAssetRequestSchema: GenMessage<ReleaseAssetRequest> = /*@__PURE__*/
+export const ReleaseAssetRequestSchema: GenMessage<ReleaseAssetRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 12);
 
 /**
@@ -504,7 +523,8 @@ export type ReleaseAssetResponse = Message<"assetmanagerd.v1.ReleaseAssetRespons
  * Describes the message assetmanagerd.v1.ReleaseAssetResponse.
  * Use `create(ReleaseAssetResponseSchema)` to create a new message.
  */
-export const ReleaseAssetResponseSchema: GenMessage<ReleaseAssetResponse> = /*@__PURE__*/
+export const ReleaseAssetResponseSchema: GenMessage<ReleaseAssetResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 13);
 
 /**
@@ -528,7 +548,8 @@ export type DeleteAssetRequest = Message<"assetmanagerd.v1.DeleteAssetRequest"> 
  * Describes the message assetmanagerd.v1.DeleteAssetRequest.
  * Use `create(DeleteAssetRequestSchema)` to create a new message.
  */
-export const DeleteAssetRequestSchema: GenMessage<DeleteAssetRequest> = /*@__PURE__*/
+export const DeleteAssetRequestSchema: GenMessage<DeleteAssetRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 14);
 
 /**
@@ -550,7 +571,8 @@ export type DeleteAssetResponse = Message<"assetmanagerd.v1.DeleteAssetResponse"
  * Describes the message assetmanagerd.v1.DeleteAssetResponse.
  * Use `create(DeleteAssetResponseSchema)` to create a new message.
  */
-export const DeleteAssetResponseSchema: GenMessage<DeleteAssetResponse> = /*@__PURE__*/
+export const DeleteAssetResponseSchema: GenMessage<DeleteAssetResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 15);
 
 /**
@@ -583,7 +605,8 @@ export type GarbageCollectRequest = Message<"assetmanagerd.v1.GarbageCollectRequ
  * Describes the message assetmanagerd.v1.GarbageCollectRequest.
  * Use `create(GarbageCollectRequestSchema)` to create a new message.
  */
-export const GarbageCollectRequestSchema: GenMessage<GarbageCollectRequest> = /*@__PURE__*/
+export const GarbageCollectRequestSchema: GenMessage<GarbageCollectRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 16);
 
 /**
@@ -605,7 +628,8 @@ export type GarbageCollectResponse = Message<"assetmanagerd.v1.GarbageCollectRes
  * Describes the message assetmanagerd.v1.GarbageCollectResponse.
  * Use `create(GarbageCollectResponseSchema)` to create a new message.
  */
-export const GarbageCollectResponseSchema: GenMessage<GarbageCollectResponse> = /*@__PURE__*/
+export const GarbageCollectResponseSchema: GenMessage<GarbageCollectResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 17);
 
 /**
@@ -636,7 +660,8 @@ export type PrepareAssetsRequest = Message<"assetmanagerd.v1.PrepareAssetsReques
  * Describes the message assetmanagerd.v1.PrepareAssetsRequest.
  * Use `create(PrepareAssetsRequestSchema)` to create a new message.
  */
-export const PrepareAssetsRequestSchema: GenMessage<PrepareAssetsRequest> = /*@__PURE__*/
+export const PrepareAssetsRequestSchema: GenMessage<PrepareAssetsRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 18);
 
 /**
@@ -655,7 +680,8 @@ export type PrepareAssetsResponse = Message<"assetmanagerd.v1.PrepareAssetsRespo
  * Describes the message assetmanagerd.v1.PrepareAssetsResponse.
  * Use `create(PrepareAssetsResponseSchema)` to create a new message.
  */
-export const PrepareAssetsResponseSchema: GenMessage<PrepareAssetsResponse> = /*@__PURE__*/
+export const PrepareAssetsResponseSchema: GenMessage<PrepareAssetsResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 19);
 
 /**
@@ -709,7 +735,8 @@ export type QueryAssetsRequest = Message<"assetmanagerd.v1.QueryAssetsRequest"> 
  * Describes the message assetmanagerd.v1.QueryAssetsRequest.
  * Use `create(QueryAssetsRequestSchema)` to create a new message.
  */
-export const QueryAssetsRequestSchema: GenMessage<QueryAssetsRequest> = /*@__PURE__*/
+export const QueryAssetsRequestSchema: GenMessage<QueryAssetsRequest> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 20);
 
 /**
@@ -759,7 +786,8 @@ export type BuildOptions = Message<"assetmanagerd.v1.BuildOptions"> & {
  * Describes the message assetmanagerd.v1.BuildOptions.
  * Use `create(BuildOptionsSchema)` to create a new message.
  */
-export const BuildOptionsSchema: GenMessage<BuildOptions> = /*@__PURE__*/
+export const BuildOptionsSchema: GenMessage<BuildOptions> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 21);
 
 /**
@@ -790,7 +818,8 @@ export type QueryAssetsResponse = Message<"assetmanagerd.v1.QueryAssetsResponse"
  * Describes the message assetmanagerd.v1.QueryAssetsResponse.
  * Use `create(QueryAssetsResponseSchema)` to create a new message.
  */
-export const QueryAssetsResponseSchema: GenMessage<QueryAssetsResponse> = /*@__PURE__*/
+export const QueryAssetsResponseSchema: GenMessage<QueryAssetsResponse> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 22);
 
 /**
@@ -833,7 +862,8 @@ export type BuildInfo = Message<"assetmanagerd.v1.BuildInfo"> & {
  * Describes the message assetmanagerd.v1.BuildInfo.
  * Use `create(BuildInfoSchema)` to create a new message.
  */
-export const BuildInfoSchema: GenMessage<BuildInfo> = /*@__PURE__*/
+export const BuildInfoSchema: GenMessage<BuildInfo> =
+  /*@__PURE__*/
   messageDesc(file_assetmanagerd_v1_asset, 23);
 
 /**
@@ -869,7 +899,8 @@ export enum AssetType {
 /**
  * Describes the enum assetmanagerd.v1.AssetType.
  */
-export const AssetTypeSchema: GenEnum<AssetType> = /*@__PURE__*/
+export const AssetTypeSchema: GenEnum<AssetType> =
+  /*@__PURE__*/
   enumDesc(file_assetmanagerd_v1_asset, 0);
 
 /**
@@ -905,7 +936,8 @@ export enum AssetStatus {
 /**
  * Describes the enum assetmanagerd.v1.AssetStatus.
  */
-export const AssetStatusSchema: GenEnum<AssetStatus> = /*@__PURE__*/
+export const AssetStatusSchema: GenEnum<AssetStatus> =
+  /*@__PURE__*/
   enumDesc(file_assetmanagerd_v1_asset, 1);
 
 /**
@@ -941,7 +973,8 @@ export enum StorageBackend {
 /**
  * Describes the enum assetmanagerd.v1.StorageBackend.
  */
-export const StorageBackendSchema: GenEnum<StorageBackend> = /*@__PURE__*/
+export const StorageBackendSchema: GenEnum<StorageBackend> =
+  /*@__PURE__*/
   enumDesc(file_assetmanagerd_v1_asset, 2);
 
 /**
@@ -960,7 +993,7 @@ export const AssetManagerService: GenService<{
     methodKind: "client_streaming";
     input: typeof UploadAssetRequestSchema;
     output: typeof UploadAssetResponseSchema;
-  },
+  };
   /**
    * Register a new asset (called by builderd after creating images)
    *
@@ -970,7 +1003,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof RegisterAssetRequestSchema;
     output: typeof RegisterAssetResponseSchema;
-  },
+  };
   /**
    * Get asset location and metadata
    *
@@ -980,7 +1013,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof GetAssetRequestSchema;
     output: typeof GetAssetResponseSchema;
-  },
+  };
   /**
    * List available assets with filtering
    *
@@ -990,7 +1023,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof ListAssetsRequestSchema;
     output: typeof ListAssetsResponseSchema;
-  },
+  };
   /**
    * Mark asset as in-use (reference counting for GC)
    *
@@ -1000,7 +1033,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof AcquireAssetRequestSchema;
     output: typeof AcquireAssetResponseSchema;
-  },
+  };
   /**
    * Release asset reference (decrements ref count)
    *
@@ -1010,7 +1043,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof ReleaseAssetRequestSchema;
     output: typeof ReleaseAssetResponseSchema;
-  },
+  };
   /**
    * Delete an asset (only if ref count is 0)
    *
@@ -1020,7 +1053,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof DeleteAssetRequestSchema;
     output: typeof DeleteAssetResponseSchema;
-  },
+  };
   /**
    * Trigger garbage collection of unused assets
    *
@@ -1030,7 +1063,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof GarbageCollectRequestSchema;
     output: typeof GarbageCollectResponseSchema;
-  },
+  };
   /**
    * Pre-stage assets for a specific host/jailer
    *
@@ -1040,7 +1073,7 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof PrepareAssetsRequestSchema;
     output: typeof PrepareAssetsResponseSchema;
-  },
+  };
   /**
    * Query assets with automatic build triggering if not found
    * This is the enhanced version of ListAssets that supports automatic asset creation
@@ -1051,7 +1084,5 @@ export const AssetManagerService: GenService<{
     methodKind: "unary";
     input: typeof QueryAssetsRequestSchema;
     output: typeof QueryAssetsResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_assetmanagerd_v1_asset, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_assetmanagerd_v1_asset, 0);

@@ -3,13 +3,13 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   CreateBuildRequest,
   CreateBuildResponse,
   GetBuildRequest,
   GetBuildResponse,
-} from "./build_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./build_pb.js";
 
 /**
  * @generated from service ctrl.v1.BuildService

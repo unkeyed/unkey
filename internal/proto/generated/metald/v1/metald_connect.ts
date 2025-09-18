@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { MethodKind } from "@bufbuild/protobuf";
 import {
   CreateDeploymentRequest,
   CreateDeploymentResponse,
@@ -12,8 +13,7 @@ import {
   GetDeploymentResponse,
   UpdateDeploymentRequest,
   UpdateDeploymentResponse,
-} from "./deployment_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+} from "./deployment_pb.js";
 import {
   BootVmRequest,
   BootVmResponse,
@@ -33,7 +33,7 @@ import {
   ResumeVmResponse,
   ShutdownVmRequest,
   ShutdownVmResponse,
-} from "./vm_pb";
+} from "./vm_pb.js";
 
 /**
  * VmService provides unified VM management across different hypervisor backends
