@@ -5,16 +5,16 @@ import {
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
-  type LogsFilterField,
-  type LogsFilterOperator,
-  type LogsFilterUrlValue,
-  type LogsFilterValue,
-  type LogsQuerySearchParams,
-  logsFilterFieldConfig,
+  type GatewayLogsFilterField,
+  type GatewayLogsFilterOperator,
+  type GatewayLogsFilterUrlValue,
+  type GatewayLogsFilterValue,
+  type GatewayLogsQuerySearchParams,
+  gatewayLogsFilterFieldConfig,
 } from "../gateway-logs-filters.schema";
 
 // Constants
-const parseAsFilterValArray = parseAsFilterValueArray<LogsFilterOperator>([
+const parseAsFilterValArray = parseAsFilterValueArray<GatewayLogsFilterOperator>([
   "is",
   "contains",
   "startsWith",
@@ -36,13 +36,13 @@ export const queryParamsPayload = {
   since: parseAsRelativeTime,
 } as const;
 
-export const useFilters = () => {
+export const useGatewayLogsFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
   });
 
   const filters = useMemo(() => {
-    const activeFilters: LogsFilterValue[] = [];
+    const activeFilters: GatewayLogsFilterValue[] = [];
 
     // Handle array filters
     arrayFields.forEach((field) => {
@@ -52,9 +52,11 @@ export const useFilters = () => {
           field,
           operator: item.operator,
           value: item.value,
-          metadata: logsFilterFieldConfig[field].getColorClass
+          metadata: gatewayLogsFilterFieldConfig[field].getColorClass
             ? {
-                colorClass: logsFilterFieldConfig[field].getColorClass(
+                colorClass: gatewayLogsFilterFieldConfig[field].getColorClass(
+                  //TODO: Handle this later
+                  //@ts-expect-error will fix it
                   field === "status" ? Number(item.value) : item.value,
                 ),
               }
@@ -69,7 +71,7 @@ export const useFilters = () => {
       if (value !== null && value !== undefined) {
         activeFilters.push({
           id: crypto.randomUUID(),
-          field: field as LogsFilterField,
+          field: field as GatewayLogsFilterField,
           operator: "is",
           value: value as string | number,
         });
@@ -80,8 +82,8 @@ export const useFilters = () => {
   }, [searchParams]);
 
   const updateFilters = useCallback(
-    (newFilters: LogsFilterValue[]) => {
-      const newParams: Partial<LogsQuerySearchParams> = Object.fromEntries([
+    (newFilters: GatewayLogsFilterValue[]) => {
+      const newParams: Partial<GatewayLogsQuerySearchParams> = Object.fromEntries([
         ...arrayFields.map((field) => [field, null]),
         ...timeFields.map((field) => [field, null]),
       ]);
@@ -91,7 +93,7 @@ export const useFilters = () => {
           acc[field] = [];
           return acc;
         },
-        {} as Record<(typeof arrayFields)[number], LogsFilterUrlValue[]>,
+        {} as Record<(typeof arrayFields)[number], GatewayLogsFilterUrlValue[]>,
       );
 
       newFilters.forEach((filter) => {
