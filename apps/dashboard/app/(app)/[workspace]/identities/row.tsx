@@ -2,6 +2,7 @@
 
 import { TableCell, TableRow } from "@/components/ui/table";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { memo, useCallback, useMemo, useRef } from "react";
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
 
 function RowComponent(props: Props) {
   const { identity, workspaceSlug } = props;
+  const router = useRouter();
 
   const detailsUrl = useMemo(() => {
     const encodedWorkspaceId = encodeURIComponent(workspaceSlug);
@@ -47,34 +49,44 @@ function RowComponent(props: Props) {
     }, 100); // 100ms debounce
   }, []);
 
+  const handleRowClick = useCallback(() => {
+    router.push(detailsUrl);
+  }, [router, detailsUrl]);
+
   return (
-    <TableRow className="group">
-      <Link
-        href={detailsUrl}
-        prefetch={false}
-        scroll={false}
-        onMouseEnter={handlePrefetch}
-        onFocus={handlePrefetch}
-        className="contents"
-        aria-label={`View details for identity ${identity.externalId}`}
-      >
-        <TableCell className="group-hover:bg-muted/50 transition-colors">
-          <span className="font-mono text-xs text-content">{identity.externalId}</span>
-        </TableCell>
-        <TableCell className="flex flex-col gap-1 group-hover:bg-muted/50 transition-colors">
-          <pre className="text-xs text-content font-mono">
-            {JSON.stringify(identity.meta, null, 2)}
-          </pre>
-        </TableCell>
+    <TableRow
+      className="group cursor-pointer"
+      onClick={handleRowClick}
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleRowClick();
+        }
+      }}
+      aria-label={`View details for identity ${identity.externalId}`}
+    >
+      <TableCell className="group-hover:bg-muted/50 transition-colors">
+        <span className="font-mono text-xs text-content">
+          {identity.externalId}
+        </span>
+      </TableCell>
+      <TableCell className="flex flex-col gap-1 group-hover:bg-muted/50 transition-colors">
+        <pre className="text-xs text-content font-mono">
+          {JSON.stringify(identity.meta, null, 2)}
+        </pre>
+      </TableCell>
 
-        <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">
-          {identity.keys.length}
-        </TableCell>
+      <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">
+        {identity.keys.length}
+      </TableCell>
 
-        <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">
-          {identity.ratelimits.length}
-        </TableCell>
-      </Link>
+      <TableCell className="font-mono group-hover:bg-muted/50 transition-colors">
+        {identity.ratelimits.length}
+      </TableCell>
     </TableRow>
   );
 }
