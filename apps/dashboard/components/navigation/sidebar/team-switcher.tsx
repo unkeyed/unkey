@@ -12,7 +12,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { setSessionCookie } from "@/lib/auth/cookies";
-import { reset } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +20,10 @@ import { ChevronExpandY } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  const router = useRouter();
-  const utils = trpc.useUtils();
   const { isMobile, state } = useSidebar();
   const { workspace } = useWorkspace();
   // Only collapsed in desktop mode, not in mobile mode
@@ -60,18 +56,8 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
-
-        // refresh the check mark by invalidating the current user's org data
-        utils.user.getCurrentUser.invalidate();
-        utils.api.invalidate();
-        utils.ratelimit.invalidate();
-        // Invalidate workspace provider cache to update the workspace name immediately
-        utils.workspace.getCurrent.invalidate();
-
-        await reset();
-
-        // reload data
-        router.replace("/");
+        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
+        window.location.replace("/");
       } catch (error) {
         console.error("Failed to set session cookie:", error);
         toast.error("Failed to complete workspace switch. Please try again.");

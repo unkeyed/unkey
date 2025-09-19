@@ -15,7 +15,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
 } from "react";
 
 interface WorkspaceContextType {
@@ -27,9 +26,7 @@ interface WorkspaceContextType {
   refetch: () => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
-  undefined
-);
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
@@ -39,12 +36,8 @@ export const useWorkspace = () => {
   return context;
 };
 
-export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
-  children,
-}) => {
+export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const pathname = usePathname();
-
-  const hasRefetchedForApisRoute = useRef<boolean>(false);
 
   // Get user state first
   const userQuery = trpc.user.getCurrentUser.useQuery(undefined, {
@@ -56,7 +49,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   const { data: user, isLoading: userLoading, error: userError } = userQuery;
   const shouldEnableWorkspaceQuery = useMemo(
     () => Boolean(!userLoading && user?.id && user?.orgId && !userError),
-    [userLoading, user?.id, user?.orgId, userError]
+    [userLoading, user?.id, user?.orgId, userError],
   );
 
   const workspaceQuery = trpc.workspace.getCurrent.useQuery(undefined, {
@@ -65,39 +58,27 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     retry: createRetryFn(3),
   });
 
-  const {
-    data: workspace,
-    isLoading: workspaceLoading,
-    error: workspaceError,
-  } = workspaceQuery;
+  const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
 
+  /**
+   *
+   * fetches the userQuery on login redirect.
+   */
   useEffect(() => {
     const isOnApisRoute = pathname === "/apis";
 
-    if (
-      isOnApisRoute &&
-      !hasRefetchedForApisRoute.current &&
-      !userLoading &&
-      !user
-    ) {
-      hasRefetchedForApisRoute.current = true;
+    if (isOnApisRoute && !userLoading && !user) {
       userQuery.refetch();
-    }
-    if (!isOnApisRoute) {
-      hasRefetchedForApisRoute.current = false;
     }
   }, [pathname, userLoading, user, userQuery.refetch]);
 
-  // Memoize refetch function to prevent unnecessary re-renders
   const refetch = useCallback(async () => {
     await Promise.all([userQuery.refetch(), workspaceQuery.refetch()]);
   }, [userQuery.refetch, workspaceQuery.refetch]);
 
-  // Compute context value with proper error handling
   const value: WorkspaceContextType = useMemo(() => {
     const isLoading =
-      userLoading ||
-      (shouldEnableWorkspaceQuery && (workspaceLoading || !workspace));
+      userLoading || (shouldEnableWorkspaceQuery && (workspaceLoading || !workspace));
 
     const error = isLoading ? null : userError || workspaceError || null;
 
@@ -120,9 +101,5 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     refetch,
   ]);
 
-  return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
-  );
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };

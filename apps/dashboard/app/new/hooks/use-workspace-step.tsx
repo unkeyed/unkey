@@ -52,10 +52,11 @@ export const useWorkspaceStep = (): OnboardingStep => {
         token: sessionData.token,
         expiresAt: sessionData.expiresAt,
       });
-
-      // Invalidate client-side workspace cache for immediate UI update
+      // invalidate the user cache and workspace cache.
+      await utils.user.getCurrentUser.invalidate();
       await utils.workspace.getCurrent.invalidate();
-
+      await utils.api.invalidate();
+      await utils.ratelimit.invalidate();
       // Force a router refresh to ensure the server-side layout
       // re-renders with the new session context and fresh workspace data
       router.refresh();
