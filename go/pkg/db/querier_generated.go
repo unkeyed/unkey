@@ -918,14 +918,8 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?
-	//  ) ON DUPLICATE KEY UPDATE
-	//      workspace_id = ?,
-	//      project_id = ?,
-	//      deployment_id = ?,
-	//      type = ?,
-	//      sticky = ?,
-	//      updated_at = ?
+	//      null
+	//  )
 	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
 	//InsertIdentity
 	//

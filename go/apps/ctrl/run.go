@@ -324,7 +324,6 @@ func Run(ctx context.Context, cfg Config) error {
 						WorkspaceID: "unkey", // Default workspace for wildcard cert
 						Domain:      wildcardDomain,
 						CreatedAt:   now,
-						UpdatedAt:   sql.NullInt64{Valid: true, Int64: now},
 						Type:        db.DomainsTypeCustom,
 					})
 					if err != nil {

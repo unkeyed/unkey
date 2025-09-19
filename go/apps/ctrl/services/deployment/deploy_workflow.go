@@ -298,7 +298,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 						Sticky:       domain.sticky,
 						DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
 						CreatedAt:    now,
-						UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
 						Type:         db.DomainsTypeWildcard,
 					})
 					if insertError != nil {

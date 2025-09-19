@@ -30,14 +30,8 @@ INSERT INTO domains (
     ?,
     ?,
     ?,
-    ?
-) ON DUPLICATE KEY UPDATE
-    workspace_id = ?,
-    project_id = ?,
-    deployment_id = ?,
-    type = ?,
-    sticky = ?,
-    updated_at = ?
+    null
+)
 `
 
 type InsertDomainParams struct {
@@ -49,7 +43,6 @@ type InsertDomainParams struct {
 	Type         DomainsType       `db:"type"`
 	Sticky       NullDomainsSticky `db:"sticky"`
 	CreatedAt    int64             `db:"created_at"`
-	UpdatedAt    sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertDomain
@@ -73,14 +66,8 @@ type InsertDomainParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?
-//	) ON DUPLICATE KEY UPDATE
-//	    workspace_id = ?,
-//	    project_id = ?,
-//	    deployment_id = ?,
-//	    type = ?,
-//	    sticky = ?,
-//	    updated_at = ?
+//	    null
+//	)
 func (q *Queries) InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error {
 	_, err := db.ExecContext(ctx, insertDomain,
 		arg.ID,
@@ -91,13 +78,6 @@ func (q *Queries) InsertDomain(ctx context.Context, db DBTX, arg InsertDomainPar
 		arg.Type,
 		arg.Sticky,
 		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.WorkspaceID,
-		arg.ProjectID,
-		arg.DeploymentID,
-		arg.Type,
-		arg.Sticky,
-		arg.UpdatedAt,
 	)
 	return err
 }
