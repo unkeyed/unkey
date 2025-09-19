@@ -3,6 +3,7 @@ package routing
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"net/url"
 
@@ -99,13 +100,14 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 
 	availableVms := make([]pdb.Vm, 0)
 	for _, vm := range config.Vms {
-		vm, hit, err := s.vmCache.SWR(ctx, vm.Id, func(ctx context.Context) (pdb.Vm, error) {
+		dbVm, hit, err := s.vmCache.SWR(ctx, vm.Id, func(ctx context.Context) (pdb.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
 			return pdb.Query.FindVMById(ctx, s.db.RO(), vm.Id)
 		}, caches.DefaultFindFirstOp)
 
 		if err != nil {
 			if db.IsNotFound(err) {
+				s.logger.Warn("failed to load VM from cache", slog.String("vm_id", vm.Id), slog.String("error", err.Error()))
 				continue
 			}
 
@@ -116,11 +118,11 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 			continue
 		}
 
-		if vm.Status != pdb.VmsStatusRunning {
+		if dbVm.Status != pdb.VmsStatusRunning {
 			continue
 		}
 
-		availableVms = append(availableVms, vm)
+		availableVms = append(availableVms, dbVm)
 	}
 
 	if len(availableVms) == 0 {

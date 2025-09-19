@@ -6,15 +6,18 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
 	AllocateIP(ctx context.Context, arg AllocateIPParams) (IpAllocation, error)
 	// queries.sql
 	AllocateNetwork(ctx context.Context) (Network, error)
+	CleanupStaleIPAllocations(ctx context.Context, allocatedAt sql.NullTime) error
 	CreateNetworkAllocation(ctx context.Context, arg CreateNetworkAllocationParams) (NetworkAllocation, error)
 	DeleteIPAllocationsForNetwork(ctx context.Context, networkAllocationID int64) error
 	DeleteNetworkAllocation(ctx context.Context, deploymentID string) error
+	DeleteStaleNetworkAllocations(ctx context.Context, allocatedAt sql.NullTime) error
 	GetAvailableIPCount(ctx context.Context, deploymentID string) (interface{}, error)
 	GetIPAllocation(ctx context.Context, vmID string) (IpAllocation, error)
 	GetNetworkAllocation(ctx context.Context, deploymentID string) (GetNetworkAllocationRow, error)
@@ -22,6 +25,7 @@ type Querier interface {
 	PopAvailableIPJSON(ctx context.Context, deploymentID string) (PopAvailableIPJSONRow, error)
 	ReleaseIP(ctx context.Context, vmID string) error
 	ReleaseNetwork(ctx context.Context, id int64) error
+	ReleaseStaleNetworks(ctx context.Context, allocatedAt sql.NullTime) error
 	ReturnIPJSON(ctx context.Context, arg ReturnIPJSONParams) error
 }
 
