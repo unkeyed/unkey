@@ -164,7 +164,7 @@ services:
     networks:
       - default
     container_name: s3
-    image: bitnamilegacy/minio:2025.7.23
+    image: bitnamilegacy/minio:2025.4.3
     ports:
       - 3902:3902
       - 2903:2903

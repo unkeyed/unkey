@@ -46,7 +46,7 @@ export const DeploymentsList = () => {
   } | null>(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
 
-  const { activeDeployment, deployments } = useDeployments();
+  const { liveDeployment, deployments } = useDeployments();
 
   const columns: Column<{
     deployment: Deployment;
@@ -58,8 +58,9 @@ export const DeploymentsList = () => {
         header: "Deployment ID",
         width: "20%",
         headerClassName: "pl-[18px]",
-        render: ({ deployment }) => {
-          const isProduction = deployment.id === activeDeployment.data.at(0)?.id;
+        render: ({ deployment, environment }) => {
+          const isLive = liveDeployment?.id === deployment.id;
+          const isRolledBack = deployment.isRolledBack;
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
@@ -86,10 +87,19 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {isProduction ? <EnvStatusBadge variant="current" text="Current" /> : null}
+                    {isRolledBack ? (
+                      <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                    ) : isLive ? (
+                      <EnvStatusBadge variant="live" text="Live" />
+                    ) : null}
                   </div>
-                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
-                    {isProduction ? "Production" : "Preview"}
+                  <div
+                    className={cn(
+                      "font-normal font-mono truncate text-xs mt-1 capitalize",
+                      "text-gray-9",
+                    )}
+                  >
+                    {environment?.slug}
                   </div>
                 </div>
               </div>
@@ -102,9 +112,7 @@ export const DeploymentsList = () => {
         key: "status",
         header: "Status",
         width: "12%",
-        render: ({ deployment }) => {
-          return <DeploymentStatusBadge status={deployment.status} />;
-        },
+        render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       ...(isCompactView
         ? []
@@ -281,15 +289,15 @@ export const DeploymentsList = () => {
         }) => {
           return (
             <DeploymentListTableActions
-              deployment={deployment}
-              currentActiveDeployment={activeDeployment.data.at(0)}
+              selectedDeployment={deployment}
+              liveDeployment={liveDeployment}
               environment={environment}
             />
           );
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, activeDeployment]);
+  }, [selectedDeployment?.deployment.id, isCompactView, liveDeployment]);
 
   return (
     <VirtualTable

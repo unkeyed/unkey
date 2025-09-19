@@ -16,7 +16,7 @@ spec:
       labels:
         app: ctrl
     spec:
-      serviceAccountName: ctrl-service-account
+      serviceAccountName: unkey-serviceaccount
       containers:
         - name: ctrl
           image: unkey-ctrl:latest

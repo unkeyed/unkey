@@ -15,9 +15,9 @@ export const useDeployments = () => {
       .where(({ project }) => eq(project.id, projectId))
       .orderBy(({ project }) => project.id, "asc")
       .limit(1);
-  });
-  const liveDeploymentId = project.data.at(0)?.liveDeploymentId;
-  const activeDeployment = useLiveQuery(
+  }).data.at(0);
+  const liveDeploymentId = project?.liveDeploymentId;
+  const liveDeployment = useLiveQuery(
     (q) =>
       q
         .from({ deployment: collections.deployments })
@@ -25,7 +25,7 @@ export const useDeployments = () => {
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(1),
     [liveDeploymentId],
-  );
+  ).data.at(0);
   const deployments = useLiveQuery(
     (q) => {
       // Query filtered environments
@@ -114,7 +114,6 @@ export const useDeployments = () => {
 
   return {
     deployments,
-    activeDeployment,
-    activeDeploymentId: liveDeploymentId,
+    liveDeployment,
   };
 };

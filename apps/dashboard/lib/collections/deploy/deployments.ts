@@ -31,6 +31,7 @@ const schema = z.object({
     cpus: z.number().min(1).max(16),
     memory: z.number().min(1).max(1024),
   }),
+  isRolledBack: z.boolean(),
   // Deployment status
   status: z.enum(["pending", "building", "deploying", "network", "ready", "failed"]),
   createdAt: z.number(),
@@ -48,6 +49,7 @@ export function createDeploymentsCollection(projectId: string) {
       queryClient,
       queryKey: [projectId, "deployments"],
       retry: 3,
+      refetchInterval: 5000,
       queryFn: () => trpcClient.deploy.deployment.list.query({ projectId }),
       getKey: (item) => item.id,
       id: `${projectId}-deployments`,

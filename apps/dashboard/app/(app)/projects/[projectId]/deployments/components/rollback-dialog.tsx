@@ -1,50 +1,58 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
+import { type Deployment, collection, collectionManager } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { CircleInfo, CodeBranch, CodeCommit } from "@unkey/icons";
+import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
 
 type DeploymentSectionProps = {
   title: string;
   deployment: Deployment;
-  isActive: boolean;
+  isLive: boolean;
   showSignal?: boolean;
 };
 
-const DeploymentSection = ({ title, deployment, isActive, showSignal }: DeploymentSectionProps) => (
+const DeploymentSection = ({ title, deployment, isLive, showSignal }: DeploymentSectionProps) => (
   <div className="space-y-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo size="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard deployment={deployment} isActive={isActive} showSignal={showSignal} />
+    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
   </div>
 );
 
 type RollbackDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  deployment: Deployment;
-  currentDeployment: Deployment;
-  hostname?: string;
+  targetDeployment: Deployment;
+  liveDeployment: Deployment;
 };
 
 export const RollbackDialog = ({
   isOpen,
   onOpenChange,
-  deployment,
-  currentDeployment,
-  hostname,
+  targetDeployment,
+  liveDeployment,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
+  const domainCollection = collectionManager.getProjectCollections(
+    liveDeployment.projectId,
+  ).domains;
+  const domains = useLiveQuery((q) =>
+    q
+      .from({ domain: domainCollection })
+      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
+      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
+  );
   const rollback = trpc.deploy.deployment.rollback.useMutation({
     onSuccess: () => {
       utils.invalidate();
       toast.success("Rollback completed", {
-        description: `Successfully rolled back to deployment ${deployment.id}`,
+        description: `Successfully rolled back to deployment ${targetDeployment.id}`,
       });
       // hack to revalidate
       try {
@@ -64,21 +72,13 @@ export const RollbackDialog = ({
   });
 
   const handleRollback = async () => {
-    if (!hostname) {
-      toast.error("Missing hostname", {
-        description: "Cannot perform rollback without hostname information",
+    await rollback
+      .mutateAsync({
+        targetDeploymentId: targetDeployment.id,
+      })
+      .catch((error) => {
+        console.error("Rollback error:", error);
       });
-      return;
-    }
-
-    try {
-      await rollback.mutateAsync({
-        hostname,
-        targetDeploymentId: deployment.id,
-      });
-    } catch (error) {
-      console.error("Rollback error:", error);
-    }
   };
 
   return (
@@ -88,29 +88,40 @@ export const RollbackDialog = ({
       title="Rollback to version"
       subTitle="Switch the active deployment to a target stable version"
       footer={
-        <div className="flex flex-col items-center w-full gap-2">
-          <Button
-            variant="primary"
-            size="xlg"
-            onClick={handleRollback}
-            disabled={rollback.isLoading}
-            loading={rollback.isLoading}
-            className="w-full rounded-lg"
-          >
-            Rollback to target version
-          </Button>
-          <div className="text-xs text-gray-9">Rollbacks usually complete within seconds</div>
-        </div>
+        <Button
+          variant="primary"
+          size="xlg"
+          onClick={handleRollback}
+          disabled={rollback.isLoading}
+          loading={rollback.isLoading}
+          className="w-full rounded-lg"
+        >
+          Rollback to target version
+        </Button>
       }
     >
       <div className="space-y-9">
         <DeploymentSection
-          title="Current active deployment"
-          deployment={currentDeployment}
-          isActive={true}
+          title="Live Deployment"
+          deployment={liveDeployment}
+          isLive={true}
           showSignal={true}
         />
-        <DeploymentSection title="Target version" deployment={deployment} isActive={false} />
+        <div>
+          {domains.data.map((domain) => (
+            <div
+              key={domain.id}
+              className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center"
+            >
+              <div className="flex items-center">
+                <Link4 className="text-gray-9" size="sm-medium" />
+                <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
+                <div className="ml-3" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
       </div>
     </DialogContainer>
   );
@@ -118,11 +129,11 @@ export const RollbackDialog = ({
 
 type DeploymentCardProps = {
   deployment: Deployment;
-  isActive: boolean;
+  isLive: boolean;
   showSignal?: boolean;
 };
 
-const DeploymentCard = ({ deployment, isActive, showSignal }: DeploymentCardProps) => (
+const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
   <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -133,14 +144,14 @@ const DeploymentCard = ({ deployment, isActive, showSignal }: DeploymentCardProp
               {`${deployment.id.slice(0, 3)}...${deployment.id.slice(-4)}`}
             </span>
             <Badge
-              variant={isActive ? "success" : "primary"}
-              className={`px-1.5 ${isActive ? "text-successA-11" : "text-grayA-11"}`}
+              variant={isLive ? "success" : "primary"}
+              className={`px-1.5 capitalize ${isLive ? "text-successA-11" : "text-grayA-11"}`}
             >
-              {isActive ? "Active" : "Preview"}
+              {isLive ? "Live" : deployment.status}
             </Badge>
           </div>
           <div className="text-xs text-grayA-9">
-            {deployment.gitCommitMessage || `${isActive ? "Current active" : "Target"} deployment`}
+            {deployment.gitCommitMessage || `${isLive ? "Current active" : "Target"} deployment`}
           </div>
         </div>
       </div>

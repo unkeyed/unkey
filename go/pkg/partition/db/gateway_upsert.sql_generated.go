@@ -10,27 +10,58 @@ import (
 )
 
 const upsertGateway = `-- name: UpsertGateway :exec
-INSERT INTO gateways (workspace_id, hostname, config)
-VALUES (?, ?, ?)
-ON DUPLICATE KEY UPDATE 
-    config = VALUES(config),
-    workspace_id = VALUES(workspace_id)
+INSERT INTO gateways (
+workspace_id,
+deployment_id,
+hostname,
+config
+)
+VALUES (
+?,
+?,
+?,
+?
+)
+ON DUPLICATE KEY UPDATE
+    workspace_id = ?,
+    deployment_id = ?,
+    config = ?
 `
 
 type UpsertGatewayParams struct {
-	WorkspaceID string `db:"workspace_id"`
-	Hostname    string `db:"hostname"`
-	Config      []byte `db:"config"`
+	WorkspaceID  string `db:"workspace_id"`
+	DeploymentID string `db:"deployment_id"`
+	Hostname     string `db:"hostname"`
+	Config       []byte `db:"config"`
 }
 
 // UpsertGateway
 //
-//	INSERT INTO gateways (workspace_id, hostname, config)
-//	VALUES (?, ?, ?)
+//	INSERT INTO gateways (
+//	workspace_id,
+//	deployment_id,
+//	hostname,
+//	config
+//	)
+//	VALUES (
+//	?,
+//	?,
+//	?,
+//	?
+//	)
 //	ON DUPLICATE KEY UPDATE
-//	    config = VALUES(config),
-//	    workspace_id = VALUES(workspace_id)
+//	    workspace_id = ?,
+//	    deployment_id = ?,
+//	    config = ?
 func (q *Queries) UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error {
-	_, err := db.ExecContext(ctx, upsertGateway, arg.WorkspaceID, arg.Hostname, arg.Config)
+	_, err := db.ExecContext(ctx, upsertGateway,
+		arg.WorkspaceID,
+		arg.DeploymentID,
+		arg.Hostname,
+		arg.Config,
+		arg.WorkspaceID,
+		arg.DeploymentID,
+		arg.Config,
+	)
 	return err
 }
