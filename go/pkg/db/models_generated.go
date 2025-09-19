@@ -571,6 +571,7 @@ type Deployment struct {
 	WorkspaceID              string            `db:"workspace_id"`
 	ProjectID                string            `db:"project_id"`
 	EnvironmentID            string            `db:"environment_id"`
+	IsRolledBack             bool              `db:"is_rolled_back"`
 	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
 	GitBranch                sql.NullString    `db:"git_branch"`
 	GitCommitMessage         sql.NullString    `db:"git_commit_message"`

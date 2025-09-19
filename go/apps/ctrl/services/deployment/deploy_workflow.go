@@ -266,36 +266,73 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	)
 
 	// Create database entries for all domains
-	err = hydra.StepVoid(ctx, "create-domain-entries", func(stepCtx context.Context) error {
-		// Prepare bulk insert parameters
-		//
-		domainParams := make([]db.InsertDomainParams, 0, len(allDomains))
-		currentTime := time.Now().UnixMilli()
 
-		for _, domain := range allDomains {
-			domainID := uid.New("domain")
-			domainParams = append(domainParams, db.InsertDomainParams{
-				ID:           domainID,
-				WorkspaceID:  req.WorkspaceID,
-				ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
-				Domain:       domain.domain,
-				Sticky:       domain.sticky,
-				DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-				CreatedAt:    currentTime,
-				UpdatedAt:    sql.NullInt64{Valid: true, Int64: currentTime},
-				Type:         db.DomainsTypeWildcard,
+	// Track domains that actually need to be changed in the dataplane
+	changedDomains := []string{}
+
+	for _, domain := range allDomains {
+
+		err = hydra.StepVoid(ctx, fmt.Sprintf("create-domain-entry-%s", domain.domain), func(stepCtx context.Context) error {
+
+			now := time.Now().UnixMilli()
+
+			// This is more verbose than we initially thought
+			// A simple ON DUPLICATE UPDATE was insufficient, because it could leak domains into other workspaces
+			// because workspace slugs can change over time.
+			// And we also need more control over updating rolled back domains
+			return db.Tx(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+
+				existing, err := db.Query.FindDomainByDomain(txCtx, tx, domain.domain)
+				if err != nil {
+					if !db.IsNotFound(err) {
+						return fmt.Errorf("failed to find domain entry for deployment %s: %w", req.DeploymentID, err)
+
+					}
+
+					// Domain does not exist, create it
+					insertError := db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
+						ID:           uid.New("domain"),
+						WorkspaceID:  req.WorkspaceID,
+						ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
+						Domain:       domain.domain,
+						Sticky:       domain.sticky,
+						DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+						CreatedAt:    now,
+						UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+						Type:         db.DomainsTypeWildcard,
+					})
+					if insertError != nil {
+						return fmt.Errorf("failed to create domain entry for deployment %s: %w", req.DeploymentID, err)
+					}
+					changedDomains = append(changedDomains, domain.domain)
+					return nil
+				}
+
+				if existing.IsRolledBack {
+					w.logger.Info("Skipping rolled back domain",
+						"domain_id", existing.ID,
+						"domain", existing.Domain,
+					)
+					return nil
+				}
+				updateErr := db.Query.ReassignDomain(txCtx, tx, db.ReassignDomainParams{
+					ID:                 existing.ID,
+					TargetWorkspaceID:  workspace.ID,
+					TargetDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+					IsRolledBack:       false,
+				})
+
+				if updateErr != nil {
+					return fmt.Errorf("failed to update domain entry for deployment %s: %w", req.DeploymentID, updateErr)
+				}
+				changedDomains = append(changedDomains, existing.Domain)
+
+				return nil
+
 			})
-		}
+		})
+	}
 
-		// Perform bulk insert
-		if err := db.BulkQuery.InsertDomains(stepCtx, w.db.RW(), domainParams); err != nil {
-			return fmt.Errorf("failed to create %d domain entries for deployment %s: %w", len(allDomains), req.DeploymentID, err)
-		}
-
-		w.logger.Info("domain entries created in bulk", "deployment_id", req.DeploymentID, "domain_count", len(allDomains))
-
-		return nil
-	})
 	if err != nil {
 		return err
 	}
@@ -306,9 +343,9 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
 
-		for _, domain := range allDomains {
-			if isLocalHostname(domain.domain, w.defaultDomain) {
-				skippedDomains = append(skippedDomains, domain.domain)
+		for _, domain := range changedDomains {
+			if isLocalHostname(domain, w.defaultDomain) {
+				skippedDomains = append(skippedDomains, domain)
 				continue
 			}
 
@@ -333,7 +370,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
 				WorkspaceID:  req.WorkspaceID,
 				DeploymentID: req.DeploymentID,
-				Hostname:     domain.domain,
+				Hostname:     domain,
 				Config:       configBytes,
 			})
 		}

@@ -847,7 +847,7 @@ func (x *RegionalConfig) GetMaxInstances() int32 {
 
 type RollbackRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
-	ProjectId          string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	SourceDeploymentId string                 `protobuf:"bytes,1,opt,name=source_deployment_id,json=sourceDeploymentId,proto3" json:"source_deployment_id,omitempty"`
 	TargetDeploymentId string                 `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -883,9 +883,9 @@ func (*RollbackRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *RollbackRequest) GetProjectId() string {
+func (x *RollbackRequest) GetSourceDeploymentId() string {
 	if x != nil {
-		return x.ProjectId
+		return x.SourceDeploymentId
 	}
 	return ""
 }
@@ -1022,10 +1022,9 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x0eRegionalConfig\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12#\n" +
 	"\rmin_instances\x18\x02 \x01(\x05R\fminInstances\x12#\n" +
-	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"b\n" +
-	"\x0fRollbackRequest\x12\x1d\n" +
-	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x120\n" +
+	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"u\n" +
+	"\x0fRollbackRequest\x120\n" +
+	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +
 	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\",\n" +
 	"\x10RollbackResponse\x12\x18\n" +
 	"\adomains\x18\x01 \x03(\tR\adomains*\xef\x01\n" +

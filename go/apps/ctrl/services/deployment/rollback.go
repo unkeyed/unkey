@@ -17,62 +17,66 @@ import (
 // Rollback performs a rollback to a previous deployment
 // This is the main rollback implementation that the dashboard will call
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
-	targetDeploymentID := req.Msg.GetTargetDeploymentId()
-	projectID := req.Msg.GetProjectId()
 
 	s.logger.Info("initiating rollback",
-		"projectID", projectID,
-		"targetDeploymentID", targetDeploymentID,
+		"source", req.Msg.GetSourceDeploymentId(),
+		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), projectID)
+	if err := assert.NotEqual(
+		req.Msg.GetSourceDeploymentId(),
+		req.Msg.GetTargetDeploymentId(),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	sourceDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetSourceDeploymentId())
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", projectID))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetSourceDeploymentId()))
+		}
+		s.logger.Error("failed to get deployment",
+			"deployment_id", req.Msg.GetSourceDeploymentId(),
+			"error", err.Error(),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
+	}
+
+	targetDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetTargetDeploymentId())
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetTargetDeploymentId()))
+		}
+		s.logger.Error("failed to get deployment",
+			"deployment_id", req.Msg.GetTargetDeploymentId(),
+			"error", err.Error(),
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
+	}
+
+	if err := assert.All(
+		assert.Equal(targetDeployment.EnvironmentID, sourceDeployment.EnvironmentID),
+		assert.Equal(targetDeployment.ProjectID, sourceDeployment.ProjectID),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	project, err := db.Query.FindProjectById(ctx, s.db.RO(), sourceDeployment.ProjectID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", sourceDeployment.ProjectID))
 		}
 		s.logger.Error("failed to get project",
-			"project_id", projectID,
+			"project_id", sourceDeployment.ProjectID,
 			"error", err.Error(),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get project: %w", err))
 	}
 
-	if !project.LiveDeploymentID.Valid {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("project has no live deployment"))
-	}
-
-	// Get the target deployment and verify it belongs to the workspace
-	liveDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), project.LiveDeploymentID.String)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", targetDeploymentID))
-		}
-		s.logger.Error("failed to get deployment",
-			"deployment_id", targetDeploymentID,
-			"error", err.Error(),
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
-	}
-
-	// Get the target deployment and verify it belongs to the workspace
-	targetDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), targetDeploymentID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", targetDeploymentID))
-		}
-		s.logger.Error("failed to get deployment",
-			"deployment_id", targetDeploymentID,
-			"error", err.Error(),
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
-	}
-
-	err = assert.All(
-
-		assert.Equal(liveDeployment.ProjectID, targetDeployment.ProjectID),
-		assert.Equal(liveDeployment.EnvironmentID, targetDeployment.EnvironmentID),
-	)
-	if err != nil {
+	if err := assert.All(
+		assert.True(project.LiveDeploymentID.Valid),
+		assert.Equal(sourceDeployment.ID, project.LiveDeploymentID.String),
+	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -98,10 +102,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	}
 
 	// get all domains on the live deployment that are sticky
-	domains, err := db.Query.FindDomainsByDeploymentId(ctx, s.db.RO(), sql.NullString{Valid: true, String: liveDeployment.ID})
+	domains, err := db.Query.FindDomainsByDeploymentId(ctx, s.db.RO(), sql.NullString{Valid: true, String: sourceDeployment.ID})
 	if err != nil {
 		s.logger.Error("failed to get domains",
-			"deployment_id", liveDeployment.ID,
+			"deployment_id", sourceDeployment.ID,
 			"error", err.Error(),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get domains: %w", err))
@@ -116,7 +120,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get gateway config: %w", err))
 	}
 
-	domainChanges := []db.RollBackDomainParams{}
+	domainChanges := []db.ReassignDomainParams{}
 	gatewayChanges := []pdb.UpsertGatewayParams{}
 
 	for _, domain := range domains {
@@ -124,8 +128,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			(domain.Sticky.DomainsSticky == db.DomainsStickyLive ||
 				domain.Sticky.DomainsSticky == db.DomainsStickyEnvironment) {
 
-			domainChanges = append(domainChanges, db.RollBackDomainParams{
+			domainChanges = append(domainChanges, db.ReassignDomainParams{
 				ID:                 domain.ID,
+				TargetWorkspaceID:  project.WorkspaceID,
 				TargetDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 				IsRolledBack:       true,
 				UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -153,7 +158,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	// Not sure why there isn't a bulk query generated, but this will do for now
 	// cause we're only rolling back one domain anyways
 	for _, change := range domainChanges {
-		err = db.Query.RollBackDomain(ctx, s.db.RW(), change)
+		err = db.Query.ReassignDomain(ctx, s.db.RW(), change)
 		if err != nil {
 			s.logger.Error("failed to update domain", "error", err.Error())
 			return nil, fmt.Errorf("failed to update domain: %w", err)
@@ -168,6 +173,32 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	if err != nil {
 		s.logger.Error("failed to update project active deployment ID",
 			"project_id", project.ID,
+			"error", err.Error(),
+		)
+		return nil, err
+	}
+
+	err = db.Query.UpdateDeploymentRollback(ctx, s.db.RW(), db.UpdateDeploymentRollbackParams{
+		ID:           sourceDeployment.ID,
+		IsRolledBack: false,
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
+	if err != nil {
+		s.logger.Error("failed to update deployment rollback status",
+			"deployment_id", sourceDeployment.ID,
+			"error", err.Error(),
+		)
+		return nil, err
+	}
+
+	err = db.Query.UpdateDeploymentRollback(ctx, s.db.RW(), db.UpdateDeploymentRollbackParams{
+		ID:           targetDeployment.ID,
+		IsRolledBack: true,
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
+	if err != nil {
+		s.logger.Error("failed to update deployment rollback status",
+			"deployment_id", targetDeployment.ID,
 			"error", err.Error(),
 		)
 		return nil, err

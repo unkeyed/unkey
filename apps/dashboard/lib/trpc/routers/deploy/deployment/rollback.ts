@@ -50,6 +50,7 @@ export const rollback = t.procedure
             columns: {
               id: true,
               name: true,
+              liveDeploymentId: true,
             },
           },
         },
@@ -68,10 +69,16 @@ export const rollback = t.procedure
           message: `Deployment ${targetDeployment.id} is not ready (status: ${targetDeployment.status})`,
         });
       }
+      if (!targetDeployment.project.liveDeploymentId) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `Project ${targetDeployment.project.name} doesn't have a live deployment to roll back.`,
+        });
+      }
 
       const rolledBack = await ctrl
         .rollback({
-          projectId: targetDeployment.project.id,
+          sourceDeploymentId: targetDeployment.project.liveDeploymentId,
           targetDeploymentId: targetDeployment.id,
         })
         .catch((err) => {

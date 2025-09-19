@@ -327,6 +327,7 @@ CREATE TABLE `deployments` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(256) NOT NULL,
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
@@ -374,7 +375,8 @@ CREATE TABLE `domains` (
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`)
+	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
 CREATE TABLE `acme_challenges` (

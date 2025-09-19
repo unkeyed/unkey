@@ -60,6 +60,7 @@ export const DeploymentsList = () => {
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeployment?.id === deployment.id;
+          const isRolledBack = deployment.isRolledBack;
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
@@ -86,7 +87,11 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {isLive ? <EnvStatusBadge variant="live" text="Live" /> : null}
+                    {isRolledBack ? (
+                      <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                    ) : isLive ? (
+                      <EnvStatusBadge variant="live" text="Live" />
+                    ) : null}
                   </div>
                   <div
                     className={cn(
@@ -107,9 +112,7 @@ export const DeploymentsList = () => {
         key: "status",
         header: "Status",
         width: "12%",
-        render: ({ deployment }) => {
-          return <DeploymentStatusBadge status={deployment.status} />;
-        },
+        render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       ...(isCompactView
         ? []
