@@ -179,13 +179,17 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
     typeof Button
   >
 >(({ onClick, ...props }, ref) => {
+  // Filter out React Loadable props that shouldn't be passed to DOM elements
+  const { isLoading, pastDelay, timedOut, retry, error, ...buttonProps } =
+    props as any;
+
   return (
     <Button
       ref={ref}
       variant="outline"
       className="size-5 [&_svg]:size-3 rounded"
       onClick={onClick}
-      {...props}
+      {...buttonProps}
     >
       <Dots
         className="group-hover:text-gray-12 text-gray-11"

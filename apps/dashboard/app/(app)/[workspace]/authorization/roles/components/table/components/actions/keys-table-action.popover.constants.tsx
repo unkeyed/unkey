@@ -14,11 +14,17 @@ import { MAX_PERMS_FETCH_LIMIT } from "../../../upsert-role/components/assign-pe
 import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 
+// Wrapper component to handle React Loadable props
+const LoadingTrigger = () => <TableActionPopoverDefaultTrigger />;
+
 const KeysTableActionPopover = dynamic(
-  () => import("@/components/logs/table-action.popover").then((mod) => mod.TableActionPopover),
+  () =>
+    import("@/components/logs/table-action.popover").then(
+      (mod) => mod.TableActionPopover
+    ),
   {
-    loading: TableActionPopoverDefaultTrigger,
-  },
+    loading: LoadingTrigger,
+  }
 );
 
 type RolesTableActionsProps = {
@@ -34,7 +40,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 
 const getRolesTableActionItems = (
   role: RoleBasic,
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  trpcUtils: ReturnType<typeof trpc.useUtils>
 ): MenuItem[] => {
   return [
     {
