@@ -24,7 +24,10 @@ export const rollback = t.procedure
     // Validate that ctrl service URL is configured
     const ctrlUrl = env().CTRL_URL;
     if (!ctrlUrl) {
-      throw new Error("ctrl service is not configured");
+      throw new TRPCError({
+        code: "FAILED_PRECONDITION",
+        message: "ctrl service is not configured",
+      });
     }
 
     // Here we make the client itself, combining the service
