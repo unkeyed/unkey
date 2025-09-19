@@ -19,8 +19,6 @@ export const listDomains = t.procedure
           projectId: true,
           type: true,
         },
-        limit: 3,
-        orderBy: (table, { desc }) => desc(table.createdAt),
       })
       .catch((error) => {
         console.error("Error querying domains:", error);
