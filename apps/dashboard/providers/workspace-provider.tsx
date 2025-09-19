@@ -3,12 +3,7 @@
 import type { AuthenticatedUser } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
-import {
-  baseQueryOptions,
-  createRetryFn,
-  isWorkOSRedirect,
-} from "@/lib/utils/trpc";
-import { useQueryClient } from "@tanstack/react-query";
+import { baseQueryOptions, createRetryFn } from "@/lib/utils/trpc";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { Quotas, Workspace } from "@unkey/db";
 import { usePathname } from "next/navigation";
@@ -47,9 +42,8 @@ export const useWorkspace = () => {
 export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   children,
 }) => {
-  const queryClient = useQueryClient();
   const pathname = usePathname();
-  const previousUserIdRef = useRef<string | null>(null);
+
   const hasRefetchedForApisRoute = useRef<boolean>(false);
 
   // Get user state first
@@ -60,8 +54,6 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   });
 
   const { data: user, isLoading: userLoading, error: userError } = userQuery;
-
-  // Only fetch workspace if user data is ready and valid
   const shouldEnableWorkspaceQuery = useMemo(
     () => Boolean(!userLoading && user?.id && user?.orgId && !userError),
     [userLoading, user?.id, user?.orgId, userError]
@@ -70,9 +62,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   const workspaceQuery = trpc.workspace.getCurrent.useQuery(undefined, {
     ...baseQueryOptions,
     enabled: shouldEnableWorkspaceQuery,
-    retry: createRetryFn(3), // Allow one extra retry for workspace
-    refetchOnMount: true, // Ensure query runs on mount if conditions are met
-    staleTime: 0, // Prevent stale data issues in production
+    retry: createRetryFn(3),
   });
 
   const {
@@ -81,28 +71,6 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     error: workspaceError,
   } = workspaceQuery;
 
-  // Explicitly trigger workspace query when conditions are met (production fix)
-  useEffect(() => {
-    if (
-      shouldEnableWorkspaceQuery &&
-      !workspaceLoading &&
-      !workspace &&
-      !workspaceError
-    ) {
-      console.log(
-        "[WorkspaceProvider] Manually triggering workspace refetch for production"
-      );
-      workspaceQuery.refetch();
-    }
-  }, [
-    shouldEnableWorkspaceQuery,
-    workspaceLoading,
-    workspace,
-    workspaceError,
-    workspaceQuery.refetch,
-  ]);
-
-  // Refetch user data when landing on /apis route (post-login destination)
   useEffect(() => {
     const isOnApisRoute = pathname === "/apis";
 
@@ -112,14 +80,9 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
       !userLoading &&
       !user
     ) {
-      console.log(
-        "[WorkspaceProvider] Landing on /apis route, refetching user data"
-      );
       hasRefetchedForApisRoute.current = true;
       userQuery.refetch();
     }
-
-    // Reset the flag when leaving /apis routes
     if (!isOnApisRoute) {
       hasRefetchedForApisRoute.current = false;
     }
@@ -130,58 +93,8 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     await Promise.all([userQuery.refetch(), workspaceQuery.refetch()]);
   }, [userQuery.refetch, workspaceQuery.refetch]);
 
-  // Monitor user ID changes and clear cache when user switches
-  useEffect(() => {
-    const currentUserId = user?.id || null;
-    const previousUserId = previousUserIdRef.current;
-
-    // If user changed (including from null to user or user to null)
-    if (previousUserId !== null && currentUserId !== previousUserId) {
-      console.log("[WorkspaceProvider] User ID changed, clearing cache", {
-        previousUserId,
-        currentUserId,
-      });
-      queryClient.clear();
-    }
-
-    previousUserIdRef.current = currentUserId;
-  }, [user?.id, queryClient]);
-
-  // Monitor authentication failures and clear cache when needed
-  useEffect(() => {
-    const hasAuthError =
-      userError?.data?.code === "UNAUTHORIZED" ||
-      userError?.data?.code === "FORBIDDEN" ||
-      workspaceError?.data?.code === "UNAUTHORIZED" ||
-      workspaceError?.data?.code === "FORBIDDEN";
-
-    if (hasAuthError) {
-      console.log("[WorkspaceProvider] Auth error detected, clearing cache", {
-        userError: userError?.data?.code,
-        workspaceError: workspaceError?.data?.code,
-      });
-      // Clear all queries when auth fails to prevent stale data
-      queryClient.clear();
-    }
-  }, [userError, workspaceError, queryClient]);
-
   // Compute context value with proper error handling
   const value: WorkspaceContextType = useMemo(() => {
-    // Handle WorkOS redirects by showing loading state
-    const hasWorkOSRedirect =
-      isWorkOSRedirect(userError) || isWorkOSRedirect(workspaceError);
-
-    if (hasWorkOSRedirect) {
-      return {
-        user: null,
-        workspace: null,
-        quotas: null,
-        isLoading: true,
-        error: null,
-        refetch,
-      };
-    }
-
     const isLoading =
       userLoading ||
       (shouldEnableWorkspaceQuery && (workspaceLoading || !workspace));
