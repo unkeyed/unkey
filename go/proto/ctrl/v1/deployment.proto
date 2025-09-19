@@ -14,6 +14,7 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_READY = 5;
   DEPLOYMENT_STATUS_FAILED = 6;
 }
+
 // Source type for deployment creation
 enum SourceType {
   SOURCE_TYPE_UNSPECIFIED = 0;
@@ -27,8 +28,6 @@ message CreateDeploymentRequest {
   string branch = 3;
   // Source information
   string environment_slug = 4;
-
-
 
   SourceType source_type = 5;
 
@@ -45,7 +44,6 @@ message CreateDeploymentRequest {
 
   // Keyspace ID for authentication
   optional string keyspace_id = 13;
-
 }
 
 message CreateDeploymentResponse {

@@ -35,7 +35,7 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 	// Strip port from hostname for database lookup (Host header may include port)
 	hostname := routing.ExtractHostname(req)
 
-	config, err := h.RoutingService.GetConfig(ctx, hostname)
+	configWithWorkspace, err := h.RoutingService.GetConfig(ctx, hostname)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
@@ -43,6 +43,10 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 			fault.Public("Service configuration not found"),
 		)
 	}
+
+	// Set workspace ID in session
+	sess.WorkspaceID = configWithWorkspace.WorkspaceID
+	config := configWithWorkspace.Config
 
 	// Handle request validation if configured
 	if h.Validator != nil {
@@ -68,8 +72,13 @@ func (h *Handler) Handle(ctx context.Context, sess *server.Session) error {
 		)
 	}
 
-	// Forward the request using the proxy service
-	err = h.Proxy.Forward(ctx, *targetURL, sess.ResponseWriter(), req)
+	// Forward the request using the proxy service with response capture
+	captureWriter, captureFunc := sess.CaptureResponseWriter()
+	err = h.Proxy.Forward(ctx, *targetURL, captureWriter, req)
+
+	// Capture the response data back to session after forwarding
+	captureFunc()
+
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Gateway.Proxy.ProxyForwardFailed.URN()),

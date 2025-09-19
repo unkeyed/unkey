@@ -202,9 +202,24 @@ func (s *Server) WrapHandler(handler HandleFunc, middlewares []Middleware) http.
 			s.returnSession(sess)
 		}()
 
-		sess.init(w, r)
+		err := sess.init(w, r)
+		if err != nil {
+			// Apply default middleware chain for session initialization errors
+			handleFn := func(ctx context.Context, session *Session) error {
+				return err // Return the session init error
+			}
 
-		err := handle(r.Context(), sess)
+			// Apply the same middleware chain
+			var wrappedHandler HandleFunc = handleFn
+			for i := len(middlewares) - 1; i >= 0; i-- {
+				wrappedHandler = middlewares[i](wrappedHandler)
+			}
+
+			_ = wrappedHandler(r.Context(), sess)
+			return
+		}
+
+		err = handle(r.Context(), sess)
 		if err != nil {
 			// Error should have been handled by error middleware
 			// If we get here, something went wrong
