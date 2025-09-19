@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
+export default function Page() {
   const router = useRouter();
   const { workspace, isLoading } = useWorkspace();
 
@@ -16,7 +16,11 @@ export default async function Page() {
 
   return (
     <div>
-      <Navigation href={`/${workspace?.slug}/logs`} name="Logs" icon={<Layers3 />} />
+      <Navigation
+        href={`/${workspace?.slug}/logs`}
+        name="Logs"
+        icon={<Layers3 />}
+      />
       <LogsClient />
     </div>
   );
