@@ -78,7 +78,7 @@ export const DeploymentListDatetime = () => {
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             title ? "" : "opacity-50",
-            title !== "Last 12 hours" ? "bg-gray-4" : "",
+            title !== TITLE_EMPTY_DEFAULT ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"
