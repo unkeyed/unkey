@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { Quotas, Workspace } from "@unkey/db";
+import { usePathname } from "next/navigation";
 import type React from "react";
 import {
   type PropsWithChildren,
@@ -47,7 +48,9 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
+  const pathname = usePathname();
   const previousUserIdRef = useRef<string | null>(null);
+  const hasRefetchedForApisRoute = useRef<boolean>(false);
 
   // Get user state first
   const userQuery = trpc.user.getCurrentUser.useQuery(undefined, {
@@ -98,6 +101,29 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     workspaceError,
     workspaceQuery.refetch,
   ]);
+
+  // Refetch user data when landing on /apis route (post-login destination)
+  useEffect(() => {
+    const isOnApisRoute = pathname === "/apis";
+
+    if (
+      isOnApisRoute &&
+      !hasRefetchedForApisRoute.current &&
+      !userLoading &&
+      !user
+    ) {
+      console.log(
+        "[WorkspaceProvider] Landing on /apis route, refetching user data"
+      );
+      hasRefetchedForApisRoute.current = true;
+      userQuery.refetch();
+    }
+
+    // Reset the flag when leaving /apis routes
+    if (!isOnApisRoute) {
+      hasRefetchedForApisRoute.current = false;
+    }
+  }, [pathname, userLoading, user, userQuery.refetch]);
 
   // Memoize refetch function to prevent unnecessary re-renders
   const refetch = useCallback(async () => {
