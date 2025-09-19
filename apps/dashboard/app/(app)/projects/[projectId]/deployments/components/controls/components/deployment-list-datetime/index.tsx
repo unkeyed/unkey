@@ -5,15 +5,19 @@ import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
+const TITLE_EMPTY_DEFAULT = "Select Time Range";
 export const DeploymentListDatetime = () => {
-  const [title, setTitle] = useState<string | null>(null);
+  const [title, setTitle] = useState<string | null>(TITLE_EMPTY_DEFAULT);
   const { filters, updateFilters } = useFilters();
 
   useEffect(() => {
-    if (!title) {
-      setTitle("Last 12 hours");
+    for (const filter of filters) {
+      if (["startTime", "endTime", "since"].includes(filter.field)) {
+        return;
+      }
     }
-  }, [title]);
+    setTitle(TITLE_EMPTY_DEFAULT);
+  }, [filters]);
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
