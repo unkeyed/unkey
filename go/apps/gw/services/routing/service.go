@@ -77,10 +77,18 @@ func (s *service) GetConfig(ctx context.Context, host string) (*ConfigWithWorksp
 		)
 	}
 
-	if db.IsNotFound(err) || hit == cache.Null {
+	if db.IsNotFound(err) {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
 			fault.Internal("no gateway configuration found for hostname"),
+			fault.Public("No configuration found for this domain"),
+		)
+	}
+
+	if hit == cache.Null {
+		return nil, fault.New(
+			"gateway not found, null hit",
+			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
 			fault.Public("No configuration found for this domain"),
 		)
 	}
