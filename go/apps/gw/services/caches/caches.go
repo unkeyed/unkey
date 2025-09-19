@@ -6,7 +6,7 @@ import (
 	"time"
 
 	validator "github.com/pb33f/libopenapi-validator"
-	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
+	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -19,7 +19,7 @@ import (
 // Each field represents a specialized cache for a specific data entity.
 type Caches struct {
 	// HostName -> Config
-	GatewayConfig cache.Cache[string, *partitionv1.GatewayConfig]
+	GatewayConfig cache.Cache[string, routing.ConfigWithWorkspace]
 
 	// DeploymentID -> OpenAPI Spec Validator
 	OpenAPISpec cache.Cache[string, validator.Validator]
@@ -72,7 +72,7 @@ type Config struct {
 //	// Use the caches
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
-	gatewayConfig, err := cache.New(cache.Config[string, *partitionv1.GatewayConfig]{
+	gatewayConfig, err := cache.New(cache.Config[string, routing.ConfigWithWorkspace]{
 		Fresh:    time.Second * 5,
 		Stale:    time.Second * 30,
 		Logger:   config.Logger,

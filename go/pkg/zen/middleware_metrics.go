@@ -14,7 +14,7 @@ import (
 )
 
 type EventBuffer interface {
-	BufferApiRequest(schema.ApiRequestV1)
+	BufferRequest(schema.ApiRequestV1)
 }
 
 type redactionRule struct {
@@ -93,7 +93,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					ipAddress = ips[0]
 				}
 
-				eventBuffer.BufferApiRequest(schema.ApiRequestV1{
+				eventBuffer.BufferRequest(schema.ApiRequestV1{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),

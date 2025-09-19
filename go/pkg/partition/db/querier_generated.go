@@ -27,7 +27,7 @@ type Querier interface {
 	FindGatewayByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (FindGatewayByDeploymentIdRow, error)
 	//FindGatewayByHostname
 	//
-	//  SELECT hostname, config
+	//  SELECT hostname, config, workspace_id
 	//  FROM gateways
 	//  WHERE hostname = ?
 	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
