@@ -7,6 +7,7 @@ import { queryClient, trpcClient } from "../client";
 const schema = z.object({
   id: z.string(),
   domain: z.string(),
+  deploymentId: z.string().nullable(),
   type: z.enum(["custom", "wildcard"]),
   projectId: z.string().nullable(),
 });
