@@ -17,7 +17,11 @@ export default function Page() {
 
   return (
     <div>
-      <Navigation href={`/${workspace?.slug}/logs`} name="Logs" icon={<Layers3 />} />
+      <Navigation
+        href={`/${workspace?.slug}/logs`}
+        name="Logs"
+        icon={<Layers3 />}
+      />
       <LogsClient />
     </div>
   );

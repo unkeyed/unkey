@@ -1,12 +1,22 @@
 "use client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretRight } from "@unkey/icons";
 import { Button, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type PropsWithChildren,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type QuickNavItem = {
   id: string;
@@ -92,12 +102,16 @@ export const QuickNavPopover = ({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setFocusedIndex((prev) => (prev === null ? 0 : (prev + 1) % items.length));
+        setFocusedIndex((prev) =>
+          prev === null ? 0 : (prev + 1) % items.length
+        );
         break;
       case "ArrowUp":
         e.preventDefault();
         setFocusedIndex((prev) =>
-          prev === null ? items.length - 1 : (prev - 1 + items.length) % items.length,
+          prev === null
+            ? items.length - 1
+            : (prev - 1 + items.length) % items.length
         );
         break;
       case "Enter":
@@ -117,7 +131,9 @@ export const QuickNavPopover = ({
       return 0;
     }
 
-    const activeIndex = items.findIndex((item) => item.href && checkIsActive(item.href, pathname));
+    const activeIndex = items.findIndex(
+      (item) => item.href && checkIsActive(item.href, pathname)
+    );
 
     return activeIndex >= 0 ? activeIndex : 0;
   }, [items, pathname]);
@@ -142,12 +158,17 @@ export const QuickNavPopover = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger>{children}</PopoverTrigger>
       <PopoverContent
-        className={cn("w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg")}
+        className={cn(
+          "w-60 bg-gray-1 dark:bg-black drop-shadow-2xl p-2 border-gray-6 rounded-lg"
+        )}
         align="start"
         onKeyDown={handleKeyDown}
       >
         <div className="flex flex-col gap-2">
-          <PopoverHeader title={title} shortcutKey={shortcutKey.toUpperCase()} />
+          <PopoverHeader
+            title={title}
+            shortcutKey={shortcutKey.toUpperCase()}
+          />
 
           {/* Container for list items */}
           <div
@@ -155,10 +176,14 @@ export const QuickNavPopover = ({
             className={cn(
               "w-full",
               shouldScroll ? "overflow-auto" : "overflow-visible",
-              useVirtual ? "" : "flex flex-col gap-1",
+              useVirtual ? "" : "flex flex-col gap-1"
             )}
             style={{
-              height: useVirtual ? maxHeight : shouldScroll ? maxHeight : "auto",
+              height: useVirtual
+                ? maxHeight
+                : shouldScroll
+                ? maxHeight
+                : "auto",
               maxHeight: maxHeight,
               width: "100%",
             }}
@@ -172,7 +197,9 @@ export const QuickNavPopover = ({
               >
                 {rowVirtualizer?.getVirtualItems().map((virtualRow) => {
                   const item = items[virtualRow.index];
-                  const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
+                  const isActive = Boolean(
+                    item.href && checkIsActive(item.href, pathname)
+                  );
 
                   return (
                     <div
@@ -196,7 +223,9 @@ export const QuickNavPopover = ({
               </div>
             ) : (
               items.map((item, index) => {
-                const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
+                const isActive = Boolean(
+                  item.href && checkIsActive(item.href, pathname)
+                );
 
                 return (
                   <PopoverItem
@@ -260,14 +289,16 @@ const PopoverItem = ({
         "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
         "hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none",
         (isFocused || isActive) && "bg-gray-3",
-        itemClassName,
+        itemClassName
       )}
       tabIndex={0}
       onClick={onSelect}
     >
       <div className={cn("flex gap-2 items-center", className)}>
         <span
-          className={"text-[13px] font-medium truncate max-w-[160px] text-accent-12"}
+          className={
+            "text-[13px] font-medium truncate max-w-[160px] text-accent-12"
+          }
           title={labelText}
         >
           {label}
@@ -275,11 +306,16 @@ const PopoverItem = ({
       </div>
       {!hideRightIcon && (
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
+          <div className="size-5 flex items-center justify-center">
             <CaretRight
-              className={cn(isActive ? "text-gray-12" : "text-gray-7 group-hover:text-gray-10")}
+              className={cn(
+                "size-2",
+                isActive
+                  ? "text-gray-12"
+                  : "text-gray-7 group-hover:text-gray-10"
+              )}
             />
-          </Button>
+          </div>
         </div>
       )}
     </button>
@@ -292,8 +328,12 @@ const checkIsActive = (itemPath: string, currentPath: string | null) => {
   }
 
   // Normalize paths by removing trailing slashes
-  const normalizedItemPath = itemPath.endsWith("/") ? itemPath.slice(0, -1) : itemPath;
-  const normalizedCurrentPath = currentPath?.endsWith("/") ? currentPath.slice(0, -1) : currentPath;
+  const normalizedItemPath = itemPath.endsWith("/")
+    ? itemPath.slice(0, -1)
+    : itemPath;
+  const normalizedCurrentPath = currentPath?.endsWith("/")
+    ? currentPath.slice(0, -1)
+    : currentPath;
 
   // Exact match check
   if (normalizedItemPath === normalizedCurrentPath) {

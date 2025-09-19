@@ -1,7 +1,10 @@
 import { formatNumber } from "@/lib/fmt";
 import { SettingCard } from "@unkey/ui";
 
-export const Usage: React.FC<{ current: number; max: number }> = async ({ current, max }) => {
+export const Usage: React.FC<{ current: number; max: number }> = ({
+  current,
+  max,
+}) => {
   return (
     <SettingCard
       title="Usage this month"
@@ -12,7 +15,8 @@ export const Usage: React.FC<{ current: number; max: number }> = async ({ curren
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <p className="text-sm font-semibold text-gray-12">
-          {formatNumber(current)} / {formatNumber(max)} ({Math.round((current / max) * 100)}%)
+          {formatNumber(current)} / {formatNumber(max)} (
+          {Math.round((current / max) * 100)}%)
         </p>
 
         <ProgressCircle max={max} value={current} />
