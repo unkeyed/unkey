@@ -1,0 +1,119 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI
+.github
+.gitlab
+.travis.yml
+
+# Docker
+docker-compose.yml
+docker-compose*.yml
+*/docker-compose*.yml
+docker-compose*.yaml
+*/docker-compose*.yaml
+Dockerfile
+*/Dockerfile
+.dockerignore
+
+# Go directory (not needed for dashboard)
+/go
+go/
+
+# Other large directories not needed for dashboard build
+deployment/
+tools/
+.changeset/
+.jj/
+.ropeproject/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+*.py[cod]
+*/*.py[cod]
+*/*/*.py[cod]
+*/*/*/*.py[cod]
+
+# Node - exclude all node_modules everywhere
+**/node_modules/
+**/.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Next.js and build outputs
+**/.next/
+**/out/
+**/dist/
+**/.turbo/
+
+# Testing
+**/coverage/
+**/.nyc_output
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.log
+logs
+*.pid
+*.seed
+*.pid.lock
+
+# Editor directories and files
+.idea
+*.swp
+*.swo
+*~
+.vscode
+*.sublime-project
+*.sublime-workspace
+
+# Build directories
+**/build/
+
+# Documentation
+*.md
+docs/
+*/docs/
+
+# Tests
+__tests__
+*/__tests__
+test/
+*/test/
+tests/
+*/tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.work
+go.work.sum
+
+# Temporary files
+tmp/
+*/tmp/
+temp/
+*/temp/

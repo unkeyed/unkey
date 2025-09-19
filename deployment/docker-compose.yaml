@@ -398,6 +398,8 @@ services:
       # Environment
       NODE_ENV: "production"
       CTRL_URL: "http://ctrl:7091"
+      # Public URL for proper redirects (can be overridden for self-hosting)
+      NEXT_PUBLIC_URL: "http://localhost:3000"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
 volumes:
