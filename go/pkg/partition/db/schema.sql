@@ -15,6 +15,7 @@ CREATE TABLE gateways (
   `config` blob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
   PRIMARY KEY (`id`),
   UNIQUE KEY `gateways_pk` (`hostname`)
+   INDEX idx_deployment_id (deployment_id),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Virtual machine instances

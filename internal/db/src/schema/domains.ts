@@ -38,6 +38,7 @@ export const domains = mysqlTable(
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
     projectIdx: index("project_idx").on(table.projectId),
+    deploymentIdx: index("deployment_idx").on(table.deploymentId),
     uniqueDomainIdx: uniqueIndex("unique_domain_idx").on(table.domain),
   }),
 );
