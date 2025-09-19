@@ -27,6 +27,7 @@ export const NestedNavItem = ({
   maxDepth = 1,
   isSubItem = false,
   forceCollapsed = false,
+  className,
 }: NavProps & {
   depth?: number;
   maxDepth?: number;
@@ -154,17 +155,16 @@ export const NestedNavItem = ({
     // If this subitem has children and is not at max depth, render it as another NestedNavItem
     if (hasChildren && depth < maxDepth) {
       return (
-        <SidebarMenuSubItem key={subItem.label?.toString() ?? index}>
-          <NestedNavItem
-            item={subItem}
-            onLoadMore={onLoadMore}
-            onToggleCollapse={onToggleCollapse}
-            depth={depth + 1}
-            maxDepth={maxDepth}
-            isSubItem={true}
-            forceCollapsed={forceCollapsed}
-          />
-        </SidebarMenuSubItem>
+        <NestedNavItem
+          key={subItem.label?.toString() ?? index}
+          item={subItem}
+          onLoadMore={onLoadMore}
+          onToggleCollapse={onToggleCollapse}
+          depth={depth + 1}
+          maxDepth={maxDepth}
+          isSubItem={true}
+          forceCollapsed={forceCollapsed}
+        />
       );
     }
     // Otherwise render as a regular sub-item
@@ -227,7 +227,7 @@ export const NestedNavItem = ({
       onOpenChange={handleOpenChange}
       className="group/collapsible"
     >
-      <SidebarMenuItem>
+      <SidebarMenuItem className={isSubItem ? undefined : className}>
         <SidebarMenuButton
           tooltip={item.tooltip}
           // Only highlight if this item itself is active, not if its children are active

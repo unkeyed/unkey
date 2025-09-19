@@ -35,13 +35,13 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       user?.id as string, // make typescript happy
       {
         enabled: !!user,
-      }
+      },
     );
 
   const userMemberships = memberships?.data;
 
   const currentOrgMembership = userMemberships?.find(
-    (membership) => membership.organization.id === user?.orgId
+    (membership) => membership.organization.id === user?.orgId,
   );
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
@@ -65,9 +65,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error);
-      toast.error(
-        "Failed to switch workspace. Contact support if error persists."
-      );
+      toast.error("Failed to switch workspace. Contact support if error persists.");
     },
   });
 
@@ -80,7 +78,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       return userMemberships;
     }
     return userMemberships.filter((m) =>
-      m.organization.name.toLowerCase().includes(search.toLowerCase())
+      m.organization.name.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, userMemberships]);
 
@@ -89,15 +87,13 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       <DropdownMenuTrigger
         className={cn(
           "flex items-center bg-base-12 overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content",
-          isCollapsed
-            ? "justify-center w-10 h-8 p-0"
-            : "justify-between w-full h-8 gap-2 px-2"
+          isCollapsed ? "justify-center w-10 h-8 p-0" : "justify-between w-full h-8 gap-2 px-2",
         )}
       >
         <div
           className={cn(
             "flex items-center gap-2 overflow-hidden whitespace-nowrap",
-            isCollapsed ? "justify-center" : ""
+            isCollapsed ? "justify-center" : "",
           )}
         >
           <Avatar className="w-5 h-5 rounded border border-grayA-6">
@@ -137,14 +133,11 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
               <DropdownMenuItem
                 key={membership.id}
                 className="flex items-center justify-between"
-                onClick={async () =>
-                  changeWorkspace.mutateAsync(membership.organization.id)
-                }
+                onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
               >
                 <span
                   className={
-                    membership.organization.id ===
-                    currentOrgMembership?.organization.id
+                    membership.organization.id === currentOrgMembership?.organization.id
                       ? "font-medium"
                       : undefined
                   }
@@ -152,8 +145,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
                   {" "}
                   {membership.organization.name}
                 </span>
-                {membership.organization.id ===
-                currentOrgMembership?.organization.id ? (
+                {membership.organization.id === currentOrgMembership?.organization.id ? (
                   <Check className="w-4 h-4" />
                 ) : null}
               </DropdownMenuItem>

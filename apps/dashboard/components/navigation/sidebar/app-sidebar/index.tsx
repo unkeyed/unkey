@@ -194,16 +194,13 @@ export function AppSidebar({
             )}
 
             {projectAddedNavItems.map((item) => (
-              <div
+              <NavItems
                 key={item.label as string}
+                item={item}
+                onToggleCollapse={handleToggleCollapse}
+                forceCollapsed={getForceCollapsedForItem(item)}
                 className={cn(hasSoloActive && !item.active ? "hidden" : "block")}
-              >
-                <NavItems
-                  item={item}
-                  onToggleCollapse={handleToggleCollapse}
-                  forceCollapsed={getForceCollapsedForItem(item)}
-                />
-              </div>
+              />
             ))}
           </SidebarMenu>
         </SidebarGroup>

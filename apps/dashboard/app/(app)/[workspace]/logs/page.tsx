@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
+export default function Page() {
   const router = useRouter();
   const { workspace, isLoading } = useWorkspace();
 
   if (!workspace && !isLoading) {
-    return router.push("/new");
+    router.push("/new");
+    return null;
   }
 
   return (

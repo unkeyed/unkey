@@ -1,7 +1,6 @@
 "use client";
 
 import { TableCell, TableRow } from "@/components/ui/table";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useMemo, useRef } from "react";
 
@@ -70,9 +69,7 @@ function RowComponent(props: Props) {
       aria-label={`View details for identity ${identity.externalId}`}
     >
       <TableCell className="group-hover:bg-muted/50 transition-colors">
-        <span className="font-mono text-xs text-content">
-          {identity.externalId}
-        </span>
+        <span className="font-mono text-xs text-content">{identity.externalId}</span>
       </TableCell>
       <TableCell className="flex flex-col gap-1 group-hover:bg-muted/50 transition-colors">
         <pre className="text-xs text-content font-mono">

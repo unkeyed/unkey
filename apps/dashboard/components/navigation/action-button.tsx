@@ -19,10 +19,7 @@ export interface NavbarActionButtonProps extends Omit<ButtonProps, "title"> {
   leftContent?: React.ReactNode;
 }
 
-export const NavbarActionButton = React.forwardRef<
-  HTMLButtonElement,
-  NavbarActionButtonProps
->(
+export const NavbarActionButton = React.forwardRef<HTMLButtonElement, NavbarActionButtonProps>(
   ({
     title = "Create New Root Key",
     variant = "primary",
@@ -36,8 +33,7 @@ export const NavbarActionButton = React.forwardRef<
     ...props
   }) => {
     // Filter out React Loadable props that shouldn't be passed to DOM elements
-    const { isLoading, pastDelay, timedOut, retry, error, ...buttonProps } =
-      props as any;
+    const { isLoading, pastDelay, timedOut, retry, error, ...buttonProps } = props as any;
     return (
       <div className="flex flex-col gap-1">
         <Button
@@ -55,7 +51,7 @@ export const NavbarActionButton = React.forwardRef<
         </Button>
       </div>
     );
-  }
+  },
 );
 
 NavbarActionButton.displayName = "NavbarActionButton";
