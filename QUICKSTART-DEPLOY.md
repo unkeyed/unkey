@@ -7,18 +7,56 @@ This guide will help you get the Unkey deployment platform up and running locall
 - Docker and Docker Compose
 - Go 1.24 or later
 - A terminal/command line
+- dnsmasq (for wildcard DNS setup)
 
 ## Step 1: Start the Platform
 
-1. Start all services using Docker Compose:
+1. Set up the API key for ctrl service authentication by adding it to `go/apps/ctrl/.env`:
 
 ```bash
-docker-compose up metald-aio dashboard ctrl -d
+UNKEY_API_KEY="your-local-dev-key"
 ```
 
-2. Wait for all services to be healthy
+2. Set up dashboard environment variables for ctrl authentication in `apps/dashboard/.env.local`:
 
-The platform now uses a Docker backend that creates containers instead of VMs, making it much faster and easier to run locally.
+```bash
+CTRL_URL="http://127.0.0.1:7091"
+CTRL_API_KEY="your-local-dev-key"
+```
+
+Note: Use the same API key value in both files for authentication to work properly.
+
+3. Start all necessary services using Docker Compose:
+
+```bash
+docker compose -f ./deployment/docker-compose.yaml up mysql planetscale clickhouse redis s3 dashboard gw metald ctrl -d --build
+```
+
+This will start:
+- **mysql**: Database for storing workspace, project, and deployment data
+- **planetscale**: PlanetScale HTTP simulator for database access
+- **clickhouse**: Analytics database for metrics and logs
+- **redis**: Caching layer for session and temporary data
+- **s3**: MinIO S3-compatible storage for assets and vault data
+- **dashboard**: Web UI for managing deployments (port 3000)
+- **gw**: Gateway service for routing traffic (ports 80/443)
+- **metald**: VM/container management service (port 8090)
+- **ctrl**: Control plane service for managing deployments (port 7091)
+
+4. Set up wildcard DNS for `unkey.local`:
+
+```bash
+./deployment/setup-wildcard-dns.sh
+```
+
+5. **OPTIONAL**: Install self-signed certificate for HTTPS (to avoid SSL errors):
+
+```bash
+# For macOS
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ./deployment/certs/unkey.local.crt
+```
+
+Note: Certificates should be mounted to `deployment/certs`. You can skip this if you're fine with SSL errors in your browser.
 
 ## Step 2: Set Up Your Workspace
 
@@ -48,45 +86,61 @@ Go to http://localhost:3000/projects
 cd go
 ```
 
-2. Create a version using the CLI with your copied IDs:
+2. Set up API key authentication for the CLI (choose one option):
+
+**Option A: Environment variable (recommended)**
+```bash
+export API_KEY="your-local-dev-key"
+```
+
+**Option B: CLI flag**
+Use `--api-key="your-local-dev-key"` in the command below.
+
+3. Deploy using the CLI with your copied IDs:
 
 ```bash
-go run . version create \
+go run . deploy \
   --context=./demo_api \
-  --workspace-id=YOUR_WORKSPACE_ID \
-  --project-id=YOUR_PROJECT_ID
+  --workspace-id="REPLACE_ME" \
+  --project-id="REPLACE_ME" \
+  --control-plane-url="http://127.0.0.1:7091" \
+  --api-key="your-local-dev-key" \
+  --keyspace-id="REPLACE_ME" # This is optional if you want key verifications
 ```
 
-Keep the context as shown, there's a demo api in that folder.
-Replace `YOUR_WORKSPACE_ID` and `YOUR_PROJECT_ID` with the actual values you copied from the dashboard.
+Replace the placeholder values:
+- `REPLACE_ME` with your actual workspace ID, project ID, and keyspace ID
+- `your-local-dev-key` with the same API key value you set in steps 1 and 2
+- Keep `--context=./demo_api` as shown (there's a demo API in that folder)
+
+**Note**: If using Option A (environment variable), you can omit the `--api-key` flag from the command.
 
 3. The CLI will:
-   - Always build a fresh Docker image from your code
-   - Set the PORT environment variable to 8080 in the container
-   - Use the Docker backend to create a container instead of a VM
-   - Automatically allocate a random host port (e.g., 35432) to avoid conflicts
-   - Show real-time progress as your deployment goes through the stages
+   - Build a Docker image from the demo_api code
+   - Create a deployment on the Unkey platform
+   - Show real-time progress through deployment stages
+   - Deploy using metald's VM/container backend
 
-## Step 4: View Your Deployment
+## Step 4: Test Your Deployment
 
-1. Once the deployment completes, the CLI will show you the available domains:
+1. Once deployment completes, test the API in the unkey root directory:
 
-```
-Deployment Complete
-  Version ID: v_xxxxxxxxxxxxxxxxxx
-  Status: Ready
-  Environment: Production
-
-Domains
-  https://main-commit-workspace.unkey.app
-  http://localhost:35432
+```bash
+curl --cacert ./deployment/certs/unkey.local.crt https://REPLACE_ME/v1/liveness
 ```
 
-2. If you're using the `demo_api` you can curl the `/v1/liveness` endpoint
-3. Return to the dashboard and navigate to:
+Replace:
+- `REPLACE_ME` (URL) with your deployment domain
+
+**Note:** The liveness endpoint is public and doesn't require authentication. For protected endpoints, include an Authorization header:
+
+```bash
+curl --cacert ./deployment/certs/unkey.local.crt -H "Authorization: Bearer YOUR_API_KEY" https://YOUR_DOMAIN/protected/endpoint
+```
+
+2. Return to the dashboard to monitor your deployment:
 
 ```
-http://localhost:3000/versions
 http://localhost:3000/deployments
 ```
 

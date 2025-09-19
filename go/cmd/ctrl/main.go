@@ -54,6 +54,8 @@ var Cmd = &cli.Command{
 		// Control Plane Specific
 		cli.String("auth-token", "Authentication token for control plane API access. Required for secure deployments.",
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
+		cli.String("api-key", "API key for simple authentication (demo purposes only). Will be replaced with JWT authentication.",
+			cli.Required(), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("metald-address", "Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080",
 			cli.Required(), cli.EnvVar("UNKEY_METALD_ADDRESS")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
@@ -120,6 +122,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Control Plane Specific
 		AuthToken:        cmd.String("auth-token"),
+		APIKey:           cmd.String("api-key"),
 		MetaldAddress:    cmd.String("metald-address"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
