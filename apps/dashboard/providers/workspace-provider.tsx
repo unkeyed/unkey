@@ -3,11 +3,7 @@
 import type { AuthenticatedUser } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
-import {
-  baseQueryOptions,
-  createRetryFn,
-  isWorkOSRedirect,
-} from "@/lib/utils/trpc";
+import { baseQueryOptions, createRetryFn, isWorkOSRedirect } from "@/lib/utils/trpc";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { Quotas, Workspace } from "@unkey/db";
@@ -31,9 +27,7 @@ interface WorkspaceContextType {
   refetch: () => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
-  undefined
-);
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
@@ -43,9 +37,7 @@ export const useWorkspace = () => {
   return context;
 };
 
-export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
-  children,
-}) => {
+export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const queryClient = useQueryClient();
   const previousUserIdRef = useRef<string | null>(null);
 
@@ -61,7 +53,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   // Only fetch workspace if user data is ready and valid
   const shouldEnableWorkspaceQuery = useMemo(
     () => Boolean(!userLoading && user?.id && user?.orgId && !userError),
-    [userLoading, user?.id, user?.orgId, userError]
+    [userLoading, user?.id, user?.orgId, userError],
   );
 
   const workspaceQuery = trpc.workspace.getCurrent.useQuery(undefined, {
@@ -70,11 +62,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     retry: createRetryFn(3), // Allow one extra retry for workspace
   });
 
-  const {
-    data: workspace,
-    isLoading: workspaceLoading,
-    error: workspaceError,
-  } = workspaceQuery;
+  const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
 
   // Memoize refetch function to prevent unnecessary re-renders
   const refetch = useCallback(async () => {
@@ -111,8 +99,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
   // Compute context value with proper error handling
   const value: WorkspaceContextType = useMemo(() => {
     // Handle WorkOS redirects by showing loading state
-    const hasWorkOSRedirect =
-      isWorkOSRedirect(userError) || isWorkOSRedirect(workspaceError);
+    const hasWorkOSRedirect = isWorkOSRedirect(userError) || isWorkOSRedirect(workspaceError);
 
     if (hasWorkOSRedirect) {
       return {
@@ -125,25 +112,9 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
       };
     }
 
-    // Calculate loading state more carefully to prevent premature false loading
     const isLoading =
-      userLoading ||
-      (shouldEnableWorkspaceQuery && (workspaceLoading || !workspace));
+      userLoading || (shouldEnableWorkspaceQuery && (workspaceLoading || !workspace));
 
-    // Debug logging for loading state transitions
-    if (process.env.NODE_ENV === "development") {
-      console.log("[WorkspaceProvider] Loading state:", {
-        userLoading,
-        shouldEnableWorkspaceQuery,
-        workspaceLoading,
-        hasWorkspace: !!workspace,
-        finalIsLoading: isLoading,
-        userId: user?.id,
-        orgId: user?.orgId,
-      });
-    }
-
-    // Only surface errors when not loading
     const error = isLoading ? null : userError || workspaceError || null;
 
     return {
@@ -165,9 +136,5 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({
     refetch,
   ]);
 
-  return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
-  );
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };

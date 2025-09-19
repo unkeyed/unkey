@@ -8,9 +8,7 @@ export const switchOrg = t.procedure
   .input(z.string())
   .mutation(async ({ input: orgId, ctx }) => {
     try {
-      const { newToken, expiresAt, session } = await authProvider.switchOrg(
-        orgId
-      );
+      const { newToken, expiresAt, session } = await authProvider.switchOrg(orgId);
 
       await invalidateWorkspaceCache(ctx.tenant.id); // Current org
       await invalidateWorkspaceCache(orgId); // Target org
@@ -25,10 +23,7 @@ export const switchOrg = t.procedure
       console.error("Error switching organization:", error);
       return {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to switch organization",
+        error: error instanceof Error ? error.message : "Failed to switch organization",
       };
     }
   });
