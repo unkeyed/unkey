@@ -1523,13 +1523,14 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
-	//RollbackDomain
+	//RollBackDomain
 	//
 	//  UPDATE domains
 	//  SET deployment_id = ?,
+	//      is_rolled_back = ?,
 	//      updated_at = ?
 	//  WHERE id = ?
-	RollbackDomain(ctx context.Context, db DBTX, arg RollbackDomainParams) error
+	RollBackDomain(ctx context.Context, db DBTX, arg RollBackDomainParams) error
 	//SoftDeleteApi
 	//
 	//  UPDATE apis

@@ -116,7 +116,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get gateway config: %w", err))
 	}
 
-	domainChanges := []db.RollbackDomainParams{}
+	domainChanges := []db.RollBackDomainParams{}
 	gatewayChanges := []pdb.UpsertGatewayParams{}
 
 	for _, domain := range domains {
@@ -124,9 +124,11 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			(domain.Sticky.DomainsSticky == db.DomainsStickyLive ||
 				domain.Sticky.DomainsSticky == db.DomainsStickyEnvironment) {
 
-			domainChanges = append(domainChanges, db.RollbackDomainParams{
-				ID:           domain.ID,
-				DeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+			domainChanges = append(domainChanges, db.RollBackDomainParams{
+				ID:                 domain.ID,
+				TargetDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+				IsRolledBack:       true,
+				UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 
 			gatewayChanges = append(gatewayChanges, pdb.UpsertGatewayParams{
@@ -146,6 +148,16 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	if err != nil {
 		s.logger.Error("failed to upsert gateway", "error", err.Error())
 		return nil, fmt.Errorf("failed to upsert gateway: %w", err)
+	}
+
+	// Not sure why there isn't a bulk query generated, but this will do for now
+	// cause we're only rolling back one domain anyways
+	for _, change := range domainChanges {
+		err = db.Query.RollBackDomain(ctx, s.db.RW(), change)
+		if err != nil {
+			s.logger.Error("failed to update domain", "error", err.Error())
+			return nil, fmt.Errorf("failed to update domain: %w", err)
+		}
 	}
 
 	err = db.Query.UpdateProjectLiveDeploymentId(ctx, s.db.RW(), db.UpdateProjectLiveDeploymentIdParams{

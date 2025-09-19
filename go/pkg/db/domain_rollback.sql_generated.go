@@ -10,26 +10,34 @@ import (
 	"database/sql"
 )
 
-const rollbackDomain = `-- name: RollbackDomain :exec
+const rollBackDomain = `-- name: RollBackDomain :exec
 UPDATE domains
 SET deployment_id = ?,
+    is_rolled_back = ?,
     updated_at = ?
 WHERE id = ?
 `
 
-type RollbackDomainParams struct {
-	DeploymentID sql.NullString `db:"deployment_id"`
-	UpdatedAt    sql.NullInt64  `db:"updated_at"`
-	ID           string         `db:"id"`
+type RollBackDomainParams struct {
+	TargetDeploymentID sql.NullString `db:"target_deployment_id"`
+	IsRolledBack       bool           `db:"is_rolled_back"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
+	ID                 string         `db:"id"`
 }
 
-// RollbackDomain
+// RollBackDomain
 //
 //	UPDATE domains
 //	SET deployment_id = ?,
+//	    is_rolled_back = ?,
 //	    updated_at = ?
 //	WHERE id = ?
-func (q *Queries) RollbackDomain(ctx context.Context, db DBTX, arg RollbackDomainParams) error {
-	_, err := db.ExecContext(ctx, rollbackDomain, arg.DeploymentID, arg.UpdatedAt, arg.ID)
+func (q *Queries) RollBackDomain(ctx context.Context, db DBTX, arg RollBackDomainParams) error {
+	_, err := db.ExecContext(ctx, rollBackDomain,
+		arg.TargetDeploymentID,
+		arg.IsRolledBack,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 	return err
 }

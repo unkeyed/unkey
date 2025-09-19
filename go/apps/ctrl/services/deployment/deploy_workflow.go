@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"connectrpc.com/connect"
-  metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
