@@ -3,7 +3,7 @@
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import { formatNumber } from "@/lib/fmt";
+import { formatNumber, formatNumberFull } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Ban, BookBookmark } from "@unkey/icons";
@@ -218,8 +218,9 @@ export const RatelimitOverviewLogsTable = ({
         hide: isLoading,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
-            <span>of {totalCount}</span>
+            <span>Showing</span>{" "}
+            <span className="text-accent-12">{formatNumberFull(historicalLogs.length)}</span>
+            <span>of {formatNumberFull(totalCount)}</span>
             <span>rate limit identifiers</span>
           </div>
         ),

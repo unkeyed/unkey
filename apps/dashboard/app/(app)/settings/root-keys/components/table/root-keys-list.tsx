@@ -2,6 +2,7 @@
 import { HiddenValueCell } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
 import { BookBookmark, Dots, Key2 } from "@unkey/icons";
@@ -86,9 +87,10 @@ export const RootKeysList = () => {
       hasMore,
       countInfoText: (
         <div className="flex gap-2">
-          <span>Showing</span> <span className="text-accent-12">{rootKeys.length}</span>
+          <span>Showing</span>{" "}
+          <span className="text-accent-12">{formatNumberFull(rootKeys.length)}</span>
           <span>of</span>
-          {totalCount}
+          {formatNumberFull(totalCount)}
           <span>root keys</span>
         </div>
       ),
@@ -142,7 +144,13 @@ export const RootKeysList = () => {
 
   // Memoize the renderSkeletonRow function to prevent unnecessary re-renders
   const renderSkeletonRow = useCallback(
-    ({ columns, rowHeight }: { columns: Column<RootKey>[]; rowHeight: number }) =>
+    ({
+      columns,
+      rowHeight,
+    }: {
+      columns: Column<RootKey>[];
+      rowHeight: number;
+    }) =>
       columns.map((column) => (
         <td
           key={column.key}

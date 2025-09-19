@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
+import { formatNumberFull } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -81,7 +82,8 @@ export const ApiListClient = () => {
 
           <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
             <div className="text-center text-sm text-accent-11">
-              Showing {apiList.length} of {apisData?.pages[0]?.total || 0} APIs
+              Showing {formatNumberFull(apiList.length)} of{" "}
+              {formatNumberFull(apisData?.pages[0]?.total || 0)} APIs
             </div>
 
             {!isSearching && hasNextPage && (

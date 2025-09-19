@@ -2,7 +2,7 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { Deployment, Environment } from "@/lib/collections";
+
 import { shortenId } from "@/lib/shorten-id";
 import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
@@ -307,7 +307,7 @@ export const DeploymentsList = () => {
       onRowClick={setSelectedDeployment}
       selectedItem={selectedDeployment}
       keyExtractor={(deployment) => deployment.id}
-      rowClassName={(deployment) => getRowClassName(deployment, selectedDeployment?.deployment.id)}
+
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">

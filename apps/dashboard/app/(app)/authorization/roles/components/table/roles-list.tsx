@@ -1,6 +1,7 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumberFull } from "@/lib/fmt";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { BookBookmark, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
@@ -166,9 +167,10 @@ export const RolesList = () => {
         ),
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{roles.length}</span>
+            <span>Showing</span>{" "}
+            <span className="text-accent-12">{formatNumberFull(roles.length)}</span>
             <span>of</span>
-            {totalCount}
+            {formatNumberFull(totalCount)}
             <span>roles</span>
           </div>
         ),

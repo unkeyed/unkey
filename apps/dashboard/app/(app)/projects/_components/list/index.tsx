@@ -1,5 +1,4 @@
-import { collection } from "@/lib/collections";
-import { ilike, useLiveQuery } from "@tanstack/react-db";
+
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
@@ -102,6 +101,6 @@ export const ProjectsList = () => {
           />
         ))}
       </div>
-    </div>
+
   );
 };
