@@ -192,7 +192,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
-		MetaldBackend: cfg.MetaldBackend,
 		MetalD:        metaldClient,
 		DefaultDomain: cfg.DefaultDomain,
 	})

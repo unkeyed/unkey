@@ -1,9 +1,6 @@
 package ctrl
 
 import (
-	"fmt"
-
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment/backends"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
@@ -70,8 +67,6 @@ type Config struct {
 	// MetaldAddress is the full URL of the metald service for VM operations (e.g., "https://metald.example.com:8080")
 	MetaldAddress string
 
-	MetaldBackend string // fallback to either k8's pod or docker, this skips calling metald
-
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
 	SPIFFESocketPath string
 
@@ -85,18 +80,9 @@ type Config struct {
 	Acme AcmeConfig
 
 	DefaultDomain string
-
-	// IsRunningDocker indicates whether this service is running inside a Docker container
-	// Affects host address resolution for container-to-container communication
-	IsRunningDocker bool
 }
 
 func (c Config) Validate() error {
-	// Validate MetaldBackend field
-	if err := backends.ValidateBackendType(c.MetaldBackend); err != nil {
-		return fmt.Errorf("invalid metald backend configuration: %w", err)
-	}
-
 	// Validate Cloudflare configuration if enabled
 	if c.Acme.Enabled && c.Acme.Cloudflare.Enabled {
 		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {

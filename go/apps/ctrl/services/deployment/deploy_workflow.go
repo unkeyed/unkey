@@ -8,7 +8,8 @@ import (
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
+	"connectrpc.com/connect"
+  metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -21,46 +22,29 @@ import (
 
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
 type DeployWorkflow struct {
-	db                db.Database
-	partitionDB       db.Database
-	logger            logging.Logger
-	deploymentBackend DeploymentBackend
-	defaultDomain     string
+	db            db.Database
+	partitionDB   db.Database
+	logger        logging.Logger
+	metaldClient  metaldv1connect.VmServiceClient
+	defaultDomain string
 }
 
 type DeployWorkflowConfig struct {
-	Logger          logging.Logger
-	DB              db.Database
-	PartitionDB     db.Database
-	MetalD          metaldv1connect.VmServiceClient
-	MetaldBackend   string
-	DefaultDomain   string
-	IsRunningDocker bool
+	Logger        logging.Logger
+	DB            db.Database
+	PartitionDB   db.Database
+	MetalD        metaldv1connect.VmServiceClient
+	DefaultDomain string
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
-
-	cfg.Logger.Info("Initializing deploy workflow",
-		"metald_backend", cfg.MetaldBackend,
-		"default_domain", cfg.DefaultDomain,
-		"is_running_docker", cfg.IsRunningDocker,
-	)
-	// Create the appropriate deployment backend
-	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger, cfg.IsRunningDocker)
-	if err != nil {
-		// Log error but continue - workflow will fail when trying to use the backend
-		cfg.Logger.Error("failed to initialize deployment backend",
-			"error", err,
-			"fallback", cfg.MetaldBackend)
-	}
-
 	return &DeployWorkflow{
-		db:                cfg.DB,
-		partitionDB:       cfg.PartitionDB,
-		logger:            cfg.Logger,
-		deploymentBackend: deploymentBackend,
-		defaultDomain:     cfg.DefaultDomain,
+		db:            cfg.DB,
+		partitionDB:   cfg.PartitionDB,
+		logger:        cfg.Logger,
+		metaldClient:  cfg.MetalD,
+		defaultDomain: cfg.DefaultDomain,
 	}
 }
 
@@ -152,10 +136,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	metaldDeployment, err := hydra.Step(ctx, "create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
-		if w.deploymentBackend == nil {
-			return nil, fmt.Errorf("deployment backend not initialized")
-		}
-
 		// Create deployment request
 		deploymentReq := &metaldv1.CreateDeploymentRequest{
 			Deployment: &metaldv1.DeploymentRequest{
@@ -167,12 +147,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			},
 		}
 
-		resp, err := w.deploymentBackend.CreateDeployment(stepCtx, deploymentReq)
+		resp, err := w.metaldClient.CreateDeployment(stepCtx, connect.NewRequest(deploymentReq))
 		if err != nil {
-			return nil, fmt.Errorf("failed to create deployment for image %s: %w", req.DockerImage, err)
+			return nil, fmt.Errorf("metald CreateDeployment failed for image %s: %w", req.DockerImage, err)
 		}
 
-		return resp, nil
+		return resp.Msg, nil
 	})
 	if err != nil {
 		return err
@@ -205,14 +185,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
 			}
 
-			if w.deploymentBackend == nil {
-				return nil, fmt.Errorf("deployment backend not initialized")
+			resp, err := w.metaldClient.GetDeployment(stepCtx, connect.NewRequest(&metaldv1.GetDeploymentRequest{
+				DeploymentId: req.DeploymentID,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("metald GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
 			}
 
-			vms, err := w.deploymentBackend.GetDeployment(stepCtx, req.DeploymentID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get deployment %s: %w", req.DeploymentID, err)
-			}
+			vms := resp.Msg.GetVms()
 
 			allReady := true
 			for _, instance := range vms {
