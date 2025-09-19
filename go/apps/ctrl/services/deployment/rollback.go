@@ -152,7 +152,8 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	err = pdb.BulkQuery.UpsertGateway(ctx, s.partitionDB.RW(), gatewayChanges)
 	if err != nil {
 		s.logger.Error("failed to upsert gateway", "error", err.Error())
-		return nil, fmt.Errorf("failed to upsert gateway: %w", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to upsert gateway: %w", err))
+
 	}
 
 	// Not sure why there isn't a bulk query generated, but this will do for now
@@ -161,7 +162,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		err = db.Query.ReassignDomain(ctx, s.db.RW(), change)
 		if err != nil {
 			s.logger.Error("failed to update domain", "error", err.Error())
-			return nil, fmt.Errorf("failed to update domain: %w", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update domain: %w", err))
 		}
 	}
 
@@ -175,7 +176,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			"project_id", project.ID,
 			"error", err.Error(),
 		)
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update project's live deployment id: %w", err))
 	}
 
 	err = db.Query.UpdateDeploymentRollback(ctx, s.db.RW(), db.UpdateDeploymentRollbackParams{
@@ -188,7 +189,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			"deployment_id", sourceDeployment.ID,
 			"error", err.Error(),
 		)
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
 	}
 
 	err = db.Query.UpdateDeploymentRollback(ctx, s.db.RW(), db.UpdateDeploymentRollbackParams{
@@ -201,7 +202,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			"deployment_id", targetDeployment.ID,
 			"error", err.Error(),
 		)
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
 	}
 
 	res := &ctrlv1.RollbackResponse{
