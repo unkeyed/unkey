@@ -23,3 +23,5 @@ dist
 
 .secrets.json
 certs/
+deployment/data/*
+bin/
