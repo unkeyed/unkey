@@ -10,10 +10,12 @@ USE `partition_001`;
 CREATE TABLE gateways (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `workspace_id` varchar(255) NOT NULL,
+  `deployment_id` varchar(255) NOT NULL,
   `hostname` varchar(255) NOT NULL,
   `config` blob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
   PRIMARY KEY (`id`),
-  UNIQUE KEY `gateways_pk` (`hostname`)
+  UNIQUE KEY `gateways_pk` (`hostname`),
+  INDEX idx_deployment_id (deployment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Virtual machine instances
@@ -27,9 +29,8 @@ CREATE TABLE vms (
     cpu_millicores INT NOT NULL,
     memory_mb INT NOT NULL,
     status ENUM('allocated', 'provisioning', 'starting', 'running', 'stopping', 'stopped', 'failed') NOT NULL,
-
-
-    UNIQUE KEY unique_address (address)
+    UNIQUE KEY unique_address (address),
+    INDEX idx_deployment_id (deployment_id)
 );
 
 -- Metal host instances running metald

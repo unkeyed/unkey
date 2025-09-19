@@ -327,6 +327,7 @@ CREATE TABLE `deployments` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(256) NOT NULL,
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
@@ -370,9 +371,12 @@ CREATE TABLE `domains` (
 	`deployment_id` varchar(256),
 	`domain` varchar(256) NOT NULL,
 	`type` enum('custom','wildcard') NOT NULL,
+	`sticky` enum('branch','environment','live'),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`)
+	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
 CREATE TABLE `acme_challenges` (
@@ -413,5 +417,7 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `domains` (`project_id`);
+CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
+

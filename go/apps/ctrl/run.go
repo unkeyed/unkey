@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/routing"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
@@ -193,7 +192,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
-		MetaldBackend: cfg.MetaldBackend,
 		MetalD:        metaldClient,
 		DefaultDomain: cfg.DefaultDomain,
 	})
@@ -209,7 +207,6 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
-	mux.Handle(ctrlv1connect.NewRoutingServiceHandler(routing.New(database, partitionDB, logger)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
@@ -327,7 +324,6 @@ func Run(ctx context.Context, cfg Config) error {
 						WorkspaceID: "unkey", // Default workspace for wildcard cert
 						Domain:      wildcardDomain,
 						CreatedAt:   now,
-						UpdatedAt:   sql.NullInt64{Valid: true, Int64: now},
 						Type:        db.DomainsTypeCustom,
 					})
 					if err != nil {

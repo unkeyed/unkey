@@ -17,7 +17,9 @@ export const listDomains = t.procedure
           id: true,
           domain: true,
           projectId: true,
+          deploymentId: true,
           type: true,
+          sticky: true,
         },
       })
       .catch((error) => {

@@ -16,7 +16,7 @@ spec:
       labels:
         app: ctrl
     spec:
-      serviceAccountName: ctrl-service-account
+      serviceAccountName: unkey-serviceaccount
       containers:
         - name: ctrl
           image: unkey-ctrl:latest
@@ -69,8 +69,10 @@ spec:
             # Additional Configuration
             - name: UNKEY_ACME_ENABLED
               value: "false"
-            - name: UNKEY_METALD_BACKEND
-              value: "k8s"
+            - name: UNKEY_METALD_ADDRESS
+              value: "http://metald:8080"
+            - name: UNKEY_DEFAULT_DOMAIN
+              value: "unkey.local"
           command: ["/unkey", "run", "ctrl"]
       initContainers:
         - name: wait-for-dependencies

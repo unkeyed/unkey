@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package main
 
 import (
@@ -105,7 +108,6 @@ func main() {
 	}
 
 	logger.Info("configuration loaded",
-
 		slog.String("address", cfg.Server.Address),
 		slog.String("port", cfg.Server.Port),
 		slog.Bool("otel_enabled", cfg.OpenTelemetry.Enabled),

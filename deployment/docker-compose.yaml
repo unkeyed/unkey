@@ -164,7 +164,7 @@ services:
     networks:
       - default
     container_name: s3
-    image: bitnami/minio:2025.4.3
+    image: bitnamilegacy/minio:2025.4.3
     ports:
       - 3902:3902
       - 2903:2903
@@ -264,6 +264,46 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
+  metald:
+    build:
+      context: ../go
+      dockerfile: Dockerfile
+      args:
+        VERSION: "latest"
+    container_name: metald
+    command: ["run", "metald"]
+    ports:
+      - "8090:8080"
+    depends_on:
+      - mysql
+    volumes:
+      # Mount Docker socket for Docker backend support
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount SQLite database locally for direct access
+      - ./data/metald:/var/lib/metald
+    environment:
+      # Server configuration
+      UNKEY_METALD_ADDRESS: "0.0.0.0"
+      UNKEY_METALD_PORT: "8080"
+
+      # Backend configuration - use Docker backend for development
+      UNKEY_METALD_BACKEND: "docker"
+
+      # Database configuration
+      UNKEY_METALD_DATABASE_DIR: "/var/lib/metald"
+
+      # Asset manager configuration (disabled for local development)
+      UNKEY_METALD_ASSETMANAGER_ENABLED: "false"
+
+      # Billing configuration (disabled for local development)
+      UNKEY_METALD_BILLING_ENABLED: "false"
+
+      # TLS configuration (disabled for local development)
+      UNKEY_METALD_TLS_MODE: "disabled"
+
+      # OpenTelemetry configuration
+      UNKEY_METALD_OTEL_ENABLED: "false"
+
   ctrl:
     networks:
       - default
@@ -283,6 +323,9 @@ services:
       s3:
         condition: service_healthy
         required: true
+      metald:
+        condition: service_started
+        required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -292,10 +335,8 @@ services:
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_METALD_ADDRESS: "http://metald-aio:8090"
-      UNKEY_METALD_BACKEND: "docker"
+      UNKEY_METALD_ADDRESS: "http://metald:8080"
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
-      UNKEY_DOCKER_RUNNING: "true"
 
       UNKEY_VAULT_S3_URL: "http://s3:3902"
       UNKEY_VAULT_S3_BUCKET: "acme-vault"
@@ -359,52 +400,11 @@ services:
       CTRL_URL: "http://ctrl:7091"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
-
-  # Unkey Deploy Services - All-in-one development container with all 4 services
-  #
-  #############################################################################
-  # This doesn't run right now while we change the protos and get metald into a
-  # happy state again.
-  #############################################################################
-  #
-  # metald-aio:
-  #   build:
-  #     context: ../go
-  #     dockerfile: deploy/Dockerfile.dev
-  #   platform: linux/amd64
-  #   container_name: metald-aio
-  #   hostname: metald-aio
-  #   privileged: true # Required for systemd
-  #   volumes:
-  #     # Mount Docker socket for metald Docker backend
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     # Persistent storage for development
-  #     - metald-aio-data:/opt
-  #     # Systemd requires these mounts
-  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #   ports:
-  #     # Only expose metald port (agent already uses 8080)
-  #     - "8090:8080" # metald
-  #   depends_on:
-  #     - otel
-  #   environment:
-  #     # Development environment
-  #     - UNKEY_ENVIRONMENT=development
-  #     - UNKEY_LOG_LEVEL=debug
-  #     # Docker backend configuration
-  #     - UNKEY_METALD_BACKEND=docker
-  #     - UNKEY_METALD_DOCKER_HOST=unix:///var/run/docker.sock
-  #     # Service discovery (internal container ports)
-  #     - UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
-  #     - UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-  #     - UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
-  #     - UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
 volumes:
   mysql:
   clickhouse:
   clickhouse-keeper:
   s3:
-  metald-aio-data:
 
 networks:
   default:

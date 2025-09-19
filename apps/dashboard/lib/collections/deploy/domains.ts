@@ -9,6 +9,8 @@ const schema = z.object({
   domain: z.string(),
   type: z.enum(["custom", "wildcard"]),
   projectId: z.string().nullable(),
+  deploymentId: z.string().nullable(),
+  sticky: z.enum(["branch", "environment", "live"]).nullable(),
 });
 
 export type Domain = z.infer<typeof schema>;

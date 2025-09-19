@@ -9,12 +9,7 @@ import (
 )
 
 // bulkInsertDomain is the base query for bulk insert
-const bulkInsertDomain = `INSERT INTO domains ( id, workspace_id, project_id, deployment_id, domain, type, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
-    workspace_id = VALUES(workspace_id),
-    project_id = VALUES(project_id),
-    deployment_id = VALUES(deployment_id),
-    type = VALUES(type),
-    updated_at = ?`
+const bulkInsertDomain = `INSERT INTO domains ( id, workspace_id, project_id, deployment_id, domain, type, sticky, created_at, updated_at ) VALUES %s`
 
 // InsertDomains performs bulk insert in a single query
 func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error {
@@ -26,7 +21,7 @@ func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertD
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, null )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDomain, strings.Join(valueClauses, ", "))
@@ -40,12 +35,8 @@ func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertD
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.Domain)
 		allArgs = append(allArgs, arg.Type)
+		allArgs = append(allArgs, arg.Sticky)
 		allArgs = append(allArgs, arg.CreatedAt)
-	}
-
-	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
-	if len(args) > 0 {
-		allArgs = append(allArgs, args[0].UpdatedAt)
 	}
 
 	// Execute the bulk insert

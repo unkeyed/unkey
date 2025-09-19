@@ -173,7 +173,7 @@ type Querier interface {
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error)
 	//FindDomainByDomain
 	//
-	//  SELECT id, workspace_id, project_id, deployment_id, domain, type, created_at, updated_at FROM domains WHERE domain = ?
+	//  SELECT id, workspace_id, project_id, deployment_id, domain, type, sticky, is_rolled_back, created_at, updated_at FROM domains WHERE domain = ?
 	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
 	//FindDomainsByDeploymentId
 	//
@@ -183,12 +183,20 @@ type Querier interface {
 	//      project_id,
 	//      domain,
 	//      deployment_id,
+	//      sticky,
+	//      is_rolled_back,
 	//      created_at,
 	//      updated_at
 	//  FROM domains
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
+	//FindEnvironmentById
+	//
+	//  SELECT id, workspace_id, project_id, slug, description
+	//  FROM environments
+	//  WHERE id = ?
+	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
@@ -588,6 +596,7 @@ type Querier interface {
 	//      git_repository_url,
 	//      default_branch,
 	//      delete_protection,
+	//      live_deployment_id,
 	//      created_at,
 	//      updated_at
 	//  FROM projects
@@ -897,7 +906,9 @@ type Querier interface {
 	//      deployment_id,
 	//      domain,
 	//      type,
-	//      created_at
+	//      sticky,
+	//      created_at,
+	//      updated_at
 	//  ) VALUES (
 	//      ?,
 	//      ?,
@@ -905,13 +916,10 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?
-	//  ) ON DUPLICATE KEY UPDATE
-	//      workspace_id = VALUES(workspace_id),
-	//      project_id = VALUES(project_id),
-	//      deployment_id = VALUES(deployment_id),
-	//      type = VALUES(type),
-	//      updated_at = ?
+	//      ?,
+	//      ?,
+	//      null
+	//  )
 	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
 	//InsertIdentity
 	//
@@ -1509,6 +1517,16 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	//ReassignDomain
+	//
+	//  UPDATE domains
+	//  SET
+	//    workspace_id = ?,
+	//    deployment_id = ?,
+	//    is_rolled_back = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	ReassignDomain(ctx context.Context, db DBTX, arg ReassignDomainParams) error
 	//SoftDeleteApi
 	//
 	//  UPDATE apis
@@ -1594,6 +1612,12 @@ type Querier interface {
 	//  SET openapi_spec = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentOpenapiSpec(ctx context.Context, db DBTX, arg UpdateDeploymentOpenapiSpecParams) error
+	//UpdateDeploymentRollback
+	//
+	//  UPDATE deployments
+	//  SET is_rolled_back = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentRollback(ctx context.Context, db DBTX, arg UpdateDeploymentRollbackParams) error
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments

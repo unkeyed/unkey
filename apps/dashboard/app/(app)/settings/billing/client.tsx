@@ -23,7 +23,6 @@ type Props = {
   subscription?: {
     id: string;
     status: Stripe.Subscription.Status;
-    trialUntil?: number;
     cancelAt?: number;
   };
   currentProductId?: string;
@@ -88,14 +87,10 @@ const Mutations = () => {
 
 export const Client: React.FC<Props> = (props) => {
   const mutations = Mutations();
-  const allowUpdate =
-    props.subscription && ["active", "trialing"].includes(props.subscription.status);
+  const allowUpdate = props.subscription && props.subscription.status === "active";
   const allowCancel =
-    props.subscription &&
-    ["active", "trialing"].includes(props.subscription.status) &&
-    !props.subscription.cancelAt;
-  const isFreeTier =
-    !props.subscription || !["active", "trialing"].includes(props.subscription.status);
+    props.subscription && props.subscription.status === "active" && !props.subscription.cancelAt;
+  const isFreeTier = !props.subscription || props.subscription.status !== "active";
   const selectedProductIndex = allowUpdate
     ? props.products.findIndex((p) => p.id === props.currentProductId)
     : -1;
@@ -107,12 +102,7 @@ export const Client: React.FC<Props> = (props) => {
         activePage={{ href: "billing", text: "Billing" }}
       />
       <Shell workspace={props.workspace}>
-        {props.subscription ? (
-          <SusbcriptionStatus
-            status={props.subscription.status}
-            trialUntil={props.subscription.trialUntil}
-          />
-        ) : null}
+        {props.subscription ? <SusbcriptionStatus status={props.subscription.status} /> : null}
 
         <CancelAlert cancelAt={props.subscription?.cancelAt} />
         {isFreeTier ? <FreeTierAlert /> : null}
@@ -192,14 +182,9 @@ export const Client: React.FC<Props> = (props) => {
                             productId: p.id,
                           })
                         }
-                        fineprint={
-                          props.hasPreviousSubscriptions
-                            ? "Do you need another trial? Contact support.unkey.dev"
-                            : "After 14 days, the trial converts to a paid subscription."
-                        }
                         trigger={(onClick) => (
                           <Button variant="outline" disabled={isSelected} onClick={onClick}>
-                            {props.hasPreviousSubscriptions ? "Upgrade" : "Start 14 day trial"}
+                            Upgrade
                           </Button>
                         )}
                       />
@@ -213,7 +198,7 @@ export const Client: React.FC<Props> = (props) => {
           <SettingCard
             title="Add payment method"
             border={props.subscription && allowCancel ? "top" : "both"}
-            description="Before starting a trial, you need to add a payment method."
+            description="Before upgrading, you need to add a payment method."
             className="sm:w-full text-wrap w-full"
             contentWidth="w-full"
           >
@@ -318,35 +303,10 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
 };
 const SusbcriptionStatus: React.FC<{
   status: Stripe.Subscription.Status;
-  trialUntil?: number;
 }> = (props) => {
   switch (props.status) {
     case "active":
       return null;
-    case "trialing":
-      if (!props.trialUntil) {
-        return null;
-      }
-      return (
-        <SettingCard
-          title="Trial"
-          description={
-            <>
-              Your trial ends in{" "}
-              <span className="text-accent-12">
-                {ms(props.trialUntil - Date.now(), { long: true })}
-              </span>{" "}
-              on{" "}
-              <span className="text-accent-12">
-                {new Date(props.trialUntil).toLocaleDateString()}
-              </span>
-              .
-            </>
-          }
-          border="both"
-          className="border-info-7 bg-info-3"
-        />
-      );
 
     case "incomplete":
     case "incomplete_expired":
