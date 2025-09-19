@@ -182,7 +182,6 @@ export const Client: React.FC<Props> = (props) => {
                             productId: p.id,
                           })
                         }
-                        fineprint="Do you need a trial? Contact support.unkey.dev"
                         trigger={(onClick) => (
                           <Button variant="outline" disabled={isSelected} onClick={onClick}>
                             Upgrade
