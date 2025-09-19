@@ -8,8 +8,10 @@ import { useMemo } from "react";
 export const useProjectNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
-  const { data, isLoading } = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).orderBy(({ project }) => project.id, "desc"),
+  const { data, isLoading } = useLiveQuery(
+    (q) => q.from({ project: collection.projects }).orderBy(({ project }) => project.id, "desc"),
+    // Deps are required here otherwise it won't get rerendered
+    [collection.projects],
   );
 
   const projectNavItems = useMemo(() => {

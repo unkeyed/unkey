@@ -1,4 +1,5 @@
 import { setSessionCookie } from "@/lib/auth/cookies";
+import { reset } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
@@ -33,6 +34,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const trpcUtils = trpc.useUtils();
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -61,6 +63,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
     onSuccess: async ({ organizationId }) => {
       setWorkspaceCreated(true);
       switchOrgMutation.mutate(organizationId);
+      trpcUtils.user.listMemberships.invalidate();
+      await reset();
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {

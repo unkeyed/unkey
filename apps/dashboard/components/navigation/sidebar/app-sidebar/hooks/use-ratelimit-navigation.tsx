@@ -15,10 +15,13 @@ import { useMemo } from "react";
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
 
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ namespace: collection.ratelimitNamespaces })
-      .orderBy(({ namespace }) => namespace.id, "desc"),
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ namespace: collection.ratelimitNamespaces })
+        .orderBy(({ namespace }) => namespace.id, "desc"),
+    // Deps are required here otherwise it won't get rerendered
+    [collection.ratelimitNamespaces],
   );
 
   // Convert ratelimit namespaces data to navigation items with sub-items
