@@ -14,8 +14,8 @@ import (
 
 // Service handles gateway configuration lookup and VM selection.
 type Service interface {
-	// GetTargetByHost finds gateway configuration based on the request host
-	GetConfig(ctx context.Context, host string) (*partitionv1.GatewayConfig, error)
+	// GetConfig finds gateway configuration and workspace ID based on the request host
+	GetConfig(ctx context.Context, host string) (*ConfigWithWorkspace, error)
 
 	// SelectVM picks an available VM from the gateway's VM list
 	SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error)
@@ -27,6 +27,6 @@ type Config struct {
 	Logger logging.Logger
 	Clock  clock.Clock
 
-	GatewayConfigCache cache.Cache[string, *partitionv1.GatewayConfig]
+	GatewayConfigCache cache.Cache[string, ConfigWithWorkspace]
 	VMCache            cache.Cache[string, pdb.Vm]
 }

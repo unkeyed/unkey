@@ -38,6 +38,9 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				return nil
 			}
 
+			// Store the original error for metrics logging
+			s.SetError(err)
+
 			// Get the error URN from the error
 			urn, ok := fault.GetCode(err)
 			if !ok {

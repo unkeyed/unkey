@@ -15,8 +15,13 @@ type noop struct{}
 var _ Bufferer = (*noop)(nil)
 var _ Bufferer = (*noop)(nil)
 
+// BufferRequest implements the Bufferer interface but discards the event.
+func (n *noop) BufferRequest(schema.ApiRequestV1) {
+	// Intentionally empty - discards the event
+}
+
 // BufferApiRequest implements the Bufferer interface but discards the event.
-func (n *noop) BufferApiRequest(schema.ApiRequestV1) {
+func (n *noop) BufferApiRequest(schema.ApiRequestV2) {
 	// Intentionally empty - discards the event
 }
 

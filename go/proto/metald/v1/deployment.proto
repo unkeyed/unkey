@@ -7,49 +7,49 @@ import "metald/v1/vm.proto";
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
 
 message DeploymentRequest {
-    string deployment_id = 1;
+  string deployment_id = 1;
 
-    string image = 2;
+  string image = 2;
 
-    uint32 vm_count = 3;
-    uint32 cpu = 4;
-    uint64 memory_size_mib = 5;
+  uint32 vm_count = 3;
+  uint32 cpu = 4;
+  uint64 memory_size_mib = 5;
 }
 
 message CreateDeploymentRequest {
-    DeploymentRequest deployment = 1;
+  DeploymentRequest deployment = 1;
 }
 
 message CreateDeploymentResponse {
-    repeated string vm_ids = 1;
+  repeated string vm_ids = 1;
 }
 
 message UpdateDeploymentRequest {
-    DeploymentRequest deployment = 1;
+  DeploymentRequest deployment = 1;
 }
 message UpdateDeploymentResponse {
-    repeated string vm_ids = 1;
+  repeated string vm_ids = 1;
 }
 
 message DeleteDeploymentRequest {
-    string deployment_id = 1;
+  string deployment_id = 1;
 }
 
 message DeleteDeploymentResponse {}
 
 message GetDeploymentRequest {
-    string deployment_id = 1;
+  string deployment_id = 1;
 }
 
 message GetDeploymentResponse {
-    string deployment_id = 1;
+  string deployment_id = 1;
 
-    message Vm {
-        string id = 1;
-        string host = 2;
-        VmState state = 3;
-        uint32 port = 4;
-    }
+  message Vm {
+    string id = 1;
+    string host = 2;
+    VmState state = 3;
+    uint32 port = 4;
+  }
 
-    repeated Vm vms = 2;
+  repeated Vm vms = 2;
 }
