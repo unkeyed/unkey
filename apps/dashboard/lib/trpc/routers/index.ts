@@ -119,7 +119,6 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
-import { cleanupCache, clearCache, warmCache } from "./workspace/cacheManagement";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
@@ -206,11 +205,6 @@ export const router = t.router({
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
-    cache: t.router({
-      clear: clearCache,
-      cleanup: cleanupCache,
-      warm: warmCache,
-    }),
   }),
   stripe: t.router({
     createSubscription,
