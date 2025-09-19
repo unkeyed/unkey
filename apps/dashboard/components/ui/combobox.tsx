@@ -8,7 +8,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Check, ChevronExpandY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -41,7 +45,7 @@ const comboboxTriggerVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
 );
 
 const comboboxWrapperVariants = cva("relative flex items-center w-full", {
@@ -108,14 +112,18 @@ export function Combobox({
 
   const selectedOption = React.useMemo(
     () => options.find((option) => option.value === value),
-    [options, value],
+    [options, value]
   );
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
-      <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
+      <div
+        className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}
+      >
         {leftIcon && (
-          <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
+          <div className="absolute left-3 flex items-center pointer-events-none">
+            {leftIcon}
+          </div>
         )}
         <PopoverTrigger className="w-full">
           <Button
@@ -134,7 +142,7 @@ export function Combobox({
               leftIcon && "pl-9",
               "pr-9", // Always have space for the chevron icon
               "h-auto justify-between font-normal w-full [&_svg]:size-3",
-              className,
+              className
             )}
             {...otherProps}
           >
@@ -145,7 +153,10 @@ export function Combobox({
             ) : (
               placeholder
             )}
-            <ChevronExpandY className="absolute right-3" size="sm-regular" />
+            <ChevronExpandY
+              className="absolute right-3"
+              iconsize="sm-regular"
+            />
           </Button>
         </PopoverTrigger>
       </div>
@@ -176,8 +187,11 @@ export function Combobox({
                 >
                   {option.label}
                   <Check
-                    className={cn("ml-auto", value === option.value ? "opacity-100" : "opacity-0")}
-                    size="sm-regular"
+                    className={cn(
+                      "ml-auto",
+                      value === option.value ? "opacity-100" : "opacity-0"
+                    )}
+                    iconsize="sm-regular"
                   />
                 </CommandItem>
               ))}

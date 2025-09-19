@@ -18,7 +18,7 @@ const CreateKeyDialog = dynamic(
     })),
   {
     ssr: false,
-  },
+  }
 );
 
 const KeysTableActionPopover = dynamic(
@@ -28,7 +28,7 @@ const KeysTableActionPopover = dynamic(
     })),
   {
     ssr: false,
-  },
+  }
 );
 
 export const ApisNavbar = ({
@@ -70,7 +70,7 @@ export const ApisNavbar = ({
     },
     {
       enabled: shouldFetchKey,
-    },
+    }
   );
 
   // Handle key error
@@ -99,7 +99,7 @@ export const ApisNavbar = ({
         <Navbar.Actions>
           {specificKey?.id ? (
             <NavbarActionButton disabled>
-              <Gear size="sm-regular" />
+              <Gear iconsize="sm-regular" />
               Settings
             </NavbarActionButton>
           ) : (
@@ -111,7 +111,7 @@ export const ApisNavbar = ({
           <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[190px] transition-all ">
             <div className="h-3 w-[190px] bg-grayA-3 rounded" />
             <div>
-              <TaskUnchecked size="md-regular" className="!size-4" />
+              <TaskUnchecked iconsize="md-medium" className="!size-4" />
             </div>
           </div>
         </Navbar.Actions>
@@ -157,7 +157,11 @@ export const ApisNavbar = ({
                 </Navbar.Breadcrumbs.Link>
               </>
             )}
-            <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!specificKey}>
+            <Navbar.Breadcrumbs.Link
+              href={activePage?.href ?? ""}
+              noop
+              active={!specificKey}
+            >
               <QuickNavPopover
                 items={[
                   {
@@ -198,9 +202,11 @@ export const ApisNavbar = ({
           {specificKey?.id ? (
             <div className="flex gap-3 items-center">
               <Navbar.Actions>
-                <KeysTableActionPopover items={getKeysTableActionItems(specificKey, trpcUtils)}>
+                <KeysTableActionPopover
+                  items={getKeysTableActionItems(specificKey, trpcUtils)}
+                >
                   <NavbarActionButton>
-                    <Gear size="sm-regular" />
+                    <Gear iconsize="sm-regular" />
                     Settings
                   </NavbarActionButton>
                 </KeysTableActionPopover>

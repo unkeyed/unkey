@@ -11,7 +11,11 @@ type EnvVarRowProps = {
   getExistingEnvVar: (key: string, excludeId?: string) => EnvVar | undefined;
 };
 
-export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowProps) {
+export function EnvVarRow({
+  envVar,
+  projectId,
+  getExistingEnvVar,
+}: EnvVarRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDecrypted, setIsDecrypted] = useState(false);
   // INFO: Won't be necessary once we add tRPC then we can use isSubmitting
@@ -80,7 +84,10 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
       <EnvVarForm
         initialData={{
           key: envVar.key,
-          value: envVar.type === "secret" && !isDecrypted ? "" : (decryptedValue ?? envVar.value),
+          value:
+            envVar.type === "secret" && !isDecrypted
+              ? ""
+              : decryptedValue ?? envVar.value,
           type: envVar.type,
         }}
         projectId={projectId}
@@ -97,22 +104,24 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
   return (
     <div className="w-full px-4 py-3 flex items-center hover:bg-gray-2 transition-colors border-b border-gray-4 last:border-b-0 h-12">
       <div className="flex items-center flex-1 min-w-0">
-        <div className="text-gray-12 font-medium text-xs font-mono w-28 truncate">{envVar.key}</div>
+        <div className="text-gray-12 font-medium text-xs font-mono w-28 truncate">
+          {envVar.key}
+        </div>
         <span className="text-gray-9 text-xs px-2">=</span>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div
             className={cn(
               "text-gray-11 text-xs font-mono truncate flex-1",
-              isSecretLoading && "text-gray-7",
+              isSecretLoading && "text-gray-7"
             )}
           >
             {envVar.type === "secret" && !isDecrypted
               ? "••••••••••••••••"
               : envVar.type === "secret" && isSecretLoading
-                ? "Loading..."
-                : envVar.type === "secret" && isDecrypted && decryptedValue
-                  ? decryptedValue
-                  : envVar.value}
+              ? "Loading..."
+              : envVar.type === "secret" && isDecrypted && decryptedValue
+              ? decryptedValue
+              : envVar.value}
           </div>
           {envVar.type === "secret" && (
             <Button
@@ -124,9 +133,9 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
               loading={isSecretLoading}
             >
               {isDecrypted ? (
-                <EyeSlash className="!size-[14px]" size="sm-medium" />
+                <EyeSlash className="!size-[14px]" iconsize="sm-medium" />
               ) : (
-                <Eye className="!size-[14px]" size="sm-medium" />
+                <Eye className="!size-[14px]" iconsize="sm-medium" />
               )}
             </Button>
           )}
@@ -141,10 +150,15 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
           }}
           className="size-7 text-gray-9"
         >
-          <PenWriting3 className="!size-[14px]" size="sm-medium" />
+          <PenWriting3 className="!size-[14px]" iconsize="sm-medium" />
         </Button>
-        <Button size="icon" variant="outline" onClick={handleDelete} className="size-7 text-gray-9">
-          <Trash className="!size-[14px]" size="sm-medium" />
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleDelete}
+          className="size-7 text-gray-9"
+        >
+          <Trash className="!size-[14px]" iconsize="sm-medium" />
         </Button>
       </div>
     </div>

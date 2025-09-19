@@ -57,7 +57,10 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
                   className="size-7"
                   onClick={() => setIsDetailsOpen(!isDetailsOpen)}
                 >
-                  <DoubleChevronLeft size="lg-medium" className="text-gray-13" />
+                  <DoubleChevronLeft
+                    iconsize="lg-medium"
+                    className="text-gray-13"
+                  />
                 </Button>
               </InfoTooltip>
             }

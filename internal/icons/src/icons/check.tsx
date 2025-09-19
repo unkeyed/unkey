@@ -12,17 +12,20 @@
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
 import { sizeMap, type IconProps } from "../props";
-export const Check: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
+export const Check: React.FC<IconProps> = ({
+  iconsize = "xl-thin",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
     <svg
-      {...props}
       height={pixelSize}
       width={pixelSize}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
       focusable={props.focusable}
+      {...props}
     >
       <g fill="currentColor">
         <polyline

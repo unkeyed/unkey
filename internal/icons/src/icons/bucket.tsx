@@ -9,20 +9,24 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+import React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Bucket: React.FC<IconProps> = ({ size, filled, ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+export const Bucket: React.FC<IconProps> = ({
+  iconsize = "md-regular",
+  filled,
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill={filled ? "currentColor" : "none"} stroke="currentColor">
         <path

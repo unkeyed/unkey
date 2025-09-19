@@ -1,8 +1,18 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type FC, type PropsWithChildren, useEffect, useRef, useState } from "react";
+import {
+  type FC,
+  type PropsWithChildren,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type ActionComponentProps = {
   isOpen: boolean;
@@ -13,7 +23,9 @@ export type MenuItem = {
   id: string;
   label: string;
   icon: React.ReactNode;
-  onClick?: (e: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>) => void;
+  onClick?: (
+    e: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>
+  ) => void;
   className?: string;
   disabled?: boolean;
   divider?: boolean;
@@ -34,7 +46,9 @@ export const TableActionPopover = ({
   const [enabledItem, setEnabledItem] = useState<string>();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
-  const [prefetchedItems, setPrefetchedItems] = useState<Set<string>>(new Set());
+  const [prefetchedItems, setPrefetchedItems] = useState<Set<string>>(
+    new Set()
+  );
   const menuItems = useRef<HTMLDivElement[]>([]);
 
   useEffect(() => {
@@ -114,7 +128,7 @@ export const TableActionPopover = ({
                     !item.disabled &&
                       "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3",
                     item.disabled && "cursor-not-allowed opacity-50",
-                    item.className,
+                    item.className
                   )}
                   onMouseEnter={() => handleItemHover(item)}
                   onClick={(e) => {
@@ -135,9 +149,14 @@ export const TableActionPopover = ({
                   <span className="text-[13px] font-medium">{item.label}</span>
                 </button>
               </div>
-              {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
+              {item.divider && (
+                <div className="h-[1px] bg-grayA-3 w-full my-2" />
+              )}
               {item.ActionComponent && enabledItem === item.id && (
-                <item.ActionComponent isOpen onClose={() => handleActionSelection("none")} />
+                <item.ActionComponent
+                  isOpen
+                  onClose={() => handleActionSelection("none")}
+                />
               )}
             </div>
           ))}
@@ -150,7 +169,10 @@ export const TableActionPopover = ({
 export const TableActionPopoverDefaultTrigger = () => {
   return (
     <Button variant="outline" className="size-5 [&_svg]:size-3 rounded">
-      <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      <Dots
+        className="group-hover:text-gray-12 text-gray-11"
+        iconsize="sm-regular"
+      />
     </Button>
   );
 };

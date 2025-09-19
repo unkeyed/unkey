@@ -3,7 +3,11 @@ import { cn } from "@/lib/utils";
 import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
-import { formatFilterValues, getFilterFieldIcon, shouldTruncateRow } from "./utils";
+import {
+  formatFilterValues,
+  getFilterFieldIcon,
+  shouldTruncateRow,
+} from "./utils";
 export const LogsQueries = () => {
   const { filters, updateFilters } = useFilters();
 
@@ -25,8 +29,13 @@ export const LogsQueries = () => {
           aria-haspopup="true"
           title="Press 'Q' to toggle queries"
         >
-          <ChartBarAxisY size="md-regular" className="mt-1 ml-[3px] text-gray-9" />
-          <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
+          <ChartBarAxisY
+            iconsize="md-medium"
+            className="mt-1 ml-[3px] text-gray-9"
+          />
+          <span className="text-gray-12 font-medium text-[13px] leading-4">
+            Queries
+          </span>
         </Button>
       </div>
     </QueriesPopover>

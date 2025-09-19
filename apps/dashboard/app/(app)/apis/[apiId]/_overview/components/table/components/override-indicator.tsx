@@ -7,7 +7,10 @@ import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
+import {
+  getErrorPercentage,
+  getErrorSeverity,
+} from "../utils/calculate-blocked-percentage";
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
@@ -19,13 +22,19 @@ type KeyIdentifierColumnProps = {
 const getWarningIcon = (severity: string) => {
   switch (severity) {
     case "high":
-      return <TriangleWarning2 className="text-error-11" size="md-regular" />;
+      return (
+        <TriangleWarning2 className="text-error-11" iconsize="md-medium" />
+      );
     case "moderate":
-      return <TriangleWarning2 className="text-orange-11" size="md-regular" />;
+      return (
+        <TriangleWarning2 className="text-orange-11" iconsize="md-medium" />
+      );
     case "low":
-      return <TriangleWarning2 className="text-warning-11" size="md-regular" />;
+      return (
+        <TriangleWarning2 className="text-warning-11" iconsize="md-medium" />
+      );
     default:
-      return <TriangleWarning2 className="invisible" size="md-regular" />;
+      return <TriangleWarning2 className="invisible" iconsize="md-medium" />;
   }
 };
 
@@ -43,7 +52,11 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
+export const KeyIdentifierColumn = ({
+  log,
+  apiId,
+  onNavigate,
+}: KeyIdentifierColumnProps) => {
   const router = useRouter();
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
@@ -58,16 +71,22 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
 
       onNavigate?.();
 
-      router.push(`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`);
+      router.push(
+        `/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`
+      );
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push],
+    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push]
   );
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
         variant="inverted"
-        content={<p className="text-xs">{getWarningMessage(severity, errorPercentage)}</p>}
+        content={
+          <p className="text-xs">
+            {getWarningMessage(severity, errorPercentage)}
+          </p>
+        }
         position={{ side: "right", align: "center" }}
       >
         {isNavigating ? (
@@ -75,7 +94,12 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
             <Loading size={18} />
           </div>
         ) : (
-          <div className={cn("transition-opacity", hasErrors ? "opacity-100" : "opacity-0")}>
+          <div
+            className={cn(
+              "transition-opacity",
+              hasErrors ? "opacity-100" : "opacity-0"
+            )}
+          >
             {getWarningIcon(severity)}
           </div>
         )}

@@ -10,11 +10,23 @@
  * https://nucleoapp.com/license
  */
 
-import type React from "react";
-import type { IconProps } from "../props";
-export const BookBookmark: React.FC<IconProps> = (props) => {
+import React from "react";
+import { type IconProps, sizeMap } from "../props";
+
+export const BookBookmark: React.FC<IconProps> = ({
+  iconsize = "xl-medium",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
         <path
           d="M2.75,14V4.25c0-1.105,.895-2,2-2H15.25V12.25"
@@ -22,7 +34,7 @@ export const BookBookmark: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <path
           d="M11,14H7v3.5c0,.202,.122,.385,.309,.462,.187,.079,.401,.035,.545-.108l1.146-1.146,1.146,1.146c.096,.096,.224,.146,.354,.146,.064,0,.13-.012,.191-.038,.187-.077,.309-.26,.309-.462v-3.5Z"
@@ -35,7 +47,7 @@ export const BookBookmark: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <circle cx="5.75" cy="9.75" fill="currentColor" r=".75" stroke="none" />
         <circle cx="5.75" cy="4.75" fill="currentColor" r=".75" stroke="none" />

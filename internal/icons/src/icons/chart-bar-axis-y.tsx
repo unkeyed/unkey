@@ -9,19 +9,30 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
-import type { IconProps } from "../props";
+import React from "react";
+import { type IconProps, sizeMap } from "../props";
 
-export const ChartBarAxisY: React.FC<IconProps> = (props) => {
+export const ChartBarAxisY: React.FC<IconProps> = ({
+  iconsize = "xl-medium",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
         <line
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="1.75"
           x2="1.75"
           y1="11.25"
@@ -32,7 +43,7 @@ export const ChartBarAxisY: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="7.75"
           x2="4.25"
           y1="2.75"
@@ -43,7 +54,7 @@ export const ChartBarAxisY: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="5.75"
           x2="4.25"
           y1="9.25"
@@ -54,7 +65,7 @@ export const ChartBarAxisY: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x1="10.25"
           x2="4.25"
           y1="6"

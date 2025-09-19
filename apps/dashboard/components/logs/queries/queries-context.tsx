@@ -2,16 +2,25 @@ import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/audit/f
 import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import type { RatelimitQuerySearchParams } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { type ReactNode, createContext, useContext } from "react";
-import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
+import {
+  type SavedFiltersGroup,
+  useBookmarkedFilters,
+} from "../hooks/use-bookmarked-filters";
 import type { FilterValue } from "../validation/filter.types";
 
-export type QueryParamsTypes = QuerySearchParams | AuditSearchParams | RatelimitQuerySearchParams;
+export type QueryParamsTypes =
+  | QuerySearchParams
+  | AuditSearchParams
+  | RatelimitQuerySearchParams;
 
 type QueriesContextType<T extends FilterValue, U extends QueryParamsTypes> = {
   filters: T[];
   formatValues: (
-    filters: U,
-  ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>;
+    filters: U
+  ) => Record<
+    string,
+    { operator: string; values: { value: string; color: string | null }[] }
+  >;
   filterGroups: SavedFiltersGroup<U>[];
   toggleBookmark: (groupId: string) => void;
   applyFilterGroup: (groupId: string) => void;
@@ -19,9 +28,9 @@ type QueriesContextType<T extends FilterValue, U extends QueryParamsTypes> = {
   shouldTruncateRow: (field: string) => boolean;
 };
 
-const QueriesContext = createContext<QueriesContextType<FilterValue, QueryParamsTypes> | undefined>(
-  undefined,
-);
+const QueriesContext = createContext<
+  QueriesContextType<FilterValue, QueryParamsTypes> | undefined
+>(undefined);
 
 type QueriesProviderProps<T extends FilterValue, U extends QueryParamsTypes> = {
   children: ReactNode;
@@ -29,13 +38,19 @@ type QueriesProviderProps<T extends FilterValue, U extends QueryParamsTypes> = {
   filters: T[];
   updateFilters: (filters: T[]) => void;
   formatValues?: (
-    filters: U,
-  ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>;
+    filters: U
+  ) => Record<
+    string,
+    { operator: string; values: { value: string; color: string | null }[] }
+  >;
   filterRowIcon?: (field: string) => React.ReactNode;
   shouldTruncateRow?: (field: string) => boolean;
 };
 
-export function QueriesProvider<T extends FilterValue, U extends QueryParamsTypes>({
+export function QueriesProvider<
+  T extends FilterValue,
+  U extends QueryParamsTypes
+>({
   children,
   localStorageName,
   filters,
@@ -65,8 +80,11 @@ export function QueriesProvider<T extends FilterValue, U extends QueryParamsType
 
   const value = {
     formatValues: (formatValues || defaultFormatValues) as unknown as (
-      filters: U,
-    ) => Record<string, { operator: string; values: { value: string; color: string | null }[] }>,
+      filters: U
+    ) => Record<
+      string,
+      { operator: string; values: { value: string; color: string | null }[] }
+    >,
     filterGroups,
     toggleBookmark,
     applyFilterGroup,
@@ -76,7 +94,9 @@ export function QueriesProvider<T extends FilterValue, U extends QueryParamsType
 
   return (
     <QueriesContext.Provider
-      value={value as unknown as QueriesContextType<FilterValue, QueryParamsTypes>}
+      value={
+        value as unknown as QueriesContextType<FilterValue, QueryParamsTypes>
+      }
     >
       {children}
     </QueriesContext.Provider>
@@ -96,22 +116,34 @@ import React from "react";
 import { iconsPerField } from "./utils";
 // These functions can be overridden by passing custom formatValue and filterRowIcon props to QueriesProvider
 export const defaultFormatValues = (
-  filters: QueryParamsTypes,
-): Record<string, { operator: string; values: { value: string; color: string | null }[] }> => {
-  const transform = (field: string, value: string): { color: string | null; value: string } => {
+  filters: QueryParamsTypes
+): Record<
+  string,
+  { operator: string; values: { value: string; color: string | null }[] }
+> => {
+  const transform = (
+    field: string,
+    value: string
+  ): { color: string | null; value: string } => {
     switch (field) {
       case "status":
         return {
           value:
-            value === "200" ? "2xx" : value === "400" ? "4xx" : value === "500" ? "5xx" : value,
+            value === "200"
+              ? "2xx"
+              : value === "400"
+              ? "4xx"
+              : value === "500"
+              ? "5xx"
+              : value,
           color:
             value === "200"
               ? "bg-success-9"
               : value === "400"
-                ? "bg-warning-9"
-                : value === "500"
-                  ? "bg-error-9"
-                  : null,
+              ? "bg-warning-9"
+              : value === "500"
+              ? "bg-error-9"
+              : null,
         };
       case "methods":
         return { value: value.toUpperCase(), color: null };
@@ -175,7 +207,10 @@ export const defaultFormatValues = (
 
 export const defaultGetIcon = (field: string): React.ReactNode => {
   const Icon = iconsPerField[field] || ChartActivity2;
-  return React.createElement(Icon, { size: "md-regular", className: "justify-center" });
+  return React.createElement(Icon, {
+    iconsize: "md-regular",
+    className: "justify-center",
+  });
 };
 
 export const defaultFieldsToTruncate = [
@@ -188,5 +223,7 @@ export const defaultFieldsToTruncate = [
 ] as const;
 
 export function defaultShouldTruncateRow(field: string): boolean {
-  return defaultFieldsToTruncate.includes(field as (typeof defaultFieldsToTruncate)[number]);
+  return defaultFieldsToTruncate.includes(
+    field as (typeof defaultFieldsToTruncate)[number]
+  );
 }

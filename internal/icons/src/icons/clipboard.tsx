@@ -9,12 +9,23 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
-import type { IconProps } from "../props";
+import React from "react";
+import { type IconProps, sizeMap } from "../props";
 
-export const Clipboard: React.FC<IconProps> = (props) => {
+export const Clipboard: React.FC<IconProps> = ({
+  iconsize = "xl-medium",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
         <path
           d="M6.25,2.75h-1c-1.105,0-2,.895-2,2V14.25c0,1.105,.895,2,2,2h7.5c1.105,0,2-.895,2-2V4.75c0-1.105-.895-2-2-2h-1"
@@ -22,7 +33,7 @@ export const Clipboard: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <rect
           height="3"
@@ -33,7 +44,7 @@ export const Clipboard: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x="6.25"
           y="1.25"
         />

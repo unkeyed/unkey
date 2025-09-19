@@ -9,12 +9,22 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
-import type { IconProps } from "../props";
+import React from "react";
+import { type IconProps, sizeMap } from "../props";
 
-export const TaskChecked: React.FC<IconProps> = (props) => {
+export const TaskChecked: React.FC<IconProps> = ({
+  iconsize = "xl-thin",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
         <polyline
           fill="none"
@@ -22,7 +32,7 @@ export const TaskChecked: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
         <rect
           height="11"
@@ -33,7 +43,7 @@ export const TaskChecked: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
           x="5.25"
           y="5.25"
         />
@@ -43,7 +53,7 @@ export const TaskChecked: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>

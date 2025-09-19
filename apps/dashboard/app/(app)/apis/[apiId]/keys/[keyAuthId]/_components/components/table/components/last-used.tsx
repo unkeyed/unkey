@@ -14,10 +14,11 @@ export const LastUsedCell = ({
   keyId: string;
   isSelected: boolean;
 }) => {
-  const { data, isLoading, isError } = trpc.api.keys.latestVerification.useQuery({
-    keyAuthId,
-    keyId,
-  });
+  const { data, isLoading, isError } =
+    trpc.api.keys.latestVerification.useQuery({
+      keyAuthId,
+      keyId,
+    });
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -29,8 +30,8 @@ export const LastUsedCell = ({
         isError
           ? "bg-error-3 text-error-11 border border-error-5"
           : isSelected
-            ? STATUS_STYLES.badge.selected
-            : STATUS_STYLES.badge.default,
+          ? STATUS_STYLES.badge.selected
+          : STATUS_STYLES.badge.default
       )}
       onMouseOver={() => {
         setShowTooltip(true);
@@ -40,7 +41,7 @@ export const LastUsedCell = ({
       }}
     >
       <div>
-        <ChartActivity2 size="sm-regular" />
+        <ChartActivity2 iconsize="sm-regular" />
       </div>
       <div className="truncate">
         {isLoading ? (

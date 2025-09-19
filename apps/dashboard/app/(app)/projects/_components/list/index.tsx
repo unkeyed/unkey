@@ -18,7 +18,7 @@ export const ProjectsList = () => {
       q
         .from({ project: collection.projects })
         .where(({ project }) => ilike(project.name, `%${projectName}%`)),
-    [projectName],
+    [projectName]
   );
 
   if (projects.isLoading) {
@@ -95,7 +95,7 @@ export const ProjectsList = () => {
                   className="mb-auto shrink-0"
                   title="Project actions"
                 >
-                  <Dots size="sm-regular" />
+                  <Dots iconsize="sm-regular" />
                 </Button>
               </ProjectActions>
             }

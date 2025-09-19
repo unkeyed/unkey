@@ -5,9 +5,15 @@ import { format } from "date-fns";
 import React from "react";
 
 export function formatFilterValues(
-  filters: QuerySearchParams,
-): Record<string, { operator: string; values: { value: string; color: string | null }[] }> {
-  const transform = (field: string, value: string): { color: string | null; value: string } => {
+  filters: QuerySearchParams
+): Record<
+  string,
+  { operator: string; values: { value: string; color: string | null }[] }
+> {
+  const transform = (
+    field: string,
+    value: string
+  ): { color: string | null; value: string } => {
     switch (field) {
       case "status":
         return {
@@ -58,7 +64,12 @@ export function formatFilterValues(
   }
 
   Object.entries(filters).forEach(([field, value]) => {
-    if (field === "startTime" || field === "endTime" || field === "since" || field === "time") {
+    if (
+      field === "startTime" ||
+      field === "endTime" ||
+      field === "since" ||
+      field === "time"
+    ) {
       return [];
     }
 
@@ -84,7 +95,10 @@ export function formatFilterValues(
 
 export function getFilterFieldIcon(field: string): JSX.Element {
   const Icon = iconsPerField[field] || ChartActivity2;
-  return React.createElement(Icon, { size: "md-regular", className: "justify-center" });
+  return React.createElement(Icon, {
+    iconsize: "md-regular",
+    className: "justify-center",
+  });
 }
 
 export const FieldsToTruncate = [

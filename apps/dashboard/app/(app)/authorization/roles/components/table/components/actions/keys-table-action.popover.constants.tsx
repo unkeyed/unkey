@@ -15,10 +15,13 @@ import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 
 const KeysTableActionPopover = dynamic(
-  () => import("@/components/logs/table-action.popover").then((mod) => mod.TableActionPopover),
+  () =>
+    import("@/components/logs/table-action.popover").then(
+      (mod) => mod.TableActionPopover
+    ),
   {
     loading: TableActionPopoverDefaultTrigger,
-  },
+  }
 );
 
 type RolesTableActionsProps = {
@@ -34,13 +37,13 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 
 const getRolesTableActionItems = (
   role: RoleBasic,
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  trpcUtils: ReturnType<typeof trpc.useUtils>
 ): MenuItem[] => {
   return [
     {
       id: "edit-role",
       label: "Edit role...",
-      icon: <PenWriting3 size="md-regular" />,
+      icon: <PenWriting3 iconsize="md-medium" />,
       ActionComponent: (props) => <EditRole role={role} {...props} />,
       prefetch: async () => {
         await Promise.all([
@@ -60,7 +63,7 @@ const getRolesTableActionItems = (
       id: "copy",
       label: "Copy role",
       className: "mt-1",
-      icon: <Clone size="md-regular" />,
+      icon: <Clone iconsize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(JSON.stringify(role))
@@ -77,7 +80,7 @@ const getRolesTableActionItems = (
     {
       id: "delete-role",
       label: "Delete role",
-      icon: <Trash size="md-regular" />,
+      icon: <Trash iconsize="md-medium" />,
       ActionComponent: (props) => <DeleteRole {...props} roleDetails={role} />,
     },
   ];

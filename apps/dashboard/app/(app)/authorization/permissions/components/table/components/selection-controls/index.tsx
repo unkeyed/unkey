@@ -60,7 +60,9 @@ export const SelectionControls = ({
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
                 <AnimatedCounter value={selectedPermissions.size} />
-                <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                <div className="text-accent-9 text-[13px] leading-6">
+                  selected
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -72,7 +74,7 @@ export const SelectionControls = ({
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
-                  <Trash size="sm-regular" />
+                  <Trash iconsize="sm-regular" />
                   Delete permissions
                 </Button>
                 <Button
@@ -98,7 +100,9 @@ export const SelectionControls = ({
         description={`This action is irreversible. All data associated with ${
           selectedPermissions.size > 1 ? "these permissions" : "this permission"
         } will be permanently deleted.`}
-        confirmButtonText={`Delete permission${selectedPermissions.size > 1 ? "s" : ""}`}
+        confirmButtonText={`Delete permission${
+          selectedPermissions.size > 1 ? "s" : ""
+        }`}
         cancelButtonText="Cancel"
         variant="danger"
       />

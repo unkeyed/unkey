@@ -26,11 +26,12 @@ export const OnboardingSuccessStep = ({
     return (
       <div className="rounded-xl bg-grayA-3 dark:bg-black border border-grayA-3 flex items-center gap-4 px-[22px] py-6">
         <div className="bg-gray-1 size-8 rounded-full flex items-center justify-center flex-shrink-0">
-          <TriangleWarning className="text-error-9" size="xl-medium" />
+          <TriangleWarning className="text-error-9" iconsize="xl-medium" />
         </div>
         <div className="text-gray-12 text-[13px] leading-6">
-          <span className="font-medium">Error:</span> Missing API or key information. Please go back
-          and create your API key again to continue with the setup process.
+          <span className="font-medium">Error:</span> Missing API or key
+          information. Please go back and create your API key again to continue
+          with the setup process.
         </div>
       </div>
     );
@@ -39,8 +40,8 @@ export const OnboardingSuccessStep = ({
   return (
     <div>
       <span className="text-gray-11 text-[13px] leading-6" ref={anchorRef}>
-        Run this command to verify your new API key against the API ID. This ensures your key is
-        ready for authenticated requests.
+        Run this command to verify your new API key against the API ID. This
+        ensures your key is ready for authenticated requests.
       </span>
       <KeySecretSection
         keyValue={key}

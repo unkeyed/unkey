@@ -1,5 +1,8 @@
 "use client";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import type { Deployment, Environment } from "@/lib/collections";
 import { ArrowDottedRotateAnticlockwise } from "@unkey/icons";
 import { useState } from "react";
@@ -21,7 +24,7 @@ export const DeploymentListTableActions = ({
     selectedDeployment,
     liveDeployment,
     environment,
-    setIsRollbackModalOpen,
+    setIsRollbackModalOpen
   );
 
   return (
@@ -43,7 +46,7 @@ const getDeploymentListTableActionItems = (
   selectedDeployment: Deployment,
   liveDeployment: Deployment | undefined,
   environment: Environment | undefined,
-  setIsRollbackModalOpen: (open: boolean) => void,
+  setIsRollbackModalOpen: (open: boolean) => void
 ): MenuItem[] => {
   // Rollback is only enabled for production deployments that are ready and not currently active
   const canRollback =
@@ -56,7 +59,7 @@ const getDeploymentListTableActionItems = (
     {
       id: "rollback",
       label: "Rollback",
-      icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
+      icon: <ArrowDottedRotateAnticlockwise iconsize="md-medium" />,
       disabled: !canRollback,
       onClick: () => {
         if (canRollback) {

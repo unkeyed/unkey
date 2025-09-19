@@ -10,12 +10,22 @@
  * https://nucleoapp.com/license
  */
 
-import type React from "react";
+import React from "react";
+import { type IconProps, sizeMap } from "../props";
 
-import type { IconProps } from "../props";
-export const Nodes: React.FC<IconProps> = (props) => {
+export const Nodes: React.FC<IconProps> = ({
+  iconsize = "xl-thin",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
         <path
           d="M10.998,3.826c2.054,.693,3.63,2.424,4.104,4.569"

@@ -25,12 +25,17 @@ const formSchema = z.object({
   role: z.enum(["admin", "basic_member"]),
 });
 
-interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface InviteButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   user: AuthenticatedUser;
   organization: Organization;
 }
 
-export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {
+export const InviteButton = ({
+  user,
+  organization,
+  ...rest
+}: InviteButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const utils = trpc.useUtils();
 
@@ -54,8 +59,8 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
 
       toast.success(
         `We have sent an email to ${getValues(
-          "email",
-        )} with instructions on how to join your workspace.`,
+          "email"
+        )} with instructions on how to join your workspace.`
       );
       setDialogOpen(false);
     },
@@ -98,7 +103,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
         {...rest}
         color="default"
       >
-        <Plus size="lg-regular" className="w-4 h-4 " />
+        <Plus iconsize="lg-regular" className="w-4 h-4 " />
         Invite Member
       </Button>
       <DialogContainer
@@ -119,11 +124,17 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
             >
               Send invitation
             </Button>
-            <div className="text-gray-9 text-xs">The invitation will be valid for 24 hours</div>
+            <div className="text-gray-9 text-xs">
+              The invitation will be valid for 24 hours
+            </div>
           </div>
         }
       >
-        <form id="invite-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+        <form
+          id="invite-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-5"
+        >
           <FormInput
             label="Email"
             placeholder="hey@unkey.dev"
@@ -136,7 +147,9 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
             name="role"
             render={({ field }) => (
               <div className="space-y-1.5">
-                <div className="text-gray-11 text-[13px] flex items-center">Role</div>
+                <div className="text-gray-11 text-[13px] flex items-center">
+                  Role
+                </div>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select a role" />
@@ -147,10 +160,13 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
                   </SelectContent>
                 </Select>
                 {errors.role && (
-                  <div className="text-error-11 text-xs ml-0.5">{errors.role.message}</div>
+                  <div className="text-error-11 text-xs ml-0.5">
+                    {errors.role.message}
+                  </div>
                 )}
                 <div className="text-gray-9 text-[13px] ml-0.5">
-                  Admins may invite new members or remove them and change workspace settings.
+                  Admins may invite new members or remove them and change
+                  workspace settings.
                 </div>
               </div>
             )}

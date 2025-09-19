@@ -52,7 +52,9 @@ export const KeyCreatedSuccessDialog = ({
     return null;
   }
 
-  const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
+  const handleCloseAttempt = (
+    action: "close" | "create-another" | "go-to-details" = "close"
+  ) => {
     setPendingAction(action);
     setIsConfirmOpen(true);
   };
@@ -85,7 +87,8 @@ export const KeyCreatedSuccessDialog = ({
               description: "Keyspace ID is required to view key details.",
               action: {
                 label: "Contact Support",
-                onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+                onClick: () =>
+                  window.open("mailto:support@unkey.dev", "_blank"),
               },
             });
             return;
@@ -131,9 +134,9 @@ export const KeyCreatedSuccessDialog = ({
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2 size="2xl-thin" />
+                  <Key2 iconsize="2xl-thin" />
                   <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
-                    <Check size="sm-bold" />
+                    <Check iconsize="sm-bold" />
                   </div>
                 </div>
                 <div className="border border-grayA-4 rounded-[14px] size-14" />
@@ -144,23 +147,31 @@ export const KeyCreatedSuccessDialog = ({
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
                 Key Created
               </div>
-              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
+              <div
+                className="text-gray-10 text-[13px] leading-[24px] text-center"
+                ref={dividerRef}
+              >
                 You've successfully generated a new API key.
-                <br /> Use this key to authenticate requests from your application.
+                <br /> Use this key to authenticate requests from your
+                application.
               </div>
             </div>
             <div className="p-1 w-full my-8">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
             <div className="flex flex-col gap-2 items-start w-full">
-              <div className="text-gray-12 text-sm font-semibold">Key Details</div>
+              <div className="text-gray-12 text-sm font-semibold">
+                Key Details
+              </div>
               <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
                 <div className="flex gap-6 items-center">
                   <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
-                    <Key2 size="sm-regular" />
+                    <Key2 iconsize="sm-regular" />
                   </div>
                   <div className="flex flex-col gap-1 py-6">
-                    <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
+                    <div className="text-accent-12 text-xs font-mono">
+                      {keyData.id}
+                    </div>
                     <InfoTooltip
                       content={keyData.name}
                       position={{ side: "bottom", align: "center" }}
@@ -178,7 +189,7 @@ export const KeyCreatedSuccessDialog = ({
                     className="ml-auto font-medium text-[13px] text-gray-12"
                     onClick={() => handleCloseAttempt("go-to-details")}
                   >
-                    See key details <ArrowRight size="sm-regular" />
+                    See key details <ArrowRight iconsize="sm-regular" />
                   </Button>
                 </div>
               </div>
@@ -191,7 +202,8 @@ export const KeyCreatedSuccessDialog = ({
             />
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                All set! You can now create another key or explore the docs to learn more
+                All set! You can now create another key or explore the docs to
+                learn more
               </div>
               <div className="flex gap-3 mt-4 items-center justify-center w-full">
                 <Button
@@ -199,7 +211,7 @@ export const KeyCreatedSuccessDialog = ({
                   className="font-medium text-[13px] text-gray-12"
                   onClick={() => handleCloseAttempt("create-another")}
                 >
-                  <Plus size="sm-regular" />
+                  <Plus iconsize="sm-regular" />
                   Create another key
                 </Button>
               </div>

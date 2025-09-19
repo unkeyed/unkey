@@ -9,19 +9,22 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+import React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const MoonStars: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
+export const MoonStars: React.FC<IconProps> = ({
+  iconsize = "xl-thin",
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill="currentColor">
         <path
@@ -37,7 +40,13 @@ export const MoonStars: React.FC<IconProps> = ({ size = "xl-thin", ...props }) =
           fill="currentColor"
           stroke="none"
         />
-        <circle cx="14.25" cy="7.75" fill="currentColor" r=".75" stroke="none" />
+        <circle
+          cx="14.25"
+          cy="7.75"
+          fill="currentColor"
+          r=".75"
+          stroke="none"
+        />
       </g>
     </svg>
   );

@@ -10,11 +10,15 @@ type LastUsedCellProps = {
   identifier: string;
 };
 
-export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => {
-  const { data, isLoading, isError } = trpc.ratelimit.namespace.queryRatelimitLastUsed.useQuery({
-    namespaceId,
-    identifier,
-  });
+export const LastUsedCell = ({
+  namespaceId,
+  identifier,
+}: LastUsedCellProps) => {
+  const { data, isLoading, isError } =
+    trpc.ratelimit.namespace.queryRatelimitLastUsed.useQuery({
+      namespaceId,
+      identifier,
+    });
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -25,7 +29,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
         "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
         isError
           ? "bg-error-3 text-error-11 border border-error-5"
-          : STATUS_STYLES.success.badge.default,
+          : STATUS_STYLES.success.badge.default
       )}
       onMouseOver={() => {
         setShowTooltip(true);
@@ -35,7 +39,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
       }}
     >
       <div>
-        <ChartActivity2 size="sm-regular" />
+        <ChartActivity2 iconsize="sm-regular" />
       </div>
       <div className="truncate">
         {isLoading ? (

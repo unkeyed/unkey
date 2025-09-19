@@ -21,7 +21,7 @@ export const InlineFilter = ({
     .map(([key]) => key as keyof FilterPair);
 
   const activeFilters = filters.filter((f) =>
-    ["startTime", "endTime", "since"].includes(f.field as keyof FilterPair),
+    ["startTime", "endTime", "since"].includes(f.field as keyof FilterPair)
   );
 
   return (
@@ -40,7 +40,7 @@ export const InlineFilter = ({
                   id: crypto.randomUUID(),
                   operator: "is",
                   value: filterPair[field] as string,
-                }) satisfies RatelimitOverviewFilterValue,
+                } satisfies RatelimitOverviewFilterValue)
             ),
           ]);
         }}
@@ -48,7 +48,7 @@ export const InlineFilter = ({
       >
         <BarsFilter
           className="text-gray-12 invisible group-hover/identifier:visible"
-          size="md-regular"
+          iconsize="md-medium"
         />
       </button>
     </InfoTooltip>

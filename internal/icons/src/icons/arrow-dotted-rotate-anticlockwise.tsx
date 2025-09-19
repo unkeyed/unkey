@@ -9,22 +9,22 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+import React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const ArrowDottedRotateAnticlockwise: React.FC<IconProps> = ({
-  size = "xl-thin",
+  iconsize = "xl-thin",
   ...props
 }) => {
-  const { size: pixelSize } = sizeMap[size];
+  const { iconsize: pixelSize } = sizeMap[iconsize];
 
   return (
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill="currentColor">
         <path

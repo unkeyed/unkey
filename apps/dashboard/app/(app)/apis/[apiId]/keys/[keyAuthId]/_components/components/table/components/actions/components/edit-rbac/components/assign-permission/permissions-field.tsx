@@ -1,7 +1,10 @@
 import { StatusBadge } from "@/app/(app)/apis/[apiId]/settings/components/status-badge";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
-import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
+import type {
+  KeyPermission,
+  KeyRole,
+} from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { Page2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { useMemo, useState } from "react";
@@ -70,7 +73,7 @@ export const PermissionField = ({
           permission.id.toLowerCase().includes(searchTerm) ||
           permission.name.toLowerCase().includes(searchTerm) ||
           permission.slug.toLowerCase().includes(searchTerm) ||
-          permission.description?.toLowerCase().includes(searchTerm),
+          permission.description?.toLowerCase().includes(searchTerm)
       );
     }
     return permissions;
@@ -121,7 +124,7 @@ export const PermissionField = ({
 
       // Check if it's a known direct permission from original data
       const directPermission = assignedPermsDetails.find(
-        (p) => p.id === permissionId && p.source === "direct",
+        (p) => p.id === permissionId && p.source === "direct"
       );
 
       if (directPermission) {
@@ -185,7 +188,8 @@ export const PermissionField = ({
     onChange([...value, permissionId]);
     setSearchValue("");
   };
-  const isComboboxLoading = isLoading || (isSearching && trimmedSearchVal.length > 0);
+  const isComboboxLoading =
+    isLoading || (isSearching && trimmedSearchVal.length > 0);
 
   return (
     <div className="space-y-3">
@@ -209,7 +213,9 @@ export const PermissionField = ({
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
+            <div className="px-3 py-3 text-gray-10 text-[13px]">
+              No permissions found
+            </div>
           )
         }
         variant="default"
@@ -230,7 +236,9 @@ export const PermissionField = ({
         disabled={disabled}
         onRemoveItem={handleRemovePermission}
         isItemRemovable={(permission) => !permission.isInherited}
-        renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
+        renderIcon={() => (
+          <Page2 iconsize="sm-regular" className="text-grayA-11" />
+        )}
         renderPrimaryText={(permission) => permission.name}
         enableTransitions
         renderSecondaryText={(permission) => permission.slug}
@@ -240,7 +248,8 @@ export const PermissionField = ({
               className="z-auto"
               variant="primary"
               content={`Inherited from role: ${
-                assignedRoleDetails.find((r) => r.id === permission.roleId)?.name
+                assignedRoleDetails.find((r) => r.id === permission.roleId)
+                  ?.name
               }`}
             >
               <StatusBadge

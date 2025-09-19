@@ -25,7 +25,7 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     className={cn(
       "fixed inset-0 z-50 bg-black/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className,
+      className
     )}
     {...props}
   />
@@ -41,8 +41,15 @@ const DialogContent = React.forwardRef<
   }
 >(
   (
-    { className, children, showCloseWarning = false, onAttemptClose, xButtonRef, ...props },
-    ref,
+    {
+      className,
+      children,
+      showCloseWarning = false,
+      onAttemptClose,
+      xButtonRef,
+      ...props
+    },
+    ref
   ) => {
     const handleCloseAttempt = React.useCallback(() => {
       // This handler is now only called when showCloseWarning is true
@@ -57,12 +64,15 @@ const DialogContent = React.forwardRef<
 
     return (
       <DialogPortal>
-        <DialogOverlay showCloseWarning={showCloseWarning} onAttemptClose={handleCloseAttempt} />
+        <DialogOverlay
+          showCloseWarning={showCloseWarning}
+          onAttemptClose={handleCloseAttempt}
+        />
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
             "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-            className,
+            className
           )}
           onEscapeKeyDown={(e) => {
             if (showCloseWarning) {
@@ -75,7 +85,9 @@ const DialogContent = React.forwardRef<
             if (showCloseWarning) {
               // Basic check: If the target is the overlay, it's handled there.
               // More robust checks might be needed depending on content complexity.
-              const contentElement = (e.target as HTMLElement)?.closest('[role="dialog"]');
+              const contentElement = (e.target as HTMLElement)?.closest(
+                '[role="dialog"]'
+              );
               if (!contentElement || contentElement !== e.currentTarget) {
                 e.preventDefault();
                 handleCloseAttempt();
@@ -95,31 +107,50 @@ const DialogContent = React.forwardRef<
               className={buttonClassNames}
               aria-label="Close dialog with confirmation"
             >
-              <XMark size="md-regular" />
+              <XMark iconsize="md-medium" />
             </button>
           ) : (
             // Use DialogPrimitive.Close for standard behavior
             <DialogPrimitive.Close asChild>
-              <button type="button" className={buttonClassNames} aria-label="Close dialog">
-                <XMark size="md-regular" />
+              <button
+                type="button"
+                className={buttonClassNames}
+                aria-label="Close dialog"
+              >
+                <XMark iconsize="md-medium" />
               </button>
             </DialogPrimitive.Close>
           )}
         </DialogPrimitive.Content>
       </DialogPortal>
     );
-  },
+  }
 );
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
-const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+const DialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col space-y-1.5 text-center sm:text-left",
+      className
+    )}
+    {...props}
+  />
 );
 DialogHeader.displayName = "DialogHeader";
 
-const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className
+    )}
     {...props}
   />
 );
@@ -131,7 +162,10 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className
+    )}
     {...props}
   />
 ));

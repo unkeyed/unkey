@@ -27,9 +27,13 @@ export const FormDescription = ({
   return (
     <div className="text-[13px] leading-5">
       {error ? (
-        <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
+        <div
+          id={errorId}
+          role="alert"
+          className="text-error-11 flex gap-2 items-center"
+        >
           <TriangleWarning2
-            size="md-regular"
+            iconsize="md-medium"
             className="flex-shrink-0 ml-[-1px] mr-[1px]"
             aria-hidden="true"
           />
@@ -43,18 +47,22 @@ export const FormDescription = ({
             variant === "success"
               ? "text-success-11"
               : variant === "warning"
-                ? "text-warning-11"
-                : "",
+              ? "text-warning-11"
+              : ""
           )}
         >
           {variant === "warning" ? (
             <TriangleWarning2
-              size="md-regular"
+              iconsize="md-medium"
               className="flex-shrink-0 mt-[3px]"
               aria-hidden="true"
             />
           ) : (
-            <CircleInfo size="md-regular" className="flex-shrink-0 mt-[3px]" aria-hidden="true" />
+            <CircleInfo
+              iconsize="md-medium"
+              className="flex-shrink-0 mt-[3px]"
+              aria-hidden="true"
+            />
           )}
           <span className="flex-1 text-gray-10">{description}</span>
         </output>
@@ -71,7 +79,13 @@ export type FormLabelProps = {
   htmlFor: string;
 };
 
-export const FormLabel = ({ label, required, optional, hasError, htmlFor }: FormLabelProps) => {
+export const FormLabel = ({
+  label,
+  required,
+  optional,
+  hasError,
+  htmlFor,
+}: FormLabelProps) => {
   if (!label) {
     return null;
   }

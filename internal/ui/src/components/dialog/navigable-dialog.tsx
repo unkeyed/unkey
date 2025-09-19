@@ -2,7 +2,13 @@
 import type { IconProps } from "@unkey/icons/src/props";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import type { FC, ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
@@ -19,7 +25,9 @@ type NavigableDialogContextType<TStepName extends string> = {
 };
 
 const createNavigableDialogContext = <TStepName extends string>() => {
-  return createContext<NavigableDialogContextType<TStepName> | undefined>(undefined);
+  return createContext<NavigableDialogContextType<TStepName> | undefined>(
+    undefined
+  );
 };
 
 // We're using a type assertion with 'any' here as a deliberate design choice.
@@ -32,15 +40,20 @@ const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
 
 // Hook to use the NavigableDialog context
 const useNavigableDialog = <TStepName extends string>() => {
-  const context = useContext(NavigableDialogContext) as NavigableDialogContextType<TStepName>;
+  const context = useContext(
+    NavigableDialogContext
+  ) as NavigableDialogContextType<TStepName>;
   if (context === undefined) {
-    throw new Error("useNavigableDialog must be used within a NavigableDialogProvider");
+    throw new Error(
+      "useNavigableDialog must be used within a NavigableDialogProvider"
+    );
   }
   return context;
 };
 
 // Helper type to extract valid step names when using the component
-export type StepNamesFrom<T extends readonly { id: string }[]> = T[number]["id"];
+export type StepNamesFrom<T extends readonly { id: string }[]> =
+  T[number]["id"];
 
 // Root component that provides context and structure
 const NavigableDialogRoot = <TStepName extends string>({
@@ -72,7 +85,7 @@ const NavigableDialogRoot = <TStepName extends string>({
           onKeyDown={(e) => e.stopPropagation()}
           className={cn(
             "drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
-            dialogClassName,
+            dialogClassName
           )}
           onOpenAutoFocus={(e) => {
             if (preventAutoFocus) {
@@ -130,7 +143,9 @@ const NavigableDialogNav = <TStepName extends string>({
     const allIds = items.map((i) => i.id);
     if (!activeId || !allIds.includes(activeId)) {
       setActiveId(
-        initialSelectedId && allIds.includes(initialSelectedId) ? initialSelectedId : allIds[0],
+        initialSelectedId && allIds.includes(initialSelectedId)
+          ? initialSelectedId
+          : allIds[0]
       );
     }
   }, [activeId, items, initialSelectedId, setActiveId]);
@@ -153,7 +168,7 @@ const NavigableDialogNav = <TStepName extends string>({
         setActiveId(newId);
       }
     },
-    [activeId, onNavigate, setActiveId],
+    [activeId, onNavigate, setActiveId]
   );
 
   return (
@@ -162,7 +177,7 @@ const NavigableDialogNav = <TStepName extends string>({
         "border-r border-grayA-4 bg-white dark:bg-black p-6 flex flex-col items-start justify-start gap-3",
         "flex-shrink-0",
         navWidthClass,
-        className,
+        className
       )}
     >
       {items.map((item) => {
@@ -179,7 +194,7 @@ const NavigableDialogNav = <TStepName extends string>({
             className={cn(
               "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-auto hover:bg-grayA-3 border-none",
               isActive ? "bg-grayA-3" : "",
-              isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
+              isDisabled && "opacity-50 cursor-not-allowed pointer-events-none"
             )}
             size="md"
             onClick={() => !isDisabled && handleItemNavigation(item.id)}
@@ -189,9 +204,13 @@ const NavigableDialogNav = <TStepName extends string>({
             {IconComponent && (
               <div>
                 <IconComponent
-                  size="md-regular"
+                  iconsize="md-medium"
                   className={cn(
-                    isDisabled ? "text-gray-7" : isActive ? "text-gray-12" : "text-gray-9",
+                    isDisabled
+                      ? "text-gray-7"
+                      : isActive
+                      ? "text-gray-12"
+                      : "text-gray-9"
                   )}
                 />
               </div>
@@ -199,7 +218,7 @@ const NavigableDialogNav = <TStepName extends string>({
             <span
               className={cn(
                 "font-medium text-[13px] leading-[24px] w-full text-start",
-                isDisabled ? "text-gray-7" : "text-gray-12",
+                isDisabled ? "text-gray-7" : "text-gray-12"
               )}
             >
               {item.label}
@@ -224,7 +243,9 @@ const NavigableDialogContent = <TStepName extends string>({
   const { activeId } = useNavigableDialog<TStepName>();
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
-      <DefaultDialogContentArea className={cn("min-h-[70vh] xl:min-h-[50vh] h-full", className)}>
+      <DefaultDialogContentArea
+        className={cn("min-h-[70vh] xl:min-h-[50vh] h-full", className)}
+      >
         <div className="h-full relative">
           {items.map((item) => {
             const isActive = item.id === activeId;
@@ -236,7 +257,7 @@ const NavigableDialogContent = <TStepName extends string>({
                   "transition-all duration-300 ease-out",
                   isActive
                     ? "opacity-100 translate-x-0 z-10"
-                    : "opacity-0 translate-x-5 z-0 pointer-events-none",
+                    : "opacity-0 translate-x-5 z-0 pointer-events-none"
                 )}
                 aria-hidden={!isActive}
               >
@@ -258,7 +279,11 @@ const NavigableDialogBody = ({
   children: ReactNode;
   className?: string;
 }) => {
-  return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
+  return (
+    <div className={cn("flex flex-grow overflow-hidden", className)}>
+      {children}
+    </div>
+  );
 };
 
 NavigableDialogBody.displayName = "NavigableDialogBody";

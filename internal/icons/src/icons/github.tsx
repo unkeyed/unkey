@@ -9,11 +9,14 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+import React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Github: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize } = sizeMap[size];
+export const Github: React.FC<IconProps> = ({
+  iconsize = "xl-thin",
+  ...props
+}) => {
+  const { iconsize: pixelSize } = sizeMap[iconsize];
 
   return (
     <svg

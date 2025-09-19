@@ -42,9 +42,13 @@ export const KeySecretSection = ({
     <div className={className}>
       <div className="flex flex-col gap-2 items-start w-full">
         <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
-        <SecretKey value={keyValue} title="API Key" className={secretKeyClassName} />
+        <SecretKey
+          value={keyValue}
+          title="API Key"
+          className={secretKeyClassName}
+        />
         <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-          <CircleInfo className="text-accent-9" size="sm-regular" />
+          <CircleInfo className="text-accent-9" iconsize="sm-regular" />
           <span>
             Copy and save this key secret as it won't be shown again.{" "}
             <a
@@ -63,7 +67,10 @@ export const KeySecretSection = ({
         <Code
           className={codeClassName}
           visibleButton={
-            <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
+            <VisibleButton
+              isVisible={showKeyInSnippet}
+              setIsVisible={setShowKeyInSnippet}
+            />
           }
           copyButton={<CopyButton value={snippet} />}
         >
@@ -71,13 +78,22 @@ export const KeySecretSection = ({
         </Code>
         <Alert variant="warn">
           <div className="flex items-start mb-1 gap-2">
-            <CircleInfo size="lg-regular" aria-hidden="true" className="flex-shrink-0" />
+            <CircleInfo
+              iconsize="lg-regular"
+              aria-hidden="true"
+              className="flex-shrink-0"
+            />
             <div>
               <AlertTitle className="mb-1">Root Key Required</AlertTitle>
               <AlertDescription className="text-gray-12">
                 To verify keys, you'll need a root key with{" "}
-                <code className="bg-gray-3 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
-                <code className="bg-gray-3 px-1 rounded text-xs">api.{apiId}.verify_key</code>{" "}
+                <code className="bg-gray-3 px-1 rounded text-xs">
+                  api.*.verify_key
+                </code>{" "}
+                or{" "}
+                <code className="bg-gray-3 px-1 rounded text-xs">
+                  api.{apiId}.verify_key
+                </code>{" "}
                 permission.
                 <br />
                 <a

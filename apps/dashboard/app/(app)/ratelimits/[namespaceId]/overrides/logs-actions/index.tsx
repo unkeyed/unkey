@@ -1,6 +1,9 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { DeleteDialog } from "../../_components/delete-dialog";
@@ -21,7 +24,7 @@ export const OverridesTableAction = ({
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone size="md-regular" />,
+        icon: <Clone iconsize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -40,7 +43,7 @@ export const OverridesTableAction = ({
       {
         id: "override",
         label: "Override Identifier",
-        icon: <PenWriting3 size="md-regular" className="text-orange-11" />,
+        icon: <PenWriting3 iconsize="md-medium" className="text-orange-11" />,
         className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
         ActionComponent: (props) => (
           <IdentifierDialog
@@ -56,7 +59,7 @@ export const OverridesTableAction = ({
       {
         id: "delete",
         label: "Delete Override",
-        icon: <Trash size="md-regular" className="text-error-11" />,
+        icon: <Trash iconsize="md-medium" className="text-error-11" />,
         className: "text-error-11 hover:bg-error-3 focus:bg-error-3",
         ActionComponent: (props) =>
           overrideDetails?.overrideId ? (

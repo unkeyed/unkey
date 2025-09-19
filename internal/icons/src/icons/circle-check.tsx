@@ -9,14 +9,24 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
-
+import React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleCheck: React.FC<IconProps> = ({ size, filled, ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+export const CircleCheck: React.FC<IconProps> = ({
+  iconsize,
+  filled,
+  ...props
+}) => {
+  const { iconsize: pixelSize, strokeWidth } =
+    sizeMap[iconsize || "md-regular"];
   return (
-    <svg width={pixelSize} height={pixelSize} {...props} viewBox="0 0 18 18">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
         <path
           d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z"

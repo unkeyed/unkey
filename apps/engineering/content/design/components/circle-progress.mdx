@@ -29,7 +29,7 @@ export default function MyComponent() {
         total={requiredFields}
         variant="success"
       />
-      <CircleProgress value={100} total={100} size="lg-bold" />
+        <CircleProgress value={100} total={100} iconsize="lg-bold" />
     </div>
   );
 }
@@ -118,7 +118,7 @@ Perfect for showing field completion in multi-step forms:
   value={validFieldCount}
   total={requiredFieldCount}
   variant="success"
-  size="sm-medium"
+  iconsize="sm-medium"
 />
 ```
 
@@ -127,7 +127,7 @@ Perfect for showing field completion in multi-step forms:
 Show completion of tasks or checklist items:
 
 ```tsx
-<CircleProgress value={completedTasks} total={totalTasks} size="md-regular" />
+<CircleProgress value={completedTasks} total={totalTasks} iconsize="md-medium" />
 ```
 
 ### Loading States
@@ -139,7 +139,7 @@ Indicate progress during loading or processing:
   value={loadedItems}
   total={totalItems}
   variant="primary"
-  size="lg-medium"
+  iconsize="lg-medium"
 />
 ```
 

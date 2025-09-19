@@ -41,7 +41,11 @@ export const FlatNavItem = ({ item, onLoadMore }: NavProps) => {
           isActive={item.active}
           className={getButtonStyles(item.active, showLoader)}
         >
-          {showLoader ? <AnimatedLoadingSpinner /> : Icon ? <Icon size="xl-medium" /> : null}
+          {showLoader ? (
+            <AnimatedLoadingSpinner />
+          ) : Icon ? (
+            <Icon iconsize="xl-medium" />
+          ) : null}
           <span>{item.label}</span>
           {item.tag && <div className="ml-auto">{item.tag}</div>}
         </SidebarMenuButton>

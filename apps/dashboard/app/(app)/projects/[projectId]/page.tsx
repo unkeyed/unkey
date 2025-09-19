@@ -15,7 +15,9 @@ export default function ProjectDetails() {
 
   const domains = useLiveQuery((q) => q.from({ domain: collections.domains }));
   const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
+    q
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
   );
 
   const project = projects.data.at(0);
@@ -34,14 +36,14 @@ export default function ProjectDetails() {
     <div
       className={cn(
         "flex justify-center transition-all duration-300 ease-in-out pb-20 px-8",
-        isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
+        isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]"
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
         {project.liveDeploymentId ? (
           <Section>
             <SectionHeader
-              icon={<Cloud size="md-regular" className="text-gray-9" />}
+              icon={<Cloud iconsize="md-medium" className="text-gray-9" />}
               title="Active Deployment"
             />
             <ActiveDeploymentCard deploymentId={project.liveDeploymentId} />
@@ -50,7 +52,7 @@ export default function ProjectDetails() {
 
         <Section>
           <SectionHeader
-            icon={<Earth size="md-regular" className="text-gray-9" />}
+            icon={<Earth iconsize="md-medium" className="text-gray-9" />}
             title="Domains"
           />
           <div>
@@ -62,18 +64,18 @@ export default function ProjectDetails() {
 
         <Section>
           <SectionHeader
-            icon={<FolderCloud size="md-regular" className="text-gray-9" />}
+            icon={<FolderCloud iconsize="md-medium" className="text-gray-9" />}
             title="Environment Variables"
           />
           <div>
             <EnvironmentVariablesSection
-              icon={<Page2 className="text-gray-9" size="sm-medium" />}
+              icon={<Page2 className="text-gray-9" iconsize="sm-medium" />}
               title="Production"
               projectId={projectId}
               environment="production"
             />
             <EnvironmentVariablesSection
-              icon={<Page2 className="text-gray-9" size="sm-medium" />}
+              icon={<Page2 className="text-gray-9" iconsize="sm-medium" />}
               title="Preview"
               projectId={projectId}
               environment="preview"
@@ -89,7 +91,9 @@ function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2.5 py-1.5 px-2">
       {icon}
-      <div className="text-accent-12 font-medium text-[13px] leading-4">{title}</div>
+      <div className="text-accent-12 font-medium text-[13px] leading-4">
+        {title}
+      </div>
     </div>
   );
 }

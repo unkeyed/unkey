@@ -1,5 +1,9 @@
 import { SelectedItemsList } from "@/components/selected-item-list";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { CaretRight, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
@@ -17,7 +21,11 @@ type Props = {
   removePermission: (permission: UnkeyPermission) => void;
 };
 
-type PermissionInfo = { permission: UnkeyPermission; category: string; action: string }[];
+type PermissionInfo = {
+  permission: UnkeyPermission;
+  category: string;
+  action: string;
+}[];
 
 const PermissionBadgeList = ({
   apiId,
@@ -30,19 +38,21 @@ const PermissionBadgeList = ({
   // Flatten allPermissions into an array of {permission, action} objects
   const allPermissionsArray = useMemo(() => {
     const allPermissions =
-      apiId === ROOT_KEY_CONSTANTS.WORKSPACE ? workspacePermissions : apiPermissions(apiId);
+      apiId === ROOT_KEY_CONSTANTS.WORKSPACE
+        ? workspacePermissions
+        : apiPermissions(apiId);
     return Object.entries(allPermissions).flatMap(([category, permissions]) =>
       Object.entries(permissions).map(([action, permissionData]) => ({
         permission: permissionData.permission,
         category,
         action,
-      })),
+      }))
     );
   }, [apiId]);
 
   const info = useMemo(
     () => findPermission(allPermissionsArray, selectedPermissions),
-    [allPermissionsArray, selectedPermissions],
+    [allPermissionsArray, selectedPermissions]
   );
   if (info.length === 0) {
     return null;
@@ -69,7 +79,10 @@ const PermissionBadgeList = ({
 const ListBadges = ({
   info,
   removePermission,
-}: { info: PermissionInfo; removePermission: (permission: UnkeyPermission) => void }) => {
+}: {
+  info: PermissionInfo;
+  removePermission: (permission: UnkeyPermission) => void;
+}) => {
   // Stop propagation to prevent triggering parent collapsible when removing permissions
   const handleRemovePermissionClick = (id: string) => {
     const permission = info.find((p) => p.permission === id);
@@ -87,7 +100,13 @@ const ListBadges = ({
       }))}
       gridCols={2}
       onRemoveItem={handleRemovePermissionClick}
-      renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" aria-hidden="true" />}
+      renderIcon={() => (
+        <Key2
+          iconsize="sm-regular"
+          className="text-grayA-11"
+          aria-hidden="true"
+        />
+      )}
       enableTransitions
       renderPrimaryText={(permission) => permission.name}
       renderSecondaryText={(permission) => permission.id}
@@ -118,7 +137,7 @@ const CollapsibleList = ({
         {...props}
         className={cn(
           "flex flex-row gap-3 transition-all [&[data-state=open]>svg]:rotate-90 w-full",
-          className,
+          className
         )}
       >
         <ListTitle title={title} count={info.length} category={name} />
@@ -135,11 +154,17 @@ const ListTitle = ({
   title,
   count,
   category,
-}: { title: string; count: number; category: string }) => {
+}: {
+  title: string;
+  count: number;
+  category: string;
+}) => {
   return (
     <span className="text-[13px] flex-1 text-grayA-10 text-left flex items-center">
       {title}
-      <span className="font-normal text-grayA-12 ml-1 font-mono">{category}</span>
+      <span className="font-normal text-grayA-12 ml-1 font-mono">
+        {category}
+      </span>
       <Badge
         variant="primary"
         size="sm"
@@ -153,7 +178,7 @@ const ListTitle = ({
 
 const findPermission = (
   allPermissions: PermissionInfo,
-  selectedPermissions: UnkeyPermission[],
+  selectedPermissions: UnkeyPermission[]
 ): PermissionInfo => {
   if (!selectedPermissions || !Array.isArray(selectedPermissions)) {
     return [];
@@ -162,8 +187,14 @@ const findPermission = (
     .map((permission) => {
       return allPermissions.find((p) => p.permission === permission);
     })
-    .filter((item): item is { permission: UnkeyPermission; category: string; action: string } =>
-      Boolean(item),
+    .filter(
+      (
+        item
+      ): item is {
+        permission: UnkeyPermission;
+        category: string;
+        action: string;
+      } => Boolean(item)
     );
 };
 

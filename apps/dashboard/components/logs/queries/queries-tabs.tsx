@@ -27,7 +27,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         variant="ghost"
         className={cn(
           "h-full bg-base-12 rounded-b-none w-full ml-0 pl-[10px] focus:bg-accent-3 focus:ring-0 cursor-pointer",
-          selected === 0 ? "bg-accent-3" : "",
+          selected === 0 ? "bg-accent-3" : ""
         )}
         type="button"
         aria-label="Log queries"
@@ -37,12 +37,15 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onFocus={() => handleSelection(0)}
         onBlur={() => handleSelection(0)}
       >
-        <ClockRotateClockwise size="md-regular" className="text-gray-9 py-[1px]" />
+        <ClockRotateClockwise
+          iconsize="md-medium"
+          className="text-gray-9 py-[1px]"
+        />
         <div className="w-full">Recent</div>
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ml-[2px]",
-            selected === 0 ? "bg-accent-12" : "",
+            selected === 0 ? "bg-accent-12" : ""
           )}
         />
       </Button>
@@ -50,7 +53,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         variant="ghost"
         className={cn(
           "h-full bg-base-12 rounded-b-none w-full cursor-pointer focus:bg-accent-3 focus:ring-0",
-          selectedTab === 1 ? "bg-accent-3" : "",
+          selectedTab === 1 ? "bg-accent-3" : ""
         )}
         type="button"
         aria-label="Log queries"
@@ -61,13 +64,13 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onBlur={() => handleSelection(1)}
       >
         <div className="w-4 h-4 text-gray-9">
-          <Bookmark size="sm-regular" className="text-gray-9 py-[1.5px]" />
+          <Bookmark iconsize="sm-regular" className="text-gray-9 py-[1.5px]" />
         </div>
         <div className="w-full">Saved</div>
         <div
           className={cn(
             "absolute bottom-0 w-full bg-transparent h-[2px] pb-0 mb-0 ",
-            selected === 1 ? "bg-accent-12" : "",
+            selected === 1 ? "bg-accent-12" : ""
           )}
         />
       </Button>

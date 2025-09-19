@@ -10,11 +10,14 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 
 const IdentifierDialog = dynamic(
-  () => import("./_components/identifier-dialog").then((mod) => mod.IdentifierDialog),
+  () =>
+    import("./_components/identifier-dialog").then(
+      (mod) => mod.IdentifierDialog
+    ),
   {
     loading: () => null,
     ssr: false,
-  },
+  }
 );
 
 type NamespaceNavbarProps = {
@@ -26,16 +29,23 @@ type NamespaceNavbarProps = {
   };
 };
 
-export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProps) => {
+export const NamespaceNavbar = ({
+  namespaceId,
+  activePage,
+}: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
 
-  const { data } = useLiveQuery((q) => q.from({ namespace: collection.ratelimitNamespaces }));
+  const { data } = useLiveQuery((q) =>
+    q.from({ namespace: collection.ratelimitNamespaces })
+  );
 
   if (!data) {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
@@ -51,7 +61,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
           <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[260px] transition-all ">
             <div className="h-3 w-[260px] bg-grayA-3 rounded" />
             <div>
-              <TaskUnchecked size="sm-regular" className="!size-4" />
+              <TaskUnchecked iconsize="sm-regular" className="!size-4" />
             </div>
           </div>
         </Navbar.Actions>
@@ -65,7 +75,9 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/ratelimits/${namespaceId}`}
             isIdentifier
@@ -80,7 +92,9 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
               }))}
               shortcutKey="N"
             >
-              <div className="text-accent-10 group-hover:text-accent-12">{namespace?.name}</div>
+              <div className="text-accent-10 group-hover:text-accent-12">
+                {namespace?.name}
+              </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
@@ -117,14 +131,21 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
+          <NavbarActionButton
+            title="Override Identifier"
+            onClick={() => setOpen(true)}
+          >
             Override Identifier
           </NavbarActionButton>
           <CopyableIDButton value={namespaceId} />
         </Navbar.Actions>
       </Navbar>
       {open && (
-        <IdentifierDialog onOpenChange={setOpen} isModalOpen={open} namespaceId={namespaceId} />
+        <IdentifierDialog
+          onOpenChange={setOpen}
+          isModalOpen={open}
+          namespaceId={namespaceId}
+        />
       )}
     </>
   );

@@ -1,5 +1,8 @@
 "use client";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
@@ -10,20 +13,26 @@ type PermissionsTableActionsProps = {
   permission: Permission;
 };
 
-export const PermissionsTableActions = ({ permission }: PermissionsTableActionsProps) => {
-  const getPermissionsTableActionItems = (permission: Permission): MenuItem[] => {
+export const PermissionsTableActions = ({
+  permission,
+}: PermissionsTableActionsProps) => {
+  const getPermissionsTableActionItems = (
+    permission: Permission
+  ): MenuItem[] => {
     return [
       {
         id: "edit-permission",
         label: "Edit permission...",
-        icon: <PenWriting3 size="md-regular" />,
-        ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
+        icon: <PenWriting3 iconsize="md-medium" />,
+        ActionComponent: (props) => (
+          <EditPermission permission={permission} {...props} />
+        ),
       },
       {
         id: "copy",
         label: "Copy permission",
         className: "mt-1",
-        icon: <Clone size="md-regular" />,
+        icon: <Clone iconsize="md-medium" />,
         onClick: () => {
           navigator.clipboard
             .writeText(JSON.stringify(permission))
@@ -40,8 +49,10 @@ export const PermissionsTableActions = ({ permission }: PermissionsTableActionsP
       {
         id: "delete-permision",
         label: "Delete permission",
-        icon: <Trash size="md-regular" />,
-        ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
+        icon: <Trash iconsize="md-medium" />,
+        ActionComponent: (props) => (
+          <DeletePermission {...props} permissionDetails={permission} />
+        ),
       },
     ];
   };

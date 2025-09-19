@@ -1,6 +1,9 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import { Clone, InputSearch } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useFilters } from "../../../hooks/use-filters";
@@ -13,7 +16,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone size="md-regular" />,
+        icon: <Clone iconsize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -32,7 +35,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "filter",
         label: "Filter for identifier",
-        icon: <InputSearch size="md-regular" />,
+        icon: <InputSearch iconsize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           const newFilter = {
@@ -42,7 +45,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
             value: identifier,
           };
           const existingFilters = filters.filter(
-            (f) => !(f.field === "identifiers" && f.value === identifier),
+            (f) => !(f.field === "identifiers" && f.value === identifier)
           );
           updateFilters([...existingFilters, newFilter]);
         },
