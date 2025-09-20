@@ -1,7 +1,6 @@
 "use client";
-
 import { LogDetails } from "@/components/logs/details/log-details";
-import { useRatelimitLogsContext } from "../../../context/logs";
+import { useGatewayLogsContext } from "../../../context/gateway-logs-provider";
 
 const ANIMATION_DELAY = 350;
 
@@ -9,16 +8,16 @@ type Props = {
   distanceToTop: number;
 };
 
-export const RatelimitLogDetails = ({ distanceToTop }: Props) => {
-  const { setSelectedLog, selectedLog: log } = useRatelimitLogsContext();
-
-  if (!log) {
-    return null;
-  }
+export const GatewayLogDetails = ({ distanceToTop }: Props) => {
+  const { setSelectedLog, selectedLog: log } = useGatewayLogsContext();
 
   const handleClose = () => {
     setSelectedLog(null);
   };
+
+  if (!log) {
+    return null;
+  }
 
   return (
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
