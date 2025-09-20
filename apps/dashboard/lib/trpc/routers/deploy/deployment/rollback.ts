@@ -1,4 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { createClient } from "@connectrpc/connect";
+import { createConnectTransport } from "@connectrpc/connect-web";
+
+// Import service definition that you want to connect to.
+import { DeploymentService } from "@unkey/proto";
+
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
@@ -11,25 +17,33 @@ export const rollback = t.procedure
   .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
-      hostname: z.string().min(1, "Hostname is required"),
-      targetDeploymentId: z.string().min(1, "Target version ID is required"),
+      targetDeploymentId: z.string().min(1, "Target deployment ID is required"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { hostname, targetDeploymentId } = input;
-    const workspaceId = ctx.workspace.id;
-
     // Validate that ctrl service URL is configured
     const ctrlUrl = env().CTRL_URL;
     if (!ctrlUrl) {
-      throw new Error("ctrl service is not configured");
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "ctrl service is not configured",
+      });
     }
+
+    // Here we make the client itself, combining the service
+    // definition with the transport.
+    const ctrl = createClient(
+      DeploymentService,
+      createConnectTransport({
+        baseUrl: ctrlUrl,
+      }),
+    );
 
     try {
       // Verify the target deployment exists and belongs to this workspace
-      const deployment = await db.query.deployments.findFirst({
+      const targetDeployment = await db.query.deployments.findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.id, targetDeploymentId), eq(table.workspaceId, workspaceId)),
+          and(eq(table.id, input.targetDeploymentId), eq(table.workspaceId, ctx.workspace.id)),
         columns: {
           id: true,
           status: true,
@@ -37,105 +51,65 @@ export const rollback = t.procedure
         with: {
           project: {
             columns: {
+              id: true,
               name: true,
+              liveDeploymentId: true,
             },
           },
         },
       });
 
-      if (!deployment) {
+      if (!targetDeployment) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Deployment not found or access denied",
         });
       }
 
-      if (deployment.status !== "ready") {
+      if (targetDeployment.status !== "ready") {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: `Deployment ${targetDeploymentId} is not ready (status: ${deployment.status})`,
+          message: `Deployment ${targetDeployment.id} is not ready (status: ${targetDeployment.status})`,
         });
       }
-
-      // Make request to ctrl service rollback endpoint
-      const rollbackRequest = {
-        hostname,
-        target_deployment_id: targetDeploymentId,
-        workspace_id: workspaceId,
-      };
-
-      const response = await fetch(`${ctrlUrl}/ctrl.v1.RoutingService/Rollback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(rollbackRequest),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = "Failed to initiate rollback";
-
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          }
-        } catch {
-          // Keep default error message if JSON parsing fails
-        }
-
-        // Map common ctrl service errors to appropriate tRPC errors
-        if (response.status === 404) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: errorMessage,
-          });
-        }
-        if (response.status === 412) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: errorMessage,
-          });
-        }
-        if (response.status === 401 || response.status === 403) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Unauthorized to perform rollback",
-          });
-        }
-
+      if (!targetDeployment.project.liveDeploymentId) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: errorMessage,
+          code: "PRECONDITION_FAILED",
+          message: `Project ${targetDeployment.project.name} doesn't have a live deployment to roll back.`,
         });
       }
 
-      const rollbackResponse = await response.json();
+      const rolledBack = await ctrl
+        .rollback({
+          sourceDeploymentId: targetDeployment.project.liveDeploymentId,
+          targetDeploymentId: targetDeployment.id,
+        })
+        .catch((err) => {
+          console.error(err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: err,
+          });
+        });
 
       // Log the rollback action for audit purposes
       await insertAuditLogs(db, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "deployment.rollback",
-        description: `Rolled back ${hostname} to deployment ${targetDeploymentId}`,
+        description: `Rolled back ${targetDeployment.project.name} to deployment ${targetDeployment.id}`,
         resources: [
           {
             type: "deployment",
-            id: targetDeploymentId,
-            name: deployment.project?.name || "Unknown",
+            id: input.targetDeploymentId,
+            name: targetDeployment.project.name,
           },
         ],
-        context: {
-          location: ctx.audit?.location ?? "unknown",
-          userAgent: ctx.audit?.userAgent ?? "unknown",
-        },
+        context: ctx.audit,
       });
 
       return {
-        previousDeploymentId: rollbackResponse.previous_deployment_id,
-        newDeploymentId: rollbackResponse.new_deployment_id,
-        effectiveAt: rollbackResponse.effective_at,
+        domains: rolledBack.domains,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

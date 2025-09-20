@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package metald.v1;
 
-option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
-
 import "google/protobuf/timestamp.proto";
 import "metald/v1/network.proto";
 import "metald/v1/storage.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
 
 // VM lifecycle states
 enum VmState {
@@ -69,8 +69,8 @@ message CreateVmRequest {
 }
 
 message Endpoint {
-    string host = 1;
-    uint32 port = 2;
+  string host = 1;
+  uint32 port = 2;
 }
 
 message CreateVmResponse {
@@ -88,9 +88,13 @@ message DeleteVmRequest {
   bool force = 2;
 }
 
-message DeleteVmResponse { bool success = 1; }
+message DeleteVmResponse {
+  bool success = 1;
+}
 
-message BootVmRequest { string vm_id = 1; }
+message BootVmRequest {
+  string vm_id = 1;
+}
 
 message BootVmResponse {
   VmState state = 2;
@@ -110,13 +114,17 @@ message ShutdownVmResponse {
   VmState state = 2;
 }
 
-message PauseVmRequest { string vm_id = 1; }
+message PauseVmRequest {
+  string vm_id = 1;
+}
 
 message PauseVmResponse {
   VmState state = 2;
 }
 
-message ResumeVmRequest { string vm_id = 1; }
+message ResumeVmRequest {
+  string vm_id = 1;
+}
 
 message ResumeVmResponse {
   VmState state = 2;
@@ -133,7 +141,9 @@ message RebootVmResponse {
   VmState state = 2;
 }
 
-message GetVmInfoRequest { string vm_id = 1; }
+message GetVmInfoRequest {
+  string vm_id = 1;
+}
 
 message GetVmInfoResponse {
   string vm_id = 1;
@@ -222,7 +232,6 @@ message BootConfig {
   // Boot order and options
   map<string, string> boot_options = 4;
 }
-
 
 message ConsoleConfig {
   // Whether console is enabled

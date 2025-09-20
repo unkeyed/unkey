@@ -118,7 +118,7 @@ export const CreateKeyDialog = ({
         description: "An unexpected error occurred. Please try again later.",
         action: {
           label: "Contact Support",
-          onClick: () => window.open("https://support.unkey.dev", "_blank"),
+          onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
         },
       });
       return;

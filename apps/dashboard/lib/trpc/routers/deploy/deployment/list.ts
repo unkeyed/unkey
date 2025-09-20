@@ -27,6 +27,7 @@ export const listDeployments = t.procedure
           gitCommitTimestamp: true,
           runtimeConfig: true,
           status: true,
+          isRolledBack: true,
           createdAt: true,
         },
         limit: 500,

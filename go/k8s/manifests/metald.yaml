@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metald
+  namespace: unkey
+  labels:
+    app: metald
+    component: metald
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metald
+  template:
+    metadata:
+      labels:
+        app: metald
+        component: metald
+        # Add gateway label for potential service discovery
+        unkey.component: gateway
+    spec:
+      serviceAccountName: unkey-serviceaccount
+      containers:
+        - name: metald
+          image: unkey-metald:latest
+          imagePullPolicy: Never # Use local images
+          command: ["/unkey", "run", "metald"]
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            # Server configuration
+            - name: UNKEY_METALD_ADDRESS
+              value: "0.0.0.0"
+            - name: UNKEY_METALD_PORT
+              value: "8080"
+
+            # Backend configuration - use Kubernetes backend for K8s deployment
+            - name: UNKEY_METALD_BACKEND
+              value: "k8s"
+
+            # Network configuration - use K8s service CIDR for OrbStack
+            - name: UNKEY_METALD_NETWORK_CIDR
+              value: "192.168.194.128/25" # OrbStack's default service CIDR
+
+            - name: UNKEY_METALD_SUBNET_PREFIX
+              value: "29" # Smaller subnets (8 IPs each) to fit in /25 range
+
+            # Database configuration (metald needs its own database for VM state)
+            - name: UNKEY_METALD_DATABASE_DIR
+              value: "/var/lib/metald"
+
+            # Asset manager configuration (disabled for local development)
+            - name: UNKEY_METALD_ASSETMANAGER_ENABLED
+              value: "false"
+
+            # Billing configuration (disabled for local development)
+            - name: UNKEY_METALD_BILLING_ENABLED
+              value: "false"
+
+            # TLS configuration (disabled for local development)
+            - name: UNKEY_METALD_TLS_MODE
+              value: "disabled"
+
+            # OpenTelemetry configuration
+            - name: UNKEY_METALD_OTEL_ENABLED
+              value: "false"
+
+          volumeMounts:
+            - name: metald-data
+              mountPath: /var/lib/metald
+
+      volumes:
+        - name: metald-data
+          persistentVolumeClaim:
+            claimName: metald-data-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metald
+  namespace: unkey
+  labels:
+    app: metald
+    component: metald
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+      protocol: TCP
+  selector:
+    app: metald
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: metald-data-pvc
+  namespace: unkey
+  labels:
+    app: metald
+    component: metald
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

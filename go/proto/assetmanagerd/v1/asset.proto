@@ -78,7 +78,7 @@ message Asset {
   // Metadata
   map<string, string> labels = 9;
   string created_by = 10; // e.g., "builderd", "manual"
-  int64 created_at = 11;  // Unix timestamp
+  int64 created_at = 11; // Unix timestamp
   int64 last_accessed_at = 12;
 
   // Reference counting for GC
@@ -129,7 +129,9 @@ message RegisterAssetRequest {
   string id = 11;
 }
 
-message RegisterAssetResponse { Asset asset = 1; }
+message RegisterAssetResponse {
+  Asset asset = 1;
+}
 
 message GetAssetRequest {
   string id = 1;
@@ -168,7 +170,7 @@ message ListAssetsResponse {
 message AcquireAssetRequest {
   string asset_id = 1;
   string acquired_by = 2; // e.g., "vm-123"
-  int64 ttl_seconds = 3;  // Optional auto-release after TTL
+  int64 ttl_seconds = 3; // Optional auto-release after TTL
 }
 
 message AcquireAssetResponse {
@@ -176,9 +178,13 @@ message AcquireAssetResponse {
   string lease_id = 2; // Use this for release
 }
 
-message ReleaseAssetRequest { string lease_id = 1; }
+message ReleaseAssetRequest {
+  string lease_id = 1;
+}
 
-message ReleaseAssetResponse { Asset asset = 1; }
+message ReleaseAssetResponse {
+  Asset asset = 1;
+}
 
 message DeleteAssetRequest {
   string id = 1;
@@ -208,7 +214,7 @@ message GarbageCollectResponse {
 
 message PrepareAssetsRequest {
   repeated string asset_ids = 1;
-  string target_path = 2;  // e.g., jailer chroot path
+  string target_path = 2; // e.g., jailer chroot path
   string prepared_for = 3; // e.g., "vm-123"
 }
 

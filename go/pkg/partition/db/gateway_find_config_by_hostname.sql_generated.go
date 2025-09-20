@@ -10,24 +10,25 @@ import (
 )
 
 const findGatewayByHostname = `-- name: FindGatewayByHostname :one
-SELECT hostname, config
+SELECT hostname, config, workspace_id
 FROM gateways
 WHERE hostname = ?
 `
 
 type FindGatewayByHostnameRow struct {
-	Hostname string `db:"hostname"`
-	Config   []byte `db:"config"`
+	Hostname    string `db:"hostname"`
+	Config      []byte `db:"config"`
+	WorkspaceID string `db:"workspace_id"`
 }
 
 // FindGatewayByHostname
 //
-//	SELECT hostname, config
+//	SELECT hostname, config, workspace_id
 //	FROM gateways
 //	WHERE hostname = ?
 func (q *Queries) FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error) {
 	row := db.QueryRowContext(ctx, findGatewayByHostname, hostname)
 	var i FindGatewayByHostnameRow
-	err := row.Scan(&i.Hostname, &i.Config)
+	err := row.Scan(&i.Hostname, &i.Config, &i.WorkspaceID)
 	return i, err
 }

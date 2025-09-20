@@ -59,7 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Buffer all events to ClickHouse
 	for _, event := range events {
-		h.ClickHouse.BufferApiRequest(event)
+		h.ClickHouse.BufferRequest(event)
 	}
 
 	return s.JSON(http.StatusOK, map[string]string{"status": "OK"})

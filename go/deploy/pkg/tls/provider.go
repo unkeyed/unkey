@@ -33,6 +33,8 @@ import (
 	"strings"
 	"time"
 
+	"log"
+
 	"github.com/unkeyed/unkey/go/deploy/pkg/spiffe"
 )
 
@@ -101,14 +103,18 @@ func NewProvider(ctx context.Context, cfg Config) (Provider, error) {
 			if cacheTTL == 0 {
 				cacheTTL = 5 * time.Second
 			}
+
 			return newCachedFileProvider(cfg, cacheTTL)
 		}
+
 		return newFileProvider(cfg)
 
 	case ModeSPIFFE:
 		if _, err := os.Stat(cfg.SPIFFESocketPath); os.IsNotExist(err) {
+			log.Printf("SPIRE agent socket not found at %s", cfg.SPIFFESocketPath)
 			return &disabledProvider{}, nil
 		}
+
 		return newSPIFFEProvider(ctx, cfg)
 
 	default:

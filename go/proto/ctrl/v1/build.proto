@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package ctrl.v1;
 
-option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
 // Build status enum
 enum BuildStatus {
@@ -40,25 +40,25 @@ message Build {
   string workspace_id = 2;
   string project_id = 3;
   string version_id = 4;
-  
+
   // Build details
   BuildStatus status = 5;
-  string error_message = 6;  // For failed builds
-  
+  string error_message = 6; // For failed builds
+
   // Timestamps
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp started_at = 8;
   google.protobuf.Timestamp completed_at = 9;
   google.protobuf.Timestamp updated_at = 10;
-  
+
   // Build metadata
-  string rootfs_image_id = 11;  // Output rootfs image
+  string rootfs_image_id = 11; // Output rootfs image
 }
 
 service BuildService {
   // Create a new build
   rpc CreateBuild(CreateBuildRequest) returns (CreateBuildResponse) {}
-  
+
   // Get build details
   rpc GetBuild(GetBuildRequest) returns (GetBuildResponse) {}
 }

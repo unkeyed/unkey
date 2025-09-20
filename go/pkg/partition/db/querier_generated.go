@@ -17,9 +17,17 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
-	//FindGatewayByHostname
+	//FindGatewayByDeploymentId
 	//
 	//  SELECT hostname, config
+	//  FROM gateways
+	//  WHERE deployment_id = ?
+	//  ORDER BY id DESC
+	//  LIMIT 1
+	FindGatewayByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (FindGatewayByDeploymentIdRow, error)
+	//FindGatewayByHostname
+	//
+	//  SELECT hostname, config, workspace_id
 	//  FROM gateways
 	//  WHERE hostname = ?
 	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
@@ -45,11 +53,22 @@ type Querier interface {
 	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
 	//UpsertGateway
 	//
-	//  INSERT INTO gateways (workspace_id, hostname, config)
-	//  VALUES (?, ?, ?)
+	//  INSERT INTO gateways (
+	//  workspace_id,
+	//  deployment_id,
+	//  hostname,
+	//  config
+	//  )
+	//  VALUES (
+	//  ?,
+	//  ?,
+	//  ?,
+	//  ?
+	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//      config = VALUES(config),
-	//      workspace_id = VALUES(workspace_id)
+	//      workspace_id = ?,
+	//      deployment_id = ?,
+	//      config = ?
 	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
 	//UpsertVM
 	//

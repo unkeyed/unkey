@@ -2,9 +2,18 @@ package deployment
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"regexp"
 	"strings"
+
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/db"
 )
+
+type newDomain struct {
+	domain string
+	sticky db.NullDomainsSticky
+}
 
 // buildDomains looks at the deployment and returns a list of domains
 // that should be assigned to the deployment.
@@ -13,30 +22,47 @@ import (
 //   - `<projectslug>-git-<gitsha>-<workspaceslug>.unkey.app` (this never gets reassigned)
 //   - `<projectslug>-git-<branchname>-<workspaceslug>.unkey.app` (this needs to point to the latest deployment of that branch, sluggify the branch name )
 //   - `<projectslug>-<environmentslug>-<workspaceslug>.unkey.app` (this needs to point to the latest deployment of that environment and be rolled back)
-func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchName, apex string) []string {
+func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
 
-	var domains []string
+	// Deploying via CLI often sends the same git sha, and we want to make them unique,
+	// to prevent changes from overwriting each other.
+	randomSuffix := ""
+	if source == ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD {
+		randomSuffix = fmt.Sprintf("-%d", 1000+rand.IntN(9000))
+	}
+
+	var domains []newDomain
 
 	if gitSha != "" {
 		short := gitSha
 		if len(short) > 7 {
 			short = short[:7]
 		}
+		short += randomSuffix
 		domains = append(domains,
-			fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
+			newDomain{
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
+				sticky: db.NullDomainsSticky{Valid: false},
+			},
 		)
 	}
 
 	if branchName != "" {
 		domains = append(
 			domains,
-			fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, sluggify(branchName), workspaceSlug, apex),
+			newDomain{
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, sluggify(branchName), workspaceSlug, apex),
+				sticky: db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyBranch},
+			},
 		)
 	}
 
 	domains = append(
 		domains,
-		fmt.Sprintf("%s-%s-%s.%s", projectSlug, environmentSlug, workspaceSlug, apex),
+		newDomain{
+			domain: fmt.Sprintf("%s-%s-%s.%s", projectSlug, environmentSlug, workspaceSlug, apex),
+			sticky: db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyEnvironment},
+		},
 	)
 	return domains
 

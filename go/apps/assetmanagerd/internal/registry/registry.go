@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/oklog/ulid/v2"
 	assetv1 "github.com/unkeyed/unkey/go/gen/proto/assetmanagerd/v1"
+	_ "modernc.org/sqlite"
 )
 
 // Registry manages asset metadata in SQLite
@@ -28,7 +28,7 @@ func New(dbPath string, logger *slog.Logger) (*Registry, error) {
 	}
 
 	// Open database
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL")
+	db, err := sql.Open("sqlite", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

@@ -36,6 +36,7 @@ type VMService struct {
 // NewVMService creates a new VM service instance
 func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *billing.MetricsCollector, vmMetrics *observability.VMMetrics, queries database.Querier) *VMService {
 	tracer := otel.Tracer("metald.service.vm")
+
 	return &VMService{ //nolint:exhaustruct
 		backend:          backend,
 		logger:           logger.With("service", "metald"),
@@ -46,7 +47,7 @@ func NewVMService(backend types.Backend, logger *slog.Logger, metricsCollector *
 	}
 }
 
-func (s *VMService) generateVMID(ctx context.Context) string {
+func (s *VMService) generateVmID(ctx context.Context) string {
 	b := make([]byte, 15)
 	rand.Read(b)
 	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b)[:24]
@@ -68,7 +69,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 
 	// Record VM create request metric
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMCreateRequest(ctx, s.getBackendType())
+		s.vmMetrics.RecordVMCreateRequest(ctx, s.backend.Type())
 	}
 
 	config := req.Msg.GetConfig()
@@ -85,7 +86,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 		span.RecordError(err)
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm config")
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "missing_config")
+			s.vmMetrics.RecordVMCreateFailure(ctx, s.backend.Type(), "missing_config")
 		}
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -120,7 +121,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 			attribute.String("error.message", err.Error()),
 		)
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMCreateFailure(ctx, s.getBackendType(), "backend_error")
+			s.vmMetrics.RecordVMCreateFailure(ctx, s.backend.Type(), "backend_error")
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create vm: %w", err))
 	}
@@ -139,7 +140,7 @@ func (s *VMService) CreateVm(ctx context.Context, req *connect.Request[metaldv1.
 
 	// Record successful VM creation
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMCreateSuccess(ctx, vmID, s.getBackendType(), duration)
+		s.vmMetrics.RecordVMCreateSuccess(ctx, vmID, s.backend.Type(), duration)
 	}
 
 	return connect.NewResponse(&metaldv1.CreateVmResponse{
@@ -162,13 +163,13 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 
 	// Record VM delete request metric
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMDeleteRequest(ctx, vmID, s.getBackendType())
+		s.vmMetrics.RecordVMDeleteRequest(ctx, vmID, s.backend.Type())
 	}
 
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMDeleteFailure(ctx, "", s.getBackendType(), "missing_vm_id")
+			s.vmMetrics.RecordVMDeleteFailure(ctx, "", s.backend.Type(), "missing_vm_id")
 		}
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
@@ -191,7 +192,7 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 			slog.String("error", err.Error()),
 		)
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMDeleteFailure(ctx, vmID, s.getBackendType(), "backend_error")
+			s.vmMetrics.RecordVMDeleteFailure(ctx, vmID, s.backend.Type(), "backend_error")
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete vm: %w", err))
 	}
@@ -203,7 +204,7 @@ func (s *VMService) DeleteVm(ctx context.Context, req *connect.Request[metaldv1.
 
 	// Record successful VM deletion
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMDeleteSuccess(ctx, vmID, s.getBackendType(), duration)
+		s.vmMetrics.RecordVMDeleteSuccess(ctx, vmID, s.backend.Type(), duration)
 	}
 
 	return connect.NewResponse(&metaldv1.DeleteVmResponse{
@@ -231,13 +232,13 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 
 	// Record VM boot request metric
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMBootRequest(ctx, vmID, s.getBackendType())
+		s.vmMetrics.RecordVMBootRequest(ctx, vmID, s.backend.Type())
 	}
 
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMBootFailure(ctx, "", s.getBackendType(), "missing_vm_id")
+			s.vmMetrics.RecordVMBootFailure(ctx, "", s.backend.Type(), "missing_vm_id")
 		}
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
@@ -256,7 +257,7 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 			slog.String("error", err.Error()),
 		)
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMBootFailure(ctx, vmID, s.getBackendType(), "backend_error")
+			s.vmMetrics.RecordVMBootFailure(ctx, vmID, s.backend.Type(), "backend_error")
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to boot vm: %w", err))
 	}
@@ -275,7 +276,7 @@ func (s *VMService) BootVm(ctx context.Context, req *connect.Request[metaldv1.Bo
 
 	// Record successful VM boot
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMBootSuccess(ctx, vmID, s.getBackendType(), duration)
+		s.vmMetrics.RecordVMBootSuccess(ctx, vmID, s.backend.Type(), duration)
 	}
 
 	return connect.NewResponse(&metaldv1.BootVmResponse{
@@ -299,13 +300,13 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 
 	// Record VM shutdown request metric
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMShutdownRequest(ctx, vmID, s.getBackendType(), force)
+		s.vmMetrics.RecordVMShutdownRequest(ctx, vmID, s.backend.Type(), force)
 	}
 
 	if vmID == "" {
 		s.logger.LogAttrs(ctx, slog.LevelError, "missing vm id")
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMShutdownFailure(ctx, "", s.getBackendType(), force, "missing_vm_id")
+			s.vmMetrics.RecordVMShutdownFailure(ctx, "", s.backend.Type(), force, "missing_vm_id")
 		}
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("vm_id is required"))
 	}
@@ -328,7 +329,7 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 			slog.String("error", err.Error()),
 		)
 		if s.vmMetrics != nil {
-			s.vmMetrics.RecordVMShutdownFailure(ctx, vmID, s.getBackendType(), force, "backend_error")
+			s.vmMetrics.RecordVMShutdownFailure(ctx, vmID, s.backend.Type(), force, "backend_error")
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to shutdown vm: %w", err))
 	}
@@ -340,7 +341,7 @@ func (s *VMService) ShutdownVm(ctx context.Context, req *connect.Request[metaldv
 
 	// Record successful VM shutdown
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMShutdownSuccess(ctx, vmID, s.getBackendType(), force, duration)
+		s.vmMetrics.RecordVMShutdownSuccess(ctx, vmID, s.backend.Type(), force, duration)
 	}
 
 	return connect.NewResponse(&metaldv1.ShutdownVmResponse{
@@ -452,7 +453,7 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 
 	// Record VM info request metric
 	if s.vmMetrics != nil {
-		s.vmMetrics.RecordVMInfoRequest(ctx, vmID, s.getBackendType())
+		s.vmMetrics.RecordVMInfoRequest(ctx, vmID, s.backend.Type())
 	}
 
 	if vmID == "" {
@@ -538,8 +539,3 @@ func (s *VMService) GetVmInfo(ctx context.Context, req *connect.Request[metaldv1
 
 // 	return nil
 // }
-
-// getBackendType returns the backend type as a string for metrics
-func (s *VMService) getBackendType() string {
-	return "firecracker"
-}

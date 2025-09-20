@@ -41,6 +41,9 @@ type Backend interface {
 
 	// Ping checks if the backend is healthy and responsive
 	Ping(ctx context.Context) error
+
+	// Type returns the backend type as a string for metrics
+	Type() string
 }
 
 // VMInfo contains VM state and configuration information
@@ -65,10 +68,14 @@ type VMListProvider interface {
 type BackendType string
 
 const (
-	BackendTypeCloudHypervisor BackendType = "cloudhypervisor"
-	BackendTypeFirecracker     BackendType = "firecracker"
-	BackendTypeDocker          BackendType = "docker"
+	BackendTypeFirecracker BackendType = "firecracker"
+	BackendTypeDocker      BackendType = "docker"
+	BackendTypeKubernetes  BackendType = "k8s"
 )
+
+func (s *BackendType) String() string {
+	return string(*s)
+}
 
 // VMMetrics contains VM resource usage data for billing
 type VMMetrics struct {

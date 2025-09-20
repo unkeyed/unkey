@@ -36,5 +36,9 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     references: [workspaces.id],
   }),
   deployments: many(deployments),
+  activeDeployment: one(deployments, {
+    fields: [projects.liveDeploymentId],
+    references: [deployments.id],
+  }),
   // environments: many(projectEnvironments),
 }));

@@ -24,7 +24,7 @@ var File_metald_v1_metald_proto protoreflect.FileDescriptor
 
 const file_metald_v1_metald_proto_rawDesc = "" +
 	"\n" +
-	"\x16metald/v1/metald.proto\x12\tmetald.v1\x1a\x12metald/v1/vm.proto\x1a\x1ametald/v1/deployment.proto2\xe0\a\n" +
+	"\x16metald/v1/metald.proto\x12\tmetald.v1\x1a\x1ametald/v1/deployment.proto\x1a\x12metald/v1/vm.proto2\xe0\a\n" +
 	"\tVmService\x12[\n" +
 	"\x10CreateDeployment\x12\".metald.v1.CreateDeploymentRequest\x1a#.metald.v1.CreateDeploymentResponse\x12[\n" +
 	"\x10UpdateDeployment\x12\".metald.v1.UpdateDeploymentRequest\x1a#.metald.v1.UpdateDeploymentResponse\x12[\n" +
@@ -108,8 +108,8 @@ func file_metald_v1_metald_proto_init() {
 	if File_metald_v1_metald_proto != nil {
 		return
 	}
-	file_metald_v1_vm_proto_init()
 	file_metald_v1_deployment_proto_init()
+	file_metald_v1_vm_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

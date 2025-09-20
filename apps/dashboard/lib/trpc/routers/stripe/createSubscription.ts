@@ -64,14 +64,6 @@ export const createSubscription = t.procedure
       });
     }
 
-    const hasPreviousSubscriptions = await stripe.subscriptions
-      .list({
-        customer: customer.id,
-        status: "all",
-        limit: 1,
-      })
-      .then((res) => res.data.length > 0);
-
     const sub = await stripe.subscriptions.create({
       customer: customer.id,
       items: [
@@ -82,7 +74,6 @@ export const createSubscription = t.procedure
       billing_cycle_anchor_config: {
         day_of_month: 1,
       },
-      trial_period_days: hasPreviousSubscriptions ? undefined : 14,
 
       proration_behavior: "always_invoice",
     });

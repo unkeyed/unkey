@@ -43,35 +43,35 @@ message NetworkInterface {
 
 // IPv4 network configuration
 message IPv4Config {
-  string address = 1;              // IPv4 address (e.g., "10.100.1.2")
-  string netmask = 2;              // Network mask (e.g., "255.255.255.0")
-  string gateway = 3;              // Default gateway
+  string address = 1; // IPv4 address (e.g., "10.100.1.2")
+  string netmask = 2; // Network mask (e.g., "255.255.255.0")
+  string gateway = 3; // Default gateway
   repeated string dns_servers = 4; // DNS servers
-  bool dhcp = 5;                   // Use DHCP instead of static config
+  bool dhcp = 5; // Use DHCP instead of static config
 }
 
 // IPv6 network configuration
 message IPv6Config {
-  string address = 1;              // IPv6 address (e.g., "fd00::1:2")
-  int32 prefix_length = 2;         // Prefix length (e.g., 64)
-  string gateway = 3;              // Default gateway
+  string address = 1; // IPv6 address (e.g., "fd00::1:2")
+  int32 prefix_length = 2; // Prefix length (e.g., 64)
+  string gateway = 3; // Default gateway
   repeated string dns_servers = 4; // DNS servers (IPv6 addresses)
   bool slaac = 5; // Use SLAAC (Stateless Address Autoconfiguration)
   bool privacy_extensions = 6; // Enable privacy extensions
-  string link_local = 7;       // Link-local address (auto-generated if empty)
+  string link_local = 7; // Link-local address (auto-generated if empty)
 }
 
 // Network mode for the interface
 enum NetworkMode {
   NETWORK_MODE_UNSPECIFIED = 0;
   NETWORK_MODE_DUAL_STACK = 1; // Both IPv4 and IPv6
-  NETWORK_MODE_IPV4_ONLY = 2;  // IPv4 only
-  NETWORK_MODE_IPV6_ONLY = 3;  // IPv6 only
+  NETWORK_MODE_IPV4_ONLY = 2; // IPv4 only
+  NETWORK_MODE_IPV6_ONLY = 3; // IPv6 only
 }
 
 // Rate limiting configuration
 message RateLimit {
-  int64 bandwidth = 1;   // Bandwidth in bytes/second
+  int64 bandwidth = 1; // Bandwidth in bytes/second
   int64 refill_time = 2; // Token bucket refill time in milliseconds
-  int64 burst = 3;       // Burst size in bytes
+  int64 burst = 3; // Burst size in bytes
 }

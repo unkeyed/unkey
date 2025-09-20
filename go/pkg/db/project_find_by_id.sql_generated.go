@@ -19,6 +19,7 @@ SELECT
     git_repository_url,
     default_branch,
     delete_protection,
+    live_deployment_id,
     created_at,
     updated_at
 FROM projects
@@ -33,6 +34,7 @@ type FindProjectByIdRow struct {
 	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
@@ -47,6 +49,7 @@ type FindProjectByIdRow struct {
 //	    git_repository_url,
 //	    default_branch,
 //	    delete_protection,
+//	    live_deployment_id,
 //	    created_at,
 //	    updated_at
 //	FROM projects
@@ -62,6 +65,7 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.GitRepositoryUrl,
 		&i.DefaultBranch,
 		&i.DeleteProtection,
+		&i.LiveDeploymentID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

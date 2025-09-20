@@ -291,7 +291,6 @@ message StreamBuildLogsResponse {
   map<string, string> metadata = 5;
 }
 
-
 // Request/Response messages
 message CreateBuildRequest {
   BuildConfig config = 1;
@@ -347,7 +346,6 @@ message StreamBuildLogsRequest {
   string build_id = 1;
   bool follow = 2; // Continue streaming new logs
 }
-
 
 message GetBuildStatsRequest {
   string tenant_id = 1;

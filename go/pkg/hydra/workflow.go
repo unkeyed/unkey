@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/hydra/store"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -103,6 +104,7 @@ type workflowContext struct {
 	workerID        string
 	db              *sql.DB
 	marshaller      Marshaller
+	logger          logging.Logger
 	stepTimeout     time.Duration
 	stepMaxAttempts int32
 }
@@ -248,6 +250,7 @@ func (w *workflowWrapper[TReq]) Run(ctx WorkflowContext, req any) error {
 	err := w.wrapped.Run(wctx, typedReq)
 	if err != nil {
 		tracing.RecordError(span, err)
+
 		span.SetAttributes(attribute.String("hydra.workflow.status", "failed"))
 	} else {
 		span.SetAttributes(attribute.String("hydra.workflow.status", "completed"))

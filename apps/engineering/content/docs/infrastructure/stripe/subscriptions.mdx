@@ -6,21 +6,21 @@ description: How Unkey uses Stripe subscriptions
 Our Stripe billing integration is designed with several important objectives:
 
 1. **Calendar Month Alignment**
+
    - All billing cycles align with calendar months (1st to end of month)
    - Provides predictable billing dates for customers
    - Simplifies usage calculations and reporting
 
 2. **Free Tier Efficiency**
+
    - Free tier users don't require Stripe customers or subscriptions
    - Only create Stripe resources when users actively choose to upgrade
    - Keeps Stripe dashboard clean and focused on paying customers
 
 3. **Frictionless Upgrades**
    - Seamless transition from free to paid
-   - Transparent trial process with payment method collection upfront
+   - Transparent upgrade process with payment method collection upfront
    - Clear visibility into usage and quotas
-
-
 
 ## System Overview
 
@@ -39,7 +39,7 @@ The high-level user flow is as follows:
                                                                 ▼
 ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
 │            │     │            │     │            │     │            │
-│ Active Plan│◄────│ Start Trial│◄────│ Add Payment│◄────│  User      │
+│ Active Plan│◄────│ Upgrade    │◄────│ Add Payment│◄────│  User      │
 │            │     │            │     │ Method     │     │  Action    │
 └────────────┘     └────────────┘     └────────────┘     └────────────┘
 ```
@@ -47,17 +47,20 @@ The high-level user flow is as follows:
 ## Key Components
 
 1. **Workspace Billing Configuration**
+
    - `stripeCustomerId`: Links workspace to Stripe customer
    - `stripeSubscriptionId`: Links workspace to Stripe subscription
    - `tier`: Current plan tier (free, pro, etc.)
    - `quota`: Usage limits (primarily `requestsPerMonth`)
 
 2. **Tiered Products**
+
    - Set of products with increasing request quotas
    - Clear upgrade/downgrade paths between plans
    - Price points displayed with monthly pricing
 
 3. **Stripe Integration**
+
    - Payment setup with checkout sessions
    - Subscription management
    - Customer portal access
@@ -75,7 +78,8 @@ The high-level user flow is as follows:
 To enable Stripe billing functionality in Unkey, you need to configure the following environment variables:
 
 1. **`STRIPE_SECRET_KEY`**
-   - Your Stripe API secret key (begins with "sk_")
+
+   - Your Stripe API secret key (begins with "sk\_")
    - Used for authenticating server-side API calls to Stripe
    - Example: `STRIPE_SECRET_KEY=sk_test_51MpJhKLoBBjyJTsUAbcXYZ...`
 
@@ -89,6 +93,7 @@ The system is designed to gracefully handle missing Stripe configuration, displa
 ### Workspace Database Schema
 
 The workspace schema includes:
+
 ```typescript
 workspaces {
   id: string
@@ -105,13 +110,6 @@ workspaces {
   }
 }
 ```
-
-### Trial Management
-
-- 14-day trial period
-- Payment method collected upfront
-- Trial converts to paid subscription automatically
-- Trial end date clearly displayed to customers
 
 ## User Flows
 
@@ -130,7 +128,7 @@ Before starting a subscription, users must add a payment method:
 
 Once a payment method is available:
 
-1. User selects a plan and clicks "Start 14 day trial" (or "Upgrade" if they've had a trial before)
+1. User selects a plan and clicks "Upgrade"
 2. System checks if user has a customer ID:
    - If not, creates a checkout session for payment method collection first
    - If yes, creates a subscription with the selected product
@@ -188,6 +186,7 @@ The system handles users who were on legacy usage-based pricing:
 ### Product Metadata
 
 Products in Stripe contain crucial metadata:
+
 - `quota_requests_per_month`: Maximum API requests allowed
 - `quota_logs_retention_days`: How long logs are retained
 - `quota_audit_logs_retention_days`: How long audit logs are retained
@@ -195,6 +194,7 @@ Products in Stripe contain crucial metadata:
 ### Usage Calculation
 
 Usage is calculated as:
+
 - Combined total of valid key verifications and ratelimits
 - Reset at the beginning of each calendar month
 - Displayed as both raw numbers and percentage of quota

@@ -85,6 +85,10 @@ func (m *mockBackend) Ping(ctx context.Context) error {
 	return args.Error(0)
 }
 
+func (m *mockBackend) Type() string {
+	return "mock"
+}
+
 func TestNewHandler(t *testing.T) {
 	backend := &mockBackend{}
 	logger := slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil))
