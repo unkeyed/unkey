@@ -13,12 +13,18 @@ import { useProjectLayout } from "./layout-provider";
 export default function ProjectDetails() {
   const { isDetailsOpen, projectId, collections } = useProjectLayout();
 
-  const domains = useLiveQuery((q) => q.from({ domain: collections.domains }));
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
   );
 
   const project = projects.data.at(0);
+  const domains = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collections.domains })
+        .where(({ domain }) => eq(domain.deploymentId, project?.liveDeploymentId)),
+    [project?.liveDeploymentId],
+  );
 
   if (!project) {
     return (
