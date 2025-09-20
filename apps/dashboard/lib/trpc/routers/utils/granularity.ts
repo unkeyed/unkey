@@ -32,7 +32,10 @@ export type CompoundTimeseriesGranularity =
   | VerificationTimeseriesGranularity
   | RegularTimeseriesGranularity;
 
-const DEFAULT_GRANULARITY: Record<TimeseriesContext, CompoundTimeseriesGranularity> = {
+const DEFAULT_GRANULARITY: Record<
+  TimeseriesContext,
+  CompoundTimeseriesGranularity
+> = {
   forVerifications: "perHour",
   forRegular: "perMinute",
 };
@@ -54,7 +57,7 @@ export type TimeseriesConfig<TContext extends TimeseriesContext> = {
 export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   context: TContext,
   startTime?: number | null,
-  endTime?: number | null,
+  endTime?: number | null
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
   const WEEK_IN_MS = DAY_IN_MS * 7;
@@ -64,7 +67,8 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // If both are missing, fallback to an appropriate default for the context
   if (!startTime && !endTime) {
     const defaultGranularity = DEFAULT_GRANULARITY[context];
-    const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+    const defaultDuration =
+      context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
     return {
       granularity: defaultGranularity as TimeseriesGranularityMap[TContext],
       startTime: now - defaultDuration,
@@ -76,7 +80,8 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // Set default end time if missing
   const effectiveEndTime = endTime ?? now;
   // Set default start time if missing (defaults vary by context)
-  const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+  const defaultDuration =
+    context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
   const effectiveStartTime = startTime ?? effectiveEndTime - defaultDuration;
   const timeRange = effectiveEndTime - effectiveStartTime;
   let granularity: CompoundTimeseriesGranularity;
@@ -88,10 +93,8 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
       granularity = "perWeek";
     } else if (timeRange >= MONTH_IN_MS) {
       granularity = "per3Days";
-    } else if (timeRange >= WEEK_IN_MS * 2) {
-      granularity = "per6Hours";
     } else if (timeRange >= WEEK_IN_MS) {
-      granularity = "perHour";
+      granularity = "perDay";
     } else if (timeRange >= DAY_IN_MS * 3) {
       granularity = "perHour";
     } else if (timeRange >= DAY_IN_MS) {
@@ -106,23 +109,19 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
       granularity = "perMinute";
     }
   } else {
-    if (timeRange >= DAY_IN_MS * 7) {
+    if (timeRange >= QUARTER_IN_MS) {
+      granularity = "perMonth";
+    } else if (timeRange >= MONTH_IN_MS * 2) {
+      granularity = "perWeek";
+    } else if (timeRange >= MONTH_IN_MS) {
+      granularity = "per3Days";
+    } else if (timeRange >= WEEK_IN_MS) {
       granularity = "perDay";
-    } else if (timeRange >= DAY_IN_MS * 3) {
-      granularity = "per6Hours";
-    } else if (timeRange >= HOUR_IN_MS * 24) {
-      granularity = "per4Hours";
     } else if (timeRange >= HOUR_IN_MS * 16) {
-      granularity = "per2Hours";
-    } else if (timeRange >= HOUR_IN_MS * 12) {
-      granularity = "per30Minutes";
+      granularity = "perHour";
     } else if (timeRange >= HOUR_IN_MS * 8) {
       granularity = "per30Minutes";
-    } else if (timeRange >= HOUR_IN_MS * 6) {
-      granularity = "per5Minutes";
     } else if (timeRange >= HOUR_IN_MS * 4) {
-      granularity = "per5Minutes";
-    } else if (timeRange >= HOUR_IN_MS * 2) {
       granularity = "per5Minutes";
     } else {
       granularity = "perMinute";
@@ -143,7 +142,9 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
  * @param granularity The current timeseries granularity
  * @returns Buffer time in milliseconds
  */
-export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
+export const getTimeBufferForGranularity = (
+  granularity: CompoundTimeseriesGranularity
+): number => {
   // Constants for commonly used durations
   const MINUTE_IN_MS = 60 * 1000;
 
