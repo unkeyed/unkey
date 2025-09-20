@@ -38,69 +38,74 @@ export const createProjectRequestSchema = z.object({
 export type Project = z.infer<typeof schema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
-export const projects = createCollection<Project>(
-  queryCollectionOptions({
-    queryClient,
-    queryKey: ["projects"],
-    retry: 3,
-    queryFn: async () => {
-      return await trpcClient.deploy.project.list.query();
-    },
-    getKey: (item) => item.id,
-    onInsert: async ({ transaction }) => {
-      const { changes } = transaction.mutations[0];
+const ERROR_MESSAGES = {
+  CONFLICT: {
+    message: "Project Already Exists",
+    description: "A project with this slug already exists in your workspace.",
+  },
+  FORBIDDEN: {
+    message: "Permission Denied",
+    description: "You don't have permission to create projects in this workspace.",
+  },
+  BAD_REQUEST: {
+    message: "Invalid Configuration",
+    description: "Please check your project settings.",
+  },
+  INTERNAL_SERVER_ERROR: {
+    message: "Server Error",
+    description:
+      "We encountered an issue while creating your project. Please try again later or contact support at support@unkey.dev",
+  },
+  NOT_FOUND: {
+    message: "Project Creation Failed",
+    description: "Unable to find the workspace. Please refresh and try again.",
+  },
+  DEFAULT: {
+    message: "Failed to Create Project",
+    description: "An unexpected error occurred. Please try again later.",
+  },
+} as const;
 
-      const createInput = createProjectRequestSchema.parse({
-        name: changes.name,
-        slug: changes.slug,
-        gitRepositoryUrl: changes.gitRepositoryUrl,
-      });
-      const mutation = trpcClient.deploy.project.create.mutate(createInput);
+export function createProjectsCollection() {
+  return createCollection<Project>(
+    queryCollectionOptions({
+      queryClient,
+      queryKey: ["projects"],
+      retry: 3,
+      queryFn: async () => {
+        return await trpcClient.deploy.project.list.query();
+      },
+      getKey: (item) => item.id,
+      onInsert: async ({ transaction }) => {
+        const { changes } = transaction.mutations[0];
 
-      toast.promise(mutation, {
-        loading: "Creating project...",
-        success: "Project created successfully",
-        error: (err) => {
-          console.error("Failed to create project", err);
+        const createInput = createProjectRequestSchema.parse({
+          name: changes.name,
+          slug: changes.slug,
+          gitRepositoryUrl: changes.gitRepositoryUrl,
+        });
 
-          switch (err.data?.code) {
-            case "CONFLICT":
-              return {
-                message: "Project Already Exists",
-                description:
-                  err.message || "A project with this slug already exists in your workspace.",
-              };
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description:
-                  err.message || "You don't have permission to create projects in this workspace.",
-              };
-            case "BAD_REQUEST":
-              return {
-                message: "Invalid Configuration",
-                description: `Please check your project settings. ${err.message || ""}`,
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while creating your project. Please try again later or contact support at support@unkey.dev",
-              };
-            case "NOT_FOUND":
-              return {
-                message: "Project Creation Failed",
-                description: "Unable to find the workspace. Please refresh and try again.",
-              };
-            default:
-              return {
-                message: "Failed to Create Project",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
-        },
-      });
-      await mutation;
-    },
-  }),
-);
+        const mutation = trpcClient.deploy.project.create.mutate(createInput);
+
+        toast.promise(mutation, {
+          loading: "Creating project...",
+          success: "Project created successfully",
+          error: (err) => {
+            console.error("Failed to create project", err);
+
+            const errorConfig =
+              ERROR_MESSAGES[err.data?.code as keyof typeof ERROR_MESSAGES] ||
+              ERROR_MESSAGES.DEFAULT;
+
+            return {
+              message: errorConfig.message,
+              description: err.message || errorConfig.description,
+            };
+          },
+        });
+
+        await mutation;
+      },
+    }),
+  );
+}

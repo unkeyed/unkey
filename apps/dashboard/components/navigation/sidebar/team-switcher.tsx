@@ -83,6 +83,14 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
       toast.error("Failed to switch workspace. Contact support if error persists.");
     },
   });
+  const handleWorkspaceSwitch = async (targetOrgId: string) => {
+    // Prevent switch if already on the target workspace
+    if (targetOrgId === currentOrgMembership?.organization.id) {
+      return;
+    }
+
+    await changeWorkspace.mutateAsync(targetOrgId);
+  };
 
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {
@@ -146,7 +154,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               <DropdownMenuItem
                 key={membership.id}
                 className="flex items-center justify-between"
-                onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
+                onClick={() => handleWorkspaceSwitch(membership.organization.id)}
               >
                 <span
                   className={
