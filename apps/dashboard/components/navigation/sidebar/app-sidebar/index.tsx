@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronLeft, SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -51,6 +52,7 @@ export function AppSidebar({
 }) {
   const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
+  const { workspace } = useWorkspace();
 
   // Get the current solo mode type based on the route
   const currentSoloModeType = useMemo(() => {
@@ -77,8 +79,8 @@ export function AppSidebar({
 
   // Create base navigation items
   const baseNavItems = useMemo(
-    () => createWorkspaceNavigation(props.workspace, segments),
-    [props.workspace, segments],
+    () => createWorkspaceNavigation(segments, workspace),
+    [segments, workspace],
   );
 
   const { enhancedNavItems: apiAddedNavItems } = useApiNavigation(baseNavItems);
@@ -120,7 +122,7 @@ export function AppSidebar({
           isCollapsed ? "justify-center" : "items-center justify-between gap-4",
         )}
       >
-        <WorkspaceSwitcher workspace={props.workspace} />
+        <WorkspaceSwitcher />
         {state !== "collapsed" && !isMobile && (
           <button type="button" onClick={toggleSidebar}>
             <SidebarLeftHide className="text-gray-8" size="xl-medium" />
@@ -128,7 +130,7 @@ export function AppSidebar({
         )}
       </div>
     ),
-    [isCollapsed, props.workspace, state, isMobile, toggleSidebar],
+    [isCollapsed, state, isMobile, toggleSidebar],
   );
 
   const currentSoloConfig = currentSoloModeType ? SOLO_MODE_CONFIG[currentSoloModeType] : null;
@@ -192,16 +194,13 @@ export function AppSidebar({
             )}
 
             {projectAddedNavItems.map((item) => (
-              <div
+              <NavItems
                 key={item.label as string}
+                item={item}
+                onToggleCollapse={handleToggleCollapse}
+                forceCollapsed={getForceCollapsedForItem(item)}
                 className={cn(hasSoloActive && !item.active ? "hidden" : "block")}
-              >
-                <NavItems
-                  item={item}
-                  onToggleCollapse={handleToggleCollapse}
-                  forceCollapsed={getForceCollapsedForItem(item)}
-                />
-              </div>
+              />
             ))}
           </SidebarMenu>
         </SidebarGroup>

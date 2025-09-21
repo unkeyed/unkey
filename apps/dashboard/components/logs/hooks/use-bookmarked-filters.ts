@@ -1,4 +1,7 @@
-import { type QuerySearchParams, logsFilterFieldConfig } from "@/app/(app)/logs/filters.schema";
+import {
+  type QuerySearchParams,
+  logsFilterFieldConfig,
+} from "@/app/(app)/[workspace]/logs/filters.schema";
 import { isBrowser } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";

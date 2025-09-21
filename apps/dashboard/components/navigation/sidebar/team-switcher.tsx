@@ -12,28 +12,20 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { setSessionCookie } from "@/lib/auth/cookies";
-import { reset } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+
+import { useWorkspace } from "@/providers/workspace-provider";
 import { ChevronExpandY } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
 import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useMemo, useState } from "react";
 
-type Props = {
-  workspace: {
-    name: string;
-  };
-};
-
-export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
-  const router = useRouter();
-  const utils = trpc.useUtils();
+export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { isMobile, state } = useSidebar();
-
+  const { workspace } = useWorkspace();
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
 
@@ -64,15 +56,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
-
-        // refresh the check mark by invalidating the current user's org data
-        utils.user.getCurrentUser.invalidate();
-        utils.api.overview.query.invalidate();
-
-        await reset();
-
-        // reload data
-        router.replace("/");
+        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
+        window.location.replace("/");
       } catch (error) {
         console.error("Failed to set session cookie:", error);
         toast.error("Failed to complete workspace switch. Please try again.");
@@ -113,7 +98,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         >
           <Avatar className="w-5 h-5 rounded border border-grayA-6">
             <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {props.workspace.name.slice(0, 1).toUpperCase()}
+              {workspace?.name.slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {isUserMembershipsLoading ? (
@@ -122,11 +107,13 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
             <InfoTooltip
               variant="inverted"
               position={{ side: "right", sideOffset: 10 }}
-              content={<span>{props.workspace.name}</span>}
+              content={<span>{workspace?.name}</span>}
               className="text-xs font-medium py-2"
-              triggerClassName="overflow-hidden text-sm font-medium text-ellipsis"
+              asChild={true}
             >
-              {props.workspace.name}
+              <span className="overflow-hidden text-sm font-medium text-ellipsis">
+                {workspace?.name}
+              </span>
             </InfoTooltip>
           )}
         </div>
