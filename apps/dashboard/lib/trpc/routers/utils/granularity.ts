@@ -109,11 +109,11 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
     if (timeRange >= DAY_IN_MS * 7) {
       granularity = "perDay";
     } else if (timeRange >= DAY_IN_MS * 3) {
-      granularity = "per6Hours";
+      granularity = "perHour";
     } else if (timeRange >= HOUR_IN_MS * 24) {
-      granularity = "per4Hours";
+      granularity = "per30Minutes";
     } else if (timeRange >= HOUR_IN_MS * 16) {
-      granularity = "per2Hours";
+      granularity = "per30Minutes";
     } else if (timeRange >= HOUR_IN_MS * 12) {
       granularity = "per30Minutes";
     } else if (timeRange >= HOUR_IN_MS * 8) {
@@ -123,7 +123,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
     } else if (timeRange >= HOUR_IN_MS * 4) {
       granularity = "per5Minutes";
     } else if (timeRange >= HOUR_IN_MS * 2) {
-      granularity = "per5Minutes";
+      granularity = "perMinute";
     } else {
       granularity = "perMinute";
     }
