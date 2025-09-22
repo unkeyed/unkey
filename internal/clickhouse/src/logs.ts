@@ -210,47 +210,47 @@ type TimeInterval = {
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 5,
   },
   fifteenMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 15,
   },
   thirtyMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 30,
   },
   hour: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 2,
   },
   fourHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 4,
   },
   sixHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 6,
   },
   day: {
-    table: "metrics.api_requests_per_day_v1",
+    table: "default.api_requests_per_day_v2",
     step: "DAY",
     stepSize: 1,
   },
