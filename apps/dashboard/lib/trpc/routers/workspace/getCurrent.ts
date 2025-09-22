@@ -47,8 +47,8 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
           orgId: ctx.tenant.id,
         });
 
-        // Quick retry for database consistency
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        // Wait for potential database propagation
+        await new Promise((resolve) => setTimeout(resolve, 150));
 
         workspace = await db.query.workspaces.findFirst({
           where: (table, { eq, and, isNull }) =>
@@ -117,8 +117,8 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
         orgId: ctx.tenant.id,
       });
 
-      // Quick retry for database consistency
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Small delay for database consistency
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       workspace = await db.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
