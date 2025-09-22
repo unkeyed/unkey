@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   rootKeysFilterFieldConfig,
-} from "@/app/(app)/settings/root-keys/filters.schema";
+} from "@/app/(app)/[workspace]/settings/root-keys/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";

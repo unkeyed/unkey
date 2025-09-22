@@ -1,7 +1,7 @@
 import {
   auditFilterOutputSchema,
   auditLogsFilterFieldConfig,
-} from "@/app/(app)/audit/filters.schema";
+} from "@/app/(app)/[workspace]/audit/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import type OpenAI from "openai";

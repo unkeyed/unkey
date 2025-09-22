@@ -117,7 +117,7 @@ export function Combobox({
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
         )}
-        <PopoverTrigger className="w-full">
+        <PopoverTrigger asChild className="w-full">
           <Button
             variant="outline"
             // biome-ignore lint/a11y/useSemanticElements: <explanation>

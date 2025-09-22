@@ -1,4 +1,4 @@
-import { apiItemsWithApproxKeyCounts } from "@/app/(app)/apis/actions";
+import { apiItemsWithApproxKeyCounts } from "@/app/(app)/[workspace]/apis/actions";
 import { db, sql } from "@/lib/db";
 import { z } from "zod";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";

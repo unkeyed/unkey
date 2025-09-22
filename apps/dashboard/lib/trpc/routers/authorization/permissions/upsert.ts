@@ -1,4 +1,4 @@
-import { permissionSchema } from "@/app/(app)/authorization/permissions/components/upsert-permission/upsert-permission.schema";
+import { permissionSchema } from "@/app/(app)/[workspace]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
@@ -92,6 +92,7 @@ export const upsertPermission = t.procedure
             name: input.name,
             slug: input.slug,
             description: input.description,
+            updatedAtM: Date.now(),
           })
           .where(
             and(
@@ -129,11 +130,11 @@ export const upsertPermission = t.procedure
       } else {
         // Create mode - check for both name and slug conflicts
         const [nameConflict, slugConflict] = await Promise.all([
-          tx.query.permissions.findFirst({
+          await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
               and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
           }),
-          tx.query.permissions.findFirst({
+          await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
               and(eq(table.workspaceId, ctx.workspace.id), eq(table.slug, input.slug)),
           }),
@@ -162,6 +163,8 @@ export const upsertPermission = t.procedure
             slug: input.slug,
             description: input.description,
             workspaceId: ctx.workspace.id,
+            createdAtM: Date.now(),
+            updatedAtM: null,
           })
           .catch(() => {
             throw new TRPCError({
