@@ -56,8 +56,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     ...baseQueryOptions,
     enabled: shouldEnableWorkspaceQuery,
     retry: (failureCount, error) => {
-      // Use default retry logic for other errors (max 2 retries for faster response)
-      return createRetryFn(2)(failureCount, error);
+      return createRetryFn(5)(failureCount, error);
     },
   });
 
