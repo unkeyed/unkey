@@ -128,6 +128,12 @@ const columns: Column<Log>[] = [
     },
   },
   {
+    key: "host",
+    header: "Hostname",
+    width: "15%",
+    render: (log) => <div className="font-mono pr-4">{log.host}</div>,
+  },
+  {
     key: "method",
     header: "Method",
     width: "7.5%",
