@@ -45,12 +45,15 @@ export const DeploymentsList = () => {
     environment?: Environment;
   } | null>(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
-
   const { liveDeployment, deployments } = useDeployments();
+
+  const selectedDeploymentId = selectedDeployment?.deployment.id;
+  const liveDeploymentId = liveDeployment?.id;
 
   const columns: Column<{
     deployment: Deployment;
     environment?: Environment;
+    // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   }>[] = useMemo(() => {
     return [
       {
@@ -288,16 +291,18 @@ export const DeploymentsList = () => {
           environment?: Environment;
         }) => {
           return (
-            <DeploymentListTableActions
-              selectedDeployment={deployment}
-              liveDeployment={liveDeployment}
-              environment={environment}
-            />
+            <div className="pl-5">
+              <DeploymentListTableActions
+                selectedDeployment={deployment}
+                liveDeployment={liveDeployment}
+                environment={environment}
+              />
+            </div>
           );
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, liveDeployment]);
+  }, [selectedDeploymentId, isCompactView, liveDeploymentId]);
 
   return (
     <VirtualTable

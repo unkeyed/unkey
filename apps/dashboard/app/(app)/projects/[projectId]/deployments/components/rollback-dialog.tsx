@@ -1,12 +1,13 @@
 "use client";
 
-import { type Deployment, collection, collectionManager } from "@/lib/collections";
+import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
+import { useProjectLayout } from "../../layout-provider";
 
 type DeploymentSectionProps = {
   title: string;
@@ -27,27 +28,29 @@ const DeploymentSection = ({ title, deployment, isLive, showSignal }: Deployment
 
 type RollbackDialogProps = {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   targetDeployment: Deployment;
   liveDeployment: Deployment;
 };
 
 export const RollbackDialog = ({
   isOpen,
-  onOpenChange,
+  onClose,
   targetDeployment,
   liveDeployment,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
-  const domainCollection = collectionManager.getProjectCollections(
-    liveDeployment.projectId,
-  ).domains;
+
+  const {
+    collections: { domains: domainCollection },
+  } = useProjectLayout();
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
       .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
   );
+
   const rollback = trpc.deploy.deployment.rollback.useMutation({
     onSuccess: () => {
       utils.invalidate();
@@ -62,7 +65,7 @@ export const RollbackDialog = ({
         console.error("Refetch error:", error);
       }
 
-      onOpenChange(false);
+      onClose();
     },
     onError: (error) => {
       toast.error("Rollback failed", {
@@ -84,7 +87,7 @@ export const RollbackDialog = ({
   return (
     <DialogContainer
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={onClose}
       title="Rollback to version"
       subTitle="Switch the active deployment to a target stable version"
       footer={
