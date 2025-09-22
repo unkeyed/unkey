@@ -1,11 +1,11 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { z } from "zod";
+import { EXCLUDED_HOSTS } from "../../../constants";
 import { useGatewayLogsFilters } from "../../../hooks/use-gateway-logs-filters";
-import type { queryLogsPayload } from "../query-gateway-logs.schema";
 
 // Constants
 const REALTIME_DATA_LIMIT = 100;
@@ -48,11 +48,11 @@ export function useGatewayLogsQuery({
 
   // "memo" required for preventing double trpc call during initial render
   const queryParams = useMemo(() => {
-    const params: z.infer<typeof queryLogsPayload> = {
+    const params: LogsRequestSchema = {
       limit,
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
-      host: { filters: [] },
+      host: { filters: [], exclude: EXCLUDED_HOSTS },
       requestId: { filters: [] },
       method: { filters: [] },
       path: { filters: [] },

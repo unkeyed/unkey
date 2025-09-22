@@ -15,6 +15,7 @@ export const getLogsClickhousePayload = z.object({
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
+  excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   requestIds: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
@@ -90,6 +91,13 @@ export function getLogs(ch: Querier) {
         CASE
           WHEN length({hosts: Array(String)}) > 0 THEN
             host IN {hosts: Array(String)}
+          ELSE TRUE
+        END
+      )
+      AND (
+        CASE
+          WHEN length({excludeHosts: Array(String)}) > 0 THEN
+            host NOT IN {excludeHosts: Array(String)}
           ELSE TRUE
         END
       )
@@ -185,6 +193,7 @@ export const logsTimeseriesParams = z.object({
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
+  excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
 });
@@ -312,6 +321,12 @@ function getLogsTimeseriesWhereClause(
     `(CASE
         WHEN length({hosts: Array(String)}) > 0 THEN
           host IN {hosts: Array(String)}
+        ELSE TRUE
+      END)
+      AND
+      (CASE
+        WHEN length({excludeHosts: Array(String)}) > 0 THEN
+          host NOT IN {excludeHosts: Array(String)}
         ELSE TRUE
       END)`,
     // Method filter
