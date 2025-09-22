@@ -59,16 +59,8 @@ export default function Layout({ children }: LayoutProps) {
   }, [user, isLoading, error, router]);
 
   // Show loading state while checking authentication and workspace
-  if (isLoading) {
+  if (isLoading || !user || !workspace) {
     return <LoadingState message="Loading workspace..." />;
-  }
-
-  if (!user) {
-    return router.push("/new");
-  }
-
-  if (!workspace) {
-    return router.push("/new");
   }
 
   // Combine workspace with quotas for AppSidebar
