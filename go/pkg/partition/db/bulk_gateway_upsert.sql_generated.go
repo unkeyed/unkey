@@ -9,9 +9,10 @@ import (
 )
 
 // bulkUpsertGateway is the base query for bulk insert
-const bulkUpsertGateway = `INSERT INTO gateways (workspace_id, hostname, config) VALUES %s ON DUPLICATE KEY UPDATE 
-    config = VALUES(config),
-    workspace_id = VALUES(workspace_id)`
+const bulkUpsertGateway = `INSERT INTO gateways ( workspace_id, deployment_id, hostname, config ) VALUES %s ON DUPLICATE KEY UPDATE
+    workspace_id = ?,
+    deployment_id = ?,
+    config = ?`
 
 // UpsertGateway performs bulk insert in a single query
 func (q *BulkQueries) UpsertGateway(ctx context.Context, db DBTX, args []UpsertGatewayParams) error {
@@ -23,7 +24,7 @@ func (q *BulkQueries) UpsertGateway(ctx context.Context, db DBTX, args []UpsertG
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?)"
+		valueClauses[i] = "( ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertGateway, strings.Join(valueClauses, ", "))
@@ -32,8 +33,16 @@ func (q *BulkQueries) UpsertGateway(ctx context.Context, db DBTX, args []UpsertG
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.Hostname)
 		allArgs = append(allArgs, arg.Config)
+	}
+
+	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
+	if len(args) > 0 {
+		allArgs = append(allArgs, args[0].WorkspaceID)
+		allArgs = append(allArgs, args[0].DeploymentID)
+		allArgs = append(allArgs, args[0].Config)
 	}
 
 	// Execute the bulk insert

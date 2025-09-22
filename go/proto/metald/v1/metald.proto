@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package metald.v1;
 
-import "metald/v1/vm.proto";
 import "metald/v1/deployment.proto";
+import "metald/v1/vm.proto";
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/metald/v1;metaldv1";
 

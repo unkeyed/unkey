@@ -112,10 +112,11 @@ type Certificate struct {
 }
 
 type Gateway struct {
-	ID          uint64 `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	Hostname    string `db:"hostname"`
-	Config      []byte `db:"config"`
+	ID           uint64 `db:"id"`
+	WorkspaceID  string `db:"workspace_id"`
+	DeploymentID string `db:"deployment_id"`
+	Hostname     string `db:"hostname"`
+	Config       []byte `db:"config"`
 }
 
 type MetalHost struct {

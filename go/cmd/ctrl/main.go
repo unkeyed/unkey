@@ -56,7 +56,6 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
 		cli.String("metald-address", "Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080",
 			cli.Required(), cli.EnvVar("UNKEY_METALD_ADDRESS")),
-		cli.String("metald-backend", "Whether to call metalD or go to a fallback (docker or k8s)", cli.EnvVar("UNKEY_METALD_BACKEND")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
@@ -77,7 +76,6 @@ var Cmd = &cli.Command{
 		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
-		cli.Bool("docker-running", "Whether this service is running in Docker (affects host address for container communication)", cli.EnvVar("UNKEY_DOCKER_RUNNING")),
 	},
 	Action: action,
 }
@@ -123,7 +121,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Control Plane Specific
 		AuthToken:        cmd.String("auth-token"),
 		MetaldAddress:    cmd.String("metald-address"),
-		MetaldBackend:    cmd.String("metald-backend"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
 		// Vault configuration
@@ -145,9 +142,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		},
 
 		DefaultDomain: cmd.String("default-domain"),
-
-		// Docker configuration
-		IsRunningDocker: cmd.Bool("docker-running"),
 
 		// Common
 		Clock: clock.New(),

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
@@ -20,46 +22,29 @@ import (
 
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
 type DeployWorkflow struct {
-	db                db.Database
-	partitionDB       db.Database
-	logger            logging.Logger
-	deploymentBackend DeploymentBackend
-	defaultDomain     string
+	db            db.Database
+	partitionDB   db.Database
+	logger        logging.Logger
+	metaldClient  metaldv1connect.VmServiceClient
+	defaultDomain string
 }
 
 type DeployWorkflowConfig struct {
-	Logger          logging.Logger
-	DB              db.Database
-	PartitionDB     db.Database
-	MetalD          metaldv1connect.VmServiceClient
-	MetaldBackend   string
-	DefaultDomain   string
-	IsRunningDocker bool
+	Logger        logging.Logger
+	DB            db.Database
+	PartitionDB   db.Database
+	MetalD        metaldv1connect.VmServiceClient
+	DefaultDomain string
 }
 
 // NewDeployWorkflow creates a new deploy workflow instance
 func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
-
-	cfg.Logger.Info("Initializing deploy workflow",
-		"metald_backend", cfg.MetaldBackend,
-		"default_domain", cfg.DefaultDomain,
-		"is_running_docker", cfg.IsRunningDocker,
-	)
-	// Create the appropriate deployment backend
-	deploymentBackend, err := NewDeploymentBackend(cfg.MetalD, cfg.MetaldBackend, cfg.Logger, cfg.IsRunningDocker)
-	if err != nil {
-		// Log error but continue - workflow will fail when trying to use the backend
-		cfg.Logger.Error("failed to initialize deployment backend",
-			"error", err,
-			"fallback", cfg.MetaldBackend)
-	}
-
 	return &DeployWorkflow{
-		db:                cfg.DB,
-		partitionDB:       cfg.PartitionDB,
-		logger:            cfg.Logger,
-		deploymentBackend: deploymentBackend,
-		defaultDomain:     cfg.DefaultDomain,
+		db:            cfg.DB,
+		partitionDB:   cfg.PartitionDB,
+		logger:        cfg.Logger,
+		metaldClient:  cfg.MetalD,
+		defaultDomain: cfg.DefaultDomain,
 	}
 }
 
@@ -151,10 +136,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	metaldDeployment, err := hydra.Step(ctx, "create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
-		if w.deploymentBackend == nil {
-			return nil, fmt.Errorf("deployment backend not initialized")
-		}
-
 		// Create deployment request
 		deploymentReq := &metaldv1.CreateDeploymentRequest{
 			Deployment: &metaldv1.DeploymentRequest{
@@ -166,12 +147,12 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			},
 		}
 
-		resp, err := w.deploymentBackend.CreateDeployment(stepCtx, deploymentReq)
+		resp, err := w.metaldClient.CreateDeployment(stepCtx, connect.NewRequest(deploymentReq))
 		if err != nil {
-			return nil, fmt.Errorf("failed to create deployment for image %s: %w", req.DockerImage, err)
+			return nil, fmt.Errorf("metald CreateDeployment failed for image %s: %w", req.DockerImage, err)
 		}
 
-		return resp, nil
+		return resp.Msg, nil
 	})
 	if err != nil {
 		return err
@@ -204,14 +185,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
 			}
 
-			if w.deploymentBackend == nil {
-				return nil, fmt.Errorf("deployment backend not initialized")
+			resp, err := w.metaldClient.GetDeployment(stepCtx, connect.NewRequest(&metaldv1.GetDeploymentRequest{
+				DeploymentId: req.DeploymentID,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("metald GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
 			}
 
-			vms, err := w.deploymentBackend.GetDeployment(stepCtx, req.DeploymentID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get deployment %s: %w", req.DeploymentID, err)
-			}
+			vms := resp.Msg.GetVms()
 
 			allReady := true
 			for _, instance := range vms {
@@ -281,38 +262,76 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
 		w.defaultDomain,
+		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD, // hardcoded for now cause I really need to move on
 	)
 
 	// Create database entries for all domains
-	err = hydra.StepVoid(ctx, "create-domain-entries", func(stepCtx context.Context) error {
-		// Prepare bulk insert parameters
-		//
-		domainParams := make([]db.InsertDomainParams, 0, len(allDomains))
-		currentTime := time.Now().UnixMilli()
 
-		for _, domain := range allDomains {
-			domainID := uid.New("domain")
-			domainParams = append(domainParams, db.InsertDomainParams{
-				ID:           domainID,
-				WorkspaceID:  req.WorkspaceID,
-				ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
-				Domain:       domain,
-				DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-				CreatedAt:    currentTime,
-				UpdatedAt:    sql.NullInt64{Valid: true, Int64: currentTime},
-				Type:         db.DomainsTypeWildcard,
+	// Track domains that actually need to be changed in the dataplane
+	changedDomains := []string{}
+
+	for _, domain := range allDomains {
+
+		err = hydra.StepVoid(ctx, fmt.Sprintf("create-domain-entry-%s", domain.domain), func(stepCtx context.Context) error {
+
+			now := time.Now().UnixMilli()
+
+			// This is more verbose than we initially thought
+			// A simple ON DUPLICATE UPDATE was insufficient, because it could leak domains into other workspaces
+			// because workspace slugs can change over time.
+			// And we also need more control over updating rolled back domains
+			return db.Tx(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+
+				existing, err := db.Query.FindDomainByDomain(txCtx, tx, domain.domain)
+				if err != nil {
+					if !db.IsNotFound(err) {
+						return fmt.Errorf("failed to find domain entry for deployment %s: %w", req.DeploymentID, err)
+
+					}
+
+					// Domain does not exist, create it
+					insertError := db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
+						ID:           uid.New("domain"),
+						WorkspaceID:  req.WorkspaceID,
+						ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
+						Domain:       domain.domain,
+						Sticky:       domain.sticky,
+						DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+						CreatedAt:    now,
+						Type:         db.DomainsTypeWildcard,
+					})
+					if insertError != nil {
+						return fmt.Errorf("failed to create domain entry for deployment %s: %w", req.DeploymentID, err)
+					}
+					changedDomains = append(changedDomains, domain.domain)
+					return nil
+				}
+
+				if existing.IsRolledBack {
+					w.logger.Info("Skipping rolled back domain",
+						"domain_id", existing.ID,
+						"domain", existing.Domain,
+					)
+					return nil
+				}
+				updateErr := db.Query.ReassignDomain(txCtx, tx, db.ReassignDomainParams{
+					ID:                 existing.ID,
+					TargetWorkspaceID:  workspace.ID,
+					TargetDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+					IsRolledBack:       false,
+				})
+
+				if updateErr != nil {
+					return fmt.Errorf("failed to update domain entry for deployment %s: %w", req.DeploymentID, updateErr)
+				}
+				changedDomains = append(changedDomains, existing.Domain)
+
+				return nil
+
 			})
-		}
+		})
+	}
 
-		// Perform bulk insert
-		if err := db.BulkQuery.InsertDomains(stepCtx, w.db.RW(), domainParams); err != nil {
-			return fmt.Errorf("failed to create %d domain entries for deployment %s: %w", len(allDomains), req.DeploymentID, err)
-		}
-
-		w.logger.Info("domain entries created in bulk", "deployment_id", req.DeploymentID, "domain_count", len(allDomains))
-
-		return nil
-	})
 	if err != nil {
 		return err
 	}
@@ -323,14 +342,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
 
-		for _, domain := range allDomains {
+		for _, domain := range changedDomains {
 			if isLocalHostname(domain, w.defaultDomain) {
 				skippedDomains = append(skippedDomains, domain)
 				continue
 			}
 
 			// Create gateway config for this domain
-			gatewayConfig, err := w.createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
+			gatewayConfig, err := createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
 			if err != nil {
 				w.logger.Error("failed to create gateway config for domain",
 					"domain", domain,
@@ -348,9 +367,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
-				WorkspaceID: req.WorkspaceID,
-				Hostname:    domain,
-				Config:      configBytes,
+				WorkspaceID:  req.WorkspaceID,
+				DeploymentID: req.DeploymentID,
+				Hostname:     domain,
+				Config:       configBytes,
 			})
 		}
 
@@ -576,7 +596,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 // and readability during development/demo. This makes it simpler to inspect and
 // modify configs directly in the database.
 // IMPORTANT: Always use protojson.Marshal for writes and protojson.Unmarshal for reads.
-func (w *DeployWorkflow) createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
+func createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
 		Deployment: &partitionv1.Deployment{

@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package firecracker
 
 import (
@@ -87,6 +90,11 @@ func (c *Client) Shutdown(ctx context.Context) error {
 	c.logger.InfoContext(ctx, "shutting down firecracker backend")
 
 	return nil
+}
+
+// Type returns the backend type as a string for metrics
+func (c *Client) Type() string {
+	return string(types.BackendTypeFirecracker)
 }
 
 // Ensure Client implements Backend interface
