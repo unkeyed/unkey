@@ -52,7 +52,6 @@ export default function Layout({ children }: LayoutProps) {
     // Case 1: User exists but no orgId or role (incomplete setup)
     // Case 2: Workspace not found error (WorkOS org without workspace, or no organization)
     if (user && (!user.orgId || isWorkspaceNotFound)) {
-      console.debug("User needs workspace setup");
       router.push("/new");
       return;
     }

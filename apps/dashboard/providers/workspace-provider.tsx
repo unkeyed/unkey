@@ -55,7 +55,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   const workspaceQuery = trpc.workspace.getCurrent.useQuery(undefined, {
     ...baseQueryOptions,
     enabled: shouldEnableWorkspaceQuery,
-    retry: createRetryFn(5),
+    retry: createRetryFn(2),
   });
 
   const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
