@@ -2,16 +2,16 @@ import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import {
+  type LogsFilterField as GatewayLogsFilterField,
+  type LogsFilterOperator as GatewayLogsFilterOperator,
+  type LogsFilterUrlValue as GatewayLogsFilterUrlValue,
+  type LogsFilterValue as GatewayLogsFilterValue,
+  type QuerySearchParams as GatewayLogsQuerySearchParams,
+  logsFilterFieldConfig as gatewayLogsFilterFieldConfig,
+} from "@/lib/schemas/logs.filter.schema";
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import {
-  type GatewayLogsFilterField,
-  type GatewayLogsFilterOperator,
-  type GatewayLogsFilterUrlValue,
-  type GatewayLogsFilterValue,
-  type GatewayLogsQuerySearchParams,
-  gatewayLogsFilterFieldConfig,
-} from "../gateway-logs-filters.schema";
 
 // Constants
 const parseAsFilterValArray = parseAsFilterValueArray<GatewayLogsFilterOperator>([

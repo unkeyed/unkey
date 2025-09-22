@@ -2,8 +2,6 @@ import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
-import { parseAsInteger, useQueryStates } from "nuqs";
-import { useCallback, useMemo } from "react";
 import {
   type LogsFilterField,
   type LogsFilterOperator,
@@ -11,7 +9,9 @@ import {
   type LogsFilterValue,
   type QuerySearchParams,
   logsFilterFieldConfig,
-} from "../filters.schema";
+} from "@/lib/schemas/logs.filter.schema";
+import { parseAsInteger, useQueryStates } from "nuqs";
+import { useCallback, useMemo } from "react";
 
 const parseAsFilterValArray = parseAsFilterValueArray<LogsFilterOperator>([
   "is",

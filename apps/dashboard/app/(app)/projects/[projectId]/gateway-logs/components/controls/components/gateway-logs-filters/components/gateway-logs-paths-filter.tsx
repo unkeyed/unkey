@@ -1,5 +1,5 @@
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
-import { gatewayLogsFilterFieldConfig } from "../../../../../gateway-logs-filters.schema";
+import { logsFilterFieldConfig as gatewayLogsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 import { useGatewayLogsFilters } from "../../../../../hooks/use-gateway-logs-filters";
 
 export const GatewayPathsFilter = () => {

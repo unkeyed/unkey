@@ -1,6 +1,6 @@
-import { logsFilterOperatorEnum } from "@/app/(app)/logs/filters.schema";
 import { log } from "@unkey/clickhouse/src/logs";
 import { z } from "zod";
+import { logsFilterOperatorEnum } from "./logs.filter.schema";
 
 export type LogsRequestSchema = z.infer<typeof logsRequestSchema>;
 export const logsRequestSchema = z.object({
