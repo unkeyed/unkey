@@ -1,7 +1,7 @@
 "use client";
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { trpc } from "@/lib/trpc/client";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ArrowOppositeDirectionY, Gear } from "@unkey/icons";
 import { Key } from "lucide-react";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -10,7 +10,7 @@ import { useMemo } from "react";
 const DEFAULT_LIMIT = 10;
 
 export const useApiNavigation = (baseNavItems: NavItem[]) => {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -20,7 +20,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
+      }
     );
 
   // Convert API data to navigation items with sub-items for settings and keys
@@ -31,19 +31,20 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
-        const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
+        const currentApiActive =
+          segments.at(0) === "apis" && segments.at(1) === api.id;
         const isExactlyApiRoot = currentApiActive && segments.length === 2;
 
         const settingsItem: NavItem = {
           icon: Gear,
-          href: `/${workspace?.slug}/apis/${api.id}/settings`,
+          href: `/${workspace.slug}/apis/${api.id}/settings`,
           label: "Settings",
           active: currentApiActive && segments.at(2) === "settings",
         };
 
         const overviewItem: NavItem = {
           icon: ArrowOppositeDirectionY,
-          href: `/${workspace?.slug}/apis/${api.id}`,
+          href: `/${workspace.slug}/apis/${api.id}`,
           label: "Requests",
           active: isExactlyApiRoot || (currentApiActive && !segments.at(2)),
         };
@@ -53,7 +54,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         if (api.keyspaceId) {
           const keysItem: NavItem = {
             icon: Key,
-            href: `/${workspace?.slug}/apis/${api.id}/keys/${api.keyspaceId}`,
+            href: `/${workspace.slug}/apis/${api.id}/keys/${api.keyspaceId}`,
             label: "Keys",
             active: currentApiActive && segments.at(2) === "keys",
           };
@@ -67,7 +68,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         const apiNavItem: NavItem = {
           // This is critical - must provide some icon to ensure chevron renders
           icon: null,
-          href: `/${workspace?.slug}/apis/${api.id}`,
+          href: `/${workspace.slug}/apis/${api.id}`,
           label: api.name,
           active: currentApiActive,
           // Always set showSubItems to true to ensure chevron appears
@@ -77,13 +78,15 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return apiNavItem;
-      }),
+      })
     );
-  }, [data?.pages, segments, workspace?.slug]);
+  }, [data?.pages, segments, workspace.slug]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex((item) => item.href === `/${workspace?.slug}/apis`);
+    const apisItemIndex = items.findIndex(
+      (item) => item.href === `/${workspace.slug}/apis`
+    );
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };
@@ -95,7 +98,9 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         apisItem.items?.push({
           icon: () => null,
           href: "#load-more-apis",
-          label: <div className="font-normal decoration-dotted underline ">More</div>,
+          label: (
+            <div className="font-normal decoration-dotted underline ">More</div>
+          ),
           active: false,
           loadMoreAction: true,
         });
@@ -105,7 +110,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
     }
 
     return items;
-  }, [baseNavItems, apiNavItems, hasNextPage, workspace?.slug]);
+  }, [baseNavItems, apiNavItems, hasNextPage, workspace.slug]);
 
   const loadMore = () => {
     if (!isFetchingNextPage && hasNextPage) {

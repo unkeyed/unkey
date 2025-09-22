@@ -3,8 +3,10 @@ import { useFetchRatelimitOverviewTimeseries } from "@/app/(app)/[workspace]/rat
 import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Clock, ProgressBar } from "@unkey/icons";
+import { redirect } from "next/navigation";
+import { Loading } from "@unkey/ui";
 import ms from "ms";
 
 type Props = {
@@ -15,8 +17,9 @@ type Props = {
 };
 
 export const NamespaceCard = ({ namespace }: Props) => {
-  const { workspace } = useWorkspace();
-  const { timeseries, isLoading, isError } = useFetchRatelimitOverviewTimeseries(namespace.id);
+  const workspace = useWorkspaceNavigation();
+  const { timeseries, isLoading, isError } =
+    useFetchRatelimitOverviewTimeseries(namespace.id);
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
   const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
@@ -30,7 +33,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
     <div>
       <StatsCard
         name={namespace.name}
-        linkPath={`/${workspace?.slug}/ratelimits/${namespace.id}`}
+        linkPath={`/${workspace.slug}/ratelimits/${namespace.id}`}
         chart={
           <StatsTimeseriesBarChart
             data={timeseries}

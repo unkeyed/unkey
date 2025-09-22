@@ -1,7 +1,9 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { redirect } from "next/navigation";
+import { Loading } from "@unkey/ui";
 import { Plus, ShieldKey } from "@unkey/icons";
 import dynamic from "next/dynamic";
 
@@ -15,25 +17,28 @@ const UpsertRoleDialog = dynamic(
         Create new role
       </NavbarActionButton>
     ),
-  },
+  }
 );
 
 export function Navigation() {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   return (
-    workspace && (
-      <Navbar className="w-full flex justify-between">
-        <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
-          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/authorization/roles`}>
-            Authorization
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/authorization/roles`} active>
-            Roles
-          </Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-        <UpsertRoleDialog triggerButton />
-      </Navbar>
-    )
+    <Navbar className="w-full flex justify-between">
+      <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
+        <Navbar.Breadcrumbs.Link
+          href={`/${workspace.slug}/authorization/roles`}
+        >
+          Authorization
+        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link
+          href={`/${workspace.slug}/authorization/roles`}
+          active
+        >
+          Roles
+        </Navbar.Breadcrumbs.Link>
+      </Navbar.Breadcrumbs>
+      <UpsertRoleDialog triggerButton />
+    </Navbar>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { CopyApiId } from "./copy-api-id";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
@@ -12,7 +12,7 @@ import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
 export const SettingsClient = ({ apiId }: { apiId: string }) => {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   if (!workspace) {
     return null;

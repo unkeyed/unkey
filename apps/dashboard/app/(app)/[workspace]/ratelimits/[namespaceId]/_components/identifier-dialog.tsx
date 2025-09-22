@@ -1,11 +1,11 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
-import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
-import { useRouter } from "next/navigation";
+import { Badge, Button, DialogContainer, FormInput, Loading } from "@unkey/ui";
+import { useRouter, redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,7 +17,11 @@ const overrideValidationSchema = z.object({
     .trim()
     .min(2, "Name is required and should be at least 2 characters")
     .max(250),
-  limit: z.coerce.number().int().nonnegative().max(10_000, "Limit cannot exceed 10,000"),
+  limit: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .max(10_000, "Limit cannot exceed 10,000"),
   duration: z.coerce
     .number()
     .int()
@@ -44,7 +48,8 @@ export const IdentifierDialog = ({
   overrideDetails,
   isLoading = false,
 }: Props) => {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
+
   const {
     register,
     handleSubmit,
@@ -64,15 +69,21 @@ export const IdentifierDialog = ({
   const onSubmitForm = async (values: FormValues) => {
     try {
       if (overrideDetails?.overrideId) {
-        collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
-          draft.limit = values.limit;
-          draft.duration = values.duration;
-        });
+        collection.ratelimitOverrides.update(
+          overrideDetails.overrideId,
+          (draft) => {
+            draft.limit = values.limit;
+            draft.duration = values.duration;
+          }
+        );
         onOpenChange(false);
       } else {
         // workaround until tanstack db throws on index violation
         collection.ratelimitOverrides.forEach((override) => {
-          if (override.namespaceId === namespaceId && override.identifier === values.identifier) {
+          if (
+            override.namespaceId === namespaceId &&
+            override.identifier === values.identifier
+          ) {
             throw new DuplicateKeyError(override.id);
           }
         });
@@ -84,7 +95,7 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(`/${workspace?.slug}/ratelimits/${namespaceId}/overrides`);
+        router.push(`/${workspace.slug}/ratelimits/${namespaceId}/overrides`);
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

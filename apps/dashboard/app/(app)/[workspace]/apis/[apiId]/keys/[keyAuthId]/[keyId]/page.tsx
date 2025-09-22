@@ -1,14 +1,16 @@
 "use client";
 
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ApisNavbar } from "../../../api-id-navbar";
 import { KeyDetailsLogsClient } from "./logs-client";
-
+import { redirect } from "next/navigation";
+import { Loading } from "@unkey/ui";
 export default function KeyDetailsPage(props: {
   params: { apiId: string; keyAuthId: string; keyId: string };
 }) {
   const { apiId, keyAuthId: keyspaceId, keyId } = props.params;
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
+
   return (
     <div className="w-full">
       <ApisNavbar
@@ -16,11 +18,15 @@ export default function KeyDetailsPage(props: {
         keyspaceId={keyspaceId}
         keyId={keyId}
         activePage={{
-          href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`,
+          href: `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`,
           text: "Keys",
         }}
       />
-      <KeyDetailsLogsClient apiId={apiId} keyspaceId={keyspaceId} keyId={keyId} />
+      <KeyDetailsLogsClient
+        apiId={apiId}
+        keyspaceId={keyspaceId}
+        keyId={keyId}
+      />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { redirect } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { NamespaceNavbar } from "./namespace-navbar";
+import { Loading } from "@unkey/ui";
 
 export default function RatelimitNamespacePage(props: {
   params: { namespaceId: string };
@@ -12,17 +13,13 @@ export default function RatelimitNamespacePage(props: {
   };
 }) {
   const { namespaceId } = props.params;
-  const { workspace, isLoading } = useWorkspace();
-
-  if (!workspace && !isLoading) {
-    return redirect("/new");
-  }
+  const workspace = useWorkspaceNavigation();
 
   return (
     <div>
       <NamespaceNavbar
         activePage={{
-          href: `/${workspace?.slug}/ratelimits/${namespaceId}`,
+          href: `/${workspace.slug}/ratelimits/${namespaceId}`,
           text: "Requests",
         }}
         namespaceId={namespaceId}

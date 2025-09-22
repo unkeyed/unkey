@@ -1,6 +1,6 @@
 "use client";
 
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
@@ -10,7 +10,7 @@ import { UpdateWorkspaceName } from "./update-workspace-name";
  */
 
 export default function SettingsPage() {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   return (
     <div>

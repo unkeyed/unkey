@@ -1,6 +1,6 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export function UpdateWorkspaceName() {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const utils = trpc.useUtils();
 
@@ -75,7 +75,9 @@ export function UpdateWorkspaceName() {
     <form onSubmit={handleSubmit(onSubmit)} id="workspace-name-form">
       <SettingCard
         title={"Workspace Name"}
-        description={"Not customer-facing. Choose a name that is easy to recognize."}
+        description={
+          "Not customer-facing. Choose a name that is easy to recognize."
+        }
         border="top"
         className="border-b"
         contentWidth="w-full lg:w-[420px]"
@@ -98,7 +100,10 @@ export function UpdateWorkspaceName() {
             variant="primary"
             size="lg"
             disabled={
-              updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
+              updateName.isLoading ||
+              isSubmitting ||
+              !isValid ||
+              watch("workspaceName") === name
             }
             loading={updateName.isLoading || isSubmitting}
           >

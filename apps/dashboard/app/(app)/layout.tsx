@@ -38,7 +38,8 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     // Handle authentication errors
-    const isAuthError = error?.data?.code === "UNAUTHORIZED" || error?.data?.code === "FORBIDDEN";
+    const isAuthError =
+      error?.data?.code === "UNAUTHORIZED" || error?.data?.code === "FORBIDDEN";
 
     if (isAuthError) {
       router.push("/auth/sign-in");
@@ -75,7 +76,10 @@ export default function Layout({ children }: LayoutProps) {
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}
-          <AppSidebar workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
+          <AppSidebar
+            workspace={workspaceWithQuotas}
+            className="bg-gray-1 border-grayA-4"
+          />
 
           {/* Main content area */}
           <div className="flex-1 overflow-auto">
@@ -111,7 +115,8 @@ export default function Layout({ children }: LayoutProps) {
             {isImpersonator ? (
               <div className="fixed top-0 inset-x-0 z-50 flex justify-center border-t-2 border-error-9">
                 <div className="bg-error-9 flex -mt-1 font-mono items-center gap-2 text-white text-xs rounded-b overflow-hidden shadow-lg select-none pointer-events-none px-1.5 py-0.5">
-                  Impersonation Mode. Do not change anything and log out after you are done.
+                  Impersonation Mode. Do not change anything and log out after
+                  you are done.
                 </div>
               </div>
             ) : null}

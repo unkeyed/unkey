@@ -1,19 +1,21 @@
 "use client";
 
 import { Navbar } from "@/components/navigation/navbar";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Layers3 } from "@unkey/icons";
+import { Loading } from "@unkey/ui";
+import { redirect } from "next/navigation";
 
 export function Navigation() {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   return (
-    workspace && (
-      <Navbar>
-        <Navbar.Breadcrumbs icon={<Layers3 />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/logs`}>Logs</Navbar.Breadcrumbs.Link>
-        </Navbar.Breadcrumbs>
-      </Navbar>
-    )
+    <Navbar>
+      <Navbar.Breadcrumbs icon={<Layers3 />}>
+        <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/logs`}>
+          Logs
+        </Navbar.Breadcrumbs.Link>
+      </Navbar.Breadcrumbs>
+    </Navbar>
   );
 }

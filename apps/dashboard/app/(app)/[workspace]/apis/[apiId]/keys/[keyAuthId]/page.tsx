@@ -1,9 +1,9 @@
 "use client";
-import { useWorkspace } from "@/providers/workspace-provider";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { redirect } from "next/navigation";
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
+import { Loading } from "@unkey/ui";
 
 export default function APIKeysPage(props: {
   params: {
@@ -12,21 +12,16 @@ export default function APIKeysPage(props: {
   };
 }) {
   const apiId = props.params.apiId;
-  const { workspace } = useWorkspace();
-  const keyspaceId = props.params.keyAuthId;
-  const router = useRouter();
+  const workspace = useWorkspaceNavigation();
 
-  useEffect(() => {
-    if (workspace) {
-      router.replace(`/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}`);
-    }
-  }, [workspace, router, apiId, keyspaceId]);
+  const keyspaceId = props.params.keyAuthId;
+
   return (
     <div>
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace?.slug}/apis/${apiId}/keys/${keyspaceId}`,
+          href: `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}`,
           text: "Keys",
         }}
       />

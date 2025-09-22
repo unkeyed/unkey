@@ -2,7 +2,7 @@
 import { KeySecretSection } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { trpc } from "@/lib/trpc/client";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { TriangleWarning } from "@unkey/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef } from "react";
@@ -20,7 +20,7 @@ export const OnboardingSuccessStep = ({
   const router = useRouter();
   const anchorRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const apiId = searchParams?.get(API_ID_PARAM);
   const key = searchParams?.get(KEY_PARAM);
   const utils = trpc.useUtils();
@@ -32,8 +32,9 @@ export const OnboardingSuccessStep = ({
           <TriangleWarning className="text-error-9" size="xl-medium" />
         </div>
         <div className="text-gray-12 text-[13px] leading-6">
-          <span className="font-medium">Error:</span> Missing API or key information. Please go back
-          and create your API key again to continue with the setup process.
+          <span className="font-medium">Error:</span> Missing API or key
+          information. Please go back and create your API key again to continue
+          with the setup process.
         </div>
       </div>
     );
@@ -42,8 +43,8 @@ export const OnboardingSuccessStep = ({
   return (
     <div>
       <span className="text-gray-11 text-[13px] leading-6" ref={anchorRef}>
-        Run this command to verify your new API key against the API ID. This ensures your key is
-        ready for authenticated requests.
+        Run this command to verify your new API key against the API ID. This
+        ensures your key is ready for authenticated requests.
       </span>
       <KeySecretSection
         keyValue={key}
@@ -58,7 +59,7 @@ export const OnboardingSuccessStep = ({
         onConfirm={() => {
           setIsConfirmOpen(false);
           utils.workspace.getCurrent.invalidate();
-          router.push(`/${workspace?.slug}/apis`);
+          router.push(`/${workspace.slug}/apis`);
         }}
         triggerRef={anchorRef}
         title="You won't see this secret key again!"

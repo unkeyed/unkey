@@ -1,10 +1,10 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, Input } from "@unkey/ui";
-import { useRouter } from "next/navigation";
+import { Button, DialogContainer, Input, Loading } from "@unkey/ui";
+import { useRouter, redirect } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -31,7 +31,8 @@ export const DeleteNamespaceDialog = ({
   namespace,
 }: DeleteNamespaceProps) => {
   const router = useRouter();
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
+
   const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
@@ -43,7 +44,7 @@ export const DeleteNamespaceDialog = ({
 
   const onSubmit = async () => {
     collection.ratelimitNamespaces.delete(namespace.id);
-    router.push(`/${workspace?.slug}/ratelimits`);
+    router.push(`/${workspace.slug}/ratelimits`);
 
     //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };
@@ -73,17 +74,22 @@ export const DeleteNamespaceDialog = ({
     >
       <p className="text-gray-11 text-[13px]">
         <span className="font-medium">Warning: </span>
-        Deleting this namespace while it is in use may cause your current requests to fail. You will
-        lose access to analytical data.
+        Deleting this namespace while it is in use may cause your current
+        requests to fail. You will lose access to analytical data.
       </p>
 
       <form id="delete-namespace-form" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-1">
           <p className="text-gray-11 text-[13px]">
-            Type <span className="text-gray-12 font-medium">{namespace.name}</span> to confirm
+            Type{" "}
+            <span className="text-gray-12 font-medium">{namespace.name}</span>{" "}
+            to confirm
           </p>
 
-          <Input {...register("name")} placeholder={`Enter "${namespace.name}" to confirm`} />
+          <Input
+            {...register("name")}
+            placeholder={`Enter "${namespace.name}" to confirm`}
+          />
         </div>
       </form>
     </DialogContainer>

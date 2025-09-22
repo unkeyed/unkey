@@ -1,7 +1,7 @@
 "use client";
 import { ProgressCircle } from "@/app/(app)/[workspace]/settings/billing/components/usage";
 import { trpc } from "@/lib/trpc/client";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Quotas } from "@unkey/db";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export const UsageBanner: React.FC<Props> = ({ quotas }) => {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   const usage = trpc.billing.queryUsage.useQuery(undefined, {
     refetchOnMount: true,
@@ -28,7 +28,10 @@ export const UsageBanner: React.FC<Props> = ({ quotas }) => {
   }
 
   if (max <= 0) {
-    console.error("UsageBanner: quotas.requestsPerMonth must be greater than 0, got:", max);
+    console.error(
+      "UsageBanner: quotas.requestsPerMonth must be greater than 0, got:",
+      max
+    );
     return null;
   }
 
@@ -40,9 +43,13 @@ export const UsageBanner: React.FC<Props> = ({ quotas }) => {
       item={{
         tooltip: "Usage",
         icon: () => (
-          <ProgressCircle value={current} max={max} color={shouldUpgrade ? "#DD4527" : "#0A9B8B"} />
+          <ProgressCircle
+            value={current}
+            max={max}
+            color={shouldUpgrade ? "#DD4527" : "#0A9B8B"}
+          />
         ),
-        href: `/${workspace?.slug}/settings/billing`,
+        href: `/${workspace.slug}/settings/billing`,
         label: `Usage ${Math.round(percentage).toLocaleString()}%`,
         tag: shouldUpgrade ? (
           <Link href="/settings/billing">

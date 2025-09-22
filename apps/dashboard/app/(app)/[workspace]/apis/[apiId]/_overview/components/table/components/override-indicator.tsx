@@ -1,14 +1,17 @@
 "use client";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, redirect } from "next/navigation";
 import { useCallback, useState } from "react";
-import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
+import {
+  getErrorPercentage,
+  getErrorSeverity,
+} from "../utils/calculate-blocked-percentage";
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
@@ -44,8 +47,13 @@ const getWarningMessage = (severity: string, errorRate: number) => {
   }
 };
 
-export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
-  const { workspace } = useWorkspace();
+export const KeyIdentifierColumn = ({
+  log,
+  apiId,
+  onNavigate,
+}: KeyIdentifierColumnProps) => {
+  const workspace = useWorkspaceNavigation();
+
   const router = useRouter();
   const errorPercentage = getErrorPercentage(log);
   const severity = getErrorSeverity(log);
@@ -60,17 +68,28 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
       onNavigate?.();
 
       router.push(
-        `/${workspace?.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`,
+        `/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`
       );
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push, workspace?.slug],
+    [
+      apiId,
+      log.key_id,
+      log.key_details?.key_auth_id,
+      onNavigate,
+      router.push,
+      workspace.slug,
+    ]
   );
 
   return (
     <div className="flex gap-6 items-center pl-2">
       <InfoTooltip
         variant="inverted"
-        content={<p className="text-xs">{getWarningMessage(severity, errorPercentage)}</p>}
+        content={
+          <p className="text-xs">
+            {getWarningMessage(severity, errorPercentage)}
+          </p>
+        }
         position={{ side: "right", align: "center" }}
       >
         {isNavigating ? (
@@ -78,7 +97,12 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
             <Loading size={18} />
           </div>
         ) : (
-          <div className={cn("transition-opacity", hasErrors ? "opacity-100" : "opacity-0")}>
+          <div
+            className={cn(
+              "transition-opacity",
+              hasErrors ? "opacity-100" : "opacity-0"
+            )}
+          >
             {getWarningIcon(severity)}
           </div>
         )}
@@ -86,7 +110,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono group-hover:underline decoration-dotted"
-        href={`/${workspace?.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        href={`/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
         onClick={handleLinkClick}
       >
         <div className="font-mono font-medium truncate flex items-center">

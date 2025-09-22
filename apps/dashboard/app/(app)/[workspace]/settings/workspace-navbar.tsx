@@ -3,7 +3,7 @@
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
@@ -39,13 +39,13 @@ export const WorkspaceNavbar = ({
     text: string;
   };
 }) => {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   return (
     <div className="flex flex-col w-full h-full">
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace?.slug}/settings`}>
+          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/settings`}>
             Settings
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
@@ -54,7 +54,7 @@ export const WorkspaceNavbar = ({
                 {
                   id: setting.href,
                   label: setting.text,
-                  href: `/${workspace?.slug}/settings/${setting.href}`,
+                  href: `/${workspace.slug}/settings/${setting.href}`,
                 },
               ])}
               shortcutKey="M"
@@ -67,9 +67,14 @@ export const WorkspaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          {activePage.href === "general" && workspace && <CopyableIDButton value={workspace.id} />}
+          {activePage.href === "general" && workspace && (
+            <CopyableIDButton value={workspace.id} />
+          )}
           {activePage.href === "root-keys" && (
-            <Link key="create-root-key" href={`/${workspace?.slug}/settings/root-keys/new`}>
+            <Link
+              key="create-root-key"
+              href={`/${workspace.slug}/settings/root-keys/new`}
+            >
               <Button variant="primary">Create New Root Key</Button>
             </Link>
           )}

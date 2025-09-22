@@ -1,12 +1,12 @@
 "use client";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { PermissionsListControlCloud } from "./components/control-cloud";
 import { PermissionListControls } from "./components/controls";
 import { PermissionsList } from "./components/table/permissions-list";
 import { Navigation } from "./navigation";
 
 export default function PermissionsPage() {
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
 
   return (
     workspace && (

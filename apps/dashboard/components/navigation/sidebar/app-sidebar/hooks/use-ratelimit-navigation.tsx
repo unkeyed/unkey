@@ -2,7 +2,7 @@
 
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { collection } from "@/lib/collections";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -15,14 +15,14 @@ import { useMemo } from "react";
 
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const { data } = useLiveQuery((q) =>
     q
       .from({ namespace: collection.ratelimitNamespaces })
-      .orderBy(({ namespace }) => namespace.id, "desc"),
+      .orderBy(({ namespace }) => namespace.id, "desc")
   );
 
-  const basePath = `/${workspace?.slug}`;
+  const basePath = `/${workspace.slug}`;
   // Convert ratelimit namespaces data to navigation items with sub-items
   const ratelimitNavItems = useMemo(() => {
     if (data.length === 0) {
@@ -33,7 +33,8 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       const currentNamespaceActive =
         segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
 
-      const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
+      const isExactlyRatelimitRoot =
+        currentNamespaceActive && segments.length === 2;
 
       // Create sub-items for logs, settings, and overrides
       const subItems: NavItem[] = [
@@ -41,7 +42,9 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
           icon: ArrowOppositeDirectionY,
           href: `${basePath}/ratelimits/${namespace.id}`,
           label: "Requests",
-          active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
+          active:
+            isExactlyRatelimitRoot ||
+            (currentNamespaceActive && !segments.at(2)),
         },
         {
           icon: Layers3,
@@ -79,11 +82,16 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex((item) => item.href === `${basePath}/ratelimits`);
+    const ratelimitsItemIndex = items.findIndex(
+      (item) => item.href === `${basePath}/ratelimits`
+    );
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
-      ratelimitsItem.items = [...(ratelimitsItem.items || []), ...ratelimitNavItems];
+      ratelimitsItem.items = [
+        ...(ratelimitsItem.items || []),
+        ...ratelimitNavItems,
+      ];
 
       items[ratelimitsItemIndex] = ratelimitsItem;
     }
