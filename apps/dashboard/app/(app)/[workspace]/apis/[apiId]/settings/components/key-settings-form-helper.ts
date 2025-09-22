@@ -14,6 +14,13 @@ const createInvalidationHelper = () => {
       utils.api.overview.query.invalidate();
       utils.api.queryApiKeyDetails.invalidate();
     },
+    /**
+     * Invalidates only workspace-level queries after API deletion
+     * Doesn't invalidate API-specific queries since the API no longer exists
+     */
+    invalidateAfterApiDeletion: () => {
+      utils.api.overview.query.invalidate();
+    },
   };
 };
 
@@ -47,7 +54,7 @@ export const handleMutationError = (err: unknown) => {
  * Standard mutation handlers for API operations
  */
 export const createMutationHandlers = () => {
-  const { invalidateApiQueries } = createInvalidationHelper();
+  const { invalidateApiQueries, invalidateAfterApiDeletion } = createInvalidationHelper();
 
   return {
     /**
@@ -82,7 +89,7 @@ export const createMutationHandlers = () => {
       toast.success("API Deleted", {
         description: `Your API and ${keyCount} keys have been deleted.`,
       });
-      invalidateApiQueries();
+      invalidateAfterApiDeletion();
     },
   };
 };
