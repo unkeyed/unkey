@@ -48,7 +48,7 @@ export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ c
         });
 
         // Quick retry for database consistency
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 250));
 
         workspace = await db.query.workspaces.findFirst({
           where: (table, { eq, and, isNull }) =>
