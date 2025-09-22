@@ -56,10 +56,6 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     ...baseQueryOptions,
     enabled: shouldEnableWorkspaceQuery,
     retry: (failureCount, error) => {
-      // Don't retry on NOT_FOUND errors - workspace either exists or doesn't
-      if (error?.data?.code === "NOT_FOUND") {
-        return false;
-      }
       // Use default retry logic for other errors (max 2 retries for faster response)
       return createRetryFn(2)(failureCount, error);
     },
