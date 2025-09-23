@@ -12,9 +12,11 @@ import {
   Magnifier,
   TriangleWarning2,
 } from "@unkey/icons";
-import { Badge, Button, Card, CopyButton, Input, TimestampInfo } from "@unkey/ui";
+import { Badge, Button, CopyButton, Input, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { format } from "date-fns";
 import { useProjectLayout } from "../../layout-provider";
+import { Card } from "../card";
 import { FilterButton } from "./filter-button";
 import { Avatar } from "./git-avatar";
 import { useDeploymentLogs } from "./hooks/use-deployment-logs";
@@ -68,15 +70,18 @@ type Props = {
   deploymentId: string;
 };
 
-export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
+export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
   const { collections } = useProjectLayout();
   const { data } = useLiveQuery((q) =>
     q
       .from({ deployment: collections.deployments })
       .where(({ deployment }) => eq(deployment.id, deploymentId)),
   );
-
   const deployment = data.at(0);
+
+  // If deployment status is not ready it means we gotta keep showing build steps.
+  // Then, user can switch between runtime(not implemented yet) and gateway logs
+  const showBuildSteps = deployment?.status !== "ready";
 
   const {
     logFilter,
@@ -90,7 +95,10 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
     handleFilterChange,
     handleSearchChange,
     scrollRef,
-  } = useDeploymentLogs({ deploymentId });
+  } = useDeploymentLogs({
+    deploymentId,
+    showBuildSteps,
+  });
 
   if (!deployment) {
     return <ActiveDeploymentCardSkeleton />;
@@ -153,7 +161,9 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="text-grayA-9 text-xs">Build logs</div>
+            <div className="text-grayA-9 text-xs">
+              {showBuildSteps ? "Build logs" : "Gateway logs"}
+            </div>
             <Button size="icon" variant="ghost" onClick={() => setExpanded(!isExpanded)}>
               <ChevronDown
                 className={cn(
@@ -181,6 +191,7 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
               icon={Layers3}
               label="All Logs"
             />
+            {/*//INFO: Let's keep them for now we might need them in the future*/}
             <FilterButton
               isActive={logFilter === "errors"}
               count={logCounts.errors}
@@ -228,7 +239,9 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
                 <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
                   {searchTerm
                     ? `No logs match "${searchTerm}"`
-                    : `No ${logFilter === "all" ? "build" : logFilter} logs available`}
+                    : `No ${
+                        logFilter === "all" ? (showBuildSteps ? "build" : "gateway") : logFilter
+                      } logs available`}
                 </div>
               ) : (
                 <div className="flex flex-col gap-px">
@@ -249,7 +262,9 @@ export const ActiveDeploymentCard: React.FC<Props> = ({ deploymentId }) => {
                         transitionDelay: isExpanded ? `${200 + index * 20}ms` : "0ms",
                       }}
                     >
-                      <span className="text-grayA-9 pl-3">{log.timestamp}</span>
+                      <span className="text-grayA-9 pl-3">
+                        {format(new Date(log.timestamp), "HH:mm:ss.SSS")}
+                      </span>
                       {log.level && (
                         <span className="font-medium">[{log.level.toUpperCase()}]</span>
                       )}
