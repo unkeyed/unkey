@@ -35,25 +35,27 @@ type RatelimitV2 struct {
 }
 
 // ApiRequestV2 represents the v2 API request raw table structure.
-// This matches the api_requests_raw_v2 table schema with region field
-// compared to v1.
+// This matches the api_requests_raw_v2 table schema with query parameters
+// and region field compared to v1.
 type ApiRequestV2 struct {
-	RequestID       string   `ch:"request_id" json:"request_id"`
-	Time            int64    `ch:"time" json:"time"`
-	WorkspaceID     string   `ch:"workspace_id" json:"workspace_id"`
-	Host            string   `ch:"host" json:"host"`
-	Method          string   `ch:"method" json:"method"`
-	Path            string   `ch:"path" json:"path"`
-	RequestHeaders  []string `ch:"request_headers" json:"request_headers"`
-	RequestBody     string   `ch:"request_body" json:"request_body"`
-	ResponseStatus  int32    `ch:"response_status" json:"response_status"`
-	ResponseHeaders []string `ch:"response_headers" json:"response_headers"`
-	ResponseBody    string   `ch:"response_body" json:"response_body"`
-	Error           string   `ch:"error" json:"error"`
-	ServiceLatency  int64    `ch:"service_latency" json:"service_latency"`
-	UserAgent       string   `ch:"user_agent" json:"user_agent"`
-	IpAddress       string   `ch:"ip_address" json:"ip_address"`
-	Region          string   `ch:"region" json:"region"`
+	RequestID       string              `ch:"request_id" json:"request_id"`
+	Time            int64               `ch:"time" json:"time"`
+	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`
+	Host            string              `ch:"host" json:"host"`
+	Method          string              `ch:"method" json:"method"`
+	Path            string              `ch:"path" json:"path"`
+	QueryString     string              `ch:"query_string" json:"query_string"`
+	QueryParams     map[string][]string `ch:"query_params" json:"query_params"`
+	RequestHeaders  []string            `ch:"request_headers" json:"request_headers"`
+	RequestBody     string              `ch:"request_body" json:"request_body"`
+	ResponseStatus  int32               `ch:"response_status" json:"response_status"`
+	ResponseHeaders []string            `ch:"response_headers" json:"response_headers"`
+	ResponseBody    string              `ch:"response_body" json:"response_body"`
+	Error           string              `ch:"error" json:"error"`
+	ServiceLatency  int64               `ch:"service_latency" json:"service_latency"`
+	UserAgent       string              `ch:"user_agent" json:"user_agent"`
+	IpAddress       string              `ch:"ip_address" json:"ip_address"`
+	Region          string              `ch:"region" json:"region"`
 }
 
 // KeyVerificationAggregated represents aggregated key verification data

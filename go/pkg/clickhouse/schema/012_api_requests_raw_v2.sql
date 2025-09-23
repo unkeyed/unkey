@@ -8,6 +8,11 @@ CREATE TABLE api_requests_raw_v2 (
   -- Examples: "GET", "POST", "PUT", "DELETE"
   method LowCardinality (String),
   path String,
+  -- Raw query string (e.g., "a=b&c=d")
+  query_string String,
+  -- Parsed query parameters as map for efficient querying
+  -- Example: {"a": ["b"], "c": ["d", "e"]} for multi-value params
+  query_params Map(String, Array(String)),
   -- "Key: Value" pairs
   request_headers Array(String),
   request_body String,
@@ -41,6 +46,8 @@ SELECT
   host,
   method,
   path,
+  '' as query_string,
+  map() as query_params,
   request_headers,
   request_body,
   response_status,
