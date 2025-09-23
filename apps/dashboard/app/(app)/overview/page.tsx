@@ -7,8 +7,7 @@ export const dynamic = "force-dynamic";
 export default function OverviewPage() {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  if (!workspace) {
-    return router.replace("/new");
-  }
+
   router.replace(`/${workspace.id}/apis`);
+  return null;
 }

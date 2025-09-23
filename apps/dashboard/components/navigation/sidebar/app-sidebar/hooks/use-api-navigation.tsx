@@ -1,7 +1,7 @@
 "use client";
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 import { ArrowOppositeDirectionY, Gear } from "@unkey/icons";
 import { Key } from "lucide-react";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -20,7 +20,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      }
+      },
     );
 
   // Convert API data to navigation items with sub-items for settings and keys
@@ -31,8 +31,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
-        const currentApiActive =
-          segments.at(0) === "apis" && segments.at(1) === api.id;
+        const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
         const isExactlyApiRoot = currentApiActive && segments.length === 2;
 
         const settingsItem: NavItem = {
@@ -78,15 +77,13 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return apiNavItem;
-      })
+      }),
     );
   }, [data?.pages, segments, workspace.slug]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex(
-      (item) => item.href === `/${workspace.slug}/apis`
-    );
+    const apisItemIndex = items.findIndex((item) => item.href === `/${workspace.slug}/apis`);
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };
@@ -98,9 +95,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         apisItem.items?.push({
           icon: () => null,
           href: "#load-more-apis",
-          label: (
-            <div className="font-normal decoration-dotted underline ">More</div>
-          ),
+          label: <div className="font-normal decoration-dotted underline ">More</div>,
           active: false,
           loadMoreAction: true,
         });

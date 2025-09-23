@@ -1,3 +1,4 @@
+"use client";
 import { MetadataSetup } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/metadata-setup";
 import {
   type MetadataFormValues,

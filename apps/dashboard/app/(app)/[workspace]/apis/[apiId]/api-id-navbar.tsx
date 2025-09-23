@@ -4,11 +4,9 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
-import { Loading } from "@unkey/ui";
-import { redirect } from "next/navigation";
 import { ChevronExpandY, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
 
@@ -73,9 +71,7 @@ interface NavbarContentProps {
 const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
   <Navbar>
     <Navbar.Breadcrumbs icon={<Nodes />}>
-      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>
-        APIs
-      </Navbar.Breadcrumbs.Link>
+      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
       <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
         <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
       </Navbar.Breadcrumbs.Link>
@@ -164,15 +160,9 @@ const NavbarContent = ({
             className={isMobile ? "hidden" : "group max-md:hidden"}
             noop
           >
-            <div className="text-accent-10 group-hover:text-accent-12">
-              {currentApi.name}
-            </div>
+            <div className="text-accent-10 group-hover:text-accent-12">{currentApi.name}</div>
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={activePage?.href ?? ""}
-            noop
-            active={!shouldFetchKey}
-          >
+          <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!shouldFetchKey}>
             <QuickNavPopover items={navigationItems} shortcutKey="M">
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
                 {activePage?.text ?? ""}
@@ -200,12 +190,7 @@ const NavbarContent = ({
 };
 
 // Main component
-export const ApisNavbar = ({
-  apiId,
-  keyspaceId,
-  keyId,
-  activePage,
-}: ApisNavbarProps) => {
+export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarProps) => {
   const workspace = useWorkspaceNavigation();
 
   const isMobile = useIsMobile();
@@ -221,7 +206,7 @@ export const ApisNavbar = ({
       enabled: Boolean(apiId), // Only run query if apiId exists
       retry: 3,
       retryDelay: 1000,
-    }
+    },
   );
 
   // Show loading state while fetching data

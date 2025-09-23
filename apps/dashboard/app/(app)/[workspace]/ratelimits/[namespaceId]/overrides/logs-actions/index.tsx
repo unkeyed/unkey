@@ -2,7 +2,8 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
-import { toast } from "@unkey/ui";
+import { Loading, toast } from "@unkey/ui";
+import { Suspense } from "react";
 import { DeleteDialog } from "../../_components/delete-dialog";
 import { IdentifierDialog } from "../../_components/identifier-dialog";
 import type { OverrideDetails } from "../../types";
@@ -74,5 +75,9 @@ export const OverridesTableAction = ({
 
   const menuItems = getOverridesTableActionItems();
 
-  return <TableActionPopover items={menuItems} />;
+  return (
+    <Suspense fallback={<Loading type="spinner" />}>
+      <TableActionPopover items={menuItems} />
+    </Suspense>
+  );
 };

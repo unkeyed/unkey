@@ -1,12 +1,16 @@
-import type { refillSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
 import { getDefaultValues } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.utils";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import type { z } from "zod";
 
-type Refill = z.infer<typeof refillSchema>;
+type Refill = z.infer<
+  typeof import("@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema").refillSchema
+>;
+
 export const getKeyLimitDefaults = (keyDetails: KeyDetails) => {
   const defaultRemaining =
-    keyDetails.key.credits.remaining ?? getDefaultValues().limit?.data?.remaining ?? 100;
+    keyDetails.key.credits.remaining ??
+    getDefaultValues().limit?.data?.remaining ??
+    100;
 
   let refill: Refill;
   if (keyDetails.key.credits.refillDay) {

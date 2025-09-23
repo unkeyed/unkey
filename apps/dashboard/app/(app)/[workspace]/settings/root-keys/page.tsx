@@ -1,5 +1,7 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { Loading } from "@unkey/ui";
+import { Suspense } from "react";
 import { RootKeysListControlCloud } from "./components/control-cloud";
 import { RootKeysListControls } from "./components/controls";
 import { RootKeysList } from "./components/table/root-keys-list";
@@ -10,7 +12,7 @@ export default function RootKeysPage() {
 
   return (
     <div>
-      {workspace && (
+      <Suspense fallback={<Loading type="spinner" />}>
         <Navigation
           workspace={{
             id: workspace.id,
@@ -22,7 +24,7 @@ export default function RootKeysPage() {
             text: "Root Keys",
           }}
         />
-      )}
+      </Suspense>
       <div className="flex flex-col">
         <RootKeysListControls />
         <RootKeysListControlCloud />

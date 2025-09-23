@@ -1,9 +1,8 @@
 "use client";
 import { revalidate } from "@/app/actions";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Button, Input, SettingCard, Loading } from "@unkey/ui";
-import { redirect } from "next/navigation";
+import { trpc } from "@/lib/trpc/client";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { keyBytesSchema } from "../../_components/create-key/create-key.schema";
@@ -49,14 +48,11 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!workspace) {
-      return redirect(`/new`);
-    }
     if (
       !validateFormChange(
         keyAuth.defaultBytes,
         values.defaultBytes,
-        "Please provide a different byte-size than already existing one as default"
+        "Please provide a different byte-size than already existing one as default",
       )
     ) {
       return;
@@ -72,8 +68,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
       title="Default Bytes"
       description={
         <div className="max-w-[380px]">
-          Sets the default byte size for keys under this API. Must be between 8
-          and 255.
+          Sets the default byte size for keys under this API. Must be between 8 and 255.
         </div>
       }
       border="top"
@@ -95,16 +90,12 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
               className="min-w-[16rem] items-end h-9"
               autoComplete="off"
               type="text"
-              onChange={(e) =>
-                field.onChange(Number(e.target.value.replace(/\D/g, "")))
-              }
+              onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
             />
           )}
         />
 
-        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>
-          Save
-        </Button>
+        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>Save</Button>
       </form>
     </SettingCard>
   );

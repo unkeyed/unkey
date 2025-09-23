@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { redirect } from "next/navigation";
 
 export const useWorkspaceNavigation = () => {
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();

@@ -1,8 +1,8 @@
 "use client";
 
 import { PageHeader } from "@/components/dashboard/page-header";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   Empty,
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
@@ -34,15 +34,17 @@ export function TeamPageClient({ team }: { team: boolean }) {
       enabled: !!user,
     });
 
-  const { data: organization, isLoading: isOrganizationLoading } =
-    trpc.org.getOrg.useQuery(user?.orgId || "", {
+  const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(
+    user?.orgId || "",
+    {
       enabled: !!user,
-    });
+    },
+  );
 
   const userMemberships = memberships?.data;
 
   const currentOrgMembership = userMemberships?.find(
-    (membership) => membership.organization.id === user?.orgId
+    (membership) => membership.organization.id === user?.orgId,
   );
 
   const isAdmin = useMemo(() => {
@@ -65,11 +67,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
 
   if (isAdmin) {
     actions.push(
-      <Select
-        key="tab-select"
-        value={tab}
-        onValueChange={(value: Tab) => setTab(value)}
-      >
+      <Select key="tab-select" value={tab} onValueChange={(value: Tab) => setTab(value)}>
         <SelectTrigger className="w-[180px]">
           <SelectValue />
         </SelectTrigger>
@@ -79,16 +77,10 @@ export function TeamPageClient({ team }: { team: boolean }) {
             <SelectItem value="invitations">Invitations</SelectItem>
           </SelectGroup>
         </SelectContent>
-      </Select>
+      </Select>,
     );
 
-    actions.push(
-      <InviteButton
-        key="invite-button"
-        user={user}
-        organization={organization}
-      />
-    );
+    actions.push(<InviteButton key="invite-button" user={user} organization={organization} />);
   }
 
   if (!team) {
@@ -96,13 +88,13 @@ export function TeamPageClient({ team }: { team: boolean }) {
       <div className="relative items-center justify-center h-screen w-full">
         <Empty className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-full">
           <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
-          <Empty.Description>
-            You can try it out for free for 14 days.
-          </Empty.Description>
+          <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
-            <Link href={`/${workspace.slug}/settings/billing`}>
-              <Button>Upgrade</Button>
-            </Link>
+            <Suspense fallback={<Loading type="spinner" />}>
+              <Link href={`/${workspace.slug}/settings/billing`}>
+                <Button>Upgrade</Button>
+              </Link>
+            </Suspense>
           </Empty.Actions>
         </Empty>
       </div>
@@ -111,23 +103,11 @@ export function TeamPageClient({ team }: { team: boolean }) {
 
   return (
     <>
-      <PageHeader
-        title="Members"
-        description="Manage your team members"
-        actions={actions}
-      />
-      {isLoading ||
-      !user ||
-      !organization ||
-      !userMemberships ||
-      !currentOrgMembership ? (
+      <PageHeader title="Members" description="Manage your team members" actions={actions} />
+      {isLoading || !user || !organization || !userMemberships || !currentOrgMembership ? (
         <Loading />
       ) : tab === "members" ? (
-        <Members
-          organization={organization}
-          user={user}
-          userMembership={currentOrgMembership}
-        />
+        <Members organization={organization} user={user} userMembership={currentOrgMembership} />
       ) : (
         <Invitations organization={organization} user={user} />
       )}

@@ -1,7 +1,7 @@
 "use client";
 import { revalidate } from "@/app/actions";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -55,7 +55,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
       !validateFormChange(
         keyAuth.defaultPrefix,
         values.defaultPrefix,
-        "Please provide a different prefix than already existing one as default"
+        "Please provide a different prefix than already existing one as default",
       )
     ) {
       return;
@@ -70,8 +70,8 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
       title="Default Prefix"
       description={
         <div className="max-w-[380px]">
-          Sets the default prefix for keys under this API. A trailing underscore
-          is added automatically.
+          Sets the default prefix for keys under this API. A trailing underscore is added
+          automatically.
         </div>
       }
       border="bottom"
@@ -101,9 +101,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
           )}
         />
 
-        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>
-          Save
-        </Button>
+        <Button {...getStandardButtonProps(isValid, isSubmitting, isDirty)}>Save</Button>
       </form>
     </SettingCard>
   );

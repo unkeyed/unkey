@@ -3,17 +3,13 @@ import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/[workspace]/logs/constants"
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { TimestampInfo, Loading } from "@unkey/ui";
+import { Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
-import { useMemo } from "react";
-import { redirect } from "next/navigation";
+import { Suspense, useMemo } from "react";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";
-import {
-  PermissionsSection,
-  RolesSection,
-} from "./components/roles-permissions";
+import { PermissionsSection, RolesSection } from "./components/roles-permissions";
 
 type StyleObject = {
   top: string;
@@ -44,10 +40,7 @@ export const KeysOverviewLogDetails = ({
 }: KeysOverviewLogDetailsProps) => {
   const workspace = useWorkspaceNavigation();
 
-  const panelStyle = useMemo(
-    () => createPanelStyle(distanceToTop),
-    [distanceToTop]
-  );
+  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
   if (!log) {
     return null;
   }
@@ -65,9 +58,7 @@ export const KeysOverviewLogDetails = ({
         style={panelStyle}
       >
         <LogHeader log={log} onClose={handleClose} />
-        <div className="py-4 text-center text-accent-9">
-          No key details available
-        </div>
+        <div className="py-4 text-center text-accent-9">No key details available</div>
       </ResizablePanel>
     );
   }
@@ -90,10 +81,7 @@ export const KeysOverviewLogDetails = ({
   const usage = {
     Created: metaData?.createdAt ? metaData.createdAt : "N/A",
     "Last Used": log.time ? (
-      <TimestampInfo
-        value={log.time}
-        className="font-mono underline decoration-dotted"
-      />
+      <TimestampInfo value={log.time} className="font-mono underline decoration-dotted" />
     ) : (
       "N/A"
     ),
@@ -108,17 +96,13 @@ export const KeysOverviewLogDetails = ({
   };
 
   const tags =
-    log.tags && log.tags.length > 0
-      ? { Tags: log.tags.join(", ") }
-      : { "No tags": null };
+    log.tags && log.tags.length > 0 ? { Tags: log.tags.join(", ") } : { "No tags": null };
 
   const identity = log.key_details.identity
     ? { "External ID": log.key_details.identity.external_id || "N/A" }
     : { "No identity connected": null };
 
-  const metaString = metaData
-    ? JSON.stringify(metaData, null, 2)
-    : { "No meta available": "" };
+  const metaString = metaData ? JSON.stringify(metaData, null, 2) : { "No meta available": "" };
 
   return (
     <ResizablePanel
@@ -128,11 +112,11 @@ export const KeysOverviewLogDetails = ({
     >
       <LogHeader log={log} onClose={handleClose} />
       <LogSection title="Usage" details={usage} />
-      {log.outcome_counts && (
-        <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />
-      )}
+      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
       <LogSection title="Limits" details={limits} />
-      <LogSection title="Identifiers" details={identifiers} />
+      <Suspense fallback={<Loading type="spinner" />}>
+        <LogSection title="Identifiers" details={identifiers} />
+      </Suspense>
       <LogSection title="Identity" details={identity} />
       <LogSection title="Tags" details={tags} />
       <RolesSection roles={log.key_details.roles || []} />

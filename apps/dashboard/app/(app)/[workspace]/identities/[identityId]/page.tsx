@@ -62,9 +62,7 @@ export default async function Page(props: Props) {
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">
             <div className="flex flex-col items-start gap-1 w-full">
-              <span className="text-sm text-content-subtle whitespace-nowrap">
-                Identity ID:
-              </span>
+              <span className="text-sm text-content-subtle whitespace-nowrap">Identity ID:</span>
               <Badge
                 variant="secondary"
                 className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
@@ -74,9 +72,7 @@ export default async function Page(props: Props) {
               </Badge>
             </div>
             <div className="flex flex-col items-start gap-1 w-full">
-              <span className="text-sm text-content-subtle whitespace-nowrap">
-                External ID:
-              </span>
+              <span className="text-sm text-content-subtle whitespace-nowrap">External ID:</span>
 
               <Badge
                 variant="secondary"
@@ -89,15 +85,11 @@ export default async function Page(props: Props) {
           </div>
           <h2 className="text-2xl font-semibold tracking-tight">Meta</h2>
           {identity.meta ? (
-            <Code variant="legacy">
-              {JSON.stringify(identity.meta, null, 2)}
-            </Code>
+            <Code variant="legacy">{JSON.stringify(identity.meta, null, 2)}</Code>
           ) : (
             <Alert>
               <AlertTitle>No metadata</AlertTitle>
-              <AlertDescription>
-                This identity has no metadata.
-              </AlertDescription>
+              <AlertDescription>This identity has no metadata.</AlertDescription>
             </Alert>
           )}
 
@@ -105,9 +97,7 @@ export default async function Page(props: Props) {
           {identity.ratelimits.length === 0 ? (
             <Alert>
               <AlertTitle>No ratelimits</AlertTitle>
-              <AlertDescription>
-                This identity has no ratelimits attached.
-              </AlertDescription>
+              <AlertDescription>This identity has no ratelimits attached.</AlertDescription>
             </Alert>
           ) : (
             <Table>
@@ -121,15 +111,9 @@ export default async function Page(props: Props) {
               <TableBody>
                 {identity.ratelimits.map((ratelimit) => (
                   <TableRow key={ratelimit.id}>
-                    <TableCell className="font-mono">
-                      {ratelimit.name}
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      {formatNumber(ratelimit.limit)}
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      {ms(ratelimit.duration)}
-                    </TableCell>
+                    <TableCell className="font-mono">{ratelimit.name}</TableCell>
+                    <TableCell className="font-mono">{formatNumber(ratelimit.limit)}</TableCell>
+                    <TableCell className="font-mono">{ms(ratelimit.duration)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -139,9 +123,7 @@ export default async function Page(props: Props) {
           {identity.keys.length === 0 ? (
             <Alert>
               <AlertTitle>No keys</AlertTitle>
-              <AlertDescription>
-                This identity has no keys attached.
-              </AlertDescription>
+              <AlertDescription>This identity has no keys attached.</AlertDescription>
             </Alert>
           ) : (
             <Table>
@@ -161,11 +143,7 @@ export default async function Page(props: Props) {
                       {key.meta ? (
                         (() => {
                           try {
-                            return JSON.stringify(
-                              JSON.parse(key.meta),
-                              null,
-                              2
-                            );
+                            return JSON.stringify(JSON.parse(key.meta), null, 2);
                           } catch {
                             return key.meta;
                           }
@@ -217,12 +195,8 @@ const LastUsed: React.FC<{
     <TableCell>
       {lastUsed ? (
         <div className="flex items-center gap-4">
-          <span className="text-content-subtle">
-            {new Date(lastUsed).toUTCString()}
-          </span>
-          <span className="text-content">
-            ({ms(Date.now() - lastUsed)} ago)
-          </span>
+          <span className="text-content-subtle">{new Date(lastUsed).toUTCString()}</span>
+          <span className="text-content">({ms(Date.now() - lastUsed)} ago)</span>
         </div>
       ) : (
         <Minus />

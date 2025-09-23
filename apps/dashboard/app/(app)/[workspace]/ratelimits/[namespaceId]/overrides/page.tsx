@@ -1,10 +1,10 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { Loading } from "@unkey/ui";
+import { Suspense } from "react";
 import { NamespaceNavbar } from "../namespace-navbar";
 import { OverridesTable } from "./overrides-table";
-import { redirect } from "next/navigation";
-import { Loading } from "@unkey/ui";
 
 export default function OverridePage({
   params: { namespaceId },
@@ -15,13 +15,15 @@ export default function OverridePage({
 
   return (
     <div>
-      <NamespaceNavbar
-        activePage={{
-          href: `/${workspace.slug}/ratelimits/${namespaceId}/overrides`,
-          text: "Overrides",
-        }}
-        namespaceId={namespaceId}
-      />
+      <Suspense fallback={<Loading />}>
+        <NamespaceNavbar
+          activePage={{
+            href: `/${workspace.slug}/ratelimits/${namespaceId}/overrides`,
+            text: "Overrides",
+          }}
+          namespaceId={namespaceId}
+        />
+      </Suspense>
       <OverridesTable namespaceId={namespaceId} />
     </div>
   );

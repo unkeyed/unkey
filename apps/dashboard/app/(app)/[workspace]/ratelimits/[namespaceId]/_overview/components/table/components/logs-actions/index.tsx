@@ -3,15 +3,12 @@
 import { DeleteDialog } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_components/delete-dialog";
 import { IdentifierDialog } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_components/identifier-dialog";
 import type { OverrideDetails } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/types";
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
-import { toast, Loading } from "@unkey/ui";
-import { redirect } from "next/navigation";
+import { Loading, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsTableAction = ({
@@ -28,9 +25,7 @@ export const LogsTableAction = ({
   const workspace = useWorkspaceNavigation();
 
   const getTimeParams = () => {
-    const timeFilters = filters.filter((f) =>
-      ["startTime", "endTime", "since"].includes(f.field)
-    );
+    const timeFilters = filters.filter((f) => ["startTime", "endTime", "since"].includes(f.field));
     const params = new URLSearchParams({
       identifiers: `contains:${identifier}`,
     });
@@ -58,11 +53,7 @@ export const LogsTableAction = ({
         icon: <Layers3 size="md-regular" />,
         onClick: (e) => {
           e.stopPropagation();
-          router.push(
-            `/${
-              workspace.slug
-            }/ratelimits/${namespaceId}/logs?${getTimeParams()}`
-          );
+          router.push(`/${workspace.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
         },
       },
       {
@@ -123,5 +114,9 @@ export const LogsTableAction = ({
 
   const menuItems = getLogsTableActionItems();
 
-  return <TableActionPopover items={menuItems} />;
+  return (
+    <Suspense fallback={<Loading type="spinner" />}>
+      <TableActionPopover items={menuItems} />
+    </Suspense>
+  );
 };

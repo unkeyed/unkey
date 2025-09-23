@@ -8,6 +8,7 @@ import { Plus } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import {
   Button,
+  Loading,
   NavigableDialogBody,
   NavigableDialogContent,
   NavigableDialogFooter,
@@ -16,7 +17,7 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
-import { type FC, useEffect, useState } from "react";
+import { type FC, Suspense, useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
@@ -208,14 +209,16 @@ export const CreateKeyDialog = ({
         </form>
       </FormProvider>
       {/* Success Dialog */}
-      <KeyCreatedSuccessDialog
-        apiId={apiId}
-        keyspaceId={keyspaceId}
-        isOpen={successDialogOpen}
-        onClose={handleSuccessDialogClose}
-        keyData={createdKeyData}
-        onCreateAnother={openNewKeyDialog}
-      />
+      <Suspense fallback={<Loading type="spinner" />}>
+        <KeyCreatedSuccessDialog
+          apiId={apiId}
+          keyspaceId={keyspaceId}
+          isOpen={successDialogOpen}
+          onClose={handleSuccessDialogClose}
+          keyData={createdKeyData}
+          onCreateAnother={openNewKeyDialog}
+        />
+      </Suspense>
     </>
   );
 };

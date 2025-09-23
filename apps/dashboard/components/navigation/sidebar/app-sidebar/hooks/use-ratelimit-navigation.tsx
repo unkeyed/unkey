@@ -1,8 +1,8 @@
 "use client";
 
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
-import { collection } from "@/lib/collections";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -19,7 +19,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const { data } = useLiveQuery((q) =>
     q
       .from({ namespace: collection.ratelimitNamespaces })
-      .orderBy(({ namespace }) => namespace.id, "desc")
+      .orderBy(({ namespace }) => namespace.id, "desc"),
   );
 
   const basePath = `/${workspace.slug}`;
@@ -33,8 +33,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
       const currentNamespaceActive =
         segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
 
-      const isExactlyRatelimitRoot =
-        currentNamespaceActive && segments.length === 2;
+      const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
 
       // Create sub-items for logs, settings, and overrides
       const subItems: NavItem[] = [
@@ -42,9 +41,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
           icon: ArrowOppositeDirectionY,
           href: `${basePath}/ratelimits/${namespace.id}`,
           label: "Requests",
-          active:
-            isExactlyRatelimitRoot ||
-            (currentNamespaceActive && !segments.at(2)),
+          active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
         },
         {
           icon: Layers3,
@@ -82,16 +79,11 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex(
-      (item) => item.href === `${basePath}/ratelimits`
-    );
+    const ratelimitsItemIndex = items.findIndex((item) => item.href === `${basePath}/ratelimits`);
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
-      ratelimitsItem.items = [
-        ...(ratelimitsItem.items || []),
-        ...ratelimitNavItems,
-      ];
+      ratelimitsItem.items = [...(ratelimitsItem.items || []), ...ratelimitNavItems];
 
       items[ratelimitsItemIndex] = ratelimitsItem;
     }
