@@ -1,7 +1,5 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Loading } from "@unkey/ui";
-import { Suspense } from "react";
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
 
@@ -18,16 +16,14 @@ export default function APIKeysPage(props: {
 
   return (
     <div>
-      <Suspense fallback={<Loading type="spinner" />}>
-        <ApisNavbar
-          apiId={apiId}
-          activePage={{
-            href: `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}`,
-            text: "Keys",
-          }}
-        />
-        <KeysClient apiId={apiId} keyspaceId={keyspaceId} />
-      </Suspense>
+      <ApisNavbar
+        apiId={apiId}
+        activePage={{
+          href: `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}`,
+          text: "Keys",
+        }}
+      />
+      <KeysClient apiId={apiId} keyspaceId={keyspaceId} />
     </div>
   );
 }

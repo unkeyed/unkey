@@ -1,8 +1,6 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Loading } from "@unkey/ui";
-import { Suspense } from "react";
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
 
@@ -18,16 +16,14 @@ export default function SettingsPage(props: Props) {
 
   return (
     <div>
-      <Suspense fallback={<Loading type="spinner" />}>
-        <ApisNavbar
-          apiId={apiId}
-          activePage={{
-            href: `/${workspace.slug}/apis/${apiId}/settings`,
-            text: "Settings",
-          }}
-        />
-        <SettingsClient apiId={apiId} />
-      </Suspense>
+      <ApisNavbar
+        apiId={apiId}
+        activePage={{
+          href: `/${workspace.slug}/apis/${apiId}/settings`,
+          text: "Settings",
+        }}
+      />
+      <SettingsClient apiId={apiId} />
     </div>
   );
 }
