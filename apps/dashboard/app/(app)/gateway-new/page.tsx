@@ -9,6 +9,7 @@
  */
 
 import { getAuthOrRedirect } from "@/lib/auth";
+import { randomInt } from "node:crypto";
 import { db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
 import { newId } from "@unkey/id";
@@ -30,6 +31,7 @@ export default async function Page() {
     await db.insert(schema.workspaces).values({
       id,
       name: "Personal Workspace",
+      slug: `personal-workspace-${randomInt(100000)}`,
       orgId,
       betaFeatures: {},
       features: {},

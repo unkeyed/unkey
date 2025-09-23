@@ -6,7 +6,7 @@ import (
 	"time"
 
 	validator "github.com/pb33f/libopenapi-validator"
-	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
+	"github.com/unkeyed/unkey/go/apps/gw/services/routing"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -19,7 +19,7 @@ import (
 // Each field represents a specialized cache for a specific data entity.
 type Caches struct {
 	// HostName -> Config
-	GatewayConfig cache.Cache[string, *partitionv1.GatewayConfig]
+	GatewayConfig cache.Cache[string, routing.ConfigWithWorkspace]
 
 	// DeploymentID -> OpenAPI Spec Validator
 	OpenAPISpec cache.Cache[string, validator.Validator]
@@ -72,9 +72,9 @@ type Config struct {
 //	// Use the caches
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
-	gatewayConfig, err := cache.New(cache.Config[string, *partitionv1.GatewayConfig]{
-		Fresh:    5 * time.Minute,
-		Stale:    30 * time.Minute,
+	gatewayConfig, err := cache.New(cache.Config[string, routing.ConfigWithWorkspace]{
+		Fresh:    time.Second * 5,
+		Stale:    time.Second * 30,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "gateway_config",
@@ -85,8 +85,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	vmCache, err := cache.New(cache.Config[string, partitiondb.Vm]{
-		Fresh:    30 * time.Second,
-		Stale:    30 * time.Minute,
+		Fresh:    time.Second * 10,
+		Stale:    time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "vm",
@@ -109,8 +109,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
+		Fresh:    time.Minute,
+		Stale:    time.Minute * 10,
 		Logger:   config.Logger,
 		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",

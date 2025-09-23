@@ -139,25 +139,21 @@ type CreateDeploymentRequest struct {
 	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Branch      string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Source information
-	SourceType   SourceType `protobuf:"varint,4,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
-	GitCommitSha string     `protobuf:"bytes,5,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"` // For git sources
-	// Optional environment override (defaults based on branch)
-	EnvironmentId string `protobuf:"bytes,7,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// Docker image support
-	DockerImageTag string `protobuf:"bytes,8,opt,name=docker_image_tag,json=dockerImageTag,proto3" json:"docker_image_tag,omitempty"` // e.g. "ghcr.io/user/app:sha256..."
-	// Gateway hostname for routing
-	Hostname string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	// Keyspace ID for authentication
-	KeyspaceId string `protobuf:"bytes,10,opt,name=keyspace_id,json=keyspaceId,proto3" json:"keyspace_id,omitempty"`
+	EnvironmentSlug string     `protobuf:"bytes,4,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
+	SourceType      SourceType `protobuf:"varint,5,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
+	DockerImage     string     `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
 	// Extended git information
-	GitCommitMessage    string `protobuf:"bytes,6,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
-	GitCommitAuthorName string `protobuf:"bytes,11,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
+	GitCommitSha        string `protobuf:"bytes,7,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"` // For git sources
+	GitCommitMessage    string `protobuf:"bytes,8,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
+	GitCommitAuthorName string `protobuf:"bytes,9,opt,name=git_commit_author_name,json=gitCommitAuthorName,proto3" json:"git_commit_author_name,omitempty"`
 	// TODO: Add GitHub API integration to lookup username/avatar from email
-	GitCommitAuthorUsername  string `protobuf:"bytes,12,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
-	GitCommitAuthorAvatarUrl string `protobuf:"bytes,13,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
-	GitCommitTimestamp       int64  `protobuf:"varint,14,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	GitCommitAuthorUsername  string `protobuf:"bytes,10,opt,name=git_commit_author_username,json=gitCommitAuthorUsername,proto3" json:"git_commit_author_username,omitempty"`
+	GitCommitAuthorAvatarUrl string `protobuf:"bytes,11,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
+	GitCommitTimestamp       int64  `protobuf:"varint,12,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
+	// Keyspace ID for authentication
+	KeyspaceId    *string `protobuf:"bytes,13,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateDeploymentRequest) Reset() {
@@ -211,6 +207,13 @@ func (x *CreateDeploymentRequest) GetBranch() string {
 	return ""
 }
 
+func (x *CreateDeploymentRequest) GetEnvironmentSlug() string {
+	if x != nil {
+		return x.EnvironmentSlug
+	}
+	return ""
+}
+
 func (x *CreateDeploymentRequest) GetSourceType() SourceType {
 	if x != nil {
 		return x.SourceType
@@ -218,37 +221,16 @@ func (x *CreateDeploymentRequest) GetSourceType() SourceType {
 	return SourceType_SOURCE_TYPE_UNSPECIFIED
 }
 
+func (x *CreateDeploymentRequest) GetDockerImage() string {
+	if x != nil {
+		return x.DockerImage
+	}
+	return ""
+}
+
 func (x *CreateDeploymentRequest) GetGitCommitSha() string {
 	if x != nil {
 		return x.GitCommitSha
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetDockerImageTag() string {
-	if x != nil {
-		return x.DockerImageTag
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetHostname() string {
-	if x != nil {
-		return x.Hostname
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetKeyspaceId() string {
-	if x != nil {
-		return x.KeyspaceId
 	}
 	return ""
 }
@@ -286,6 +268,13 @@ func (x *CreateDeploymentRequest) GetGitCommitTimestamp() int64 {
 		return x.GitCommitTimestamp
 	}
 	return 0
+}
+
+func (x *CreateDeploymentRequest) GetKeyspaceId() string {
+	if x != nil && x.KeyspaceId != nil {
+		return *x.KeyspaceId
+	}
+	return ""
 }
 
 type CreateDeploymentResponse struct {
@@ -856,30 +845,127 @@ func (x *RegionalConfig) GetMaxInstances() int32 {
 	return 0
 }
 
+type RollbackRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	SourceDeploymentId string                 `protobuf:"bytes,1,opt,name=source_deployment_id,json=sourceDeploymentId,proto3" json:"source_deployment_id,omitempty"`
+	TargetDeploymentId string                 `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *RollbackRequest) Reset() {
+	*x = RollbackRequest{}
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RollbackRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RollbackRequest) ProtoMessage() {}
+
+func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
+func (*RollbackRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RollbackRequest) GetSourceDeploymentId() string {
+	if x != nil {
+		return x.SourceDeploymentId
+	}
+	return ""
+}
+
+func (x *RollbackRequest) GetTargetDeploymentId() string {
+	if x != nil {
+		return x.TargetDeploymentId
+	}
+	return ""
+}
+
+type RollbackResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// the rolled back domains
+	Domains       []string `protobuf:"bytes,1,rep,name=domains,proto3" json:"domains,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RollbackResponse) Reset() {
+	*x = RollbackResponse{}
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RollbackResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RollbackResponse) ProtoMessage() {}
+
+func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
+func (*RollbackResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RollbackResponse) GetDomains() []string {
+	if x != nil {
+		return x.Domains
+	}
+	return nil
+}
+
 var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xef\x04\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xe5\x04\n" +
 	"\x17CreateDeploymentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
-	"\x06branch\x18\x03 \x01(\tR\x06branch\x124\n" +
-	"\vsource_type\x18\x04 \x01(\x0e2\x13.ctrl.v1.SourceTypeR\n" +
-	"sourceType\x12$\n" +
-	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12%\n" +
-	"\x0eenvironment_id\x18\a \x01(\tR\renvironmentId\x12(\n" +
-	"\x10docker_image_tag\x18\b \x01(\tR\x0edockerImageTag\x12\x1a\n" +
-	"\bhostname\x18\t \x01(\tR\bhostname\x12\x1f\n" +
-	"\vkeyspace_id\x18\n" +
-	" \x01(\tR\n" +
-	"keyspaceId\x12,\n" +
-	"\x12git_commit_message\x18\x06 \x01(\tR\x10gitCommitMessage\x123\n" +
-	"\x16git_commit_author_name\x18\v \x01(\tR\x13gitCommitAuthorName\x12;\n" +
-	"\x1agit_commit_author_username\x18\f \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
-	"\x1cgit_commit_author_avatar_url\x18\r \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
-	"\x14git_commit_timestamp\x18\x0e \x01(\x03R\x12gitCommitTimestamp\"r\n" +
+	"\x06branch\x18\x03 \x01(\tR\x06branch\x12)\n" +
+	"\x10environment_slug\x18\x04 \x01(\tR\x0fenvironmentSlug\x124\n" +
+	"\vsource_type\x18\x05 \x01(\x0e2\x13.ctrl.v1.SourceTypeR\n" +
+	"sourceType\x12!\n" +
+	"\fdocker_image\x18\x06 \x01(\tR\vdockerImage\x12$\n" +
+	"\x0egit_commit_sha\x18\a \x01(\tR\fgitCommitSha\x12,\n" +
+	"\x12git_commit_message\x18\b \x01(\tR\x10gitCommitMessage\x123\n" +
+	"\x16git_commit_author_name\x18\t \x01(\tR\x13gitCommitAuthorName\x12;\n" +
+	"\x1agit_commit_author_username\x18\n" +
+	" \x01(\tR\x17gitCommitAuthorUsername\x12>\n" +
+	"\x1cgit_commit_author_avatar_url\x18\v \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
+	"\x14git_commit_timestamp\x18\f \x01(\x03R\x12gitCommitTimestamp\x12$\n" +
+	"\vkeyspace_id\x18\r \x01(\tH\x00R\n" +
+	"keyspaceId\x88\x01\x01B\x0e\n" +
+	"\f_keyspace_id\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
@@ -936,7 +1022,12 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x0eRegionalConfig\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12#\n" +
 	"\rmin_instances\x18\x02 \x01(\x05R\fminInstances\x12#\n" +
-	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances*\xef\x01\n" +
+	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"u\n" +
+	"\x0fRollbackRequest\x120\n" +
+	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +
+	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\",\n" +
+	"\x10RollbackResponse\x12\x18\n" +
+	"\adomains\x18\x01 \x03(\tR\adomains*\xef\x01\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -949,10 +1040,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xc0\x01\n" +
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\x83\x02\n" +
 	"\x11DeploymentService\x12Y\n" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
-	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
+	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
 	file_ctrl_v1_deployment_proto_rawDescOnce sync.Once
@@ -967,7 +1059,7 @@ func file_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),            // 0: ctrl.v1.DeploymentStatus
 	(SourceType)(0),                  // 1: ctrl.v1.SourceType
@@ -979,23 +1071,27 @@ var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(*DeploymentStep)(nil),           // 7: ctrl.v1.DeploymentStep
 	(*Topology)(nil),                 // 8: ctrl.v1.Topology
 	(*RegionalConfig)(nil),           // 9: ctrl.v1.RegionalConfig
-	nil,                              // 10: ctrl.v1.Deployment.EnvironmentVariablesEntry
+	(*RollbackRequest)(nil),          // 10: ctrl.v1.RollbackRequest
+	(*RollbackResponse)(nil),         // 11: ctrl.v1.RollbackResponse
+	nil,                              // 12: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	1,  // 0: ctrl.v1.CreateDeploymentRequest.source_type:type_name -> ctrl.v1.SourceType
 	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
 	6,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
 	0,  // 3: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	10, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	12, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
 	8,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
 	7,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	9,  // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
 	2,  // 8: ctrl.v1.DeploymentService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
 	4,  // 9: ctrl.v1.DeploymentService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
-	3,  // 10: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	5,  // 11: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
+	10, // 10: ctrl.v1.DeploymentService.Rollback:input_type -> ctrl.v1.RollbackRequest
+	3,  // 11: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	5,  // 12: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	11, // 13: ctrl.v1.DeploymentService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1006,13 +1102,14 @@ func file_ctrl_v1_deployment_proto_init() {
 	if File_ctrl_v1_deployment_proto != nil {
 		return
 	}
+	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

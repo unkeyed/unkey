@@ -12,6 +12,8 @@
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
+    "@unkey/resend": "workspace:^",
+    "@workos-inc/node": "^7.47.0",
     "base-x": "^4.0.1",
     "ms": "^2.1.3",
     "mysql2": "^3.10.3",
@@ -20,6 +22,7 @@
     "zod": "^3.23.5"
   },
   "devDependencies": {
+    "@clickhouse/client-web": "^1.11.1",
     "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",

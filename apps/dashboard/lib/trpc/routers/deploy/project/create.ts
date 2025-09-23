@@ -1,5 +1,5 @@
-import { createProjectSchema } from "@/app/(app)/projects/_components/create-project/create-project.schema";
 import { insertAuditLogs } from "@/lib/audit";
+import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { db, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -8,7 +8,7 @@ import { newId } from "@unkey/id";
 export const createProject = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
-  .input(createProjectSchema)
+  .input(createProjectRequestSchema)
   .use(withRatelimit(ratelimit.create))
   .mutation(async ({ ctx, input }) => {
     const userId = ctx.user.id;
@@ -70,8 +70,12 @@ export const createProject = t.procedure
             workspaceId,
             name: input.name,
             slug: input.slug,
+            liveDeploymentId: null,
             gitRepositoryUrl: input.gitRepositoryUrl || null,
+            defaultBranch: "main",
             deleteProtection: false,
+            createdAt: now,
+            updatedAt: now,
           });
 
           await insertAuditLogs(tx, {
@@ -101,8 +105,11 @@ export const createProject = t.procedure
               id: environmentId,
               workspaceId,
               projectId,
-              slug: slug,
+              createdAt: now,
+              updatedAt: now,
+              slug,
             });
+
             await insertAuditLogs(tx, {
               workspaceId,
               actor: {

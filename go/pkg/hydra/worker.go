@@ -454,6 +454,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		workerID:        w.config.WorkerID,
 		db:              w.engine.GetDB(),
 		marshaller:      w.engine.marshaller,
+		logger:          w.engine.logger.With("execution_id", e.ID, "namespace", e.Namespace, "workflow_name", e.WorkflowName),
 		stepTimeout:     5 * time.Minute, // Default step timeout
 		stepMaxAttempts: 3,               // Default step max attempts
 	}

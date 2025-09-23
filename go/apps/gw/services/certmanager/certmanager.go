@@ -8,8 +8,9 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/partition/db"
+	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
@@ -53,7 +54,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	}
 
 	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
-		row, err := db.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
+		row, err := pdb.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
 		if err != nil {
 			return tls.Certificate{}, err
 		}

@@ -5,7 +5,7 @@ import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { DatabaseError } from "@planetscale/database";
-import { schema } from "@unkey/db";
+import { DrizzleQueryError, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { validation } from "@unkey/validation";
@@ -88,7 +88,11 @@ export const registerV1PermissionsCreateRole = (app: App) =>
         .insert(schema.roles)
         .values(role)
         .catch((e) => {
-          if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+          if (
+            e instanceof DrizzleQueryError &&
+            e.cause instanceof DatabaseError &&
+            e.cause.message.includes("Duplicate entry")
+          ) {
             throw new UnkeyApiError({
               code: "CONFLICT",
               message: `Role with name "${role.name}" already exists in this workspace`,

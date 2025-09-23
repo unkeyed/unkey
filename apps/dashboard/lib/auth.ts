@@ -59,3 +59,99 @@ export async function getCurrentUser(): Promise<AuthenticatedUser> {
   }
   return { ...user, orgId, role, impersonator };
 }
+
+/**
+ * Handles invitation acceptance and organization switching for authenticated users.
+ *
+ * This function accepts an invitation and switches the user's active organization
+ * to the invited organization. It should be used when a user is already authenticated
+ * and clicking on an invitation link.
+ *
+ * @param invitationId - The ID of the invitation to accept
+ * @param organizationId - The organization ID to switch to
+ * @returns Promise that resolves when the invitation is accepted and org is switched
+ * @throws Error if invitation acceptance or org switching fails
+ */
+export async function acceptInvitationAndSwitchOrg(
+  invitationId: string,
+  organizationId: string,
+): Promise<void> {
+  try {
+    // Verify we have a valid session before proceeding
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not authenticated - cannot accept invitation");
+    }
+
+    // Accept the invitation first
+    await auth.acceptInvitation(invitationId);
+
+    // Then switch to the organization
+    const { switchOrg } = await import("@/app/auth/actions");
+    const result = await switchOrg(organizationId);
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to switch organization");
+    }
+  } catch (error) {
+    console.error("Failed to accept invitation and switch org:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    throw error;
+  }
+}
+
+/**
+ * Handles invitation processing after successful authentication.
+ *
+ * This function should be called after a user successfully authenticates
+ * when they came from an invitation link. It will accept the invitation
+ * and switch their active organization if needed.
+ *
+ * @param invitationToken - The invitation token from the URL
+ * @param userId - The authenticated user's ID
+ * @returns Promise that resolves when invitation is processed
+ */
+export async function processPostAuthInvitation(
+  invitationToken: string,
+  userId: string,
+): Promise<{ success: boolean; organizationId?: string; error?: string }> {
+  try {
+    // Get the invitation details
+    const invitation = await auth.getInvitation(invitationToken);
+
+    if (!invitation) {
+      return { success: false, error: "Invitation not found" };
+    }
+
+    const { email: invitationEmail, state, organizationId, id: invitationId } = invitation;
+
+    if (state !== "pending") {
+      return { success: false, error: `Invitation is ${state}` };
+    }
+
+    if (!organizationId) {
+      return { success: false, error: "No organization ID in invitation" };
+    }
+
+    // Get the user to verify email matches
+    const user = await auth.getUser(userId);
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    if (user.email !== invitationEmail) {
+      return { success: false, error: "Email mismatch" };
+    }
+
+    // Accept the invitation and switch organization
+    await acceptInvitationAndSwitchOrg(invitationId, organizationId);
+
+    return { success: true, organizationId };
+  } catch (error) {
+    console.error("Failed to process post-auth invitation:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    return { success: false, error: "Unable to process invitation" };
+  }
+}

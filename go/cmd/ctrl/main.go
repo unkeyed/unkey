@@ -72,6 +72,10 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
+		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
+		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
+
+		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 	},
 	Action: action,
 }
@@ -128,7 +132,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 		},
 
-		AcmeEnabled: cmd.Bool("acme-enabled"),
+		// Acme configuration
+		Acme: ctrl.AcmeConfig{
+			Enabled: cmd.Bool("acme-enabled"),
+			Cloudflare: ctrl.CloudflareConfig{
+				Enabled:  cmd.Bool("acme-cloudflare-enabled"),
+				ApiToken: cmd.String("acme-cloudflare-api-token"),
+			},
+		},
+
+		DefaultDomain: cmd.String("default-domain"),
 
 		// Common
 		Clock: clock.New(),

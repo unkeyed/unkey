@@ -20,6 +20,7 @@ const arrayFields = ["query"] as const;
 export const useNamespaceListFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
+    throttleMs: 50,
   });
 
   const filters = useMemo(() => {

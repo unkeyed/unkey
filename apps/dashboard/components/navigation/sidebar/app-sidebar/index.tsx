@@ -81,14 +81,11 @@ export function AppSidebar({
     [props.workspace, segments],
   );
 
-  const { enhancedNavItems: apiAddedNavItems, loadMore: loadMoreApis } =
-    useApiNavigation(baseNavItems);
+  const { enhancedNavItems: apiAddedNavItems } = useApiNavigation(baseNavItems);
 
-  const { enhancedNavItems: ratelimitAddedNavItems, loadMore: loadMoreRatelimits } =
-    useRatelimitNavigation(apiAddedNavItems);
+  const { enhancedNavItems: ratelimitAddedNavItems } = useRatelimitNavigation(apiAddedNavItems);
 
-  const { enhancedNavItems: projectAddedNavItems, loadMore: loadMoreProjects } =
-    useProjectNavigation(ratelimitAddedNavItems);
+  const { enhancedNavItems: projectAddedNavItems } = useProjectNavigation(ratelimitAddedNavItems);
 
   const handleToggleCollapse = useCallback((item: NavItem, isOpen: boolean) => {
     // Check if this item corresponds to any solo mode route
@@ -101,24 +98,6 @@ export function AppSidebar({
     }
   }, []);
 
-  const handleLoadMore = useCallback(
-    (item: NavItem & { loadMoreAction?: boolean }) => {
-      const loadMoreMap = {
-        "#load-more-projects": loadMoreProjects,
-        "#load-more-ratelimits": loadMoreRatelimits,
-        "#load-more-apis": loadMoreApis,
-      };
-
-      const loadMoreFn = loadMoreMap[item.href as keyof typeof loadMoreMap];
-
-      if (loadMoreFn) {
-        loadMoreFn();
-      } else {
-        console.error(`Unknown load more action for href: ${item.href}`);
-      }
-    },
-    [loadMoreApis, loadMoreRatelimits, loadMoreProjects],
-  );
   const toggleNavItem: NavItem = useMemo(
     () => ({
       label: "Toggle Sidebar",
@@ -219,7 +198,6 @@ export function AppSidebar({
               >
                 <NavItems
                   item={item}
-                  onLoadMore={handleLoadMore}
                   onToggleCollapse={handleToggleCollapse}
                   forceCollapsed={getForceCollapsedForItem(item)}
                 />
