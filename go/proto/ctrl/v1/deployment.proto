@@ -133,10 +133,13 @@ message RollbackRequest {
   string target_deployment_id = 2;
 }
 
-message RollbackResponse {
-  // the rolled back domains
-  repeated string domains = 1;
+message RollbackResponse {}
+
+message PromoteRequest {
+  string target_deployment_id = 1;
 }
+
+message PromoteResponse {}
 
 service DeploymentService {
   // Create a new deployment
@@ -147,4 +150,7 @@ service DeploymentService {
 
   // Reassign the sticky domains of the projects live deployment to the target deployment
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+
+  // Promote the deployment to the live environment
+  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 }

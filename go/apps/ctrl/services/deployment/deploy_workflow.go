@@ -291,14 +291,15 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 					// Domain does not exist, create it
 					insertError := db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
-						ID:           uid.New("domain"),
-						WorkspaceID:  req.WorkspaceID,
-						ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
-						Domain:       domain.domain,
-						Sticky:       domain.sticky,
-						DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-						CreatedAt:    now,
-						Type:         db.DomainsTypeWildcard,
+						ID:            uid.New("domain"),
+						WorkspaceID:   req.WorkspaceID,
+						ProjectID:     sql.NullString{Valid: true, String: req.ProjectID},
+						EnvironmentID: sql.NullString{Valid: true, String: req.EnvironmentID},
+						Domain:        domain.domain,
+						Sticky:        domain.sticky,
+						DeploymentID:  sql.NullString{Valid: true, String: req.DeploymentID},
+						CreatedAt:     now,
+						Type:          db.DomainsTypeWildcard,
 					})
 					if insertError != nil {
 						return fmt.Errorf("failed to create domain entry for deployment %s: %w", req.DeploymentID, err)
@@ -307,7 +308,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					return nil
 				}
 
-				if existing.IsRolledBack {
+				if existing.RolledBackDeploymentID.Valid {
 					w.logger.Info("Skipping rolled back domain",
 						"domain_id", existing.ID,
 						"domain", existing.Domain,
@@ -315,10 +316,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					return nil
 				}
 				updateErr := db.Query.ReassignDomain(txCtx, tx, db.ReassignDomainParams{
-					ID:                 existing.ID,
-					TargetWorkspaceID:  workspace.ID,
-					TargetDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-					IsRolledBack:       false,
+					ID:                     existing.ID,
+					TargetWorkspaceID:      workspace.ID,
+					DeploymentID:           sql.NullString{Valid: true, String: req.DeploymentID},
+					RolledBackDeploymentID: sql.NullString{Valid: false, String: ""},
 				})
 
 				if updateErr != nil {

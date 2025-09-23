@@ -15,17 +15,17 @@ UPDATE domains
 SET
   workspace_id = ?,
   deployment_id = ?,
-  is_rolled_back = ?,
+  rolled_back_deployment_id = ?,
   updated_at = ?
 WHERE id = ?
 `
 
 type ReassignDomainParams struct {
-	TargetWorkspaceID  string         `db:"target_workspace_id"`
-	TargetDeploymentID sql.NullString `db:"target_deployment_id"`
-	IsRolledBack       bool           `db:"is_rolled_back"`
-	UpdatedAt          sql.NullInt64  `db:"updated_at"`
-	ID                 string         `db:"id"`
+	TargetWorkspaceID      string         `db:"target_workspace_id"`
+	DeploymentID           sql.NullString `db:"deployment_id"`
+	RolledBackDeploymentID sql.NullString `db:"rolled_back_deployment_id"`
+	UpdatedAt              sql.NullInt64  `db:"updated_at"`
+	ID                     string         `db:"id"`
 }
 
 // ReassignDomain
@@ -34,14 +34,14 @@ type ReassignDomainParams struct {
 //	SET
 //	  workspace_id = ?,
 //	  deployment_id = ?,
-//	  is_rolled_back = ?,
+//	  rolled_back_deployment_id = ?,
 //	  updated_at = ?
 //	WHERE id = ?
 func (q *Queries) ReassignDomain(ctx context.Context, db DBTX, arg ReassignDomainParams) error {
 	_, err := db.ExecContext(ctx, reassignDomain,
 		arg.TargetWorkspaceID,
-		arg.TargetDeploymentID,
-		arg.IsRolledBack,
+		arg.DeploymentID,
+		arg.RolledBackDeploymentID,
 		arg.UpdatedAt,
 		arg.ID,
 	)

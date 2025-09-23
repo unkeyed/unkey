@@ -1,8 +1,9 @@
 "use client";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise } from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, ChevronUp } from "@unkey/icons";
 import { useState } from "react";
+import { PromotionDialog } from "../../../promotion-dialog";
 import { RollbackDialog } from "../../../rollback-dialog";
 
 type DeploymentListTableActionsProps = {
@@ -17,16 +18,51 @@ export const DeploymentListTableActions = ({
   environment,
 }: DeploymentListTableActionsProps) => {
   const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
-  const menuItems = getDeploymentListTableActionItems(
-    selectedDeployment,
-    liveDeployment,
-    environment,
-    setIsRollbackModalOpen,
-  );
+  const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
+
+  const canRollback =
+    liveDeployment &&
+    environment?.slug === "production" &&
+    selectedDeployment.status === "ready" &&
+    selectedDeployment.id !== liveDeployment.id;
+
+  // TODO
+  // This logic is slightly flawed as it does not allow you to promote a deployment that
+  // is currently live due to a rollback.
+  const canPromote =
+    liveDeployment &&
+    environment?.slug === "production" &&
+    selectedDeployment.status === "ready" &&
+    selectedDeployment.id !== liveDeployment.id;
 
   return (
     <>
-      <TableActionPopover items={menuItems} />
+      <TableActionPopover
+        items={[
+          {
+            id: "rollback",
+            label: "Rollback",
+            icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
+            disabled: !canRollback,
+            onClick: () => {
+              if (canRollback) {
+                setIsRollbackModalOpen(true);
+              }
+            },
+          },
+          {
+            id: "Promote",
+            label: "Promote",
+            icon: <ChevronUp size="md-regular" />,
+            disabled: !canPromote,
+            onClick: () => {
+              if (canPromote) {
+                setIsPromotionModalOpen(true);
+              }
+            },
+          },
+        ]}
+      />
       {liveDeployment && selectedDeployment && (
         <RollbackDialog
           isOpen={isRollbackModalOpen}
@@ -35,34 +71,14 @@ export const DeploymentListTableActions = ({
           targetDeployment={selectedDeployment}
         />
       )}
+      {liveDeployment && selectedDeployment && (
+        <PromotionDialog
+          isOpen={isPromotionModalOpen}
+          onOpenChange={setIsPromotionModalOpen}
+          liveDeployment={liveDeployment}
+          targetDeployment={selectedDeployment}
+        />
+      )}
     </>
   );
-};
-
-const getDeploymentListTableActionItems = (
-  selectedDeployment: Deployment,
-  liveDeployment: Deployment | undefined,
-  environment: Environment | undefined,
-  setIsRollbackModalOpen: (open: boolean) => void,
-): MenuItem[] => {
-  // Rollback is only enabled for production deployments that are ready and not currently active
-  const canRollback =
-    liveDeployment &&
-    environment?.slug === "production" &&
-    selectedDeployment.status === "ready" &&
-    selectedDeployment.id !== liveDeployment.id;
-
-  return [
-    {
-      id: "rollback",
-      label: "Rollback",
-      icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
-      disabled: !canRollback,
-      onClick: () => {
-        if (canRollback) {
-          setIsRollbackModalOpen(true);
-        }
-      },
-    },
-  ];
 };

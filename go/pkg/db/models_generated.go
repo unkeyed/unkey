@@ -596,16 +596,17 @@ type DeploymentStep struct {
 }
 
 type Domain struct {
-	ID           string            `db:"id"`
-	WorkspaceID  string            `db:"workspace_id"`
-	ProjectID    sql.NullString    `db:"project_id"`
-	DeploymentID sql.NullString    `db:"deployment_id"`
-	Domain       string            `db:"domain"`
-	Type         DomainsType       `db:"type"`
-	Sticky       NullDomainsSticky `db:"sticky"`
-	IsRolledBack bool              `db:"is_rolled_back"`
-	CreatedAt    int64             `db:"created_at"`
-	UpdatedAt    sql.NullInt64     `db:"updated_at"`
+	ID                     string            `db:"id"`
+	WorkspaceID            string            `db:"workspace_id"`
+	ProjectID              sql.NullString    `db:"project_id"`
+	EnvironmentID          sql.NullString    `db:"environment_id"`
+	DeploymentID           sql.NullString    `db:"deployment_id"`
+	RolledBackDeploymentID sql.NullString    `db:"rolled_back_deployment_id"`
+	Domain                 string            `db:"domain"`
+	Type                   DomainsType       `db:"type"`
+	Sticky                 NullDomainsSticky `db:"sticky"`
+	CreatedAt              int64             `db:"created_at"`
+	UpdatedAt              sql.NullInt64     `db:"updated_at"`
 }
 
 type EncryptedKey struct {

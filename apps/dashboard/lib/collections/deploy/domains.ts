@@ -10,6 +10,7 @@ const schema = z.object({
   type: z.enum(["custom", "wildcard"]),
   projectId: z.string().nullable(),
   deploymentId: z.string().nullable(),
+  rolledBackDeploymentId: z.string().nullable(),
   sticky: z.enum(["branch", "environment", "live"]).nullable(),
 });
 
