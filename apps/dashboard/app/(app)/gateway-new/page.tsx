@@ -8,8 +8,8 @@
  * 4. The user is redirected to create their API
  */
 
-import { getAuthOrRedirect } from "@/lib/auth";
 import { randomInt } from "node:crypto";
+import { getAuthOrRedirect } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
 import { newId } from "@unkey/id";
