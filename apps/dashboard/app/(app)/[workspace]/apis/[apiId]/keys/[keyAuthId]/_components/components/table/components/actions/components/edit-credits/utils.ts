@@ -2,10 +2,9 @@ import { getDefaultValues } from "@/app/(app)/[workspace]/apis/[apiId]/_componen
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import type { z } from "zod";
 
+// biome-ignore format: the comma after z.infer is incorrect syntax
 type Refill = z.infer<
-  typeof import(
-    "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema",
-  ).refillSchema
+  typeof import("@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema").refillSchema
 >;
 
 export const getKeyLimitDefaults = (keyDetails: KeyDetails) => {
