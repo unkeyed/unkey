@@ -28,6 +28,10 @@ type RatelimitV2 struct {
 	Identifier  string  `ch:"identifier" json:"identifier"`
 	Passed      bool    `ch:"passed" json:"passed"`
 	Latency     float64 `ch:"latency" json:"latency"`
+	OverrideID  string  `ch:"override_id" json:"override_id"`
+	Limit       uint64  `ch:"limit" json:"limit"`
+	Remaining   uint64  `ch:"remaining" json:"remaining"`
+	Reset       int64   `ch:"reset" json:"reset"`
 }
 
 // ApiRequestV2 represents the v2 API request raw table structure.
