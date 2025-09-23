@@ -167,7 +167,7 @@ const columns: Column<Log>[] = [
     header: "Response Body",
     width: "300px",
     render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate" title={log.response_body}>
+      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.response_body}>
         {log.response_body}
       </div>
     ),
@@ -177,7 +177,7 @@ const columns: Column<Log>[] = [
     header: "Request Body",
     width: "1fr",
     render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate" title={log.request_body}>
+      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.request_body}>
         {log.request_body}
       </div>
     ),
