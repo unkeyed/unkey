@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultTTL           = 10 * time.Minute
+	defaultTTL           = 30 * time.Second
 	defaultReplayWorkers = 8
 )
 

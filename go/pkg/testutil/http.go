@@ -118,7 +118,7 @@ func NewHarness(t *testing.T) *Harness {
 		Logger:  logger,
 		DB:      db,
 		Counter: ctr,
-		TTL:     60 * time.Second,
+		TTL:     30 * time.Second,
 	})
 	require.NoError(t, err)
 

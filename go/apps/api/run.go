@@ -183,7 +183,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:  logger,
 		DB:      db,
 		Counter: ctr,
-		TTL:     60 * time.Second,
+		TTL:     30 * time.Second,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
