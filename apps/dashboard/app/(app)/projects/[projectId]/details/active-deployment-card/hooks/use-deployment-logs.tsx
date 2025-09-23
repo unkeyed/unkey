@@ -2,6 +2,15 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+const BUILD_STEPS_REFETCH_INTERVAL = 500;
+const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
+const GATEWAY_LOGS_LIMIT = 20;
+const GATEWAY_LOGS_SINCE = "1m";
+const MAX_STORED_LOGS = 200;
+const SCROLL_RESET_DELAY = 50;
+const ERROR_STATUS_THRESHOLD = 500;
+const WARNING_STATUS_THRESHOLD = 400;
+
 type LogEntry = {
   type: "build" | "gateway";
   id: string;
@@ -52,30 +61,32 @@ export function useDeploymentLogs({
 
   const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
     { deploymentId },
-    { enabled: showBuildSteps && isExpanded, refetchInterval: 500 },
+    {
+      enabled: showBuildSteps && isExpanded,
+      refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
+    },
   );
 
   const { data: gatewayData, isLoading: gatewayLoading } = trpc.logs.queryLogs.useQuery(
     {
-      limit: 20,
+      limit: GATEWAY_LOGS_LIMIT,
       endTime: timestamp,
       startTime: timestamp,
-      // TODO: Exclude some hosts
       host: { filters: [] },
       method: { filters: [] },
       path: { filters: [] },
       status: { filters: [] },
       requestId: null,
-      since: "1m",
+      since: GATEWAY_LOGS_SINCE,
     },
     {
       enabled: !showBuildSteps && isExpanded,
-      refetchInterval: 2000,
+      refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
       refetchOnWindowFocus: false,
     },
   );
 
-  // Update stored logs when data changes
+  // Update stored logs when build data changes
   useEffect(() => {
     if (showBuildSteps && buildData?.logs) {
       const logMap = new Map<string, LogEntry>();
@@ -91,6 +102,7 @@ export function useDeploymentLogs({
     }
   }, [showBuildSteps, buildData]);
 
+  // Update stored logs when gateway data changes
   useEffect(() => {
     if (!showBuildSteps && gatewayData?.logs) {
       setStoredLogs((prev) => {
@@ -98,9 +110,9 @@ export function useDeploymentLogs({
 
         gatewayData.logs.forEach((log) => {
           let level: "warning" | "error" | undefined;
-          if (log.error || log.response_status >= 500) {
+          if (log.error || log.response_status >= ERROR_STATUS_THRESHOLD) {
             level = "error";
-          } else if (log.response_status >= 400) {
+          } else if (log.response_status >= WARNING_STATUS_THRESHOLD) {
             level = "warning";
           }
 
@@ -115,7 +127,7 @@ export function useDeploymentLogs({
 
         const sortedEntries = Array.from(newMap.entries())
           .sort((a, b) => a[1].timestamp - b[1].timestamp)
-          .slice(0, 200);
+          .slice(0, MAX_STORED_LOGS);
 
         return new Map(sortedEntries);
       });
@@ -155,6 +167,7 @@ export function useDeploymentLogs({
     return filtered;
   }, [logs, logFilter, searchTerm]);
 
+  // Auto-expand when logs are available
   useEffect(() => {
     if (logs.length > 0) {
       setIsExpanded(true);
@@ -171,7 +184,7 @@ export function useDeploymentLogs({
   const setExpanded = (expanded: boolean) => {
     setIsExpanded(expanded);
     if (!expanded) {
-      setTimeout(resetScroll, 50);
+      setTimeout(resetScroll, SCROLL_RESET_DELAY);
     }
   };
 
