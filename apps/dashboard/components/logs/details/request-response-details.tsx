@@ -64,7 +64,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       // biome-ignore lint/a11y/useKeyWithClickEvents: no need
       <div
         className={cn(
-          "flex w-full justify-between border-border border-solid pr-3 py-3 items-center cursor-pointer",
+          "flex w-full justify-between border-grayA-3 border-solid pr-3 py-3 items-center cursor-pointer",
           "border-b",
           field.className,
         )}
