@@ -21,7 +21,7 @@ export const LogDetails = ({ distanceToTop }: Props) => {
   };
 
   return (
-    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
+    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <SharedLogDetails.Header onClose={handleClose} />
       <SharedLogDetails.Sections />
       <SharedLogDetails.Spacer delay={ANIMATION_DELAY} />

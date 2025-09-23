@@ -20,7 +20,7 @@ export const GatewayLogDetails = ({ distanceToTop }: Props) => {
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
+    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer delay={ANIMATION_DELAY} />
