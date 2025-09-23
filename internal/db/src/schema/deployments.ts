@@ -1,14 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  index,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  text,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { projects } from "./projects";
@@ -24,8 +15,6 @@ export const deployments = mysqlTable(
 
     // Environment configuration (production, preview, etc.)
     environmentId: varchar("environment_id", { length: 256 }).notNull(),
-
-    isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),

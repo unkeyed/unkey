@@ -46,13 +46,15 @@ export const ROLLED_BACK_STYLES = {
   focusRing: "focus:ring-warning-7",
 };
 
-export const getRowClassName = (deployment: Deployment, selectedDeploymentId?: string) => {
+export const getRowClassName = (
+  deployment: Deployment,
+  selectedDeploymentId: string | null,
+  rolledBackDeploymentId: string | null,
+) => {
   const isFailed = deployment.status === "failed";
-  const style = isFailed
-    ? FAILED_STATUS_STYLES
-    : deployment.isRolledBack
-      ? ROLLED_BACK_STYLES
-      : STATUS_STYLES;
+  const isRolledBack = deployment.id === rolledBackDeploymentId;
+
+  const style = isFailed ? FAILED_STATUS_STYLES : isRolledBack ? ROLLED_BACK_STYLES : STATUS_STYLES;
   const isSelected =
     typeof selectedDeploymentId !== "undefined" && deployment.id === selectedDeploymentId;
 
