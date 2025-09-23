@@ -110,7 +110,7 @@ export function useDeploymentLogs({
 
         gatewayData.logs.forEach((log) => {
           let level: "warning" | "error" | undefined;
-          if (log.error || log.response_status >= ERROR_STATUS_THRESHOLD) {
+          if (log.response_status >= ERROR_STATUS_THRESHOLD) {
             level = "error";
           } else if (log.response_status >= WARNING_STATUS_THRESHOLD) {
             level = "warning";
@@ -120,7 +120,7 @@ export function useDeploymentLogs({
             type: "gateway",
             id: log.request_id,
             timestamp: log.time,
-            message: `${log.method} ${log.path} → ${log.response_status} (${log.service_latency}ms)`,
+            message: `${log.response_status} ${log.method} ${log.path} (${log.service_latency}ms)`,
             level,
           });
         });

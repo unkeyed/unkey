@@ -265,9 +265,6 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
                       <span className="text-grayA-9 pl-3">
                         {format(new Date(log.timestamp), "HH:mm:ss.SSS")}
                       </span>
-                      {log.level && (
-                        <span className="font-medium">[{log.level.toUpperCase()}]</span>
-                      )}
                       <span className="pr-3">{log.message}</span>
                     </div>
                   ))}
