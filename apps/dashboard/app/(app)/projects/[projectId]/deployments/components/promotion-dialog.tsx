@@ -116,14 +116,17 @@ export const PromotionDialog = ({
         />
         <div>
           {domains.data.map((domain) => (
-            <div
-              key={domain.id}
-              className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative"
-            >
-              <div className="flex items-center">
-                <Link4 className="text-gray-9" size="sm-medium" />
-                <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
-                <div className="ml-3" />
+            <div className="space-y-2" key={domain.id}>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] text-grayA-11">Domain</h3>
+                <CircleInfo size="sm-regular" className="text-gray-9" />
+              </div>
+              <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
+                <div className="flex items-center">
+                  <Link4 className="text-gray-9" size="sm-medium" />
+                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
+                  <div className="ml-3" />
+                </div>
               </div>
             </div>
           ))}
