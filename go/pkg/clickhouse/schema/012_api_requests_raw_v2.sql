@@ -46,7 +46,7 @@ SELECT
   method,
   path,
   '' as query_string,
-  map() as query_params,
+  CAST(mapFromArrays(CAST([],'Array(String)'), CAST([],'Array(Array(String))')), 'Map(String, Array(String))') AS query_params,
   request_headers,
   request_body,
   response_status,
