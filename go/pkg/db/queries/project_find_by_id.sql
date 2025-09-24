@@ -8,6 +8,7 @@ SELECT
     default_branch,
     delete_protection,
     live_deployment_id,
+    rolled_back_deployment_id,
     created_at,
     updated_at
 FROM projects

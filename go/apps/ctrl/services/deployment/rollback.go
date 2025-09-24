@@ -166,43 +166,18 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		}
 	}
 
-	err = db.Query.UpdateProjectLiveDeploymentId(ctx, s.db.RW(), db.UpdateProjectLiveDeploymentIdParams{
-		ID:               project.ID,
-		LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	err = db.Query.UpdateProjectDeployments(ctx, s.db.RW(), db.UpdateProjectDeploymentsParams{
+		ID:                     project.ID,
+		LiveDeploymentID:       sql.NullString{Valid: true, String: targetDeployment.ID},
+		RolledBackDeploymentID: sql.NullString{Valid: true, String: sourceDeployment.ID},
+		UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
-		s.logger.Error("failed to update project active deployment ID",
+		s.logger.Error("failed to update project deployments",
 			"project_id", project.ID,
 			"error", err.Error(),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update project's live deployment id: %w", err))
-	}
-
-	err = db.Query.UpdateDeploymentRollback(ctx, s.db.RW(), db.UpdateDeploymentRollbackParams{
-		ID:           sourceDeployment.ID,
-		IsRolledBack: false,
-		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-	})
-	if err != nil {
-		s.logger.Error("failed to update deployment rollback status",
-			"deployment_id", sourceDeployment.ID,
-			"error", err.Error(),
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
-	}
-
-	err = db.Query.UpdateDeploymentRollback(ctx, s.db.RW(), db.UpdateDeploymentRollbackParams{
-		ID:           targetDeployment.ID,
-		IsRolledBack: true,
-		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-	})
-	if err != nil {
-		s.logger.Error("failed to update deployment rollback status",
-			"deployment_id", targetDeployment.ID,
-			"error", err.Error(),
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
 	}
 
 	res := &ctrlv1.RollbackResponse{

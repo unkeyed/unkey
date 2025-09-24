@@ -113,6 +113,7 @@ export const useDeployments = () => {
   );
 
   return {
+    project,
     deployments,
     liveDeployment,
   };
