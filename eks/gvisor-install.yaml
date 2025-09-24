@@ -1,0 +1,79 @@
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: runsc
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: install-gvisor
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: install-gvisor
+  template:
+    metadata:
+      labels:
+        app: install-gvisor
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+      - operator: Exists
+      containers:
+      - name: installer
+        image: ubuntu:22.04
+        securityContext:
+          privileged: true
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -ex
+
+          # Install curl
+          apt-get update && apt-get install -y curl
+
+          # Download gVisor binaries
+          ARCH=x86_64
+          curl -fsSL "https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}/runsc" -o /host/usr/local/bin/runsc
+          curl -fsSL "https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}/containerd-shim-runsc-v1" -o /host/usr/local/bin/containerd-shim-runsc-v1
+          chmod a+rx /host/usr/local/bin/runsc /host/usr/local/bin/containerd-shim-runsc-v1
+
+          # Configure containerd by appending gVisor runtime to existing config
+          # Backup existing config
+          cp /host/etc/containerd/config.toml /host/etc/containerd/config.toml.backup || true
+
+          # Add gVisor runtime to existing config if not present
+          if ! grep -q "runtimes.runsc" /host/etc/containerd/config.toml; then
+            echo "" >> /host/etc/containerd/config.toml
+            echo "# gVisor runtime configuration" >> /host/etc/containerd/config.toml
+            echo '[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]' >> /host/etc/containerd/config.toml
+            echo '  runtime_type = "io.containerd.runsc.v1"' >> /host/etc/containerd/config.toml
+          else
+            echo "gVisor runtime already configured"
+          fi
+
+          # Restart containerd
+          nsenter -t 1 -m -u -n -p -- systemctl restart containerd
+
+          # Verify installation
+          /host/usr/local/bin/runsc --version
+
+          # Keep running
+          sleep infinity
+        volumeMounts:
+        - name: host-root
+          mountPath: /host
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+      volumes:
+      - name: host-root
+        hostPath:
+          path: /

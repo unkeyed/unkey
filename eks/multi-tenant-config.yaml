@@ -1,0 +1,232 @@
+# Multi-Tenant Platform Configuration for Kubernetes
+# This file demonstrates how to set up isolated tenants with per-deployment subnets
+
+---
+# Example: Tenant Namespace with IPv6 subnet allocation
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-example
+  labels:
+    tenant: example
+    isolation: strict
+  annotations:
+    # Allocate a /56 IPv6 subnet for this tenant
+    # This gives 256 /64 subnets for deployments
+    cilium.io/ipv6-pool: "fd00:1000::/56"
+
+---
+# CiliumNetworkPolicy for complete tenant isolation
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: tenant-isolation
+  namespace: tenant-example
+spec:
+  description: "Isolate tenant namespace - only allow traffic through gateway"
+  endpointSelector:
+    matchLabels:
+      # Apply to all pods in this namespace except gateway
+      "!gateway": "true"
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            gateway: "true"
+            io.kubernetes.pod.namespace: tenant-example
+    - fromEndpoints:
+        - matchLabels:
+            # Allow traffic between pods in same deployment
+            deployment: same
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            gateway: "true"
+            io.kubernetes.pod.namespace: tenant-example
+    - toEndpoints:
+        - matchLabels:
+            # Allow traffic between pods in same deployment
+            deployment: same
+    # Allow DNS
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+
+---
+# Per-Deployment Subnet Allocation using CiliumClusterwideNetworkPolicy
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: deployment-subnet-isolation
+spec:
+  description: "Ensure deployments can only communicate within their allocated subnet"
+  endpointSelector:
+    matchLabels:
+      has-subnet: "true"
+  ingress:
+    - fromCIDRSet:
+        # Only allow traffic from same /64 subnet
+        - cidr: "fd00::/64"
+          except:
+            - "fd00::/48"
+      fromRequires:
+        - matchLabels:
+            deployment: same
+  egress:
+    - toCIDRSet:
+        - cidr: "fd00::/64"
+          except:
+            - "fd00::/48"
+      toRequires:
+        - matchLabels:
+            deployment: same
+
+---
+# Gateway Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-gateway
+  namespace: tenant-example
+  annotations:
+    # Allocate specific IPv6 for gateway
+    cilium.io/ipv6-address: "fd00:1000::1"
+spec:
+  type: LoadBalancer
+  selector:
+    app: gateway
+    tenant: example
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+    - port: 443
+      targetPort: 8443
+      name: https
+
+---
+# Gateway Deployment with Envoy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenant-gateway
+  namespace: tenant-example
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+      tenant: example
+  template:
+    metadata:
+      labels:
+        app: gateway
+        tenant: example
+        gateway: "true"
+      annotations:
+        # Gateway gets a specific /64 subnet
+        cilium.io/ipv6-pool: "fd00:1000:0:1::/64"
+    spec:
+      # Optional: Use gVisor for gateway security
+      runtimeClassName: gvisor
+      containers:
+      - name: envoy
+        image: envoyproxy/envoy:v1.28-latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        - containerPort: 9901
+          name: admin
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+        command:
+        - "/usr/local/bin/envoy"
+        - "-c"
+        - "/etc/envoy/envoy.yaml"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: gateway-envoy-config
+
+---
+# Example Deployment with its own subnet
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment-1
+  namespace: tenant-example
+  annotations:
+    # This deployment gets subnet fd00:1000:0:10::/64
+    cilium.io/ipv6-pool: "fd00:1000:0:10::/64"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app1
+      deployment: app1
+      tenant: example
+  template:
+    metadata:
+      labels:
+        app: app1
+        deployment: app1
+        tenant: example
+        has-subnet: "true"
+    spec:
+      # Use gVisor for additional isolation
+      runtimeClassName: gvisor
+      containers:
+      - name: app
+        image: your-app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: POD_IPS
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIPs
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+---
+# CiliumLocalRedirectPolicy for internal routing
+apiVersion: cilium.io/v2
+kind: CiliumLocalRedirectPolicy
+metadata:
+  name: gateway-redirect
+  namespace: tenant-example
+spec:
+  description: "Redirect internal traffic through gateway"
+  redirectFrontend:
+    serviceMatcher:
+      serviceName: tenant-gateway
+      namespace: tenant-example
+  redirectBackend:
+    localEndpointSelector:
+      matchLabels:
+        app: gateway
+        tenant: example
+  skipRedirectFromBackend: true
