@@ -571,7 +571,6 @@ type Deployment struct {
 	WorkspaceID              string            `db:"workspace_id"`
 	ProjectID                string            `db:"project_id"`
 	EnvironmentID            string            `db:"environment_id"`
-	IsRolledBack             bool              `db:"is_rolled_back"`
 	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
 	GitBranch                sql.NullString    `db:"git_branch"`
 	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
@@ -715,16 +714,17 @@ type Permission struct {
 }
 
 type Project struct {
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	DefaultBranch    sql.NullString `db:"default_branch"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	ID                     string         `db:"id"`
+	WorkspaceID            string         `db:"workspace_id"`
+	Name                   string         `db:"name"`
+	Slug                   string         `db:"slug"`
+	GitRepositoryUrl       sql.NullString `db:"git_repository_url"`
+	LiveDeploymentID       sql.NullString `db:"live_deployment_id"`
+	RolledBackDeploymentID sql.NullString `db:"rolled_back_deployment_id"`
+	DefaultBranch          sql.NullString `db:"default_branch"`
+	DeleteProtection       sql.NullBool   `db:"delete_protection"`
+	CreatedAt              int64          `db:"created_at"`
+	UpdatedAt              sql.NullInt64  `db:"updated_at"`
 }
 
 type Quotum struct {
