@@ -117,7 +117,7 @@ export const RollbackDialog = ({
           {domains.data.map((domain) => (
             <div
               key={domain.id}
-              className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center"
+              className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative"
             >
               <div className="flex items-center">
                 <Link4 className="text-gray-9" size="sm-medium" />
