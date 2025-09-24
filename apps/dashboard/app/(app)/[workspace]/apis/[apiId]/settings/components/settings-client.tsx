@@ -1,6 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { CopyApiId } from "./copy-api-id";
 import { DefaultBytes } from "./default-bytes";
@@ -12,12 +11,6 @@ import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
 export const SettingsClient = ({ apiId }: { apiId: string }) => {
-  const workspace = useWorkspaceNavigation();
-
-  if (!workspace) {
-    return null;
-  }
-
   const {
     data: layoutData,
     isLoading,
@@ -25,6 +18,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
   } = trpc.api.queryApiKeyDetails.useQuery({
     apiId,
   });
+
   if (isLoading) {
     return <SettingsClientSkeleton />;
   }
