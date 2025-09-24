@@ -11,7 +11,7 @@ const schema = z.object({
   gitRepositoryUrl: z.string().nullable(),
   updatedAt: z.number().int().nullable(),
   liveDeploymentId: z.string().nullable(),
-  rolledBackDeploymentId: z.string().nullable(),
+  isRolledBack: z.boolean(),
   // Flattened deployment fields for UI
   commitTitle: z.string(),
   branch: z.string(),

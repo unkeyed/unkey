@@ -5,7 +5,6 @@ SELECT
     project_id,
     domain,
     deployment_id,
-    rolled_back_deployment_id,
     sticky,
     created_at,
     updated_at

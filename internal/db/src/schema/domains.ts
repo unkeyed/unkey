@@ -12,12 +12,6 @@ export const domains = mysqlTable(
     // The deployment id where this domain should usually point to unless it's rolled back
     deploymentId: varchar("deployment_id", { length: 256 }),
 
-    // The deployment id for which this domain is currently assigned to due to a rollback
-    // if this is null, the domain is not rolled back
-    rolledBackDeploymentId: varchar("rolled_back_deployment_id", {
-      length: 256,
-    }),
-
     domain: varchar("domain", { length: 256 }).notNull(),
     type: mysqlEnum("type", ["custom", "wildcard"]).notNull(),
     // sticky determines whether a domain should get reassigned to the latest deployment

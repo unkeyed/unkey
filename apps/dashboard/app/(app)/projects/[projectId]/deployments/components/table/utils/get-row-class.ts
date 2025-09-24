@@ -36,9 +36,9 @@ export const FAILED_STATUS_STYLES = {
 };
 
 export const ROLLED_BACK_STYLES = {
-  base: "text-grayA-9 bg-warning-1",
-  hover: "hover:text-grayA-11 hover:bg-warning-2",
-  selected: "text-grayA-12 bg-warning-3 hover:bg-warning-3",
+  base: "text-grayA-9 bg-warning-2",
+  hover: "hover:text-grayA-11 hover:bg-warning-4",
+  selected: "text-grayA-12 bg-warning-5 hover:bg-warning-6",
   badge: {
     default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
     selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
@@ -49,12 +49,16 @@ export const ROLLED_BACK_STYLES = {
 export const getRowClassName = (
   deployment: Deployment,
   selectedDeploymentId: string | null,
-  rolledBackDeploymentId: string | null,
+  liveDeploymentId: string | null,
+  isRolledBack: boolean,
 ) => {
   const isFailed = deployment.status === "failed";
-  const isRolledBack = deployment.id === rolledBackDeploymentId;
 
-  const style = isFailed ? FAILED_STATUS_STYLES : isRolledBack ? ROLLED_BACK_STYLES : STATUS_STYLES;
+  const style = isFailed
+    ? FAILED_STATUS_STYLES
+    : isRolledBack && liveDeploymentId === deployment.id
+      ? ROLLED_BACK_STYLES
+      : STATUS_STYLES;
   const isSelected =
     typeof selectedDeploymentId !== "undefined" && deployment.id === selectedDeploymentId;
 

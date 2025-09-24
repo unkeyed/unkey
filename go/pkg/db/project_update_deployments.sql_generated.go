@@ -14,16 +14,16 @@ const updateProjectDeployments = `-- name: UpdateProjectDeployments :exec
 UPDATE projects
 SET
   live_deployment_id = ?,
-  rolled_back_deployment_id = ?,
+  is_rolled_back = ?,
   updated_at = ?
 WHERE id = ?
 `
 
 type UpdateProjectDeploymentsParams struct {
-	LiveDeploymentID       sql.NullString `db:"live_deployment_id"`
-	RolledBackDeploymentID sql.NullString `db:"rolled_back_deployment_id"`
-	UpdatedAt              sql.NullInt64  `db:"updated_at"`
-	ID                     string         `db:"id"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	IsRolledBack     bool           `db:"is_rolled_back"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	ID               string         `db:"id"`
 }
 
 // UpdateProjectDeployments
@@ -31,13 +31,13 @@ type UpdateProjectDeploymentsParams struct {
 //	UPDATE projects
 //	SET
 //	  live_deployment_id = ?,
-//	  rolled_back_deployment_id = ?,
+//	  is_rolled_back = ?,
 //	  updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateProjectDeployments(ctx context.Context, db DBTX, arg UpdateProjectDeploymentsParams) error {
 	_, err := db.ExecContext(ctx, updateProjectDeployments,
 		arg.LiveDeploymentID,
-		arg.RolledBackDeploymentID,
+		arg.IsRolledBack,
 		arg.UpdatedAt,
 		arg.ID,
 	)

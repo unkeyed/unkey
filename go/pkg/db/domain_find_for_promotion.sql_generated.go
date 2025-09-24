@@ -19,37 +19,31 @@ SELECT
     environment_id,
     domain,
     deployment_id,
-    rolled_back_deployment_id,
     sticky,
     created_at,
     updated_at
 FROM domains
 WHERE
   environment_id = ?
-  AND (
-    deployment_id = ?
-    OR sticky IN (/*SLICE:sticky*/?)
-  )
+  AND sticky IN (/*SLICE:sticky*/?)
 ORDER BY created_at ASC
 `
 
 type FindDomainsForPromotionParams struct {
-	EnvironmentID      sql.NullString      `db:"environment_id"`
-	TargetDeploymentID sql.NullString      `db:"target_deployment_id"`
-	Sticky             []NullDomainsSticky `db:"sticky"`
+	EnvironmentID sql.NullString      `db:"environment_id"`
+	Sticky        []NullDomainsSticky `db:"sticky"`
 }
 
 type FindDomainsForPromotionRow struct {
-	ID                     string            `db:"id"`
-	WorkspaceID            string            `db:"workspace_id"`
-	ProjectID              sql.NullString    `db:"project_id"`
-	EnvironmentID          sql.NullString    `db:"environment_id"`
-	Domain                 string            `db:"domain"`
-	DeploymentID           sql.NullString    `db:"deployment_id"`
-	RolledBackDeploymentID sql.NullString    `db:"rolled_back_deployment_id"`
-	Sticky                 NullDomainsSticky `db:"sticky"`
-	CreatedAt              int64             `db:"created_at"`
-	UpdatedAt              sql.NullInt64     `db:"updated_at"`
+	ID            string            `db:"id"`
+	WorkspaceID   string            `db:"workspace_id"`
+	ProjectID     sql.NullString    `db:"project_id"`
+	EnvironmentID sql.NullString    `db:"environment_id"`
+	Domain        string            `db:"domain"`
+	DeploymentID  sql.NullString    `db:"deployment_id"`
+	Sticky        NullDomainsSticky `db:"sticky"`
+	CreatedAt     int64             `db:"created_at"`
+	UpdatedAt     sql.NullInt64     `db:"updated_at"`
 }
 
 // FindDomainsForPromotion
@@ -61,23 +55,18 @@ type FindDomainsForPromotionRow struct {
 //	    environment_id,
 //	    domain,
 //	    deployment_id,
-//	    rolled_back_deployment_id,
 //	    sticky,
 //	    created_at,
 //	    updated_at
 //	FROM domains
 //	WHERE
 //	  environment_id = ?
-//	  AND (
-//	    deployment_id = ?
-//	    OR sticky IN (/*SLICE:sticky*/?)
-//	  )
+//	  AND sticky IN (/*SLICE:sticky*/?)
 //	ORDER BY created_at ASC
 func (q *Queries) FindDomainsForPromotion(ctx context.Context, db DBTX, arg FindDomainsForPromotionParams) ([]FindDomainsForPromotionRow, error) {
 	query := findDomainsForPromotion
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.EnvironmentID)
-	queryParams = append(queryParams, arg.TargetDeploymentID)
 	if len(arg.Sticky) > 0 {
 		for _, v := range arg.Sticky {
 			queryParams = append(queryParams, v)
@@ -101,7 +90,6 @@ func (q *Queries) FindDomainsForPromotion(ctx context.Context, db DBTX, arg Find
 			&i.EnvironmentID,
 			&i.Domain,
 			&i.DeploymentID,
-			&i.RolledBackDeploymentID,
 			&i.Sticky,
 			&i.CreatedAt,
 			&i.UpdatedAt,

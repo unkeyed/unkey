@@ -17,7 +17,6 @@ SELECT
     project_id,
     domain,
     deployment_id,
-    rolled_back_deployment_id,
     sticky,
     created_at,
     updated_at
@@ -27,15 +26,14 @@ ORDER BY created_at ASC
 `
 
 type FindDomainsByDeploymentIdRow struct {
-	ID                     string            `db:"id"`
-	WorkspaceID            string            `db:"workspace_id"`
-	ProjectID              sql.NullString    `db:"project_id"`
-	Domain                 string            `db:"domain"`
-	DeploymentID           sql.NullString    `db:"deployment_id"`
-	RolledBackDeploymentID sql.NullString    `db:"rolled_back_deployment_id"`
-	Sticky                 NullDomainsSticky `db:"sticky"`
-	CreatedAt              int64             `db:"created_at"`
-	UpdatedAt              sql.NullInt64     `db:"updated_at"`
+	ID           string            `db:"id"`
+	WorkspaceID  string            `db:"workspace_id"`
+	ProjectID    sql.NullString    `db:"project_id"`
+	Domain       string            `db:"domain"`
+	DeploymentID sql.NullString    `db:"deployment_id"`
+	Sticky       NullDomainsSticky `db:"sticky"`
+	CreatedAt    int64             `db:"created_at"`
+	UpdatedAt    sql.NullInt64     `db:"updated_at"`
 }
 
 // FindDomainsByDeploymentId
@@ -46,7 +44,6 @@ type FindDomainsByDeploymentIdRow struct {
 //	    project_id,
 //	    domain,
 //	    deployment_id,
-//	    rolled_back_deployment_id,
 //	    sticky,
 //	    created_at,
 //	    updated_at
@@ -68,7 +65,6 @@ func (q *Queries) FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploy
 			&i.ProjectID,
 			&i.Domain,
 			&i.DeploymentID,
-			&i.RolledBackDeploymentID,
 			&i.Sticky,
 			&i.CreatedAt,
 			&i.UpdatedAt,

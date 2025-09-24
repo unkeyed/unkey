@@ -20,7 +20,7 @@ SELECT
     default_branch,
     delete_protection,
     live_deployment_id,
-    rolled_back_deployment_id,
+    is_rolled_back,
     created_at,
     updated_at
 FROM projects
@@ -28,17 +28,17 @@ WHERE id = ?
 `
 
 type FindProjectByIdRow struct {
-	ID                     string         `db:"id"`
-	WorkspaceID            string         `db:"workspace_id"`
-	Name                   string         `db:"name"`
-	Slug                   string         `db:"slug"`
-	GitRepositoryUrl       sql.NullString `db:"git_repository_url"`
-	DefaultBranch          sql.NullString `db:"default_branch"`
-	DeleteProtection       sql.NullBool   `db:"delete_protection"`
-	LiveDeploymentID       sql.NullString `db:"live_deployment_id"`
-	RolledBackDeploymentID sql.NullString `db:"rolled_back_deployment_id"`
-	CreatedAt              int64          `db:"created_at"`
-	UpdatedAt              sql.NullInt64  `db:"updated_at"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	IsRolledBack     bool           `db:"is_rolled_back"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
 // FindProjectById
@@ -52,7 +52,7 @@ type FindProjectByIdRow struct {
 //	    default_branch,
 //	    delete_protection,
 //	    live_deployment_id,
-//	    rolled_back_deployment_id,
+//	    is_rolled_back,
 //	    created_at,
 //	    updated_at
 //	FROM projects
@@ -69,7 +69,7 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.DefaultBranch,
 		&i.DeleteProtection,
 		&i.LiveDeploymentID,
-		&i.RolledBackDeploymentID,
+		&i.IsRolledBack,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

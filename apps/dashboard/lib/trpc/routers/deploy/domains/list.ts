@@ -18,7 +18,6 @@ export const listDomains = t.procedure
           domain: true,
           projectId: true,
           deploymentId: true,
-          rolledBackDeploymentId: true,
           type: true,
           sticky: true,
         },

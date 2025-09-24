@@ -11,7 +11,7 @@ type ProjectRow = {
   updated_at: number | null;
   git_repository_url: string | null;
   live_deployment_id: string | null;
-  rolled_back_deployment_id: string | null;
+  is_rolled_back: boolean;
   git_commit_message: string | null;
   git_branch: string | null;
   git_commit_author_name: string | null;
@@ -33,7 +33,7 @@ export const listProjects = t.procedure
         ${projects.updatedAt},
         ${projects.gitRepositoryUrl},
         ${projects.liveDeploymentId},
-        ${projects.rolledBackDeploymentId},
+        ${projects.isRolledBack},
         ${deployments.gitCommitMessage},
         ${deployments.gitBranch},
         ${deployments.gitCommitAuthorName},
@@ -59,7 +59,7 @@ export const listProjects = t.procedure
         updatedAt: row.updated_at,
         gitRepositoryUrl: row.git_repository_url,
         liveDeploymentId: row.live_deployment_id,
-        rolledBackDeploymentId: row.rolled_back_deployment_id,
+        isRolledBack: row.is_rolled_back,
         commitTitle: row.git_commit_message ?? "[DUMMY] Initial commit",
         branch: row.git_branch ?? "main",
         author: row.git_commit_author_name ?? "[DUMMY] Unknown Author",

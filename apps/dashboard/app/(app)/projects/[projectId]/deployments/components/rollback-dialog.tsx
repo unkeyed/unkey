@@ -3,7 +3,7 @@
 import { type Deployment, collection, collectionManager } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
@@ -45,8 +45,7 @@ export const RollbackDialog = ({
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
+      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
   );
   const rollback = trpc.deploy.deployment.rollback.useMutation({
     onSuccess: () => {

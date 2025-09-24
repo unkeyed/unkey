@@ -74,10 +74,8 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	}
 
 	domains, err := db.Query.FindDomainsForPromotion(ctx, s.db.RO(), db.FindDomainsForPromotionParams{
-		EnvironmentID:      sql.NullString{Valid: true, String: targetDeployment.EnvironmentID},
-		TargetDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+		EnvironmentID: sql.NullString{Valid: true, String: targetDeployment.EnvironmentID},
 		Sticky: []db.NullDomainsSticky{
-			db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyBranch},
 			db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyLive},
 			db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyEnvironment},
 		},
@@ -124,11 +122,10 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 
 	for _, domain := range domains {
 		err = db.Query.ReassignDomain(ctx, s.db.RW(), db.ReassignDomainParams{
-			ID:                     domain.ID,
-			TargetWorkspaceID:      targetDeployment.WorkspaceID,
-			DeploymentID:           sql.NullString{Valid: true, String: targetDeployment.ID},
-			RolledBackDeploymentID: sql.NullString{Valid: false, String: ""},
-			UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:                domain.ID,
+			TargetWorkspaceID: targetDeployment.WorkspaceID,
+			DeploymentID:      sql.NullString{Valid: true, String: targetDeployment.ID},
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
 			s.logger.Error("failed to update domain", "error", err.Error())
@@ -137,10 +134,10 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	}
 
 	err = db.Query.UpdateProjectDeployments(ctx, s.db.RW(), db.UpdateProjectDeploymentsParams{
-		ID:                     project.ID,
-		LiveDeploymentID:       sql.NullString{Valid: true, String: targetDeployment.ID},
-		RolledBackDeploymentID: sql.NullString{Valid: false, String: ""},
-		UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:               project.ID,
+		LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+		IsRolledBack:     false,
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
 		s.logger.Error("failed to update project deployments",

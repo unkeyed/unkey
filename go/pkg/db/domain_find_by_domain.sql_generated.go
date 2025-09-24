@@ -10,12 +10,12 @@ import (
 )
 
 const findDomainByDomain = `-- name: FindDomainByDomain :one
-SELECT id, workspace_id, project_id, environment_id, deployment_id, rolled_back_deployment_id, domain, type, sticky, created_at, updated_at FROM domains WHERE domain = ?
+SELECT id, workspace_id, project_id, environment_id, deployment_id, domain, type, sticky, created_at, updated_at FROM domains WHERE domain = ?
 `
 
 // FindDomainByDomain
 //
-//	SELECT id, workspace_id, project_id, environment_id, deployment_id, rolled_back_deployment_id, domain, type, sticky, created_at, updated_at FROM domains WHERE domain = ?
+//	SELECT id, workspace_id, project_id, environment_id, deployment_id, domain, type, sticky, created_at, updated_at FROM domains WHERE domain = ?
 func (q *Queries) FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error) {
 	row := db.QueryRowContext(ctx, findDomainByDomain, domain)
 	var i Domain
@@ -25,7 +25,6 @@ func (q *Queries) FindDomainByDomain(ctx context.Context, db DBTX, domain string
 		&i.ProjectID,
 		&i.EnvironmentID,
 		&i.DeploymentID,
-		&i.RolledBackDeploymentID,
 		&i.Domain,
 		&i.Type,
 		&i.Sticky,

@@ -308,18 +308,17 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					return nil
 				}
 
-				if existing.RolledBackDeploymentID.Valid {
-					w.logger.Info("Skipping rolled back domain",
+				if project.IsRolledBack {
+					w.logger.Info("Skipping domain cause project is rolled back",
 						"domain_id", existing.ID,
 						"domain", existing.Domain,
 					)
 					return nil
 				}
 				updateErr := db.Query.ReassignDomain(txCtx, tx, db.ReassignDomainParams{
-					ID:                     existing.ID,
-					TargetWorkspaceID:      workspace.ID,
-					DeploymentID:           sql.NullString{Valid: true, String: req.DeploymentID},
-					RolledBackDeploymentID: sql.NullString{Valid: false, String: ""},
+					ID:                existing.ID,
+					TargetWorkspaceID: workspace.ID,
+					DeploymentID:      sql.NullString{Valid: true, String: req.DeploymentID},
 				})
 
 				if updateErr != nil {
@@ -405,14 +404,13 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	if !project.RolledBackDeploymentID.Valid {
+	if !project.IsRolledBack {
 		// only update this if the deployment is not rolled back
 		err = hydra.StepVoid(ctx, "update-project-deployment-pointers", func(stepCtx context.Context) error {
 			return db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
-				ID:                     req.ProjectID,
-				LiveDeploymentID:       sql.NullString{Valid: true, String: req.DeploymentID},
-				RolledBackDeploymentID: sql.NullString{Valid: false, String: ""},
-				UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				ID:               req.ProjectID,
+				LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		})
 		if err != nil {

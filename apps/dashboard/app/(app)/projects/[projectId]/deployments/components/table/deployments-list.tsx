@@ -61,7 +61,6 @@ export const DeploymentsList = () => {
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeployment?.id === deployment.id;
-          const isRolledBack = deployment.id === project?.rolledBackDeploymentId;
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
@@ -88,10 +87,12 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {isRolledBack ? (
-                      <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
-                    ) : isLive ? (
-                      <EnvStatusBadge variant="live" text="Live" />
+                    {isLive ? (
+                      project?.isRolledBack ? (
+                        <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                      ) : (
+                        <EnvStatusBadge variant="live" text="Live" />
+                      )
                     ) : null}
                   </div>
                   <div
@@ -112,14 +113,20 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "12%",
+        width: "10%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
         header: "Domains",
-        width: "20%",
-        render: ({ deployment }) => <DomainList deploymentId={deployment.id} />,
+        width: "25%",
+        render: ({ deployment }) => (
+          <DomainList
+            key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
+            deploymentId={deployment.id}
+            hackyRevalidateDependency={project?.liveDeploymentId}
+          />
+        ),
       },
       ...(isCompactView
         ? []
@@ -286,7 +293,7 @@ export const DeploymentsList = () => {
       {
         key: "action",
         header: "",
-        width: "auto",
+        width: "5%",
         render: ({
           deployment,
           environment,
@@ -318,7 +325,8 @@ export const DeploymentsList = () => {
         getRowClassName(
           deployment,
           selectedDeployment?.deployment.id ?? null,
-          project?.rolledBackDeploymentId ?? null,
+          liveDeployment?.id ?? null,
+          project?.isRolledBack ?? false,
         )
       }
       emptyState={
