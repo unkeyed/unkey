@@ -230,6 +230,7 @@ spec:
         # Use Cilium IP pool annotation for subnet assignment
         cilium.io/ipv6-pool: "$subnet"
     spec:
+      runtimeClassName: gvisor
       containers:
       - name: app
         image: $image

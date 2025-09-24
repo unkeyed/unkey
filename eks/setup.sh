@@ -114,7 +114,7 @@ kind: ClusterConfig
 metadata:
     name: $PRIMARY_CLUSTER_NAME
     region: $PRIMARY_REGION
-    version: "1.31"
+    version: "1.33"
 
 # IRSA Service Accounts for External Secrets
 iam:
@@ -229,14 +229,8 @@ else
         --set enableIPv4Masquerade=true \
         --set enableIPv6Masquerade=true \
         --set ipv6.enabled=true \
-        --set enableIPv6=true \
         --set hubble.relay.enabled=true \
-        --set hubble.ui.enabled=true \
-        --set encryption.enabled=true \
-        --set encryption.type=wireguard \
-        --set endpointRoutes.enabled=true \
-        --set policyEnforcementMode="always" \
-        --set hostFirewall.enabled=true
+        --set hubble.ui.enabled=true
 
     # Wait for Cilium to be ready
     echo -e "${YELLOW}Waiting for Cilium to be ready...${NC}"
