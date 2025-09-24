@@ -18,7 +18,6 @@ SELECT
     domain,
     deployment_id,
     sticky,
-    is_rolled_back,
     created_at,
     updated_at
 FROM domains
@@ -33,7 +32,6 @@ type FindDomainsByDeploymentIdRow struct {
 	Domain       string            `db:"domain"`
 	DeploymentID sql.NullString    `db:"deployment_id"`
 	Sticky       NullDomainsSticky `db:"sticky"`
-	IsRolledBack bool              `db:"is_rolled_back"`
 	CreatedAt    int64             `db:"created_at"`
 	UpdatedAt    sql.NullInt64     `db:"updated_at"`
 }
@@ -47,7 +45,6 @@ type FindDomainsByDeploymentIdRow struct {
 //	    domain,
 //	    deployment_id,
 //	    sticky,
-//	    is_rolled_back,
 //	    created_at,
 //	    updated_at
 //	FROM domains
@@ -69,7 +66,6 @@ func (q *Queries) FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploy
 			&i.Domain,
 			&i.DeploymentID,
 			&i.Sticky,
-			&i.IsRolledBack,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
