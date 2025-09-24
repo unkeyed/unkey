@@ -126,7 +126,7 @@ export const ProjectDetailsExpandable = ({
                       }}
                       content={
                         <div className="space-y-1 z-40">
-                          {domains.map((d) => (
+                          {domains.slice(1).map((d) => (
                             <div
                               key={d.domain}
                               className="text-xs font-medium flex items-center gap-1.5"
@@ -146,7 +146,7 @@ export const ProjectDetailsExpandable = ({
                       }
                     >
                       <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums">
-                        {domains.length}
+                        +{domains.slice(1).length}
                       </div>
                     </InfoTooltip>
                   </div>
