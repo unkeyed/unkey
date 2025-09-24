@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { setSessionCookie } from "@/lib/auth/cookies";
+import { reset } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
@@ -67,7 +68,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
         // refresh the check mark by invalidating the current user's org data
         utils.user.getCurrentUser.invalidate();
         utils.api.overview.query.invalidate();
-        utils.ratelimit.namespace.query.invalidate();
+
+        await reset();
 
         // reload data
         router.replace("/");

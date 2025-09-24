@@ -6,12 +6,11 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 // EventBuffer defines the interface for buffering events to be sent to ClickHouse.
 type EventBuffer interface {
-	BufferApiRequest(schema.ApiRequestV1)
+	BufferApiRequest(schema.ApiRequestV2)
 }
 
 // WithMetrics returns middleware that collects metrics about each request,
@@ -52,49 +51,48 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 
 			// Buffer to ClickHouse if enabled
 			// We don't need this ATM
-			// if eventBuffer != nil && s.r.Header.Get("X-Unkey-Metrics") != "disabled" {
-			// 	// Extract IP address from headers
-			// 	ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
-			// 	ipAddress := ""
-			// 	if len(ips) > 0 {
-			// 		ipAddress = strings.TrimSpace(ips[0])
-			// 	}
-			// 	if ipAddress == "" {
-			// 		ipAddress = s.Location()
-			// 	}
+			if eventBuffer != nil {
+				// Extract IP address from headers
+				ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
+				ipAddress := ""
+				if len(ips) > 0 {
+					ipAddress = strings.TrimSpace(ips[0])
+				}
+				if ipAddress == "" {
+					ipAddress = s.Location()
+				}
 
-			// 	eventBuffer.BufferApiRequest(schema.ApiRequestV1{
-			// 		WorkspaceID:     s.WorkspaceID,
-			// 		RequestID:       s.RequestID(),
-			// 		Time:            s.startTime.UnixMilli(),
-			// 		Host:            s.r.Host,
-			// 		Method:          s.r.Method,
-			// 		Path:            s.r.URL.Path,
-			// 		RequestHeaders:  requestHeaders,
-			// 		RequestBody:     string(s.requestBody),
-			// 		ResponseStatus:  s.responseStatus,
-			// 		ResponseHeaders: responseHeaders,
-			// 		ResponseBody:    string(s.responseBody),
-			// 		Error:           getErrorMessage(nextErr),
-			// 		ServiceLatency:  s.Latency().Milliseconds(),
-			// 		UserAgent:       s.UserAgent(),
-			// 		IpAddress:       ipAddress,
-			// 		Country:         "",
-			// 		City:            "",
-			// 		Colo:            "",
-			// 		Continent:       "",
-			// 	})
-			// }
+				eventBuffer.BufferApiRequest(schema.ApiRequestV2{
+					WorkspaceID:     s.WorkspaceID,
+					RequestID:       s.RequestID(),
+					Time:            s.startTime.UnixMilli(),
+					Host:            s.r.Host,
+					Method:          s.r.Method,
+					Path:            s.r.URL.Path,
+					RequestHeaders:  requestHeaders,
+					RequestBody:     string(s.requestBody),
+					ResponseStatus:  int32(s.responseStatus),
+					ResponseHeaders: responseHeaders,
+					ResponseBody:    string(s.responseBody),
+					Error:           getErrorMessage(s.error),
+					ServiceLatency:  s.Latency().Milliseconds(),
+					UserAgent:       s.UserAgent(),
+					IpAddress:       ipAddress,
+					Region:          region,
+				})
+			}
 
 			return nextErr
 		}
 	}
 }
 
-// getErrorMessage extracts the user-facing error message if available.
+// getErrorMessage extracts the internal error message for logging.
 func getErrorMessage(err error) string {
 	if err == nil {
 		return ""
 	}
-	return fault.UserFacingMessage(err)
+
+	// Fallback for non-fault errors
+	return err.Error()
 }

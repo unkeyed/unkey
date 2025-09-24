@@ -1,9 +1,10 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
+import { collection } from "@/lib/collections";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Badge, Empty } from "@unkey/ui";
 import ms from "ms";
 import { LastUsedCell } from "./last-used-cell";
@@ -46,18 +47,18 @@ const getRowClassName = () => {
 };
 
 export const OverridesTable = ({ namespaceId }: Props) => {
-  const { data, isLoading } = trpc.ratelimit.namespace.queryDetails.useQuery({
-    namespaceId,
-    includeOverrides: true,
-  });
+  const { data: overrides, isLoading } = useLiveQuery((q) =>
+    q
+      .from({ override: collection.ratelimitOverrides })
+      .where(({ override }) => eq(override.namespaceId, namespaceId)),
+  );
 
-  const overrides = data?.namespace?.overrides ?? [];
   const columns: Column<Override>[] = [
     {
       key: "identifier",
       header: "Identifier",
       headerClassName: "pl-2",
-      width: "25%",
+      width: "40%",
       render: (override) => (
         <div className="flex flex-col items-start pl-2">
           <span className="font-mono text-xs text-gray-12 truncate max-w-40">
@@ -96,24 +97,6 @@ export const OverridesTable = ({ namespaceId }: Props) => {
           </div>
         </div>
       ),
-    },
-    {
-      key: "async",
-      header: "Async",
-      width: "15%",
-      render: (override) =>
-        override.async === null ? (
-          <div className="w-4 h-4 text-content-subtle">─</div>
-        ) : (
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono min-w-[70px] inline-block text-center",
-              STATUS_STYLES.default.badge.default,
-            )}
-          >
-            {override.async ? "async" : "sync"}
-          </Badge>
-        ),
     },
     {
       key: "lastUsed",

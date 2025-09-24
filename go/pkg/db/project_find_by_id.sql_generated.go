@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findProjectById = `-- name: FindProjectById :one
@@ -18,11 +19,27 @@ SELECT
     git_repository_url,
     default_branch,
     delete_protection,
+    live_deployment_id,
+    is_rolled_back,
     created_at,
     updated_at
 FROM projects
 WHERE id = ?
 `
+
+type FindProjectByIdRow struct {
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	IsRolledBack     bool           `db:"is_rolled_back"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+}
 
 // FindProjectById
 //
@@ -34,13 +51,15 @@ WHERE id = ?
 //	    git_repository_url,
 //	    default_branch,
 //	    delete_protection,
+//	    live_deployment_id,
+//	    is_rolled_back,
 //	    created_at,
 //	    updated_at
 //	FROM projects
 //	WHERE id = ?
-func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Project, error) {
+func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error) {
 	row := db.QueryRowContext(ctx, findProjectById, id)
-	var i Project
+	var i FindProjectByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
@@ -49,6 +68,8 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Proj
 		&i.GitRepositoryUrl,
 		&i.DefaultBranch,
 		&i.DeleteProtection,
+		&i.LiveDeploymentID,
+		&i.IsRolledBack,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

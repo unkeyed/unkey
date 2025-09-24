@@ -1,19 +1,27 @@
-import { LoadMoreFooter } from "@/components/virtual-table/components/loading-indicator";
+import { collection } from "@/lib/collections";
+import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { useProjectsListQuery } from "./hooks/use-projects-list-query";
+import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./projects-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
 
 const MAX_SKELETON_COUNT = 8;
-const MINIMUM_DISPLAY_LIMIT = 10;
 
 export const ProjectsList = () => {
-  const { projects, isLoading, totalCount, hasMore, loadMore, isLoadingMore } =
-    useProjectsListQuery();
+  const { filters } = useProjectsFilters();
+  const projectName = filters.find((f) => f.field === "query")?.value ?? "";
 
-  if (isLoading) {
+  const projects = useLiveQuery(
+    (q) =>
+      q
+        .from({ project: collection.projects })
+        .where(({ project }) => ilike(project.name, `%${projectName}%`)),
+    [projectName],
+  );
+
+  if (projects.isLoading) {
     return (
       <div className="p-4">
         <div
@@ -31,15 +39,16 @@ export const ProjectsList = () => {
     );
   }
 
-  if (projects.length === 0) {
+  if (projects.data.length === 0) {
     return (
       <div className="w-full flex justify-center items-center h-full p-4">
         <Empty className="w-[400px] flex items-start">
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Projects Found</Empty.Title>
           <Empty.Description className="text-left">
-            There are no projects configured yet. Create your first project to start deploying and
-            managing your applications.
+            {projectName
+              ? `No projects found matching "${projectName}". Try a different search term.`
+              : "There are no projects configured yet. Create your first project to start deploying and managing your applications."}
           </Empty.Description>
           <Empty.Actions className="mt-4 justify-start">
             <a
@@ -59,66 +68,40 @@ export const ProjectsList = () => {
   }
 
   return (
-    <>
-      <div className="p-4">
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 350px))",
-          }}
-        >
-          {projects.map((project) => {
-            const primaryHostname = project.hostnames[0]?.hostname || "No domain";
-            return (
-              <ProjectCard
-                projectId={project.id}
-                key={project.id}
-                name={project.name}
-                domain={primaryHostname}
-                commitTitle="Latest deployment"
-                commitDate={new Date(project.updatedAt || project.createdAt).toLocaleDateString()}
-                branch={project.branch || "main"}
-                author="Unknown"
-                regions={["us-east-1", "us-west-2", "ap-east-1"]}
-                repository={project.gitRepositoryUrl || undefined}
-                actions={
-                  <ProjectActions project={project}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mb-auto shrink-0"
-                      title="Project actions"
-                    >
-                      <Dots size="sm-regular" />
-                    </Button>
-                  </ProjectActions>
-                }
-              />
-            );
-          })}
-        </div>
+    <div className="p-4">
+      <div
+        className="grid gap-4"
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
+        }}
+      >
+        {projects.data.map((project) => (
+          <ProjectCard
+            projectId={project.id}
+            key={project.id}
+            name={project.name}
+            domain={project.domain}
+            commitTitle={project.commitTitle}
+            commitTimestamp={project.commitTimestamp}
+            branch={project.branch}
+            author={project.author}
+            regions={project.regions}
+            repository={project.gitRepositoryUrl || undefined}
+            actions={
+              <ProjectActions projectId={project.id}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="mb-auto shrink-0"
+                  title="Project actions"
+                >
+                  <Dots size="sm-regular" />
+                </Button>
+              </ProjectActions>
+            }
+          />
+        ))}
       </div>
-      {totalCount > MINIMUM_DISPLAY_LIMIT ? (
-        <LoadMoreFooter
-          onLoadMore={loadMore}
-          isFetchingNextPage={isLoadingMore}
-          totalVisible={projects.length}
-          totalCount={totalCount}
-          itemLabel="projects"
-          buttonText="Load more projects"
-          hasMore={hasMore}
-          hide={!hasMore && projects.length === totalCount}
-          countInfoText={
-            <div className="flex gap-2">
-              <span>Viewing</span>
-              <span className="text-accent-12">{projects.length}</span>
-              <span>of</span>
-              <span className="text-grayA-12">{totalCount}</span>
-              <span>projects</span>
-            </div>
-          }
-        />
-      ) : null}
-    </>
+    </div>
   );
 };

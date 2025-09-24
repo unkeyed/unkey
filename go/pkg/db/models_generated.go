@@ -236,6 +236,49 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
+type DomainsSticky string
+
+const (
+	DomainsStickyBranch      DomainsSticky = "branch"
+	DomainsStickyEnvironment DomainsSticky = "environment"
+	DomainsStickyLive        DomainsSticky = "live"
+)
+
+func (e *DomainsSticky) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DomainsSticky(s)
+	case string:
+		*e = DomainsSticky(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DomainsSticky: %T", src)
+	}
+	return nil
+}
+
+type NullDomainsSticky struct {
+	DomainsSticky DomainsSticky
+	Valid         bool // Valid is true if DomainsSticky is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDomainsSticky) Scan(value interface{}) error {
+	if value == nil {
+		ns.DomainsSticky, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DomainsSticky.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDomainsSticky) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DomainsSticky), nil
+}
+
 type DomainsType string
 
 const (
@@ -448,9 +491,8 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeChallenge struct {
-	ID            uint64               `db:"id"`
-	WorkspaceID   string               `db:"workspace_id"`
 	DomainID      string               `db:"domain_id"`
+	WorkspaceID   string               `db:"workspace_id"`
 	Token         string               `db:"token"`
 	Type          AcmeChallengesType   `db:"type"`
 	Authorization string               `db:"authorization"`
@@ -554,14 +596,16 @@ type DeploymentStep struct {
 }
 
 type Domain struct {
-	ID           string         `db:"id"`
-	WorkspaceID  string         `db:"workspace_id"`
-	ProjectID    sql.NullString `db:"project_id"`
-	DeploymentID sql.NullString `db:"deployment_id"`
-	Domain       string         `db:"domain"`
-	Type         DomainsType    `db:"type"`
-	CreatedAt    int64          `db:"created_at"`
-	UpdatedAt    sql.NullInt64  `db:"updated_at"`
+	ID            string            `db:"id"`
+	WorkspaceID   string            `db:"workspace_id"`
+	ProjectID     sql.NullString    `db:"project_id"`
+	EnvironmentID sql.NullString    `db:"environment_id"`
+	DeploymentID  sql.NullString    `db:"deployment_id"`
+	Domain        string            `db:"domain"`
+	Type          DomainsType       `db:"type"`
+	Sticky        NullDomainsSticky `db:"sticky"`
+	CreatedAt     int64             `db:"created_at"`
+	UpdatedAt     sql.NullInt64     `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -675,6 +719,8 @@ type Project struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	IsRolledBack     bool           `db:"is_rolled_back"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
@@ -771,7 +817,7 @@ type Workspace struct {
 	ID                   string             `db:"id"`
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`
-	Slug                 sql.NullString     `db:"slug"`
+	Slug                 string             `db:"slug"`
 	PartitionID          sql.NullString     `db:"partition_id"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`

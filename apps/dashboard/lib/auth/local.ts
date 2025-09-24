@@ -1,4 +1,5 @@
 import { BaseAuthProvider } from "./base-provider";
+import { shouldUseSecureCookies } from "./cookie-security";
 import { getCookie } from "./cookies";
 import {
   type AuthenticatedUser,
@@ -147,7 +148,10 @@ export class LocalAuthProvider extends BaseAuthProvider {
   }
 
   // Organization Management
-  async createTenant(params: { name: string; userId: string }): Promise<string> {
+  async createTenant(params: {
+    name: string;
+    userId: string;
+  }): Promise<string> {
     const { name, userId } = params;
     if (!name || !userId) {
       throw new Error("Organization name and userId are required.");
@@ -389,7 +393,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
           name: UNKEY_SESSION_COOKIE,
           value: `local_session_${Date.now()}`,
           options: {
-            secure: true,
+            secure: shouldUseSecureCookies(),
             httpOnly: true,
             sameSite: "lax",
             path: "/",
@@ -413,7 +417,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
           name: UNKEY_SESSION_COOKIE,
           value: `local_session_${Date.now()}`,
           options: {
-            secure: true,
+            secure: shouldUseSecureCookies(),
             httpOnly: true,
             sameSite: "lax",
             path: "/",
@@ -437,7 +441,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
           name: UNKEY_SESSION_COOKIE,
           value: `local_session_${Date.now()}`,
           options: {
-            secure: true,
+            secure: shouldUseSecureCookies(),
             httpOnly: true,
             sameSite: "lax",
             path: "/",
@@ -467,7 +471,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
           name: UNKEY_SESSION_COOKIE,
           value: `local_session_${Date.now()}`,
           options: {
-            secure: true,
+            secure: shouldUseSecureCookies(),
             httpOnly: true,
             sameSite: "lax",
           },

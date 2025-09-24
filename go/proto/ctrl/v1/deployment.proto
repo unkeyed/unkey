@@ -14,6 +14,7 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_READY = 5;
   DEPLOYMENT_STATUS_FAILED = 6;
 }
+
 // Source type for deployment creation
 enum SourceType {
   SOURCE_TYPE_UNSPECIFIED = 0;
@@ -26,24 +27,23 @@ message CreateDeploymentRequest {
   string project_id = 2;
   string branch = 3;
   // Source information
-  SourceType source_type = 4;
-  string git_commit_sha = 5; // For git sources
-  // Optional environment override (defaults based on branch)
-  string environment_id = 7;
-  // Docker image support
-  string docker_image_tag = 8; // e.g. "ghcr.io/user/app:sha256..."
-  // Gateway hostname for routing
-  string hostname = 9;
-  // Keyspace ID for authentication
-  string keyspace_id = 10;
-  
+  string environment_slug = 4;
+
+  SourceType source_type = 5;
+
+  string docker_image = 6;
+
   // Extended git information
-  string git_commit_message = 6;
-  string git_commit_author_name = 11;
+  string git_commit_sha = 7; // For git sources
+  string git_commit_message = 8;
+  string git_commit_author_name = 9;
   // TODO: Add GitHub API integration to lookup username/avatar from email
-  string git_commit_author_username = 12;
-  string git_commit_author_avatar_url = 13;
-  int64 git_commit_timestamp = 14; // Unix epoch milliseconds
+  string git_commit_author_username = 10;
+  string git_commit_author_avatar_url = 11;
+  int64 git_commit_timestamp = 12; // Unix epoch milliseconds
+
+  // Keyspace ID for authentication
+  optional string keyspace_id = 13;
 }
 
 message CreateDeploymentResponse {
@@ -92,7 +92,7 @@ message Deployment {
 
   // Deployment steps
   repeated DeploymentStep steps = 16;
-  
+
   // Extended git information
   string git_commit_message = 17;
   string git_commit_author_name = 18;
@@ -128,10 +128,29 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
+message RollbackRequest {
+  string source_deployment_id = 1;
+  string target_deployment_id = 2;
+}
+
+message RollbackResponse {}
+
+message PromoteRequest {
+  string target_deployment_id = 1;
+}
+
+message PromoteResponse {}
+
 service DeploymentService {
   // Create a new deployment
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
+
+  // Reassign the sticky domains of the projects live deployment to the target deployment
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+
+  // Promote the deployment to the live environment
+  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 }

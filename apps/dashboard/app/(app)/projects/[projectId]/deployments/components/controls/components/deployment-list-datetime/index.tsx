@@ -2,12 +2,22 @@ import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
+const TITLE_EMPTY_DEFAULT = "Select Time Range";
 export const DeploymentListDatetime = () => {
-  const [title, setTitle] = useState<string | null>("Last 12 hours");
+  const [title, setTitle] = useState<string | null>(TITLE_EMPTY_DEFAULT);
   const { filters, updateFilters } = useFilters();
+
+  useEffect(() => {
+    for (const filter of filters) {
+      if (["startTime", "endTime", "since"].includes(filter.field)) {
+        return;
+      }
+    }
+    setTitle(TITLE_EMPTY_DEFAULT);
+  }, [filters]);
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
@@ -68,7 +78,7 @@ export const DeploymentListDatetime = () => {
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             title ? "" : "opacity-50",
-            title !== "Last 12 hours" ? "bg-gray-4" : "",
+            title !== TITLE_EMPTY_DEFAULT ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"

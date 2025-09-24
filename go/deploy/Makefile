@@ -90,10 +90,10 @@ help: ## Show this help message
 
 
 .PHONY: install
-install: assetmanagerd-install builderd-install metald-install billaged-install
+install: builderd-install metald-install billaged-install
 
 .PHONY: lint
-lint: assetmanagerd-lint builderd-lint metald-lint billaged-lint
+lint: builderd-lint metald-lint billaged-lint
 
 .PHONY: o11y
 o11y: ## Start observability stack (Grafana LGTM)
@@ -142,10 +142,10 @@ spire-uninstall: ## Uninstall SPIRE server and agent
 	$(MAKE) -C $(SPIRE_DIR) uninstall
 
 .PHONY: test
-test: assetmanagerd-test builderd-test metald-test billaged-test
+test: builderd-test metald-test billaged-test
 
 .PHONY: uninstall
-uninstall: assetmanagerd-uninstall builderd-uninstall metald-uninstall billaged-uninstall
+uninstall: builderd-uninstall metald-uninstall billaged-uninstall
 
 .PHONY: vet
-vet: assetmanagerd-vet builderd-vet metald-vet billaged-vet
+vet: builderd-vet metald-vet billaged-vet

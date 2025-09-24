@@ -26,13 +26,11 @@ type Props<T extends BaseFilter = BaseFilter> = {
 };
 
 const MAX_QUERY_LENGTH = 120;
-const DEFAULT_DEBOUNCE = 300;
 const DEFAULT_PLACEHOLDER = "Search...";
 
 export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
   useFiltersHook,
   placeholder = DEFAULT_PLACEHOLDER,
-  debounceTime = DEFAULT_DEBOUNCE,
   className,
 }: Props<T>) => {
   const { filters, updateFilters } = useFiltersHook();
@@ -98,10 +96,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
       clearTimeout(debounceRef.current);
     }
 
-    // Set new debounce
-    debounceRef.current = setTimeout(() => {
-      updateQuery(value);
-    }, debounceTime);
+    updateQuery(value);
   };
 
   const handleClear = () => {

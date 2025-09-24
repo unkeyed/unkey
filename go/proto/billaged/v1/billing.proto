@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package billaged.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/billaged/v1;billagedv1";
+
+service BillingService {
+  rpc SendMetricsBatch(SendMetricsBatchRequest) returns (SendMetricsBatchResponse);
+  rpc SendHeartbeat(SendHeartbeatRequest) returns (SendHeartbeatResponse);
+  rpc NotifyVmStarted(NotifyVmStartedRequest) returns (NotifyVmStartedResponse);
+  rpc NotifyVmStopped(NotifyVmStoppedRequest) returns (NotifyVmStoppedResponse);
+  rpc NotifyPossibleGap(NotifyPossibleGapRequest) returns (NotifyPossibleGapResponse);
+}
+
+message VMMetrics {
+  google.protobuf.Timestamp timestamp = 1;
+  int64 cpu_time_nanos = 2;
+  int64 memory_usage_bytes = 3;
+  int64 disk_read_bytes = 4;
+  int64 disk_write_bytes = 5;
+  int64 network_rx_bytes = 6;
+  int64 network_tx_bytes = 7;
+}
+
+message SendMetricsBatchRequest {
+  string vm_id = 1;
+  string customer_id = 2;
+  repeated VMMetrics metrics = 3;
+}
+
+message SendMetricsBatchResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SendHeartbeatRequest {
+  string instance_id = 1;
+  repeated string active_vms = 2;
+}
+
+message SendHeartbeatResponse {
+  bool success = 1;
+}
+
+message NotifyVmStartedRequest {
+  string vm_id = 1;
+  string customer_id = 2;
+  int64 start_time = 3;
+}
+
+message NotifyVmStartedResponse {
+  bool success = 1;
+}
+
+message NotifyVmStoppedRequest {
+  string vm_id = 1;
+  int64 stop_time = 2;
+}
+
+message NotifyVmStoppedResponse {
+  bool success = 1;
+}
+
+message NotifyPossibleGapRequest {
+  string vm_id = 1;
+  int64 last_sent = 2;
+  int64 resume_time = 3;
+}
+
+message NotifyPossibleGapResponse {
+  bool success = 1;
+}
