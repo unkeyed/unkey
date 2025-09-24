@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { Avatar } from "../../../details/active-deployment-card/git-avatar";
 import { useDeployments } from "../../hooks/use-deployments";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
+import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
   ActionColumnSkeleton,
@@ -56,11 +57,10 @@ export const DeploymentsList = () => {
       {
         key: "deployment_id",
         header: "Deployment ID",
-        width: "20%",
+        width: "10%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeployment?.id === deployment.id;
-          const isRolledBack = deployment.id === project?.rolledBackDeploymentId;
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
@@ -87,10 +87,12 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {isRolledBack ? (
-                      <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
-                    ) : isLive ? (
-                      <EnvStatusBadge variant="live" text="Live" />
+                    {isLive ? (
+                      project?.isRolledBack ? (
+                        <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                      ) : (
+                        <EnvStatusBadge variant="live" text="Live" />
+                      )
                     ) : null}
                   </div>
                   <div
@@ -111,8 +113,20 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "12%",
+        width: "10%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
+      },
+      {
+        key: "domains",
+        header: "Domains",
+        width: "25%",
+        render: ({ deployment }) => (
+          <DomainList
+            key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
+            deploymentId={deployment.id}
+            hackyRevalidateDependency={project?.liveDeploymentId}
+          />
+        ),
       },
       ...(isCompactView
         ? []
@@ -169,7 +183,7 @@ export const DeploymentsList = () => {
       {
         key: "source",
         header: "Source",
-        width: "20%",
+        width: "15%",
         headerClassName: "pl-[18px]",
         render: ({ deployment }) => {
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
@@ -213,7 +227,7 @@ export const DeploymentsList = () => {
             {
               key: "author_created" as const,
               header: "Author / Created",
-              width: "20%",
+              width: "10%",
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="flex flex-col items-start pr-[18px] py-1.5">
@@ -279,7 +293,7 @@ export const DeploymentsList = () => {
       {
         key: "action",
         header: "",
-        width: "auto",
+        width: "5%",
         render: ({
           deployment,
           environment,
@@ -311,7 +325,8 @@ export const DeploymentsList = () => {
         getRowClassName(
           deployment,
           selectedDeployment?.deployment.id ?? null,
-          project?.rolledBackDeploymentId ?? null,
+          liveDeployment?.id ?? null,
+          project?.isRolledBack ?? false,
         )
       }
       emptyState={

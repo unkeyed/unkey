@@ -15,6 +15,7 @@ INSERT INTO domains (
     id,
     workspace_id,
     project_id,
+    environment_id,
     deployment_id,
     domain,
     type,
@@ -30,19 +31,21 @@ INSERT INTO domains (
     ?,
     ?,
     ?,
+    ?,
     null
 )
 `
 
 type InsertDomainParams struct {
-	ID           string            `db:"id"`
-	WorkspaceID  string            `db:"workspace_id"`
-	ProjectID    sql.NullString    `db:"project_id"`
-	DeploymentID sql.NullString    `db:"deployment_id"`
-	Domain       string            `db:"domain"`
-	Type         DomainsType       `db:"type"`
-	Sticky       NullDomainsSticky `db:"sticky"`
-	CreatedAt    int64             `db:"created_at"`
+	ID            string            `db:"id"`
+	WorkspaceID   string            `db:"workspace_id"`
+	ProjectID     sql.NullString    `db:"project_id"`
+	EnvironmentID sql.NullString    `db:"environment_id"`
+	DeploymentID  sql.NullString    `db:"deployment_id"`
+	Domain        string            `db:"domain"`
+	Type          DomainsType       `db:"type"`
+	Sticky        NullDomainsSticky `db:"sticky"`
+	CreatedAt     int64             `db:"created_at"`
 }
 
 // InsertDomain
@@ -51,6 +54,7 @@ type InsertDomainParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    environment_id,
 //	    deployment_id,
 //	    domain,
 //	    type,
@@ -66,6 +70,7 @@ type InsertDomainParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    null
 //	)
 func (q *Queries) InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error {
@@ -73,6 +78,7 @@ func (q *Queries) InsertDomain(ctx context.Context, db DBTX, arg InsertDomainPar
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.EnvironmentID,
 		arg.DeploymentID,
 		arg.Domain,
 		arg.Type,

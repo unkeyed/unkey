@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -19,10 +19,7 @@ export const projects = mysqlTable(
     // this is likely temporary but we need a way to point to the current prod deployment.
     // in the future I think we want to have a special deployment per environment, but for now this is fine
     liveDeploymentId: varchar("live_deployment_id", { length: 256 }),
-    rolledBackDeploymentId: varchar("rolled_back_deployment_id", {
-      length: 256,
-    }),
-
+    isRolledBack: boolean("is_rolled_back").notNull().default(false),
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     ...deleteProtection,
     ...lifecycleDates,
