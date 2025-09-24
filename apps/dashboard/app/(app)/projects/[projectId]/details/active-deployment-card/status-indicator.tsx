@@ -1,21 +1,26 @@
 import { Cloud } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 
-export function StatusIndicator({
-  withSignal = false,
-}: {
+type StatusIndicatorProps = {
   withSignal?: boolean;
-}) {
+  className?: string;
+};
+
+export function StatusIndicator({ withSignal = false, className }: StatusIndicatorProps) {
   return (
     <div className="relative">
-      <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
+      <div
+        className={cn(
+          "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3",
+          className,
+        )}
+      >
         <Cloud size="sm-regular" className="text-gray-12" />
       </div>
       {withSignal && (
         <div className="absolute -top-0.5 -right-0.5">
           {[0, 0.15, 0.3, 0.45].map((delay, index) => (
             <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               key={index}
               className={cn(
                 "absolute inset-0 size-2 rounded-full",

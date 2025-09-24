@@ -1,5 +1,6 @@
 import type { Deployment } from "@/lib/collections";
 import {
+  ArrowRight,
   Bolt,
   ChartActivity,
   CircleHalfDottedClock,
@@ -17,10 +18,11 @@ import {
 import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { Avatar } from "../active-deployment-card/git-avatar";
+import { StatusIndicator } from "../active-deployment-card/status-indicator";
 
 export type DetailItem = {
-  icon: ReactNode;
-  label: string;
+  icon: ReactNode | null;
+  label: string | null;
   content: ReactNode;
   alignment?: "center" | "start";
 };
@@ -31,6 +33,39 @@ export type DetailSection = {
 };
 
 export const createDetailSections = (details: Deployment): DetailSection[] => [
+  {
+    title: "OpenAPI changes",
+    items: [
+      {
+        icon: null,
+        label: null,
+        alignment: "start",
+        content: (
+          <div className="gap-4 items-center flex w-full">
+            <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
+              <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+                <StatusIndicator className="bg-white dark:bg-black" />
+              </div>
+              <div className="flex flex-col flex-1 px-3">
+                <div className="text-grayA-9 text-xs">from</div>
+                <div className="text-accent-12 font-medium text-xs">v_charlie042</div>
+              </div>
+            </div>
+            <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
+            <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
+              <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+                <StatusIndicator withSignal className="bg-white dark:bg-black" />
+              </div>
+              <div className="flex flex-col flex-1 px-3">
+                <div className="text-grayA-9 text-xs">from</div>
+                <div className="text-accent-12 font-medium text-xs">v_oz</div>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
   {
     title: "Active deployment",
     items: [
