@@ -1,11 +1,19 @@
 "use client";
 import { useProjectLayout } from "@/app/(app)/projects/[projectId]/layout-provider";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import type { Deployment, Environment } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { ArrowDottedRotateAnticlockwise, Layers3 } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  ChevronUp,
+  Layers3,
+} from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { PromotionDialog } from "../../../promotion-dialog";
 import { RollbackDialog } from "../../../rollback-dialog";
 
 type DeploymentListTableActionsProps = {
@@ -24,7 +32,7 @@ export const DeploymentListTableActions = ({
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
-      .select(({ domain }) => ({ host: domain.domain })),
+      .select(({ domain }) => ({ host: domain.domain }))
   );
 
   const router = useRouter();
@@ -38,7 +46,12 @@ export const DeploymentListTableActions = ({
     const isDeploymentReady = selectedDeployment.status === "ready";
     const isProductionEnv = environment?.slug === "production";
 
-    const canRollback = !isCurrentlyLive && isDeploymentReady && isProductionEnv;
+    const canRollback =
+      !isCurrentlyLive && isDeploymentReady && isProductionEnv;
+
+    // This logic is slightly flawed as it does not allow you to promote a deployment that
+    // is currently live due to a rollback.
+    const canPromote = isProductionEnv && isDeploymentReady && isCurrentlyLive;
 
     return [
       {
@@ -58,6 +71,23 @@ export const DeploymentListTableActions = ({
             : undefined,
       },
       {
+        id: "Promote",
+        label: "Promote",
+        icon: <ChevronUp size="md-regular" />,
+        disabled: !canPromote,
+        ActionComponent:
+          liveDeployment && canPromote
+            ? (props) => (
+                <PromotionDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
+            : undefined,
+      },
+
+      {
         id: "gateway-logs",
         label: "Go to Gateway Logs...",
         icon: <Layers3 size="md-regular" />,
@@ -66,7 +96,7 @@ export const DeploymentListTableActions = ({
           router.push(
             `/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
               .map((item) => `is:${item.host}`)
-              .join(",")}`,
+              .join(",")}`
           );
         },
       },

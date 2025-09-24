@@ -1,13 +1,12 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
+import { type Deployment, collection, collectionManager } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { inArray, useLiveQuery } from "@tanstack/react-db";
+import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
-import { useProjectLayout } from "../../layout-provider";
 
 type DeploymentSectionProps = {
   title: string;
@@ -26,35 +25,34 @@ const DeploymentSection = ({ title, deployment, isLive, showSignal }: Deployment
   </div>
 );
 
-type RollbackDialogProps = {
+type PromotionDialogProps = {
   isOpen: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   targetDeployment: Deployment;
   liveDeployment: Deployment;
 };
 
-export const RollbackDialog = ({
+export const PromotionDialog = ({
   isOpen,
-  onClose,
+  onOpenChange,
   targetDeployment,
   liveDeployment,
-}: RollbackDialogProps) => {
+}: PromotionDialogProps) => {
   const utils = trpc.useUtils();
-
-  const {
-    collections: { domains: domainCollection },
-  } = useProjectLayout();
+  const domainCollection = collectionManager.getProjectCollections(
+    liveDeployment.projectId,
+  ).domains;
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
+      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
+      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
   );
-
-  const rollback = trpc.deploy.deployment.rollback.useMutation({
+  const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
       utils.invalidate();
-      toast.success("Rollback completed", {
-        description: `Successfully rolled back to deployment ${targetDeployment.id}`,
+      toast.success("Promotion completed", {
+        description: `Successfully promoted to deployment ${targetDeployment.id}`,
       });
       // hack to revalidate
       try {
@@ -68,41 +66,44 @@ export const RollbackDialog = ({
         console.error("Refetch error:", error);
       }
 
-      onClose();
+      onOpenChange(false);
     },
     onError: (error) => {
-      toast.error("Rollback failed", {
+      toast.error("Promotion failed", {
         description: error.message,
       });
     },
   });
 
-  const handleRollback = async () => {
-    await rollback
+  const handlePromotion = async () => {
+    await promote
       .mutateAsync({
         targetDeploymentId: targetDeployment.id,
       })
       .catch((error) => {
-        console.error("Rollback error:", error);
+        console.error("Promotion error:", error);
       });
   };
 
   return (
     <DialogContainer
       isOpen={isOpen}
-      onOpenChange={onClose}
-      title="Rollback to version"
+      onOpenChange={onOpenChange}
+      title="Promotion to version"
       subTitle="Switch the active deployment to a target stable version"
       footer={
         <Button
           variant="primary"
           size="xlg"
-          onClick={handleRollback}
-          disabled={rollback.isLoading}
-          loading={rollback.isLoading}
+          onClick={handlePromotion}
+          disabled={promote.isLoading}
+          loading={promote.isLoading}
           className="w-full rounded-lg"
         >
-          Rollback to target version
+          Promote to
+          {targetDeployment.gitCommitSha
+            ? shortenId(targetDeployment.gitCommitSha)
+            : targetDeployment.id}
         </Button>
       }
     >
