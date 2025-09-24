@@ -66,7 +66,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 		randomOffset := time.Duration(rand.Int63n(int64(timeRange)))
 		timestamp := startTime.Add(randomOffset)
 
-		limit := uint64(rand.Intn(1000))               // Random limit count
+		limit := uint64(rand.Intn(1000)) + 1           // Random limit count
 		remaining := uint64(rand.Intn(int(limit))) + 1 // Random remaining count
 		reset := timestamp.Truncate(time.Minute).Add(time.Minute)
 		// 10% chance of override
@@ -79,7 +79,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 		// - 70% pass (under limit)
 		// - 30% fail (over limit)
 		passed := rand.Float64() < 0.7
-		if passed {
+		if !passed {
 			remaining = 0
 		}
 
