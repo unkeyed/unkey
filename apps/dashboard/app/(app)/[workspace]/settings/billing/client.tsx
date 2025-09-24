@@ -88,14 +88,10 @@ const useBillingMutations = () => {
 export const Client: React.FC<Props> = (props) => {
   const mutations = useBillingMutations();
   const allowUpdate =
-    props.subscription &&
-    ["active", "trialing"].includes(props.subscription.status);
+    props.subscription && ["active", "trialing"].includes(props.subscription.status);
   const allowCancel =
-    props.subscription &&
-    props.subscription.status === "active" &&
-    !props.subscription.cancelAt;
-  const isFreeTier =
-    !props.subscription || props.subscription.status !== "active";
+    props.subscription && props.subscription.status === "active" && !props.subscription.cancelAt;
+  const isFreeTier = !props.subscription || props.subscription.status !== "active";
   const selectedProductIndex = allowUpdate
     ? props.products.findIndex((p) => p.id === props.currentProductId)
     : -1;
@@ -132,12 +128,10 @@ export const Client: React.FC<Props> = (props) => {
                       "border-b-0": isNextSelected,
                       "rounded-b-xl": i === props.products.length - 1,
                       "border-info-7 bg-info-3": isSelected,
-                    }
+                    },
                   )}
                 >
-                  <div className="w-4/12 font-medium text-accent-12">
-                    {p.name}
-                  </div>
+                  <div className="w-4/12 font-medium text-accent-12">{p.name}</div>
                   <div className="flex items-center justify-end w-4/12 gap-1">
                     <span className="text-accent-12 ">
                       {formatNumber(p.quotas.requestsPerMonth)}
@@ -146,29 +140,25 @@ export const Client: React.FC<Props> = (props) => {
                   </div>
                   <div className="flex items-center justify-between w-4/12 gap-4">
                     <div className="flex items-center justify-end w-full gap-1">
-                      <span className="font-medium text-accent-12 ">
-                        ${p.dollar}
-                      </span>
+                      <span className="font-medium text-accent-12 ">${p.dollar}</span>
                       <span className="text-gray-11 ">/mo</span>
                     </div>
 
                     {props.subscription ? (
                       <Confirm
-                        title={`${
-                          i > selectedProductIndex ? "Upgrade" : "Downgrade"
-                        } to ${p.name}`}
+                        title={`${i > selectedProductIndex ? "Upgrade" : "Downgrade"} to ${p.name}`}
                         description={`Changing to ${
                           p.name
                         } updates your request quota to ${formatNumber(
-                          p.quotas.requestsPerMonth
+                          p.quotas.requestsPerMonth,
                         )} per month immediately.`}
                         onConfirm={async () => {
                           if (!props.currentProductId) {
                             console.error(
-                              "Cannot update subscription: currentProductId is missing"
+                              "Cannot update subscription: currentProductId is missing",
                             );
                             toast.error(
-                              "Unable to update subscription. Please refresh and try again."
+                              "Unable to update subscription. Please refresh and try again.",
                             );
                             return;
                           }
@@ -178,11 +168,7 @@ export const Client: React.FC<Props> = (props) => {
                           });
                         }}
                         trigger={(onClick) => (
-                          <Button
-                            variant="outline"
-                            disabled={isSelected}
-                            onClick={onClick}
-                          >
+                          <Button variant="outline" disabled={isSelected} onClick={onClick}>
                             Change
                           </Button>
                         )}
@@ -193,7 +179,7 @@ export const Client: React.FC<Props> = (props) => {
                         description={`Changing to ${
                           p.name
                         } updates your request quota to ${formatNumber(
-                          p.quotas.requestsPerMonth
+                          p.quotas.requestsPerMonth,
                         )} per month immediately.`}
                         onConfirm={() =>
                           mutations.createSubscription.mutateAsync({
@@ -201,11 +187,7 @@ export const Client: React.FC<Props> = (props) => {
                           })
                         }
                         trigger={(onClick) => (
-                          <Button
-                            variant="outline"
-                            disabled={isSelected}
-                            onClick={onClick}
-                          >
+                          <Button variant="outline" disabled={isSelected} onClick={onClick}>
                             Upgrade
                           </Button>
                         )}
@@ -226,9 +208,7 @@ export const Client: React.FC<Props> = (props) => {
           >
             <div className="flex justify-end w-full">
               <Button variant="primary">
-                <Link
-                  href={`/${props.workspace.slug}/settings/billing/stripe/checkout`}
-                >
+                <Link href={`/${props.workspace.slug}/settings/billing/stripe/checkout`}>
                   Add payment method
                 </Link>
               </Button>
@@ -244,9 +224,7 @@ export const Client: React.FC<Props> = (props) => {
             >
               <div className="flex justify-end w-full">
                 <Button variant="outline" size="lg">
-                  <Link
-                    href={`/${props.workspace.slug}/settings/billing/stripe/portal`}
-                  >
+                  <Link href={`/${props.workspace.slug}/settings/billing/stripe/portal`}>
                     Open Portal
                   </Link>
                 </Button>
@@ -267,12 +245,7 @@ export const Client: React.FC<Props> = (props) => {
                   description="Canceling your plan will downgrade your workspace to the free tier at the end of the current period. You can resume your subscription until then."
                   onConfirm={() => mutations.cancelSubscription.mutateAsync()}
                   trigger={(onClick) => (
-                    <Button
-                      variant="outline"
-                      color="danger"
-                      size="lg"
-                      onClick={onClick}
-                    >
+                    <Button variant="outline" color="danger" size="lg" onClick={onClick}>
                       Cancel Plan
                     </Button>
                   )}
@@ -294,11 +267,7 @@ const FreeTierAlert: React.FC = () => {
         The Free tier includes 150k requests of free usage.
         <br />
         To unlock additional usage and add team members, upgrade to Pro.{" "}
-        <Link
-          href="https://unkey.com/pricing"
-          target="_blank"
-          className="underline text-info-11"
-        >
+        <Link href="https://unkey.com/pricing" target="_blank" className="underline text-info-11">
           See Pricing
         </Link>
       </Empty.Description>
@@ -319,14 +288,8 @@ const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       description={
         <p>
           Your subscription ends in
-          <span className="text-accent-12">
-            {" "}
-            {ms(props.cancelAt - Date.now(), { long: true })}
-          </span>{" "}
-          on{" "}
-          <span className="text-accent-12">
-            {new Date(props.cancelAt).toLocaleDateString()}
-          </span>
+          <span className="text-accent-12"> {ms(props.cancelAt - Date.now(), { long: true })}</span>{" "}
+          on <span className="text-accent-12">{new Date(props.cancelAt).toLocaleDateString()}</span>
           .
         </p>
       }
@@ -369,9 +332,7 @@ const SubscriptionStatus: React.FC<{
         >
           <div className="flex justify-end w-full">
             <Button variant="primary" size="lg">
-              <Link
-                href={`/${props.workspaceSlug}/settings/billing/stripe/portal`}
-              >
+              <Link href={`/${props.workspaceSlug}/settings/billing/stripe/portal`}>
                 Open Portal
               </Link>
             </Button>
