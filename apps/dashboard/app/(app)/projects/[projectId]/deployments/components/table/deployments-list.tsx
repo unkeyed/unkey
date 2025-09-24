@@ -46,7 +46,7 @@ export const DeploymentsList = () => {
   } | null>(null);
   const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
 
-  const { liveDeployment, deployments } = useDeployments();
+  const { liveDeployment, deployments, project } = useDeployments();
 
   const columns: Column<{
     deployment: Deployment;
@@ -60,7 +60,7 @@ export const DeploymentsList = () => {
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeployment?.id === deployment.id;
-          const isRolledBack = deployment.isRolledBack;
+          const isRolledBack = deployment.id === project?.rolledBackDeploymentId;
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
@@ -297,7 +297,7 @@ export const DeploymentsList = () => {
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, liveDeployment]);
+  }, [selectedDeployment?.deployment.id, isCompactView, liveDeployment, project]);
 
   return (
     <VirtualTable
@@ -307,7 +307,13 @@ export const DeploymentsList = () => {
       onRowClick={setSelectedDeployment}
       selectedItem={selectedDeployment}
       keyExtractor={(deployment) => deployment.id}
-      rowClassName={(deployment) => getRowClassName(deployment, selectedDeployment?.deployment.id)}
+      rowClassName={(deployment) =>
+        getRowClassName(
+          deployment,
+          selectedDeployment?.deployment.id ?? null,
+          project?.rolledBackDeploymentId ?? null,
+        )
+      }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">

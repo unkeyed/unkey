@@ -597,6 +597,7 @@ type Querier interface {
 	//      default_branch,
 	//      delete_protection,
 	//      live_deployment_id,
+	//      rolled_back_deployment_id,
 	//      created_at,
 	//      updated_at
 	//  FROM projects
@@ -1612,12 +1613,6 @@ type Querier interface {
 	//  SET openapi_spec = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentOpenapiSpec(ctx context.Context, db DBTX, arg UpdateDeploymentOpenapiSpecParams) error
-	//UpdateDeploymentRollback
-	//
-	//  UPDATE deployments
-	//  SET is_rolled_back = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentRollback(ctx context.Context, db DBTX, arg UpdateDeploymentRollbackParams) error
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -1700,12 +1695,15 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
-	//UpdateProjectLiveDeploymentId
+	//UpdateProjectDeployments
 	//
 	//  UPDATE projects
-	//  SET live_deployment_id = ?, updated_at = ?
+	//  SET
+	//    live_deployment_id = ?,
+	//    rolled_back_deployment_id = ?,
+	//    updated_at = ?
 	//  WHERE id = ?
-	UpdateProjectLiveDeploymentId(ctx context.Context, db DBTX, arg UpdateProjectLiveDeploymentIdParams) error
+	UpdateProjectDeployments(ctx context.Context, db DBTX, arg UpdateProjectDeploymentsParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
