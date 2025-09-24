@@ -44,7 +44,7 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
           <div className="gap-4 items-center flex w-full">
             <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
               <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
-                <StatusIndicator className="bg-white dark:bg-black" />
+                <StatusIndicator className="bg-transparent" />
               </div>
               <div className="flex flex-col flex-1 px-3">
                 <div className="text-grayA-9 text-xs">from</div>
@@ -54,7 +54,7 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
             <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
             <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
               <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
-                <StatusIndicator withSignal className="bg-white dark:bg-black" />
+                <StatusIndicator withSignal className="bg-transparent" />
               </div>
               <div className="flex flex-col flex-1 px-3">
                 <div className="text-grayA-9 text-xs">from</div>
