@@ -98,7 +98,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			Passed:      passed,
 			Latency:     latency,
 			OverrideID:  overrideID,
-			Limit:       10,
+			Limit:       limit,
 			Remaining:   remaining,
 			Reset:       reset.UnixMilli(),
 		}
