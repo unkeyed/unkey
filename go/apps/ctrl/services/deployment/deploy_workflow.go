@@ -192,6 +192,11 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				return nil, fmt.Errorf("metald GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
 			}
 
+			w.logger.Info("metald GetDeployment response",
+				"deployment_id", req.DeploymentID,
+				"resp", resp.Msg,
+			)
+
 			vms := resp.Msg.GetVms()
 
 			allReady := true
@@ -222,10 +227,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					instances[instance.Id] = instance
 				}
 
-				w.logger.Debug("checking VM readiness", "vm_id", instance.Id, "state", instance.State.String())
+				w.logger.Info("checking VM readiness", "vm_id", instance.Id, "state", instance.State.String())
 				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
 					allReady = false
-					w.logger.Debug("vm not ready", "vm_id", instance.Id, "state", instance.State.String())
+					w.logger.Warn("vm not ready", "vm_id", instance.Id, "state", instance.State.String())
 				}
 			}
 
@@ -244,7 +249,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				return vms, nil
 			}
 
-			w.logger.Debug("deployment not ready yet, continuing to poll",
+			w.logger.Info("deployment not ready yet, continuing to poll",
 				"deployment_id", req.DeploymentID,
 				"iteration", i,
 				"all_ready", allReady)
