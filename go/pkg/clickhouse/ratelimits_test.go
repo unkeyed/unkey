@@ -66,25 +66,28 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 		randomOffset := time.Duration(rand.Int63n(int64(timeRange)))
 		timestamp := startTime.Add(randomOffset)
 
-		// Simulate realistic ratelimit patterns:
-		// - 70% pass (under limit)
-		// - 30% fail (over limit)
-		passed := rand.Float64() < 0.7
-
-		// Ratelimit check latency: typically very fast
-		latency := rand.ExpFloat64()*2 + 0.1 // 0.1-5ms base range
-		if rand.Float64() < 0.05 {           // 5% chance of slower checks
-			latency += rand.Float64() * 10 // Up to 15ms for complex checks
-		}
-
+		limit := uint64(rand.Intn(1000))               // Random limit count
+		remaining := uint64(rand.Intn(int(limit))) + 1 // Random remaining count
+		reset := timestamp.Truncate(time.Minute).Add(time.Minute)
 		// 10% chance of override
 		var overrideID string
 		if rand.Float64() < 0.1 {
 			overrideID = uid.New(uid.RatelimitOverridePrefix)
 		}
 
-		remaining := uint64(rand.Intn(1000)) // Random remaining count
-		reset := timestamp.Truncate(time.Minute).Add(time.Minute)
+		// Simulate realistic ratelimit patterns:
+		// - 70% pass (under limit)
+		// - 30% fail (over limit)
+		passed := rand.Float64() < 0.7
+		if passed {
+			remaining = 0
+		}
+
+		// Ratelimit check latency: typically very fast
+		latency := rand.ExpFloat64()*2 + 0.1 // 0.1-5ms base range
+		if rand.Float64() < 0.05 {           // 5% chance of slower checks
+			latency += rand.Float64() * 10 // Up to 15ms for complex checks
+		}
 
 		return schema.RatelimitV2{
 			RequestID:   uid.New(uid.RequestPrefix),

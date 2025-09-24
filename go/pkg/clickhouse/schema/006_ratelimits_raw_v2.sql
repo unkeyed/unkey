@@ -21,8 +21,6 @@ CREATE TABLE ratelimits_raw_v2 (
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
-PARTITION BY
-  toYYYYMMDD (fromUnixTimestamp64Milli (time))
 ORDER BY
   (workspace_id, time, namespace_id)
 TTL toDateTime (fromUnixTimestamp64Milli (time)) + INTERVAL 1 MONTH DELETE
@@ -42,7 +40,7 @@ SELECT
    -- v1 doesn't have any of those columns
   0.0 as latency,
   '' as override_id,
-  0 as limit,
+  0 as `limit`,
   0 as remaining,
   0 as reset
 FROM

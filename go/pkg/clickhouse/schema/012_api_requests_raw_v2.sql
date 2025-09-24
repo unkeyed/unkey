@@ -29,7 +29,6 @@ CREATE TABLE api_requests_raw_v2 (
   region LowCardinality (String),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
-PARTITION BY toYYYYMMDD(fromUnixTimestamp64Milli(time))
 ORDER BY
   (workspace_id, time, request_id)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
