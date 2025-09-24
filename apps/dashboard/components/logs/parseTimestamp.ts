@@ -46,6 +46,34 @@ export function parseTimestamp(timestamp: string | number | Date): number {
     if (!trimmed) {
       return 0;
     }
+
+    // For long integer-only strings, use BigInt to preserve precision
+    if (trimmed.length >= 16 && /^-?\d+$/.test(trimmed)) {
+      const bigIntValue = BigInt(trimmed);
+      const isNegative = bigIntValue < BigInt(0);
+      const absoluteBigInt = isNegative ? -bigIntValue : bigIntValue;
+
+      let timestampMs: bigint;
+      if (absoluteBigInt >= BigInt("1000000000000000000")) {
+        // Nanoseconds - divide by 1,000,000 to get milliseconds
+        timestampMs = absoluteBigInt / BigInt(1000000);
+      } else if (absoluteBigInt >= BigInt("1000000000000000")) {
+        // Microseconds - divide by 1,000 to get milliseconds
+        timestampMs = absoluteBigInt / BigInt(1000);
+      } else if (absoluteBigInt >= BigInt("1000000000000")) {
+        // Milliseconds - no scaling needed
+        timestampMs = absoluteBigInt;
+      } else {
+        // Seconds - multiply by 1,000 to get milliseconds
+        timestampMs = absoluteBigInt * BigInt(1000);
+      }
+
+      // Restore sign and convert to Number
+      const result = isNegative ? -timestampMs : timestampMs;
+      return Number(result);
+    }
+
+    // Fall back to parseFloat for non-integer or shorter strings
     timestampNum = Number.parseFloat(trimmed);
   } else if (timestamp instanceof Date) {
     timestampNum = timestamp.getTime();
