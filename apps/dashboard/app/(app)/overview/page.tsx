@@ -8,6 +8,6 @@ export default function OverviewPage() {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
 
-  router.replace(`/${workspace.id}/apis`);
+  router.replace(`/${workspace.slug}/apis`);
   return null;
 }
