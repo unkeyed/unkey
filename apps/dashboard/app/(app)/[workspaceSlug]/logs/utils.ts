@@ -8,13 +8,13 @@ export type ResponseBody = {
   enabled: boolean;
   permissions: string[];
   code:
-  | "VALID"
-  | "RATE_LIMITED"
-  | "EXPIRED"
-  | "USAGE_EXCEEDED"
-  | "DISABLED"
-  | "FORBIDDEN"
-  | "INSUFFICIENT_PERMISSIONS";
+    | "VALID"
+    | "RATE_LIMITED"
+    | "EXPIRED"
+    | "USAGE_EXCEEDED"
+    | "DISABLED"
+    | "FORBIDDEN"
+    | "INSUFFICIENT_PERMISSIONS";
 };
 
 export const extractResponseField = <K extends keyof ResponseBody>(

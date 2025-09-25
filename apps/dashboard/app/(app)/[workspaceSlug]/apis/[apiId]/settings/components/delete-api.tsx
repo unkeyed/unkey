@@ -1,4 +1,5 @@
 "use client";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { Lock } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingCard } from "@unkey/ui";
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
+  const workspace = useWorkspaceNavigation();
   const { onDeleteSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -53,7 +55,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       onDeleteSuccess(keys)();
-      router.push(`/${api.workspaceId}/apis`);
+      router.push(`/${workspace.slug}/apis`);
     },
     onError,
   });

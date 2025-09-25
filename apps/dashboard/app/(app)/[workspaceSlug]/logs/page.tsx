@@ -1,8 +1,8 @@
 "use client";
-import { Layers3 } from "@unkey/icons";
-import { LogsClient } from "./components/logs-client";
 import { Navigation } from "@/components/navigation/navigation";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { Layers3 } from "@unkey/icons";
+import { LogsClient } from "./components/logs-client";
 
 export default function Page() {
   const workspace = useWorkspaceNavigation();
