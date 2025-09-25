@@ -16,8 +16,8 @@ CREATE TABLE ratelimits_raw_v2 (
   limit UInt64,
   -- how many remaining uses we allow
   remaining UInt64,
-  -- when the limit will reset
-  reset Int64 CODEC (Delta, LZ4),
+  -- when the limit will reset at (absolute unix milliseconds time)
+  reset_at Int64 CODEC (Delta, LZ4),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
@@ -42,6 +42,6 @@ SELECT
   '' as override_id,
   0 as `limit`,
   0 as remaining,
-  0 as reset
+  0 as reset_at
 FROM
   ratelimits.raw_ratelimits_v1;

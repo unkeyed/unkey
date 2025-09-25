@@ -31,7 +31,7 @@ type RatelimitV2 struct {
 	OverrideID  string  `ch:"override_id" json:"override_id"`
 	Limit       uint64  `ch:"limit" json:"limit"`
 	Remaining   uint64  `ch:"remaining" json:"remaining"`
-	Reset       int64   `ch:"reset" json:"reset"`
+	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
 }
 
 // ApiRequestV2 represents the v2 API request raw table structure.
