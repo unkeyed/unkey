@@ -1,11 +1,4 @@
-import {
-  boolean,
-  index,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const domains = mysqlTable(
@@ -14,6 +7,9 @@ export const domains = mysqlTable(
     id: varchar("id", { length: 256 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }),
+    environmentId: varchar("environment_id", { length: 256 }),
+
+    // The deployment id where this domain should usually point to unless it's rolled back
     deploymentId: varchar("deployment_id", { length: 256 }),
 
     domain: varchar("domain", { length: 256 }).notNull(),
@@ -29,10 +25,6 @@ export const domains = mysqlTable(
     //     api.unkey.com
     sticky: mysqlEnum("sticky", ["branch", "environment", "live"]),
 
-    // If a domain is rolled back, it does not automatically get assigned to new deployments.
-    // Instead a user must manually unblock it by promoting another deployment.
-    // This prevents accidentally pushing to main and deploying faulty code again.
-    isRolledBack: boolean("is_rolled_back").notNull().default(false),
     ...lifecycleDates,
   },
   (table) => ({

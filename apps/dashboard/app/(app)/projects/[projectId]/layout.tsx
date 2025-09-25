@@ -1,5 +1,6 @@
 "use client";
 import { collectionManager } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useState } from "react";
@@ -25,9 +26,22 @@ type ProjectLayoutProps = {
 
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const collections = collectionManager.getProjectCollections(projectId);
+
+  const projects = useLiveQuery((q) =>
+    q.from({ project: collections.projects }).where(({ project }) => eq(project.id, projectId)),
+  );
+
+  const liveDeploymentId = projects.data.at(0)?.liveDeploymentId;
+
+  const getTooltipContent = () => {
+    if (!liveDeploymentId) {
+      return "No deployments available. Deploy your project to view details.";
+    }
+    return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
+  };
 
   return (
     <ProjectLayoutContext.Provider
@@ -46,7 +60,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
             detailsExpandableTrigger={
               <InfoTooltip
                 asChild
-                content="Show details"
+                content={getTooltipContent()}
                 position={{
                   side: "bottom",
                   align: "end",
@@ -55,6 +69,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
                 <Button
                   variant="ghost"
                   className="size-7"
+                  disabled={!liveDeploymentId}
                   onClick={() => setIsDetailsOpen(!isDetailsOpen)}
                 >
                   <DoubleChevronLeft size="lg-medium" className="text-gray-13" />
@@ -68,7 +83,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
           <ProjectDetailsExpandable
             projectId={projectId}
             tableDistanceToTop={tableDistanceToTop}
-            isOpen={isDetailsOpen}
+            isOpen={isDetailsOpen && Boolean(liveDeploymentId)}
             onClose={() => setIsDetailsOpen(false)}
           />
         </div>

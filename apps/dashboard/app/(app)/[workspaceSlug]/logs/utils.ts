@@ -8,13 +8,13 @@ export type ResponseBody = {
   enabled: boolean;
   permissions: string[];
   code:
-    | "VALID"
-    | "RATE_LIMITED"
-    | "EXPIRED"
-    | "USAGE_EXCEEDED"
-    | "DISABLED"
-    | "FORBIDDEN"
-    | "INSUFFICIENT_PERMISSIONS";
+  | "VALID"
+  | "RATE_LIMITED"
+  | "EXPIRED"
+  | "USAGE_EXCEEDED"
+  | "DISABLED"
+  | "FORBIDDEN"
+  | "INSUFFICIENT_PERMISSIONS";
 };
 
 export const extractResponseField = <K extends keyof ResponseBody>(
@@ -67,6 +67,6 @@ export const safeParseJson = (jsonString?: string | null) => {
     return JSON.parse(jsonString);
   } catch {
     console.error("Cannot parse JSON:", jsonString);
-    return "Invalid JSON format";
+    return jsonString;
   }
 };

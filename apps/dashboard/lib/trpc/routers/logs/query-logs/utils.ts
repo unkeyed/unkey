@@ -1,10 +1,9 @@
-import type { queryLogsPayload } from "@/app/(app)/[workspaceSlug]/logs/components/table/query-logs.schema";
+import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
-import type { z } from "zod";
 
 export function transformFilters(
-  params: z.infer<typeof queryLogsPayload>,
+  params: LogsRequestSchema,
 ): Omit<GetLogsClickhousePayload, "workspaceId"> {
   // Transform path filters to include operators
   const paths =
@@ -14,10 +13,13 @@ export function transformFilters(
     })) || [];
 
   // Extract other filters as before
-  const requestIds = params.requestId?.filters.map((f) => f.value) || [];
-  const hosts = params.host?.filters.map((f) => f.value) || [];
-  const methods = params.method?.filters.map((f) => f.value) || [];
-  const statusCodes = params.status?.filters.map((f) => f.value) || [];
+  const requestIds = params.requestId?.filters?.map((f) => f.value) || [];
+  const methods = params.method?.filters?.map((f) => f.value) || [];
+  const statusCodes = params.status?.filters?.map((f) => f.value) || [];
+
+  // Hosts with include/exclude pattern
+  const hosts = params.host?.filters?.map((f) => f.value) || [];
+  const excludeHosts = params.host?.exclude || [];
 
   let startTime = params.startTime;
   let endTime = params.endTime;
@@ -35,6 +37,7 @@ export function transformFilters(
     endTime,
     requestIds,
     hosts,
+    excludeHosts,
     methods,
     paths,
     statusCodes,

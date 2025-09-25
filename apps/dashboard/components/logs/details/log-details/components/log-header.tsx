@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
-import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { XMark } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
+import type { StandardLogTypes } from "..";
 
 type Props = {
-  log: RatelimitLog;
+  log: StandardLogTypes;
   onClose: () => void;
 };
 

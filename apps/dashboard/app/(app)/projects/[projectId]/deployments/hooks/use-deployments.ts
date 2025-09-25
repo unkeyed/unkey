@@ -31,7 +31,6 @@ export const useDeployments = () => {
       // Query filtered environments
       // further down below we use this to rightJoin with deployments to filter deployments by environment
       let environments = q.from({ environment: collections.environments });
-
       for (const filter of filters) {
         if (filter.field === "environment") {
           environments = environments.where(({ environment }) =>
@@ -106,6 +105,7 @@ export const useDeployments = () => {
         .rightJoin({ environment: environments }, ({ environment, deployment }) =>
           eq(environment.id, deployment.environmentId),
         )
+
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(100);
     },

@@ -1,5 +1,4 @@
 import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
-import type { QuerySearchParams } from "@/app/(app)/[workspaceSlug]/logs/filters.schema";
 import type { RatelimitQuerySearchParams } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import { type ReactNode, createContext, useContext } from "react";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
@@ -91,6 +90,7 @@ export function useQueries() {
   return context;
 }
 
+import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import { ChartActivity2 } from "@unkey/icons";
 import React from "react";
 import { iconsPerField } from "./utils";

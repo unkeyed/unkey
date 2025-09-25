@@ -102,7 +102,13 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	}
 
 	// get all domains on the live deployment that are sticky
-	domains, err := db.Query.FindDomainsByDeploymentId(ctx, s.db.RO(), sql.NullString{Valid: true, String: sourceDeployment.ID})
+	domains, err := db.Query.FindDomainsForRollback(ctx, s.db.RO(), db.FindDomainsForRollbackParams{
+		EnvironmentID: sql.NullString{Valid: true, String: sourceDeployment.EnvironmentID},
+		Sticky: []db.NullDomainsSticky{
+			db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyLive},
+			db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyEnvironment},
+		},
+	})
 	if err != nil {
 		s.logger.Error("failed to get domains",
 			"deployment_id", sourceDeployment.ID,
@@ -129,11 +135,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 				domain.Sticky.DomainsSticky == db.DomainsStickyEnvironment) {
 
 			domainChanges = append(domainChanges, db.ReassignDomainParams{
-				ID:                 domain.ID,
-				TargetWorkspaceID:  project.WorkspaceID,
-				TargetDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-				IsRolledBack:       true,
-				UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				ID:                domain.ID,
+				TargetWorkspaceID: project.WorkspaceID,
+				DeploymentID:      sql.NullString{Valid: true, String: targetDeployment.ID},
+				UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 
 			gatewayChanges = append(gatewayChanges, pdb.UpsertGatewayParams{
@@ -159,6 +164,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	// Not sure why there isn't a bulk query generated, but this will do for now
 	// cause we're only rolling back one domain anyways
 	for _, change := range domainChanges {
+		s.logger.Info("rolling back domain", "domain", change)
 		err = db.Query.ReassignDomain(ctx, s.db.RW(), change)
 		if err != nil {
 			s.logger.Error("failed to update domain", "error", err.Error())
@@ -167,10 +173,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	}
 
 	err = db.Query.UpdateProjectDeployments(ctx, s.db.RW(), db.UpdateProjectDeploymentsParams{
-		ID:                     project.ID,
-		LiveDeploymentID:       sql.NullString{Valid: true, String: targetDeployment.ID},
-		RolledBackDeploymentID: sql.NullString{Valid: true, String: sourceDeployment.ID},
-		UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:               project.ID,
+		LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+		IsRolledBack:     true,
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
 		s.logger.Error("failed to update project deployments",
@@ -180,12 +186,5 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update project's live deployment id: %w", err))
 	}
 
-	res := &ctrlv1.RollbackResponse{
-		Domains: make([]string, len(domainChanges)),
-	}
-	for i, domain := range domainChanges {
-		res.Domains[i] = domain.ID
-	}
-
-	return connect.NewResponse(res), nil
+	return connect.NewResponse(&ctrlv1.RollbackResponse{}), nil
 }

@@ -1,5 +1,5 @@
-import type { QuerySearchParams } from "@/app/(app)/[workspaceSlug]/logs/filters.schema";
 import { iconsPerField } from "@/components/logs/queries/utils";
+import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import { ChartActivity2 } from "@unkey/icons";
 import { format } from "date-fns";
 import React from "react";

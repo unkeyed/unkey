@@ -10,8 +10,6 @@ CREATE TABLE ratelimits_per_hour_v2 (
   latency_p99 AggregateFunction (quantilesTDigest (0.99), Float64),
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = AggregatingMergeTree ()
-PARTITION BY
-  toYYYYMMDD (time)
 ORDER BY
   (workspace_id, namespace_id, time, identifier)
 TTL time + INTERVAL 30 DAY DELETE;
