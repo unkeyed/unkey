@@ -57,7 +57,7 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
+    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer delay={ANIMATION_DELAY} />

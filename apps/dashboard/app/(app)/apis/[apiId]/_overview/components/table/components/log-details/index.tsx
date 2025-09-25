@@ -101,7 +101,7 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
   ].filter(Boolean);
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
+    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={log} onClose={handleClose} />
       </LogDetails.Header>
