@@ -37,7 +37,7 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { getDeploymentBuildLogs } from "./deploy/deployment/buildLogs";
+import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
@@ -327,9 +327,9 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: listDeployments,
+      buildSteps: getDeploymentBuildSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
-      buildLogs: getDeploymentBuildLogs,
       rollback,
       promote,
     }),

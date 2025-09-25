@@ -216,6 +216,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Without this browsers automatically request /favicon.ico on every page load
+		if r.URL.Path == "/favicon" {
+			return
+		}
 		now := time.Now()
 		seed := now.UnixNano()
 
