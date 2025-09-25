@@ -61,7 +61,7 @@ export function useDeploymentLogs({
   const { queryTime: timestamp } = useQueryTime();
 
   const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
-     {
+    {
       // without this check TS yells at us
       deploymentId: deploymentId ?? "",
     },

@@ -1,7 +1,7 @@
 import { CircleCheck, Link4, ShareUpRight } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
-import { Card } from "./card";
 import Link from "next/link";
+import { Card } from "./card";
 
 type DomainRowProps = {
   domain: string;
