@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EXCLUDED_HOSTS } from "../../../gateway-logs/constants";
 
 const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
@@ -72,7 +73,7 @@ export function useDeploymentLogs({
       limit: GATEWAY_LOGS_LIMIT,
       endTime: timestamp,
       startTime: timestamp,
-      host: { filters: [] },
+      host: { filters: [], exclude: EXCLUDED_HOSTS },
       method: { filters: [] },
       path: { filters: [] },
       status: { filters: [] },
