@@ -15,7 +15,7 @@ export function DomainRow({ domain }: DomainRowProps) {
           href={`https://${domain}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center ml-3 hover:opacity-80 transition-all hover:underline decoration-dashed"
+          className="flex items-center ml-3 transition-all hover:underline decoration-dashed underline-offset-2"
         >
           <div className="text-gray-12 font-medium text-xs mr-2">{domain}</div>
           <ShareUpRight className="text-gray-9 shrink-0" size="md-regular" />
