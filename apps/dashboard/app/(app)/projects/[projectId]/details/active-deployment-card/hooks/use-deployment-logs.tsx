@@ -23,7 +23,7 @@ type LogEntry = {
 type LogFilter = "all" | "warnings" | "errors";
 
 type UseDeploymentLogsProps = {
-  deploymentId: string;
+  deploymentId: string | null;
   showBuildSteps: boolean;
 };
 
@@ -61,9 +61,12 @@ export function useDeploymentLogs({
   const { queryTime: timestamp } = useQueryTime();
 
   const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
-    { deploymentId },
     {
-      enabled: showBuildSteps && isExpanded,
+      // without this check TS yells at us
+      deploymentId: deploymentId ?? "",
+    },
+    {
+      enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
       refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
     },
   );

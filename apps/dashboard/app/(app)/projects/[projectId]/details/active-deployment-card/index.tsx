@@ -18,6 +18,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { format } from "date-fns";
 import { useProjectLayout } from "../../layout-provider";
 import { Card } from "../card";
+import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { FilterButton } from "./filter-button";
 import { Avatar } from "./git-avatar";
 import { useDeploymentLogs } from "./hooks/use-deployment-logs";
@@ -68,15 +69,17 @@ export const statusIndicator = (
 };
 
 type Props = {
-  deploymentId: string;
+  deploymentId: string | null;
 };
 
 export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
   const { collections } = useProjectLayout();
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ deployment: collections.deployments })
-      .where(({ deployment }) => eq(deployment.id, deploymentId)),
+  const { data, isLoading } = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collections.deployments })
+        .where(({ deployment }) => eq(deployment.id, deploymentId)),
+    [deploymentId],
   );
   const deployment = data.at(0);
 
@@ -101,8 +104,11 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
     showBuildSteps,
   });
 
-  if (!deployment) {
+  if (isLoading) {
     return <ActiveDeploymentCardSkeleton />;
+  }
+  if (!deployment) {
+    return <ActiveDeploymentCardEmpty />;
   }
 
   const statusConfig = statusIndicator(deployment.status);
