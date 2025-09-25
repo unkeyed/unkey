@@ -94,7 +94,7 @@ app.all("*", async (c) => {
         try {
           return eventSchema.parse(JSON.parse(l));
         } catch (err) {
-          console.error((err as Error).message, JSON.stringify(lines));
+          console.error((err as Error).message);
           return null;
         }
       })
