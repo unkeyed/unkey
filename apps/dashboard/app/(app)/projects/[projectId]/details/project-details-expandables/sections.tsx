@@ -43,7 +43,7 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
         content: (
           <div className="gap-4 items-center flex w-full">
             <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
-              <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+              <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
                 <StatusIndicator className="bg-transparent" />
               </div>
               <div className="flex flex-col flex-1 px-3">

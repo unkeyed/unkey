@@ -21,6 +21,7 @@ export function StatusIndicator({ withSignal = false, className }: StatusIndicat
         <div className="absolute -top-0.5 -right-0.5">
           {[0, 0.15, 0.3, 0.45].map((delay, index) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: its okay to use index as key
               key={index}
               className={cn(
                 "absolute inset-0 size-2 rounded-full",
