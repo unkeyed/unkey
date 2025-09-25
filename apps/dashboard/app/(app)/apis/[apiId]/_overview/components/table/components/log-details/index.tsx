@@ -1,83 +1,57 @@
 "use client";
-import { DEFAULT_DRAGGABLE_WIDTH } from "@/app/(app)/logs/constants";
-import { ResizablePanel } from "@/components/logs/details/resizable-panel";
+import { LogDetails } from "@/components/logs/details/log-details";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { TimestampInfo } from "@unkey/ui";
+import { TimestampInfo, toast } from "@unkey/ui";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";
 import { PermissionsSection, RolesSection } from "./components/roles-permissions";
 
-type StyleObject = {
-  top: string;
-  width: string;
-  height: string;
-  paddingBottom: string;
-};
+const ANIMATION_DELAY = 350;
 
-const createPanelStyle = (distanceToTop: number): StyleObject => ({
-  top: `${distanceToTop}px`,
-  width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
-  height: `calc(100vh - ${distanceToTop}px)`,
-  paddingBottom: "1rem",
-});
-
-type KeysOverviewLogDetailsProps = {
+type Props = {
   distanceToTop: number;
   log: KeysOverviewLog | null;
   apiId: string;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
 };
 
-export const KeysOverviewLogDetails = ({
-  distanceToTop,
-  log,
-  setSelectedLog,
-  apiId,
-}: KeysOverviewLogDetailsProps) => {
-  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
+export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, apiId }: Props) => {
+  const [errorShown, setErrorShown] = useState(false);
+
+  useEffect(() => {
+    if (!errorShown && log) {
+      if (!log.key_details) {
+        toast.error("Key Details Unavailable", {
+          description:
+            "Could not retrieve key information for this log. The key may have been deleted or is still processing.",
+        });
+        setErrorShown(true);
+      }
+    }
+    if (!log) {
+      setErrorShown(false);
+    }
+  }, [log, errorShown]);
+
+  const handleClose = () => {
+    setSelectedLog(null);
+  };
 
   if (!log) {
     return null;
   }
 
-  const handleClose = (): void => {
-    setSelectedLog(null);
-  };
-
-  // Only process if key_details exists
   if (!log.key_details) {
-    return (
-      <ResizablePanel
-        onClose={handleClose}
-        className="absolute right-0 bg-gray-1 dark:bg-black font-mono drop-shadow-2xl overflow-y-auto z-20 p-4"
-        style={panelStyle}
-      >
-        <LogHeader log={log} onClose={handleClose} />
-        <div className="py-4 text-center text-accent-9">No key details available</div>
-      </ResizablePanel>
-    );
+    return null;
   }
 
-  // Process key details data
   const metaData = formatMeta(log.key_details.meta);
-  const identifiers = {
-    "Key ID": (
-      <Link
-        title={`View details for ${log.key_id}`}
-        className="font-mono underline decoration-dotted"
-        href={`/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
-      >
-        <div className="font-mono font-medium truncate">{log.key_id}</div>
-      </Link>
-    ),
-    Name: log.key_details.name || "N/A",
-  };
 
   const usage = {
-    Created: metaData?.createdAt ? metaData.createdAt : "N/A",
+    Created: metaData?.createdAt || "N/A",
     "Last Used": log.time ? (
       <TimestampInfo value={log.time} className="font-mono underline decoration-dotted" />
     ) : (
@@ -93,32 +67,50 @@ export const KeysOverviewLogDetails = ({
         : "Unlimited",
   };
 
-  const tags =
-    log.tags && log.tags.length > 0 ? { Tags: log.tags.join(", ") } : { "No tags": null };
+  const identifiers = {
+    "Key ID": (
+      <Link
+        title={`View details for ${log.key_id}`}
+        className="font-mono underline decoration-dotted"
+        href={`/apis/${apiId}/keys/${log.key_details.key_auth_id}/${log.key_id}`}
+      >
+        <div className="font-mono font-medium truncate">{log.key_id}</div>
+      </Link>
+    ),
+    Name: log.key_details.name || "N/A",
+  };
 
   const identity = log.key_details.identity
     ? { "External ID": log.key_details.identity.external_id || "N/A" }
     : { "No identity connected": null };
 
-  const metaString = metaData ? JSON.stringify(metaData, null, 2) : { "No meta available": "" };
+  const tags =
+    log.tags && log.tags.length > 0 ? { Tags: log.tags.join(", ") } : { "No tags": null };
+
+  const sections = [
+    <LogSection key="usage" title="Usage" details={usage} />,
+    log.outcome_counts && (
+      <OutcomeDistributionSection key="outcomes" outcomeCounts={log.outcome_counts} />
+    ),
+    <LogSection key="limits" title="Limits" details={limits} />,
+    <LogSection key="identifiers" title="Identifiers" details={identifiers} />,
+    <LogSection key="identity" title="Identity" details={identity} />,
+    <LogSection key="tags" title="Tags" details={tags} />,
+    <RolesSection key="roles" roles={log.key_details.roles || []} />,
+    <PermissionsSection key="permissions" permissions={log.key_details.permissions || []} />,
+  ].filter(Boolean);
 
   return (
-    <ResizablePanel
-      onClose={handleClose}
-      className="absolute max-md:!h-screen max-md:!w-full max-md:!top-0 right-0 bg-gray-1 dark:bg-black font-mono shadow-2xl overflow-y-auto z-20 p-4"
-      style={panelStyle}
-    >
-      <LogHeader log={log} onClose={handleClose} />
-      <LogSection title="Usage" details={usage} />
-      {log.outcome_counts && <OutcomeDistributionSection outcomeCounts={log.outcome_counts} />}
-      <LogSection title="Limits" details={limits} />
-      <LogSection title="Identifiers" details={identifiers} />
-      <LogSection title="Identity" details={identity} />
-      <LogSection title="Tags" details={tags} />
-      <RolesSection roles={log.key_details.roles || []} />
-      <PermissionsSection permissions={log.key_details.permissions || []} />
-      <LogSection title="Meta" details={metaString} />
-    </ResizablePanel>
+    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+      <LogDetails.Header onClose={handleClose}>
+        <LogHeader log={log} onClose={handleClose} />
+      </LogDetails.Header>
+      <LogDetails.CustomSections startDelay={150} staggerDelay={50}>
+        {sections}
+      </LogDetails.CustomSections>
+      <LogDetails.Spacer delay={ANIMATION_DELAY} />
+      <LogDetails.Meta />
+    </LogDetails>
   );
 };
 

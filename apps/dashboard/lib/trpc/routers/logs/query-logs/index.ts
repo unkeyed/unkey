@@ -1,27 +1,20 @@
-import { queryLogsPayload } from "@/app/(app)/logs/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import {
+  type LogsResponseSchema,
+  logsRequestSchema,
+  logsResponseSchema,
+} from "@/lib/schemas/logs.schema";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { log } from "@unkey/clickhouse/src/logs";
-import { z } from "zod";
 import { transformFilters } from "./utils";
-
-const LogsResponse = z.object({
-  logs: z.array(log),
-  hasMore: z.boolean(),
-  total: z.number(),
-  nextCursor: z.number().int().optional(),
-});
-
-type LogsResponse = z.infer<typeof LogsResponse>;
 
 export const queryLogs = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
-  .input(queryLogsPayload)
-  .output(LogsResponse)
+  .input(logsRequestSchema)
+  .output(logsResponseSchema)
   .query(async ({ ctx, input }) => {
     // Get workspace
     const workspace = await db.query.workspaces
@@ -63,7 +56,7 @@ export const queryLogs = t.procedure
     const logs = logsResult.val;
 
     // Prepare the response with pagination info
-    const response: LogsResponse = {
+    const response: LogsResponseSchema = {
       logs,
       hasMore: logs.length === input.limit,
       total: countResult.val[0].total_count,

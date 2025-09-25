@@ -1,5 +1,4 @@
 import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/audit/filters.schema";
-import type { QuerySearchParams } from "@/app/(app)/logs/filters.schema";
 import type { RatelimitQuerySearchParams } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
 import { type ReactNode, createContext, useContext } from "react";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
@@ -91,6 +90,7 @@ export function useQueries() {
   return context;
 }
 
+import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import { ChartActivity2 } from "@unkey/icons";
 import React from "react";
 import { iconsPerField } from "./utils";
@@ -175,7 +175,10 @@ export const defaultFormatValues = (
 
 export const defaultGetIcon = (field: string): React.ReactNode => {
   const Icon = iconsPerField[field] || ChartActivity2;
-  return React.createElement(Icon, { size: "md-regular", className: "justify-center" });
+  return React.createElement(Icon, {
+    size: "md-regular",
+    className: "justify-center",
+  });
 };
 
 export const defaultFieldsToTruncate = [

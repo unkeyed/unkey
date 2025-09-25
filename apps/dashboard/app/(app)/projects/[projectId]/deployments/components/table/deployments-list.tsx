@@ -49,9 +49,12 @@ export const DeploymentsList = () => {
 
   const { liveDeployment, deployments, project } = useDeployments();
 
+  const selectedDeploymentId = selectedDeployment?.deployment.id;
+
   const columns: Column<{
     deployment: Deployment;
     environment?: Environment;
+    // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   }>[] = useMemo(() => {
     return [
       {
@@ -302,16 +305,18 @@ export const DeploymentsList = () => {
           environment?: Environment;
         }) => {
           return (
-            <DeploymentListTableActions
-              selectedDeployment={deployment}
-              liveDeployment={liveDeployment}
-              environment={environment}
-            />
+            <div className="pl-5">
+              <DeploymentListTableActions
+                selectedDeployment={deployment}
+                liveDeployment={liveDeployment}
+                environment={environment}
+              />
+            </div>
           );
         },
       },
     ];
-  }, [selectedDeployment?.deployment.id, isCompactView, liveDeployment, project]);
+  }, [selectedDeploymentId, isCompactView, liveDeployment, project]);
 
   return (
     <VirtualTable
