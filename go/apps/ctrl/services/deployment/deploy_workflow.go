@@ -291,14 +291,15 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 					// Domain does not exist, create it
 					insertError := db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
-						ID:           uid.New("domain"),
-						WorkspaceID:  req.WorkspaceID,
-						ProjectID:    sql.NullString{Valid: true, String: req.ProjectID},
-						Domain:       domain.domain,
-						Sticky:       domain.sticky,
-						DeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-						CreatedAt:    now,
-						Type:         db.DomainsTypeWildcard,
+						ID:            uid.New("domain"),
+						WorkspaceID:   req.WorkspaceID,
+						ProjectID:     sql.NullString{Valid: true, String: req.ProjectID},
+						EnvironmentID: sql.NullString{Valid: true, String: req.EnvironmentID},
+						Domain:        domain.domain,
+						Sticky:        domain.sticky,
+						DeploymentID:  sql.NullString{Valid: true, String: req.DeploymentID},
+						CreatedAt:     now,
+						Type:          db.DomainsTypeWildcard,
 					})
 					if insertError != nil {
 						return fmt.Errorf("failed to create domain entry for deployment %s: %w", req.DeploymentID, err)
@@ -307,18 +308,17 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 					return nil
 				}
 
-				if existing.IsRolledBack {
-					w.logger.Info("Skipping rolled back domain",
+				if project.IsRolledBack {
+					w.logger.Info("Skipping domain cause project is rolled back",
 						"domain_id", existing.ID,
 						"domain", existing.Domain,
 					)
 					return nil
 				}
 				updateErr := db.Query.ReassignDomain(txCtx, tx, db.ReassignDomainParams{
-					ID:                 existing.ID,
-					TargetWorkspaceID:  workspace.ID,
-					TargetDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-					IsRolledBack:       false,
+					ID:                existing.ID,
+					TargetWorkspaceID: workspace.ID,
+					DeploymentID:      sql.NullString{Valid: true, String: req.DeploymentID},
 				})
 
 				if updateErr != nil {
@@ -393,36 +393,29 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	// Update deployment status to ready
-	_, err = hydra.Step(ctx, "update-deployment-ready", func(stepCtx context.Context) (*DeploymentResult, error) {
-		w.logger.Info("updating deployment status to ready", "deployment_id", req.DeploymentID)
-		completionTime := time.Now().UnixMilli()
-		activeErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+	err = hydra.StepVoid(ctx, "update-deployment-ready", func(stepCtx context.Context) error {
+		return db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusReady,
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: completionTime},
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
-		if activeErr != nil {
-			return nil, fmt.Errorf("failed to update deployment %s status to ready: %w", req.DeploymentID, activeErr)
-		}
-		w.logger.Info("deployment status updated to ready", "deployment_id", req.DeploymentID)
-
-		// TODO: This section will be removed in the future in favor of "Promote to Production"
-		err = db.Query.UpdateProjectLiveDeploymentId(stepCtx, w.db.RW(), db.UpdateProjectLiveDeploymentIdParams{
-			ID:               req.ProjectID,
-			LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
-			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to update project %s active deployment ID to %s: %w", req.ProjectID, req.DeploymentID, err)
-		}
-
-		return &DeploymentResult{
-			DeploymentID: req.DeploymentID,
-			Status:       "ready",
-		}, nil
 	})
 	if err != nil {
 		return err
+	}
+
+	if !project.IsRolledBack {
+		// only update this if the deployment is not rolled back
+		err = hydra.StepVoid(ctx, "update-project-deployment-pointers", func(stepCtx context.Context) error {
+			return db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
+				ID:               req.ProjectID,
+				LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+		})
+		if err != nil {
+			return err
+		}
 	}
 	/*
 

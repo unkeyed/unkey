@@ -85,7 +85,7 @@ service-stop: ## Stop metald service
 	@echo "✓ metald stopped"
 
 test: ## Run all tests
-	@go test -json -failfast -v ./... | tparse
+	@go test -json -failfast -v ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 test-coverage: ## Run tests with coverage report
 	@go test ./... -coverprofile=coverage.out

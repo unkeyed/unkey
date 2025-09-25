@@ -11,7 +11,7 @@ import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/li
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const rollback = t.procedure
+export const promote = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.update))
@@ -72,16 +72,9 @@ export const rollback = t.procedure
           message: `Deployment ${targetDeployment.id} is not ready (status: ${targetDeployment.status})`,
         });
       }
-      if (!targetDeployment.project.liveDeploymentId) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: `Project ${targetDeployment.project.name} doesn't have a live deployment to roll back.`,
-        });
-      }
 
       await ctrl
-        .rollback({
-          sourceDeploymentId: targetDeployment.project.liveDeploymentId,
+        .promote({
           targetDeploymentId: targetDeployment.id,
         })
         .catch((err) => {
@@ -92,12 +85,12 @@ export const rollback = t.procedure
           });
         });
 
-      // Log the rollback action for audit purposes
+      // Log the promotion action for audit purposes
       await insertAuditLogs(db, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
-        event: "deployment.rollback",
-        description: `Rolled back ${targetDeployment.project.name} to deployment ${targetDeployment.id}`,
+        event: "deployment.promote",
+        description: `Promoted ${targetDeployment.project.name} to deployment ${targetDeployment.id}`,
         resources: [
           {
             type: "deployment",
@@ -114,7 +107,7 @@ export const rollback = t.procedure
         throw error;
       }
 
-      console.error("Rollback request failed:", error);
+      console.error("Promote request failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to communicate with control service",

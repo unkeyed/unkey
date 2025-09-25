@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertDomain is the base query for bulk insert
-const bulkInsertDomain = `INSERT INTO domains ( id, workspace_id, project_id, deployment_id, domain, type, sticky, created_at, updated_at ) VALUES %s`
+const bulkInsertDomain = `INSERT INTO domains ( id, workspace_id, project_id, environment_id, deployment_id, domain, type, sticky, created_at, updated_at ) VALUES %s`
 
 // InsertDomains performs bulk insert in a single query
 func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertD
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, null )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, null )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDomain, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertDomains(ctx context.Context, db DBTX, args []InsertD
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ProjectID)
+		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.Domain)
 		allArgs = append(allArgs, arg.Type)
