@@ -1,4 +1,4 @@
-import { Cloud, CodeBranch, Plus } from "@unkey/icons";
+import { Cloud, Plus } from "@unkey/icons";
 import { Button, Card } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
@@ -43,18 +43,6 @@ export const ActiveDeploymentCardEmpty = ({ onCreateDeployment, className }: Pro
           Create deployment
         </Button>
       )}
-
-      {/* Subtle decorative elements */}
-      <div className="absolute top-4 left-4 opacity-20 animate-bounce">
-        <CodeBranch className="text-gray-7 size-3" />
-      </div>
-      <div className="absolute bottom-4 right-4 opacity-80">
-        <div className="flex gap-1">
-          <div className="w-1 h-1 bg-gray-6 rounded-full animate-pulse" />
-          <div className="w-1 h-1 bg-gray-5 rounded-full animate-pulse animation-delay-200" />
-          <div className="w-1 h-1 bg-gray-4 rounded-full animate-pulse animation-delay-400" />
-        </div>
-      </div>
     </div>
   </Card>
 );
