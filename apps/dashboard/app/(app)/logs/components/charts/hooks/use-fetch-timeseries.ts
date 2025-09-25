@@ -1,18 +1,17 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
-import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
-import type { queryTimeseriesPayload } from "../query-timeseries.schema";
 
 export const useFetchTimeseries = () => {
   const { filters } = useFilters();
 
   const { queryTime: timestamp } = useQueryTime();
   const queryParams = useMemo(() => {
-    const params: z.infer<typeof queryTimeseriesPayload> = {
+    const params: TimeseriesRequestSchema = {
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       host: { filters: [] },
@@ -61,7 +60,7 @@ export const useFetchTimeseries = () => {
             console.error("Host filter value type has to be 'string'");
             return;
           }
-          params.host?.filters.push({
+          params.host?.filters?.push({
             operator: "is",
             value: filter.value,
           });

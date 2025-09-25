@@ -11,6 +11,7 @@ const schema = z.object({
   gitRepositoryUrl: z.string().nullable(),
   updatedAt: z.number().int().nullable(),
   liveDeploymentId: z.string().nullable(),
+  isRolledBack: z.boolean(),
   // Flattened deployment fields for UI
   commitTitle: z.string(),
   branch: z.string(),
@@ -43,6 +44,7 @@ export const projects = createCollection<Project>(
     queryClient,
     queryKey: ["projects"],
     retry: 3,
+    refetchInterval: 5000,
     queryFn: async () => {
       return await trpcClient.deploy.project.list.query();
     },

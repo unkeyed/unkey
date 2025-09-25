@@ -15,6 +15,7 @@ export const getLogsClickhousePayload = z.object({
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
+  excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   requestIds: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
@@ -90,6 +91,13 @@ export function getLogs(ch: Querier) {
         CASE
           WHEN length({hosts: Array(String)}) > 0 THEN
             host IN {hosts: Array(String)}
+          ELSE TRUE
+        END
+      )
+      AND (
+        CASE
+          WHEN length({excludeHosts: Array(String)}) > 0 THEN
+            host NOT IN {excludeHosts: Array(String)}
           ELSE TRUE
         END
       )
@@ -185,6 +193,7 @@ export const logsTimeseriesParams = z.object({
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
+  excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
 });
@@ -210,47 +219,47 @@ type TimeInterval = {
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 5,
   },
   fifteenMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 15,
   },
   thirtyMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 30,
   },
   hour: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 2,
   },
   fourHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 4,
   },
   sixHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 6,
   },
   day: {
-    table: "metrics.api_requests_per_day_v1",
+    table: "default.api_requests_per_day_v2",
     step: "DAY",
     stepSize: 1,
   },
@@ -312,6 +321,12 @@ function getLogsTimeseriesWhereClause(
     `(CASE
         WHEN length({hosts: Array(String)}) > 0 THEN
           host IN {hosts: Array(String)}
+        ELSE TRUE
+      END)
+      AND
+      (CASE
+        WHEN length({excludeHosts: Array(String)}) > 0 THEN
+          host NOT IN {excludeHosts: Array(String)}
         ELSE TRUE
       END)`,
     // Method filter

@@ -1,11 +1,10 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { z } from "zod";
 import { useFilters } from "../../../hooks/use-filters";
-import type { queryLogsPayload } from "../query-logs.schema";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -37,7 +36,7 @@ export function useLogsQuery({
 
   //Required for preventing double trpc call during initial render
   const queryParams = useMemo(() => {
-    const params: z.infer<typeof queryLogsPayload> = {
+    const params: LogsRequestSchema = {
       limit,
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
@@ -88,7 +87,7 @@ export function useLogsQuery({
             console.error("Host filter value type has to be 'string'");
             return;
           }
-          params.host?.filters.push({
+          params.host?.filters?.push({
             operator: "is",
             value: filter.value,
           });

@@ -79,7 +79,7 @@ export const rollback = t.procedure
         });
       }
 
-      const rolledBack = await ctrl
+      await ctrl
         .rollback({
           sourceDeploymentId: targetDeployment.project.liveDeploymentId,
           targetDeploymentId: targetDeployment.id,
@@ -108,9 +108,7 @@ export const rollback = t.procedure
         context: ctx.audit,
       });
 
-      return {
-        domains: rolledBack.domains,
-      };
+      return {};
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

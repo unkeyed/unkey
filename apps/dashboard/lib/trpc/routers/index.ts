@@ -41,6 +41,7 @@ import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
+import { promote } from "./deploy/deployment/promote";
 import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
 import { getEnvs } from "./deploy/envs/list";
@@ -330,6 +331,7 @@ export const router = t.router({
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
       rollback,
+      promote,
     }),
   }),
 });

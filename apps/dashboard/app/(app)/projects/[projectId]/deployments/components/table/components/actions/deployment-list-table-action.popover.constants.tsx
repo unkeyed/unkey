@@ -1,8 +1,12 @@
 "use client";
+import { useProjectLayout } from "@/app/(app)/projects/[projectId]/layout-provider";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise } from "@unkey/icons";
-import { useState } from "react";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { PromotionDialog } from "../../../promotion-dialog";
 import { RollbackDialog } from "../../../rollback-dialog";
 
 type DeploymentListTableActionsProps = {
@@ -16,53 +20,78 @@ export const DeploymentListTableActions = ({
   selectedDeployment,
   environment,
 }: DeploymentListTableActionsProps) => {
-  const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
-  const menuItems = getDeploymentListTableActionItems(
-    selectedDeployment,
-    liveDeployment,
-    environment,
-    setIsRollbackModalOpen,
+  const { collections } = useProjectLayout();
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ domain: collections.domains })
+      .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
+      .select(({ domain }) => ({ host: domain.domain })),
   );
 
-  return (
-    <>
-      <TableActionPopover items={menuItems} />
-      {liveDeployment && selectedDeployment && (
-        <RollbackDialog
-          isOpen={isRollbackModalOpen}
-          onOpenChange={setIsRollbackModalOpen}
-          liveDeployment={liveDeployment}
-          targetDeployment={selectedDeployment}
-        />
-      )}
-    </>
-  );
-};
+  const router = useRouter();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
+  const menuItems = useMemo((): MenuItem[] => {
+    const canRollbackAndRollback =
+      liveDeployment &&
+      environment?.slug === "production" &&
+      selectedDeployment.status === "ready" &&
+      selectedDeployment.id !== liveDeployment.id;
 
-const getDeploymentListTableActionItems = (
-  selectedDeployment: Deployment,
-  liveDeployment: Deployment | undefined,
-  environment: Environment | undefined,
-  setIsRollbackModalOpen: (open: boolean) => void,
-): MenuItem[] => {
-  // Rollback is only enabled for production deployments that are ready and not currently active
-  const canRollback =
-    liveDeployment &&
-    environment?.slug === "production" &&
-    selectedDeployment.status === "ready" &&
-    selectedDeployment.id !== liveDeployment.id;
-
-  return [
-    {
-      id: "rollback",
-      label: "Rollback",
-      icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
-      disabled: !canRollback,
-      onClick: () => {
-        if (canRollback) {
-          setIsRollbackModalOpen(true);
-        }
+    return [
+      {
+        id: "rollback",
+        label: "Rollback",
+        icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
+        disabled: !canRollbackAndRollback,
+        ActionComponent:
+          liveDeployment && canRollbackAndRollback
+            ? (props) => (
+                <RollbackDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
+            : undefined,
       },
-    },
-  ];
+      {
+        id: "Promote",
+        label: "Promote",
+        icon: <ChevronUp size="md-regular" />,
+        disabled: !canRollbackAndRollback,
+        ActionComponent:
+          liveDeployment && canRollbackAndRollback
+            ? (props) => (
+                <PromotionDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
+            : undefined,
+      },
+
+      {
+        id: "gateway-logs",
+        label: "Go to Gateway Logs...",
+        icon: <Layers3 size="md-regular" />,
+        onClick: () => {
+          //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
+          router.push(
+            `/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
+              .map((item) => `is:${item.host}`)
+              .join(",")}`,
+          );
+        },
+      },
+    ];
+  }, [
+    selectedDeployment.id,
+    selectedDeployment.status,
+    liveDeployment?.id,
+    environment?.slug,
+    data,
+  ]);
+
+  return <TableActionPopover items={menuItems} />;
 };

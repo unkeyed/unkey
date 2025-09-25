@@ -1,12 +1,13 @@
 "use client";
 
-import { type Deployment, collection, collectionManager } from "@/lib/collections";
+import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
+import { useProjectLayout } from "../../layout-provider";
 
 type DeploymentSectionProps = {
   title: string;
@@ -27,27 +28,28 @@ const DeploymentSection = ({ title, deployment, isLive, showSignal }: Deployment
 
 type RollbackDialogProps = {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   targetDeployment: Deployment;
   liveDeployment: Deployment;
 };
 
 export const RollbackDialog = ({
   isOpen,
-  onOpenChange,
+  onClose,
   targetDeployment,
   liveDeployment,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
-  const domainCollection = collectionManager.getProjectCollections(
-    liveDeployment.projectId,
-  ).domains;
+
+  const {
+    collections: { domains: domainCollection },
+  } = useProjectLayout();
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
+      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
   );
+
   const rollback = trpc.deploy.deployment.rollback.useMutation({
     onSuccess: () => {
       utils.invalidate();
@@ -58,11 +60,15 @@ export const RollbackDialog = ({
       try {
         // @ts-expect-error Their docs say it's here
         collection.projects.utils.refetch();
+        // @ts-expect-error Their docs say it's here
+        collection.deployments.utils.refetch();
+        // @ts-expect-error Their docs say it's here
+        collection.domains.utils.refetch();
       } catch (error) {
         console.error("Refetch error:", error);
       }
 
-      onOpenChange(false);
+      onClose();
     },
     onError: (error) => {
       toast.error("Rollback failed", {
@@ -84,7 +90,7 @@ export const RollbackDialog = ({
   return (
     <DialogContainer
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={onClose}
       title="Rollback to version"
       subTitle="Switch the active deployment to a target stable version"
       footer={
@@ -109,14 +115,17 @@ export const RollbackDialog = ({
         />
         <div>
           {domains.data.map((domain) => (
-            <div
-              key={domain.id}
-              className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center"
-            >
-              <div className="flex items-center">
-                <Link4 className="text-gray-9" size="sm-medium" />
-                <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
-                <div className="ml-3" />
+            <div className="space-y-2" key={domain.id}>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] text-grayA-11">Domain</h3>
+                <CircleInfo size="sm-regular" className="text-gray-9" />
+              </div>
+              <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
+                <div className="flex items-center">
+                  <Link4 className="text-gray-9" size="sm-medium" />
+                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
+                  <div className="ml-3" />
+                </div>
               </div>
             </div>
           ))}

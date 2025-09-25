@@ -67,6 +67,6 @@ export const safeParseJson = (jsonString?: string | null) => {
     return JSON.parse(jsonString);
   } catch {
     console.error("Cannot parse JSON:", jsonString);
-    return "Invalid JSON format";
+    return jsonString;
   }
 };

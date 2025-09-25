@@ -1,6 +1,6 @@
-import { logsFilterFieldConfig } from "@/app/(app)/logs/filters.schema";
 import { useFilters } from "@/app/(app)/logs/hooks/use-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import { logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 
 export const PathsFilter = () => {
   const { filters, updateFilters } = useFilters();

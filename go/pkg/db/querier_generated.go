@@ -173,7 +173,7 @@ type Querier interface {
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error)
 	//FindDomainByDomain
 	//
-	//  SELECT id, workspace_id, project_id, deployment_id, domain, type, sticky, is_rolled_back, created_at, updated_at FROM domains WHERE domain = ?
+	//  SELECT id, workspace_id, project_id, environment_id, deployment_id, domain, type, sticky, created_at, updated_at FROM domains WHERE domain = ?
 	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
 	//FindDomainsByDeploymentId
 	//
@@ -184,13 +184,48 @@ type Querier interface {
 	//      domain,
 	//      deployment_id,
 	//      sticky,
-	//      is_rolled_back,
 	//      created_at,
 	//      updated_at
 	//  FROM domains
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
+	//FindDomainsForPromotion
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      domain,
+	//      deployment_id,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  FROM domains
+	//  WHERE
+	//    environment_id = ?
+	//    AND sticky IN (/*SLICE:sticky*/?)
+	//  ORDER BY created_at ASC
+	FindDomainsForPromotion(ctx context.Context, db DBTX, arg FindDomainsForPromotionParams) ([]FindDomainsForPromotionRow, error)
+	//FindDomainsForRollback
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      domain,
+	//      deployment_id,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  FROM domains
+	//  WHERE
+	//    environment_id = ?
+	//    AND sticky IN (/*SLICE:sticky*/?)
+	//  ORDER BY created_at ASC
+	FindDomainsForRollback(ctx context.Context, db DBTX, arg FindDomainsForRollbackParams) ([]FindDomainsForRollbackRow, error)
 	//FindEnvironmentById
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
@@ -597,6 +632,7 @@ type Querier interface {
 	//      default_branch,
 	//      delete_protection,
 	//      live_deployment_id,
+	//      is_rolled_back,
 	//      created_at,
 	//      updated_at
 	//  FROM projects
@@ -903,6 +939,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
+	//      environment_id,
 	//      deployment_id,
 	//      domain,
 	//      type,
@@ -910,6 +947,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1523,7 +1561,6 @@ type Querier interface {
 	//  SET
 	//    workspace_id = ?,
 	//    deployment_id = ?,
-	//    is_rolled_back = ?,
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignDomain(ctx context.Context, db DBTX, arg ReassignDomainParams) error
@@ -1612,12 +1649,6 @@ type Querier interface {
 	//  SET openapi_spec = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentOpenapiSpec(ctx context.Context, db DBTX, arg UpdateDeploymentOpenapiSpecParams) error
-	//UpdateDeploymentRollback
-	//
-	//  UPDATE deployments
-	//  SET is_rolled_back = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentRollback(ctx context.Context, db DBTX, arg UpdateDeploymentRollbackParams) error
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -1700,12 +1731,15 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
-	//UpdateProjectLiveDeploymentId
+	//UpdateProjectDeployments
 	//
 	//  UPDATE projects
-	//  SET live_deployment_id = ?, updated_at = ?
+	//  SET
+	//    live_deployment_id = ?,
+	//    is_rolled_back = ?,
+	//    updated_at = ?
 	//  WHERE id = ?
-	UpdateProjectLiveDeploymentId(ctx context.Context, db DBTX, arg UpdateProjectLiveDeploymentIdParams) error
+	UpdateProjectDeployments(ctx context.Context, db DBTX, arg UpdateProjectDeploymentsParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
