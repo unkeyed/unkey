@@ -102,7 +102,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		rawCount := uint64(0)
-		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM key_verifications_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
+		err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM key_verifications_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
 		require.NoError(c, err)
 		require.Equal(c, len(verifications), int(rawCount))
 	}, time.Minute, time.Second)
@@ -115,7 +115,7 @@ func TestKeyVerifications(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 
 					queried := int64(0)
-					err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
+					err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
 					require.NoError(c, err)
 					t.Logf("expected %d, got %d", len(verifications), queried)
 					require.Equal(c, len(verifications), int(queried))
@@ -140,7 +140,7 @@ func TestKeyVerifications(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 
 						queried := int64(0)
-						err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND outcome = ?;", table, workspaceID, outcome).Scan(&queried)
+						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND outcome = ?;", table, workspaceID, outcome).Scan(&queried)
 						require.NoError(c, err)
 						t.Logf("%s expected %d, got %d", outcome, count, queried)
 						require.Equal(c, count, int(queried))
@@ -172,7 +172,7 @@ func TestKeyVerifications(t *testing.T) {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 
 							queried := int64(0)
-							err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table, workspaceID, keyID, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table, workspaceID, keyID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -202,7 +202,7 @@ func TestKeyVerifications(t *testing.T) {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 
 							queried := int64(0)
-							err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table, workspaceID, identityID, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table, workspaceID, identityID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -233,7 +233,7 @@ func TestKeyVerifications(t *testing.T) {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 
 							queried := int64(0)
-							err = conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table, workspaceID, tag, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table, workspaceID, tag, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -259,7 +259,7 @@ func TestKeyVerifications(t *testing.T) {
 					queriedP75 float32
 					queriedP99 float32
 				)
-				err = conn.QueryRow(ctx, "SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
+				err := conn.QueryRow(ctx, "SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
 				require.NoError(t, err)
 
 				require.InDelta(t, avg, queriedAvg, 0.01)
@@ -280,7 +280,7 @@ func TestKeyVerifications(t *testing.T) {
 			t.Run(table, func(t *testing.T) {
 				t.Parallel()
 				var queried int64
-				err = conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
+				err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
 				require.NoError(t, err)
 
 				require.Equal(t, credits, queried)
@@ -302,7 +302,7 @@ func TestKeyVerifications(t *testing.T) {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
-					err = conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND identity_id = ?;", table, workspaceID, identityID).Scan(&queried)
+					err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND identity_id = ?;", table, workspaceID, identityID).Scan(&queried)
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
@@ -327,7 +327,7 @@ func TestKeyVerifications(t *testing.T) {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
-					err = conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND key_id = ?;", table, workspaceID, keyID).Scan(&queried)
+					err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND key_id = ?;", table, workspaceID, keyID).Scan(&queried)
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
@@ -348,7 +348,7 @@ func TestKeyVerifications(t *testing.T) {
 		}, int64(0))
 
 		var queried int64
-		err = conn.QueryRow(ctx, "SELECT sum(count) FROM billable_verifications_per_month_v2 WHERE workspace_id = ?;", workspaceID).Scan(&queried)
+		err := conn.QueryRow(ctx, "SELECT sum(count) FROM billable_verifications_per_month_v2 WHERE workspace_id = ?;", workspaceID).Scan(&queried)
 
 		require.NoError(t, err)
 
