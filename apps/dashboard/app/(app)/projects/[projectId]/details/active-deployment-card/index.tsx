@@ -1,5 +1,6 @@
 "use client";
 
+import { formatNumber } from "@/lib/fmt";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ChevronDown,
@@ -186,7 +187,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
           <div className="flex items-center gap-1.5 px-3 mb-3">
             <FilterButton
               isActive={logFilter === "all"}
-              count={logCounts.total}
+              count={formatNumber(logCounts.total)}
               onClick={() => handleFilterChange("all")}
               icon={Layers3}
               label="All Logs"
@@ -194,14 +195,14 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
             {/*//INFO: Let's keep them for now we might need them in the future*/}
             <FilterButton
               isActive={logFilter === "errors"}
-              count={logCounts.errors}
+              count={formatNumber(logCounts.errors)}
               onClick={() => handleFilterChange("errors")}
               icon={CircleXMark}
               label="Errors"
             />
             <FilterButton
               isActive={logFilter === "warnings"}
-              count={logCounts.warnings}
+              count={formatNumber(logCounts.warnings)}
               onClick={() => handleFilterChange("warnings")}
               icon={TriangleWarning2}
               label="Warnings"
