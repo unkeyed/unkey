@@ -4,8 +4,6 @@ CREATE TABLE billable_ratelimits_per_month_v2 (
   workspace_id String,
   count Int64
 ) ENGINE = SummingMergeTree ()
-PARTITION BY
-  (year, month)
 ORDER BY
   (workspace_id, year, month);
 

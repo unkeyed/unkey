@@ -2,7 +2,6 @@ CREATE TABLE active_workspaces_per_month_v2 (
   time Date,
   workspace_id String
 ) ENGINE = ReplacingMergeTree()
-PARTITION BY toYYYYMM(time)
 ORDER BY (time, workspace_id)
 TTL time + INTERVAL 5 YEAR DELETE;
 

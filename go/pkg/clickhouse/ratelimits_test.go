@@ -2,6 +2,7 @@ package clickhouse_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -50,11 +51,8 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 		case 1:
 			return uid.New(uid.KeyPrefix)
 		case 2:
-			// IP address format
-			return array.Random([]string{
-				"192.168.1.100", "10.0.0.50", "172.16.0.200",
-				"203.0.113.45", "198.51.100.25", "192.0.2.150",
-			})
+			// Generate IP
+			return generateRandomIP()
 		default:
 			// Custom identifier
 			return "custom_" + uid.New("")
@@ -68,10 +66,22 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 		randomOffset := time.Duration(rand.Int63n(int64(timeRange)))
 		timestamp := startTime.Add(randomOffset)
 
+		limit := uint64(rand.Intn(1000)) + 1           // Random limit count
+		remaining := uint64(rand.Intn(int(limit))) + 1 // Random remaining count
+		reset := timestamp.Truncate(time.Minute).Add(time.Minute)
+		// 10% chance of override
+		var overrideID string
+		if rand.Float64() < 0.1 {
+			overrideID = uid.New(uid.RatelimitOverridePrefix)
+		}
+
 		// Simulate realistic ratelimit patterns:
 		// - 70% pass (under limit)
 		// - 30% fail (over limit)
 		passed := rand.Float64() < 0.7
+		if !passed {
+			remaining = 0
+		}
 
 		// Ratelimit check latency: typically very fast
 		latency := rand.ExpFloat64()*2 + 0.1 // 0.1-5ms base range
@@ -87,6 +97,10 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			Identifier:  array.Random(identifiers),
 			Passed:      passed,
 			Latency:     latency,
+			OverrideID:  overrideID,
+			Limit:       limit,
+			Remaining:   remaining,
+			ResetAt:     reset.UnixMilli(),
 		}
 	})
 	t.Logf("Generated %d ratelimits in %s", len(ratelimits), time.Since(t0))
@@ -253,7 +267,6 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("pass rate analysis per identifier", func(t *testing.T) {
-		t.Parallel()
 		// Calculate overall pass rate
 		for _, identifier := range identifiers[:10] {
 			total := 0
@@ -275,7 +288,6 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 						require.Equal(c, total, int(queriedTotal), "total queries should match")
 						require.Equal(c, passed, int(queriedPassed), "passed queries should match")
-						t.Parallel()
 
 					}, time.Minute, time.Second)
 				})
@@ -312,4 +324,81 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			}
 		}
 	})
+}
+
+// generateRandomIP generates a random IP address
+// Returns both IPv4 and IPv6 addresses for realistic testing
+func generateRandomIP() string {
+	// 80% IPv4, 20% IPv6 for realistic distribution
+	if rand.Float64() < 0.8 {
+		return generateRandomIPv4()
+	}
+	return generateRandomIPv6()
+}
+
+// generateRandomIPv4 generates a random IPv4 address
+func generateRandomIPv4() string {
+	// Generate different types of IPv4 addresses
+	switch rand.Intn(4) {
+	case 0:
+		// Public IPv4 (avoid reserved ranges)
+		return fmt.Sprintf("%d.%d.%d.%d",
+			rand.Intn(223)+1, // 1-223 (avoid 0.x.x.x, 224-255.x.x.x)
+			rand.Intn(256),
+			rand.Intn(256),
+			rand.Intn(254)+1) // 1-254 (avoid .0 and .255)
+	case 1:
+		// Private Class A (10.0.0.0/8)
+		return fmt.Sprintf("10.%d.%d.%d",
+			rand.Intn(256),
+			rand.Intn(256),
+			rand.Intn(254)+1)
+	case 2:
+		// Private Class B (172.16.0.0/12)
+		return fmt.Sprintf("172.%d.%d.%d",
+			rand.Intn(16)+16, // 172.16-31.x.x
+			rand.Intn(256),
+			rand.Intn(254)+1)
+	default:
+		// Private Class C (192.168.0.0/16)
+		return fmt.Sprintf("192.168.%d.%d",
+			rand.Intn(256),
+			rand.Intn(254)+1)
+	}
+}
+
+// generateRandomIPv6 generates a random IPv6 address
+func generateRandomIPv6() string {
+	// Generate different types of IPv6 addresses
+	switch rand.Intn(3) {
+	case 0:
+		// Global unicast (2000::/3)
+		return fmt.Sprintf("2%03x:%04x:%04x:%04x:%04x:%04x:%04x:%04x",
+			rand.Intn(4096), // 2000-2fff
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536))
+	case 1:
+		// Link-local (fe80::/10)
+		return fmt.Sprintf("fe80::%04x:%04x:%04x:%04x",
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536))
+	default:
+		// Unique local (fc00::/7)
+		return fmt.Sprintf("fc%02x:%04x:%04x:%04x:%04x:%04x:%04x:%04x",
+			rand.Intn(256),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536),
+			rand.Intn(65536))
+	}
 }
