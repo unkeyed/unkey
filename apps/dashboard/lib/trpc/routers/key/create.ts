@@ -1,7 +1,7 @@
 import {
   type CreateKeyInput,
   createKeyInputSchema,
-} from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";

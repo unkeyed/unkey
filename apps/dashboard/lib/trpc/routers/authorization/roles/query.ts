@@ -1,5 +1,5 @@
-import { rolesQueryPayload } from "@/app/(app)/[workspace]/authorization/roles/components/table/query-logs.schema";
-import type { RolesFilterOperator } from "@/app/(app)/[workspace]/authorization/roles/filters.schema";
+import { rolesQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/table/query-logs.schema";
+import type { RolesFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/roles/filters.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -41,7 +41,7 @@ export const queryRoles = t.procedure
     // Get total count first
     const countResult = await db.execute(sql`
       SELECT COUNT(*) as total
-      FROM roles 
+      FROM roles
       WHERE workspace_id = ${workspaceId}
         ${nameFilter}
         ${descriptionFilter}
@@ -62,7 +62,7 @@ export const queryRoles = t.procedure
 
     const result = await db.execute(sql`
       SELECT id, name, description, updated_at_m
-      FROM roles 
+      FROM roles
       WHERE workspace_id = ${workspaceId}
         ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
         ${nameFilter}
@@ -126,33 +126,33 @@ function buildKeyFilter(
       switch (filter.operator) {
         case "is":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.name = ${value}
           )`;
         case "contains":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.name LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.name LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.name LIKE ${`%${value}`}
           )`;
@@ -169,33 +169,33 @@ function buildKeyFilter(
       switch (filter.operator) {
         case "is":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.id = ${value}
           )`;
         case "contains":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.id LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.id LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
-            SELECT DISTINCT kr.role_id 
-            FROM keys_roles kr 
-            JOIN \`keys\` k ON kr.key_id = k.id 
+            SELECT DISTINCT kr.role_id
+            FROM keys_roles kr
+            JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
               AND k.id LIKE ${`%${value}`}
           )`;
@@ -271,33 +271,33 @@ function buildPermissionFilter(
       switch (filter.operator) {
         case "is":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.name = ${value}
           )`;
         case "contains":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.name LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.name LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.name LIKE ${`%${value}`}
           )`;
@@ -314,33 +314,33 @@ function buildPermissionFilter(
       switch (filter.operator) {
         case "is":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.slug = ${value}
           )`;
         case "contains":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.slug LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.slug LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
-            SELECT DISTINCT rp.role_id 
-            FROM roles_permissions rp 
-            JOIN permissions p ON rp.permission_id = p.id 
+            SELECT DISTINCT rp.role_id
+            FROM roles_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
               AND p.slug LIKE ${`%${value}`}
           )`;

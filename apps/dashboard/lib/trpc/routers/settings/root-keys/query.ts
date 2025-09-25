@@ -1,4 +1,4 @@
-import { rootKeysQueryPayload } from "@/app/(app)/[workspace]/settings/root-keys/components/table/query-logs.schema";
+import { rootKeysQueryPayload } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/table/query-logs.schema";
 import { and, count, db, desc, eq, exists, isNull, like, lt, or, schema } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

@@ -1,4 +1,4 @@
-import { rbacRoleSchema } from "@/app/(app)/[workspace]/authorization/roles/components/upsert-role/upsert-role.schema";
+import { rbacRoleSchema } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/upsert-role.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";

@@ -1,5 +1,5 @@
 "use client";
-import { KeySecretSection } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/components/key-secret-section";
+import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";

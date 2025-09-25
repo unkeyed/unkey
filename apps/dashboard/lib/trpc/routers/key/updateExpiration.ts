@@ -1,4 +1,4 @@
-import { expirationSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
+import { expirationSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";

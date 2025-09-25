@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   permissionsFilterFieldConfig,
-} from "@/app/(app)/[workspace]/authorization/permissions/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";

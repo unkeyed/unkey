@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   ratelimitFilterFieldConfig,
-} from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/logs/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
@@ -117,8 +117,8 @@ Query: "show requests from last 30m"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "30m"
     }]
   }
@@ -128,15 +128,15 @@ Query: "find requests between yesterday and today"
 Result: [
   {
     field: "startTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS - 24 * 60 * 60 * 1000}
     }]
   },
   {
     field: "endTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS}
     }]
   }
@@ -197,8 +197,8 @@ Result: [
   },
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "2h"
     }]
   },
@@ -247,9 +247,9 @@ Query: "show requests from last week"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
-      value: "1w"  
+    filters: [{
+      operator: "is",
+      value: "1w"
     }]
   }
 ]
@@ -258,8 +258,8 @@ Query: "find failed requests"
 Result: [
   {
     field: "status",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "blocked"  // Maps "failed" to blocked status
     }]
   }

@@ -1,5 +1,5 @@
 "use client";
-import { ProgressCircle } from "@/app/(app)/[workspace]/settings/billing/components/usage";
+import { ProgressCircle } from "@/app/(app)/[workspaceSlug]/settings/billing/components/usage";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import type { Quotas } from "@unkey/db";

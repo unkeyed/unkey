@@ -1,4 +1,4 @@
-import type { VerificationQueryTimeseriesPayload } from "@/app/(app)/[workspace]/apis/_components/hooks/query-timeseries.schema";
+import type { VerificationQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/_components/hooks/query-timeseries.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import {

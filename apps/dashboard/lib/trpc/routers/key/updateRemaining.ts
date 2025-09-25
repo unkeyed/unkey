@@ -1,4 +1,4 @@
-import { creditsSchema } from "@/app/(app)/[workspace]/apis/[apiId]/_components/create-key/create-key.schema";
+import { creditsSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";

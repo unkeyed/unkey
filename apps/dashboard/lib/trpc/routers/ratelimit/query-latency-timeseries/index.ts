@@ -1,4 +1,4 @@
-import { ratelimitOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspace]/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/query-timeseries.schema";
+import { ratelimitOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
