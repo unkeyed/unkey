@@ -19,10 +19,10 @@ const logsSchema = z.array(
 
             return s;
           }
-        }),
+        })
       ),
     })
-    .passthrough(),
+    .passthrough()
 );
 
 const fetchSchema = z.object({
@@ -60,7 +60,10 @@ const alarmSchema = z.object({
   ScriptTags: z.array(z.object({}).passthrough()),
 });
 
-const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]);
+const eventSchema = z.discriminatedUnion("EventType", [
+  fetchSchema,
+  alarmSchema,
+]);
 
 const app = new Hono<{
   Bindings: {
@@ -94,7 +97,7 @@ app.all("*", async (c) => {
         try {
           return eventSchema.parse(JSON.parse(l));
         } catch (err) {
-          console.error((err as Error).message, JSON.stringify(lines));
+          console.error((err as Error).message);
           return null;
         }
       })
@@ -107,7 +110,7 @@ app.all("*", async (c) => {
         eventTime: l.EventTimestampMs,
         logdrainTime: now,
         latency: now - l.EventTimestampMs,
-      })),
+      }))
     );
 
     for (const line of lines) {
