@@ -67,7 +67,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
       <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="start">
         {user?.email && (
           <>
-            <DropdownMenuLabel className="font-normal p-0">
+            <DropdownMenuLabel className="font-normal">
               <span title={user.email} className="text-accent-11 text-xs truncate max-w-44">
                 {user.email}
               </span>
