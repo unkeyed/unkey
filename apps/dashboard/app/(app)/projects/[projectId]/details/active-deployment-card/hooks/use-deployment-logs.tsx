@@ -127,7 +127,7 @@ export function useDeploymentLogs({
         });
 
         const sortedEntries = Array.from(newMap.entries())
-          .sort((a, b) => a[1].timestamp - b[1].timestamp)
+          .sort((a, b) => b[1].timestamp - a[1].timestamp)
           .slice(0, MAX_STORED_LOGS);
 
         return new Map(sortedEntries);
@@ -136,7 +136,7 @@ export function useDeploymentLogs({
   }, [showBuildSteps, gatewayData]);
 
   const logs = useMemo(() => {
-    return Array.from(storedLogs.values()).sort((a, b) => a.timestamp - b.timestamp);
+    return Array.from(storedLogs.values()).sort((a, b) => b.timestamp - a.timestamp);
   }, [storedLogs]);
 
   const logCounts = useMemo(() => {
