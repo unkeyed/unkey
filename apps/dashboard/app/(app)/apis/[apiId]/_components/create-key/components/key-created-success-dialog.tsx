@@ -121,7 +121,7 @@ export const KeyCreatedSuccessDialog = ({
         onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px] max-w-[760px]">
             <div className="py-4 mt-[30px]">
               <div className="flex gap-4">
                 <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
@@ -188,6 +188,7 @@ export const KeyCreatedSuccessDialog = ({
               apiId={apiId}
               className="mt-6 w-full"
               secretKeyClassName="bg-white dark:bg-black"
+              codeClassName="overflow-x-auto"
             />
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
