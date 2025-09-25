@@ -33,4 +33,5 @@ export type IconProps = {
   size?: IconSize;
   filled?: boolean;
   focusable?: boolean;
+  style?: React.CSSProperties;
 };

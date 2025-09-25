@@ -11,7 +11,7 @@ type LogEntry = {
 type LogFilter = "all" | "errors" | "warnings";
 
 type UseDeploymentLogsProps = {
-  deploymentId: string;
+  deploymentId: string | null;
 };
 
 type UseDeploymentLogsReturn = {
@@ -50,9 +50,13 @@ export function useDeploymentLogs({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch logs via tRPC
-  const { data: logsData, isLoading } = trpc.deploy.deployment.buildLogs.useQuery({
-    deploymentId,
-  });
+  const { data: logsData, isLoading } = trpc.deploy.deployment.buildLogs.useQuery(
+    {
+      // without this check TS yells at us
+      deploymentId: deploymentId ?? "",
+    },
+    { enabled: Boolean(deploymentId) },
+  );
 
   // Transform tRPC logs to match the expected format
   const logs = useMemo((): LogEntry[] => {
