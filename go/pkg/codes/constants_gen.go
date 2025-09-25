@@ -16,6 +16,10 @@ const (
 	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
 	UserErrorsBadRequestRequestBodyTooLarge URN = "err:user:bad_request:request_body_too_large"
+	// RequestTimeout indicates the request took too long to process.
+	UserErrorsBadRequestRequestTimeout URN = "err:user:bad_request:request_timeout"
+	// ClientClosedRequest indicates the client closed the connection before the request completed.
+	UserErrorsBadRequestClientClosedRequest URN = "err:user:bad_request:client_closed_request"
 
 	// ----------------
 	// UnkeyAuthErrors
