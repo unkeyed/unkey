@@ -38,7 +38,6 @@ CREATE TABLE key_verifications_raw_v2
   INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMMDD(fromUnixTimestamp64Milli(time))
 ORDER BY (workspace_id, time, key_space_id, outcome)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
 SETTINGS non_replicated_deduplication_window = 10000
