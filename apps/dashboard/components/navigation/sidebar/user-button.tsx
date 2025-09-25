@@ -65,15 +65,19 @@ export const UserButton: React.FC<UserButtonProps> = ({
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="start">
-        <DropdownMenuItem>
-          <span
-            title={user?.email}
-            className="text-accent-11 text-xs overflow-hidden text-ellipsis max-w-44"
-          >
-            {user?.email}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {user?.email && (
+          <>
+            <DropdownMenuLabel className="font-normal p-0">
+              <span
+                title={user.email}
+                className="text-accent-11 text-xs truncate max-w-44"
+              >
+                {user.email}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuGroup className="w-full">
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
