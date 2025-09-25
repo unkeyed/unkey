@@ -70,6 +70,7 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
         statusCodes: [],
         paths: [],
         hosts: [],
+        excludeHosts: [],
         methods: [],
         startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).getTime(), // 24 hours ago
         endTime: Date.now(),
@@ -81,6 +82,7 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
       const hourly = await ch.api.timeseries.perHour({
         workspaceId,
         statusCodes: [],
+        excludeHosts: [],
         paths: [],
         hosts: [],
         methods: [],
@@ -96,6 +98,7 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
         statusCodes: [],
         paths: [],
         hosts: [],
+        excludeHosts: [],
         methods: [],
         startTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).getTime(), // 30 days ago
         endTime: Date.now(),

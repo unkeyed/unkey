@@ -1,5 +1,3 @@
-import { METHODS } from "./constants";
-
 import type {
   FilterValue,
   NumberConfig,
@@ -27,7 +25,7 @@ export const logsFilterFieldConfig: FilterFieldConfigs = {
   methods: {
     type: "string",
     operators: ["is"],
-    validValues: METHODS,
+    validValues: ["GET", "POST", "PUT", "DELETE", "PATCH"] as const,
   },
   paths: {
     type: "string",

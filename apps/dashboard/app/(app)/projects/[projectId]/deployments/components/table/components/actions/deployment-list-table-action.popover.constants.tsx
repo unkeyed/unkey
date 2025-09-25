@@ -1,8 +1,11 @@
 "use client";
-import { TableActionPopover } from "@/components/logs/table-action.popover";
+import { useProjectLayout } from "@/app/(app)/projects/[projectId]/layout-provider";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, ChevronUp } from "@unkey/icons";
-import { useState } from "react";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { PromotionDialog } from "../../../promotion-dialog";
 import { RollbackDialog } from "../../../rollback-dialog";
 
@@ -17,68 +20,78 @@ export const DeploymentListTableActions = ({
   selectedDeployment,
   environment,
 }: DeploymentListTableActionsProps) => {
-  const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
-  const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
-
-  const canRollback =
-    liveDeployment &&
-    environment?.slug === "production" &&
-    selectedDeployment.status === "ready" &&
-    selectedDeployment.id !== liveDeployment.id;
-
-  // TODO
-  // This logic is slightly flawed as it does not allow you to promote a deployment that
-  // is currently live due to a rollback.
-  const canPromote =
-    liveDeployment &&
-    environment?.slug === "production" &&
-    selectedDeployment.status === "ready" &&
-    selectedDeployment.id !== liveDeployment.id;
-
-  return (
-    <>
-      <TableActionPopover
-        items={[
-          {
-            id: "rollback",
-            label: "Rollback",
-            icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
-            disabled: !canRollback,
-            onClick: () => {
-              if (canRollback) {
-                setIsRollbackModalOpen(true);
-              }
-            },
-          },
-          {
-            id: "Promote",
-            label: "Promote",
-            icon: <ChevronUp size="md-regular" />,
-            disabled: !canPromote,
-            onClick: () => {
-              if (canPromote) {
-                setIsPromotionModalOpen(true);
-              }
-            },
-          },
-        ]}
-      />
-      {liveDeployment && selectedDeployment && (
-        <RollbackDialog
-          isOpen={isRollbackModalOpen}
-          onOpenChange={setIsRollbackModalOpen}
-          liveDeployment={liveDeployment}
-          targetDeployment={selectedDeployment}
-        />
-      )}
-      {liveDeployment && selectedDeployment && (
-        <PromotionDialog
-          isOpen={isPromotionModalOpen}
-          onOpenChange={setIsPromotionModalOpen}
-          liveDeployment={liveDeployment}
-          targetDeployment={selectedDeployment}
-        />
-      )}
-    </>
+  const { collections } = useProjectLayout();
+  const { data } = useLiveQuery((q) =>
+    q
+      .from({ domain: collections.domains })
+      .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
+      .select(({ domain }) => ({ host: domain.domain })),
   );
+
+  const router = useRouter();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
+  const menuItems = useMemo((): MenuItem[] => {
+    const canRollbackAndRollback =
+      liveDeployment &&
+      environment?.slug === "production" &&
+      selectedDeployment.status === "ready" &&
+      selectedDeployment.id !== liveDeployment.id;
+
+    return [
+      {
+        id: "rollback",
+        label: "Rollback",
+        icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
+        disabled: !canRollbackAndRollback,
+        ActionComponent:
+          liveDeployment && canRollbackAndRollback
+            ? (props) => (
+                <RollbackDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
+            : undefined,
+      },
+      {
+        id: "Promote",
+        label: "Promote",
+        icon: <ChevronUp size="md-regular" />,
+        disabled: !canRollbackAndRollback,
+        ActionComponent:
+          liveDeployment && canRollbackAndRollback
+            ? (props) => (
+                <PromotionDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
+            : undefined,
+      },
+
+      {
+        id: "gateway-logs",
+        label: "Go to Gateway Logs...",
+        icon: <Layers3 size="md-regular" />,
+        onClick: () => {
+          //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
+          router.push(
+            `/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
+              .map((item) => `is:${item.host}`)
+              .join(",")}`,
+          );
+        },
+      },
+    ];
+  }, [
+    selectedDeployment.id,
+    selectedDeployment.status,
+    liveDeployment?.id,
+    environment?.slug,
+    data,
+  ]);
+
+  return <TableActionPopover items={menuItems} />;
 };

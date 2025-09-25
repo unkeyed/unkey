@@ -1,16 +1,18 @@
 "use client";
-import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { cn } from "@/lib/utils";
-import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { Badge, TimestampInfo } from "@unkey/ui";
+import type { StandardLogTypes } from "..";
 
 type Props = {
-  log: RatelimitLog;
+  log: StandardLogTypes;
 };
 
+export const YELLOW_STATES = ["RATE_LIMITED", "EXPIRED", "USAGE_EXCEEDED"];
+export const RED_STATES = ["DISABLED", "FORBIDDEN", "INSUFFICIENT_PERMISSIONS"];
 const DEFAULT_OUTCOME = "VALID";
+
 export const LogFooter = ({ log }: Props) => {
   return (
     <RequestResponseDetails
@@ -48,7 +50,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Request User Agent",
-          description: (content) => <span className="text-xs font-mono">{content}</span>,
+          description: (content) => <span className="text-xs font-mono text-right">{content}</span>,
           content: getRequestHeader(log, "user-agent") ?? "",
           tooltipContent: "Copy Request User Agent",
           tooltipSuccessMessage: "Request user agent copied to clipboard",
@@ -64,15 +66,15 @@ export const LogFooter = ({ log }: Props) => {
               <Badge
                 className={cn(
                   {
-                    "text-amber-11 bg-amber-3 hover:bg-amber-3 font-medium":
+                    "text-warning-11 bg-warning-3 hover:bg-warning-3 font-medium":
                       YELLOW_STATES.includes(contentCopy),
-                    "text-red-11 bg-red-3 hover:bg-red-3 font-medium":
+                    "text-error-11 bg-error-3 hover:bg-error-3 font-medium":
                       RED_STATES.includes(contentCopy),
                   },
                   "uppercase",
                 )}
               >
-                {contentCopy}
+                {content}
               </Badge>
             );
           },
@@ -83,13 +85,18 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Permissions",
           description: (content) => (
-            <span className="text-xs font-mono flex gap-1">
-              {content.map((permission) => (
-                <Badge key={permission} variant="secondary">
+            <div className="flex flex-wrap gap-2 justify-end">
+              {content.map((permission, index) => (
+                <Badge
+                  variant="secondary"
+                  // biome-ignore lint/suspicious/noArrayIndexKey: its okay to use it as a key
+                  key={index}
+                  className="px-2 py-1 text-xs font-mono rounded-md"
+                >
                   {permission}
                 </Badge>
               ))}
-            </span>
+            </div>
           ),
           content: extractResponseField(log, "permissions"),
           tooltipContent: "Copy Permissions",
