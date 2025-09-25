@@ -2,11 +2,10 @@
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
-import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
-import { DomainRow } from "./details/domain-row";
+import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
 
@@ -18,23 +17,13 @@ export default function ProjectDetails() {
   );
 
   const project = projects.data.at(0);
-  const domains = useLiveQuery(
+  const { data: domains, isLoading: isDomainsLoading } = useLiveQuery(
     (q) =>
       q
         .from({ domain: collections.domains })
         .where(({ domain }) => eq(domain.deploymentId, project?.liveDeploymentId)),
     [project?.liveDeploymentId],
   );
-
-  if (!project) {
-    return (
-      <Empty>
-        <Empty.Icon />
-        <Empty.Title>No Project Found</Empty.Title>
-        <Empty.Description>Project not found</Empty.Description>
-      </Empty>
-    );
-  }
 
   return (
     <div
@@ -44,28 +33,31 @@ export default function ProjectDetails() {
       )}
     >
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
-        {project.liveDeploymentId ? (
-          <Section>
-            <SectionHeader
-              icon={<Cloud size="md-regular" className="text-gray-9" />}
-              title="Active Deployment"
-            />
-            <ActiveDeploymentCard deploymentId={project.liveDeploymentId} />
-          </Section>
-        ) : null}
-
+        <Section>
+          <SectionHeader
+            icon={<Cloud size="md-regular" className="text-gray-9" />}
+            title="Active Deployment"
+          />
+          <ActiveDeploymentCard deploymentId={project?.liveDeploymentId ?? null} />
+        </Section>
         <Section>
           <SectionHeader
             icon={<Earth size="md-regular" className="text-gray-9" />}
             title="Domains"
           />
           <div>
-            {domains.data.map((domain) => (
-              <DomainRow key={domain.id} domain={domain.domain} />
-            ))}
+            {isDomainsLoading ? (
+              <>
+                <DomainRowSkeleton />
+                <DomainRowSkeleton />
+              </>
+            ) : domains?.length > 0 ? (
+              domains.map((domain) => <DomainRow key={domain.id} domain={domain.domain} />)
+            ) : (
+              <DomainRowEmpty />
+            )}
           </div>
         </Section>
-
         <Section>
           <SectionHeader
             icon={<FolderCloud size="md-regular" className="text-gray-9" />}
