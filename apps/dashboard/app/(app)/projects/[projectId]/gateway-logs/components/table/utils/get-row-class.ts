@@ -56,7 +56,7 @@ export const getStatusStyle = (status: number): StatusStyle => {
 };
 
 export const WARNING_ICON_STYLES = {
-  base: "size-3",
+  base: "size-[13px] mb-[1px]",
   warning: "text-warning-11",
   error: "text-error-11",
 };
