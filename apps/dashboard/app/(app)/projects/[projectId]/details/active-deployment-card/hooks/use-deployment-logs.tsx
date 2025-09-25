@@ -1,116 +1,182 @@
 import { trpc } from "@/lib/trpc/client";
-import { format } from "date-fns";
+import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EXCLUDED_HOSTS } from "../../../gateway-logs/constants";
+
+const BUILD_STEPS_REFETCH_INTERVAL = 500;
+const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
+const GATEWAY_LOGS_LIMIT = 20;
+const GATEWAY_LOGS_SINCE = "1m";
+const MAX_STORED_LOGS = 200;
+const SCROLL_RESET_DELAY = 50;
+const ERROR_STATUS_THRESHOLD = 500;
+const WARNING_STATUS_THRESHOLD = 400;
 
 type LogEntry = {
-  timestamp: string;
-  level?: "info" | "warning" | "error";
+  type: "build" | "gateway";
+  id: string;
+  timestamp: number;
   message: string;
+  level?: "warning" | "error";
 };
 
-type LogFilter = "all" | "errors" | "warnings";
+type LogFilter = "all" | "warnings" | "errors";
 
 type UseDeploymentLogsProps = {
   deploymentId: string | null;
+  showBuildSteps: boolean;
 };
 
 type UseDeploymentLogsReturn = {
-  // State
   logFilter: LogFilter;
   searchTerm: string;
   isExpanded: boolean;
   showFade: boolean;
-  // Computed
   filteredLogs: LogEntry[];
   logCounts: {
     total: number;
-    errors: number;
     warnings: number;
+    errors: number;
   };
-  // Loading state
   isLoading: boolean;
-  // Actions
   setLogFilter: (filter: LogFilter) => void;
   setSearchTerm: (term: string) => void;
   setExpanded: (expanded: boolean) => void;
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   handleFilterChange: (filter: LogFilter) => void;
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  // Refs
   scrollRef: React.RefObject<HTMLDivElement>;
 };
 
 export function useDeploymentLogs({
   deploymentId,
+  showBuildSteps,
 }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFade, setShowFade] = useState(true);
+  const [storedLogs, setStoredLogs] = useState<Map<string, LogEntry>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { queryTime: timestamp } = useQueryTime();
 
-  // Fetch logs via tRPC
-  const { data: logsData, isLoading } = trpc.deploy.deployment.buildLogs.useQuery(
-    {
+  const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
+     {
       // without this check TS yells at us
       deploymentId: deploymentId ?? "",
     },
-    { enabled: Boolean(deploymentId) },
+    {
+      enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
+      refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
+    },
   );
 
-  // Transform tRPC logs to match the expected format
-  const logs = useMemo((): LogEntry[] => {
-    if (!logsData?.logs) {
-      return [];
-    }
+  const { data: gatewayData, isLoading: gatewayLoading } = trpc.logs.queryLogs.useQuery(
+    {
+      limit: GATEWAY_LOGS_LIMIT,
+      endTime: timestamp,
+      startTime: timestamp,
+      host: { filters: [], exclude: EXCLUDED_HOSTS },
+      method: { filters: [] },
+      path: { filters: [] },
+      status: { filters: [] },
+      requestId: null,
+      since: GATEWAY_LOGS_SINCE,
+    },
+    {
+      enabled: !showBuildSteps && isExpanded,
+      refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
+      refetchOnWindowFocus: false,
+    },
+  );
 
-    return logsData.logs.map((log) => ({
-      timestamp: format(new Date(log.timestamp), "HH:mm:ss.SSS"),
-      level: log.level,
-      message: log.message,
-    }));
-  }, [logsData]);
-
-  // Auto-expand when logs are fetched
+  // Update stored logs when build data changes
   useEffect(() => {
-    if (logsData?.logs && logsData.logs.length > 0) {
-      setIsExpanded(true);
+    if (showBuildSteps && buildData?.logs) {
+      const logMap = new Map<string, LogEntry>();
+      buildData.logs.forEach((log) => {
+        logMap.set(log.id, {
+          type: "build",
+          id: log.id,
+          timestamp: log.timestamp,
+          message: log.message,
+        });
+      });
+      setStoredLogs(logMap);
     }
-  }, [logsData]);
+  }, [showBuildSteps, buildData]);
 
-  // Calculate log counts
-  const logCounts = useMemo(
-    () => ({
+  // Update stored logs when gateway data changes
+  useEffect(() => {
+    if (!showBuildSteps && gatewayData?.logs) {
+      setStoredLogs((prev) => {
+        const newMap = new Map(prev);
+
+        gatewayData.logs.forEach((log) => {
+          let level: "warning" | "error" | undefined;
+          if (log.response_status >= ERROR_STATUS_THRESHOLD) {
+            level = "error";
+          } else if (log.response_status >= WARNING_STATUS_THRESHOLD) {
+            level = "warning";
+          }
+
+          newMap.set(log.request_id, {
+            type: "gateway",
+            id: log.request_id,
+            timestamp: log.time,
+            message: `${log.response_status} ${log.method} ${log.path} (${log.service_latency}ms)`,
+            level,
+          });
+        });
+
+        const sortedEntries = Array.from(newMap.entries())
+          .sort((a, b) => b[1].timestamp - a[1].timestamp)
+          .slice(0, MAX_STORED_LOGS);
+
+        return new Map(sortedEntries);
+      });
+    }
+  }, [showBuildSteps, gatewayData]);
+
+  const logs = useMemo(() => {
+    return Array.from(storedLogs.values()).sort((a, b) => b.timestamp - a.timestamp);
+  }, [storedLogs]);
+
+  const logCounts = useMemo(() => {
+    const warnings = logs.filter((log) => log.level === "warning").length;
+    const errors = logs.filter((log) => log.level === "error").length;
+
+    return {
       total: logs.length,
-      errors: logs.filter((log) => log.level === "error").length,
-      warnings: logs.filter((log) => log.level === "warning").length,
-    }),
-    [logs],
-  );
+      warnings,
+      errors,
+    };
+  }, [logs]);
 
-  // Filter logs by level and search term
   const filteredLogs = useMemo(() => {
     let filtered = logs;
 
-    // Apply level filter
-    if (logFilter === "errors") {
-      filtered = logs.filter((log) => log.level === "error");
-    } else if (logFilter === "warnings") {
-      filtered = logs.filter((log) => log.level === "warning");
+    if (logFilter === "warnings") {
+      filtered = logs.filter((log) => log.type === "build" || log.level === "warning");
+    } else if (logFilter === "errors") {
+      filtered = logs.filter((log) => log.type === "build" || log.level === "error");
     }
 
-    // Apply search filter
     if (searchTerm.trim()) {
-      filtered = filtered.filter(
-        (log) =>
-          log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          log.timestamp.includes(searchTerm) ||
-          log.level?.toLowerCase().includes(searchTerm.toLowerCase()),
+      filtered = filtered.filter((log) =>
+        log.message.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
     return filtered;
   }, [logs, logFilter, searchTerm]);
+
+  // Auto-expand when logs are available
+  useEffect(() => {
+    if (logs.length > 0) {
+      setIsExpanded(true);
+    }
+  }, [logs.length]);
 
   const resetScroll = () => {
     if (scrollRef.current) {
@@ -122,7 +188,7 @@ export function useDeploymentLogs({
   const setExpanded = (expanded: boolean) => {
     setIsExpanded(expanded);
     if (!expanded) {
-      setTimeout(resetScroll, 50);
+      setTimeout(resetScroll, SCROLL_RESET_DELAY);
     }
   };
 
@@ -143,24 +209,19 @@ export function useDeploymentLogs({
   };
 
   return {
-    // State
     logFilter,
     searchTerm,
     isExpanded,
     showFade,
-    // Computed
     filteredLogs,
     logCounts,
-    // Loading state
-    isLoading,
-    // Actions
+    isLoading: showBuildSteps ? buildLoading : gatewayLoading,
     setLogFilter,
     setSearchTerm,
     setExpanded,
     handleScroll,
     handleFilterChange,
     handleSearchChange,
-    // Refs
     scrollRef,
   };
 }
