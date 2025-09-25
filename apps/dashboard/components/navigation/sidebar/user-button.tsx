@@ -65,6 +65,16 @@ export const UserButton: React.FC<UserButtonProps> = ({
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="start">
+        {user?.email && (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <span title={user.email} className="text-accent-11 text-xs truncate max-w-44">
+                {user.email}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuGroup className="w-full">
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
@@ -82,6 +92,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
           </Tabs>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+
         <DropdownMenuGroup className="w-full">
           <DropdownMenuItem
             asChild

@@ -20,7 +20,7 @@ fmt: lint
 	@go fmt ./...
 
 test:
-	TESTCONTAINERS_RYUK_DISABLED=true go test -json -count=1 -parallel=$(PARALLEL_PROCS) -failfast ./pkg/... ./services/... | tparse -all -progress -smallscreen
+	TESTCONTAINERS_RYUK_DISABLED=true go test -json -count=1 -parallel=$(PARALLEL_PROCS) -failfast ./pkg/... ./services/... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 build:
 	go build -o unkey ./cmd/main.go

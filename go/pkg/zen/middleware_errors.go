@@ -74,6 +74,36 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Request Timeout errors
+			case codes.UserErrorsBadRequestRequestTimeout:
+				return s.JSON(http.StatusRequestTimeout, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Request Timeout",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusRequestTimeout,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Client Closed Request errors (499 - non-standard but widely used)
+			case codes.UserErrorsBadRequestClientClosedRequest:
+				return s.JSON(499, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Client Closed Request",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: 499,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
 			// Request Entity Too Large errors
 			case codes.UserErrorsBadRequestRequestBodyTooLarge:
 				return s.JSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{

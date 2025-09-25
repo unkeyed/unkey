@@ -89,49 +89,49 @@ describe("getTimeseriesGranularity", () => {
         expectedGranularity: "perMinute",
       },
       {
-        name: "should use per5Minutes for timeRange >= 2 hours & < 4 hours",
+        name: "should use perMinute for timeRange >= 2 hours & < 4 hours",
         startTime: getTime(HOUR_IN_MS * 3),
-        expectedGranularity: "per5Minutes",
+        expectedGranularity: "perMinute",
       },
       {
-        name: "should use per15Minutes for timeRange >= 4 hours & < 6 hours",
+        name: "should use per5Minutes for timeRange >= 4 hours & < 6 hours",
         startTime: getTime(HOUR_IN_MS * 5),
         expectedGranularity: "per5Minutes",
       },
       {
-        name: "should use per30Minutes for timeRange >= 6 hours & < 8 hours",
+        name: "should use per5Minutes for timeRange >= 6 hours & < 8 hours",
         startTime: getTime(HOUR_IN_MS * 7),
         expectedGranularity: "per5Minutes",
       },
       {
-        name: "should use per30Minutes for timeRange >= 8 hours & < 12 hours",
+        name: "should use per15Minutes for timeRange >= 8 hours & < 12 hours",
         startTime: getTime(HOUR_IN_MS * 10),
-        expectedGranularity: "per30Minutes",
+        expectedGranularity: "per15Minutes",
       },
       {
-        name: "should use perHour for timeRange >= 12 hours & < 16 hours",
+        name: "should use per15Minutes for timeRange >= 12 hours & < 16 hours",
         startTime: getTime(HOUR_IN_MS * 14),
+        expectedGranularity: "per15Minutes",
+      },
+      {
+        name: "should use per15Minutes for timeRange >= 16 hours & < 24 hours",
+        startTime: getTime(HOUR_IN_MS * 20),
+        expectedGranularity: "per15Minutes",
+      },
+      {
+        name: "should use per15Minutes for timeRange >= 24 hours & < 3 days",
+        startTime: getTime(DAY_IN_MS * 2),
+        expectedGranularity: "per15Minutes",
+      },
+      {
+        name: "should use per30Minutes for timeRange >= 3 days & < 7 days",
+        startTime: getTime(DAY_IN_MS * 5),
         expectedGranularity: "per30Minutes",
       },
       {
-        name: "should use per2Hours for timeRange >= 16 hours & < 24 hours",
-        startTime: getTime(HOUR_IN_MS * 20),
-        expectedGranularity: "per2Hours",
-      },
-      {
-        name: "should use per4Hours for timeRange >= 24 hours & < 3 days",
-        startTime: getTime(DAY_IN_MS * 2),
-        expectedGranularity: "per4Hours",
-      },
-      {
-        name: "should use per6Hours for timeRange >= 3 days & < 7 days",
-        startTime: getTime(DAY_IN_MS * 5),
-        expectedGranularity: "per6Hours",
-      },
-      {
-        name: "should use perDay for timeRange >= 7 days",
+        name: "should use per2Hours for timeRange >= 7 days",
         startTime: getTime(DAY_IN_MS * 10),
-        expectedGranularity: "perDay",
+        expectedGranularity: "per2Hours",
       },
     ];
 
@@ -144,12 +144,12 @@ describe("getTimeseriesGranularity", () => {
 
     it("should handle edge case at exactly 2 hours boundary", () => {
       const result = getTimeseriesGranularity("forRegular", FIXED_NOW - HOUR_IN_MS * 2, FIXED_NOW);
-      expect(result.granularity).toBe("per5Minutes");
+      expect(result.granularity).toBe("perMinute");
     });
 
     it("should handle edge case at exactly 7 days boundary", () => {
       const result = getTimeseriesGranularity("forRegular", FIXED_NOW - DAY_IN_MS * 7, FIXED_NOW);
-      expect(result.granularity).toBe("perDay");
+      expect(result.granularity).toBe("per2Hours");
     });
   });
 
@@ -271,7 +271,7 @@ describe("getTimeseriesGranularity", () => {
       const oneDayAgo = FIXED_NOW - DAY_IN_MS;
       const result = getTimeseriesGranularity("forRegular", oneDayAgo, FIXED_NOW);
 
-      expect(result.granularity).toBe("per4Hours");
+      expect(result.granularity).toBe("per15Minutes");
       expect(result.startTime).toBe(oneDayAgo);
       expect(result.endTime).toBe(FIXED_NOW);
     });
@@ -280,7 +280,7 @@ describe("getTimeseriesGranularity", () => {
       const oneWeekAgo = FIXED_NOW - DAY_IN_MS * 7;
       const result = getTimeseriesGranularity("forRegular", oneWeekAgo, FIXED_NOW);
 
-      expect(result.granularity).toBe("perDay");
+      expect(result.granularity).toBe("per2Hours");
       expect(result.startTime).toBe(oneWeekAgo);
       expect(result.endTime).toBe(FIXED_NOW);
     });

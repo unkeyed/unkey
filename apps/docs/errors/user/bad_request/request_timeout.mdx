@@ -1,0 +1,70 @@
+---
+title: "request_timeout"
+description: "Request took too long to process and exceeded the server timeout"
+---
+
+<Danger>`err:user:bad_request:request_timeout`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Request timeout",
+    "status": 408,
+    "title": "Request Timeout",
+    "type": "https://unkey.com/docs/errors/user/bad_request/request_timeout",
+    "errors": []
+  }
+}
+```
+
+## What Happened?
+
+Your request took too long to process and was automatically terminated by the server. This typically happens when:
+
+- Database queries are running slowly
+- External services are responding slowly
+- The API is under heavy load
+- Network connectivity issues are causing delays
+
+## How to Fix It
+
+### 1. Retry the Request
+
+Most timeout errors are temporary. Simply retry your request after a short delay with exponential backoff (wait longer after each failed attempt).
+
+### 2. Check Your Network
+
+Slow or unstable network connections can cause timeouts:
+
+- Test from a different network or location
+- Check if you're experiencing high latency to our servers
+
+## When This Happens Often
+
+If you're seeing frequent timeout errors:
+
+### Check Our Status Page
+Visit [status.unkey.com](https://status.unkey.com) to see if we're experiencing any service issues.
+
+### Contact Support
+<Note>
+**Still having issues?** We're here to help!
+
+[Contact our support team](mailto:support@unkey.dev) and include:
+- Your request IDs from the error responses
+- The approximate time the errors occurred
+- Your typical request patterns and volume
+
+We can investigate what might be causing the slowdowns and help optimize your integration.
+</Note>
+
+## Difference from Other Timeout Errors
+
+- **408 Request Timeout**: The server took too long to process your request (this error)
+- **499 Client Closed Request**: Your client cancelled the request before the server finished
+- **504 Gateway Timeout**: An upstream service (like a database) timed out
+
+If you're seeing 408 errors, the issue is usually on our side or with network connectivity.
