@@ -1,5 +1,6 @@
 "use client";
-import { extractResponseField, getRequestHeader } from "@/app/(app)/logs/utils";
+
+import { extractResponseField, getRequestHeader } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { cn } from "@/lib/utils";
 import { Badge, TimestampInfo } from "@unkey/ui";

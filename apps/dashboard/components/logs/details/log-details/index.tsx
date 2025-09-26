@@ -1,5 +1,5 @@
 "use client";
-import { extractResponseField, safeParseJson } from "@/app/(app)/logs/utils";
+import { extractResponseField, safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
