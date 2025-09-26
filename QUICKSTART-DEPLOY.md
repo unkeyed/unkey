@@ -13,7 +13,7 @@ This guide will help you get the Unkey deployment platform up and running locall
 1. Start all services using Docker Compose:
 
 ```bash
-docker-compose up metald-aio dashboard ctrl -d
+docker-compose up krane dashboard ctrl -d
 ```
 
 2. Wait for all services to be healthy
