@@ -1,19 +1,19 @@
-import { UsageSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/credits-setup";
-import { ExpirationSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/expiration-setup";
-import { GeneralSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/general-setup";
+import { UsageSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/credits-setup";
+import { ExpirationSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/expiration-setup";
+import { GeneralSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/general-setup";
 import {
   EXAMPLE_JSON,
   MetadataSetup,
-} from "@/app/(app)/apis/[apiId]/_components/create-key/components/metadata-setup";
-import { RatelimitSetup } from "@/app/(app)/apis/[apiId]/_components/create-key/components/ratelimit-setup";
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/metadata-setup";
+import { RatelimitSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/ratelimit-setup";
 import {
   type FormValues,
   formSchema,
-} from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.schema";
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import {
   formValuesToApiInput,
   getDefaultValues,
-} from "@/app/(app)/apis/[apiId]/_components/create-key/create-key.utils";
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";

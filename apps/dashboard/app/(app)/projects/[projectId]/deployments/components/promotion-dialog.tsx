@@ -27,14 +27,14 @@ const DeploymentSection = ({ title, deployment, isLive, showSignal }: Deployment
 
 type PromotionDialogProps = {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   targetDeployment: Deployment;
   liveDeployment: Deployment;
 };
 
 export const PromotionDialog = ({
   isOpen,
-  onOpenChange,
+  onClose,
   targetDeployment,
   liveDeployment,
 }: PromotionDialogProps) => {
@@ -66,7 +66,7 @@ export const PromotionDialog = ({
         console.error("Refetch error:", error);
       }
 
-      onOpenChange(false);
+      onClose();
     },
     onError: (error) => {
       toast.error("Promotion failed", {
@@ -88,7 +88,7 @@ export const PromotionDialog = ({
   return (
     <DialogContainer
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={onClose}
       title="Promotion to version"
       subTitle="Switch the active deployment to a target stable version"
       footer={
@@ -116,14 +116,17 @@ export const PromotionDialog = ({
         />
         <div>
           {domains.data.map((domain) => (
-            <div
-              key={domain.id}
-              className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center"
-            >
-              <div className="flex items-center">
-                <Link4 className="text-gray-9" size="sm-medium" />
-                <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
-                <div className="ml-3" />
+            <div className="space-y-2" key={domain.id}>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] text-grayA-11">Domain</h3>
+                <CircleInfo size="sm-regular" className="text-gray-9" />
+              </div>
+              <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
+                <div className="flex items-center">
+                  <Link4 className="text-gray-9" size="sm-medium" />
+                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
+                  <div className="ml-3" />
+                </div>
               </div>
             </div>
           ))}

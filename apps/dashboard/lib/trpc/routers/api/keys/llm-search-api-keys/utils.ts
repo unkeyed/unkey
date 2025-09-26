@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   keysListFilterFieldConfig,
-} from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";

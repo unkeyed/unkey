@@ -6,6 +6,10 @@ type userBadRequest struct {
 	PermissionsQuerySyntaxError Code
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
 	RequestBodyTooLarge Code
+	// RequestTimeout indicates the request took too long to process.
+	RequestTimeout Code
+	// ClientClosedRequest indicates the client closed the connection before the request completed.
+	ClientClosedRequest Code
 }
 
 // UserErrors defines all user-related errors in the Unkey system.
@@ -22,5 +26,7 @@ var User = UserErrors{
 	BadRequest: userBadRequest{
 		PermissionsQuerySyntaxError: Code{SystemUser, CategoryUserBadRequest, "permissions_query_syntax_error"},
 		RequestBodyTooLarge:         Code{SystemUser, CategoryUserBadRequest, "request_body_too_large"},
+		RequestTimeout:              Code{SystemUser, CategoryUserBadRequest, "request_timeout"},
+		ClientClosedRequest:         Code{SystemUser, CategoryUserBadRequest, "client_closed_request"},
 	},
 }

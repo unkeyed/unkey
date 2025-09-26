@@ -25,6 +25,7 @@ describe("transformFilters", () => {
       hosts: [],
       methods: [],
       paths: [],
+      excludeHosts: [],
       statusCodes: [],
       requestIds: [],
       cursorTime: null,
@@ -58,6 +59,7 @@ describe("transformFilters", () => {
       startTime: payload.startTime,
       endTime: payload.endTime,
       limit: 50,
+      excludeHosts: [],
       hosts: ["example.com"],
       methods: ["GET"],
       paths: [{ operator: "startsWith", value: "/api" }],
@@ -88,5 +90,29 @@ describe("transformFilters", () => {
     const result = transformFilters(payload);
 
     expect(result.cursorTime).toBe(1706024400000);
+  });
+
+  it("should handle excluded hosts", () => {
+    const payload = {
+      ...basePayload,
+      host: {
+        filters: [{ operator: "is" as const, value: "example.com" }],
+        exclude: ["blocked.com", "spam.com"],
+      },
+    };
+
+    const result = transformFilters(payload);
+    expect(result).toEqual({
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      limit: 50,
+      hosts: ["example.com"],
+      excludeHosts: ["blocked.com", "spam.com"],
+      methods: [],
+      paths: [],
+      statusCodes: [],
+      requestIds: [],
+      cursorTime: null,
+    });
   });
 });

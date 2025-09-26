@@ -15,8 +15,6 @@ CREATE TABLE key_verifications_per_day_v2 (
   INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = AggregatingMergeTree ()
-PARTITION BY
-  toYYYYMMDD (time)
 ORDER BY
   (
     workspace_id,

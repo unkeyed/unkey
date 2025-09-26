@@ -74,16 +74,18 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
       </Navbar.Breadcrumbs>
       <div className="flex gap-4 items-center">
         {activeProject.gitRepositoryUrl && (
-          <div className="text-gray-11 text-xs flex items-center gap-2.5">
-            <Refresh3 className="text-gray-12" size="sm-regular" />
-            <span>Auto-deploys from pushes to </span>
-            <RepoDisplay
-              url={activeProject.gitRepositoryUrl}
-              className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
-            />
-          </div>
+          <>
+            <div className="text-gray-11 text-xs flex items-center gap-2.5">
+              <Refresh3 className="text-gray-12" size="sm-regular" />
+              <span>Auto-deploys from pushes to </span>
+              <RepoDisplay
+                url={activeProject.gitRepositoryUrl}
+                className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
+              />
+            </div>
+            <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
+          </>
         )}
-        <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
         <div className="gap-2.5 items-center flex">
           <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
           <Button className="size-7" variant="outline">

@@ -23,10 +23,7 @@ type TooltipPayloadItem = {
 /**
  * Get appropriate formatted time based on granularity (12-hour format without timezone)
  */
-function formatTimeForGranularity(
-  date: Date,
-  granularity?: CompoundTimeseriesGranularity
-): string {
+function formatTimeForGranularity(date: Date, granularity?: CompoundTimeseriesGranularity): string {
   if (!granularity) {
     return format(date, "h:mma");
   }
@@ -62,9 +59,8 @@ function formatTimeForGranularity(
  */
 function getTimezoneAbbreviation(date?: Date): string {
   const timezone =
-    TZ_FORMATTER.formatToParts(date || new Date()).find(
-      (part) => part.type === "timeZoneName"
-    )?.value || "";
+    TZ_FORMATTER.formatToParts(date || new Date()).find((part) => part.type === "timeZoneName")
+      ?.value || "";
   return timezone;
 }
 
@@ -80,7 +76,7 @@ function getTimezoneAbbreviation(date?: Date): string {
 export function createTimeIntervalFormatter(
   data?: TimeseriesData[],
   timeFormat = "h:mm a",
-  granularity?: CompoundTimeseriesGranularity
+  granularity?: CompoundTimeseriesGranularity,
 ) {
   return (tooltipPayload: TooltipPayloadItem[]) => {
     // Basic validation checks
@@ -148,9 +144,7 @@ export function createTimeIntervalFormatter(
     if (!nextPoint) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">
-            {formattedCurrentTimestamp}
-          </span>
+          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
         </div>
       );
     }
@@ -175,8 +169,7 @@ export function createTimeIntervalFormatter(
     return (
       <div className="px-4">
         <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
-          {formattedCurrentTimestamp} - {formattedNextTimestamp} (
-          {timezoneDisplay})
+          {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezoneDisplay})
         </span>
       </div>
     );

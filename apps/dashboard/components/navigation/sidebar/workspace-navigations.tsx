@@ -39,14 +39,12 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
   </div>
 );
 
-export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features" | "betaFeatures">,
-  segments: string[],
-) => {
+export const createWorkspaceNavigation = (segments: string[], workspace: Workspace) => {
+  const basePath = `/${workspace.slug}`;
   return [
     {
       icon: Nodes,
-      href: "/apis",
+      href: `${basePath}/apis`,
       label: "APIs",
       active: segments.at(0) === "apis",
       showSubItems: false,
@@ -56,31 +54,31 @@ export const createWorkspaceNavigation = (
       href: "/projects",
       label: "Projects",
       active: segments.at(0) === "projects",
-      hidden: !workspace.betaFeatures.deployments,
+      hidden: !workspace?.betaFeatures.deployments,
       tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
     },
     {
       icon: Gauge,
-      href: "/ratelimits",
+      href: `${basePath}/ratelimits`,
       label: "Ratelimit",
       active: segments.at(0) === "ratelimits",
     },
     {
       icon: ShieldKey,
       label: "Authorization",
-      href: "/authorization/roles",
+      href: `${basePath}/authorization/roles`,
       active: segments.some((s) => s === "authorization"),
       items: [
         {
           icon: null,
           label: "Roles",
-          href: "/authorization/roles",
+          href: `${basePath}/authorization/roles`,
           active: segments.some((s) => s === "roles"),
         },
         {
           icon: null,
           label: "Permissions",
-          href: "/authorization/permissions",
+          href: `${basePath}/authorization/permissions`,
           active: segments.some((s) => s === "permissions"),
         },
       ],
@@ -88,7 +86,7 @@ export const createWorkspaceNavigation = (
 
     {
       icon: InputSearch,
-      href: "/audit",
+      href: `${basePath}/audit`,
       label: "Audit Log",
       active: segments.at(0) === "audit",
     },
@@ -97,11 +95,11 @@ export const createWorkspaceNavigation = (
       href: "/monitors/verifications",
       label: "Monitors",
       active: segments.at(0) === "verifications",
-      hidden: !workspace.features.webhooks,
+      hidden: !workspace?.features.webhooks,
     },
     {
       icon: Layers3,
-      href: "/logs",
+      href: `${basePath}/logs`,
       label: "Logs",
       active: segments.at(0) === "logs",
     },
@@ -111,42 +109,42 @@ export const createWorkspaceNavigation = (
       label: "Success",
       active: segments.at(0) === "success",
       tag: <Tag label="Internal" />,
-      hidden: !workspace.features.successPage,
+      hidden: !workspace?.features.successPage,
     },
     {
       icon: Fingerprint,
-      href: "/identities",
+      href: `${basePath}/identities`,
       label: "Identities",
       active: segments.at(0) === "identities",
-      hidden: !workspace.betaFeatures.identities,
+      hidden: !workspace?.betaFeatures.identities,
     },
     {
       icon: Gear,
-      href: "/settings/general",
+      href: `${basePath}/settings/general`,
       label: "Settings",
       active: segments.at(0) === "settings",
       items: [
         {
           icon: null,
-          href: "/settings/general",
+          href: `${basePath}/settings/general`,
           label: "General",
           active: segments.some((s) => s === "general"),
         },
         {
           icon: null,
-          href: "/settings/team",
+          href: `${basePath}/settings/team`,
           label: "Team",
           active: segments.some((s) => s === "team"),
         },
         {
           icon: null,
-          href: "/settings/root-keys",
+          href: `${basePath}/settings/root-keys`,
           label: "Root Keys",
           active: segments.some((s) => s === "root-keys"),
         },
         {
           icon: null,
-          href: "/settings/billing",
+          href: `${basePath}/settings/billing`,
           label: "Billing",
           active: segments.some((s) => s === "billing"),
         },

@@ -13,9 +13,7 @@ const TZ_FORMATTER = new Intl.DateTimeFormat("en-US", {
 });
 
 // Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
-const getGranularityBuffer = (
-  granularity?: CompoundTimeseriesGranularity
-): number => {
+const getGranularityBuffer = (granularity?: CompoundTimeseriesGranularity): number => {
   if (!granularity) {
     return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
   }
@@ -32,7 +30,7 @@ const getGranularityBuffer = (
 export const formatTooltipTimestamp = (
   timestamp: number | string,
   granularity?: CompoundTimeseriesGranularity,
-  data?: TimeseriesData[]
+  data?: TimeseriesData[],
 ): string => {
   // Handle null/undefined early
   if (timestamp == null) {
@@ -57,9 +55,7 @@ export const formatTooltipTimestamp = (
   // If we have data, check if it spans multiple days
   if (data && data.length > 1) {
     const firstDay = new Date(parseTimestamp(data[0].originalTimestamp));
-    const lastDay = new Date(
-      parseTimestamp(data[data.length - 1].originalTimestamp)
-    );
+    const lastDay = new Date(parseTimestamp(data[data.length - 1].originalTimestamp));
 
     // Check if the data spans multiple calendar days
     const firstDayStr = firstDay.toDateString();
@@ -105,7 +101,7 @@ export const formatTooltipInterval = (
   payloadTimestamp: number | string | undefined,
   data: TimeseriesData[],
   granularity?: CompoundTimeseriesGranularity,
-  timestampToIndexMap?: Map<number, number>
+  timestampToIndexMap?: Map<number, number>,
 ) => {
   if (payloadTimestamp == null) {
     return "";
@@ -138,7 +134,7 @@ export const formatTooltipInterval = (
 
   // Find position in the data array using O(1) map lookup or fallback to linear search
   const currentIndex = timestampToIndexMap
-    ? timestampToIndexMap.get(currentTimestampNumeric) ?? -1
+    ? (timestampToIndexMap.get(currentTimestampNumeric) ?? -1)
     : data.findIndex((item) => {
         const itemTimestamp = parseTimestamp(item.originalTimestamp);
         return itemTimestamp === currentTimestampNumeric;
@@ -163,11 +159,10 @@ export const formatTooltipInterval = (
     const inferredGranularityMs = granularity
       ? getGranularityBuffer(granularity)
       : data.length > 1
-      ? Math.abs(
-          parseTimestamp(data[1].originalTimestamp) -
-            parseTimestamp(data[0].originalTimestamp)
-        )
-      : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
+        ? Math.abs(
+            parseTimestamp(data[1].originalTimestamp) - parseTimestamp(data[0].originalTimestamp),
+          )
+        : DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
     intervalEndTimestamp = currentTimestampNumeric + inferredGranularityMs;
   } else {
     // Use next data point's timestamp
@@ -189,20 +184,14 @@ export const formatTooltipInterval = (
   const formattedCurrentTimestamp = formatTooltipTimestamp(
     currentTimestampNumeric,
     granularity,
-    data
+    data,
   );
-  const formattedNextTimestamp = formatTooltipTimestamp(
-    intervalEndTimestamp,
-    granularity,
-    data
-  );
+  const formattedNextTimestamp = formatTooltipTimestamp(intervalEndTimestamp, granularity, data);
 
   // Get timezone abbreviation from the actual point date for correct DST handling
   const pointDate = new Date(currentTimestampNumeric);
   const timezone =
-    TZ_FORMATTER.formatToParts(pointDate).find(
-      (part) => part.type === "timeZoneName"
-    )?.value || "";
+    TZ_FORMATTER.formatToParts(pointDate).find((part) => part.type === "timeZoneName")?.value || "";
 
   // Return formatted interval with timezone info
   return (

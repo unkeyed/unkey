@@ -12,7 +12,6 @@ CREATE TABLE api_requests_per_hour_v2 (
   INDEX idx_path (path) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_method (method) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = SummingMergeTree ()
-PARTITION BY toYYYYMMDD(time)
 ORDER BY
   (
     workspace_id,
