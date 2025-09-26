@@ -64,6 +64,10 @@ type Config struct {
 	// AuthToken is the authentication token for control plane API access
 	AuthToken string
 
+	// APIKey is the API key for simple authentication (demo purposes only)
+	// TODO: Replace with JWT authentication when moving to private IP
+	APIKey string
+
 	// MetaldAddress is the full URL of the metald service for VM operations (e.g., "https://metald.example.com:8080")
 	MetaldAddress string
 

@@ -54,7 +54,7 @@ export const ControlPill = <TFilter extends FilterValue>({
       <div
         className={cn(
           "bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center",
-          formatFieldName(field) === "" ? "rounded-l-md" : "",
+          formatFieldName(field) === "" ? "rounded-l-md" : ""
         )}
       >
         {formatOperator(operator, field)}
@@ -70,7 +70,9 @@ export const ControlPill = <TFilter extends FilterValue>({
             className={cn("font-mono group-hover:underline decoration-dotted")}
           />
         ) : (
-          <span className="text-accent-12 text-xs font-mono">{formatValue(value, field)}</span>
+          <span className="text-accent-12 text-xs font-mono">
+            {formatValue(value, field)}
+          </span>
         )}
       </div>
       <div ref={pillRef} className="contents">
@@ -81,7 +83,7 @@ export const ControlPill = <TFilter extends FilterValue>({
           tabIndex={0}
           className={cn(
             "bg-gray-3 rounded-none rounded-r-md py-[2px] px-2 [&_svg]:stroke-[2px] [&_svg]:size-3 flex items-center border-none h-auto focus:ring-2 focus:ring-offset-1 focus:ring-accent-9 focus:outline-none hover:bg-gray-4 focus:hover:bg-gray-4",
-            isFocused && "bg-gray-4",
+            isFocused && "bg-gray-4"
           )}
         >
           <XMark className={cn("text-gray-9", isFocused && "text-gray-11")} />
