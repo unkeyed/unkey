@@ -143,11 +143,7 @@ func fetchCommitSHA(ctx context.Context, client *github.Client, owner, repo, tag
 		return "", fmt.Errorf("commit has no SHA")
 	}
 
-	if len(*commit.SHA) < 7 {
-		return "", fmt.Errorf("SHA too short: %s", *commit.SHA)
-	}
-
-	return (*commit.SHA)[:7], nil
+	return *commit.SHA, nil
 }
 
 func outputResult(owner, repo, tag, sha string) error {
