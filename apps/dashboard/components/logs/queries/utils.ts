@@ -10,8 +10,8 @@ import {
 } from "date-fns";
 import React from "react";
 
-import { auditLogsFilterFieldEnum } from "@/app/(app)/audit/filters.schema";
-import { ratelimitFilterFieldEnum } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
+import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
+import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import {
   Bucket,
   CalendarEvent,
@@ -26,9 +26,9 @@ import {
   UserSearch,
 } from "@unkey/icons";
 
-import type { AuditLogsFilterField } from "@/app/(app)/audit/filters.schema";
-import type { RatelimitFilterField } from "@/app/(app)/ratelimits/[namespaceId]/logs/filters.schema";
-import { namespaceListFilterFieldEnum } from "@/app/(app)/ratelimits/_components/namespace-list-filters.schema";
+import type { AuditLogsFilterField } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
+import type { RatelimitFilterField } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
+import { namespaceListFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/_components/namespace-list-filters.schema";
 import {
   type LogsFilterField,
   type QuerySearchParams,

@@ -58,20 +58,20 @@ export default async function SuccessPage(props: Props) {
 
     if (!ws) {
       console.warn("Workspace not found");
-      return redirect("/new");
+      return <SuccessClient />;
     }
 
     const customer = await stripe.customers.retrieve(session.customer as string);
     if (!customer || !session.setup_intent) {
       console.warn("Stripe customer not found");
-      return <SuccessClient />;
+      return <SuccessClient workSpaceSlug={ws.slug} />;
     }
 
     const setupIntent = await stripe.setupIntents.retrieve(session.setup_intent.toString());
 
     if (!setupIntent.payment_method) {
       console.warn("Stripe payment method not found");
-      return <SuccessClient />;
+      return <SuccessClient workSpaceSlug={ws.slug} />;
     }
 
     // Update customer with default payment method
@@ -101,6 +101,9 @@ export default async function SuccessPage(props: Props) {
         </Empty>
       );
     }
+
+    // Success - redirect to billing page with workspace slug
+    return <SuccessClient workSpaceSlug={ws.slug} />;
   } catch (error) {
     console.error("Error processing Stripe session:", error);
     return (
@@ -113,6 +116,4 @@ export default async function SuccessPage(props: Props) {
       </Empty>
     );
   }
-
-  return <SuccessClient />;
 }
