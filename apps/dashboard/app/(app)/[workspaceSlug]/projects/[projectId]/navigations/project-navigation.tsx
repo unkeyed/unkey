@@ -40,11 +40,12 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
       })),
   ).data.at(0);
 
+  const basePath = `/${workspace.slug}/projects`;
   if (projects.isLoading) {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link href="/projects">Projects</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
             <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
           </Navbar.Breadcrumbs.Link>
@@ -56,7 +57,6 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   if (!activeProject) {
     return <div className="h-full w-full flex items-center justify-center">Project not found</div>;
   }
-  const basePath = `/${workspace.slug}/projects`;
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube />}>
