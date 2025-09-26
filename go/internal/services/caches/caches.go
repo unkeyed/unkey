@@ -1,7 +1,6 @@
 package caches
 
 import (
-	"context"
 	"time"
 
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
@@ -45,6 +44,54 @@ type Config struct {
 	NodeID string
 }
 
+// createCache creates a cache instance with optional clustering support.
+// 
+// This is a generic helper function that:
+// 1. Creates a local cache with the provided configuration
+// 2. If a CacheInvalidationTopic is provided, wraps it with clustering for distributed invalidation
+// 3. Returns the cache (either local or clustered)
+//
+// Type parameters:
+//   - K: The key type (must be comparable)
+//   - V: The value type to be stored in the cache
+//
+// Parameters:
+//   - config: The main configuration containing clustering settings
+//   - cacheConfig: The specific cache configuration (freshness, staleness, size, etc.)
+//
+// Returns:
+//   - cache.Cache[K, V]: The initialized cache instance
+//   - error: An error if cache creation failed
+func createCache[K comparable, V any](
+	config Config,
+	cacheConfig cache.Config[K, V],
+) (cache.Cache[K, V], error) {
+	// Create local cache
+	localCache, err := cache.New(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no clustering topic is provided, return the local cache
+	if config.CacheInvalidationTopic == nil {
+		return localCache, nil
+	}
+
+	// Wrap with clustering for distributed invalidation
+	// The cluster cache will automatically subscribe to invalidation events
+	clusterCache, err := clustering.New(clustering.Config[K, V]{
+		LocalCache: localCache,
+		Topic:      config.CacheInvalidationTopic,
+		Logger:     config.Logger,
+		NodeID:     config.NodeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return clusterCache, nil
+}
+
 // New creates and initializes all cache instances with appropriate settings.
 //
 // It configures each cache with specific freshness/staleness windows, size limits,
@@ -78,9 +125,13 @@ type Config struct {
 //	// Use the caches - invalidation is automatic
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
+	// Start the global invalidation manager if clustering is enabled
+	if config.CacheInvalidationTopic != nil {
+		clustering.GetManager().Start(config.CacheInvalidationTopic, config.Logger)
+	}
 
-	// Create local caches first
-	ratelimitNamespace, err := cache.New(cache.Config[string, db.FindRatelimitNamespace]{
+	// Create ratelimit namespace cache
+	ratelimitNamespace, err := createCache(config, cache.Config[string, db.FindRatelimitNamespace]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -92,7 +143,8 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
+	// Create verification key cache
+	verificationKeyByHash, err := createCache(config, cache.Config[string, db.FindKeyForVerificationRow]{
 		Fresh:    30 * time.Second,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -104,7 +156,8 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	apiById, err := cache.New(cache.Config[string, db.Api]{
+	// Create API cache
+	apiById, err := createCache(config, cache.Config[string, db.Api]{
 		Fresh:    10 * time.Second,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -114,59 +167,6 @@ func New(config Config) (Caches, error) {
 	})
 	if err != nil {
 		return Caches{}, err
-	}
-
-	if config.CacheInvalidationTopic != nil {
-		// Create cluster caches that automatically handle distributed invalidation
-		ratelimitNamespace, err = clustering.New(clustering.Config[db.FindRatelimitNamespace]{
-			LocalCache: ratelimitNamespace,
-			Topic:      config.CacheInvalidationTopic,
-			Logger:     config.Logger,
-			NodeID:     config.NodeID,
-		})
-		if err != nil {
-			return Caches{}, err
-		}
-
-		verificationKeyByHash, err = clustering.New(clustering.Config[db.FindKeyForVerificationRow]{
-			LocalCache: verificationKeyByHash,
-			Topic:      config.CacheInvalidationTopic,
-			Logger:     config.Logger,
-			NodeID:     config.NodeID,
-		})
-		if err != nil {
-			return Caches{}, err
-		}
-
-		apiById, err = clustering.New(clustering.Config[db.Api]{
-			LocalCache: apiById,
-			Topic:      config.CacheInvalidationTopic,
-			Logger:     config.Logger,
-			NodeID:     config.NodeID,
-		})
-		if err != nil {
-			return Caches{}, err
-		}
-
-		// Start consuming invalidation events
-		consumer := config.CacheInvalidationTopic.NewConsumer()
-		consumer.Consume(context.Background(), func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
-			// Don't process our own events to avoid loops
-			if event.SourceInstance == config.NodeID {
-				return nil
-			}
-
-			// Route invalidation events to the appropriate cache
-			switch event.CacheName {
-			case ratelimitNamespace.Name():
-				ratelimitNamespace.Remove(ctx, event.CacheKey)
-			case verificationKeyByHash.Name():
-				verificationKeyByHash.Remove(ctx, event.CacheKey)
-			case apiById.Name():
-				apiById.Remove(ctx, event.CacheKey)
-			}
-			return nil
-		})
 	}
 
 	return Caches{

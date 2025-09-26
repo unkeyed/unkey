@@ -49,7 +49,7 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create cluster cache
-	clusterCache, err := clustering.New(clustering.Config[string]{
+	clusterCache, err := clustering.New(clustering.Config[string, string]{
 		LocalCache: localCache,
 		Topic:      topic,
 		NodeID:     "test-node-1",
