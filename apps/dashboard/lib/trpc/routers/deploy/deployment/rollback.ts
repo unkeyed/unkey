@@ -36,6 +36,12 @@ export const rollback = t.procedure
       DeploymentService,
       createConnectTransport({
         baseUrl: ctrlUrl,
+        interceptors: [
+          (next) => (req) => {
+            req.header.set("Authorization", `Bearer ${env().CTRL_API_KEY}`);
+            return next(req);
+          },
+        ],
       }),
     );
 

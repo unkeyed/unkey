@@ -95,6 +95,7 @@ type DeployOptions struct {
 	Verbose         bool
 	ControlPlaneURL string
 	AuthToken       string
+	APIKey          string
 	Linux           bool
 }
 
@@ -124,6 +125,7 @@ var DeployFlags = []cli.Flag{
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
+	cli.String("api-key", "API key for ctrl service authentication", cli.EnvVar("API_KEY")),
 }
 
 // WARNING: Changing the "Description" part will also affect generated MDX.
@@ -206,6 +208,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Verbose:         cmd.Bool("verbose"),
 		ControlPlaneURL: cmd.String("control-plane-url"),
 		AuthToken:       cmd.String("auth-token"),
+		APIKey:          cmd.String("api-key"),
 		Linux:           cmd.Bool("linux"),
 	}
 
