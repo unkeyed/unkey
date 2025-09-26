@@ -1,4 +1,4 @@
-import { envVarSchema } from "@/app/(app)/projects/[projectId]/details/env-variables-section/types";
+import { envVarSchema } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/details/env-variables-section/types";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 

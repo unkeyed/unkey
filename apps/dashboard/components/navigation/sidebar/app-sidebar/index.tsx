@@ -56,7 +56,7 @@ export function AppSidebar({
 
   // Get the current solo mode type based on the route
   const currentSoloModeType = useMemo(() => {
-    const firstSegment = segments.at(0) ?? "";
+    const firstSegment = segments.at(1) ?? "";
     return Object.entries(SOLO_MODE_CONFIG).find(
       ([_, config]) => config.routeSegment === firstSegment,
     )?.[0] as SoloModeType | undefined;

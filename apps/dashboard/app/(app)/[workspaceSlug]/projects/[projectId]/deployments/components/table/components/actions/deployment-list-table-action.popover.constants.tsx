@@ -1,6 +1,7 @@
 "use client";
-import { useProjectLayout } from "@/app/(app)/projects/[projectId]/layout-provider";
+import { useProjectLayout } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/layout-provider";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
@@ -20,6 +21,7 @@ export const DeploymentListTableActions = ({
   selectedDeployment,
   environment,
 }: DeploymentListTableActionsProps) => {
+  const workspace = useWorkspaceNavigation();
   const { collections } = useProjectLayout();
   const { data } = useLiveQuery((q) =>
     q
@@ -78,7 +80,7 @@ export const DeploymentListTableActions = ({
         onClick: () => {
           //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
           router.push(
-            `/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
+            `${workspace.slug}/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
               .map((item) => `is:${item.host}`)
               .join(",")}`,
           );

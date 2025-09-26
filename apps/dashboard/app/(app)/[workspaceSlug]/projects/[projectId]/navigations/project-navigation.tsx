@@ -2,9 +2,17 @@
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { ArrowDottedRotateAnticlockwise, Cube, Dots, ListRadio, Refresh3 } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  ChevronExpandY,
+  Cube,
+  Dots,
+  ListRadio,
+  Refresh3,
+} from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { RepoDisplay } from "../../_components/list/repo-display";
 
@@ -13,6 +21,7 @@ type ProjectNavigationProps = {
 };
 
 export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
+  const workspace = useWorkspaceNavigation();
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).select(({ project }) => ({
       id: project.id,
@@ -47,13 +56,13 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   if (!activeProject) {
     return <div className="h-full w-full flex items-center justify-center">Project not found</div>;
   }
-
+  const basePath = `/${workspace.slug}/projects`;
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube />}>
-        <Navbar.Breadcrumbs.Link href="/projects">Projects</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
-          href={`/projects/${activeProject.id}`}
+          href={`${basePath}/${activeProject.id}`}
           isIdentifier
           isLast
           active
@@ -64,11 +73,14 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
             items={projects.data.map((project) => ({
               id: project.id,
               label: project.name,
-              href: `/projects/${project.id}`,
+              href: `${basePath}/${project.id}`,
             }))}
             shortcutKey="N"
           >
-            <div className="truncate max-w-[120px] h-full">{activeProject.name}</div>
+            <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
+              {activeProject.name}
+              <ChevronExpandY className="size-4" />
+            </div>
           </QuickNavPopover>
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>

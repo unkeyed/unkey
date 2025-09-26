@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { cn } from "@/lib/utils";
 import { Cloud, GridCircle, Layers3 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
@@ -23,6 +24,7 @@ export const ProjectSubNavigation = ({
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
+  const workspace = useWorkspaceNavigation();
   const projectId = params?.projectId as string;
 
   const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -51,24 +53,25 @@ export const ProjectSubNavigation = ({
 
   const activeTab = getCurrentTab();
 
+  const basePath = `/${workspace.slug}/projects`;
   const tabs: TabItem[] = [
     {
       id: "overview",
       label: "Overview",
       icon: GridCircle,
-      path: `/projects/${projectId}`,
+      path: `${basePath}/${projectId}`,
     },
     {
       id: "deployments",
       label: "Deployments",
       icon: Cloud,
-      path: `/projects/${projectId}/deployments`,
+      path: `${basePath}/${projectId}/deployments`,
     },
     {
       id: "gateway-logs",
       label: "Gateway Logs",
       icon: Layers3,
-      path: `/projects/${projectId}/gateway-logs`,
+      path: `${basePath}/${projectId}/gateway-logs`,
     },
   ];
 
