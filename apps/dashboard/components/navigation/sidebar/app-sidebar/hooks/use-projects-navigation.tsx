@@ -20,7 +20,8 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       return [];
     }
     return data.map((project) => {
-      const currentProjectActive = segments.at(0) === "projects" && segments.at(1) === project.id;
+      const pIndex = segments.findIndex((s) => s === "projects");
+      const currentProjectActive = pIndex !== -1 && segments.at(pIndex + 1) === project.id;
 
       const projectNavItem: NavItem = {
         href: `${basePath}/${project.id}`,
