@@ -1,0 +1,5 @@
+type: array
+description: Array of API request metric events to be processed
+items:
+  type: object
+  additionalProperties: true

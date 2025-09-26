@@ -1,0 +1,37 @@
+post:
+  x-speakeasy-ignore: true
+  x-excluded: true
+  tags:
+    - chproxy
+  security: []
+  operationId: chproxyVerifications
+  summary: Internal ClickHouse proxy for verification events
+  description: |-
+    Internal endpoint for batching key verification events to ClickHouse. This endpoint is used internally by the API to efficiently store verification data and should not be used by external clients.
+
+    This endpoint bypasses normal authentication and validation as it's intended for internal use only. External clients should use the standard key verification endpoints instead.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./ChproxyVerificationsRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./ChproxyVerificationsResponseBody.yaml"
+      description: Events successfully queued for processing
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid request body or malformed events
+    "529":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
+      description: Service overloaded, unable to process events

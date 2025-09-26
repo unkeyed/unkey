@@ -1,0 +1,63 @@
+post:
+  tags:
+    - keys
+  summary: Get API key by hash
+  description: |
+    Find out what key this is.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions for basic key information:
+    - `api.*.read_key` (to read keys from any API)
+    - `api.<api_id>.read_key` (to read keys from a specific API)
+
+    If your rootkey lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existance of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your root key has the correct permissions.
+
+  operationId: whoami
+  x-speakeasy-name-override: whoami
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysWhoamiRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysWhoamiResponseBody.yaml"
+      description: |
+        Successfully retrieved key information.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

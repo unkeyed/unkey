@@ -15,7 +15,7 @@ SPIRE (SPIFFE Runtime Environment) is the production-ready implementation of SPI
 
 ### How SPIRE Eliminates These Problems
 - **Zero certificate files**: Everything happens in memory via APIs
-- **Automatic rotation**: Certificates refresh every hour automatically  
+- **Automatic rotation**: Certificates refresh every hour automatically
 - **Strong workload identity**: Services proven by process attestation, not just file possession
 - **Dynamic trust**: Policy-based access control with runtime verification
 - **Simplified operations**: Deploy once, identities work forever
@@ -52,21 +52,21 @@ SPIRE (SPIFFE Runtime Environment) is the production-ready implementation of SPI
 ### Integration with Unkey Services
 
 #### Core Services Using SPIRE
-- **metald**: VM management service with identity `spiffe://prod.unkey.app/service/metald`
-- **billaged**: Billing aggregation service with identity `spiffe://prod.unkey.app/service/billaged`  
-- **builderd**: Container build service with identity `spiffe://prod.unkey.app/service/builderd`
-- **assetmanagerd**: Asset management service with identity `spiffe://prod.unkey.app/service/assetmanagerd`
+- **metald**: VM management service with identity `spiffe://production.unkey.cloud/service/metald`
+- **billaged**: Billing aggregation service with identity `spiffe://production.unkey.cloud/service/billaged`
+- **builderd**: Container build service with identity `spiffe://production.unkey.cloud/service/builderd`
+- **assetmanagerd**: Asset management service with identity `spiffe://production.unkey.cloud/service/assetmanagerd`
 
 #### Multi-Tenant Identity Patterns
 ```
 # Service-level identity (most common)
-spiffe://prod.unkey.app/service/metald
+spiffe://production.unkey.cloud/service/metald
 
 # Customer-scoped identity (for VM processes)
-spiffe://prod.unkey.app/service/metald/customer/cust-123
+spiffe://production.unkey.cloud/service/metald/customer/cust-123
 
 # Tenant-scoped identity (for build isolation)
-spiffe://prod.unkey.app/service/builderd/tenant/acme-corp
+spiffe://production.unkey.cloud/service/builderd/tenant/acme-corp
 ```
 
 ## Environment Isolation Strategy
@@ -74,9 +74,9 @@ spiffe://prod.unkey.app/service/builderd/tenant/acme-corp
 ### Separate Trust Domains
 Each environment has its own trust domain for complete cryptographic isolation:
 
-- **Development**: `spiffe://development.unkey.app` - Fast iteration, verbose logging
-- **Canary**: `spiffe://canary.unkey.app` - Production-like testing environment  
-- **Production**: `spiffe://prod.unkey.app` - Hardened configuration, HA deployment
+- **Development**: `spiffe://development.unkey.cloud` - Fast iteration, verbose logging
+- **Canary**: `spiffe://canary.unkey.cloud` - Production-like testing environment
+- **Production**: `spiffe://production.unkey.cloud` - Hardened configuration, HA deployment
 
 ### Why Separate Trust Domains?
 1. **Security**: Services in different environments cannot communicate even if misconfigured
@@ -167,8 +167,8 @@ sudo -u unkey-metald spire-agent api fetch x509 -socketPath /run/spire/sockets/a
 
 # Register new service
 spire-server entry create \
-  -spiffeID spiffe://prod.unkey.app/service/newservice \
-  -parentID spiffe://prod.unkey.app/agent/server \
+  -spiffeID spiffe://production.unkey.cloud/service/newservice \
+  -parentID spiffe://production.unkey.cloud/agent/server \
   -selector unix:path:/usr/bin/newservice \
   -selector unix:user:unkey-newservice
 
@@ -181,7 +181,7 @@ spire-server entry show
 spire/
 ├── environments/           # Per-environment configurations
 │   ├── dev/               # Development settings
-│   ├── canary/            # Canary environment  
+│   ├── canary/            # Canary environment
 │   └── prod/              # Production configuration
 ├── agent/                 # Agent configuration templates
 ├── contrib/               # Systemd units and helpers

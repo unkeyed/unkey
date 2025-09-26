@@ -1,0 +1,59 @@
+additionalProperties: false
+properties:
+  namespace:
+    type: string
+    minLength: 1
+    maxLength: 255
+    description: The id or name of the namespace.
+    example: sms.sign_up
+  cost:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 1000 # Reasonable upper bound for operation costs
+    default: 1
+    description: |
+      Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting.
+      Use higher values for resource-intensive operations and 0 for tracking without limiting.
+      When accumulated cost exceeds the limit within the duration window, subsequent requests are rejected.
+      Essential for implementing fair usage policies and preventing resource abuse through expensive operations.
+    example: 5
+  duration:
+    type: integer
+    format: int64
+    minimum: 1000 # 1 second minimum window
+    maximum: 2592000000 # 30 days maximum window
+    description: |
+      Sets the rate limit window duration in milliseconds after which the counter resets.
+      Shorter durations enable faster recovery but may be less effective against sustained abuse.
+      Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours).
+      Balance user experience with protection needs when choosing window sizes.
+    example: 60000
+  identifier:
+    type: string
+    minLength: 1
+    maxLength: 255 # Reasonable upper bound for identifiers
+    description: |
+      Defines the scope of rate limiting by identifying the entity being limited.
+      Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
+      Accepts letters, numbers, underscores, dots, colons, slashes, and hyphens for flexible identifier formats.
+      The same identifier can be used across different namespaces to apply multiple rate limit types.
+      Choose identifiers that provide appropriate granularity for your rate limiting strategy.
+    example: "user_12345"
+  limit:
+    type: integer
+    format: int64
+    minimum: 1
+    maximum: 1000000 # Reasonable upper bound for rate limits
+    description: |
+      Sets the maximum operations allowed within the duration window before requests are rejected.
+      When this limit is reached, subsequent requests fail with `RATE_LIMITED` until the window resets.
+      Balance user experience with resource protection when setting limits for different user tiers.
+      Consider system capacity, business requirements, and fair usage policies in limit determination.
+    example: 1000
+required:
+  - namespace
+  - identifier
+  - limit
+  - duration
+type: object

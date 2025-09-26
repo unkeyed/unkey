@@ -160,7 +160,7 @@ func TestCreateKey_Uniqueness(t *testing.T) {
 	keys := make(map[string]bool)
 	hashes := make(map[string]bool)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		req := CreateKeyRequest{
 			Prefix:     "",
 			ByteLength: 16,

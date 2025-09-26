@@ -7,13 +7,17 @@ import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { DatabaseError } from "@planetscale/database";
-import { schema } from "@unkey/db";
+import { DrizzleQueryError, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["permissions"],
   operationId: "createPermission",
+  summary: "Create permission",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/permissions.createPermission",
   security: [{ bearerAuth: [] }],
@@ -90,7 +94,11 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
         .insert(schema.permissions)
         .values(permission)
         .catch((e) => {
-          if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+          if (
+            e instanceof DrizzleQueryError &&
+            e.cause instanceof DatabaseError &&
+            e.cause.message.includes("Duplicate entry")
+          ) {
             throw new UnkeyApiError({
               code: "CONFLICT",
               message: `Permission with name "${permission.name}" already exists in this workspace`,

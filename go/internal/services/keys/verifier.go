@@ -17,6 +17,7 @@ import (
 
 // RatelimitConfigAndResult holds both the configuration and result for a rate limit
 type RatelimitConfigAndResult struct {
+	ID         string
 	Cost       int64
 	Name       string
 	Duration   time.Duration
@@ -29,26 +30,43 @@ type RatelimitConfigAndResult struct {
 // KeyVerifier represents a key that has been loaded from the database and is ready for verification.
 // It contains all the necessary information and services to perform various validation checks.
 type KeyVerifier struct {
-	Key                   db.FindKeyForVerificationRow                  // The key data from the database
-	ratelimitConfigs      map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
-	Roles                 []string                                      // RBAC roles assigned to this key
-	Permissions           []string                                      // RBAC permissions assigned to this key
-	Status                KeyStatus                                     // The current validation status
-	AuthorizedWorkspaceID string                                        // The workspace ID this key is authorized for
-	RatelimitResults      map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
-	isRootKey             bool                                          // Whether this is a root key (special handling)
-	session               *zen.Session                                  // The current request session
-	rateLimiter           ratelimit.Service                             // Rate limiting service
-	usageLimiter          usagelimiter.Service                          // Usage limiting service
-	rBAC                  *rbac.RBAC                                    // Role-based access control service
-	clickhouse            clickhouse.ClickHouse                         // Clickhouse for telemetry
-	logger                logging.Logger                                // Logger for verification operations
-	message               string                                        // Internal message for validation failures
+	Key                   db.FindKeyForVerificationRow // The key data from the database
+	Roles                 []string                     // RBAC roles assigned to this key
+	Permissions           []string                     // RBAC permissions assigned to this key
+	Status                KeyStatus                    // The current validation status
+	AuthorizedWorkspaceID string                       // The workspace ID this key is authorized for
+
+	ratelimitConfigs map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
+	RatelimitResults map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
+
+	isRootKey bool // Whether this is a root key (special handling)
+
+	message string   // Internal message for validation failures
+	tags    []string // Tags associated with this verification
+
+	session *zen.Session // The current request session
+	region  string       // Geographic region identifier
+
+	// Services
+	rateLimiter  ratelimit.Service     // Rate limiting service
+	usageLimiter usagelimiter.Service  // Usage limiting service
+	rBAC         *rbac.RBAC            // Role-based access control service
+	clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
+	logger       logging.Logger        // Logger for verification operations
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
 func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerificationRatelimit {
 	return k.ratelimitConfigs
+}
+
+func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) error {
+	err := k.Verify(ctx, opts...)
+	if err != nil {
+		return err
+	}
+
+	return k.ToFault()
 }
 
 // Verify performs key verification with the given options.
@@ -57,10 +75,6 @@ func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerification
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	// Skip verification if key is already invalid
 	if k.Status != StatusValid {
-		// For root keys, auto-return validation failures as fault errors
-		if k.isRootKey {
-			return k.ToFault()
-		}
 		return nil
 	}
 
@@ -72,14 +86,11 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
-	var err error
-	if config.credits != nil {
-		err = k.withCredits(ctx, *config.credits)
-		if err != nil {
-			return err
-		}
+	if config.tags != nil {
+		k.tags = config.tags
 	}
 
+	var err error
 	if config.ipWhitelist {
 		err = k.withIPWhitelist()
 		if err != nil {
@@ -94,41 +105,42 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
-	if config.apiID != nil {
-		k.WithApiID(*config.apiID)
-	}
-
 	err = k.withRateLimits(ctx, config.ratelimits)
 	if err != nil {
 		return err
 	}
 
+	if config.credits != nil {
+		err = k.withCredits(ctx, *config.credits)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (k *KeyVerifier) log() {
 	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
 		RequestID:   k.session.RequestID(),
-		WorkspaceID: k.session.AuthorizedWorkspaceID(),
+		WorkspaceID: k.Key.WorkspaceID,
 		Time:        time.Now().UnixMilli(),
-		Region:      "",
 		Outcome:     string(k.Status),
 		KeySpaceID:  k.Key.KeyAuthID,
 		KeyID:       k.Key.ID,
 		IdentityID:  k.Key.IdentityID.String,
-		Tags:        config.tags,
+		Tags:        k.tags,
+		Region:      k.region,
 	})
 
 	keyType := "key"
 	if k.isRootKey {
 		keyType = "root_key"
 	}
+
 	// Emit Prometheus metrics for key verification
 	metrics.KeyVerificationsTotal.WithLabelValues(
 		keyType,
 		string(k.Status), // code
 	).Inc()
-
-	// For root keys, auto-return validation failures as fault errors
-	if k.isRootKey && k.Status != StatusValid {
-		return k.ToFault()
-	}
-
-	return nil
 }

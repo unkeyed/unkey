@@ -1064,7 +1064,7 @@ test("grouping by tags", { timeout: 120_000 }, async (t) => {
     h.createKey(),
   ]);
 
-  const now = Date.now();
+  const now = new Date("2023-01-07T00:00:00Z").getTime();
 
   const tags = [["a", "b"], ["a"], [], ["b", "c"]];
 
@@ -1104,7 +1104,7 @@ test("grouping by tags", { timeout: 120_000 }, async (t) => {
   });
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-
+  console.log(res);
   expect(res.body.length).toBe(tags.length);
 });
 

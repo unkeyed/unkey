@@ -1,0 +1,88 @@
+---
+title: "malformed"
+description: "Authentication credentials were incorrectly formatted"
+---
+
+<Danger>`err:unkey:authentication:malformed`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Authentication credentials were incorrectly formatted",
+    "status": 401,
+    "title": "Unauthorized",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when your request includes authentication credentials, but they are not formatted correctly. The Unkey API expects API keys to be provided in a specific format in the Authorization header.
+
+Common causes include:
+- Missing the "Bearer" prefix before your API key
+- Including extra spaces or characters
+- Using incorrect casing (e.g., "bearer" instead of "Bearer")
+- Providing a malformed or truncated API key
+
+Here's an example of a request with incorrectly formatted credentials:
+
+```bash
+# Missing the "Bearer" prefix
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: unkey_YOUR_API_KEY"
+```
+
+## How To Fix
+
+To fix this error, ensure your Authorization header follows the correct format:
+
+1. **Use the correct format**: Ensure your Authorization header follows the format `Bearer unkey_YOUR_API_KEY`
+2. **Check for extra spaces or characters**: Make sure there are no invisible characters or line breaks
+3. **Verify the API key format**: Your Unkey API key should start with `unkey_`
+
+Here's the correctly formatted request:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY"
+```
+
+When properly authenticated, you'll receive a successful response like this:
+
+```json
+{
+  "meta": {
+    "requestId": "req_8f7g6h5j4k3l2m1n"
+  },
+  "data": {
+    "keys": [
+      {
+        "keyId": "key_123abc456def",
+        "name": "Production API Key"
+      }
+    ]
+  }
+}
+```
+
+## Common Mistakes
+
+- **Authorization header format**: Must be exactly `Bearer unkey_YOUR_API_KEY` with a single space after "Bearer"
+- **Incorrect casing**: Using "bearer" instead of "Bearer"
+- **API key format**: Your Unkey API key should start with `unkey_` and contain no spaces
+- **Using wrong key type**: Ensure you're using a root key for management API calls
+- **Copying errors**: Check for invisible characters or line breaks that might have been copied
+- **Extra characters**: Including quotes or other characters around the API key
+- **Truncated keys**: Accidentally cutting off part of the API key when copying
+
+## Related Errors
+- [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided
+- [err:unkey:authentication:key_not_found](./key_not_found) - When the provided API key doesn't exist

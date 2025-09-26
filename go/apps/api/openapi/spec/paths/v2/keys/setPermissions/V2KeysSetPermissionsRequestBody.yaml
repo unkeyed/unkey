@@ -1,0 +1,33 @@
+type: object
+required:
+  - keyId
+  - permissions
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.
+      Do not confuse this with the actual API key string that users include in requests.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  permissions:
+    type: array
+    description: |-
+      The permissions to set for this key.
+
+      This is a complete replacement operation - it overwrites all existing direct permissions with this new set.
+
+      Key behaviors:
+      - Providing an empty array removes all direct permissions from the key
+      - This only affects direct permissions - permissions granted through roles are not affected
+      - All existing direct permissions not included in this list will be removed
+
+      Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
+    items:
+      type: string
+      minLength: 3
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      description: Specify the permission by its slug.
+additionalProperties: false

@@ -43,19 +43,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.deleteRole")
 
 	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
@@ -66,8 +65,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Get role by ID to verify existence and workspace ownership
-	role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), req.RoleId)
+	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Search:      req.Role,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("role not found",
@@ -81,18 +82,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Check if role belongs to authorized workspace
-	if role.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("role not found",
-			fault.Code(codes.Data.Role.NotFound.URN()),
-			fault.Internal("role not found"), fault.Public("The requested role does not exist."),
-		)
-	}
-
-	// 6. Delete the role in a transaction
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Delete role-permission relationships
-		err = db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, req.RoleId)
+		err = db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, role.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -100,8 +91,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Delete key-role relationships
-		err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, req.RoleId)
+		err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, role.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -109,8 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Delete the role itself
-		err = db.Query.DeleteRoleByID(ctx, tx, req.RoleId)
+		err = db.Query.DeleteRoleByID(ctx, tx, role.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -118,22 +107,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Create audit log for role deletion
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "role.delete",
+				Event:       auditlog.RoleDeleteEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
-				Display:     "Deleted " + req.RoleId,
+				Display:     "Deleted " + role.ID,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "role",
-						ID:          req.RoleId,
+						Type:        auditlog.RoleResourceType,
+						ID:          role.ID,
 						Name:        role.Name,
 						DisplayName: role.Name,
 						Meta: map[string]interface{}{
@@ -159,5 +147,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
+		Data: openapi.EmptyResponse{},
 	})
 }

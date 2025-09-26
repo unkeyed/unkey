@@ -44,11 +44,11 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:                            h.DB,
-		Keys:                          h.Keys,
-		Logger:                        h.Logger,
-		Auditlogs:                     h.Auditlogs,
-		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		Auditlogs:               h.Auditlogs,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -63,8 +63,8 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 	// Test deleting by namespace name
 	t.Run("delete by namespace name", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    identifier,
+			Namespace:  namespaceName,
+			Identifier: identifier,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -74,6 +74,40 @@ func TestDeleteOverrideSuccessfully(t *testing.T) {
 		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			OverrideID:  overrideID,
+		})
+
+		require.NoError(t, err)
+		require.True(t, override.DeletedAtM.Valid, "Override should be marked as deleted")
+	})
+
+	// Test deleting by namespace ID
+	t.Run("delete by namespace ID", func(t *testing.T) {
+		// Create another override to test ID-based deletion
+		identifier2 := "test_identifier_2"
+		overrideID2 := uid.New(uid.RatelimitOverridePrefix)
+		err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
+			ID:          overrideID2,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			NamespaceID: namespaceID,
+			Identifier:  identifier2,
+			Limit:       10,
+			Duration:    1000,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			Namespace:  namespaceID,
+			Identifier: identifier2,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+		// Verify the override was deleted (check soft delete)
+		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			OverrideID:  overrideID2,
 		})
 
 		require.NoError(t, err)

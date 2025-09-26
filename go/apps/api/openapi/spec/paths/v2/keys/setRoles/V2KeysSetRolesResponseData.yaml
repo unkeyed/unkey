@@ -1,0 +1,16 @@
+type: array
+description: |-
+  Complete list of all roles now directly assigned to the key after the set operation has completed.
+
+  The response includes:
+  - The comprehensive, updated set of roles (reflecting the complete replacement)
+  - Both ID and name for each role for easy reference
+
+  Important notes:
+  - This response shows the final state after the complete replacement
+  - If you provided an empty array in the request, this will also be empty
+  - This only shows direct role assignments on the key
+  - Role permissions are not expanded in this response - use keys.getKey for complete details
+  - An empty array indicates the key now has no roles assigned at all
+items:
+  "$ref": "../../../../common/Role.yaml"

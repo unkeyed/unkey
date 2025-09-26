@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "theme": "maple",
   "name": "Unkey Docs",
   "colors": {
     "primary": "#09090b",
@@ -9,407 +9,284 @@
   },
   "favicon": "/unkey.png",
   "navigation": {
-    "anchors": [
+    "dropdowns": [
       {
-        "anchor": "Documentation",
+        "dropdown": "Documentation",
         "icon": "book-open",
-        "tabs": [
+        "groups": [
           {
-            "tab": "Documentation",
-            "groups": [
+            "group": "Unkey",
+            "pages": [
+              "introduction",
               {
-                "group": "Unkey",
+                "group": "Quickstart",
+                "icon": "rocket",
                 "pages": [
-                  "introduction",
                   {
-                    "group": "Quickstart",
-                    "icon": "rocket",
+                    "group": "Onboarding",
                     "pages": [
-                      {
-                        "group": "Onboarding",
-                        "pages": [
-                          "quickstart/onboarding/onboarding-api",
-                          "quickstart/onboarding/onboarding-ratelimiting"
-                        ]
-                      },
-                      {
-                        "group": "API Keys",
-                        "pages": [
-                          "quickstart/apis/nextjs",
-                          "quickstart/apis/bun",
-                          "quickstart/apis/express",
-                          "quickstart/apis/hono"
-                        ]
-                      },
-                      {
-                        "group": "Ratelimiting",
-                        "pages": [
-                          "quickstart/ratelimiting/nextjs",
-                          "quickstart/ratelimiting/bun",
-                          "quickstart/ratelimiting/express",
-                          "quickstart/ratelimiting/hono"
-                        ]
-                      },
-                      {
-                        "group": "Identities",
-                        "pages": ["quickstart/identities/shared-ratelimits"]
-                      }
+                      "quickstart/onboarding/onboarding-api",
+                      "quickstart/onboarding/onboarding-ratelimiting"
                     ]
                   },
                   {
-                    "group": "Security",
-                    "icon": "shield",
+                    "group": "API Keys",
                     "pages": [
-                      "security/overview",
-                      "security/root-keys",
-                      "security/recovering-keys",
-                      "apis/features/whitelist",
-                      "security/github-scanning",
-                      "security/delete-protection"
-                    ]
-                  },
-                  {
-                    "group": "AI Code Gen",
-                    "icon": "robot",
-                    "pages": [
-                      "ai-code-gen/overview",
-                      "ai-code-gen/cursor",
-                      "ai-code-gen/windsurf",
-                      "ai-code-gen/unkey-mcp"
-                    ]
-                  }
-                ]
-              },
-              {
-                "group": "Concepts",
-                "pages": [
-                  {
-                    "group": "Identities",
-                    "icon": "fingerprint",
-                    "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
-                  }
-                ]
-              },
-              {
-                "group": "Features",
-                "pages": [
-                  {
-                    "group": "Keys",
-                    "icon": "key",
-                    "pages": [
-                      "apis/introduction",
-                      {
-                        "group": "Features",
-                        "pages": [
-                          {
-                            "group": "Ratelimiting",
-                            "pages": [
-                              "apis/features/ratelimiting/overview",
-                              "apis/features/ratelimiting/modes"
-                            ]
-                          },
-                          "apis/features/temp-keys",
-                          "apis/features/remaining",
-                          "apis/features/refill",
-                          "apis/features/analytics",
-                          {
-                            "group": "Authorization",
-                            "pages": [
-                              "apis/features/authorization/introduction",
-                              "apis/features/authorization/roles-and-permissions",
-                              "apis/features/authorization/verifying",
-                              "apis/features/authorization/example"
-                            ]
-                          },
-                          "apis/features/revocation",
-                          "apis/features/enabled",
-                          "apis/features/environments"
-                        ]
-                      }
+                      "quickstart/apis/nextjs",
+                      "quickstart/apis/bun",
+                      "quickstart/apis/express",
+                      "quickstart/apis/hono"
                     ]
                   },
                   {
                     "group": "Ratelimiting",
-                    "icon": "bolt",
                     "pages": [
-                      "ratelimiting/introduction",
-                      "ratelimiting/modes",
-                      "ratelimiting/overrides",
-                      "ratelimiting/automated-overrides"
-                    ]
-                  },
-                  {
-                    "group": "Audit logs",
-                    "icon": "scroll",
-                    "pages": ["audit-log/introduction", "audit-log/types"]
-                  },
-                  {
-                    "group": "Analytics",
-                    "icon": "chart-bar",
-                    "pages": ["analytics/overview", "analytics/quickstarts"]
-                  }
-                ]
-              },
-              {
-                "group": "Migrations",
-
-                "pages": [
-                  {
-                    "icon": "plane",
-                    "group": "Migrating API Keys",
-                    "pages": ["migrations/introduction", "migrations/keys"]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "tab": "API Reference",
-            "groups": [
-              {
-                "group": "API Documentation",
-                "icon": "code",
-                "pages": [
-                  "api-reference/overview",
-                  "api-reference/authentication",
-                  {
-                    "group": "Errors",
-                    "pages": [
-                      "api-reference/errors/introduction",
-                      "api-reference/errors/code/BAD_REQUEST",
-                      "api-reference/errors/code/UNAUTHORIZED",
-                      "api-reference/errors/code/FORBIDDEN",
-                      "api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
-                      "api-reference/errors/code/NOT_FOUND",
-                      "api-reference/errors/code/DELETE_PROTECTED",
-                      "api-reference/errors/code/EXPIRED",
-                      "api-reference/errors/code/CONFLICT",
-                      "api-reference/errors/code/DISABLED",
-                      "api-reference/errors/code/TOO_MANY_REQUESTS",
-                      "api-reference/errors/code/INTERNAL_SERVER_ERROR"
-                    ]
-                  },
-                  {
-                    "group": "Errors v2",
-                    "pages": [
-                      "api-reference/errors-v2/overview",
-                      {
-                        "group": "Application",
-                        "pages": [
-                          "api-reference/errors-v2/unkey/application/assertion_failed",
-                          "api-reference/errors-v2/unkey/application/invalid_input",
-                          "api-reference/errors-v2/unkey/application/protected_resource",
-                          "api-reference/errors-v2/unkey/application/service_unavailable",
-                          "api-reference/errors-v2/unkey/application/unexpected_error"
-                        ]
-                      },
-                      {
-                        "group": "Authentication",
-                        "pages": [
-                          "api-reference/errors-v2/unkey/authentication/key_not_found",
-                          "api-reference/errors-v2/unkey/authentication/malformed",
-                          "api-reference/errors-v2/unkey/authentication/missing"
-                        ]
-                      },
-                      {
-                        "group": "Authorization",
-                        "pages": [
-                          "api-reference/errors-v2/unkey/authorization/forbidden",
-                          "api-reference/errors-v2/unkey/authorization/insufficient_permissions",
-                          "api-reference/errors-v2/unkey/authorization/key_disabled",
-                          "api-reference/errors-v2/unkey/authorization/workspace_disabled"
-                        ]
-                      },
-                      {
-                        "group": "Data",
-                        "pages": [
-                          "api-reference/errors-v2/unkey/data/api_not_found",
-                          "api-reference/errors-v2/unkey/data/audit_log_not_found",
-                          "api-reference/errors-v2/unkey/data/identity_already_exists",
-                          "api-reference/errors-v2/unkey/data/identity_not_found",
-                          "api-reference/errors-v2/unkey/data/key_auth_not_found",
-                          "api-reference/errors-v2/unkey/data/key_not_found",
-                          "api-reference/errors-v2/unkey/data/permission_not_found",
-                          "api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found",
-                          "api-reference/errors-v2/unkey/data/ratelimit_override_not_found",
-                          "api-reference/errors-v2/unkey/data/role_not_found",
-                          "api-reference/errors-v2/unkey/data/workspace_not_found"
-                        ]
-                      },
-                      {
-                        "group": "User",
-                        "pages": [
-                          "api-reference/errors-v2/user/bad_request/permissions_query_syntax_error"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "group": "Keys",
-                    "pages": [
-                      "api-reference/keys/create",
-                      "api-reference/keys/verify",
-                      "api-reference/keys/get",
-                      "api-reference/keys/update",
-                      "api-reference/keys/update-remaining",
-                      "api-reference/keys/delete",
-                      "api-reference/keys/add-permissions",
-                      "api-reference/keys/remove-permissions",
-                      "api-reference/keys/set-permissions",
-                      "api-reference/keys/add-roles",
-                      "api-reference/keys/remove-roles",
-                      "api-reference/keys/set-roles",
-                      "api-reference/keys/whoami"
-                    ]
-                  },
-                  {
-                    "group": "APIs",
-                    "pages": [
-                      "api-reference/apis/create",
-                      "api-reference/apis/get",
-                      "api-reference/apis/list-keys",
-                      "api-reference/apis/delete-keys",
-                      "api-reference/apis/delete"
-                    ]
-                  },
-                  {
-                    "group": "Permissions",
-                    "pages": [
-                      "api-reference/permissions/create-role",
-                      "api-reference/permissions/get-role",
-                      "api-reference/permissions/list-roles",
-                      "api-reference/permissions/delete-role",
-                      "api-reference/permissions/create-permission",
-                      "api-reference/permissions/get-permission",
-                      "api-reference/permissions/list-permissions",
-                      "api-reference/permissions/delete-permission"
+                      "quickstart/ratelimiting/nextjs",
+                      "quickstart/ratelimiting/bun",
+                      "quickstart/ratelimiting/express",
+                      "quickstart/ratelimiting/hono"
                     ]
                   },
                   {
                     "group": "Identities",
-                    "pages": [
-                      "api-reference/identities/create-identity",
-                      "api-reference/identities/get-identity",
-                      "api-reference/identities/list-identities",
-                      "api-reference/identities/update-identity",
-                      "api-reference/identities/delete-identity"
-                    ]
-                  },
-                  {
-                    "group": "Ratelimits",
-                    "pages": [
-                      "api-reference/ratelimits/limit",
-                      "api-reference/ratelimits/set-override",
-                      "api-reference/ratelimits/get-override",
-                      "api-reference/ratelimits/list-overrides",
-                      "api-reference/ratelimits/delete-override"
-                    ]
-                  },
-                  {
-                    "group": "Analytics",
-                    "pages": ["api-reference/analytics/get_verifications"]
-                  },
-                  {
-                    "group": "Migrations",
-                    "pages": ["api-reference/migrations/create-keys"]
+                    "pages": ["quickstart/identities/shared-ratelimits"]
                   }
+                ]
+              },
+              {
+                "group": "Security",
+                "icon": "shield",
+                "pages": [
+                  "security/overview",
+                  "security/root-keys",
+                  "security/recovering-keys",
+                  "apis/features/whitelist",
+                  "security/github-scanning",
+                  "security/delete-protection"
+                ]
+              },
+              {
+                "group": "AI Code Gen",
+                "icon": "robot",
+                "pages": [
+                  "ai-code-gen/overview",
+                  "ai-code-gen/cursor",
+                  "ai-code-gen/windsurf",
+                  "ai-code-gen/unkey-mcp"
                 ]
               }
             ]
           },
           {
-            "tab": "SDKs",
-            "groups": [
+            "group": "Concepts",
+            "pages": [
               {
-                "group": "Official Libraries",
-                "icon": "code",
+                "group": "Identities",
+                "icon": "fingerprint",
+                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+              }
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              {
+                "group": "Keys",
+                "icon": "key",
+                "pages": [
+                  "apis/introduction",
+                  {
+                    "group": "Features",
+                    "pages": [
+                      {
+                        "group": "Ratelimiting",
+                        "pages": ["apis/features/ratelimiting/overview"]
+                      },
+                      "apis/features/temp-keys",
+                      "apis/features/remaining",
+                      "apis/features/refill",
+                      "apis/features/analytics",
+                      {
+                        "group": "Authorization",
+                        "pages": [
+                          "apis/features/authorization/introduction",
+                          "apis/features/authorization/roles-and-permissions",
+                          "apis/features/authorization/verifying",
+                          "apis/features/authorization/example"
+                        ]
+                      },
+                      "apis/features/revocation",
+                      "apis/features/enabled",
+                      "apis/features/environments"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Ratelimiting",
+                "icon": "bolt",
+                "pages": [
+                  "ratelimiting/introduction",
+                  "ratelimiting/modes",
+                  "ratelimiting/overrides",
+                  "ratelimiting/automated-overrides"
+                ]
+              },
+              {
+                "group": "Audit logs",
+                "icon": "scroll",
+                "pages": ["audit-log/introduction", "audit-log/types"]
+              },
+              {
+                "group": "Analytics",
+                "icon": "chart-bar",
+                "pages": ["analytics/overview", "analytics/quickstarts"]
+              }
+            ]
+          },
+          {
+            "group": "Migrations",
+            "pages": [
+              {
+                "icon": "plane",
+                "group": "Migrating API Keys",
+                "pages": ["migrations/introduction", "migrations/keys"]
+              }
+            ]
+          },
+          {
+            "group": "Errors",
+            "icon": "triangle-exclamation",
+            "pages": [
+              "errors/overview",
+              {
+                "group": "Unkey Errors",
                 "pages": [
                   {
-                    "group": "@unkey/api",
+                    "group": "Application",
                     "pages": [
-                      "libraries/ts/sdk/overview",
-                      {
-                        "group": "Keys",
-                        "pages": [
-                          "libraries/ts/sdk/keys/create",
-                          "libraries/ts/sdk/keys/verify",
-                          "libraries/ts/sdk/keys/get",
-                          "libraries/ts/sdk/keys/update",
-                          "libraries/ts/sdk/keys/update-remaining",
-                          "libraries/ts/sdk/keys/delete",
-                          "libraries/ts/sdk/keys/add-permission",
-                          "libraries/ts/sdk/keys/remove-permission",
-                          "libraries/ts/sdk/keys/set-permission",
-                          "libraries/ts/sdk/keys/add-roles",
-                          "libraries/ts/sdk/keys/remove-roles",
-                          "libraries/ts/sdk/keys/set-roles"
-                        ]
-                      },
-                      {
-                        "group": "Analytics",
-                        "pages": ["libraries/ts/sdk/analytics/get"]
-                      },
-                      {
-                        "group": "APIs",
-                        "pages": [
-                          "libraries/ts/sdk/apis/create",
-                          "libraries/ts/sdk/apis/get",
-                          "libraries/ts/sdk/apis/list-keys",
-                          "libraries/ts/sdk/apis/delete"
-                        ]
-                      },
-                      {
-                        "group": "Identities",
-                        "pages": [
-                          "libraries/ts/sdk/identities/create-identity",
-                          "libraries/ts/sdk/identities/get-identity",
-                          "libraries/ts/sdk/identities/update-identity",
-                          "libraries/ts/sdk/identities/list-identity",
-                          "libraries/ts/sdk/identities/delete-identity"
-                        ]
-                      },
-                      {
-                        "group": "Ratelimits",
-                        "pages": [
-                          "libraries/ts/sdk/ratelimits/limit",
-                          {
-                            "group": "Overrides",
-                            "pages": [
-                              "libraries/ts/sdk/ratelimits/overrides/set-override",
-                              "libraries/ts/sdk/ratelimits/overrides/get-override",
-                              "libraries/ts/sdk/ratelimits/overrides/list-overrides",
-                              "libraries/ts/sdk/ratelimits/overrides/delete-override"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "group": "Migrations",
-                        "pages": ["libraries/ts/sdk/migrations/migrate-to-unkey"]
-                      },
-                      {
-                        "group": "Permissions",
-                        "pages": [
-                          {
-                            "group": "Roles",
-                            "pages": [
-                              "libraries/ts/sdk/permissions/create-role",
-                              "libraries/ts/sdk/permissions/get-role",
-                              "libraries/ts/sdk/permissions/delete-role"
-                            ]
-                          },
-                          {
-                            "group": "Permissions",
-                            "pages": [
-                              "libraries/ts/sdk/permissions/create-permission",
-                              "libraries/ts/sdk/permissions/get-permission",
-                              "libraries/ts/sdk/permissions/delete-permission"
-                            ]
-                          }
-                        ]
-                      }
+                      "errors/unkey/application/assertion_failed",
+                      "errors/unkey/application/invalid_input",
+                      "errors/unkey/application/protected_resource",
+                      "errors/unkey/application/service_unavailable",
+                      "errors/unkey/application/unexpected_error"
                     ]
                   },
+                  {
+                    "group": "Authentication",
+                    "pages": [
+                      "errors/unkey/authentication/key_not_found",
+                      "errors/unkey/authentication/malformed",
+                      "errors/unkey/authentication/missing"
+                    ]
+                  },
+                  {
+                    "group": "Authorization",
+                    "pages": [
+                      "errors/unkey/authorization/forbidden",
+                      "errors/unkey/authorization/insufficient_permissions",
+                      "errors/unkey/authorization/key_disabled",
+                      "errors/unkey/authorization/workspace_disabled"
+                    ]
+                  },
+                  {
+                    "group": "Data",
+                    "pages": [
+                      "errors/unkey/data/api_not_found",
+                      "errors/unkey/data/audit_log_not_found",
+                      "errors/unkey/data/identity_already_exists",
+                      "errors/unkey/data/identity_not_found",
+                      "errors/unkey/data/key_auth_not_found",
+                      "errors/unkey/data/key_not_found",
+                      "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/ratelimit_namespace_not_found",
+                      "errors/unkey/data/ratelimit_override_not_found",
+                      "errors/unkey/data/role_not_found",
+                      "errors/unkey/data/workspace_not_found"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "User Errors",
+                "pages": [
+                  "errors/user/bad_request/permissions_query_syntax_error",
+                  "errors/user/bad_request/request_body_too_large",
+                  "errors/user/bad_request/client_closed_request",
+                  "errors/user/bad_request/request_timeout"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "dropdown": "api.unkey.dev/v1 (deprecated)",
+        "icon": "terminal",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "api-reference/v1/overview",
+              "api-reference/v1/authentication",
+              {
+                "group": "Migration Guide",
+                "icon": "arrows-rotate",
+                "pages": [
+                  "api-reference/v1/migration/index",
+                  "api-reference/v1/migration/keys",
+                  "api-reference/v1/migration/apis",
+                  "api-reference/v1/migration/identities",
+                  "api-reference/v1/migration/permissions",
+                  "api-reference/v1/migration/ratelimiting",
+                  "api-reference/v1/migration/errors"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "openapi": {
+              "source": "https://api.unkey.dev/openapi.json",
+              "directory": "api-reference/v1"
+            }
+          }
+        ]
+      },
+      {
+        "dropdown": "api.unkey.com/v2",
+        "icon": "terminal",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "api-reference/v2/overview",
+              "api-reference/v2/auth",
+              "api-reference/v2/rpc",
+              "api-reference/v2/errors"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "openapi": {
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples",
+              "directory": "api-reference/v2"
+            }
+          }
+        ]
+      },
+      {
+        "dropdown": "SDKs",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "Official Libraries",
+            "icon": "code",
+            "pages": [
+              {
+                "group": "Typescript",
+                "pages": [
+                  "libraries/ts/api",
                   {
                     "group": "@unkey/ratelimit",
                     "pages": [
@@ -428,101 +305,66 @@
                   },
                   "libraries/ts/nextjs",
                   "libraries/ts/hono",
-                  "libraries/ts/cache/overview",
+                  "libraries/ts/cache/overview"
+                ]
+              },
+              {
+                "group": "Go",
+                "pages": ["libraries/go/api"]
+              },
+              {
+                "group": "Python",
+                "pages": ["libraries/py/api"]
+              }
+            ]
+          },
+          {
+            "group": "Community Libraries",
+            "pages": [
+              {
+                "group": "Elixir",
+                "pages": [
+                  "libraries/ex/overview",
                   {
-                    "group": "unkey-go",
-                    "pages": ["libraries/go/overview"]
-                  },
-                  {
-                    "group": "unkey.py",
+                    "group": "Functions",
                     "pages": [
-                      "libraries/py/overview",
-                      "libraries/py/async",
-                      {
-                        "group": "Services",
-                        "pages": [
-                          "libraries/py/services/keys",
-                          "libraries/py/services/apis",
-                          "libraries/py/services/permissions",
-                          "libraries/py/services/migrations",
-                          "libraries/py/services/identities",
-                          "libraries/py/services/ratelimits"
-                        ]
-                      }
+                      "libraries/ex/functions/create_key",
+                      "libraries/ex/functions/verify_key",
+                      "libraries/ex/functions/delete_key",
+                      "libraries/ex/functions/update_key",
+                      "libraries/ex/functions/update_remaining"
                     ]
                   }
                 ]
               },
               {
-                "group": "Community Libraries",
+                "group": "Nuxt",
+                "pages": ["libraries/nuxt/overview"]
+              },
+              {
+                "group": "Rust",
+                "pages": ["libraries/rs/overview"]
+              },
+              {
+                "group": "Springboot",
                 "pages": [
-                  {
-                    "group": "Elixir",
-                    "pages": [
-                      "libraries/ex/overview",
-                      {
-                        "group": "Functions",
-                        "pages": [
-                          "libraries/ex/functions/create_key",
-                          "libraries/ex/functions/verify_key",
-                          "libraries/ex/functions/delete_key",
-                          "libraries/ex/functions/update_key",
-                          "libraries/ex/functions/update_remaining"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "group": "Nuxt",
-                    "pages": ["libraries/nuxt/overview"]
-                  },
-                  {
-                    "group": "Rust",
-                    "pages": ["libraries/rs/overview"]
-                  },
-                  {
-                    "group": "Springboot",
-                    "pages": [
-                      "libraries/springboot-java/overview",
-                      "libraries/springboot-java/api/get",
-                      "libraries/springboot-java/api/list",
-                      "libraries/springboot-java/functions/create",
-                      "libraries/springboot-java/functions/revoke",
-                      "libraries/springboot-java/functions/update",
-                      "libraries/springboot-java/functions/verify"
-                    ]
-                  }
+                  "libraries/springboot-java/overview",
+                  "libraries/springboot-java/api/get",
+                  "libraries/springboot-java/api/list",
+                  "libraries/springboot-java/functions/create",
+                  "libraries/springboot-java/functions/revoke",
+                  "libraries/springboot-java/functions/update",
+                  "libraries/springboot-java/functions/verify"
                 ]
               }
             ]
           }
         ]
-      },
-      {
-        "anchor": "Blog & Tutorials",
-        "href": "https://unkey.com/blog",
-        "icon": "newspaper"
-      },
-      {
-        "anchor": "Discord",
-        "href": "https://unkey.com/discord",
-        "icon": "discord"
-      },
-      {
-        "anchor": "GitHub",
-        "href": "https://github.com/unkeyed",
-        "icon": "github"
       }
     ]
   },
   "styling": {
     "codeblocks": "system"
-  },
-  "api": {
-    "openapi": "https://api.unkey.dev/openapi.json",
-    "mdx": {
-      "server": "https://api.unkey.dev"
-    }
   },
   "background": {
     "color": {
@@ -532,6 +374,10 @@
   },
   "navbar": {
     "links": [
+      {
+        "label": "Blog & Tutorials",
+        "href": "https://unkey.com/blog"
+      },
       {
         "label": "Discord",
         "href": "https://unkey.com/discord"
@@ -564,6 +410,10 @@
     {
       "source": "/onboarding/onboarding-ratelimiting",
       "destination": "/quickstart/onboarding/onboarding-ratelimiting"
+    },
+    {
+      "source": "/api-reference",
+      "destination": "api-reference/v2"
     }
   ]
 }

@@ -34,12 +34,12 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 	t.Run("delete identity with non-existent external ID", func(t *testing.T) {
 		nonExistentExternalID := "non_existent_" + uid.New("test")
-		req := handler.Request{ExternalId: nonExistentExternalID}
+		req := handler.Request{Identity: nonExistentExternalID}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
@@ -70,12 +70,12 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},
 		}
 
-		req := handler.Request{ExternalId: externalId}
+		req := handler.Request{Identity: externalId}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, differentHeaders, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
@@ -97,16 +97,19 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		// Soft delete the identity directly in DB
-		err = db.Query.SoftDeleteIdentity(t.Context(), h.DB.RW(), identityId)
+		err = db.Query.SoftDeleteIdentity(t.Context(), h.DB.RW(), db.SoftDeleteIdentityParams{
+			Identity:    identityId,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+		})
 		require.NoError(t, err)
 
 		// Try to delete it again via API
-		req := handler.Request{ExternalId: externalId}
+		req := handler.Request{Identity: externalId}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
@@ -115,12 +118,12 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 	t.Run("delete identity using very long non-existent external ID", func(t *testing.T) {
 		longExternalID := "very_long_external_id_that_does_not_exist_" + uid.New("test") + "_" + uid.New("test2")
-		req := handler.Request{ExternalId: longExternalID}
+		req := handler.Request{Identity: longExternalID}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)

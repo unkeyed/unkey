@@ -28,7 +28,7 @@ type Server struct {
 	mux         *http.ServeMux
 	srv         *http.Server
 	flags       Flags
-	tlsConfig   *tls.Config
+	config      Config
 
 	sessions sync.Pool
 }
@@ -49,6 +49,11 @@ type Config struct {
 	TLS *tls.Config
 
 	Flags *Flags
+
+	// MaxRequestBodySize sets the maximum allowed request body size in bytes.
+	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
+	// This helps prevent DoS attacks from excessively large request bodies.
+	MaxRequestBodySize int64
 }
 
 // New creates a new server with the provided configuration.
@@ -102,7 +107,7 @@ func New(config Config) (*Server, error) {
 		mux:         mux,
 		srv:         srv,
 		flags:       flags,
-		tlsConfig:   config.TLS,
+		config:      config,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
@@ -196,10 +201,10 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	var err error
 
 	// Check if TLS should be used
-	if s.tlsConfig != nil {
+	if s.config.TLS != nil {
 		s.logger.Info("listening", "srv", "https", "addr", ln.Addr().String())
 
-		s.srv.TLSConfig = s.tlsConfig
+		s.srv.TLSConfig = s.config.TLS
 
 		// ListenAndServeTLS with empty strings will use the certificates from TLSConfig
 		err = s.srv.ServeTLS(ln, "", "")
@@ -234,6 +239,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 		"method", route.Method(),
 		"path", route.Path(),
 	)
+
 	s.mux.HandleFunc(
 		fmt.Sprintf("%s %s", route.Method(), route.Path()),
 		func(w http.ResponseWriter, r *http.Request) {
@@ -241,14 +247,24 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 			if !ok {
 				panic("Unable to cast session")
 			}
+
 			defer func() {
 				sess.reset()
 				s.returnSession(sess)
 			}()
 
-			err := sess.init(w, r)
+			err := sess.Init(w, r, s.config.MaxRequestBodySize)
 			if err != nil {
-				s.logger.Error("failed to init session")
+				s.logger.Error("failed to init session", "error", err)
+
+				// Apply error handling middleware for session initialization errors
+				errorHandler := WithErrorHandling(s.logger)
+				handleFn := func(ctx context.Context, session *Session) error {
+					return err // Return the session init error
+				}
+				wrappedHandler := errorHandler(handleFn)
+				_ = wrappedHandler(r.Context(), sess)
+
 				return
 			}
 

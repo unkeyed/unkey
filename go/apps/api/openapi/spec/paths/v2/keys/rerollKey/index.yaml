@@ -1,0 +1,84 @@
+post:
+  tags:
+    - keys
+  summary: Reroll Key
+  description: |
+    Generate a new API key while preserving the configuration from an existing key.
+
+    This operation creates a fresh key with a new token while maintaining all settings from the original key:
+    - Permissions and roles
+    - Custom metadata
+    - Rate limit configurations
+    - Identity associations
+    - Remaining credits
+    - Recovery settings
+
+    **Key Generation:**
+    - The system attempts to extract the prefix from the original key
+    - If prefix extraction fails, the default API prefix is used
+    - Key length follows the API's default byte configuration (or 16 bytes if not specified)
+
+    **Original Key Handling:**
+    - The original key will be revoked after the duration specified in `expiration`
+    - Set `expiration` to 0 to revoke immediately
+    - This allows for graceful key rotation with an overlap period
+
+    Common use cases include:
+    - Rotating keys for security compliance
+    - Issuing replacement keys for compromised credentials
+    - Creating backup keys with identical permissions
+
+    **Important:** Analytics and usage metrics are tracked at both the key level AND identity level. If the original key has an identity, the new key will inherit it, allowing you to track usage across both individual keys and the overall identity.
+
+    **Required Permissions**
+
+     Your root key must have:
+     - `api.*.create_key` or `api.<api_id>.create_key`
+     - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
+  operationId: rerollKey
+  x-speakeasy-name-override: rerollKey
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysRerollKeyRequestBody.yaml"
+  responses:
+    "200":
+      description: Key rerolled successfully.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysRerollKeyResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

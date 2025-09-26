@@ -1,0 +1,42 @@
+type: object
+properties:
+  id:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The unique identifier for this permission within Unkey's system.
+      Generated automatically when the permission is created and used to reference this permission in API operations.
+      Always begins with 'perm_' followed by alphanumeric characters and underscores.
+    example: perm_1234567890abcdef
+  name:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The human-readable name for this permission that describes its purpose.
+      Should be descriptive enough for developers to understand what access it grants.
+      Use clear, semantic names that reflect the resources or actions being permitted.
+      Names must be unique within your workspace to avoid confusion and conflicts.
+    example: "users.read"
+  slug:
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: The unique URL-safe identifier for this permission.
+    example: users-read
+  description:
+    type: string
+    maxLength: 2048
+    description: |
+      Optional detailed explanation of what this permission grants access to.
+      Helps team members understand the scope and implications of granting this permission.
+      Include information about what resources can be accessed and what actions can be performed.
+      Not visible to end users - this is for internal documentation and team clarity.
+    example: "Allows reading user profile information and account details"
+required:
+  - id
+  - name
+  - slug

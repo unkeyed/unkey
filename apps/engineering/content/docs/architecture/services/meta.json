@@ -2,5 +2,15 @@
   "title": "Services",
   "icon": "Pencil",
   "root": false,
-  "pages": ["vault", "clickhouse", "clickhouse-proxy"]
+  "pages": [
+    "api",
+    "clickhouse",
+    "clickhouse-proxy",
+    "deploy",
+    "healthcheck",
+    "quotacheck",
+    "run",
+    "vault",
+    "version"
+  ]
 }

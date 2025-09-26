@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 )
@@ -31,6 +29,11 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return nil
 	}
 
+	// Key has unlimited requests if set to NULL
+	if !k.Key.RemainingRequests.Valid {
+		return nil
+	}
+
 	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
 		KeyId: k.Key.ID,
 		Cost:  cost,
@@ -39,30 +42,11 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return err
 	}
 
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: usage.Remaining >= 0}
+	// Always update remaining requests with the accurate count from the usageLimiter
+	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
 	}
-
-	// Emit Prometheus metrics for credits spent
-	identityID := ""
-	if k.Key.IdentityID.Valid {
-		identityID = k.Key.IdentityID.String
-	}
-
-	// Credits are deducted when usage is valid AND cost > 0
-	deducted := usage.Valid && cost > 0
-	actualCostDeducted := int32(0)
-	if deducted {
-		actualCostDeducted = cost
-	}
-
-	metrics.KeyCreditsSpentTotal.WithLabelValues(
-		k.AuthorizedWorkspaceID,      // workspace_id
-		k.Key.ID,                     // key_id
-		identityID,                   // identity_id
-		strconv.FormatBool(deducted), // deducted - whether credits were actually deducted
-	).Add(float64(actualCostDeducted)) // Add the actual amount deducted, not the requested cost
 
 	return nil
 }
@@ -95,16 +79,6 @@ func (k *KeyVerifier) withIPWhitelist() error {
 	}
 
 	return nil
-}
-
-func (k *KeyVerifier) WithApiID(apiID string) {
-	if k.Status != StatusValid {
-		return
-	}
-
-	if k.Key.ApiID != apiID {
-		k.setInvalid(StatusForbidden, fmt.Sprintf("The key does not belong to %s", apiID))
-	}
 }
 
 // withPermissions validates that the key has the required RBAC permissions.
@@ -153,6 +127,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		}
 
 		ratelimitsToCheck[name] = RatelimitConfigAndResult{
+			ID:         rl.ID,
 			Cost:       1,
 			Name:       rl.Name,
 			Duration:   time.Duration(rl.Duration) * time.Millisecond,
@@ -164,6 +139,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	}
 
 	for _, rl := range specifiedLimits {
+		// Custom limits are always applied on a key level
 		if rl.Limit != nil && rl.Duration != nil {
 			ratelimitsToCheck[rl.Name] = RatelimitConfigAndResult{
 				Cost:       int64(ptr.SafeDeref(rl.Cost, 1)),
@@ -171,8 +147,9 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 				Duration:   time.Duration(*rl.Duration) * time.Millisecond,
 				Limit:      int64(*rl.Limit),
 				AutoApply:  false,
-				Identifier: k.Key.ID, // Specified limits use key ID
+				Identifier: k.Key.ID,
 				Response:   nil,
+				ID:         "", // Doesn't exist and is custom so no ID
 			}
 
 			continue
@@ -180,9 +157,9 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 
 		dbRl, exists := k.ratelimitConfigs[rl.Name]
 		if !exists {
-			errorMsg := "ratelimit %q was requested but does not exist for key %q"
+			errorMsg := "ratelimit '%s' was requested but does not exist for key '%s'"
 			if k.Key.IdentityID.Valid {
-				errorMsg += " nor identity: %q external ID: %q"
+				errorMsg += " nor identity: '%s' external ID: '%s'"
 			} else {
 				errorMsg += " and there is no identity connected."
 			}
@@ -207,6 +184,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			AutoApply:  dbRl.AutoApply == 1,
 			Identifier: identifier,
 			Response:   nil,
+			ID:         dbRl.ID,
 		}
 	}
 
@@ -223,7 +201,14 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			Time:       time.Now(),
 		})
 		if err != nil {
-			return err
+			k.logger.Error("Failed to ratelimit",
+				"key_id", k.Key.ID,
+				"Identifier", config.Identifier,
+				"error", err.Error(),
+			)
+
+			// We will just allow the request to proceed, but log the error
+			return nil
 		}
 
 		config.Response = &response

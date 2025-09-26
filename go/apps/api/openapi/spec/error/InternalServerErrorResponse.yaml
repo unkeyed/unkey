@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
+description: |-
+  Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
+
+  When you encounter this error:
+  - The request ID in the response can help Unkey support investigate the issue
+  - The error is likely temporary and retrying may succeed
+  - If the error persists, contact Unkey support with the request ID

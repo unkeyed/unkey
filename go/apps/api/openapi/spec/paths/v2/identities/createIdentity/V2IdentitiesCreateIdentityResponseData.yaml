@@ -1,0 +1,7 @@
+type: object
+properties:
+  identityId:
+    type: string
+    description: The unique identifier of the created identity.
+required:
+  - identityId

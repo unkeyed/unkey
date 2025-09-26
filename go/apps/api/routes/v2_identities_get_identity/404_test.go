@@ -34,11 +34,11 @@ func TestNotFound(t *testing.T) {
 	t.Run("external ID does not exist", func(t *testing.T) {
 		nonExistentExternalID := "non_existent_external_id"
 		req := handler.Request{
-			ExternalId: nonExistentExternalID,
+			Identity: nonExistentExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)
@@ -67,7 +67,10 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err)
 
 		// Mark it as deleted
-		err = db.Query.SoftDeleteIdentity(ctx, tx, deletedIdentityID)
+		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
+			Identity:    deletedIdentityID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+		})
 		require.NoError(t, err)
 
 		err = tx.Commit()
@@ -75,7 +78,7 @@ func TestNotFound(t *testing.T) {
 
 		// Try to retrieve the deleted identity by externalId
 		reqByExternalId := handler.Request{
-			ExternalId: deletedExternalID,
+			Identity: deletedExternalID,
 		}
 		resByExternalId := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, reqByExternalId)
 		require.Equal(t, http.StatusNotFound, resByExternalId.Status, "expected 404 for deleted identity (by externalId)")

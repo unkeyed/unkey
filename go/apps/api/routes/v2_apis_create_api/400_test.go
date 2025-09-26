@@ -79,7 +79,7 @@ func TestCreateApi_BadRequest(t *testing.T) {
 		// Verify the error response structure (similar to TypeScript test)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.NotEmpty(t, res.Body.Error)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, res.Body.Error.Title, "Bad Request")
 
 		// Check that the error message contains information about the name length

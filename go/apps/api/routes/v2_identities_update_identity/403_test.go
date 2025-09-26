@@ -39,12 +39,12 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
@@ -61,12 +61,12 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
@@ -105,8 +105,8 @@ func TestForbidden(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)

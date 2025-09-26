@@ -3,6 +3,7 @@ import { auth as authProvider } from "@/lib/auth/server";
 import { type Workspace, db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
+import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -12,7 +13,10 @@ export const createWorkspace = t.procedure
   .use(requireUser)
   .input(
     z.object({
-      name: z.string().min(1).max(50),
+      name: z.string().min(3).max(50),
+      slug: z.string().regex(/^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/, {
+        message: "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
+      }),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -50,6 +54,7 @@ export const createWorkspace = t.procedure
       id: newId("workspace"),
       orgId: orgId,
       name: input.name,
+      slug: input.slug,
       plan: "free",
       tier: "Free",
       stripeCustomerId: null,
@@ -92,6 +97,12 @@ export const createWorkspace = t.procedure
             },
           },
         ]);
+
+        // Invalidate workspace cache for the new orgId and current user's orgId
+        // The new orgId needs invalidation for consistency (though it's new)
+        // The current user's orgId needs invalidation since they're switching away
+        await invalidateWorkspaceCache(orgId);
+        await invalidateWorkspaceCache(ctx.tenant.id);
       })
       .catch((_err) => {
         throw new TRPCError({

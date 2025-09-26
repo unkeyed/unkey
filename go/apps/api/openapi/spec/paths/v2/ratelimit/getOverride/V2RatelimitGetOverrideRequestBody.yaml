@@ -1,0 +1,33 @@
+description: |-
+  Gets the configuration of an existing rate limit override. Use this to retrieve details about custom rate limit rules that have been created for specific identifiers within a namespace.
+
+  This endpoint is useful for:
+  - Verifying override configurations
+  - Checking current limits for specific entities
+  - Auditing rate limit policies
+  - Debugging rate limiting behavior
+  - Retrieving override settings for modification
+additionalProperties: false
+properties:
+  namespace:
+    description: The id or name of the namespace containing the override.
+    type: string
+    minLength: 1
+    maxLength: 255
+  identifier:
+    description: |-
+      The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
+
+      Important notes:
+      - This is case-sensitive and must match exactly
+      - Include any wildcards (*) that were part of the original pattern
+      - For example, if the override was created for 'premium_*', you must use 'premium_*' here, not a specific ID like 'premium_user1'
+
+      This field is used to look up the specific override configuration for this pattern.
+    type: string
+    minLength: 1
+    maxLength: 255
+required:
+  - namespace
+  - identifier
+type: object

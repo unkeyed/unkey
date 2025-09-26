@@ -24,8 +24,8 @@ var (
 	BufferState = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace:   "unkey",
-			Subsystem:   "api",
-			Name:        "buffer_state_total",
+			Subsystem:   "buffer",
+			Name:        "state_total",
 			Help:        "Number of buffer inserts by name and state",
 			ConstLabels: constLabels,
 		},
@@ -40,11 +40,27 @@ var (
 	BufferSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace:   "unkey",
-			Subsystem:   "api",
-			Name:        "buffer_size_percentage",
+			Subsystem:   "buffer",
+			Name:        "size_percentage",
 			Help:        "Percentage of buffered fill capacity between 0.0 and 1.0",
 			ConstLabels: constLabels,
 		},
 		[]string{"name", "drop"},
+	)
+
+	// BufferErrorsTotal tracks the total number of buffer operation errors,
+	// labeled by buffer name and error type. Use this counter to monitor buffer error rates.
+	//
+	// Example usage:
+	//   metrics.BufferErrorsTotal.WithLabelValues("batch_writer", "write_failed").Inc()
+	BufferErrorsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace:   "unkey",
+			Subsystem:   "buffer",
+			Name:        "errors_total",
+			Help:        "Total number of buffer operation errors by name and state.",
+			ConstLabels: constLabels,
+		},
+		[]string{"name", "state"},
 	)
 )

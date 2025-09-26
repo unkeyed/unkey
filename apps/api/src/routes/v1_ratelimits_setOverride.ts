@@ -9,8 +9,12 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
-  tags: ["ratelimit"],
+  deprecated: true,
+  tags: ["ratelimits"],
   operationId: "setOverride",
+  summary: "Set rate limit override",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/ratelimits.setOverride",
   security: [{ bearerAuth: [] }],

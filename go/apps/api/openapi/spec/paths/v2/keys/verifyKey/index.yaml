@@ -1,0 +1,92 @@
+post:
+  tags:
+    - keys
+  summary: Verify API key
+  description: |
+    Verify an API key's validity and permissions for request authentication.
+
+    Use this endpoint on every incoming request to your protected resources. It checks key validity, permissions, rate limits, and usage quotas in a single call.
+
+    **Important**: Always returns HTTP 200. Check the `valid` field in response data to determine if the key is authorized.
+
+    **Common use cases:**
+    - Authenticate API requests before processing
+    - Enforce permission-based access control
+    - Track usage and apply rate limits
+
+    **Required Permissions**
+
+    Your root key needs one of:
+    - `api.*.verify_key` (verify keys in any API)
+    - `api.<api_id>.verify_key` (verify keys in specific API)
+
+    If you are getting a NOT_FOUND error, ensure your root key has the required verify key permissions.
+  operationId: verifyKey
+  x-speakeasy-name-override: verifyKey
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysVerifyKeyRequestBody.yaml"
+  responses:
+    "200":
+      description: |
+        Key verification process completed. This endpoint always returns HTTP 200 regardless of whether the key passed or failed verification. You must check the `valid` field in the response data to determine the actual verification result.
+
+        When verification succeeds, the response includes comprehensive information about the key including its current status, remaining credits, expiration time, associated permissions and roles, metadata, and any rate limiting information. This data enables your application to make informed authorization decisions and provide appropriate user experiences.
+
+        When verification fails, the response indicates the specific reason through the `code` field while setting `valid` to false. The failure codes help you handle different scenarios appropriately, such as directing users to renew expired keys, upgrade for more credits, or contact support for disabled keys.
+
+        The response also includes identity information when the key is associated with an identity, providing additional context about the key holder and any identity-specific rate limits or metadata that may apply to the verification.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysVerifyKeyResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            permissionsQuerySyntaxError:
+              summary: Invalid permissions query syntax
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                error:
+                  title: Bad Request
+                  detail: "Syntax error in permission query: unexpected token 'AND' at position 15. Expected permission name or opening parenthesis."
+                  status: 400
+                  type: "https://unkey.com/docs/errors/user/bad_request/permissions_query_syntax_error"
+                  errors:
+                    - location: "body.permissions"
+                      message: "unexpected token 'AND' at position 15"
+                      fix: "Check your query syntax. AND/OR operators must be between permissions, not at the start or end"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

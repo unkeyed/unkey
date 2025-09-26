@@ -1,0 +1,61 @@
+post:
+  tags:
+    - apis
+  summary: Get API namespace
+  description: |
+    Retrieve basic information about an API namespace including its ID and name.
+
+    Use this to verify an API exists before performing operations, get the human-readable name when you only have the API ID, or confirm access to a specific namespace. For detailed key information, use the `listKeys` endpoint instead.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.read_api` (to read any API)
+    - `api.<api_id>.read_api` (to read a specific API)
+  operationId: getApi
+  x-speakeasy-name-override: getApi
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisGetApiRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: API information retrieved successfully. Contains the unique API ID and human-readable name.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisGetApiResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

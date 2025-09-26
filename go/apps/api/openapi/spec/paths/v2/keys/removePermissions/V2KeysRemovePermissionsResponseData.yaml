@@ -1,0 +1,12 @@
+type: array
+description: |-
+  Complete list of all permissions directly assigned to the key after the removal operation (remaining permissions only).
+
+  Notes:
+  - This list does NOT include permissions granted through roles
+  - For a complete permission picture, use `/v2/keys.getKey` instead
+  - An empty array indicates the key has no direct permissions assigned
+  - Any cached versions of the key are immediately invalidated to ensure consistency
+  - Changes to permissions take effect within seconds for new verifications
+items:
+  "$ref": "../../../../common/Permission.yaml"

@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -39,26 +39,28 @@ func TestSuccess(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Test case for getting a permission
-	t.Run("get permission with all fields", func(t *testing.T) {
-		// First, create a permission to retrieve
-		permissionID := uid.New(uid.PermissionPrefix)
-		permissionName := "test.get.permission"
-		permissionDesc := "Test permission for get endpoint"
+	// First, create a permission to retrieve
+	permissionID := uid.New(uid.PermissionPrefix)
+	permissionName := "test.get.permission"
+	permissionDesc := "Test permission for get endpoint"
+	permissionSlug := "test-get-permission"
 
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         permissionName,
-			Slug:         "test-get-permission",
-			Description:  sql.NullString{Valid: true, String: permissionDesc},
-			CreatedAtM:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		PermissionID: permissionID,
+		WorkspaceID:  workspace.ID,
+		Name:         permissionName,
+		Slug:         permissionSlug,
+		Description:  dbtype.NullString{Valid: true, String: permissionDesc},
+		CreatedAtM:   time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	// Test case for getting a permission
+	t.Run("get permission with all fields by ID", func(t *testing.T) {
 
 		// Now retrieve the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -71,15 +73,34 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Permission)
 
 		// Verify permission data
-		permission := res.Body.Data.Permission
+		permission := res.Body.Data
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
 		require.Equal(t, permissionDesc, *permission.Description)
-		require.NotNil(t, permission.CreatedAt)
+	})
+
+	t.Run("get permission with all fields by slug", func(t *testing.T) {
+		req := handler.Request{Permission: permissionSlug}
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Data)
+
+		// Verify permission data
+		permission := res.Body.Data
+		require.Equal(t, permissionID, permission.Id)
+		require.Equal(t, permissionName, permission.Name)
+		require.NotNil(t, permission.Description)
+		require.Equal(t, permissionDesc, *permission.Description)
 	})
 
 	// Test case for getting a permission without description
@@ -93,14 +114,14 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         permissionName,
 			Slug:         "test-get-permission-no-desc",
-			Description:  sql.NullString{}, // Empty description
+			Description:  dbtype.NullString{}, // Empty description
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
 		// Now retrieve the permission
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -113,10 +134,9 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Permission)
 
 		// Verify permission data
-		permission := res.Body.Data.Permission
+		permission := res.Body.Data
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.Nil(t, permission.Description)

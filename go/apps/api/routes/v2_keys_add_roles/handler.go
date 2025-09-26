@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -16,12 +16,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 type Request = openapi.V2KeysAddRolesRequestBody
-type Response = openapi.V2KeysAddRolesResponse
+type Response = openapi.V2KeysAddRolesResponseBody
 
 type Handler struct {
 	Logger    logging.Logger
@@ -45,32 +46,18 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.addRoles")
 
-	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.UpdateKey,
-		}),
-	)))
-	if err != nil {
-		return err
-	}
-
-	// 4. Validate key exists and belongs to workspace
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -92,14 +79,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key is deleted"), fault.Public("The specified key was not found."),
-		)
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+		rbac.And(
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.UpdateKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.UpdateKey,
+				}),
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.AddRoleToKey,
+			}),
+		),
+	))
+	if err != nil {
+		return err
 	}
 
-	// 5. Get current roles for the key
 	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
@@ -108,60 +112,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 6. Resolve and validate requested roles
-	requestedRoles := make([]db.Role, 0, len(req.Roles))
-	for _, roleRef := range req.Roles {
-		var role db.Role
+	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Names:       req.Roles,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+		)
+	}
 
-		if roleRef.Id != nil {
-			// Find by ID
-			role, err = db.Query.FindRoleByID(ctx, h.DB.RO(), *roleRef.Id)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role with ID '%s' was not found.", *roleRef.Id)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-		} else if roleRef.Name != nil {
-			// Find by name
-			role, err = db.Query.FindRoleByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-				Name:        *roleRef.Name,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-			})
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role with name '%s' was not found.", *roleRef.Name)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-		} else {
-			return fault.New("invalid role reference",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("role missing id and name"), fault.Public("Each role must specify either 'id' or 'name'."),
-			)
+	foundMap := make(map[string]db.FindManyRolesByNamesWithPermsRow)
+	for _, role := range foundRoles {
+		foundMap[role.ID] = role
+		foundMap[role.Name] = role
+	}
+
+	for _, role := range req.Roles {
+		_, ok := foundMap[role]
+		if ok {
+			continue
 		}
 
-		// Validate role belongs to the same workspace
-		if role.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role belongs to different workspace"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role.Name)),
-			)
-		}
-
-		requestedRoles = append(requestedRoles, role)
+		return fault.New("role not found",
+			fault.Code(codes.Data.Role.NotFound.URN()),
+			fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
+		)
 	}
 
 	// 7. Determine which roles to add (only add roles that aren't already assigned)
@@ -170,32 +147,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		currentRoleIDs[role.ID] = true
 	}
 
-	rolesToAdd := make([]db.Role, 0)
-	for _, role := range requestedRoles {
+	rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
+	for _, role := range foundRoles {
 		if !currentRoleIDs[role.ID] {
 			rolesToAdd = append(rolesToAdd, role)
 		}
 	}
 
-	// 8. Apply changes in transaction (only if there are roles to add)
 	if len(rolesToAdd) > 0 {
 		err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			var auditLogs []auditlog.AuditLog
+			rolesToInsert := make([]db.InsertKeyRoleParams, 0)
 
-			// Add new roles
 			for _, role := range rolesToAdd {
-				err = db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
+				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
 					KeyID:       req.KeyId,
 					RoleID:      role.ID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					CreatedAtM:  time.Now().UnixMilli(),
 				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to add role assignment."),
-					)
-				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -209,14 +179,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							Type:        "key",
+							Type:        auditlog.KeyResourceType,
 							ID:          req.KeyId,
 							Name:        key.Name.String,
 							DisplayName: key.Name.String,
 							Meta:        map[string]any{},
 						},
 						{
-							Type:        "role",
+							Type:        auditlog.RoleResourceType,
 							ID:          role.ID,
 							Name:        role.Name,
 							DisplayName: role.Name,
@@ -226,12 +196,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 			}
 
-			// Insert audit logs
-			if len(auditLogs) > 0 {
-				err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-				if err != nil {
-					return err
-				}
+			err = db.BulkQuery.InsertKeyRoles(ctx, tx, rolesToInsert)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to assign roles."),
+				)
+			}
+
+			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+			if err != nil {
+				return err
 			}
 
 			return nil
@@ -243,38 +219,62 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.KeyCache.Remove(ctx, key.Hash)
 	}
 
-	// 9. Get final state of roles and build response
-	finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RW(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve final role state."),
-		)
+	responseData := make(openapi.V2KeysAddRolesResponseData, 0)
+	// Wrap row so we don't have to do the same logic twice.
+	for _, role := range rolesToAdd {
+		row := db.ListRolesByKeyIDRow{
+			ID:          role.ID,
+			WorkspaceID: role.WorkspaceID,
+			Name:        role.Name,
+			Description: role.Description,
+			CreatedAtM:  role.CreatedAtM,
+			UpdatedAtM:  role.UpdatedAtM,
+			Permissions: role.Permissions,
+		}
+
+		currentRoles = append(currentRoles, row)
 	}
 
-	// Sort roles alphabetically by name for consistent response
-	slices.SortFunc(finalRoles, func(a, b db.Role) int {
-		if a.Name < b.Name {
-			return -1
-		} else if a.Name > b.Name {
-			return 1
+	for _, role := range currentRoles {
+		r := openapi.Role{
+			Id:          role.ID,
+			Name:        role.Name,
+			Description: nil,
+			Permissions: nil,
 		}
-		return 0
-	})
 
-	// Build response data
-	responseData := make(openapi.V2KeysAddRolesResponseData, len(finalRoles))
-	for i, role := range finalRoles {
-		responseData[i] = struct {
-			Id   string `json:"id"`
-			Name string `json:"name"`
-		}{
-			Id:   role.ID,
-			Name: role.Name,
+		if role.Description.Valid {
+			r.Description = &role.Description.String
 		}
+
+		rolePermissions := make([]db.Permission, 0)
+		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+			_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
+		}
+
+		perms := make([]openapi.Permission, 0)
+		for _, permission := range rolePermissions {
+			perm := openapi.Permission{
+				Id:          permission.ID,
+				Name:        permission.Name,
+				Slug:        permission.Slug,
+				Description: nil,
+			}
+
+			if permission.Description.Valid {
+				perm.Description = &permission.Description.String
+			}
+
+			perms = append(perms, perm)
+		}
+
+		if len(perms) > 0 {
+			r.Permissions = ptr.P(perms)
+		}
+
+		responseData = append(responseData, r)
 	}
 
-	// 10. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

@@ -27,10 +27,6 @@ export const permissions = mysqlTable(
   },
   (table) => {
     return {
-      uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
-        table.workspaceId,
-        table.name,
-      ),
       uniqueSlugPerWorkspaceIdx: unique("unique_slug_per_workspace_idx").on(
         table.workspaceId,
         table.slug,

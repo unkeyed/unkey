@@ -36,21 +36,8 @@ func TestBadRequest(t *testing.T) {
 	}
 
 	t.Run("missing required fields", func(t *testing.T) {
-		t.Run("missing apiId", func(t *testing.T) {
-			req := handler.Request{
-				Key: "test_key",
-				// ApiId missing
-			}
-
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
-			require.Equal(t, 400, res.Status)
-			require.NotNil(t, res.Body)
-			require.NotNil(t, res.Body.Error)
-		})
-
 		t.Run("missing key", func(t *testing.T) {
 			req := handler.Request{
-				ApiId: api.ID,
 				// Key missing
 			}
 
@@ -69,8 +56,7 @@ func TestBadRequest(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{
 						Name:     "test",
@@ -94,8 +80,7 @@ func TestBadRequest(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: -1, // Invalid negative cost
 				},
@@ -144,7 +129,6 @@ func TestBadRequest(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				req := handler.Request{
-					ApiId:       api.ID,
 					Key:         key.Key,
 					Permissions: ptr.P(tc.permissions),
 				}
@@ -154,7 +138,7 @@ func TestBadRequest(t *testing.T) {
 				require.NotNil(t, res.Body)
 				require.NotNil(t, res.Body.Error)
 				require.Contains(t, res.Body.Error.Detail, tc.expectError)
-				require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/user/bad_request/permissions_query_syntax_error", res.Body.Error.Type)
+				require.Equal(t, "https://unkey.com/docs/errors/user/bad_request/permissions_query_syntax_error", res.Body.Error.Type)
 			})
 		}
 	})

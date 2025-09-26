@@ -1,0 +1,16 @@
+type: object
+properties:
+  permissionId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The unique identifier assigned to the newly created permission.
+      Use this ID to reference the permission in role assignments, key operations, and other API calls.
+      Always begins with 'perm_' followed by a unique alphanumeric sequence.
+      Store this ID if you need to manage or reference this permission in future operations.
+    example: perm_1234567890abcdef
+required:
+  - permissionId
+additionalProperties: false

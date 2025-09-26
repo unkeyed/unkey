@@ -1,0 +1,16 @@
+type: array
+description: |-
+  Complete list of all roles directly assigned to the key after the removal operation completes.
+
+  The response includes:
+  - The remaining roles still assigned to the key (after removing the specified roles)
+  - Both ID and name for each role for easy reference
+
+  Important notes:
+  - The response reflects the current state after the removal operation
+  - An empty array indicates the key now has no roles assigned
+  - This only shows direct role assignments
+  - Role permissions are not expanded in this response - use keys.getKey for full details
+  - Changes take effect immediately for new verifications but cached sessions may retain old permissions briefly
+items:
+  "$ref": "../../../../common/Role.yaml"

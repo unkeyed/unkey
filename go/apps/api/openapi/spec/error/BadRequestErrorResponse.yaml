@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BadRequestErrorDetails.yaml"
+description: Error response for invalid requests that cannot be processed due
+  to client-side errors. This typically occurs when request parameters are missing,
+  malformed, or fail validation rules. The response includes detailed information
+  about the specific errors in the request, including the location of each error
+  and suggestions for fixing it. When receiving this error, check the 'errors'
+  array in the response for specific validation issues that need to be addressed
+  before retrying.

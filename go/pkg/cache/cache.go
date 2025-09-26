@@ -162,10 +162,10 @@ func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 	return v, ok
 }
 
-func (c *cache[K, V]) Remove(ctx context.Context, key K) {
-
-	c.otter.Delete(key)
-
+func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
+	for _, key := range keys {
+		c.otter.Delete(key)
+	}
 }
 
 func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
@@ -253,20 +253,21 @@ func (c *cache[K, V]) SWR(
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) Op,
-) (V, error) {
-	start := c.clock.Now()
+) (V, CacheHit, error) {
 	now := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if ok {
 		// Cache Hit
 
 		if now.Before(e.Fresh) {
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", c.clock.Now().Sub(start))
-			return e.Value, nil
+			debug.RecordCacheHit(ctx, c.resource, "FRESH", c.clock.Now().Sub(now))
+
+			// We have data and it's fresh, so we return it
+			return e.Value, e.Hit, nil
 		}
 
 		if now.Before(e.Stale) {
-			debug.RecordCacheHit(ctx, c.resource, "STALE", c.clock.Now().Sub(start))
+			debug.RecordCacheHit(ctx, c.resource, "STALE", c.clock.Now().Sub(now))
 
 			c.revalidateC <- func() {
 				// If we don't uncancel the context, the revalidation will get canceled when
@@ -274,7 +275,7 @@ func (c *cache[K, V]) SWR(
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 
 			}
-			return e.Value, nil
+			return e.Value, e.Hit, nil
 		}
 
 		// We have old data, that we should not serve anymore
@@ -283,7 +284,7 @@ func (c *cache[K, V]) SWR(
 
 	// Cache Miss - measure total time including all overhead
 	v, err := refreshFromOrigin(ctx)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", c.clock.Now().Sub(start))
+	debug.RecordCacheHit(ctx, c.resource, "MISS", c.clock.Now().Sub(now))
 
 	switch op(err) {
 	case WriteValue:
@@ -294,5 +295,21 @@ func (c *cache[K, V]) SWR(
 		break
 	}
 
-	return v, err
+	if err != nil {
+		// Error occurred, return Miss as the cache hit status
+		return v, Miss, err
+	}
+
+	// Determine cache hit status based on the operation
+	var hit CacheHit
+	switch op(err) {
+	case WriteValue:
+		hit = Hit
+	case WriteNull:
+		hit = Null
+	default:
+		hit = Miss
+	}
+
+	return v, hit, err
 }

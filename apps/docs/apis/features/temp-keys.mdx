@@ -8,19 +8,19 @@ Temporary API Keys are API Keys that expire after a certain amount of time. They
 
 ## How to create a temporary API Key
 
-To create a temporary API Key, you need to make a `POST` request to the `/v1/keys` endpoint. You can read about all the parameters you can send in the [API Reference](/api-reference/keys/create).
+To create a temporary API Key, you need to make a `POST` request to the `/v2/keys.createKey` endpoint. You can read about all the parameters you can send in the [API Reference](/api-reference/keys/create).
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.createKey \
+  --url https://api.unkey.com/v2/keys.createKey \
   --header 'Authorization: Bearer <UNKEY>' \
   --header 'Content-Type: application/json' \
   --data '{
 	"apiId":"<API_ID>",
 	"prefix":"xyz",
 	"byteLength":16,
-	"ownerId":"USER_ID",
-	"expires": 1718718673000,
+	"externalId":"USER_ID",
+	"expires": 1718718673000
 }'
 ```
 

@@ -28,7 +28,7 @@ WORKDIR /src/go
 
 # Build assetmanagerd
 FROM build-base AS build-assetmanagerd
-WORKDIR /src/go/deploy/assetmanagerd
+WORKDIR /src/go/assetmanagerd
 RUN go build -o assetmanagerd ./cmd/assetmanagerd
 
 # Build billaged
@@ -65,7 +65,7 @@ RUN mkdir -p /opt/assetmanagerd/{cache,data} && \
 RUN chown -R billaged:billaged /opt/billaged /var/log/billaged
 
 # Copy built binaries from respective build stages
-COPY --from=build-assetmanagerd /src/go/deploy/assetmanagerd/assetmanagerd /usr/local/bin/
+COPY --from=build-assetmanagerd /src/go/assetmanagerd/assetmanagerd /usr/local/bin/
 COPY --from=build-billaged /src/go/deploy/billaged/billaged /usr/local/bin/
 COPY --from=build-builderd /src/go/deploy/builderd/builderd /usr/local/bin/
 COPY --from=build-metald /src/go/deploy/metald/metald /usr/local/bin/
@@ -78,51 +78,49 @@ RUN chmod +x /usr/local/bin/assetmanagerd* /usr/local/bin/billaged* /usr/local/b
 COPY deploy/docker/systemd/ /etc/systemd/system/
 
 # Create development environment file
-RUN cat > /etc/default/unkey-deploy << 'EOF'
-# Development environment variables for all services
-# TLS disabled for development
-UNKEY_ASSETMANAGERD_TLS_MODE=disabled
-UNKEY_BILLAGED_TLS_MODE=disabled
-UNKEY_BUILDERD_TLS_MODE=disabled
-UNKEY_METALD_TLS_MODE=disabled
-
-# Configure Docker backend for metald
-UNKEY_METALD_BACKEND=docker
-
-# Service endpoints (HTTP for development)
-UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081
-UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082
-UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083
-
-# Service configuration
-UNKEY_ASSETMANAGERD_PORT=8083
-UNKEY_ASSETMANAGERD_ADDRESS=0.0.0.0
-UNKEY_BILLAGED_PORT=8081
-UNKEY_BILLAGED_ADDRESS=0.0.0.0
-UNKEY_BUILDERD_PORT=8082
-UNKEY_BUILDERD_ADDRESS=0.0.0.0
-UNKEY_METALD_PORT=8080
-UNKEY_METALD_ADDRESS=0.0.0.0
-
-# Storage configuration
-UNKEY_ASSETMANAGERD_STORAGE_BACKEND=local
-UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/opt/builderd/rootfs
-UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db
-UNKEY_ASSETMANAGERD_CACHE_DIR=/opt/assetmanagerd/cache
-
-# Build configuration
-UNKEY_BUILDERD_SCRATCH_DIR=/opt/builderd/scratch
-UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs
-UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace
-UNKEY_BUILDERD_DATABASE_DATA_DIR=/opt/builderd/data
-
-# Disable observability for development
-UNKEY_ASSETMANAGERD_OTEL_ENABLED=false
-UNKEY_BILLAGED_OTEL_ENABLED=false
-UNKEY_BUILDERD_OTEL_ENABLED=false
-UNKEY_METALD_OTEL_ENABLED=false
-EOF
+RUN echo '# Development environment variables for all services' > /etc/default/unkey-deploy && \
+    echo '# TLS disabled for development' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_TLS_MODE=disabled' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BILLAGED_TLS_MODE=disabled' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_TLS_MODE=disabled' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_TLS_MODE=disabled' >> /etc/default/unkey-deploy && \
+    echo '' >> /etc/default/unkey-deploy && \
+    echo '# Configure Docker backend for metald' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_BACKEND=docker' >> /etc/default/unkey-deploy && \
+    echo '' >> /etc/default/unkey-deploy && \
+    echo '# Service endpoints (HTTP for development)' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_BILLING_ENDPOINT=http://localhost:8081' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_ASSETMANAGER_ENDPOINT=http://localhost:8083' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_BUILDERD_ENDPOINT=http://localhost:8082' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_ASSETMANAGER_ENDPOINT=http://localhost:8083' >> /etc/default/unkey-deploy && \
+    echo '' >> /etc/default/unkey-deploy && \
+    echo '# Service configuration' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_PORT=8083' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_ADDRESS=0.0.0.0' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BILLAGED_PORT=8081' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BILLAGED_ADDRESS=0.0.0.0' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_PORT=8082' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_ADDRESS=0.0.0.0' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_PORT=8080' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_ADDRESS=0.0.0.0' >> /etc/default/unkey-deploy && \
+    echo '' >> /etc/default/unkey-deploy && \
+    echo '# Storage configuration' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_STORAGE_BACKEND=local' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_LOCAL_STORAGE_PATH=/opt/builderd/rootfs' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_DATABASE_PATH=/opt/assetmanagerd/assets.db' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_CACHE_DIR=/opt/assetmanagerd/cache' >> /etc/default/unkey-deploy && \
+    echo '' >> /etc/default/unkey-deploy && \
+    echo '# Build configuration' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_SCRATCH_DIR=/opt/builderd/scratch' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_ROOTFS_OUTPUT_DIR=/opt/builderd/rootfs' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_WORKSPACE_DIR=/opt/builderd/workspace' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_DATABASE_DATA_DIR=/opt/builderd/data' >> /etc/default/unkey-deploy && \
+    echo '' >> /etc/default/unkey-deploy && \
+    echo '# Disable observability for development' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_ASSETMANAGERD_OTEL_ENABLED=false' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BILLAGED_OTEL_ENABLED=false' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_BUILDERD_OTEL_ENABLED=false' >> /etc/default/unkey-deploy && \
+    echo 'UNKEY_METALD_OTEL_ENABLED=false' >> /etc/default/unkey-deploy
 
 # Enable services (following LOCAL_DEPLOYMENT_GUIDE.md order)
 RUN systemctl enable assetmanagerd.service && \
@@ -131,63 +129,61 @@ RUN systemctl enable assetmanagerd.service && \
     systemctl enable metald.service
 
 # Create entrypoint script
-RUN cat > /entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Source environment variables
-source /etc/default/unkey-deploy
-
-# Check Docker socket access
-if [ -S /var/run/docker.sock ]; then
-    echo "Docker socket found, testing access..."
-    if timeout 10 docker version > /dev/null 2>&1; then
-        echo "Docker access confirmed"
-    else
-        echo "Warning: Docker socket exists but not accessible"
-    fi
-else
-    echo "Warning: Docker socket not found at /var/run/docker.sock"
-fi
-
-# Start services directly (systemd is problematic in containers)
-echo "Starting services directly..."
-
-# Start services directly in background with proper ordering
-echo "Starting assetmanagerd..."
-/usr/local/bin/assetmanagerd &
-ASSETMANAGERD_PID=$!
-
-echo "Starting billaged..."  
-/usr/local/bin/billaged &
-BILLAGED_PID=$!
-
-echo "Starting builderd..."
-/usr/local/bin/builderd &
-BUILDERD_PID=$!
-
-# Wait a moment for dependencies to start
-sleep 5
-
-echo "Starting metald..."
-/usr/local/bin/metald &
-METALD_PID=$!
-
-echo "All services started. PIDs: assetmanagerd=$ASSETMANAGERD_PID billaged=$BILLAGED_PID builderd=$BUILDERD_PID metald=$METALD_PID"
-
-# Function to handle shutdown
-shutdown_services() {
-    echo "Shutting down services..."
-    kill $METALD_PID $BUILDERD_PID $BILLAGED_PID $ASSETMANAGERD_PID 2>/dev/null || true
-    wait
-}
-
-# Set up signal handler
-trap shutdown_services SIGTERM SIGINT
-
-# Wait for all background processes
-wait
-EOF
+RUN echo '#!/bin/bash' > /entrypoint.sh && \
+    echo 'set -e' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Source environment variables' >> /entrypoint.sh && \
+    echo 'source /etc/default/unkey-deploy' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Check Docker socket access' >> /entrypoint.sh && \
+    echo 'if [ -S /var/run/docker.sock ]; then' >> /entrypoint.sh && \
+    echo '    echo "Docker socket found, testing access..."' >> /entrypoint.sh && \
+    echo '    if timeout 10 docker version > /dev/null 2>&1; then' >> /entrypoint.sh && \
+    echo '        echo "Docker access confirmed"' >> /entrypoint.sh && \
+    echo '    else' >> /entrypoint.sh && \
+    echo '        echo "Warning: Docker socket exists but not accessible"' >> /entrypoint.sh && \
+    echo '    fi' >> /entrypoint.sh && \
+    echo 'else' >> /entrypoint.sh && \
+    echo '    echo "Warning: Docker socket not found at /var/run/docker.sock"' >> /entrypoint.sh && \
+    echo 'fi' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Start services directly (systemd is problematic in containers)' >> /entrypoint.sh && \
+    echo 'echo "Starting services directly..."' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Start services directly in background with proper ordering' >> /entrypoint.sh && \
+    echo 'echo "Starting assetmanagerd..."' >> /entrypoint.sh && \
+    echo '/usr/local/bin/assetmanagerd &' >> /entrypoint.sh && \
+    echo 'ASSETMANAGERD_PID=$!' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo 'echo "Starting billaged..."' >> /entrypoint.sh && \
+    echo '/usr/local/bin/billaged &' >> /entrypoint.sh && \
+    echo 'BILLAGED_PID=$!' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo 'echo "Starting builderd..."' >> /entrypoint.sh && \
+    echo '/usr/local/bin/builderd &' >> /entrypoint.sh && \
+    echo 'BUILDERD_PID=$!' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Wait a moment for dependencies to start' >> /entrypoint.sh && \
+    echo 'sleep 5' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo 'echo "Starting metald..."' >> /entrypoint.sh && \
+    echo '/usr/local/bin/metald &' >> /entrypoint.sh && \
+    echo 'METALD_PID=$!' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo 'echo "All services started. PIDs: assetmanagerd=$ASSETMANAGERD_PID billaged=$BILLAGED_PID builderd=$BUILDERD_PID metald=$METALD_PID"' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Function to handle shutdown' >> /entrypoint.sh && \
+    echo 'shutdown_services() {' >> /entrypoint.sh && \
+    echo '    echo "Shutting down services..."' >> /entrypoint.sh && \
+    echo '    kill $METALD_PID $BUILDERD_PID $BILLAGED_PID $ASSETMANAGERD_PID 2>/dev/null || true' >> /entrypoint.sh && \
+    echo '    wait' >> /entrypoint.sh && \
+    echo '}' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Set up signal handler' >> /entrypoint.sh && \
+    echo 'trap shutdown_services SIGTERM SIGINT' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Wait for all background processes' >> /entrypoint.sh && \
+    echo 'wait' >> /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 

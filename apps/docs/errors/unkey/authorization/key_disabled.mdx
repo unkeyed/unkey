@@ -1,0 +1,78 @@
+---
+title: "key_disabled"
+description: "The authentication key is disabled"
+---
+
+<Danger>`err:unkey:authorization:key_disabled`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The API key used for authentication has been disabled",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/key_disabled"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you try to use a disabled Unkey API key (one that starts with `unkey_`) to authenticate with the Unkey API. The key exists in the system but has been disabled and can no longer be used for authentication.
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Request to Unkey API with a disabled key
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_DISABLED_KEY"
+```
+
+API keys can be disabled for various reasons:
+- Administrative action to revoke access
+- Security concerns or suspected compromise
+- Temporary deactivation during maintenance or investigation
+- Automated disabling due to suspicious activity
+- Usage policy violations
+
+## How To Fix
+
+If you encounter this error when using the Unkey API, you have two options:
+
+1. **Get a new Unkey root key**: If your key was permanently disabled, create a new API key with the appropriate permissions in the [Unkey dashboard](https://app.unkey.com/settings/root-keys)
+
+2. **Re-enable your existing key**: If you have administrative access and the key was temporarily disabled, you can re-enable it through the dashboard
+
+To re-enable your Unkey root key:
+
+1. Log in to your Unkey dashboard
+2. Navigate to the API keys section
+3. Search for the key you want to re-enable
+4. Click "Enable"
+
+Then update your API calls to use the re-enabled key:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.listKeys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_REACTIVATED_KEY"
+```
+
+## Common Mistakes
+
+- **Using old or archived root keys**: Keys from previous projects or configurations may have been disabled
+- **Shared root keys**: When keys are shared among team members, they may be disabled by another administrator
+- **Security triggers**: Unusual usage patterns may automatically disable keys as a security precaution
+- **Environment confusion**: Using disabled staging/development keys in production environments
+- **Account status changes**: Keys may be disabled due to billing or account status changes
+- **Rotation policies**: Keys that should have been rotated according to security policies
+
+## Related Errors
+- [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks sufficient permissions
+- [err:unkey:authorization:workspace_disabled](./workspace_disabled) - When the associated workspace is disabled
+- [err:unkey:authentication:key_not_found](../authentication/key_not_found) - When the provided API key doesn't exist at all

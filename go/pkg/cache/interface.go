@@ -15,10 +15,11 @@ type Cache[K comparable, V any] interface {
 	// Sets the given key to null, indicating that the value does not exist in the origin.
 	SetNull(ctx context.Context, key K)
 
-	// Removes the key from the cache.
-	Remove(ctx context.Context, key K)
+	// Remove removes one or more keys from the cache.
+	// Multiple keys can be provided for efficient bulk removal.
+	Remove(ctx context.Context, keys ...K)
 
-	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, err error)
+	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, hit CacheHit, err error)
 
 	// Dump returns a serialized representation of the cache.
 	Dump(ctx context.Context) ([]byte, error)

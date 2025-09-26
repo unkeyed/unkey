@@ -1,0 +1,68 @@
+[Unit]
+Description=Metald VM Management Service
+Documentation=https://github.com/unkeyed/unkey/go/deploy/metald
+After=network.target spire-agent.service assetmanagerd.service
+Wants=network.target
+Requires=spire-agent.service assetmanagerd.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStartPre=/usr/bin/mkdir -p /opt/metald/sockets
+ExecStartPre=/usr/bin/mkdir -p /opt/metald/logs
+ExecStartPre=/usr/bin/mkdir -p /opt/metald/assets
+ExecStartPre=/usr/bin/mkdir -p /srv/jailer
+ExecStartPre=/usr/bin/mkdir -p /var/log/metald
+ExecStartPre=/usr/bin/mkdir -p /opt/vm-assets
+ExecStart=/usr/local/bin/metald
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=metald
+
+# Core service configuration
+Environment=UNKEY_METALD_BACKEND=firecracker
+Environment=UNKEY_METALD_OTEL_ENABLED=true
+Environment=UNKEY_METALD_PORT=8080
+Environment=UNKEY_METALD_ADDRESS=0.0.0.0
+Environment=UNKEY_METALD_OTEL_SERVICE_NAME=metald
+Environment=UNKEY_METALD_OTEL_ENDPOINT=localhost:4318
+Environment=UNKEY_METALD_OTEL_PROMETHEUS_PORT=9464
+
+# Process Manager Configuration
+Environment=UNKEY_METALD_SOCKET_DIR=/opt/metald/sockets
+Environment=UNKEY_METALD_LOG_DIR=/opt/metald/logs
+Environment=UNKEY_METALD_MAX_PROCESSES=1000
+
+# Billing Configuration
+Environment=UNKEY_METALD_BILLING_ENABLED=true
+Environment=UNKEY_METALD_BILLING_ENDPOINT=https://localhost:8081
+Environment=UNKEY_METALD_BILLING_MOCK_MODE=false
+
+# AssetManager Configuration
+Environment=UNKEY_METALD_ASSETMANAGER_ENABLED=true
+Environment=UNKEY_METALD_ASSETMANAGER_ENDPOINT=https://localhost:8083
+Environment=UNKEY_METALD_ASSETMANAGER_CACHE_DIR=/opt/metald/assets
+
+# Jailer configuration (Integrated)
+# AIDEV-BUSINESS_RULE: Integrated jailer provides better control and security
+Environment=UNKEY_METALD_JAILER_UID=977
+Environment=UNKEY_METALD_JAILER_GID=976
+Environment=UNKEY_METALD_JAILER_CHROOT_DIR=/srv/jailer
+
+# TLS/SPIFFE configuration (REQUIRED)
+# AIDEV-BUSINESS_RULE: mTLS is required for secure inter-service communication
+Environment=UNKEY_METALD_TLS_MODE=spiffe
+Environment=UNKEY_METALD_SPIFFE_SOCKET=/var/lib/spire/agent/agent.sock
+
+# Network bridge configuration
+# AIDEV-BUSINESS_RULE: Metald reads bridge count from environment to know available bridges
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

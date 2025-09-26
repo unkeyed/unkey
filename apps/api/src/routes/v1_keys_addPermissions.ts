@@ -9,8 +9,12 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["keys"],
   operationId: "addPermissions",
+  summary: "Add key permissions",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/keys.addPermissions",
   security: [{ bearerAuth: [] }],
@@ -95,7 +99,7 @@ export const registerV1KeysAddPermissions = (app: App) =>
     const { db, rbac, cache } = c.get("services");
 
     const requestedIds = req.permissions.filter((p) => "id" in p).map((p) => p.id!);
-    const requestedNames = req.permissions.filter((p) => "name" in p).map((p) => p.name!);
+    const requestedSlugs = req.permissions.filter((p) => "name" in p).map((p) => p.name!);
 
     const [key, existingPermissions, connectedPermissions] = await Promise.all([
       db.primary.query.keys.findFirst({
@@ -112,7 +116,7 @@ export const registerV1KeysAddPermissions = (app: App) =>
             eq(table.workspaceId, auth.authorizedWorkspaceId),
             or(
               requestedIds.length > 0 ? inArray(table.id, requestedIds) : undefined,
-              requestedNames.length > 0 ? inArray(table.name, requestedNames) : undefined,
+              requestedSlugs.length > 0 ? inArray(table.slug, requestedSlugs) : undefined,
             ),
           ),
       }),
@@ -126,7 +130,7 @@ export const registerV1KeysAddPermissions = (app: App) =>
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
     }
 
-    const missingPermissionNames: string[] = [];
+    const missingPermissionSlugs: string[] = [];
     for (const permission of req.permissions) {
       if ("id" in permission && !existingPermissions.some((ep) => ep.id === permission.id)) {
         throw new UnkeyApiError({
@@ -134,22 +138,22 @@ export const registerV1KeysAddPermissions = (app: App) =>
           message: `permission ${permission.id} not found`,
         });
       }
-      if ("name" in permission && !existingPermissions.some((ep) => ep.name === permission.name)) {
+      if ("name" in permission && !existingPermissions.some((ep) => ep.slug === permission.name)) {
         if (!permission.create) {
           throw new UnkeyApiError({
             code: "NOT_FOUND",
             message: `permission ${permission.name} not found`,
           });
         }
-        missingPermissionNames.push(permission.name!);
+        missingPermissionSlugs.push(permission.name!);
       }
     }
 
-    const createPermissions = missingPermissionNames.map((name) => ({
+    const createPermissions = missingPermissionSlugs.map((slug) => ({
       id: newId("permission"),
       workspaceId: auth.authorizedWorkspaceId,
-      name,
-      slug: name,
+      name: slug,
+      slug,
     }));
     if (createPermissions.length > 0) {
       const rbacResp = rbac.evaluatePermissions(
@@ -172,8 +176,8 @@ export const registerV1KeysAddPermissions = (app: App) =>
       await db.primary.insert(schema.permissions).values(createPermissions);
     }
     const allPermissions = [
-      ...existingPermissions.map((p) => ({ id: p.id, name: p.name })),
-      ...createPermissions.map((p) => ({ id: p.id, name: p.name })),
+      ...existingPermissions.map((p) => ({ id: p.id, slug: p.name })),
+      ...createPermissions.map((p) => ({ id: p.id, slug: p.name })),
     ];
 
     const addPermissions = allPermissions.filter(
@@ -259,5 +263,5 @@ export const registerV1KeysAddPermissions = (app: App) =>
       })),
     ]);
 
-    return c.json(allPermissions.map((p) => ({ id: p.id, name: p.name })));
+    return c.json(allPermissions.map((p) => ({ id: p.id, name: p.slug })));
   });

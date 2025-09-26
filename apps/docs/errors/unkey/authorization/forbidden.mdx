@@ -1,0 +1,75 @@
+---
+title: "forbidden"
+description: "The operation is not allowed"
+---
+
+<Danger>`err:unkey:authorization:forbidden`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "This operation is not allowed",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/forbidden"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you attempt an operation that is prohibited by Unkey's platform policies, even if your API key has high-level permissions. Unlike the "insufficient_permissions" error which relates to permission roles, this error indicates that the operation itself is not allowed regardless of permissions.
+
+Common scenarios that trigger this error:
+- Trying to perform operations on protected or system resources
+- Attempting to modify resources that are in a state that doesn't allow modifications
+- Trying to exceed account limits or quotas
+- Performing operations that violate platform policies
+
+Here's an example of a request that might trigger this error:
+
+```bash
+# Attempting to delete a protected system resource
+curl -X POST https://api.unkey.com/v2/apis.deleteApi \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_ADMIN_KEY" \
+  -d '{
+    "apiId": "api_system_protected"
+  }'
+```
+
+## How To Fix
+
+This error indicates a fundamental restriction rather than a permission issue. The operation you're trying to perform may be:
+
+1. **Not supported by the Unkey platform**: Some operations are simply not available
+2. **Blocked due to your account's current state or limitations**: Your account may not have access to certain features
+3. **Prevented by safety mechanisms**: System protections may prevent certain destructive operations
+
+Possible solutions include:
+
+- **Check Unkey's documentation**: Understand which operations have fundamental restrictions
+- **Consider your account state**: Some operations may be blocked due to your account state or plan
+- **Use alternative approaches**: Find supported ways to accomplish similar goals
+- **If you're trying to modify a resource in a specific state**, check if it needs to be in a different state first
+- **If you're hitting account limits**, consider upgrading your plan
+- **Contact Unkey support** if you believe this restriction shouldn't apply to your use case
+
+## Common Mistakes
+
+- **Attempting to modify system resources**: Some Unkey resources are protected and cannot be modified
+- **Order-dependent operations**: Trying to perform operations out of their required sequence
+- **Plan limitations**: Attempting operations not available on your current plan
+- **Resource state issues**: Trying to modify resources that are in a state that doesn't allow changes
+- **Ignoring documentation warnings**: Not reading warnings about restricted operations
+- **Testing security boundaries**: Deliberately trying to access protected resources
+- **Outdated documentation**: Following outdated documentation that suggests now-forbidden operations
+
+## Related Errors
+- [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks specific permissions
+- [err:unkey:authorization:key_disabled](./key_disabled) - When the authentication key is disabled
+- [err:unkey:authorization:workspace_disabled](./workspace_disabled) - When the associated workspace is disabled

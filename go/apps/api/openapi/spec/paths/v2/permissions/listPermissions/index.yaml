@@ -1,0 +1,53 @@
+post:
+  tags:
+    - permissions
+  summary: List permissions
+  description: |
+    Retrieve all permissions in your workspace. 
+    Results are paginated and sorted by their id.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.read_permission`
+  operationId: listPermissions
+  x-speakeasy-name-override: ListPermissions
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsListPermissionsRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsListPermissionsResponseBody.yaml"
+      description: Permissions retrieved successfully
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

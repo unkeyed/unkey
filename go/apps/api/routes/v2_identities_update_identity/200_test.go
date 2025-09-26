@@ -107,8 +107,8 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: otherExternalID,
-			Meta:       &newMeta,
+			Identity: otherExternalID,
+			Meta:     &newMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -124,8 +124,7 @@ func TestSuccess(t *testing.T) {
 		assert.Equal(t, true, meta["active"])
 
 		// Verify no ratelimits
-		require.NotNil(t, res.Body.Data.Ratelimits)
-		assert.Empty(t, *res.Body.Data.Ratelimits)
+		require.Nil(t, res.Body.Data.Ratelimits)
 	})
 
 	t.Run("update ratelimits - add new, update existing, delete one", func(t *testing.T) {
@@ -149,7 +148,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Ratelimits: &ratelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -196,7 +195,7 @@ func TestSuccess(t *testing.T) {
 		emptyRatelimits := []openapi.RatelimitRequest{}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Ratelimits: &emptyRatelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -207,8 +206,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify no ratelimits
-		require.NotNil(t, res.Body.Data.Ratelimits)
-		assert.Empty(t, *res.Body.Data.Ratelimits)
+		require.Nil(t, res.Body.Data.Ratelimits)
 	})
 
 	t.Run("clear metadata", func(t *testing.T) {
@@ -216,8 +214,8 @@ func TestSuccess(t *testing.T) {
 		emptyMeta := map[string]interface{}{}
 
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &emptyMeta,
+			Identity: externalID,
+			Meta:     &emptyMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -247,7 +245,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity:   externalID,
 			Meta:       &newMeta,
 			Ratelimits: &ratelimits,
 		}

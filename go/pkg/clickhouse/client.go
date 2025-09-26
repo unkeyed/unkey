@@ -22,6 +22,7 @@ type clickhouse struct {
 
 	// Batched processors for different event types
 	requests         *batch.BatchProcessor[schema.ApiRequestV1]
+	apiRequests      *batch.BatchProcessor[schema.ApiRequestV2]
 	keyVerifications *batch.BatchProcessor[schema.KeyVerificationRequestV1]
 	ratelimits       *batch.BatchProcessor[schema.RatelimitRequestV1]
 }
@@ -57,7 +58,6 @@ type Config struct {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
 //	}
 func New(config Config) (*clickhouse, error) {
-
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("parsing clickhouse DSN failed"))
@@ -97,12 +97,12 @@ func New(config Config) (*clickhouse, error) {
 		logger: config.Logger,
 
 		requests: batch.New(batch.Config[schema.ApiRequestV1]{
-			Name:          "api requests",
+			Name:          "requests",
 			Drop:          true,
-			BatchSize:     1000,
-			BufferSize:    100000,
-			FlushInterval: time.Second,
-			Consumers:     4,
+			BatchSize:     50_000,
+			BufferSize:    200_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
 			Flush: func(ctx context.Context, rows []schema.ApiRequestV1) {
 				table := "metrics.raw_api_requests_v1"
 				err := flush(ctx, conn, table, rows)
@@ -114,14 +114,32 @@ func New(config Config) (*clickhouse, error) {
 				}
 			},
 		}),
+		apiRequests: batch.New(batch.Config[schema.ApiRequestV2]{
+			Name:          "api_requests",
+			Drop:          true,
+			BatchSize:     50_000,
+			BufferSize:    200_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
+			Flush: func(ctx context.Context, rows []schema.ApiRequestV2) {
+				table := "default.api_requests_raw_v2"
+				err := flush(ctx, conn, table, rows)
+				if err != nil {
+					config.Logger.Error("failed to flush batch",
+						"table", table,
+						"err", err.Error(),
+					)
+				}
+			},
+		}),
 		keyVerifications: batch.New[schema.KeyVerificationRequestV1](
 			batch.Config[schema.KeyVerificationRequestV1]{
-				Name:          "key verifications",
+				Name:          "key_verifications",
 				Drop:          true,
-				BatchSize:     1000,
-				BufferSize:    100000,
-				FlushInterval: time.Second,
-				Consumers:     4,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
+				FlushInterval: 5 * time.Second,
+				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
 					table := "verifications.raw_key_verifications_v1"
 					err := flush(ctx, conn, table, rows)
@@ -135,12 +153,12 @@ func New(config Config) (*clickhouse, error) {
 			}),
 		ratelimits: batch.New[schema.RatelimitRequestV1](
 			batch.Config[schema.RatelimitRequestV1]{
-				Name:          "rate limits",
+				Name:          "ratelimits",
 				Drop:          true,
-				BatchSize:     1000,
-				BufferSize:    100000,
-				FlushInterval: time.Second,
-				Consumers:     8,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
+				FlushInterval: 5 * time.Second,
+				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.RatelimitRequestV1) {
 					table := "ratelimits.raw_ratelimits_v1"
 					err := flush(ctx, conn, table, rows)
@@ -154,10 +172,6 @@ func New(config Config) (*clickhouse, error) {
 			}),
 	}
 
-	// err = c.conn.Ping(context.Background())
-	// if err != nil {
-	// 	return nil, fault.Wrap(err, fault.With("pinging clickhouse failed"))
-	// }
 	return c, nil
 }
 
@@ -183,6 +197,29 @@ func (c *clickhouse) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// BufferRequest adds an API request event to the buffer for batch processing.
+// The event will be flushed to ClickHouse automatically based on the configured
+// batch size and flush interval.
+//
+// This method is non-blocking if the buffer has available capacity. If the buffer
+// is full and the Drop option is enabled (which is the default), the event will
+// be silently dropped.
+//
+// Example:
+//
+//	ch.BufferRequest(schema.ApiRequestV1{
+//	    RequestID:      requestID,
+//	    Time:           time.Now().UnixMilli(),
+//	    WorkspaceID:    workspaceID,
+//	    Host:           r.Host,
+//	    Method:         r.Method,
+//	    Path:           r.URL.Path,
+//	    ResponseStatus: status,
+//	})
+func (c *clickhouse) BufferRequest(req schema.ApiRequestV1) {
+	c.requests.Buffer(req)
+}
+
 // BufferApiRequest adds an API request event to the buffer for batch processing.
 // The event will be flushed to ClickHouse automatically based on the configured
 // batch size and flush interval.
@@ -193,7 +230,7 @@ func (c *clickhouse) Shutdown(ctx context.Context) error {
 //
 // Example:
 //
-//	ch.BufferApiRequest(schema.ApiRequestV1{
+//	ch.BufferApiRequest(schema.ApiRequestV2{
 //	    RequestID:      requestID,
 //	    Time:           time.Now().UnixMilli(),
 //	    WorkspaceID:    workspaceID,
@@ -202,8 +239,8 @@ func (c *clickhouse) Shutdown(ctx context.Context) error {
 //	    Path:           r.URL.Path,
 //	    ResponseStatus: status,
 //	})
-func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
-	c.requests.Buffer(req)
+func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV2) {
+	c.apiRequests.Buffer(req)
 }
 
 // BufferKeyVerification adds a key verification event to the buffer for batch processing.

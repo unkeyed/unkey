@@ -1,0 +1,758 @@
+---
+title: "/v1/ratelimits.*"
+description: "Migrate rate limiting and override management endpoints from v1 to v2"
+---
+
+This guide covers rate limiting functionality including namespace creation, override management, and rate limit checking.
+
+## Overview
+
+Rate limiting endpoints manage request limits, overrides, and namespace-based rate limiting across your API infrastructure.
+
+### Key Changes in v2:
+
+- **Response format**: `result` → `{meta, data}` wrapper
+- **Rate limit structure**: Single `ratelimit` object → `ratelimits` array with named limits
+- **Override management**: Enhanced override response format with additional metadata
+- **Async handling**: Removed `async` parameter
+- **Auto apply**: Added `autoApply` parameter to apply ratelimits to key verifications automatically
+- **Resources**: Removed `resources` array
+- **Metadata**: Removed `meta` object from request body
+
+### Migration Impact:
+
+- **Existing in v1**: Full rate limiting and override management functionality
+- **Enhanced in v2**: Improved response format, better override metadata, and new listing capabilities
+- **Maintained in v2**: All core rate limiting functionality with backward-compatible request formats
+
+---
+
+## Rate Limit Checking
+
+### POST /v1/ratelimits.limit → POST /v2/ratelimits.limit
+
+**Key Changes:**
+
+- Response format: Direct response → `{meta, data}` envelope
+- Enhanced response with additional metadata
+- Better override handling
+
+<Tabs>
+<Tab title="Request Structure Changes">
+```json title="Rate Limit Request" icon="bolt"
+{
+  "namespace": "email_sending",
+  "identifier": "user_123",
+  "limit": 100,
+  "duration": 3600000,
+  "cost": 1,
+  "async": false,  // [!code --]
+  "meta": {},  // [!code --]
+  "resources": [  // [!code --]
+    {  // [!code --]
+      "type": "project",  // [!code --]
+      "id": "p_123", // [!code --]
+      "name": "unkey"  // [!code --]
+    }  // [!code --]
+  ]  // [!code --]
+}
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="Rate Limit Response Diff" icon="database" expandable
+// v1 Response (direct response)
+{
+  "success": true, // [!code --]
+  "limit": 100, // [!code --]
+  "remaining": 99, // [!code --]
+  "reset": 1672531200000 // [!code --]
+}
+
+// v2 Response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_ratelimit123" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "success": true, // [!code ++]
+    "limit": 100, // [!code ++]
+    "remaining": 99, // [!code ++]
+    "reset": 1672531200000, // [!code ++]
+    "overrideId": "rlor_123" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="v1 cURL" icon="terminal"
+curl -X POST https://api.unkey.dev/v1/ratelimits.limit \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "email_sending",
+    "identifier": "user_123",
+    "limit": 100,
+    "duration": 3600000,
+    "cost": 1
+  }'
+```
+
+```bash title="v2 cURL" icon="terminal"
+curl -X POST https://api.unkey.com/v2/ratelimits.limit \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "email_sending",
+    "identifier": "user_123",
+    "limit": 100,
+    "duration": 3600000,
+    "cost": 1
+  }'
+```
+</Tab>
+</Tabs>
+
+---
+
+## Rate Limit Overrides
+
+### POST /v1/ratelimits.setOverride → POST /v2/ratelimits.setOverride
+
+**Key Changes:**
+- Response format: Direct response → `{meta, data}` envelope
+- Enhanced override targeting options
+- Better validation and error handling
+
+<Tabs>
+<Tab title="Request Structure">
+```json title="Set Override Request" icon="settings" expandable
+{
+  "namespace": "api_requests",
+  "identifier": "premium_user_456",
+  "limit": 10000,
+  "duration": 3600000,
+  "async": false
+}
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="Set Override Response Diff" icon="check-circle" expandable
+// v1 Response (direct response)
+{
+  "overrideId": "rlor_123" // [!code --]
+}
+
+// v2 Response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_setoverride456" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "overrideId": "rlor_123" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="v1 cURL" icon="terminal"
+curl -X POST https://api.unkey.dev/v1/ratelimits.setOverride \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api_requests",
+    "identifier": "premium_user_456",
+    "limit": 10000,
+    "duration": 3600000
+  }'
+```
+
+```bash title="v2 cURL" icon="terminal"
+curl -X POST https://api.unkey.com/v2/ratelimits.setOverride \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api_requests",
+    "identifier": "premium_user_456",
+    "limit": 10000,
+    "duration": 3600000
+  }'
+```
+</Tab>
+</Tabs>
+
+---
+
+### GET /v1/ratelimits.getOverride → POST /v2/ratelimits.getOverride
+
+**Key Changes:**
+- HTTP method: GET → POST
+- Request format: Query parameters → Request body
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Request & Response">
+```json title="Get Override Request" icon="search"
+{
+  "namespace": "api_requests",
+  "identifier": "premium_user_456"
+}
+```
+
+```json title="Get Override Response Diff" icon="database" expandable
+// v1 Response (direct response)
+{
+  "id": "over_123", // [!code --]
+  "identifier": "premium_user_456", // [!code --]
+  "limit": 10000, // [!code --]
+  "duration": 3600000, // [!code --]
+  "async": false // [!code --]
+}
+
+// v2 Response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_getoverride789" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "overrideId": "override_abc123", // [!code ++]
+    "identifier": "premium_user_456", // [!code ++]
+    "limit": 10000, // [!code ++]
+    "duration": 3600000 // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="v1 cURL" icon="terminal"
+curl -X GET "https://api.unkey.dev/v1/ratelimits.getOverride?identifier=premium_user_456&namespaceName=api_requests" \
+  -H "Authorization: Bearer <your-root-key>"
+```
+
+```bash title="v2 cURL" icon="terminal"
+curl -X POST https://api.unkey.com/v2/ratelimits.getOverride \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api_requests",
+    "identifier": "premium_user_456"
+  }'
+```
+</Tab>
+</Tabs>
+
+---
+
+### GET /v1/ratelimits.listOverrides → POST /v2/ratelimits.listOverrides
+
+**Purpose:** Get paginated list of all overrides in a namespace.
+
+**Key Changes:**
+- HTTP method: GET → POST
+- Request format: Query parameters → Request body
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Request Structure" icon="code">
+```json title="List Overrides Request" icon="list"
+{
+  "namespace": "api_requests",
+  "limit": 100,
+  "cursor": "optional_cursor"
+}
+```
+</Tab>
+<Tab title="Response Example" icon="database">
+```json title="List Overrides Response Diff" icon="database" expandable
+// v1 Response (direct response)
+{
+  "overrides": [ // [!code --]
+    { // [!code --]
+      "id": "override_abc123", // [!code --]
+      "identifier": "premium_user_456", // [!code --]
+      "limit": 10000, // [!code --]
+      "duration": 3600000, // [!code --]
+      "async": false // [!code --]
+    } // [!code --]
+  ], // [!code --]
+  "cursor": "next_page_cursor_here", // [!code --]
+  "total": 42 // [!code --]
+}
+
+// v2 Response (envelope format)
+{
+  "meta": { // [!code ++]
+    "requestId": "req_listoverrides123" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "overrides": [ // [!code ++]
+      { // [!code ++]
+        "overrideId": "override_abc123", // [!code ++]
+        "identifier": "premium_user_456", // [!code ++]
+        "limit": 10000, // [!code ++]
+        "duration": 3600000, // [!code ++]
+      } // [!code ++]
+    ], // [!code ++]
+    "cursor": "next_page_cursor_here" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples" icon="terminal">
+```bash title="v1 cURL" icon="terminal"
+curl -X GET "https://api.unkey.dev/v1/ratelimits.listOverrides?namespaceName=api_requests&limit=100" \
+  -H "Authorization: Bearer <your-root-key>"
+```
+
+```bash title="v2 cURL" icon="terminal"
+curl -X POST https://api.unkey.com/v2/ratelimits.listOverrides \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api_requests",
+    "limit": 100,
+    "cursor": "optional_cursor"
+  }'
+```
+</Tab>
+</Tabs>
+
+---
+
+### POST /v1/ratelimits.deleteOverride → POST /v2/ratelimits.deleteOverride
+
+**Key Changes:**
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Request & Response">
+```json title="Delete Override Request" icon="trash"
+{
+  "namespace": "api_requests",
+  "identifier": "premium_user_456"
+}
+```
+
+```json title="Delete Override Response Diff" icon="check-circle"
+// v1 Response (direct empty response)
+{} // [!code --]
+
+// v2 Response
+{
+  "meta": { // [!code ++]
+    "requestId": "req_deleteoverride999" // [!code ++]
+  }, // [!code ++]
+  "data": {} // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="v1 cURL" icon="terminal"
+curl -X POST https://api.unkey.dev/v1/ratelimits.deleteOverride \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api_requests",
+    "identifier": "premium_user_456"
+  }'
+```
+
+```bash title="v2 cURL" icon="terminal"
+curl -X POST https://api.unkey.com/v2/ratelimits.deleteOverride \
+  -H "Authorization: Bearer <your-root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api_requests",
+    "identifier": "premium_user_456"
+  }'
+```
+</Tab>
+</Tabs>
+
+---
+
+## Key-Level Rate Limiting Changes
+
+### v1 Single Rate Limit → v2 Multiple Named Rate Limits
+
+<Tabs>
+<Tab title="Key Creation Changes">
+```json title="Key Rate Limit Structure Migration" icon="key" expandable
+// v1 Key Creation
+{
+  "apiId": "api_123",
+  "ratelimit": { // [!code --]
+    "limit": 1000, // [!code --]
+    "duration": 3600000, // [!code --]
+    "async": true // [!code --]
+  } // [!code --]
+}
+
+// v2 Key Creation
+{
+  "apiId": "api_123",
+  "ratelimits": [ // [!code ++]
+    { // [!code ++]
+      "name": "api_requests", // [!code ++]
+      "limit": 1000, // [!code ++]
+      "duration": 3600000, // [!code ++]
+      "autoApply": true // [!code ++]
+    }, // [!code ++]
+    { // [!code ++]
+      "name": "heavy_operations", // [!code ++]
+      "limit": 10, // [!code ++]
+      "duration": 60000, // [!code ++]
+      "autoApply": false // [!code ++]
+    } // [!code ++]
+  ] // [!code ++]
+}
+```
+</Tab>
+<Tab title="Key Verification Changes">
+```json title="Rate Limit Verification Migration" icon="shield-check" expandable
+// v1 Key Verification Request
+{
+  "key": "sk_123"
+}
+
+// v2 Key Verification Request with Named Rate Limits
+{
+  "key": "sk_123",
+  "ratelimits": [
+    {
+      "name": "api_requests",
+      "cost": 1
+    },
+    {
+      "name": "heavy_operations",
+      "cost": 5
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="Rate Limit Response Migration" icon="database" expandable
+// v1 Response
+{
+  "result": {
+    "valid": true,
+    "ratelimit": { // [!code --]
+      "limit": 1000, // [!code --]
+      "remaining": 999, // [!code --]
+      "reset": 1672531200000 // [!code --]
+    } // [!code --]
+  }
+}
+
+// v2 Response
+{
+  "data": {
+    "valid": true,
+    "ratelimits": [ // [!code ++]
+      { // [!code ++]
+        "id": "rl_123", // [!code ++]
+        "name": "api_requests", // [!code ++]
+        "limit": 1000, // [!code ++]
+        "remaining": 999, // [!code ++]
+        "reset": 1672531200000, // [!code ++]
+        "exceeded": false, // [!code ++]
+        "duration": 3600000, // [!code ++]
+        "autoApply": true // [!code ++]
+      }, // [!code ++]
+      { // [!code ++]
+        "id": "rl_456", // [!code ++]
+        "name": "heavy_operations", // [!code ++]
+        "limit": 10, // [!code ++]
+        "remaining": 5, // [!code ++]
+        "reset": 1672531200000, // [!code ++]
+        "exceeded": false, // [!code ++]
+        "duration": 60000, // [!code ++]
+        "autoApply": false // [!code ++]
+      } // [!code ++]
+    ] // [!code ++]
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Migration Patterns
+
+### Response Format Migration
+
+<Tabs>
+<Tab title="Response Parsing Migration" icon="code">
+```typescript title="v1 vs v2: Response Handling"
+// v1: Direct response access
+const rateLimit = await fetch('/v1/ratelimits.limit', { // [!code --]
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    namespace: 'api_calls',
+    identifier: 'user_123',
+    limit: 100,
+    duration: 3600000
+  })
+});
+
+const data = await rateLimit.json(); // [!code --]
+const success = data.success; // v1 direct format // [!code --]
+const remaining = data.remaining; // [!code --]
+
+// v2: Access data through data field
+const rateLimit = await fetch('/v2/ratelimits.limit', { // [!code ++]
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    namespace: 'api_calls',
+    identifier: 'user_123',
+    limit: 100,
+    duration: 3600000
+  })
+});
+
+const response = await rateLimit.json(); // [!code ++]
+const success = response.data.success; // v2 format // [!code ++]
+const remaining = response.data.remaining; // [!code ++]
+const requestId = response.meta.requestId; // for debugging // [!code ++]
+```
+</Tab>
+</Tabs>
+
+### Key-Level Rate Limiting Migration
+
+<Tabs>
+<Tab title="Rate Limit Structure Migration" icon="bolt">
+```json title="v1 vs v2: Key Rate Limit Structure"
+// v1: Single Rate Limit
+{
+  "apiId": "api_123",
+  "ratelimit": { // [!code --]
+    "limit": 1000, // [!code --]
+    "duration": 3600000, // [!code --]
+    "async": true // [!code --]
+  } // [!code --]
+}
+
+// v2: Multiple Named Rate Limits
+{
+  "apiId": "api_123",
+  "ratelimits": [ // [!code ++]
+    { // [!code ++]
+      "name": "general_requests", // [!code ++]
+      "limit": 1000, // [!code ++]
+      "duration": 3600000, // [!code ++]
+      "autoApply": true // [!code ++]
+    }, // [!code ++]
+    { // [!code ++]
+      "name": "expensive_ops", // [!code ++]
+      "limit": 10, // [!code ++]
+      "duration": 60000, // [!code ++]
+      "autoApply": false // [!code ++]
+    } // [!code ++]
+  ] // [!code ++]
+}
+```
+</Tab>
+</Tabs>
+
+### Override Management Patterns
+
+<Tabs>
+<Tab title="Basic Override Operations" icon="settings">
+```typescript title="Override CRUD Operations"
+// Set override (same in v1 & v2)
+const override = await fetch('/v2/ratelimits.setOverride', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    namespace: 'api_requests',
+    identifier: 'premium_user',
+    limit: 10000,
+    duration: 3600000
+  })
+});
+
+// Get override (same in v1 & v2)
+const existing = await fetch('/v2/ratelimits.getOverride', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    namespace: 'api_requests',
+    identifier: 'premium_user'
+  })
+});
+
+const result = await existing.json();
+const limit = result.data.limit; // v2: access via data
+```
+</Tab>
+<Tab title="v2 Enhanced Override Management" icon="list-check">
+```typescript title="v2: List and Batch Management"
+// v2: List all overrides (new capability)
+const overrides = await fetch('/v2/ratelimits.listOverrides', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    namespace: 'api_requests',
+    limit: 100
+  })
+});
+
+const result = await overrides.json();
+const overrideList = result.data.overrides;
+
+// Process overrides in batches
+for (const override of overrideList) {
+  if (override.limit < 1000) {
+    // Update low-limit overrides
+    await fetch('/v2/ratelimits.setOverride', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer <root-key>',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        namespace: override.namespace,
+        identifier: override.identifier,
+        limit: 1000,
+        duration: override.duration
+      })
+    });
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Advanced Features in v2
+
+### Multiple Rate Limits per Key
+
+```json title="Complex rate limiting setup" icon="bolt" expandable
+{
+  "apiId": "api_123",
+  "ratelimits": [
+    {
+      "name": "requests_per_minute",
+      "limit": 60,
+      "duration": 60000,
+      "autoApply": true
+    },
+    {
+      "name": "requests_per_hour",
+      "limit": 1000,
+      "duration": 3600000,
+      "autoApply": true
+    },
+    {
+      "name": "expensive_operations",
+      "limit": 5,
+      "duration": 300000,
+      "autoApply": false
+    }
+  ]
+}
+```
+
+### Named Rate Limit Targeting
+
+```json title="Selective rate limit application" icon="target"
+{
+  "key": "sk_123",
+  "ratelimits": [
+    {
+      "name": "expensive_operations",
+      "cost": 1
+    }
+  ]
+}
+```
+
+Only applies cost to the "expensive_operations" rate limit, leaving others unchanged.
+
+### Batch Override Management
+
+```typescript title="Managing multiple overrides" icon="list-check"
+// List all overrides in namespace
+const overrides = await unkey.ratelimits.listOverrides({
+  namespace: "api_requests"
+});
+
+// Process overrides in batches
+for (const override of overrides.data?.overrides || []) {
+  if (override.limit < 1000) {
+    // Update low-limit overrides
+    await unkey.ratelimits.setOverride({
+      namespace: override.namespace,
+      identifier: override.identifier,
+      limit: 1000,
+      duration: override.duration
+    });
+  }
+}
+```
+
+---
+
+## Migration Checklist
+
+### Response Format Updates
+- [ ] Change direct response access to `response.data` in all rate limiting calls
+- [ ] Extract and log `meta.requestId` from responses for debugging
+- [ ] Update error handling for new envelope response structure
+- [ ] Handle enhanced metadata in override responses
+
+### Key-Level Rate Limiting Updates
+- [ ] Convert `ratelimit` object to `ratelimits` array in key creation
+- [ ] Add `name` field to all rate limit configurations
+- [ ] Remove `async` parameter
+- [ ] Update Key creation to use autoApply if necessary
+- [ ] Plan for multiple rate limits per key (different operation types)
+- [ ] Update key verification to handle multiple rate limits
+
+### Override Management Updates
+- [ ] Update override response parsing from `result` to `data`
+- [ ] Utilize new `listOverrides` endpoint for enhanced management
+- [ ] Handle enhanced override metadata (overrideId, createdAt)
+- [ ] Implement cursor-based pagination for large override lists
+
+### Enhanced Features
+- [ ] Implement named rate limit targeting in key verification
+- [ ] Use multiple rate limits for different operation types
+- [ ] Set up batch override management processes using listOverrides
+- [ ] Plan for granular rate limit control and monitoring
+- [ ] Use request IDs for debugging and support
+
+### Advanced Rate Limiting Patterns
+- [ ] Implement selective rate limit application by name
+- [ ] Set up different costs for different rate limits
+- [ ] Use identity-level rate limiting combined with key-level limits
+- [ ] Build override management dashboards with enhanced data
+
+### Testing
+- [ ] Test rate limiting with new response format
+- [ ] Verify override creation, retrieval, and deletion
+- [ ] Test multiple rate limits on single keys
+- [ ] Validate named rate limit targeting in key verification
+- [ ] Confirm override listing and pagination works correctly
+- [ ] Test batch override management workflows

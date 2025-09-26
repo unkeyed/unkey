@@ -1,11 +1,11 @@
-FROM mysql:latest
+FROM mysql:9.4.0
 
 # Copy database initialization script
 COPY deployment/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases.sql
 
 # Copy schemas from their respective packages
 COPY go/pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
-# COPY go/pkg/partition/schema.sql /docker-entrypoint-initdb.d/02-partition-schema.sql
+COPY go/pkg/partition/db/schema.sql /docker-entrypoint-initdb.d/02-partition-schema.sql
 COPY go/pkg/hydra/store/schema.sql /docker-entrypoint-initdb.d/03-hydra-schema.sql
 
 # Copy seed data for local development

@@ -1,0 +1,17 @@
+type: object
+required:
+  - role
+properties:
+  role:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+    description: |
+      Unique identifier of the role to permanently delete from your workspace.
+      Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+
+      Use this endpoint to verify role details, check its current permissions, or retrieve metadata.
+      Returns complete role information including all assigned permissions for comprehensive access review.
+    example: role_1234567890abcdef
+additionalProperties: false

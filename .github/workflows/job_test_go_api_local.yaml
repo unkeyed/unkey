@@ -3,27 +3,35 @@ on:
   workflow_call:
 permissions:
   contents: read
-
 jobs:
   tests:
     name: Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: blacksmith-16vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Create dashboard env file for Docker Compose
+        run: |
+          mkdir -p ./apps/dashboard
+          touch ./apps/dashboard/.env
+      - name: Set up Docker Buildx
+        uses: useblacksmith/setup-docker-builder@v1
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
         with:
-          go: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run containers
-        run: make up
+      - name: Run unit and light integration tests
+        run: make test-integration
         working-directory: go
-      - name: Test
-        run: make test-full
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+      - name: Run stress tests
+        # Run only if we're being merged (to main) or we're a new tag
+        if: github.event_name == 'merge_group' || startsWith(github.ref, 'refs/tags/')
+        run: make test-stress
         working-directory: go
         env:
           INTEGRATION_TEST: true
           SIMULATION_TEST: false
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1

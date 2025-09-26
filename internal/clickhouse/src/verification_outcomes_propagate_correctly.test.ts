@@ -87,13 +87,13 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
 
       const rawCounts = await ch.querier.query({
         query: `
-            SELECT 
-              outcome, 
-              COUNT(*) as count 
+            SELECT
+              outcome,
+              COUNT(*) as count
             FROM verifications.raw_key_verifications_v1
-            WHERE 
-              workspace_id = '${workspaceId}' AND 
-              key_space_id = '${keySpaceId}' AND 
+            WHERE
+              workspace_id = '${workspaceId}' AND
+              key_space_id = '${keySpaceId}' AND
               key_id = '${keyId}'
             GROUP BY outcome
           `,
@@ -116,13 +116,13 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
       async function pollForAggregateData(maxAttempts = 15, intervalMs = 1000) {
         for (let i = 0; i < maxAttempts; i++) {
           const directQuery = `
-              SELECT 
-                outcome, 
-                SUM(count) as total 
-              FROM verifications.key_verifications_per_day_v3 
-              WHERE 
-                workspace_id = '${workspaceId}' AND 
-                key_space_id = '${keySpaceId}' AND 
+              SELECT
+                outcome,
+                SUM(count) as total
+              FROM verifications.key_verifications_per_day_v3
+              WHERE
+                workspace_id = '${workspaceId}' AND
+                key_space_id = '${keySpaceId}' AND
                 key_id = '${keyId}'
               GROUP BY outcome
             `;
@@ -156,6 +156,7 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
         keyIds: null,
         names: null,
         outcomes: null,
+        tags: null,
       });
 
       if (daily && daily.length > 0) {

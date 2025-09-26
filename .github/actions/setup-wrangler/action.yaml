@@ -1,0 +1,17 @@
+name: Setup Wrangler
+description: Install Wrangler CLI with caching
+
+inputs:
+  github_token:
+    description: GitHub token for authentication
+    required: false
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Install Wrangler
+      shell: bash
+      run: npm i -g wrangler@latest
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

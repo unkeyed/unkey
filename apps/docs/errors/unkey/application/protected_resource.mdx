@@ -1,0 +1,74 @@
+---
+title: "protected_resource"
+description: "Attempt to modify a protected resource"
+---
+
+<Danger>`err:unkey:application:protected_resource`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The resource you are attempting to modify is protected and cannot be changed",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/protected_resource"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you attempt to modify or delete a resource that is marked as protected in the Unkey system. Protected resources have a special status that prevents them from being changed or removed, typically because they are system resources, defaults, or otherwise critical to proper system operation.
+
+Common scenarios that trigger this error:
+- Attempting to delete a default API or workspace
+- Trying to modify system-created roles or permissions
+- Attempting to change protected settings or configurations
+- Trying to remove or alter resources that are required for system integrity
+
+Here's an example of a request that might trigger this error:
+
+```bash
+# Attempting to delete a protected default API
+curl -X DELETE https://api.unkey.com/v2/apis.deleteApi \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "apiId": "api_default_protected"
+  }'
+```
+
+## How To Fix
+
+Since protected resources are deliberately shielded from modification, the solution is usually to work with or around them rather than trying to change them:
+
+1. **Work with the protected resource**: Use the resource as-is and build your workflows around it
+2. **Create a new resource**: Instead of modifying a protected resource, create a new one with your desired configuration
+3. **Use alternatives**: Look for alternative ways to achieve your goal without modifying protected resources
+4. **Contact support**: If you believe you have a legitimate need to modify a protected resource, contact Unkey support
+
+For example, instead of deleting a protected API, you might create a new one:
+
+```bash
+curl -X POST https://api.unkey.com/v2/apis.createApi \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "name": "My Custom API"
+  }'
+```
+
+## Important Notes
+
+- Protected resources are designated as such for system stability and security reasons
+- Even with admin or owner permissions, protected resources typically cannot be modified
+- This protection is separate from permission-based restrictions and applies even to workspace owners
+- The protection status of a resource is not typically exposed in API responses until you try to modify it
+
+## Related Errors
+- [err:unkey:authorization:forbidden](../authorization/forbidden) - When an operation is not allowed for policy reasons
+- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you lack permissions for an operation

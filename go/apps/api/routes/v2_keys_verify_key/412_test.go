@@ -56,8 +56,7 @@ func TestPreconditionFailed(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{Name: "does-not-exist"},
 			},
@@ -69,7 +68,7 @@ func TestPreconditionFailed(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 
 		// Should contain useful error message about missing ratelimit for key and identity
-		expectedMsg := fmt.Sprintf("ratelimit \"does-not-exist\" was requested but does not exist for key \"%s\" nor identity", key.KeyID)
+		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
 		require.Contains(t, res.Body.Error.Detail, identity)
 		require.Contains(t, res.Body.Error.Detail, "test-missing-ratelimit")
@@ -90,8 +89,7 @@ func TestPreconditionFailed(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{Name: "does-not-exist"},
 			},
@@ -103,34 +101,8 @@ func TestPreconditionFailed(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 
 		// Should contain error message indicating no identity connected
-		expectedMsg := fmt.Sprintf("ratelimit \"does-not-exist\" was requested but does not exist for key \"%s\" and there is no identity connected", key.KeyID)
+		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' and there is no identity connected", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
-	})
-
-	t.Run("missing required fields", func(t *testing.T) {
-		t.Run("missing apiId", func(t *testing.T) {
-			req := handler.Request{
-				Key: "test_key",
-				// ApiId missing
-			}
-
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
-			require.Equal(t, 400, res.Status)
-			require.NotNil(t, res.Body)
-			require.NotNil(t, res.Body.Error)
-		})
-
-		t.Run("missing key", func(t *testing.T) {
-			req := handler.Request{
-				ApiId: api.ID,
-				// Key missing
-			}
-
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
-			require.Equal(t, 400, res.Status)
-			require.NotNil(t, res.Body)
-			require.NotNil(t, res.Body.Error)
-		})
 	})
 
 	t.Run("invalid ratelimit configuration", func(t *testing.T) {
@@ -140,8 +112,7 @@ func TestPreconditionFailed(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 				{
 					Name: "missing_config",

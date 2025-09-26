@@ -1,0 +1,40 @@
+type: object
+required:
+  - keyId
+  - expiration
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The database identifier of the key to reroll.
+
+      This is the unique ID returned when creating or listing keys, NOT the actual API key token.
+      You can find this ID in:
+      - The response from `keys.createKey`
+      - Key verification responses
+      - The Unkey dashboard
+      - API key listing endpoints
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  expiration:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 4102444800000
+    description: |
+      Duration in milliseconds until the ORIGINAL key is revoked, starting from now.
+
+      This parameter controls the overlap period for key rotation:
+      - Set to `0` to revoke the original key immediately
+      - Positive values keep the original key active for the specified duration
+      - Allows graceful migration by giving users time to update their credentials
+
+      Common overlap periods:
+      - Immediate revocation: 0
+      - 1 hour grace period: 3600000
+      - 24 hours grace period: 86400000
+      - 7 days grace period: 604800000
+      - 30 days grace period: 2592000000
+    example: 86400000

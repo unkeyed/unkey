@@ -18,6 +18,7 @@ const (
 
 	// Key events
 	KeyCreateEvent AuditLogEvent = "key.create"
+	KeyRerollEvent AuditLogEvent = "key.reroll"
 	KeyUpdateEvent AuditLogEvent = "key.update"
 	KeyDeleteEvent AuditLogEvent = "key.delete"
 

@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -40,7 +41,8 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/apis.getApi")
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -50,7 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -67,8 +69,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Get API from cache with SWR (stale-while-revalidate) pattern
-	api, err := h.Caches.ApiByID.SWR(ctx, req.ApiId, func(ctx context.Context) (db.Api, error) {
-		return db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	api, hit, err := h.Caches.LiveApiByID.SWR(ctx, req.ApiId, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
@@ -78,9 +80,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 			)
 		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if hit == cache.Null {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"),
+			fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
@@ -92,19 +103,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.ApisGetApiResponseData{
+		Data: openapi.V2ApisGetApiResponseData{
 			Id:   api.ID,
 			Name: api.Name,
 		},

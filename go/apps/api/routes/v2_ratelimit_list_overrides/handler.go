@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -37,7 +38,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -47,16 +49,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
-
-	if db.IsNotFound(err) {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
-		)
-	}
+	// Use the namespace field directly - it can be either name or ID
+	namespace, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Namespace:   req.Namespace,
+	})
 	if err != nil {
-		return err
+		if db.IsNotFound(err) {
+			return fault.New("namespace not found",
+				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Public("An unexpected error occurred while loading your namespace."),
+		)
 	}
 
 	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -66,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   namespace.ID,
@@ -82,58 +90,45 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	limit := ptr.SafeDeref(req.Limit, 50)
+
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		NamespaceID: namespace.ID,
+		Limit:       int32(limit) + 1,
+		CursorID:    ptr.SafeDeref(req.Cursor, ""),
 	})
 
 	if err != nil {
 		return err
 	}
-	response := Response{
+
+	hasMore := len(overrides) > limit
+	var cursor *string
+	if hasMore {
+		cursor = ptr.P(overrides[limit].ID)
+		overrides = overrides[:limit]
+	}
+
+	responseBody := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: make([]openapi.RatelimitOverride, len(overrides)),
 		Pagination: &openapi.Pagination{
-			Cursor:  nil,
-			HasMore: false,
+			Cursor:  cursor,
+			HasMore: hasMore,
 		},
 	}
 
 	for i, override := range overrides {
-		response.Data[i] = openapi.RatelimitOverride{
-			OverrideId:  override.ID,
-			Duration:    int64(override.Duration),
-			Identifier:  override.Identifier,
-			NamespaceId: override.NamespaceID,
-			Limit:       int64(override.Limit),
+		responseBody.Data[i] = openapi.RatelimitOverride{
+			OverrideId: override.ID,
+			Duration:   int64(override.Duration),
+			Identifier: override.Identifier,
+			Limit:      int64(override.Limit),
 		}
 	}
 
-	return s.JSON(http.StatusOK, response)
-}
-
-func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (db.RatelimitNamespace, error) {
-
-	switch {
-	case req.NamespaceId != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
-
-		}
-	case req.NamespaceName != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
-				WorkspaceID: workspaceID,
-				Name:        *req.NamespaceName,
-			})
-		}
-	}
-
-	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Internal("missing namespace id or name"), fault.Public("You must provide either a namespace ID or name."),
-	)
-
+	return s.JSON(http.StatusOK, responseBody)
 }

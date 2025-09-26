@@ -1,0 +1,47 @@
+type: object
+required:
+  - externalId
+properties:
+  externalId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Match database varchar limits for external identifiers
+    pattern: "^[a-zA-Z0-9_.-]+$"
+    description: |
+      Creates an identity using your system's unique identifier for a user, organization, or entity.
+      Must be stable and unique across your workspace - duplicate externalIds return CONFLICT errors.
+      This identifier links Unkey identities to your authentication system, database records, or tenant structure.
+
+      Avoid changing externalIds after creation as this breaks the link between your systems.
+      Use consistent identifier patterns across your application for easier management and debugging.
+      Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
+      Essential for implementing proper multi-tenant isolation and user-specific rate limiting.
+    example: user_123
+  meta:
+    type: object
+    additionalProperties: true
+    maxProperties: 100 # Prevent DoS while allowing rich metadata
+    description: |
+      Stores arbitrary JSON metadata returned during key verification for contextual information.
+      Eliminates additional database lookups during verification, improving performance for stateless services.
+      Avoid storing sensitive data here as it's returned in verification responses.
+
+      Large metadata objects increase verification latency and should stay under 10KB total size.
+      Use this for subscription details, feature flags, user preferences, and organization information.
+      Metadata is returned as-is whenever keys associated with this identity are verified.
+  ratelimits:
+    type: array
+    maxItems: 50 # Reasonable limit for rate limit configurations per identity
+    items:
+      "$ref": "../../../../common/RatelimitRequest.yaml"
+    description: |
+      Defines shared rate limits that apply to all keys belonging to this identity.
+      Prevents abuse by users with multiple keys by enforcing consistent limits across their entire key portfolio.
+      Essential for implementing fair usage policies and tiered access levels in multi-tenant applications.
+
+      Rate limit counters are shared across all keys with this identity, regardless of how many keys the user creates.
+      During verification, specify which named limits to check for enforcement.
+      Identity rate limits supplement any key-specific rate limits that may also be configured.
+      - Each named limit can have different thresholds and windows
+
+      When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.

@@ -1,0 +1,20 @@
+type: object
+required:
+  - cost
+properties:
+  cost:
+    type: integer
+    format: int32
+    minimum: 0
+    maximum: 1000000000
+    description: |
+      Sets how many credits to deduct for this verification request.
+      Use 0 for read-only operations or free tier access, higher values for premium features.
+      Credits are deducted after all security checks pass.
+      Essential for implementing usage-based pricing with different operation costs.
+    example: 5
+additionalProperties: false
+description: |
+  Controls credit consumption for usage-based billing and quota enforcement.
+  Omitting this field uses the default cost of 1 credit per verification.
+  Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.

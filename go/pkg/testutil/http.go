@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -38,15 +40,16 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB         db.Database
-	Caches     caches.Caches
-	Logger     logging.Logger
-	Keys       keys.KeyService
-	Auditlogs  auditlogs.AuditLogService
-	ClickHouse clickhouse.ClickHouse
-	Ratelimit  ratelimit.Service
-	Vault      *vault.Service
-	seeder     *seed.Seeder
+	DB           db.Database
+	Caches       caches.Caches
+	Logger       logging.Logger
+	Keys         keys.KeyService
+	UsageLimiter usagelimiter.Service
+	Auditlogs    auditlogs.AuditLogService
+	ClickHouse   clickhouse.ClickHouse
+	Ratelimit    ratelimit.Service
+	Vault        *vault.Service
+	seeder       *seed.Seeder
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -111,13 +114,23 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
+		Logger:  logger,
+		DB:      db,
+		Counter: ctr,
+		TTL:     60 * time.Second,
+	})
+	require.NoError(t, err)
+
 	keyService, err := keys.New(keys.Config{
-		Logger:      logger,
-		DB:          db,
-		KeyCache:    caches.VerificationKeyByHash,
-		RateLimiter: ratelimitService,
-		RBAC:        rbac.New(),
-		Clickhouse:  ch,
+		Logger:       logger,
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  ratelimitService,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       "test",
+		UsageLimiter: ulSvc,
 	})
 	require.NoError(t, err)
 
@@ -142,22 +155,23 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	// Create seeder
-	seeder := seed.New(t, db)
+	seeder := seed.New(t, db, v)
 
 	seeder.Seed(context.Background())
 
 	h := Harness{
-		t:          t,
-		Logger:     logger,
-		srv:        srv,
-		validator:  validator,
-		Keys:       keyService,
-		Ratelimit:  ratelimitService,
-		Vault:      v,
-		ClickHouse: ch,
-		DB:         db,
-		seeder:     seeder,
-		Clock:      clk,
+		t:            t,
+		Logger:       logger,
+		srv:          srv,
+		validator:    validator,
+		Keys:         keyService,
+		UsageLimiter: ulSvc,
+		Ratelimit:    ratelimitService,
+		Vault:        v,
+		ClickHouse:   ch,
+		DB:           db,
+		seeder:       seeder,
+		Clock:        clk,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,
 			Logger: logger,

@@ -1,0 +1,53 @@
+overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+  title: Overlay apps/api/openapi/openapi-generated.yaml => apps/api/openapi/openapi-generated3.0.yaml
+  version: 0.0.0
+actions:
+  - target: $["openapi"]
+    update: 3.0.0
+  - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["name"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["name"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["externalId"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["externalId"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["meta"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["meta"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["expires"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["expires"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
+    update:
+      nullable: true

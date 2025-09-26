@@ -47,10 +47,10 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:                            h.DB,
-		Keys:                          h.Keys,
-		Logger:                        h.Logger,
-		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -65,15 +65,14 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	// Test getting by namespace name
 	t.Run("get by namespace name", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    identifier,
+			Namespace:  namespaceName,
+			Identifier: identifier,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
+		require.Equal(t, 200, res.Status, "expected 200, received: %v", *res.Body)
 		require.NotNil(t, res.Body)
 		require.Equal(t, overrideID, res.Body.Data.OverrideId)
-		require.Equal(t, namespaceID, res.Body.Data.NamespaceId)
 		require.Equal(t, identifier, res.Body.Data.Identifier)
 		require.Equal(t, int64(limit), res.Body.Data.Limit)
 		require.Equal(t, int64(duration), res.Body.Data.Duration)
@@ -82,15 +81,14 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	// Test getting by namespace ID
 	t.Run("get by namespace ID", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
-			Identifier:  identifier,
+			Namespace:  namespaceID,
+			Identifier: identifier,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 		require.NotNil(t, res.Body)
 		require.Equal(t, overrideID, res.Body.Data.OverrideId)
-		require.Equal(t, namespaceID, res.Body.Data.NamespaceId)
 		require.Equal(t, identifier, res.Body.Data.Identifier)
 		require.Equal(t, int64(limit), res.Body.Data.Limit)
 		require.Equal(t, int64(duration), res.Body.Data.Duration)

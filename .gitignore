@@ -22,3 +22,6 @@ dist
 .react-email
 
 .secrets.json
+certs/
+deployment/data/*
+bin/

@@ -1,0 +1,18 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/EmptyResponse.yaml"
+additionalProperties: false
+examples:
+  basicUpdateSuccess:
+    summary: Successful basic update
+    description: Standard successful update response
+    value:
+      meta:
+        requestId: req_abcd1234
+      data: {}

@@ -37,9 +37,22 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { listDeployments } from "./deploy/deployment/list";
+import { searchDeployments } from "./deploy/deployment/llm-search";
+import { promote } from "./deploy/deployment/promote";
+import { rollback } from "./deploy/deployment/rollback";
+import { listDomains } from "./deploy/domains/list";
+import { getEnvs } from "./deploy/envs/list";
+import { createProject } from "./deploy/project/create";
+import { listProjects } from "./deploy/project/list";
+import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
+import { getIdentityById } from "./identity/getById";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
+import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -60,6 +73,7 @@ import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
+import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
@@ -73,23 +87,20 @@ import {
   updateMembership,
 } from "./org";
 import { createPlainIssue } from "./plain";
-import { projectRouter } from "./project";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
-import { searchNamespace } from "./ratelimit/namespace-search";
-import { queryRatelimitNamespaces } from "./ratelimit/query-keys";
+import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
+import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
-import { queryRatelimitWorkspaceDetails } from "./ratelimit/query-namespace-details";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
-import { addPermissionToRootKey } from "./rbac/addPermissionToRootKey";
 import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
 import { connectRoleToKey } from "./rbac/connectRoleToKey";
 import { createPermission } from "./rbac/createPermission";
@@ -98,7 +109,6 @@ import { deletePermission } from "./rbac/deletePermission";
 import { deleteRole } from "./rbac/deleteRole";
 import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRole";
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
-import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
@@ -110,9 +120,9 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
-import { versionRouter } from "./version";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
+import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -152,6 +162,9 @@ export const router = t.router({
     create: createRootKey,
     update: t.router({
       name: updateRootKeyName,
+      // NOTE: permissions replaces the full permission set for a root key.
+      // Clients must send the authoritative list to avoid lost updates.
+      permissions: updateRootKeyPermissions,
     }),
   }),
   settings: t.router({
@@ -189,6 +202,7 @@ export const router = t.router({
   }),
   workspace: t.router({
     create: createWorkspace,
+    getCurrent: getCurrentWorkspace,
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
@@ -229,7 +243,6 @@ export const router = t.router({
     }),
   }),
   rbac: t.router({
-    addPermissionToRootKey: addPermissionToRootKey,
     connectPermissionToRole: connectPermissionToRole,
     connectRoleToKey: connectRoleToKey,
     createPermission: createPermission,
@@ -238,7 +251,6 @@ export const router = t.router({
     deleteRole: deleteRole,
     disconnectPermissionFromRole: disconnectPermissionFromRole,
     disconnectRoleFromKey: disconnectRoleFromKey,
-    removePermissionFromRootKey: removePermissionFromRootKey,
     updatePermission: updatePermission,
     updateRole: updateRole,
   }),
@@ -255,10 +267,8 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      list: listRatelimitNamespaces,
       queryRatelimitLastUsed,
-      query: queryRatelimitNamespaces,
-      queryDetails: queryRatelimitWorkspaceDetails,
-      search: searchNamespace,
       create: createNamespace,
       update: t.router({
         name: updateNamespaceName,
@@ -266,6 +276,7 @@ export const router = t.router({
       delete: deleteNamespace,
     }),
     override: t.router({
+      list: listRatelimitOverrides,
       create: createOverride,
       update: updateOverride,
       delete: deleteOverride,
@@ -302,12 +313,33 @@ export const router = t.router({
     }),
   }),
   identity: t.router({
+    searchWithRelations: searchIdentitiesWithRelations,
     create: createIdentity,
     query: queryIdentities,
     search: searchIdentities,
+    getById: getIdentityById,
   }),
-  project: projectRouter,
-  version: versionRouter,
+  deploy: t.router({
+    project: t.router({
+      list: listProjects,
+      create: createProject,
+    }),
+    environment: t.router({
+      list_dummy: getEnvs,
+      list: listEnvironments,
+    }),
+    domain: t.router({
+      list: listDomains,
+    }),
+    deployment: t.router({
+      list: listDeployments,
+      buildSteps: getDeploymentBuildSteps,
+      search: searchDeployments,
+      getOpenApiDiff: getOpenApiDiff,
+      rollback,
+      promote,
+    }),
+  }),
 });
 
 // export type definition of API

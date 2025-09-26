@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
+description: |-
+  Error response when authentication has failed or credentials are missing. This occurs when:
+  - No authentication token is provided in the request
+  - The provided token is invalid, expired, or malformed
+  - The token format doesn't match expected patterns
+
+  To resolve this error, ensure you're including a valid root key in the Authorization header.

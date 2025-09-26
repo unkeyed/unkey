@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_roles"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 func TestValidationErrors(t *testing.T) {
@@ -34,23 +33,6 @@ func TestValidationErrors(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-
-	// Create a test API and key for valid requests using testutil helper
-	defaultPrefix := "test"
-	defaultBytes := int32(16)
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID:   workspace.ID,
-		DefaultPrefix: &defaultPrefix,
-		DefaultBytes:  &defaultBytes,
-	})
-
-	keyName := "Test Key"
-	keyResponse := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
-		Name:        &keyName,
-	})
-	validKeyID := keyResponse.KeyID
 
 	// Test case for missing keyId
 	t.Run("missing keyId", func(t *testing.T) {
@@ -112,31 +94,6 @@ func TestValidationErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
-	})
-
-	// Test case for role with neither id nor name
-	t.Run("role with neither id nor name", func(t *testing.T) {
-		req := handler.Request{
-			KeyId: validKeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{}, // empty role reference
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "must specify either 'id' or 'name'")
 	})
 
 	// Test case for malformed JSON body

@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_set_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -71,19 +72,13 @@ func TestAuthenticationErrors(t *testing.T) {
 		WorkspaceID:  workspace.ID,
 		Name:         "documents.read.auth",
 		Slug:         "documents.read.auth",
-		Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 	})
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Create *bool   `json:"create,omitempty"`
-			Id     *string `json:"id,omitempty"`
-			Slug   *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       keyID,
+		Permissions: []string{permissionID},
 	}
 
 	t.Run("missing authorization header", func(t *testing.T) {

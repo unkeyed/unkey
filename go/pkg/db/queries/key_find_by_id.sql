@@ -1,5 +1,3 @@
 -- name: FindKeyByID :one
-SELECT
-    *
-FROM `keys`
-WHERE id = sqlc.arg(id);
+SELECT * FROM `keys` k
+WHERE k.id = sqlc.arg(id);

@@ -1,0 +1,19 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2PermissionsCreateRoleResponseData.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Role created successfully
+    description: Standard successful role creation response
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        roleId: role_5678efgh9012wxyz

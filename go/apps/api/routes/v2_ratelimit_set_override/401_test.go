@@ -14,11 +14,11 @@ func TestUnauthorizedAccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:                            h.DB,
-		Keys:                          h.Keys,
-		Logger:                        h.Logger,
-		Auditlogs:                     h.Auditlogs,
-		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		Auditlogs:               h.Auditlogs,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -29,12 +29,11 @@ func TestUnauthorizedAccess(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		namespaceName := uid.New("test")
 		req := handler.Request{
-			NamespaceName: &namespaceName,
-			Identifier:    "test_identifier",
-			Limit:         10,
-			Duration:      1000,
+			Namespace:  uid.New("test"),
+			Identifier: "test_identifier",
+			Limit:      10,
+			Duration:   1000,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -33,7 +34,6 @@ import (
 
 // nolint:gocognit
 func Run(ctx context.Context, cfg Config) error {
-
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
@@ -142,7 +142,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},
-		TLS: cfg.TLSConfig,
+		TLS:                cfg.TLSConfig,
+		MaxRequestBodySize: cfg.MaxRequestBodySize,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -173,6 +174,17 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Key service will be created after caches
+	shutdowns.Register(rlSvc.Close)
+
+	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
+		Logger:  logger,
+		DB:      db,
+		Counter: ctr,
+		TTL:     60 * time.Second,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create usage limiter service: %w", err)
+	}
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
@@ -181,7 +193,7 @@ func Run(ctx context.Context, cfg Config) error {
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
 			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.SecretAccessKey,
+			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create vault storage: %w", err)
@@ -237,27 +249,34 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		Logger:      logger,
-		DB:          db,
-		KeyCache:    caches.VerificationKeyByHash,
-		RateLimiter: rlSvc,
-		RBAC:        rbac.New(),
-		Clickhouse:  ch,
+		Logger:       logger,
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
+	shutdowns.Register(keySvc.Close)
+	shutdowns.Register(ctr.Close)
+
 	routes.Register(srv, &routes.Services{
-		Logger:     logger,
-		Database:   db,
-		ClickHouse: ch,
-		Keys:       keySvc,
-		Validator:  validator,
-		Ratelimit:  rlSvc,
-		Auditlogs:  auditlogSvc,
-		Caches:     caches,
-		Vault:      vaultSvc,
+		Logger:       logger,
+		Database:     db,
+		ClickHouse:   ch,
+		Keys:         keySvc,
+		Validator:    validator,
+		Ratelimit:    rlSvc,
+		Auditlogs:    auditlogSvc,
+		Caches:       caches,
+		Vault:        vaultSvc,
+		ChproxyToken: cfg.ChproxyToken,
+		UsageLimiter: ulSvc,
 	})
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)

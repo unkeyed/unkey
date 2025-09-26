@@ -41,7 +41,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -60,12 +61,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
 		var identity db.Identity
 
-		identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-			ExternalID:  req.ExternalId,
+		identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+			Identity:    req.Identity,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
 		})
-
 		if err != nil {
 			if db.IsNotFound(err) {
 				return IdentityResult{}, fault.New("identity not found",
@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimits := result.Ratelimits
 
 	// Check permissions using either wildcard or the specific identity ID
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -117,7 +117,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Parse metadata
-	var metaMap map[string]interface{}
+	var metaMap map[string]any
 	if len(identity.Meta) > 0 {
 		err = json.Unmarshal(identity.Meta, &metaMap)
 		if err != nil {
@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 	} else {
-		metaMap = make(map[string]interface{})
+		metaMap = make(map[string]any)
 	}
 
 	// Format ratelimits for the response
@@ -145,7 +145,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.IdentitiesGetIdentityResponseData{
+		Data: openapi.Identity{
+			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
 			Meta:       &metaMap,
 			Ratelimits: &responseRatelimits,

@@ -25,6 +25,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 				OnDuplicateKeyUpdate:      "",
 				EmitMethodsWithDBArgument: true,
 				Fields:                    []string{"ID", "Name"},
+				ValuesFields:              []string{"ID", "Name"},
 			},
 			contains: []string{
 				"package db",
@@ -47,6 +48,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 				OnDuplicateKeyUpdate:      "ON DUPLICATE KEY UPDATE name = VALUES(name)",
 				EmitMethodsWithDBArgument: true,
 				Fields:                    []string{"ID", "Name"},
+				ValuesFields:              []string{"ID", "Name"},
 			},
 			contains: []string{
 				"package db",
@@ -66,6 +68,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 				OnDuplicateKeyUpdate:      "",
 				EmitMethodsWithDBArgument: false,
 				Fields:                    []string{"ID", "Name"},
+				ValuesFields:              []string{"ID", "Name"},
 			},
 			contains: []string{
 				"func (q *BulkQueries) BulkInsertUser(ctx context.Context, args []InsertUserParams) error",
@@ -107,6 +110,7 @@ func TestTemplateRenderer_RenderInvalidTemplate(t *testing.T) {
 		OnDuplicateKeyUpdate:      "",
 		EmitMethodsWithDBArgument: true,
 		Fields:                    []string{"ID", "Name"},
+		ValuesFields:              []string{"ID", "Name"},
 	}
 
 	_, err := renderer.Render(data)

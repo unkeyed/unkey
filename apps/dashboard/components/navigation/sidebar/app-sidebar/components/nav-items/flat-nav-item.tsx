@@ -1,19 +1,14 @@
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/use-delay-loader";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import type { NavItem } from "../../../workspace-navigations";
+import type { NavProps } from ".";
 import { NavLink } from "../nav-link";
 import { AnimatedLoadingSpinner } from "./animated-loading-spinner";
 import { getButtonStyles } from "./utils";
 
-export const FlatNavItem = ({
-  item,
-  onLoadMore,
-}: {
-  item: NavItem & { loadMoreAction?: boolean };
-  onLoadMore?: () => void;
-}) => {
+export const FlatNavItem = ({ item, onLoadMore, className }: NavProps) => {
   const [isPending, startTransition] = useTransition();
   const showLoader = useDelayLoader(isPending);
   const router = useRouter();
@@ -23,7 +18,7 @@ export const FlatNavItem = ({
 
   const handleClick = () => {
     if (isLoadMoreButton && onLoadMore) {
-      onLoadMore();
+      onLoadMore(item);
       return;
     }
 
@@ -35,7 +30,7 @@ export const FlatNavItem = ({
   };
 
   return (
-    <SidebarMenuItem className="list-none">
+    <SidebarMenuItem className={cn("list-none", className)}>
       <NavLink
         href={item.href}
         external={item.external}

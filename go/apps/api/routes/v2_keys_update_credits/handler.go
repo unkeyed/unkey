@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -22,15 +23,16 @@ import (
 )
 
 type Request = openapi.V2KeysUpdateCreditsRequestBody
-type Response = openapi.V2KeysUpdateCreditsResponse
+type Response = openapi.V2KeysUpdateCreditsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.updateCredits endpoint
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	UsageLimiter usagelimiter.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -47,7 +49,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.updateCredits")
 
 	// Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -58,13 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindKeyByIdOrHash(ctx,
-		h.DB.RO(),
-		db.FindKeyByIdOrHashParams{
-			ID:   sql.NullString{String: req.KeyId, Valid: true},
-			Hash: sql.NullString{String: "", Valid: false},
-		},
-	)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -91,17 +88,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if API is deleted
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
 	// Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -142,14 +130,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true} // nolint:gosec
 	}
 
-	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindKeyByIdOrHashRow, error) {
-		err = db.Query.UpdateKeyCredits(ctx, tx, db.UpdateKeyCreditsParams{
-			ID:        key.ID,
-			Operation: string(req.Operation),
-			Credits:   credits,
-		})
+	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
+		switch req.Operation {
+		case openapi.Set:
+			err = db.Query.UpdateKeyCreditsSet(ctx, tx, db.UpdateKeyCreditsSetParams{
+				ID:      key.ID,
+				Credits: credits,
+			})
+		case openapi.Increment:
+			err = db.Query.UpdateKeyCreditsIncrement(ctx, tx, db.UpdateKeyCreditsIncrementParams{
+				ID:      key.ID,
+				Credits: credits,
+			})
+		case openapi.Decrement:
+			err = db.Query.UpdateKeyCreditsDecrement(ctx, tx, db.UpdateKeyCreditsDecrementParams{
+				ID:      key.ID,
+				Credits: credits,
+			})
+		default:
+			return db.FindLiveKeyByIDRow{}, fault.New("invalid operation",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
+				fault.Public("Invalid operation specified."),
+			)
+		}
 		if err != nil {
-			return db.FindKeyByIdOrHashRow{}, fault.Wrap(err,
+			return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to update key credits."),
@@ -164,7 +170,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillDay:    sql.NullInt16{Int16: 0, Valid: false},
 			})
 			if err != nil {
-				return db.FindKeyByIdOrHashRow{}, fault.Wrap(err,
+				return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"),
 					fault.Public("Failed to reset key refill data."),
@@ -172,17 +178,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		keyAfterUpdate, keyErr := db.Query.FindKeyByIdOrHash(ctx,
-			tx,
-			db.FindKeyByIdOrHashParams{
-				ID:   sql.NullString{String: req.KeyId, Valid: true},
-				Hash: sql.NullString{String: "", Valid: false},
-			},
-		)
-
+		keyAfterUpdate, keyErr := db.Query.FindLiveKeyByID(ctx, tx, req.KeyId)
 		if keyErr != nil {
 			if db.IsNotFound(keyErr) {
-				return db.FindKeyByIdOrHashRow{}, fault.Wrap(
+				return db.FindLiveKeyByIDRow{}, fault.Wrap(
 					keyErr,
 					fault.Code(codes.Data.Key.NotFound.URN()),
 					fault.Internal("key got deleted after update"),
@@ -190,7 +189,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			return db.FindKeyByIdOrHashRow{}, fault.Wrap(keyErr,
+			return db.FindLiveKeyByIDRow{}, fault.Wrap(keyErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to retrieve key information."),
@@ -253,10 +252,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if key.RefillAmount.Valid {
 		var day *int
-		interval := openapi.Daily
+		interval := openapi.KeyCreditsRefillIntervalDaily
 
 		if key.RefillDay.Valid {
-			interval = openapi.Monthly
+			interval = openapi.KeyCreditsRefillIntervalMonthly
 			day = ptr.P(int(key.RefillDay.Int16))
 		}
 
@@ -268,6 +267,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
+	if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
+		h.Logger.Error("Failed to invalidate usage limit",
+			"error", err.Error(),
+			"key_id", key.ID,
+		)
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

@@ -1,5 +1,5 @@
 ---
-title: Environments 
+title: Environments
 description: Separate your keys into live and test environments.
 ---
 
@@ -8,46 +8,52 @@ not interact with real production resources and may have lower ratelimits but us
 flow as your `live` keys.
 
 
-Unkey allows you to set an arbitrary value as `environment` for each key, so you can model your
+Unkey allows you to set an arbitrary metadata for each key, so you can model your
 domain however you want. In practice we often see two distinct environments being used a lot:
 
 - `live` Live keys are used in production and affect real resources.
 - `test` Test keys allow you to develop and test your code without modifying real resources. It's
 great to ensure your code is working manually or can be used in automated tests.
 
-You may also want to associate different ratelimits per environment or bill usage differently. 
+You may also want to associate different ratelimits per environment or bill usage differently.
 Perhaps test keys have lower limits but are free to use.
 
 
 ### Creating a key with an environment
 
-Using the prefix to indicate the environment is optional but highly recommended. It can prevent
+Using the prefix to indicate the environment to the user is optional but highly recommended. It can prevent
 your user from accidentally using keys interchangably and modifying resources unintentionally.
 
 <CodeGroup>
 ```bash Test
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.createKey \
-  --header 'Authorization: Bearer <token>' \
+  --url https://api.unkey.com/v2/keys.createKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-    "environment": "test",
-    "prefix": "sk_test"
+    "apiId": "<API_ID>",
+    "prefix": "sk_test",
+    "meta": {
+      "environment": "test"
+    }
   }'
 ```
 
 ```bash Live
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.createKey \
-  --header 'Authorization: Bearer <token>' \
+  --url https://api.unkey.com/v2/keys.createKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-    "environment": "live",
-    "prefix": "sk_live"
+    "apiId": "<API_ID>",
+    "prefix": "sk_live",
+    "meta": {
+      "environment": "production"
+    }
   }'
 ```
 </CodeGroup>
-For more details, see the [API reference](/api-reference/keys/create)
+For more details, see the [API reference](/api-reference/v2/keys/create-api-key)
 
 
 
@@ -60,19 +66,26 @@ We provide this as part of the verification response:
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-    "apiId": "api_1234",
-    "key": "sk_1234"
+    "key": "sk_live_1234"
   }'
 ```
 The response would look something like this:
 ```json
 {
-  "valid": true,
-  "environment": "test",
-  // ... omited
+  "meta": {
+    "requestId": "req_abc123def456"
+  },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "<KEY_ID>",
+    "meta": {
+      "environment": "production"
+    }
+    // ... other fields omitted
+  }
 }
-
 ```

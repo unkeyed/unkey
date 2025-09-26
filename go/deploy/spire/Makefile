@@ -2,7 +2,7 @@
 # Installs SPIRE server and agent as systemd services
 
 # Variables
-SPIRE_VERSION ?= 1.12.2
+SPIRE_VERSION ?= 1.13.0
 SPIRE_ARCH ?= linux-amd64-musl
 SPIRE_URL = https://github.com/spiffe/spire/releases/download/v$(SPIRE_VERSION)/spire-$(SPIRE_VERSION)-$(SPIRE_ARCH).tar.gz
 SPIRE_INSTALL_DIR = /opt/spire
@@ -13,17 +13,15 @@ SPIRE_CONFIG_DIR = /etc/spire
 SPIRE_ENVIRONMENT ?= development
 
 # Validate environment
-ifeq ($(filter $(SPIRE_ENVIRONMENT),development canary prod),)
-$(error Invalid SPIRE_ENVIRONMENT: $(SPIRE_ENVIRONMENT). Must be one of: development, canary, prod)
+ifeq ($(filter $(SPIRE_ENVIRONMENT),development production),)
+$(error Invalid SPIRE_ENVIRONMENT: $(SPIRE_ENVIRONMENT). Must be one of: development, production)
 endif
 
 # Trust domain mapping
 ifeq ($(SPIRE_ENVIRONMENT),development)
-TRUST_DOMAIN = development.unkey.app
-else ifeq ($(SPIRE_ENVIRONMENT),canary)
-TRUST_DOMAIN = canary.unkey.app
-else ifeq ($(SPIRE_ENVIRONMENT),prod)
-TRUST_DOMAIN = prod.unkey.app
+TRUST_DOMAIN = development.unkey.cloud
+else ifeq ($(SPIRE_ENVIRONMENT),production)
+TRUST_DOMAIN = production.unkey.cliud
 endif
 
 # Targets (alphabetically ordered)
@@ -61,7 +59,7 @@ clean: ## Clean up temporary files
 	@rm -rf /tmp/spire-install
 
 .PHONY: clean-all
-clean-all: ## Completely remove SPIRE (data, configs, users)
+clean-all: ## Completely remove SPIRE (data, configs)
 	@echo "Stopping and removing SPIRE services..."
 	@sudo systemctl stop spire-server spire-agent 2>/dev/null || true
 	@sudo systemctl disable spire-server spire-agent 2>/dev/null || true
@@ -86,10 +84,6 @@ create-join-token: ## Create join token for agent
 		-socketPath /var/lib/spire/server/server.sock \
 		-spiffeID spiffe://$(TRUST_DOMAIN)/agent/node1
 
-.PHONY: create-users
-create-users: ## Create SPIRE directories (users no longer needed - runs as root)
-	@true
-
 .PHONY: deregister-services
 deregister-services: ## Deregister all Unkey services from SPIRE
 	@TRUST_DOMAIN=$(TRUST_DOMAIN) ./scripts/deregister-services.sh
@@ -104,21 +98,16 @@ download-spire: ## Download SPIRE binaries
 
 .PHONY: help
 help: ## Show this help message
-	@echo "SPIRE Installation Targets:"
-	@echo ""
-	@echo "Current environment: \033[32m$(SPIRE_ENVIRONMENT)\033[0m (trust domain: \033[32m$(TRUST_DOMAIN)\033[0m)"
-	@echo "To change environment: SPIRE_ENVIRONMENT=prod make <target>"
-	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Available environments: development, canary, prod"
+	@echo "Available environments: development, production"
 
 .PHONY: install
 install: install-server install-agent ## Install both SPIRE server and agent
 	@echo "Next steps: 'make service-start-server', then 'make register-agent', then 'make register-services'"
 
 .PHONY: install-agent
-install-agent: download-spire create-users setup-directories ## Install SPIRE agent
+install-agent: download-spire setup-directories ## Install SPIRE agent
 	@sudo systemctl stop spire-agent 2>/dev/null || true
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-agent
 	@sudo cp contrib/systemd/spire-agent.service /etc/systemd/system/spire-agent.service
@@ -128,12 +117,11 @@ install-agent: download-spire create-users setup-directories ## Install SPIRE ag
 	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-agent-wrapper.sh
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/agent.conf $(SPIRE_CONFIG_DIR)/agent/agent.conf
 	@sudo chmod 700 $(SPIRE_DATA_DIR)/agent/keys
-	@# AIDEV-NOTE: Install systemd drop-in directory for auto-join configuration
 	@sudo mkdir -p /etc/systemd/system/spire-agent.service.d
 	@sudo cp contrib/systemd/spire-agent.service.d/auto-join.conf /etc/systemd/system/spire-agent.service.d/
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable spire-agent >/dev/null 2>&1
-	@echo "✓ SPIRE agent installed ($(SPIRE_ENVIRONMENT): $(TRUST_DOMAIN))" 
+	@echo "✓ SPIRE agent installed ($(SPIRE_ENVIRONMENT): $(TRUST_DOMAIN))"
 	@echo "Next: Start server with 'make service-start-server', then 'make register-agent'"
 
 .PHONY: install-server
@@ -142,7 +130,6 @@ install-server: download-spire create-users setup-directories ## Install SPIRE s
 	@sudo rm -f $(SPIRE_INSTALL_DIR)/bin/spire-server
 	@sudo cp /tmp/spire-install/spire-$(SPIRE_VERSION)/bin/spire-server $(SPIRE_INSTALL_DIR)/bin/
 	@sudo chmod +x $(SPIRE_INSTALL_DIR)/bin/spire-server
-	@# AIDEV-NOTE: spire-server binary includes all CLI functionality in v1.12.2
 	@sudo cp environments/$(SPIRE_ENVIRONMENT)/server.conf $(SPIRE_CONFIG_DIR)/server/server.conf
 	@sudo cp contrib/systemd/spire-server.service /etc/systemd/system/
 	@sudo systemctl daemon-reload

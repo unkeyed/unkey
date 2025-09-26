@@ -6,7 +6,6 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type { ErrorResponse } from "@unkey/api/src";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 describe("without identities", () => {
@@ -110,7 +109,7 @@ describe("without identities", () => {
         createdAtM: Date.now(),
       });
 
-      const res = await h.post<V1KeysVerifyKeyRequest, ErrorResponse>({
+      const res = await h.post<V1KeysVerifyKeyRequest, { error: { code: string } }>({
         url: "/v1/keys.verifyKey",
         headers: {
           "Content-Type": "application/json",

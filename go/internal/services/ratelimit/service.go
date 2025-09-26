@@ -158,7 +158,8 @@ func New(config Config) (*service, error) {
 // Close releases all resources held by the rate limiter.
 // It should be called when the service is no longer needed.
 func (s *service) Close() error {
-	return s.counter.Close()
+	s.replayBuffer.Close()
+	return nil
 }
 
 // calculateRateLimit evaluates if a request is within rate limits and returns the calculation results

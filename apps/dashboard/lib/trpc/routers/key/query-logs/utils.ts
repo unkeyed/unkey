@@ -1,4 +1,4 @@
-import type { KeyDetailsLogsPayload } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/query-logs.schema";
+import type { KeyDetailsLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { KeyDetailsLogsParams } from "@unkey/clickhouse/src/verifications";
 

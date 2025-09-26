@@ -1,0 +1,80 @@
+---
+title: "ratelimit_namespace_not_found"
+description: "The requested rate limit namespace was not found"
+---
+
+<Danger>
+err:unkey:data:ratelimit_namespace_not_found
+</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested rate limit namespace could not be found",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/ratelimit_namespace_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to perform an operation on a rate limit namespace that doesn't exist in the Unkey system. Rate limit namespaces are used to organize and manage rate limits for different resources or operations.
+
+Common scenarios that trigger this error:
+- Using an incorrect namespace ID or name
+- Referencing a namespace that has been deleted
+- Trying to modify a namespace that doesn't exist in the current workspace
+- Typos in namespace names when using name-based lookups
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Attempting to get overrides for a non-existent namespace
+curl -X POST https://api.unkey.com/v2/ratelimit.listOverrides \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "namespaceName": "nonexistent_namespace"
+  }'
+```
+
+## How To Fix
+
+Verify that you're using the correct namespace ID or name and that the namespace still exists in your workspace:
+
+1. Check the namespace ID or name in your request for typos or formatting errors
+2. List all namespaces in your workspace to find the correct ID or name
+3. If the namespace has been deleted, you may need to recreate it
+
+Here's how to use the correct namespace in a rate limit operation:
+
+```bash
+# Creating a rate limit using a valid namespace
+curl -X POST https://api.unkey.com/v2/ratelimit.limit \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "namespace": "your_valid_namespace",
+    "identifier": "user_123",
+    "limit": 100,
+    "duration": 60000
+  }'
+```
+
+## Common Mistakes
+
+- **Typos in namespace names**: Small typographical errors in namespace names
+- **Case sensitivity**: Namespace names might be case-sensitive
+- **Deleted namespaces**: Referencing namespaces that have been removed
+- **Workspace boundaries**: Trying to use namespaces from another workspace
+
+## Related Errors
+- [err:unkey:data:ratelimit_override_not_found](./ratelimit_override_not_found) - When the requested rate limit override doesn't exist
+- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on rate limits
+- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist

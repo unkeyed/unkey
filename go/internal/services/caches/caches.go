@@ -16,17 +16,17 @@ import (
 // Caches holds all cache instances used throughout the application.
 // Each field represents a specialized cache for a specific data entity.
 type Caches struct {
-	// RatelimitNamespaceByName caches ratelimit namespace lookups by name.
-	// Keys are string and values are db.FindRatelimitNamespace.
-	RatelimitNamespaceByName cache.Cache[string, db.FindRatelimitNamespace]
+	// RatelimitNamespace caches ratelimit namespace lookups by name or ID.
+	// Keys are cache.ScopedKey and values are db.FindRatelimitNamespace.
+	RatelimitNamespace cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 
 	// VerificationKeyByHash caches verification key lookups by their hash.
 	// Keys are string (hash) and values are db.VerificationKey.
 	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
 
-	// ApiByID caches API lookups by their ID.
-	// Keys are string (ID) and values are db.Api.
-	ApiByID cache.Cache[string, db.Api]
+	// LiveApiByID caches live API lookups by ID.
+	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
+	LiveApiByID cache.Cache[string, db.FindLiveApiByIDRow]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -45,7 +45,7 @@ type Config struct {
 }
 
 // createCache creates a cache instance with optional clustering support.
-// 
+//
 // This is a generic helper function that:
 // 1. Creates a local cache with the provided configuration
 // 2. If a CacheInvalidationTopic is provided, wraps it with clustering for distributed invalidation
@@ -131,7 +131,7 @@ func New(config Config) (Caches, error) {
 	}
 
 	// Create ratelimit namespace cache
-	ratelimitNamespace, err := createCache(config, cache.Config[string, db.FindRatelimitNamespace]{
+	ratelimitNamespace, err := createCache(config, cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
@@ -145,8 +145,8 @@ func New(config Config) (Caches, error) {
 
 	// Create verification key cache
 	verificationKeyByHash, err := createCache(config, cache.Config[string, db.FindKeyForVerificationRow]{
-		Fresh:    30 * time.Second,
-		Stale:    24 * time.Hour,
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",
@@ -157,12 +157,12 @@ func New(config Config) (Caches, error) {
 	}
 
 	// Create API cache
-	apiById, err := createCache(config, cache.Config[string, db.Api]{
+	liveApiByID, err := createCache(config, cache.Config[string, db.FindLiveApiByIDRow]{
 		Fresh:    10 * time.Second,
 		Stale:    24 * time.Hour,
 		Logger:   config.Logger,
 		MaxSize:  1_000_000,
-		Resource: "api_by_id",
+		Resource: "live_api_by_id",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -170,8 +170,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		RatelimitNamespaceByName: middleware.WithTracing(ratelimitNamespace),
-		ApiByID:                  middleware.WithTracing(apiById),
-		VerificationKeyByHash:    middleware.WithTracing(verificationKeyByHash),
+		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
+		LiveApiByID:           middleware.WithTracing(liveApiByID),
+		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 	}, nil
 }

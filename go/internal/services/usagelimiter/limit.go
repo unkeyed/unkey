@@ -3,17 +3,19 @@ package usagelimiter
 import (
 	"context"
 	"database/sql"
-	"math"
 
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
 	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
 	defer span.End()
 
-	limit, err := db.Query.FindKeyCredits(ctx, s.db.RW(), req.KeyId)
+	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
+		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
@@ -25,21 +27,27 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	if !limit.Valid {
 		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
-	remaining := limit.Int32
 
+	remaining := limit.Int32
 	// Key doesn't have enough credits to cover the request cost
-	if remaining <= 0 && req.Cost != 0 || remaining-req.Cost < 0 {
+	if req.Cost > 0 && remaining < req.Cost {
+		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
-	err = db.Query.UpdateKeyCredits(ctx, s.db.RW(), db.UpdateKeyCreditsParams{
-		ID:        req.KeyId,
-		Operation: "decrement",
-		Credits:   sql.NullInt32{Int32: req.Cost, Valid: true},
+	err = db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
+		ID:      req.KeyId,
+		Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
 	})
 	if err != nil {
 		return UsageResponse{}, err
 	}
 
-	return UsageResponse{Valid: true, Remaining: int32(math.Max(float64(0), float64(remaining-req.Cost)))}, nil
+	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
+	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
+}
+
+func (s *service) Close() error {
+	// Direct DB service has no resources to clean up
+	return nil
 }

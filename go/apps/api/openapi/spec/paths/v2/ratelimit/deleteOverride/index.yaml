@@ -1,0 +1,101 @@
+post:
+  tags:
+    - ratelimit
+  summary: Delete ratelimit override
+  description: |
+    Permanently remove a rate limit override. Affected identifiers immediately revert to the namespace default.
+
+    Use this to remove temporary overrides, reset identifiers to standard limits, or clean up outdated rules.
+
+    **Important:** Deletion is immediate and permanent. The override cannot be recovered and must be recreated if needed again.
+
+    **Permissions:** Requires `ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`
+  operationId: ratelimit.deleteOverride
+  x-speakeasy-name-override: deleteOverride
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitDeleteOverrideRequestBody.yaml"
+        examples:
+          specific:
+            summary: Delete specific override
+            value:
+              namespaceName: api.requests
+              identifier: premium_user_123
+          wildcard:
+            summary: Delete wildcard pattern override
+            value:
+              namespaceName: api.requests
+              identifier: premium_*
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitDeleteOverrideResponseBody.yaml"
+      description: Override successfully deleted. Affected identifiers now use default limits.
+      examples:
+        standard:
+          summary: Override deleted successfully
+          value:
+            meta:
+              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+            data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `ratelimit.*.delete_override`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'ratelimit.*.delete_override'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - Override or namespace not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            overrideNotFound:
+              summary: Override not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: No override found for the specified identifier in this namespace.
+                  status: 404
+                  type: not_found
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

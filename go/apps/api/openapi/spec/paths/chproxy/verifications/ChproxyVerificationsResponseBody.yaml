@@ -1,0 +1,8 @@
+type: object
+required:
+  - status
+properties:
+  status:
+    type: string
+    description: Processing status
+    example: "OK"

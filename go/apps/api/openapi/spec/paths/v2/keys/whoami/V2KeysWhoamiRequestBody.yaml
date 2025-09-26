@@ -1,0 +1,20 @@
+type: object
+properties:
+  key:
+    type: string
+    minLength: 1
+    maxLength: 512 # Reasonable upper bound for API key strings
+    description: |
+      The complete API key string provided by you, including any prefix.
+      Never log, cache, or store API keys in your system as they provide full access to user resources.
+      Include the full key exactly as provided - even minor modifications will cause a not found error.
+    example: sk_1234abcdef5678
+additionalProperties: false
+required:
+  - key
+examples:
+  playground:
+    summary: Lookup by actual key string
+    description: Look up key details when provided the actual key string
+    value:
+      key: sk_1234abcdef5678

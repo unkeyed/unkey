@@ -1,0 +1,122 @@
+---
+title: "Overview"
+description: "Migrate from Unkey API v1 to v2 for enhanced features and improved infrastructure"
+---
+
+Unkey v2 represents a major infrastructure upgrade with enhanced caching and cache invalidation systems. While the core functionality remains the same, there are important changes to request and response structures that require updates to your integration.
+
+<Note>The v2 API is available at **api.unkey.com** (instead of api.unkey.dev). The v1 API is deprecated and will be shut down at the end of the year 2025.</Note>
+
+
+## Quick Start
+
+The fastest way to migrate is to update your SDK:
+
+<Tabs>
+<Tab title="TypeScript">
+```bash
+npm install @unkey/api@latest
+```
+</Tab>
+<Tab title="Python">
+```bash
+pip install unkey.py@^2.0.4
+```
+</Tab>
+<Tab title="Go">
+```bash
+go get github.com/unkeyed/sdks/api/go/v2
+```
+</Tab>
+</Tabs>
+
+The v2 SDK automatically points to the new endpoint and guides you through all request/response changes via its types.
+
+## Why Migrate to v2?
+
+### Proven Performance Improvements
+
+Our v2 changes produce measurable latency improvements across all regions:
+
+<Frame caption="Global P95 Latency improvement for key verifications when switching from v1 to v2">
+<img src="/api-reference/v1/migration/latency_drop.png" />
+</Frame>
+
+### Key Changes of v2
+
+- **New Domain:** API available at `api.unkey.com` instead of `api.unkey.dev`
+- **Enhanced Caching:** Server-based infrastructure with improved caching mechanisms
+- **Improved Invalidations:** Enhanced cache invalidation system across regions
+- **Improved Developer Experience:** More consistent error handling and response formats
+
+## What You Need to Change
+
+The main changes you'll need to make when migrating:
+
+- **Update your base URL** from `api.unkey.dev` to `api.unkey.com` (The SDKs do this automatically starting at v2.0.0)
+- **Change response parsing** from direct responses to `response.data`
+- **Handle new error format** with hierarchical error codes and request IDs
+
+## Response Format Changes
+
+All v2 responses now use a standardized envelope format with `meta` and `data` fields:
+
+#### v1 Response Format
+```json
+{
+  "valid": true,
+  "keyId": "key_123",
+  "name": "Production API Key"
+}
+```
+
+#### v2 Response Format
+```json
+{
+  "meta": {
+    "requestId": "req_abc123"
+  },
+  "data": {
+    "valid": true,
+    "keyId": "key_123",
+    "name": "Production API Key"
+  }
+}
+```
+
+
+---
+
+## Detailed Migration by Category
+
+Choose the endpoint category you need to migrate:
+
+<CardGroup cols={2}>
+<Card title="Keys Endpoints" icon="key" href="/api-reference/v1/migration/keys">
+Key creation, verification, updates, permissions, and roles
+</Card>
+<Card title="APIs Endpoints" icon="database" href="/api-reference/v1/migration/apis">
+API namespace creation, retrieval, and key listing
+</Card>
+<Card title="Identities Endpoints" icon="user" href="/api-reference/v1/migration/identities">
+Identity management and shared rate limits
+</Card>
+<Card title="Permissions Endpoints" icon="shield" href="/api-reference/v1/migration/permissions">
+Standalone permission and role management
+</Card>
+<Card title="Rate Limiting Endpoints" icon="bolt" href="/api-reference/v1/migration/ratelimiting">
+Rate limiting and override management
+</Card>
+<Card title="Error Handling" icon="triangle-exclamation" href="/api-reference/v1/migration/errors">
+Error response format changes and codes
+</Card>
+</CardGroup>
+
+
+### Getting Help
+
+- **Documentation:** https://unkey.com/docs/api-reference/v2
+- **Discord:** https://unkey.com/discord
+- **GitHub Issues:** https://github.com/unkeyed/unkey/issues
+- **Email Support:** support@unkey.dev
+- **Book a Call:** https://cal.com/team/unkey/founders - Schedule time with our team for migration help or feedback

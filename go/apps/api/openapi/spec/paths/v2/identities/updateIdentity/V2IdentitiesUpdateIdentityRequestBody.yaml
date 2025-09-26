@@ -1,0 +1,38 @@
+type: object
+properties:
+  identity:
+    type: string
+    minLength: 3
+    description: The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
+    example: user_123
+  meta:
+    type: object
+    additionalProperties: true
+    maxProperties: 100
+    description: |
+      Replaces all existing metadata with this new metadata object.
+      Omitting this field preserves existing metadata, while providing an empty object clears all metadata.
+      Avoid storing sensitive data here as it's returned in verification responses.
+      Large metadata objects increase verification latency and should stay under 10KB total size.
+    example:
+      name: Alice Smith
+      email: alice@example.com
+      plan: premium
+  ratelimits:
+    type: array
+    maxItems: 50
+    items:
+      $ref: "../../../../common/RatelimitRequest.yaml"
+    description: |
+      Replaces all existing identity rate limits with this complete list of rate limits.
+      Omitting this field preserves existing rate limits, while providing an empty array removes all rate limits.
+      These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
+      Rate limit changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+    example:
+      - name: requests
+        limit: 1000
+        duration: 3600000
+        autoApply: true
+additionalProperties: false
+required:
+  - identity

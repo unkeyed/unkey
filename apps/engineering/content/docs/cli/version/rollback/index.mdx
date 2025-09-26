@@ -1,0 +1,44 @@
+---
+title: "Rollback"
+description: "Rollback to a previous version"
+---
+Rollback a hostname to a previous version. This operation will switch traffic from the current version to the specified target version.
+
+## Warning
+
+This operation affects live traffic. Use the --force flag to skip the confirmation prompt in automated environments.
+
+## Command Syntax
+
+```bash
+unkey version rollback [flags]
+```
+
+## Examples
+
+### Rollback with confirmation prompt
+
+```bash
+unkey version rollback my-api.unkey.app v_abc123def456
+```
+
+### Rollback without confirmation for automation
+
+```bash
+unkey version rollback my-api.unkey.app v_abc123def456 --force
+```
+
+### Rollback staging environment
+
+```bash
+unkey version rollback staging-api.unkey.app v_def456ghi789
+```
+
+## Flags
+
+<Callout type="info" title="--force">
+Skip confirmation prompt for automated deployments
+
+- **Type:** boolean
+- **Default:** `false`
+</Callout>

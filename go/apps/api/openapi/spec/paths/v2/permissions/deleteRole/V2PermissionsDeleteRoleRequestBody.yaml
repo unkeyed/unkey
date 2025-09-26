@@ -1,0 +1,25 @@
+type: object
+required:
+  - role
+properties:
+  role:
+    type: string
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+    minLength: 3
+    maxLength: 255
+    description: |
+      Unique identifier of the role to permanently delete from your workspace.
+      Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+
+      WARNING: Deletion is immediate and irreversible with significant consequences:
+      - All API keys assigned this role will lose the associated permissions
+      - Access to resources protected by this role's permissions will be denied
+      - Any authorization logic depending on this role will start failing
+      - Historical analytics referencing this role remain intact
+
+      Before deletion, ensure:
+      - You've updated any dependent authorization logic or code
+      - You've migrated any keys to use alternative roles or direct permissions
+      - You've notified relevant team members of the access changes
+    example: role_dns_manager
+additionalProperties: false

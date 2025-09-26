@@ -1,41 +1,38 @@
 name: Release
-
 on:
   workflow_dispatch:
   push:
     # run only against tags
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+*"
-
 permissions:
   contents: write
-
 concurrency: release
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          go: true
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+          install: "false"
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to image repository
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
-
       - name: Login to npm registry
         run: npm set "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}"
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:

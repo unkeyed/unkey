@@ -1,14 +1,15 @@
 -- name: FindProjectById :one
-SELECT 
+SELECT
     id,
     workspace_id,
-    partition_id,
     name,
     slug,
     git_repository_url,
     default_branch,
     delete_protection,
+    live_deployment_id,
+    is_rolled_back,
     created_at,
     updated_at
-FROM projects 
+FROM projects
 WHERE id = ?;

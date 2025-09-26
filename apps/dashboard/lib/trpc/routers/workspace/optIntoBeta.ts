@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
+import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
@@ -9,7 +10,7 @@ export const optWorkspaceIntoBeta = t.procedure
   .use(requireWorkspace)
   .input(
     z.object({
-      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage"]),
+      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage", "deployments"]),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -20,6 +21,10 @@ export const optWorkspaceIntoBeta = t.procedure
       }
       case "identities": {
         ctx.workspace.betaFeatures.identities = true;
+        break;
+      }
+      case "deployments": {
+        ctx.workspace.betaFeatures.deployments = true;
         break;
       }
     }
@@ -48,6 +53,9 @@ export const optWorkspaceIntoBeta = t.procedure
             userAgent: ctx.audit.userAgent,
           },
         });
+
+        // Invalidate workspace cache after successful update
+        await invalidateWorkspaceCache(ctx.tenant.id);
       })
       .catch((err) => {
         console.error(err);

@@ -9,7 +9,9 @@ import { keySchema } from "./schema";
 
 const route = createRoute({
   operationId: "deprecated.listKeys",
+  summary: "List API keys (deprecated)",
   "x-speakeasy-ignore": true,
+  "x-excluded": true,
   method: "get",
   path: "/v1/apis/{apiId}/keys",
   request: {

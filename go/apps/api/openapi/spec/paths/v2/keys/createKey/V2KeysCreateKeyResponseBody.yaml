@@ -1,0 +1,37 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2KeysCreateKeyResponseData.yaml"
+examples:
+  freeTierKey:
+    summary: Free tier key created successfully
+    description: Successfully created a key for a free tier user with limited credits
+    value:
+      meta:
+        requestId: req_abc123def456
+      data:
+        keyId: key_1234abcd
+        key: sk_1234abcdef567890
+  paidTierKey:
+    summary: Paid tier key created successfully  
+    description: Successfully created a key for a paid subscriber with higher limits
+    value:
+      meta:
+        requestId: req_def456ghi789
+      data:
+        keyId: key_5678efgh
+        key: sk_5678efgh90123456
+  enterpriseKey:
+    summary: Enterprise key created successfully
+    description: Successfully created a key for enterprise customer with custom permissions
+    value:
+      meta:
+        requestId: req_ghi789jkl012
+      data:
+        keyId: key_9012ijkl
+        key: sk_9012ijkl34567890

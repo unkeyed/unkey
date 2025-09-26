@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   keysOverviewFilterFieldConfig,
-} from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
@@ -117,8 +117,8 @@ Query: "show keys from last 30m"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "30m"
     }]
   }
@@ -128,15 +128,15 @@ Query: "find keys between yesterday and today"
 Result: [
   {
     field: "startTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS - 24 * 60 * 60 * 1000}
     }]
   },
   {
     field: "endTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS}
     }]
   }
@@ -205,8 +205,8 @@ Result: [
   },
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "2h"
     }]
   },
@@ -255,9 +255,9 @@ Query: "show keys from last week"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
-      value: "1w"  
+    filters: [{
+      operator: "is",
+      value: "1w"
     }]
   }
 ]
@@ -266,8 +266,8 @@ Query: "find failed keys"
 Result: [
   {
     field: "outcomes",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "invalid"  // Maps "failed" to invalid status
     }]
   }

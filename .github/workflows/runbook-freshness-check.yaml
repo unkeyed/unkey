@@ -1,9 +1,8 @@
 name: Runbook Freshness Check
-
 # Security: Limit permissions to minimum required
 permissions:
-  contents: read       # Required: checkout repo + git log for file history
-  issues: write        # Required: create and update issues for stale runbooks
+  contents: read # Required: checkout repo + git log for file history
+  issues: write # Required: create and update issues for stale runbooks
   # Explicitly deny all other permissions
   actions: none
   checks: none
@@ -15,21 +14,18 @@ permissions:
   repository-projects: none
   security-events: none
   statuses: none
-
 on:
   schedule:
     # Run daily at 9 AM UTC
-    - cron: '0 0 1 * *'
+    - cron: "0 9 * * *"
   workflow_dispatch: # Allow manual trigger
-
 jobs:
   check-runbook-freshness:
     runs-on: ubuntu-latest
     # Security: Set timeout to prevent runaway workflows
     timeout-minutes: 10
-
     # Security: Restrict environment access
-    environment: 
+    environment:
       name: runbook-maintenance
     steps:
       - name: Checkout repository
@@ -42,7 +38,6 @@ jobs:
           fetch-depth: 0 # Required for git log to get file modification dates
           # Security: Use specific token with limited scope
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check runbook freshness and create issues
         uses: actions/github-script@v7
         with:
@@ -53,10 +48,10 @@ jobs:
             const { execSync } = require('child_process');
             const fs = require('fs');
             const path = require('path');
-            
+
             // Security: Restrict to specific directory only
             const runbookDir = 'apps/engineering/content/docs/runbooks';
-            
+
             // Security: Validate directory exists and is within expected path
             if (!fs.existsSync(runbookDir)) {
               throw new Error(`Runbook directory not found: ${runbookDir}`);
@@ -64,16 +59,16 @@ jobs:
             const findRunbooks = (dir) => {
               const files = [];
               const items = fs.readdirSync(dir, { withFileTypes: true });
-              
+
               for (const item of items) {
                 const fullPath = path.join(dir, item.name);
-                
+
                 // Security: Ensure we stay within the runbook directory
                 if (!fullPath.startsWith(runbookDir)) {
                   console.log(`Skipping path outside runbook directory: ${fullPath}`);
                   continue;
                 }
-                
+
                 if (item.isDirectory()) {
                   files.push(...findRunbooks(fullPath));
                 } else if (item.name.endsWith('.mdx')) {
@@ -82,14 +77,14 @@ jobs:
               }
               return files;
             };
-            
+
             const runbookFiles = findRunbooks(runbookDir);
             console.log(`Found ${runbookFiles.length} runbook files`);
-            
+
             const staleRunbooks = [];
             const currentDate = Math.floor(Date.now() / 1000);
             const ninetyDaysAgo = currentDate - (90 * 24 * 60 * 60); // 90 days in seconds
-            
+
             for (const file of runbookFiles) {
               try {
                 // Security: Validate file path to prevent injection
@@ -97,25 +92,25 @@ jobs:
                   console.log(`Skipping invalid file: ${file}`);
                   continue;
                 }
-                
+
                 // Security: Use safe command execution with proper escaping
                 const escapedFile = file.replace(/'/g, "'\"'\"'");
-                const lastModified = execSync(`git log -1 --format="%ct" -- '${escapedFile}'`, { 
+                const lastModified = execSync(`git log -1 --format="%ct" -- '${escapedFile}'`, {
                   encoding: 'utf8',
                   timeout: 5000 // Prevent hanging
                 }).trim();
                 const lastModifiedTimestamp = parseInt(lastModified);
-                
+
                 if (lastModifiedTimestamp && lastModifiedTimestamp < ninetyDaysAgo) {
                   const lastModifiedDate = new Date(lastModifiedTimestamp * 1000).toISOString().split('T')[0];
                   const daysSinceUpdate = Math.floor((currentDate - lastModifiedTimestamp) / (24 * 60 * 60));
-                  
+
                   staleRunbooks.push({
                     file: file,
                     lastModified: lastModifiedDate,
                     daysSinceUpdate: daysSinceUpdate
                   });
-                  
+
                   console.log(`STALE: ${file} (${daysSinceUpdate} days old)`);
                 } else {
                   const lastModifiedDate = new Date(lastModifiedTimestamp * 1000).toISOString().split('T')[0];
@@ -126,51 +121,51 @@ jobs:
                 console.log(`Could not check ${file}: ${error.message}`);
               }
             }
-            
+
             if (staleRunbooks.length === 0) {
               console.log('All runbooks are fresh (updated within 90 days)');
               return;
             }
-            
+
             // Security: Limit number of issues created per run
             const maxIssuesPerRun = 10;
             if (staleRunbooks.length > maxIssuesPerRun) {
               console.log(`Warning: Found ${staleRunbooks.length} stale runbooks, limiting to ${maxIssuesPerRun} issues per run`);
               staleRunbooks.splice(maxIssuesPerRun);
             }
-            
+
             // Create individual issues for each stale runbook
             for (const runbook of staleRunbooks) {
               const fileName = path.basename(runbook.file, '.mdx');
-              
+
               // Security: Sanitize filename for issue title
               const sanitizedFileName = fileName.replace(/[<>:"\/\\|?*]/g, '-');
               const issueTitle = `Runbook review: ${sanitizedFileName}`;
               const priorityLabel = runbook.daysSinceUpdate > 180 ? 'priority-high' : 'priority-medium';
-              
+
               // Security: Sanitize all user-controlled content in issue body
               const sanitizedFile = runbook.file.replace(/[`<>]/g, '');
               const sanitizedDate = runbook.lastModified.replace(/[`<>]/g, '');
               const sanitizedDays = String(runbook.daysSinceUpdate).replace(/[^0-9]/g, '');
-              
+
               const issueBody = `## Runbook needs review
-              
-**File**: \`${sanitizedFile}\`  
-**Last updated**: ${sanitizedDate} (${sanitizedDays} days ago)
-              
-This runbook has not been updated in over 90 days. Please review and verify:
 
-- Commands and procedures are accurate
-- Links and URLs work correctly  
-- Service names and configurations are current
-- Access requirements and credentials are up to date
+            **File**: \`${sanitizedFile}\`
+            **Last updated**: ${sanitizedDate} (${sanitizedDays} days ago)
 
-After reviewing, update the runbook with any necessary changes and close this issue.
+            This runbook has not been updated in over 90 days. Please review and verify:
 
-**Quick links:**
-- [View file](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/${sanitizedFile})
-- [Edit file](https://github.com/${context.repo.owner}/${context.repo.repo}/edit/main/${sanitizedFile})`;
-              
+            - Commands and procedures are accurate
+            - Links and URLs work correctly
+            - Service names and configurations are current
+            - Access requirements and credentials are up to date
+
+            After reviewing, update the runbook with any necessary changes and close this issue.
+
+            **Quick links:**
+            - [View file](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/${sanitizedFile})
+            - [Edit file](https://github.com/${context.repo.owner}/${context.repo.repo}/edit/main/${sanitizedFile})`;
+
               // Check if issue already exists for this specific runbook
               const existingIssues = await github.rest.issues.listForRepo({
                 owner: context.repo.owner,
@@ -178,11 +173,11 @@ After reviewing, update the runbook with any necessary changes and close this is
                 state: 'open',
                 labels: 'runbook-review'
               });
-              
-              const existingIssue = existingIssues.data.find(issue => 
+
+              const existingIssue = existingIssues.data.find(issue =>
                 issue.title.includes(fileName) && issue.body.includes(runbook.file)
               );
-              
+
               if (existingIssue) {
                 // Update existing issue
                 await github.rest.issues.update({
@@ -192,9 +187,9 @@ After reviewing, update the runbook with any necessary changes and close this is
                   title: issueTitle,
                   body: issueBody
                 });
-                
+
                 console.log(`Updated existing issue #${existingIssue.number} for ${fileName}`);
-                
+
               } else {
                 // Create new issue
                 const issue = await github.rest.issues.create({
@@ -204,9 +199,9 @@ After reviewing, update the runbook with any necessary changes and close this is
                   body: issueBody,
                   labels: ['runbook-review', 'ops', priorityLabel]
                 });
-                
+
                 console.log(`Created new issue #${issue.data.number} for ${fileName}`);
               }
             }
-            
+
             console.log(`\nProcessed ${staleRunbooks.length} stale runbooks`);

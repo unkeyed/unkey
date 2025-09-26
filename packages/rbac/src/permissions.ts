@@ -35,6 +35,7 @@ export const apiActions = z.enum([
   "encrypt_key",
   "decrypt_key",
   "read_key",
+  "verify_key",
 ]);
 export const ratelimitActions = z.enum([
   "limit",

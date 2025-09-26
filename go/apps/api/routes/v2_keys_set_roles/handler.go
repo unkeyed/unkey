@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -16,12 +16,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 type Request = openapi.V2KeysSetRolesRequestBody
-type Response = openapi.V2KeysSetRolesResponse
+type Response = openapi.V2KeysSetRolesResponseBody
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
@@ -46,32 +47,18 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.setRoles")
 
-	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.UpdateKey,
-		}),
-	)))
-	if err != nil {
-		return err
-	}
-
-	// 4. Validate key exists and belongs to workspace
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -93,7 +80,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Get current roles for the key
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.UpdateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   key.Api.ID,
+			Action:       rbac.UpdateKey,
+		}),
+	)))
+	if err != nil {
+		return err
+	}
+
 	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
@@ -102,196 +104,158 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 6. Resolve and validate requested roles
-	requestedRoles := make([]db.Role, 0, len(req.Roles))
-	for _, roleRef := range req.Roles {
-		var role db.Role
-
-		if roleRef.Id != nil {
-			// Find by ID
-			role, err = db.Query.FindRoleByID(ctx, h.DB.RO(), *roleRef.Id)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role with ID '%s' was not found.", *roleRef.Id)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-		} else if roleRef.Name != nil {
-			// Find by name
-			role, err = db.Query.FindRoleByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-				Name:        *roleRef.Name,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-			})
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role with name '%s' was not found.", *roleRef.Name)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-		} else {
-			return fault.New("invalid role reference",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("role missing id and name"), fault.Public("Each role must specify either 'id' or 'name'."),
-			)
-		}
-
-		// Validate role belongs to the same workspace
-		if role.WorkspaceID != auth.AuthorizedWorkspaceID {
-			return fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role belongs to different workspace"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role.Name)),
-			)
-		}
-
-		requestedRoles = append(requestedRoles, role)
-	}
-
-	// 7. Calculate differential update
-	// Create maps for efficient lookup
 	currentRoleIDs := make(map[string]bool)
 	for _, role := range currentRoles {
 		currentRoleIDs[role.ID] = true
 	}
 
+	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Names:       req.Roles,
+	})
+
+	foundMap := make(map[string]struct{})
+	for _, role := range foundRoles {
+		foundMap[role.ID] = struct{}{}
+		foundMap[role.Name] = struct{}{}
+	}
+
+	for _, role := range req.Roles {
+		_, exists := foundMap[role]
+		if !exists {
+			return fault.New("role not found",
+				fault.Code(codes.Data.Role.NotFound.URN()),
+				fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
+			)
+		}
+	}
+
 	requestedRoleIDs := make(map[string]bool)
-	requestedRoleMap := make(map[string]db.Role)
-	for _, role := range requestedRoles {
+	requestedRoleMap := make(map[string]db.FindManyRolesByNamesWithPermsRow)
+	for _, role := range foundRoles {
 		requestedRoleIDs[role.ID] = true
 		requestedRoleMap[role.ID] = role
 	}
 
 	// Determine roles to remove and add
-	rolesToRemove := make([]string, 0)
+	rolesToRemove := make([]db.ListRolesByKeyIDRow, 0)
 	for _, role := range currentRoles {
 		if !requestedRoleIDs[role.ID] {
-			rolesToRemove = append(rolesToRemove, role.ID)
+			rolesToRemove = append(rolesToRemove, role)
 		}
 	}
 
-	rolesToAdd := make([]db.Role, 0)
-	for _, role := range requestedRoles {
+	rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
+	for _, role := range foundRoles {
 		if !currentRoleIDs[role.ID] {
 			rolesToAdd = append(rolesToAdd, role)
 		}
 	}
 
-	// 8. Apply changes in transaction
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var auditLogs []auditlog.AuditLog
 
-		// Remove roles that are no longer needed
-		for _, roleID := range rolesToRemove {
-			err = db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
-				KeyID:  req.KeyId,
-				RoleID: roleID,
+		if len(rolesToRemove) > 0 {
+			var roleIds []string
+
+			for _, role := range rolesToRemove {
+				roleIds = append(roleIds, role.ID)
+
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.AuthDisconnectRoleKeyEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        auditlog.KeyResourceType,
+							ID:          req.KeyId,
+							Name:        key.Name.String,
+							DisplayName: key.Name.String,
+							Meta:        map[string]any{},
+						},
+						{
+							Type:        auditlog.RoleResourceType,
+							ID:          role.ID,
+							Name:        role.Name,
+							DisplayName: role.Name,
+							Meta:        map[string]any{},
+						},
+					},
+				})
+			}
+
+			err = db.Query.DeleteManyKeyRolesByKeyAndRoleIDs(ctx, tx, db.DeleteManyKeyRolesByKeyAndRoleIDsParams{
+				KeyID:   req.KeyId,
+				RoleIds: roleIds,
 			})
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
+					fault.Internal("database error"),
+					fault.Public("Failed to remove role assignment."),
 				)
 			}
-
-			// Find the role for audit log
-			var removedRole db.Role
-			for _, role := range currentRoles {
-				if role.ID == roleID {
-					removedRole = role
-					break
-				}
-			}
-
-			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.AuthDisconnectRoleKeyEvent,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Removed role %s from key %s", removedRole.Name, req.KeyId),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						Type:        "key",
-						ID:          req.KeyId,
-						Name:        key.Name.String,
-						DisplayName: key.Name.String,
-						Meta:        map[string]any{},
-					},
-					{
-						Type:        "role",
-						ID:          removedRole.ID,
-						Name:        removedRole.Name,
-						DisplayName: removedRole.Name,
-						Meta:        map[string]any{},
-					},
-				},
-			})
 		}
 
-		// Add new roles
-		for _, role := range rolesToAdd {
-			err = db.Query.InsertKeyRole(ctx, tx, db.InsertKeyRoleParams{
-				KeyID:       req.KeyId,
-				RoleID:      role.ID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				CreatedAtM:  time.Now().UnixMilli(),
-			})
+		if len(rolesToAdd) > 0 {
+			var keyRolesToInsert []db.InsertKeyRoleParams
+
+			for _, role := range rolesToAdd {
+				keyRolesToInsert = append(keyRolesToInsert, db.InsertKeyRoleParams{
+					KeyID:       req.KeyId,
+					RoleID:      role.ID,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					CreatedAtM:  time.Now().UnixMilli(),
+				})
+
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.AuthConnectRoleKeyEvent,
+					ActorType:   auditlog.RootKeyActor,
+					ActorID:     auth.Key.ID,
+					ActorName:   "root key",
+					ActorMeta:   map[string]any{},
+					Display:     fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        auditlog.KeyResourceType,
+							ID:          req.KeyId,
+							Name:        key.Name.String,
+							DisplayName: key.Name.String,
+							Meta:        map[string]any{},
+						},
+						{
+							Type:        auditlog.RoleResourceType,
+							ID:          role.ID,
+							Name:        role.Name,
+							DisplayName: role.Name,
+							Meta:        map[string]any{},
+						},
+					},
+				})
+			}
+
+			err = db.BulkQuery.InsertKeyRoles(ctx, tx, keyRolesToInsert)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to add role assignment."),
+					fault.Internal("database error"),
+					fault.Public("Failed to add role assignment."),
 				)
 			}
-
-			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.AuthConnectRoleKeyEvent,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						Type:        "key",
-						ID:          req.KeyId,
-						Name:        key.Name.String,
-						DisplayName: key.Name.String,
-						Meta:        map[string]any{},
-					},
-					{
-						Type:        "role",
-						ID:          role.ID,
-						Name:        role.Name,
-						DisplayName: role.Name,
-						Meta:        map[string]any{},
-					},
-				},
-			})
 		}
 
-		// Insert audit logs if there are changes
-		if len(auditLogs) > 0 {
-			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-			if err != nil {
-				return err
-			}
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -302,38 +266,54 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	h.KeyCache.Remove(ctx, key.Hash)
 
-	// 10. Get final state of roles and build response
-	finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve final role state."),
-		)
+	responseData := make(openapi.V2KeysSetRolesResponseData, 0)
+	for _, role := range foundRoles {
+		r := openapi.Role{
+			Id:          role.ID,
+			Name:        role.Name,
+			Description: nil,
+			Permissions: nil,
+		}
+
+		if role.Description.Valid {
+			r.Description = &role.Description.String
+		}
+
+		rolePermissions := make([]db.Permission, 0)
+		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+			// AIDEV-SAFETY: On JSON parse failure, we default to empty permissions list
+			// to maintain least-privilege security posture rather than failing open
+			if err := json.Unmarshal(permBytes, &rolePermissions); err != nil {
+				h.Logger.Debug("failed to parse role permissions JSON, defaulting to empty list",
+					"roleId", role.ID,
+					"rawBytes", string(permBytes),
+					"error", err.Error())
+			}
+		}
+
+		perms := make([]openapi.Permission, 0)
+		for _, permission := range rolePermissions {
+			perm := openapi.Permission{
+				Id:          permission.ID,
+				Name:        permission.Name,
+				Slug:        permission.Slug,
+				Description: nil,
+			}
+
+			if permission.Description.Valid {
+				perm.Description = &permission.Description.String
+			}
+
+			perms = append(perms, perm)
+		}
+
+		if len(perms) > 0 {
+			r.Permissions = ptr.P(perms)
+		}
+
+		responseData = append(responseData, r)
 	}
 
-	// Sort roles alphabetically by name for consistent response
-	slices.SortFunc(finalRoles, func(a, b db.Role) int {
-		if a.Name < b.Name {
-			return -1
-		} else if a.Name > b.Name {
-			return 1
-		}
-		return 0
-	})
-
-	// Build response data
-	responseData := make(openapi.V2KeysSetRolesResponseData, len(finalRoles))
-	for i, role := range finalRoles {
-		responseData[i] = struct {
-			Id   string `json:"id"`
-			Name string `json:"name"`
-		}{
-			Id:   role.ID,
-			Name: role.Name,
-		}
-	}
-
-	// 11. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

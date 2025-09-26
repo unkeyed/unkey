@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
@@ -34,7 +35,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key")
 
 	// Set up request headers
 	headers := http.Header{
@@ -56,13 +57,8 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentKeyID := uid.New(uid.KeyPrefix)
 
 		req := handler.Request{
-			KeyId: nonExistentKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       nonExistentKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -99,13 +95,8 @@ func TestNotFoundErrors(t *testing.T) {
 		nonExistentPermissionID := uid.New(uid.TestPrefix)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &nonExistentPermissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{nonExistentPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -120,49 +111,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
-	t.Run("permission not found by slug", func(t *testing.T) {
-		// Create API and key using testutil helpers
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		keyName := "Test Key"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-		})
-		keyID := keyResponse.KeyID
-
-		// Use a non-existent permission name
-		nonExistentPermissionSlug := "nonexistent.permission.remove.name"
-
-		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Slug: &nonExistentPermissionSlug},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status, "Expected status code 404, got: %s", res.RawBody)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
 	t.Run("permission from different workspace by ID", func(t *testing.T) {
 		// Create another workspace
 		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
@@ -170,6 +118,7 @@ func TestNotFoundErrors(t *testing.T) {
 			ID:        otherWorkspaceID,
 			OrgID:     uid.New("test_org"),
 			Name:      "Other Workspace",
+			Slug:      uid.New("slug"),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -181,7 +130,7 @@ func TestNotFoundErrors(t *testing.T) {
 			WorkspaceID:  otherWorkspaceID,
 			Name:         "other.workspace.permission.remove.404",
 			Slug:         "other.workspace.permission.remove.404",
-			Description:  sql.NullString{Valid: true, String: "Permission in other workspace"},
+			Description:  dbtype.NullString{Valid: true, String: "Permission in other workspace"},
 		})
 		require.NoError(t, err)
 
@@ -218,13 +167,8 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &otherPermissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{otherPermissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
@@ -246,6 +190,7 @@ func TestNotFoundErrors(t *testing.T) {
 			ID:        otherWorkspaceID,
 			OrgID:     uid.New("test_org"),
 			Name:      "Other Workspace",
+			Slug:      uid.New("slug"),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -289,18 +234,13 @@ func TestNotFoundErrors(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.remove.404keydifferentws",
 			Slug:         "documents.read.remove.404keydifferentws",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: otherKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       otherKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

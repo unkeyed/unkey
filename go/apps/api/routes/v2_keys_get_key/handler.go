@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -22,12 +21,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysGetKeyRequestBody
-type Response = openapi.V2KeysGetKeyResponseBody
+type (
+	Request  = openapi.V2KeysGetKeyRequestBody
+	Response = openapi.V2KeysGetKeyResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
-	// Services as public fields
 	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
@@ -35,12 +35,10 @@ type Handler struct {
 	Vault     *vault.Service
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/keys.getKey"
 }
@@ -49,7 +47,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.getKey")
 
 	// Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -60,21 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint:exhaustruct
-	args := db.FindKeyByIdOrHashParams{}
-	if req.KeyId != nil {
-		args.ID = sql.NullString{String: *req.KeyId, Valid: true}
-	} else if req.Key != nil {
-		args.Hash = sql.NullString{String: hash.Sha256(*req.Key), Valid: true}
-	} else {
-		return fault.New("invalid request",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("missing keyId or key identifier"),
-			fault.Public("Either keyId or key must be provided."),
-		)
-	}
-
-	key, err := db.Query.FindKeyByIdOrHash(ctx, h.DB.RO(), args)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -92,8 +77,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	keyData := db.ToKeyData(key)
+
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -101,17 +88,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if API is deleted
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
 	// Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -119,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
 	)))
@@ -127,240 +105,203 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), key.KeyAuthID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
-		)
-	}
-
-	decrypt := ptr.SafeDeref(req.Decrypt, false)
+	// Handle decryption if requested
 	var plaintext *string
+	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	if decrypt {
-		if h.Vault == nil {
-			return fault.New("vault missing",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Public("Vault hasn't been set up."),
-			)
-		}
-
-		// Permission check
-		err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.DecryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   key.Api.ID,
-				Action:       rbac.DecryptKey,
-			}),
-		)))
+		plaintext, err = h.decryptKey(ctx, auth, keyData)
 		if err != nil {
 			return err
 		}
+	}
 
-		if !keyAuth.StoreEncryptedKeys {
-			return fault.New("api not set up for key encryption",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for key encryption"), fault.Public("The API for this key does not support key encryption."),
-			)
+	response := openapi.KeyResponseData{
+		CreatedAt: keyData.Key.CreatedAtM,
+		Enabled:   keyData.Key.Enabled,
+		KeyId:     keyData.Key.ID,
+		Start:     keyData.Key.Start,
+		Plaintext: plaintext,
+	}
+
+	// Set optional fields
+	if keyData.Key.Name.Valid {
+		response.Name = ptr.P(keyData.Key.Name.String)
+	}
+
+	if keyData.Key.UpdatedAtM.Valid {
+		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
+	}
+
+	if keyData.Key.Expires.Valid {
+		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
+	}
+
+	// Set credits
+	if keyData.Key.RemainingRequests.Valid {
+		response.Credits = &openapi.KeyCreditsData{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
-		// If the key is encrypted and the encryption key ID is valid, decrypt the key.
-		// Otherwise the key was never encrypted to begin with.
-		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid && req.Key == nil {
-			decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Keyring:   key.WorkspaceID,
-				Encrypted: key.EncryptedKey.String,
-			})
-
-			if decryptErr != nil {
-				h.Logger.Error("failed to decrypt key",
-					"keyId", key.ID,
-					"error", decryptErr,
-				)
-			} else {
-				plaintext = ptr.P(decrypted.GetPlaintext())
-			}
-		}
-
-		if req.Key != nil {
-			// Only respond with the plaintext key if EXPLICITLY requested.
-			plaintext = req.Key
-		}
-	}
-
-	k := openapi.KeyResponseData{
-		CreatedAt:   key.CreatedAtM,
-		Enabled:     key.Enabled,
-		KeyId:       key.ID,
-		Start:       key.Start,
-		Plaintext:   plaintext,
-		Name:        nil,
-		Meta:        nil,
-		Identity:    nil,
-		Credits:     nil,
-		Expires:     nil,
-		Permissions: nil,
-		Ratelimits:  nil,
-		Roles:       nil,
-		UpdatedAt:   nil,
-	}
-
-	if key.Name.Valid {
-		k.Name = ptr.P(key.Name.String)
-	}
-
-	if key.UpdatedAtM.Valid {
-		k.UpdatedAt = ptr.P(key.UpdatedAtM.Int64)
-	}
-
-	if key.Expires.Valid {
-		k.Expires = ptr.P(key.Expires.Time.UnixMilli())
-	}
-
-	if key.RemainingRequests.Valid {
-		k.Credits = &openapi.KeyCreditsData{
-			Remaining: nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32)),
-			Refill:    nil,
-		}
-
-		if key.RefillAmount.Valid {
+		if keyData.Key.RefillAmount.Valid {
 			var refillDay *int
-			interval := openapi.Daily
-			if key.RefillDay.Valid {
-				interval = openapi.Monthly
-				refillDay = ptr.P(int(key.RefillDay.Int16))
+			interval := openapi.KeyCreditsRefillIntervalDaily
+			if keyData.Key.RefillDay.Valid {
+				interval = openapi.KeyCreditsRefillIntervalMonthly
+				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
 			}
 
-			k.Credits.Refill = &openapi.KeyCreditsRefill{
-				Amount:    int64(key.RefillAmount.Int32),
+			response.Credits.Refill = &openapi.KeyCreditsRefill{
+				Amount:    int64(keyData.Key.RefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
 			}
 		}
 	}
 
-	if key.IdentityID.Valid {
-		identity, idErr := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{ID: key.IdentityID.String, Deleted: false})
-		if idErr != nil {
-			if db.IsNotFound(idErr) {
-				return fault.New("identity not found for key",
-					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"),
-					fault.Public("The requested identity does not exist or has been deleted."),
-				)
-			}
-
-			return fault.Wrap(idErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve Identity information."),
-			)
+	// Set identity
+	if keyData.Identity != nil {
+		response.Identity = &openapi.Identity{
+			Id:         keyData.Identity.ID,
+			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		k.Identity = &openapi.Identity{
-			ExternalId: identity.ExternalID,
-			Meta:       nil,
-			Ratelimits: nil,
-		}
-
-		if len(identity.Meta) > 0 {
-			err = json.Unmarshal(identity.Meta, &k.Identity.Meta)
-			if err != nil {
-				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-					fault.Internal("unable to unmarshal identity meta"),
-					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
-				)
+		if len(keyData.Identity.Meta) > 0 {
+			var identityMeta map[string]any
+			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+			} else {
+				response.Identity.Meta = &identityMeta
 			}
 		}
+	}
 
-		ratelimits, rlErr := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
-		if rlErr != nil && !db.IsNotFound(rlErr) {
-			return fault.Wrap(rlErr, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to retrieve identity ratelimits"),
-				fault.Public("We encountered an error while trying to retrieve the identity ratelimits."),
-			)
+	// Set permissions, combine direct + role permissions
+	permissionSlugs := make(map[string]struct{})
+	for _, p := range keyData.Permissions {
+		permissionSlugs[p.Slug] = struct{}{}
+	}
+	for _, p := range keyData.RolePermissions {
+		permissionSlugs[p.Slug] = struct{}{}
+	}
+	if len(permissionSlugs) > 0 {
+		slugs := make([]string, 0, len(permissionSlugs))
+		for slug := range permissionSlugs {
+			slugs = append(slugs, slug)
+		}
+		sort.Strings(slugs)
+		response.Permissions = &slugs
+	}
+
+	// Set roles
+	if len(keyData.Roles) > 0 {
+		roleNames := make([]string, len(keyData.Roles))
+		for i, role := range keyData.Roles {
+			roleNames[i] = role.Name
+		}
+		response.Roles = &roleNames
+	}
+
+	// Set ratelimits
+	if len(keyData.Ratelimits) > 0 {
+		var keyRatelimits []openapi.RatelimitResponse
+		var identityRatelimits []openapi.RatelimitResponse
+
+		for _, rl := range keyData.Ratelimits {
+			ratelimitResp := openapi.RatelimitResponse{
+				Id:        rl.ID,
+				Duration:  rl.Duration,
+				Limit:     int64(rl.Limit),
+				Name:      rl.Name,
+				AutoApply: rl.AutoApply,
+			}
+
+			// Add to key ratelimits if it belongs to this key
+			if rl.KeyID.Valid {
+				keyRatelimits = append(keyRatelimits, ratelimitResp)
+			}
+
+			// Add to identity ratelimits if it has an identity_id that matches
+			if rl.IdentityID.Valid {
+				identityRatelimits = append(identityRatelimits, ratelimitResp)
+			}
 		}
 
-		for _, ratelimit := range ratelimits {
-			k.Identity.Ratelimits = append(k.Identity.Ratelimits, openapi.RatelimitResponse{
-				Id:        ratelimit.ID,
-				Duration:  ratelimit.Duration,
-				Limit:     int64(ratelimit.Limit),
-				Name:      ratelimit.Name,
-				AutoApply: ratelimit.AutoApply,
-			})
+		if len(keyRatelimits) > 0 {
+			response.Ratelimits = &keyRatelimits
+		}
+
+		if len(identityRatelimits) > 0 {
+			response.Identity.Ratelimits = &identityRatelimits
 		}
 	}
 
-	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: key.ID, Valid: true})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to retrieve key ratelimits"),
-			fault.Public("We encountered an error while trying to retrieve the key ratelimits."),
-		)
-	}
-
-	ratelimitsResponse := make([]openapi.RatelimitResponse, len(ratelimits))
-	for idx, ratelimit := range ratelimits {
-		ratelimitsResponse[idx] = openapi.RatelimitResponse{
-			Id:        ratelimit.ID,
-			Duration:  ratelimit.Duration,
-			Limit:     int64(ratelimit.Limit),
-			Name:      ratelimit.Name,
-			AutoApply: ratelimit.AutoApply,
+	// Set meta
+	if keyData.Key.Meta.Valid {
+		var meta map[string]any
+		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
+			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		} else {
+			response.Meta = &meta
 		}
 	}
-
-	k.Ratelimits = ptr.P(ratelimitsResponse)
-
-	if key.Meta.Valid {
-		err = json.Unmarshal([]byte(key.Meta.String), &k.Meta)
-		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to unmarshal key meta"),
-				fault.Public("We encountered an error while trying to unmarshal the key meta data."),
-			)
-		}
-	}
-
-	permissionSlugs, err := db.Query.ListPermissionsByKeyID(ctx, h.DB.RO(), db.ListPermissionsByKeyIDParams{
-		KeyID: k.KeyId,
-	})
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to find permissions for key"), fault.Public("Could not load permissions for key."))
-	}
-	k.Permissions = ptr.P(permissionSlugs)
-
-	// Get roles for the key
-	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), k.KeyId)
-	if err != nil {
-		return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("unable to find roles for key"), fault.Public("Could not load roles for key."))
-	}
-
-	roleNames := make([]string, len(roles))
-	for i, role := range roles {
-		roleNames[i] = role.Name
-	}
-
-	k.Roles = ptr.P(roleNames)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: k,
+		Data: response,
 	})
+}
+
+func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyData *db.KeyData) (*string, error) {
+	if h.Vault == nil {
+		return nil, fault.New("vault missing",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Public("Vault hasn't been set up."),
+		)
+	}
+
+	// Permission check for decryption
+	err := auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.DecryptKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   keyData.Api.ID,
+			Action:       rbac.DecryptKey,
+		}),
+	)))
+	if err != nil {
+		return nil, err
+	}
+
+	if !keyData.KeyAuth.StoreEncryptedKeys {
+		return nil, fault.New("api not set up for key encryption",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("api not set up for key encryption"),
+			fault.Public("The API for this key does not support key encryption."),
+		)
+	}
+
+	// Only decrypt if the key is actually encrypted
+	if !keyData.EncryptedKey.Valid || !keyData.EncryptionKeyID.Valid {
+		return nil, nil
+	}
+
+	decrypted, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+		Keyring:   keyData.Key.WorkspaceID,
+		Encrypted: keyData.EncryptedKey.String,
+	})
+	if err != nil {
+		h.Logger.Error("failed to decrypt key",
+			"keyId", keyData.Key.ID,
+			"error", err,
+		)
+		return nil, nil // Return nil instead of failing the entire request
+	}
+
+	return ptr.P(decrypted.GetPlaintext()), nil
 }

@@ -52,8 +52,7 @@ func TestRatelimitResponse(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -93,8 +92,7 @@ func TestRatelimitResponse(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 
 		// First request should pass
@@ -124,8 +122,7 @@ func TestRatelimitResponse(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{
 				Name:     "custom",
 				Cost:     ptr.P(3),

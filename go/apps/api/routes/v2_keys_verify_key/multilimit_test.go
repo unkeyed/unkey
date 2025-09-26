@@ -57,8 +57,7 @@ func TestMultiLimit(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{Name: "10/10s", Cost: ptr.P(4)},
 					{Name: "1/1min", Cost: ptr.P(1)},
@@ -93,8 +92,7 @@ func TestMultiLimit(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{Name: "10/10s-test", Cost: ptr.P(4)},
 					{Name: "1/1min-test", Cost: ptr.P(2)}, // Exceeds limit of 1
@@ -147,7 +145,7 @@ func TestMultiLimit(t *testing.T) {
 			// Should pass 3 times due to key limit being 4
 			for i := 0; i < 3; i++ {
 				req := handler.Request{
-					ApiId:      api.ID,
+
 					Key:        key.Key,
 					Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "limit1"}, {Name: "limit2"}},
 				}
@@ -196,7 +194,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// First request should pass
 			req := handler.Request{
-				ApiId:      api.ID,
+
 				Key:        key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "limit1-reject"}, {Name: "limit2-reject"}},
 			}
@@ -252,7 +250,7 @@ func TestMultiLimit(t *testing.T) {
 			// Should pass twice (limit2 has limit of 2)
 			for i := 0; i < 2; i++ {
 				req := handler.Request{
-					ApiId:      api.ID,
+
 					Key:        key.Key,
 					Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "limit1-fallback"}, {Name: "limit2-fallback"}},
 				}
@@ -266,7 +264,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// Third request should be rate limited by limit2 (identity fallback)
 			req := handler.Request{
-				ApiId:      api.ID,
+
 				Key:        key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "limit1-fallback"}, {Name: "limit2-fallback"}},
 			}
@@ -310,7 +308,7 @@ func TestMultiLimit(t *testing.T) {
 			// Use up some quota with key1
 			for i := 0; i < 3; i++ {
 				req := handler.Request{
-					ApiId:      api.ID,
+
 					Key:        key1.Key,
 					Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "100per10m"}},
 				}
@@ -325,7 +323,7 @@ func TestMultiLimit(t *testing.T) {
 			// key2 should only have 2 requests left due to shared limit
 			for i := 0; i < 2; i++ {
 				req := handler.Request{
-					ApiId:      api.ID,
+
 					Key:        key2.Key,
 					Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "100per10m"}},
 				}
@@ -339,7 +337,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// Next request with key2 should be rate limited
 			req := handler.Request{
-				ApiId:      api.ID,
+
 				Key:        key2.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "100per10m"}},
 			}
@@ -370,8 +368,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// First request should pass
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				// No ratelimits specified - should use auto-applied
 			}
 
@@ -419,8 +416,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// First request with cost 4 should pass
 			req1 := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{Name: "tokens-identity", Cost: ptr.P(4)},
 					{Name: "10_per_10m-identity"},
@@ -435,8 +431,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// Second request with cost 6 should pass (total 10)
 			req2 := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{Name: "tokens-identity", Cost: ptr.P(6)},
 					{Name: "10_per_10m-identity"},
@@ -451,8 +446,7 @@ func TestMultiLimit(t *testing.T) {
 
 			// Third request with cost 1 should be rate limited (would be 11 total)
 			req3 := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{Name: "tokens-identity", Cost: ptr.P(1)},
 					{Name: "10_per_10m-identity"},

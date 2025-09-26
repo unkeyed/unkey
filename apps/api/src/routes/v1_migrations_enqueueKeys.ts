@@ -9,8 +9,12 @@ import { sha256 } from "@unkey/hash";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["migrations"],
   operationId: "v1.migrations.enqueueKeys",
+  summary: "Enqueue key migration",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post" as const,
   path: "/v1/migrations.enqueueKeys",
   security: [{ bearerAuth: [] }],

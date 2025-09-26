@@ -5,23 +5,18 @@ on:
       GHCR_TOKEN:
         required: true
         description: "github registrytoken"
-
 permissions:
   contents: read
-
 jobs:
   build:
     name: Build Agent
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Get Version
         run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
-
       - name: Get tags
         run: echo "TAGS=ghcr.io/${{ github.repository }}:${{env.VERSION}},ghcr.io/${{ github.repository }}:latest" >> $GITHUB_ENV
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -32,7 +27,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:

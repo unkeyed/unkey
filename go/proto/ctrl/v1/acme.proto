@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package ctrl.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
+
+message HandleCertificateVerificationRequest {
+  string domain = 1;
+  string token = 2;
+}
+
+message HandleCertificateVerificationResponse {
+  string token = 1;
+}
+
+service AcmeService {
+  rpc HandleCertificateVerification(HandleCertificateVerificationRequest) returns (HandleCertificateVerificationResponse) {}
+}

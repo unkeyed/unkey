@@ -11,8 +11,12 @@ const validation = {
 };
 
 const route = createRoute({
+  deprecated: true,
   tags: ["analytics"],
   operationId: "getVerifications",
+  summary: "Get verification analytics",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "get",
   path: "/v1/analytics.getVerifications",
   security: [{ bearerAuth: [] }],
@@ -350,11 +354,15 @@ STEP INTERVAL 1 MONTH`,
 
     if (filters.externalId) {
       const { val: identity, err: getIdentityError } = await cache.identityByExternalId.swr(
-        filters.externalId,
-        async (externalId: string) => {
+        `${auth.authorizedWorkspaceId}:${filters.externalId}`,
+        async () => {
           return (
             (await db.readonly.query.identities.findFirst({
-              where: (table, { eq }) => eq(table.externalId, externalId),
+              where: (table, { and, eq }) =>
+                and(
+                  eq(table.workspaceId, auth.authorizedWorkspaceId),
+                  eq(table.externalId, filters.externalId!),
+                ),
             })) ?? null
           );
         },

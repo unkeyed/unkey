@@ -1,0 +1,109 @@
+---
+title: Authentication
+description: 'Securely authenticating with the Unkey API'
+---
+
+
+Almost all Unkey API endpoints require authentication using a root key. Root keys provide access to your Unkey resources based on their assigned permissions.
+
+## Bearer Authentication
+
+Authentication is performed using HTTP Bearer authentication in the `Authorization` header:
+
+```bash
+Authorization: Bearer unkey_1234567890
+```
+
+Example request:
+
+```bash
+curl -X POST "https://api.unkey.com/v2/keys.createKey" \
+  -H "Authorization: Bearer unkey_1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{ "apiId": "api_1234" }'
+```
+
+## Security Best Practices
+
+Never expose your root key in client-side code or include it in public repositories. For frontend applications, always use a backend server to proxy requests to the Unkey API.
+
+## Root Key Management
+
+Root keys can be created and managed through the Unkey dashboard. We recommend:
+
+1. **Using Different Keys for Different Environments**: Maintain separate root keys for development, staging, and production
+2. **Rotating Keys Regularly**: Create new keys periodically and phase out old ones
+3. **Setting Clear Key Names**: Name your keys according to their use case for better manageability
+
+## Key Permissions System
+
+Unkey implements a sophisticated RBAC (Role-Based Access Control) system for root keys. Permissions are defined as tuples of:
+
+- **ResourceType**: The category of resource (api, ratelimit, rbac, identity)
+- **ResourceID**: The specific resource instance
+- **Action**: The operation to perform on that resource
+
+### Available Resource Types
+
+| Resource Type | Description |
+|---------------|-------------|
+| `api` | API-related resources, such as endpoints and keys |
+| `ratelimit` | Rate limiting resources and configuration |
+| `rbac` | Permissions and roles management |
+| `identity` | User and identity management |
+
+### Permission Examples
+
+Specific permission to manage a single API:
+```
+api.api_1234.read_api
+api.api_1234.update_api
+```
+
+Wildcard permission to manage all rate limit namespaces:
+```
+ratelimit.*.create_namespace
+ratelimit.*.read_namespace
+```
+
+When creating root keys, you can specify exactly what actions they're allowed to perform.
+
+## Authentication Errors
+
+If your authentication fails, you'll receive a 401 Unauthorized or 403 Forbidden response with an error message:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "error": {
+    "title": "Unauthorized",
+    "detail": "The provided root key is invalid or has been revoked",
+    "status": 401,
+    "type": "https://unkey.com/docs/errors/unauthorized"
+  }
+}
+```
+
+If your key is valid but lacks sufficient permissions, you'll receive a 403 Forbidden response:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "error": {
+    "title": "Forbidden",
+    "detail": "Your key does not have the required 'api.api_1234.update_api' permission",
+    "status": 403,
+    "type": "https://unkey.com/docs/errors/forbidden"
+  }
+}
+```
+
+Common authentication issues include:
+- Missing the Authorization header
+- Invalid key format
+- Revoked or expired root key
+- Using a key with insufficient permissions

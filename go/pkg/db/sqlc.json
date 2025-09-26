@@ -40,6 +40,15 @@
                 "type": "[]byte"
               },
               "nullable": true
+            },
+            {
+              "column": "permissions.description",
+              "go_type": {
+                "type": "NullString",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/go/pkg/db/types"
+              },
+              "nullable": true
             }
           ]
         }

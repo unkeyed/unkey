@@ -1,0 +1,67 @@
+post:
+  tags:
+    - keys
+  summary: Set key permissions
+  description: |
+    Replace all permissions on a key with the specified set in a single atomic operation.
+
+    Use this to synchronize with external systems, reset permissions to a known state, or apply standardized permission templates. Permissions granted through roles remain unchanged.
+
+    **Important**: Changes take effect immediately with up to 30-second edge propagation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
+  operationId: setPermissions
+  x-speakeasy-name-override: setPermissions
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysSetPermissionsRequestBody.yaml"
+  responses:
+    "200":
+      description: Permissions set successfully. Returns all permissions currently assigned to the key.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysSetPermissionsResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

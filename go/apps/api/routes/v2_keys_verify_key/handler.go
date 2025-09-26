@@ -49,7 +49,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.verifyKey")
 
 	// Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, rootEmit, err := h.Keys.GetRootKey(ctx, s)
+	defer rootEmit()
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := h.Keys.Get(ctx, s, req.Key)
+	key, emit, err := h.Keys.Get(ctx, s, req.Key)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RequestId: s.RequestID(),
 			},
 			// nolint:exhaustruct
-			Data: openapi.KeysVerifyKeyResponseData{
+			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
 			},
@@ -86,15 +87,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RequestId: s.RequestID(),
 			},
 			// nolint:exhaustruct
-			Data: openapi.KeysVerifyKeyResponseData{
+			Data: openapi.V2KeysVerifyKeyResponseData{
 				Code:  openapi.NOTFOUND,
 				Valid: false,
 			},
 		})
 	}
 
-	// FIXME: We are leaking a keys existance here... by telling the user that he doesn't have perms
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -107,10 +107,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	)))
 	if err != nil {
-		return err
+		// We are just respond with a 200 OK with a not found since the user doesn't have permission to verify the key
+		// this would otherwise leak the keys existence otherwise
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			// nolint:exhaustruct
+			Data: openapi.V2KeysVerifyKeyResponseData{
+				Code:  openapi.NOTFOUND,
+				Valid: false,
+			},
+		})
 	}
 
-	opts := []keys.VerifyOption{keys.WithIPWhitelist(), keys.WithApiID(req.ApiId), keys.WithTags(ptr.SafeDeref(req.Tags))}
+	opts := []keys.VerifyOption{
+		keys.WithTags(ptr.SafeDeref(req.Tags)),
+		keys.WithIPWhitelist(),
+	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
@@ -144,38 +158,40 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	res := Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		// nolint:exhaustruct
-		Data: openapi.KeysVerifyKeyResponseData{
-			Code:        key.ToOpenAPIStatus(),
-			Valid:       key.Status == keys.StatusValid,
-			Enabled:     ptr.P(key.Key.Enabled),
-			Name:        ptr.P(key.Key.Name.String),
-			Permissions: ptr.P(key.Permissions),
-			Roles:       ptr.P(key.Roles),
-			KeyId:       ptr.P(key.Key.ID),
-			Credits:     nil,
-			Expires:     nil,
-			Identity:    nil,
-			Meta:        nil,
-			Ratelimits:  nil,
-		},
+	keyData := openapi.V2KeysVerifyKeyResponseData{
+		Code:        key.ToOpenAPIStatus(),
+		Valid:       key.Status == keys.StatusValid,
+		Enabled:     ptr.P(key.Key.Enabled),
+		Name:        ptr.P(key.Key.Name.String),
+		KeyId:       ptr.P(key.Key.ID),
+		Permissions: nil,
+		Roles:       nil,
+		Credits:     nil,
+		Expires:     nil,
+		Identity:    nil,
+		Meta:        nil,
+		Ratelimits:  nil,
+	}
+
+	if len(key.Permissions) > 0 {
+		keyData.Permissions = ptr.P(key.Permissions)
+	}
+
+	if len(key.Roles) > 0 {
+		keyData.Roles = ptr.P(key.Roles)
 	}
 
 	remaining := key.Key.RemainingRequests
 	if remaining.Valid {
-		res.Data.Credits = ptr.P(remaining.Int32)
+		keyData.Credits = ptr.P(remaining.Int32)
 	}
 
 	if key.Key.Expires.Valid {
-		res.Data.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
+		keyData.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
 	}
 
 	if key.Key.Meta.Valid {
-		err = json.Unmarshal([]byte(key.Key.Meta.String), &res.Data.Meta)
+		err = json.Unmarshal([]byte(key.Key.Meta.String), &keyData.Meta)
 		if err != nil {
 			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Internal("unable to unmarshal key meta"),
@@ -185,18 +201,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		res.Data.Identity = &openapi.Identity{
+		keyData.Identity = &openapi.Identity{
+			Id:         key.Key.IdentityID.String,
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,
 			Meta:       nil,
 		}
 
+		identityRatelimits := make([]openapi.RatelimitResponse, 0)
 		for _, ratelimit := range key.GetRatelimitConfigs() {
 			if ratelimit.IdentityID == "" {
 				continue
 			}
 
-			res.Data.Identity.Ratelimits = append(res.Data.Identity.Ratelimits, openapi.RatelimitResponse{
+			identityRatelimits = append(identityRatelimits, openapi.RatelimitResponse{
 				AutoApply: ratelimit.AutoApply == 1,
 				Duration:  int64(ratelimit.Duration),
 				Id:        ratelimit.ID,
@@ -205,8 +223,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
+		if len(identityRatelimits) > 0 {
+			keyData.Identity.Ratelimits = ptr.P(identityRatelimits)
+		}
+
 		if len(key.Key.IdentityMeta) > 0 {
-			err = json.Unmarshal(key.Key.IdentityMeta, &res.Data.Identity.Meta)
+			err = json.Unmarshal(key.Key.IdentityMeta, &keyData.Identity.Meta)
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
 					fault.Internal("unable to unmarshal identity meta"),
@@ -227,7 +249,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				AutoApply: result.AutoApply,
 				Duration:  result.Duration.Milliseconds(),
 				Exceeded:  !result.Response.Success,
-				Id:        result.Name,
+				Id:        result.ID,
 				Limit:     result.Limit,
 				Name:      result.Name,
 				Remaining: result.Response.Remaining,
@@ -236,9 +258,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(ratelimitResponse) > 0 {
-			res.Data.Ratelimits = ptr.P(ratelimitResponse)
+			keyData.Ratelimits = ptr.P(ratelimitResponse)
 		}
 	}
 
-	return s.JSON(http.StatusOK, res)
+	emit()
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: keyData,
+	})
 }

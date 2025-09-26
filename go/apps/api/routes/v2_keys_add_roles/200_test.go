@@ -31,82 +31,13 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
 
 	// Set up request headers
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-
-	t.Run("add single role by ID", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			EncryptedKeys: false,
-		})
-
-		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
-			WorkspaceID: workspace.ID,
-		})
-
-		roleId := h.CreateRole(seed.CreateRoleRequest{
-
-			WorkspaceID: workspace.ID,
-			Name:        "admin_single_id",
-			Description: ptr.P("Admin Role"),
-		})
-
-		// Verify key has no roles initially
-		currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.Empty(t, currentRoles)
-
-		req := handler.Request{
-			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleId},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, roleId, res.Body.Data[0].Id)
-		require.Equal(t, "admin_single_id", res.Body.Data[0].Name)
-
-		// Verify role was added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 1)
-		require.Equal(t, roleId, finalRoles[0].ID)
-
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.NotEmpty(t, auditLogs)
-
-		foundConnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.connect_role_and_key" {
-				foundConnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Added role admin_single_id to key")
-				break
-			}
-		}
-		require.True(t, foundConnectEvent, "Should find a role connect audit log event")
-	})
 
 	t.Run("add single role by name", func(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{
@@ -129,12 +60,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Name: &roleName},
-			},
+			Roles: []string{roleName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -158,81 +84,6 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, key.RolesIds[0], finalRoles[0].ID)
 	})
 
-	t.Run("add multiple roles mixed references", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			EncryptedKeys: false,
-		})
-
-		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
-			WorkspaceID: workspace.ID,
-		})
-
-		adminRole := h.CreateRole(seed.CreateRoleRequest{
-			WorkspaceID: workspace.ID,
-			Name:        "admin_multi",
-		})
-
-		viewerMultiRole := h.CreateRole(seed.CreateRoleRequest{
-			WorkspaceID: workspace.ID,
-			Name:        "viewer_multi",
-		})
-
-		editorRoleName := "editor_multi"
-		h.CreateRole(seed.CreateRoleRequest{
-			WorkspaceID: workspace.ID,
-			Name:        editorRoleName,
-		})
-
-		req := handler.Request{
-			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &adminRole},        // By ID
-				{Name: &editorRoleName}, // By name
-				{Id: &viewerMultiRole},  // By ID
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 3)
-
-		// Verify all roles are present and sorted alphabetically
-		roleNames := []string{res.Body.Data[0].Name, res.Body.Data[1].Name, res.Body.Data[2].Name}
-		require.Equal(t, []string{"admin_multi", "editor_multi", "viewer_multi"}, roleNames)
-
-		// Verify roles were added to key
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 3)
-
-		// Verify audit logs were created (one for each role)
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.NotEmpty(t, auditLogs)
-
-		connectEvents := 0
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.connect_role_and_key" {
-				connectEvents++
-				require.Contains(t, log.AuditLog.Display, "Added role")
-			}
-		}
-		require.Equal(t, 3, connectEvents, "Should find 3 role connect audit log events")
-	})
-
 	t.Run("idempotent behavior - add existing roles", func(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID:   workspace.ID,
@@ -243,15 +94,18 @@ func TestSuccess(t *testing.T) {
 			KeyAuthID:   api.KeyAuthID.String,
 			WorkspaceID: workspace.ID,
 		})
+
+		adminName := "admin_idempotent"
 		adminId := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "admin_idempotent",
+			Name:        adminName,
 			Description: ptr.P("admin_idempotent"),
 		})
 
-		editorId := h.CreateRole(seed.CreateRoleRequest{
+		editorName := "editor_idempotent"
+		h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "editor_idempotent",
+			Name:        editorName,
 			Description: ptr.P("editor_idempotent"),
 		})
 
@@ -267,13 +121,7 @@ func TestSuccess(t *testing.T) {
 		// Now try to add both admin (existing) and editor (new) roles
 		req := handler.Request{
 			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &adminId},  // Already exists
-				{Id: &editorId}, // New role
-			},
+			Roles: []string{adminName, editorName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -311,56 +159,5 @@ func TestSuccess(t *testing.T) {
 			}
 		}
 		require.Equal(t, 1, editorConnectEvents, "Should find only 1 new role connect event for editor")
-	})
-
-	t.Run("role reference with both ID and name", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			EncryptedKeys: false,
-		})
-
-		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
-			WorkspaceID: workspace.ID,
-		})
-
-		adminID := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "admin_both_ref"})
-		editorRoleName := "editor_both_ref"
-		h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: editorRoleName})
-
-		// Request with role reference having both ID and name
-		// ID should take precedence
-		req := handler.Request{
-			KeyId: key.KeyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{
-					Id:   &adminID,
-					Name: &editorRoleName, // This should be ignored, ID takes precedence
-				},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Data)
-		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, adminID, res.Body.Data[0].Id)
-		require.Equal(t, "admin_both_ref", res.Body.Data[0].Name) // Should be role1, not role2
-
-		// Verify correct role was added
-		finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.Len(t, finalRoles, 1)
-		require.Equal(t, adminID, finalRoles[0].ID)
 	})
 }

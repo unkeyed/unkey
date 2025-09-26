@@ -40,7 +40,7 @@ func TestSuccess(t *testing.T) {
 
 	externalID := "test_user_123"
 	// Create metadata
-	metaMap := map[string]interface{}{
+	metaMap := map[string]any{
 		"name":    "Test User",
 		"email":   "test@example.com",
 		"plan":    "pro",
@@ -73,7 +73,7 @@ func TestSuccess(t *testing.T) {
 	// No need to set up permissions since we already gave the key the required permission
 	t.Run("get by externalId", func(t *testing.T) {
 		req := handler.Request{
-			ExternalId: externalID,
+			Identity: externalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, sent: %+v, received: %s", req, res.RawBody)
@@ -116,7 +116,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			ExternalId: externalIDWithoutMeta,
+			Identity: externalIDWithoutMeta,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -151,7 +151,7 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			ExternalId: externalIDWithoutRatelimits,
+			Identity: externalIDWithoutRatelimits,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -238,7 +238,7 @@ func TestSuccess(t *testing.T) {
 
 		// Retrieve the identity
 		req := handler.Request{
-			ExternalId: largeMetaExternalID,
+			Identity: largeMetaExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -318,7 +318,7 @@ func TestSuccess(t *testing.T) {
 
 		// Retrieve the identity
 		req := handler.Request{
-			ExternalId: manyRateLimitsExternalID,
+			Identity: manyRateLimitsExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -366,12 +366,28 @@ func TestSuccess(t *testing.T) {
 
 		// Immediately retrieve the identity
 		req := handler.Request{
-			ExternalId: recentExternalID,
+			Identity: recentExternalID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 
 		// Verify it's returned correctly
 		require.Equal(t, recentExternalID, res.Body.Data.ExternalId)
+	})
+
+	t.Run("retrieve identity with identityId", func(t *testing.T) {
+		// Create identity and capture the internal ID
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ExternalID:  "unkey_works",
+			Meta:        []byte("{}"),
+		})
+
+		req := handler.Request{
+			Identity: identity,
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, res.Status)
+		require.Equal(t, "unkey_works", res.Body.Data.ExternalId)
 	})
 }

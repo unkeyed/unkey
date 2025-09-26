@@ -32,8 +32,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	req := handler.Request{
-		ApiId: api.ID,
-		Key:   key.Key,
+		Key: key.Key,
 	}
 
 	t.Run("missing authorization header", func(t *testing.T) {

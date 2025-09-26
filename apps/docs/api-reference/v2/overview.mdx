@@ -1,0 +1,89 @@
+---
+title: Overview
+description: 'Our philosophy for building developer-friendly APIs'
+---
+
+
+## Core Principles
+
+- **Clear Communication**: Structured responses make success and failure equally informative
+- **Practical Over Purist**: We make pragmatic choices rather than rigidly adhering to any single paradigm
+- **Predictable Patterns**: Once you learn one endpoint, you'll understand them all
+
+## Response Structure
+
+All API responses follow a consistent structure, making them predictable and easy to parse:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "data": {
+    // Operation-specific response data
+  }
+}
+```
+
+For paginated responses, we include a pagination object:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789",
+    "timestamp": "2023-11-08T15:22:30Z"
+  },
+  "data": [
+    // Array of items
+  ],
+  "pagination": {
+    "cursor": "cursor_xyz123",
+    "hasMore": true
+  }
+}
+```
+
+## Working with the API
+
+### Always Use the Request ID
+
+Every response includes a unique `requestId` in the metadata. When seeking support or debugging issues, always include this ID as it allows us to trace exactly what happened with your request.
+
+You can also search for the `requestId` yourself in the [logs](https://app.unkey.com/logs).
+
+### Handling Pagination
+
+For endpoints that return lists of items:
+
+1. Make your initial request
+2. Check for `pagination.hasMore` to see if more items exist
+3. If `true`, use the `pagination.cursor` value in your next request
+
+Example:
+
+```js
+// First request
+const response = await fetch('https://api.unkey.com/v2/keys.listKeys', {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${rootKey}` },
+  body: JSON.stringify({ apiId: 'api_123' })
+});
+
+// Follow-up request with cursor
+if (response.pagination?.hasMore) {
+  const nextPage = await fetch('https://api.unkey.com/v2/keys.listKeys', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${rootKey}` },
+    body: JSON.stringify({
+      apiId: 'api_123',
+      cursor: response.pagination.cursor
+    })
+  });
+}
+```
+
+## Versioning
+
+Our API uses a major version in the URL (e.g., `/v2/`) and maintains backwards compatibility within each major version. When we need to make breaking changes, we increment the major version number.
+
+We communicate deprecations well in advance, giving you time to update your integration before endpoints are removed.

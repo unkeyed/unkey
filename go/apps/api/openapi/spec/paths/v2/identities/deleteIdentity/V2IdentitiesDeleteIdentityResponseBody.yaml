@@ -1,0 +1,7 @@
+type: object
+description: Empty response object. A successful response indicates the identity was deleted successfully.
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+required:
+  - meta

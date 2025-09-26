@@ -1,0 +1,637 @@
+---
+title: "/v1/permissions.*"
+description: "Migrate from key-based permission patterns to dedicated permission and role management in v2"
+---
+
+This guide covers migrating from v1's key-based permission patterns to v2's dedicated RBAC (Role-Based Access Control) system.
+
+## Overview
+
+Both v1 and v2 have standalone permission and role management endpoints. The main differences are in request/response formats, HTTP methods, and enhanced functionality in v2.
+
+### Key Changes in v2:
+- **Response format**: Direct responses → `{meta, data}` envelope
+- **HTTP methods**: Some GET → POST changes for consistency
+- **Enhanced pagination**: Better pagination support in list endpoints
+- **Domain change**: `api.unkey.dev` → `api.unkey.com`
+
+### Migration Impact:
+- **Both versions**: Have standalone permission and role endpoints
+- **v2 Enhancement**: Improved response format, consistent HTTP methods, simplified permission queries
+- **Benefit**: Better API consistency, enhanced debugging with request IDs, simplified permission syntax
+
+---
+
+
+## POST /v1/permissions.createPermission → POST /v2/permissions.createPermission
+
+**Purpose:** Create a standalone permission that can be reused across keys and roles.
+
+**Key Changes:**
+- Response format: Direct response → `{meta, data}` envelope
+- Domain change: `api.unkey.dev` → `api.unkey.com`
+
+<Tabs>
+<Tab title="cURL Migration" icon="arrow-right">
+```bash title="v1 vs v2: Standalone Permission Creation" icon="shield-plus"
+# v1: Create permission independently
+curl -X POST https://api.unkey.dev/v1/permissions.createPermission # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"name": "documents.read", "description": "Read access to documents"}' # [!code --]
+
+# v2: Create permission once, reuse everywhere
+curl -X POST https://api.unkey.com/v2/permissions.createPermission # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"slug": "documents.read", "name": "documents.read", "description": "Read access to documents"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="check-circle">
+```json title="Create Permission Response" icon="check-circle" expandable
+{
+  "meta": {
+    "requestId": "req_createpermission123"
+  },
+  "data": {
+    "id": "perm_abc123def456",
+    "name": "documents.read",
+    "slug": "documents.read",
+    "description": "Read access to documents"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## GET /v1/permissions.getPermission → POST /v2/permissions.getPermission
+
+**Purpose:** Retrieve permission details by name.
+
+**Key Changes:**
+- HTTP method: GET → POST
+- Request format: Query parameters → Request body
+- Response format: Direct response → `{meta, data}` envelope
+- Lookup Permission by either ID or Slug
+
+<Tabs>
+<Tab title="cURL Migration" icon="arrow-right">
+```bash title="v1 vs v2: Direct Permission Retrieval" icon="shield"
+# v1: Get permission by ID
+curl -X GET "https://api.unkey.dev/v1/permissions.getPermission?permissionId=perm_123" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# v2: Direct permission lookup
+curl -X POST https://api.unkey.com/v2/permissions.getPermission # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"permission": "documents.read"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="database">
+```json title="Get Permission Response" icon="database" expandable
+{
+  "meta": {
+    "requestId": "req_getpermission456"
+  },
+  "data": {
+    "id": "perm_abc123def456",
+    "name": "documents.read",
+    "slug": "documents.read",
+    "description": "Read access to documents"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## GET /v1/permissions.listPermissions → POST /v2/permissions.listPermissions
+
+**Purpose:** Get paginated list of all permissions.
+
+**Key Changes:**
+- HTTP method: GET → POST
+- Request format: Query parameters → Request body
+- Response format: Direct array → `{meta, data}` envelope with pagination
+
+<Tabs>
+<Tab title="cURL Migration" icon="arrow-right">
+```bash title="v1 vs v2: Direct Permission Listing" icon="shield-check"
+# v1: List all permissions directly
+curl -X GET "https://api.unkey.dev/v1/permissions.listPermissions" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# v2: Direct permission listing with pagination
+curl -X POST https://api.unkey.com/v2/permissions.listPermissions # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"limit": 100, "cursor": "optional_cursor"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="list">
+```json title="List Permissions Response" icon="list" expandable
+{
+  "meta": {
+    "requestId": "req_listpermissions789"
+  },
+  "data": [
+    {
+      "permissionId": "perm_abc123",
+      "name": "Read documents",
+      "slug": "documents.read",
+      "description": "Read access to documents",
+    },
+    {
+      "permissionId": "perm_def456",
+      "name": "Write documents",
+      "slug": "documents.write",
+      "description": "Write access to documents",
+    }
+  ],
+  "pagination": {
+    "cursor": "next_page_cursor_here",
+    "hasMore": true
+  }
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## POST /v1/permissions.deletePermission → POST /v2/permissions.deletePermission
+
+**Purpose:** Permanently delete a permission globally.
+
+**Key Changes:**
+- Response format: Direct response → `{meta, data}` envelope
+- Delete permission by ID or slug
+- Domain change: `api.unkey.dev` → `api.unkey.com`
+
+<Tabs>
+<Tab title="cURL Migration" icon="arrow-right">
+```bash title="v1 vs v2: Global Permission Deletion" icon="shield-minus"
+# v1: Delete permission globally
+curl -X POST https://api.unkey.dev/v1/permissions.deletePermission # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"permissionId": "perm_123"}' # [!code --]
+
+# v2: Delete permission globally (removes from all keys and roles)
+curl -X POST https://api.unkey.com/v2/permissions.deletePermission # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"permission": "documents.read"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="check-circle">
+```json title="Delete Permission Response" icon="check-circle"
+{
+  "meta": {
+    "requestId": "req_deletepermission999"
+  },
+  "data": {}
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Role-Based Access Control (RBAC) Migration
+
+**Purpose:** Group permissions into roles for easier management - available in both v1 and v2.
+
+**Key Changes:**
+- Response format: Direct responses → `{meta, data}` envelope
+- Enhanced role listing with better pagination in v2
+
+### POST /v1/permissions.createRole → POST /v2/permissions.createRole
+
+<Tabs>
+<Tab title="v2 Role Creation" icon="users-cog">
+```bash title="v1 vs v2: Role Creation" icon="users-cog"
+# v1: Create role
+curl -X POST https://api.unkey.dev/v1/permissions.createRole # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"name": "editor", "description": "Content editor role"}' # [!code --]
+
+# v2: Create role (envelope response)
+curl -X POST https://api.unkey.com/v2/permissions.createRole # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"name": "editor", "description": "Content editor role"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="check-circle">
+```json title="Create Role Response" icon="check-circle" expandable
+{
+  "meta": {
+    "requestId": "req_createrole123"
+  },
+  "data": {
+    "roleId": "role_abc123def456"
+  }
+}
+```
+</Tab>
+<Tab title="Assign to Key" icon="key">
+```bash title="Assign Role to Key" icon="key"
+# Assign role to key (gives all role permissions)
+curl -X POST https://api.unkey.com/v2/keys.addRoles # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"keyId": "key_123", "roles": ["editor"]}' # [!code ++]
+```
+</Tab>
+</Tabs>
+
+### GET /v1/permissions.getRole → POST /v2/permissions.getRole
+
+- Lookup role by either ID or name
+
+<Tabs>
+<Tab title="v2 Role Retrieval" icon="user">
+```bash title="v1 vs v2: Role Retrieval" icon="user"
+# v1: GET with query parameter
+curl -X GET "https://api.unkey.dev/v1/permissions.getRole?roleId=role_123" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# v2: POST with request body
+curl -X POST https://api.unkey.com/v2/permissions.getRole # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"role": "editor"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="database">
+```json title="Get Role Response" icon="database" expandable
+{
+  "meta": {
+    "requestId": "req_getrole456"
+  },
+  "data": {
+    "id": "role_abc123def456",
+    "name": "editor",
+    "description": "Content editor role",
+    "permissions": [
+      "documents.read",
+      "documents.write",
+      "comments.moderate"
+    ]
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### GET /v1/permissions.listRoles → POST /v2/permissions.listRoles
+
+<Tabs>
+<Tab title="v2 Role Listing" icon="user-group">
+```bash title="v1 vs v2: Role Listing" icon="user-group"
+# v1: GET request
+curl -X GET "https://api.unkey.dev/v1/permissions.listRoles" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# v2: POST with enhanced pagination
+curl -X POST https://api.unkey.com/v2/permissions.listRoles # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"limit": 100, "cursor": "optional_cursor"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="list">
+```json title="List Roles Response" icon="list" expandable
+{
+  "meta": {
+    "requestId": "req_listroles789"
+  },
+  "data": [
+    {
+      "roleId": "role_abc123",
+      "name": "editor",
+      "description": "Content editor role",
+      "permissions": [
+        "documents.read",
+        "documents.write",
+        "comments.moderate"
+      ]
+    },
+    {
+      "roleId": "role_def456",
+      "name": "admin",
+      "description": "Full administrative access",
+      "permissions": [
+        "documents.*",
+        "users.*",
+        "settings.*"
+      ]
+    }
+  ],
+  "pagination": {
+    "cursor": "next_page_cursor_here",
+    "hasMore": true
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### POST /v1/permissions.deleteRole → POST /v2/permissions.deleteRole
+
+- Delete role by either ID or name
+
+<Tabs>
+<Tab title="v2 Role Deletion" icon="user-minus">
+```bash title="v1 vs v2: Role Deletion" icon="user-minus"
+# v1: Delete role globally
+curl -X POST https://api.unkey.dev/v1/permissions.deleteRole # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"roleId": "role_123"}' # [!code --]
+
+# v2: Delete role globally (envelope response)
+curl -X POST https://api.unkey.com/v2/permissions.deleteRole # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"role": "editor"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response" icon="check-circle">
+```json title="Delete Role Response" icon="check-circle"
+{
+  "meta": {
+    "requestId": "req_deleterole999"
+  },
+  "data": {}
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Permission Query Migration: v1 Object → v2 String Syntax
+
+**Key Change:** v2 simplifies permission queries from complex object syntax to intuitive string syntax.
+
+<Tabs>
+<Tab title="AND Operations">
+```json title="AND Query Migration" icon="arrow-right"
+// v1: Object syntax for key verification
+{
+  "authorization": { // [!code --]
+    "permissions": { // [!code --]
+      "and": ["documents.read", "documents.write"] // [!code --]
+    } // [!code --]
+  } // [!code --]
+}
+
+// v2: String syntax for key verification
+{
+  "permissions": "documents.read AND documents.write" // [!code ++]
+}
+```
+</Tab>
+<Tab title="OR Operations">
+```json title="OR Query Migration" icon="arrow-right"
+// v1: Object syntax
+{
+  "authorization": { // [!code --]
+    "permissions": { // [!code --]
+      "or": ["documents.read", "documents.write"] // [!code --]
+    } // [!code --]
+  } // [!code --]
+}
+
+// v2: String syntax
+{
+  "permissions": "documents.read OR documents.write" // [!code ++]
+}
+```
+</Tab>
+<Tab title="Complex Queries">
+```json title="Complex Query Migration" icon="arrow-right"
+// v1: Nested object syntax
+{
+  "authorization": { // [!code --]
+    "permissions": { // [!code --]
+      "and": [ // [!code --]
+        "documents.read", // [!code --]
+        { // [!code --]
+          "or": ["documents.write", "documents.delete"] // [!code --]
+        } // [!code --]
+      ] // [!code --]
+    } // [!code --]
+  } // [!code --]
+}
+
+// v2: String syntax with parentheses
+{
+  "permissions": "documents.read AND (documents.write OR documents.delete)" // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="Permission Query in Key Verification" icon="terminal"
+# v1: Complex object syntax
+curl -X POST https://api.unkey.dev/v1/keys.verifyKey # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+  -H "Content-Type: application/json"
+  -d '{"key": "uk_123", "authorization": {"permissions": {"and": ["documents.read", "documents.write"]}}}' # [!code --]
+
+# v2: Simple string syntax
+curl -X POST https://api.unkey.com/v2/keys.verifyKey # [!code ++]
+  -H "Authorization: Bearer <your-root-key>" # [!code ++]
+  -H "Content-Type: application/json"
+  -d '{"key": "uk_123", "permissions": "documents.read AND documents.write"}' # [!code ++]
+```
+</Tab>
+</Tabs>
+
+---
+
+## Migration Patterns
+
+### Response Format Migration
+
+<Tabs>
+<Tab title="Response Format Migration" icon="code">
+```typescript title="v1 vs v2: Standalone Permission Management"
+// v1: Create permission independently
+const response = await fetch('/v1/permissions.createPermission', { // [!code --]
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'documents.read',
+    description: 'Read access to documents'
+  })
+});
+
+const permissionData = await response.json(); // Direct response // [!code --]
+// Permission exists independently, can be reused
+
+// v2: Create permission independently
+const permissionResponse = await fetch('/v2/permissions.createPermission', { // [!code ++]
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <root-key>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'documents.read',
+    description: 'Read access to documents'
+  })
+});
+
+const result = await permissionResponse.json(); // [!code ++]
+const permissionData = result.data; // v2 envelope format // [!code ++]
+const requestId = result.meta.requestId; // For debugging // [!code ++]
+
+// Permission now exists independently, can be reused
+```
+</Tab>
+</Tabs>
+
+### RBAC Implementation Patterns
+
+<Tabs>
+<Tab title="RBAC Implementation Migration" icon="users-cog">
+```typescript title="v1 vs v2: RBAC Implementation Patterns"
+// v1: Had to add permissions to each key individually
+const keys = ['key_123', 'key_456', 'key_789'];
+const permissions = [ // [!code --]
+  { name: 'documents.read', description: 'Read access' }, // [!code --]
+  { name: 'documents.write', description: 'Write access' } // [!code --]
+]; // [!code --]
+
+// Add same permissions to multiple keys // [!code --]
+for (const keyId of keys) { // [!code --]
+  await fetch('/v1/keys.addPermissions', { // [!code --]
+    method: 'POST', // [!code --]
+    headers: { // [!code --]
+      'Authorization': 'Bearer <root-key>', // [!code --]
+      'Content-Type': 'application/json' // [!code --]
+    }, // [!code --]
+    body: JSON.stringify({ keyId, permissions }) // [!code --]
+  }); // [!code --]
+} // [!code --]
+
+// v2: Create role once, assign to multiple keys
+const roleResponse = await fetch('/v2/permissions.createRole', { // [!code ++]
+  method: 'POST', // [!code ++]
+  headers: { // [!code ++]
+    'Authorization': 'Bearer <root-key>', // [!code ++]
+    'Content-Type': 'application/json' // [!code ++]
+  }, // [!code ++]
+  body: JSON.stringify({ // [!code ++]
+    name: 'editor', // [!code ++]
+    description: 'Content editor role', // [!code ++]
+    permissions: ['documents.read', 'documents.write', 'comments.moderate'] // [!code ++]
+  }) // [!code ++]
+}); // [!code ++]
+
+// Assign role to multiple keys (much more efficient) // [!code ++]
+for (const keyId of keys) { // [!code ++]
+  await fetch('/v2/keys.addRoles', { // [!code ++]
+    method: 'POST', // [!code ++]
+    headers: { // [!code ++]
+      'Authorization': 'Bearer <root-key>', // [!code ++]
+      'Content-Type': 'application/json' // [!code ++]
+    }, // [!code ++]
+    body: JSON.stringify({ keyId, roles: ['editor'] }) // [!code ++]
+  }); // [!code ++]
+} // [!code ++]
+```
+</Tab>
+</Tabs>
+
+---
+
+## Key Benefits of v2 Permission Management
+
+### Reusable Permission Definitions
+```json title="Standalone permission creation" icon="shield-plus"
+{
+  "name": "api.execute",
+  "description": "Execute API operations"
+}
+```
+Create permissions once, use across multiple keys and roles.
+
+### Role-Based Access Control
+```json title="Role with grouped permissions" icon="users-cog"
+{
+  "name": "api_admin",
+  "description": "Full API administrative access",
+  "permissions": [
+    "api.execute",
+    "api.read",
+    "api.write",
+    "api.delete",
+    "users.manage"
+  ]
+}
+```
+Group related permissions into roles for easier management.
+
+### Auto-Creation Support
+```json title="Auto-create when referenced" icon="magic-wand"
+{
+  "keyId": "key_123",
+  "permissions": ["new.permission"]
+}
+```
+Permissions and roles are automatically created when referenced if they don't exist.
+
+### Simplified Query Syntax
+```bash title="String-based permission queries" icon="code"
+# Simple AND
+"permissions": "read AND write"
+
+# Simple OR
+"permissions": "read OR write"
+
+# Complex with parentheses
+"permissions": "read AND (write OR delete)"
+```
+
+## Migration Checklist
+
+### Pattern Migration
+- [ ] Identify current v1 permission and role usage patterns
+- [ ] Update HTTP methods (GET → POST for some endpoints)
+- [ ] Update request formats (query parameters → request body)
+- [ ] Update response parsing (direct → envelope format)
+
+### Enhanced Functionality
+- [ ] Update to v2 envelope response format with `meta.requestId`
+- [ ] Use enhanced pagination in list endpoints
+- [ ] Update domain from `api.unkey.dev` to `api.unkey.com`
+- [ ] Leverage auto-creation for dynamic permission scenarios
+
+### Query Syntax Migration
+- [ ] Convert object-based permission queries to string syntax in key verification
+- [ ] Update AND operations: `{"and": []}` → `"perm1 AND perm2"`
+- [ ] Update OR operations: `{"or": []}` → `"perm1 OR perm2"`
+- [ ] Handle complex nested queries with parentheses: `"perm1 AND (perm2 OR perm3)"`
+
+### Response Format Updates
+- [ ] Update response parsing from direct format to `response.data`
+- [ ] Extract and log `meta.requestId` from responses for debugging
+- [ ] Handle new error structure with meta envelope
+
+### Testing
+- [ ] Test HTTP method changes (GET → POST)
+- [ ] Verify request body format vs query parameters
+- [ ] Test permission queries with new string syntax
+- [ ] Confirm envelope response format parsing

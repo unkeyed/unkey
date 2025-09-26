@@ -29,8 +29,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		// Call without auth header
@@ -39,7 +39,7 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Authorization header")
 	})
 
@@ -49,8 +49,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		// Invalid format
@@ -60,7 +60,7 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", res.Body.Error.Type)
 	})
 
 	t.Run("invalid root key", func(t *testing.T) {
@@ -69,8 +69,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		// Non-existent key
@@ -80,7 +80,7 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/key_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/key_not_found", res.Body.Error.Type)
 	})
 
 	t.Run("empty bearer token", func(t *testing.T) {
@@ -89,8 +89,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		headers := http.Header{
@@ -99,7 +99,7 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/malformed", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", res.Body.Error.Type)
 	})
 
 	t.Run("key from different workspace", func(t *testing.T) {
@@ -114,8 +114,8 @@ func TestUnauthorized(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: externalID,
-			Meta:       &meta,
+			Identity: externalID,
+			Meta:     &meta,
 		}
 
 		headers := http.Header{
@@ -124,6 +124,6 @@ func TestUnauthorized(t *testing.T) {
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 	})
 }

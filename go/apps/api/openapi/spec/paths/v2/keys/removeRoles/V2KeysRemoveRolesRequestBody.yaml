@@ -1,0 +1,33 @@
+type: object
+required:
+  - keyId
+  - roles
+properties:
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key loses the roles using the database identifier returned from createKey.
+      Do not confuse this with the actual API key string that users include in requests.
+      Removing roles only affects direct assignments, not permissions inherited from other sources.
+      Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  roles:
+    type: array
+    minItems: 1
+    maxItems: 100
+    description: |
+      Removes direct role assignments from the key without affecting other role sources or permissions.
+      Operations are idempotent - removing non-assigned roles has no effect and causes no errors.
+
+      After removal, the key loses access to permissions that were only granted through these roles.
+      Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
+    items:
+      type: string
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      minLength: 3
+      maxLength: 255
+      description: Specify the role by name.
+additionalProperties: false

@@ -1,0 +1,14 @@
+type: array
+description: |-
+  Complete list of all permissions directly assigned to the key (including both newly added permissions and those that were already assigned).
+
+  This response includes:
+  - All direct permissions assigned to the key (both pre-existing and newly added)
+  - Both the permission ID and name for each permission
+
+  Important notes:
+  - This list does NOT include permissions granted through roles
+  - For a complete permission picture, use `/v2/keys.getKey` instead
+  - An empty array indicates the key has no direct permissions assigned
+items:
+  "$ref": "../../../../common/Permission.yaml"

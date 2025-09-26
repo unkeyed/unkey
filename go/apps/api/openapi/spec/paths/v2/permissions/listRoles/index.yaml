@@ -1,0 +1,59 @@
+post:
+  tags:
+    - permissions
+  summary: List roles
+  description: |
+    Retrieve all roles in your workspace including their assigned permissions. 
+    Results are paginated and sorted by their id.
+
+    **Required Permissions**
+    
+    Your root key must have the following permission:
+    - `rbac.*.read_role`
+  operationId: listRoles
+  x-speakeasy-name-override: ListRoles
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsListRolesRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsListRolesResponseBody.yaml"
+      description: Roles retrieved successfully
+    "400":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal Server Error

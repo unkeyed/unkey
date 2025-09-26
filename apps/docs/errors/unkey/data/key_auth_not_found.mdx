@@ -1,0 +1,65 @@
+---
+title: "key_auth_not_found"
+description: "The requested key authentication was not found"
+---
+
+<Danger>
+err:unkey:data:key_auth_not_found
+</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested key authentication could not be found",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/key_auth_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to perform an operation on a key authentication record that doesn't exist in the Unkey system. Key authentication records contain information about how API keys are authenticated.
+
+Common scenarios that trigger this error:
+- Using an incorrect key authentication ID
+- Referencing a key authentication record that has been deleted
+- Attempting to update authentication settings for a non-existent record
+- Typos in identifiers
+
+
+## How To Fix
+
+Verify that you're using the correct key authentication ID and that the record still exists:
+
+1. Check the key authentication ID in your request for typos or formatting errors
+2. Verify the key authentication record exists by looking up the associated key
+3. If the record has been deleted, you may need to recreate the key or its authentication settings
+
+Here's how to get information about a key's authentication settings:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.getKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "keyId": "key_your_key_id"
+  }'
+```
+
+## Common Mistakes
+
+- **Copy-paste errors**: Incorrect IDs due to copy-paste mistakes
+- **Deleted records**: Attempting to reference authentication records for deleted keys
+- **Misunderstanding relationships**: Confusing key IDs with key authentication IDs
+- **Workspace boundaries**: Trying to access authentication records from another workspace
+
+## Related Errors
+- [err:unkey:data:key_not_found](./key_not_found) - When the requested key doesn't exist
+- [err:unkey:authentication:key_not_found](../authentication/key_not_found) - When an API key used for authentication doesn't exist
+- [err:unkey:authorization:key_disabled](../authorization/key_disabled) - When the authentication key is disabled

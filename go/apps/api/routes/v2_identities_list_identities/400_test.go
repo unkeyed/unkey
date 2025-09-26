@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -73,16 +74,14 @@ func TestBadRequests(t *testing.T) {
 		// If it returns 400, validate the error response
 		if res.Status == 400 {
 			require.Equal(t, 400, res.Status)
-			require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/application/invalid_input", res.Body.Error.Type)
+			require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 			require.NotEmpty(t, res.Body.Meta.RequestId)
 		}
 	})
 
 	t.Run("malformed JSON body", func(t *testing.T) {
 		customHeaders := make(http.Header)
-		for k, v := range headers {
-			customHeaders[k] = v
-		}
+		maps.Copy(customHeaders, headers)
 		customHeaders.Set("Content-Type", "application/json")
 
 		// Create a malformed JSON string

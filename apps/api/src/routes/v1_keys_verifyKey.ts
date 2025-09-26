@@ -6,8 +6,12 @@ import { SchemaError } from "@unkey/error";
 import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["keys"],
   operationId: "verifyKey",
+  summary: "Verify API key",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {

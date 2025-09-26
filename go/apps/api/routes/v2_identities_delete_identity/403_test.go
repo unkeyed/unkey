@@ -31,12 +31,12 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -50,12 +50,12 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -69,12 +69,12 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -88,12 +88,12 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -107,12 +107,12 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -129,12 +129,14 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{
+			Identity: uid.New("test"),
+		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
@@ -148,12 +150,12 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{ExternalId: uid.New("test")}
+		req := handler.Request{Identity: uid.New("test")}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
 		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
 		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)

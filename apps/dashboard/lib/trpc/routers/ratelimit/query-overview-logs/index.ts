@@ -1,4 +1,4 @@
-import { ratelimitQueryOverviewLogsPayload } from "@/app/(app)/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
+import { ratelimitQueryOverviewLogsPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
@@ -23,30 +23,24 @@ export const queryRatelimitOverviewLogs = t.procedure
   .input(ratelimitQueryOverviewLogsPayload)
   .output(RatelimitOverviewLogsResponse)
   .query(async ({ ctx, input }) => {
-    const ratelimitNamespaces = await db.query.ratelimitNamespaces
-      .findMany({
+    const ratelimitNamespace = await db.query.ratelimitNamespaces
+      .findFirst({
         where: (table, { and, eq, isNull }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
+            eq(table.id, input.namespaceId),
+            isNull(table.deletedAtM),
           ),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve ratelimit timeseries analytics due to a workspace error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+            "Failed to retrieve ratelimit namespace. If this issue persists, please contact support@unkey.dev",
         });
       });
 
-    if (!ratelimitNamespaces) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Ratelimit namespaces not found, please contact support using support@unkey.dev.",
-      });
-    }
-
-    if (ratelimitNamespaces.length === 0) {
+    if (!ratelimitNamespace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Namespace not found",
@@ -58,7 +52,7 @@ export const queryRatelimitOverviewLogs = t.procedure
       ...transformedInputs,
       cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
-      namespaceId: ratelimitNamespaces[0].id,
+      namespaceId: ratelimitNamespace.id,
     });
 
     const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
@@ -70,7 +64,11 @@ export const queryRatelimitOverviewLogs = t.procedure
       });
     }
 
-    const logsWithOverrides = await checkIfIdentifierHasOverride(logsResult.val);
+    const logsWithOverrides = await checkIfIdentifierHasOverride(
+      logsResult.val,
+      ratelimitNamespace.id,
+      ctx.workspace.id,
+    );
 
     const response: RatelimitOverviewLogsResponse = {
       ratelimitOverviewLogs: logsWithOverrides,
@@ -85,10 +83,13 @@ export const queryRatelimitOverviewLogs = t.procedure
     return response;
   });
 
-async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
+async function checkIfIdentifierHasOverride(
+  logs: RatelimitOverviewLog[],
+  namespaceId: string,
+  workspaceId: string,
+) {
   const identifiers = [...new Set(logs.map((log) => log.identifier))];
 
-  // if there are no identifiers to check
   if (identifiers.length === 0) {
     return logs.map((log) => ({
       ...log,
@@ -98,8 +99,13 @@ async function checkIfIdentifierHasOverride(logs: RatelimitOverviewLog[]) {
 
   const overrides = await db.query.ratelimitOverrides
     .findMany({
-      where: (table, { and, isNull, inArray }) =>
-        and(inArray(table.identifier, identifiers), isNull(table.deletedAtM)),
+      where: (table, { and, isNull, inArray, eq }) =>
+        and(
+          eq(table.namespaceId, namespaceId),
+          eq(table.workspaceId, workspaceId),
+          inArray(table.identifier, identifiers),
+          isNull(table.deletedAtM),
+        ),
       columns: {
         identifier: true,
         limit: true,

@@ -1,0 +1,102 @@
+post:
+  tags:
+    - identities
+  summary: Get Identity
+  description: |
+    Retrieve an identity by external ID. Returns metadata, rate limits, and other associated data.
+
+    Use this to check if an identity exists, view configurations, or build management dashboards.
+
+    > **Important**  
+    > Requires `identity.*.read_identity` permission
+  operationId: identities.getIdentity
+  x-speakeasy-name-override: getIdentity
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2IdentitiesGetIdentityRequestBody.yaml"
+        examples:
+          basic:
+            summary: Get identity
+            value:
+              externalId: user_123
+    required: true
+  responses:
+    "200":
+      description: Successfully retrieved the identity information
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2IdentitiesGetIdentityResponseBody.yaml"
+          examples:
+            success:
+              summary: Identity found
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  id: id_1234567890abcdef
+                  externalId: user_123
+                  meta:
+                    name: Alice Smith
+                    email: alice@example.com
+                    plan: premium
+                  ratelimits:
+                    - name: requests
+                      limit: 1000
+                      duration: 60000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'identity.*.read_identity' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - Identity with the specified externalId doesn't exist
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            identityNotFound:
+              summary: Identity not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: Identity with externalId "user_abc123" not found.
+                  status: 404
+                  type: not_found
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

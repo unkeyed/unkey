@@ -24,6 +24,8 @@ type TemplateData struct {
 	OnDuplicateKeyUpdate      string
 	EmitMethodsWithDBArgument bool
 	Fields                    []string
+	ValuesFields              []string // Fields used in VALUES clause
+	UpdateFields              []string // Fields used in ON DUPLICATE KEY UPDATE clause
 }
 
 // NewTemplateRenderer creates a new template renderer.

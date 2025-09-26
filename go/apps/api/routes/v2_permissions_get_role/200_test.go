@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_role"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -63,7 +64,7 @@ func TestSuccess(t *testing.T) {
 				WorkspaceID:  workspace.ID,
 				Name:         fmt.Sprintf("test.perm.%d", i),
 				Slug:         fmt.Sprintf("test-perm-%d", i),
-				Description:  sql.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
+				Description:  dbtype.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 			require.NoError(t, err)
@@ -80,7 +81,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now retrieve the role
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -94,23 +95,21 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Role)
 
 		// Verify role data
-		role := res.Body.Data.Role
+		role := res.Body.Data
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)
 		require.Equal(t, roleDesc, *role.Description)
-		require.NotEmpty(t, role.CreatedAt)
 
 		// Verify permissions
 		require.NotNil(t, role.Permissions)
-		require.Len(t, role.Permissions, 2)
+		require.Len(t, *role.Permissions, 2)
 
 		// Create a map of permission IDs for easier checking
 		permMap := make(map[string]bool)
-		for _, perm := range role.Permissions {
+		for _, perm := range *role.Permissions {
 			permMap[perm.Id] = true
 		}
 
@@ -124,7 +123,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("get role without permissions", func(t *testing.T) {
 		// Create a role with no permissions
 		roleID := uid.New(uid.TestPrefix)
-		roleName := "test.get.role.no.perms"
+		roleName := "rolewithoutpermissions"
 		roleDesc := "Test role with no permissions"
 
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
@@ -137,7 +136,7 @@ func TestSuccess(t *testing.T) {
 
 		// Now retrieve the role
 		req := handler.Request{
-			RoleId: roleID,
+			Role: roleName,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -150,17 +149,15 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
-		require.NotNil(t, res.Body.Data.Role)
 
 		// Verify role data
-		role := res.Body.Data.Role
+		role := res.Body.Data
 		require.Equal(t, roleID, role.Id)
 		require.Equal(t, roleName, role.Name)
 		require.NotNil(t, role.Description)
 		require.Equal(t, roleDesc, *role.Description)
 
 		// Verify permissions array is empty
-		require.NotNil(t, role.Permissions)
-		require.Len(t, role.Permissions, 0)
+		require.Nil(t, role.Permissions)
 	})
 }

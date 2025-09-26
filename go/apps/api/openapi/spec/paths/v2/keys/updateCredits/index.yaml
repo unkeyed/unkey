@@ -1,0 +1,68 @@
+post:
+  tags:
+    - keys
+  summary: Update key credits
+  description: |
+    Update credit quotas in response to plan changes, billing cycles, or usage purchases.
+
+    Use this for user upgrades/downgrades, monthly quota resets, credit purchases, or promotional bonuses. Supports three operations: set, increment, or decrement credits. Set to null for unlimited usage.
+
+    **Important**: Setting unlimited credits automatically clears existing refill configurations.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.update_key` (to update keys in any API)
+    - `api.<api_id>.update_key` (to update keys in a specific API)
+
+    **Side Effects**
+
+    Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
+  operationId: updateCredits
+  x-speakeasy-name-override: updateCredits
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysUpdateCreditsRequestBody.yaml"
+  responses:
+    "200":
+      description: |
+        Credits updated successfully. Response includes updated remaining credits and refill settings.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysUpdateCreditsResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

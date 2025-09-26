@@ -120,7 +120,7 @@ func (k *KeyVerifier) ToFault() error {
 
 // ToOpenAPIStatus converts our internal KeyStatus to the OpenAPI response status type.
 // This mapping ensures consistency between internal validation and external API responses.
-func (k *KeyVerifier) ToOpenAPIStatus() openapi.KeysVerifyKeyResponseDataCode {
+func (k *KeyVerifier) ToOpenAPIStatus() openapi.V2KeysVerifyKeyResponseDataCode {
 	switch k.Status {
 	case StatusValid:
 		return openapi.VALID

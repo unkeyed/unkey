@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -156,92 +156,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
-	t.Run("permission missing both id and slug", func(t *testing.T) {
-		// Create a permission for valid structure
-		permissionID := uid.New(uid.TestPrefix)
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: permissionID,
-			WorkspaceID:  workspace.ID,
-			Name:         "documents.read.remove.validation",
-			Slug:         "documents.read.remove.validation",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
-		})
-		require.NoError(t, err)
-
-		req := handler.Request{
-			KeyId: validKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{}, // Neither id nor slug provided
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-	})
-
-	t.Run("permission not found by id", func(t *testing.T) {
-		nonExistentPermissionID := uid.New(uid.TestPrefix)
-
-		req := handler.Request{
-			KeyId: validKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &nonExistentPermissionID},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
-	t.Run("permission not found by name", func(t *testing.T) {
-		nonExistentPermissionName := "nonexistent.permission.remove"
-
-		req := handler.Request{
-			KeyId: validKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Slug: &nonExistentPermissionName},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
 	t.Run("key not found", func(t *testing.T) {
 		// Create a permission that exists
 		permissionID := uid.New(uid.TestPrefix)
@@ -250,20 +164,15 @@ func TestValidationErrors(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.remove.keynotfound",
 			Slug:         "documents.read.remove.keynotfound",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
 
 		nonExistentKeyID := uid.New(uid.KeyPrefix)
 
 		req := handler.Request{
-			KeyId: nonExistentKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       nonExistentKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

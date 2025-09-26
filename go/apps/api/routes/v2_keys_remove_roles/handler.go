@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -15,12 +15,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 type Request = openapi.V2KeysRemoveRolesRequestBody
-type Response = openapi.V2KeysRemoveRolesResponse
+type Response = openapi.V2KeysRemoveRolesResponseBody
 
 // Handler implements zen.Route interface for the v2 keys remove roles endpoint
 type Handler struct {
@@ -46,19 +47,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.removeRoles")
 
 	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Validate key exists and belongs to workspace
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -72,24 +72,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// TODO: Get api id
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.UpdateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   key.KeyAuthID,
-			Action:       rbac.UpdateKey,
-		}),
-	)))
-	if err != nil {
-		return err
-	}
-
-	// Validate key belongs to authorized workspace
 	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
@@ -97,7 +79,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Get current roles for the key
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.UpdateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   key.Api.ID,
+			Action:       rbac.UpdateKey,
+		}),
+	)))
+	if err != nil {
+		return err
+	}
+
 	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
@@ -106,94 +103,56 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Convert current roles to a map for efficient lookup
-	currentRoleIDs := make(map[string]db.Role)
+	currentRoleIDs := make(map[string]db.ListRolesByKeyIDRow)
 	for _, role := range currentRoles {
 		currentRoleIDs[role.ID] = role
 	}
 
-	// 6. Resolve and validate requested roles to remove
-	requestedRoles := make([]db.Role, 0, len(req.Roles))
-	for _, roleRef := range req.Roles {
-		var role db.Role
+	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Names:       req.Roles,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+		)
+	}
 
-		if roleRef.Id != nil {
-			// Find by ID
-			role, err = db.Query.FindRoleByID(ctx, h.DB.RO(), *roleRef.Id)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role with ID '%s' was not found.", *roleRef.Id)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-		} else if roleRef.Name != nil {
-			// Find by name
-			role, err = db.Query.FindRoleByNameAndWorkspaceID(ctx, h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-				Name:        *roleRef.Name,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-			})
-			if err != nil {
-				if db.IsNotFound(err) {
-					return fault.New("role not found",
-						fault.Code(codes.Data.Role.NotFound.URN()),
-						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role with name '%s' was not found.", *roleRef.Name)),
-					)
-				}
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to retrieve role."),
-				)
-			}
-		} else {
-			return fault.New("invalid role reference",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("role missing id and name"), fault.Public("Each role must specify either 'id' or 'name'."),
-			)
-		}
+	foundMap := make(map[string]struct{})
+	for _, role := range foundRoles {
+		foundMap[role.ID] = struct{}{}
+		foundMap[role.Name] = struct{}{}
+	}
 
-		// Validate role belongs to the same workspace
-		if role.WorkspaceID != auth.AuthorizedWorkspaceID {
+	for _, role := range req.Roles {
+		_, exists := foundMap[role]
+		if !exists {
 			return fault.New("role not found",
 				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role belongs to different workspace"), fault.Public(fmt.Sprintf("Role '%s' was not found.", role.Name)),
+				fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
 			)
 		}
-
-		requestedRoles = append(requestedRoles, role)
 	}
 
-	// 7. Determine which roles to remove (only remove roles that are currently assigned)
-	rolesToRemove := make([]db.Role, 0)
-	for _, role := range requestedRoles {
-		if _, exists := currentRoleIDs[role.ID]; exists {
-			rolesToRemove = append(rolesToRemove, role)
+	rolesToRemove := make([]db.FindManyRolesByNamesWithPermsRow, 0)
+	for _, role := range foundRoles {
+		_, exists := currentRoleIDs[role.ID]
+		if !exists {
+			continue
 		}
+
+		rolesToRemove = append(rolesToRemove, role)
+		delete(currentRoleIDs, role.ID)
 	}
 
-	// 8. Apply changes in transaction (only if there are roles to remove)
 	if len(rolesToRemove) > 0 {
 		err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			var auditLogs []auditlog.AuditLog
+			var roleIds []string
 
-			// Remove roles
 			for _, role := range rolesToRemove {
-				err = db.Query.DeleteManyKeyRolesByKeyID(ctx, tx, db.DeleteManyKeyRolesByKeyIDParams{
-					KeyID:  req.KeyId,
-					RoleID: role.ID,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"), fault.Public("Failed to remove role assignment."),
-					)
-				}
-
+				roleIds = append(roleIds, role.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Event:       auditlog.AuthDisconnectRoleKeyEvent,
@@ -206,14 +165,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							Type:        "key",
+							Type:        auditlog.KeyResourceType,
 							ID:          req.KeyId,
 							Name:        key.Name.String,
 							DisplayName: key.Name.String,
 							Meta:        map[string]any{},
 						},
 						{
-							Type:        "role",
+							Type:        auditlog.RoleResourceType,
 							ID:          role.ID,
 							Name:        role.Name,
 							DisplayName: role.Name,
@@ -223,12 +182,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 			}
 
-			// Insert audit logs
-			if len(auditLogs) > 0 {
-				err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-				if err != nil {
-					return err
-				}
+			err = db.Query.DeleteManyKeyRolesByKeyAndRoleIDs(ctx, tx, db.DeleteManyKeyRolesByKeyAndRoleIDsParams{
+				KeyID:   req.KeyId,
+				RoleIds: roleIds,
+			})
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to remove role assignment."),
+				)
+			}
+
+			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+			if err != nil {
+				return err
 			}
 
 			return nil
@@ -240,38 +208,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.KeyCache.Remove(ctx, key.Hash)
 	}
 
-	// 9. Get final state of roles and build response
-	finalRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RW(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve final role state."),
-		)
+	responseData := make(openapi.V2KeysRemoveRolesResponseData, 0)
+	for _, role := range currentRoleIDs {
+		r := openapi.Role{
+			Id:          role.ID,
+			Name:        role.Name,
+			Description: nil,
+			Permissions: nil,
+		}
+
+		rolePermissions := make([]db.Permission, 0)
+		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+			_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
+		}
+
+		perms := make([]openapi.Permission, 0)
+		for _, permission := range rolePermissions {
+			perm := openapi.Permission{
+				Id:          permission.ID,
+				Name:        permission.Name,
+				Slug:        permission.Slug,
+				Description: nil,
+			}
+
+			if permission.Description.Valid {
+				perm.Description = &permission.Description.String
+			}
+
+			perms = append(perms, perm)
+		}
+
+		if len(perms) > 0 {
+			r.Permissions = ptr.P(perms)
+		}
+
+		responseData = append(responseData, r)
 	}
 
-	// Sort roles alphabetically by name for consistent response
-	slices.SortFunc(finalRoles, func(a, b db.Role) int {
-		if a.Name < b.Name {
-			return -1
-		} else if a.Name > b.Name {
-			return 1
-		}
-		return 0
-	})
-
-	// Build response data
-	responseData := make(openapi.V2KeysRemoveRolesResponseData, len(finalRoles))
-	for i, role := range finalRoles {
-		responseData[i] = struct {
-			Id   string `json:"id"`
-			Name string `json:"name"`
-		}{
-			Id:   role.ID,
-			Name: role.Name,
-		}
-	}
-
-	// 10. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

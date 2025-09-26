@@ -1,0 +1,59 @@
+---
+title: "assertion_failed"
+description: "A runtime assertion or invariant check failed"
+---
+
+<Danger>`err:unkey:application:invalid_input`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A system integrity check failed while processing your request",
+    "status": 500,
+    "title": "Internal Server Error",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/assertion_failed"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when Unkey's internal system detects an inconsistency or violation of its expected invariants during the processing of your request. Unlike validation errors which occur when your input is invalid, assertion failures happen when the system's internal state doesn't match what was expected.
+
+Possible causes include:
+- Data corruption or inconsistency in Unkey's database
+- Bugs in Unkey's business logic
+- Race conditions or timing issues
+- System state that violates core assumptions
+- Incompatible changes between different parts of the system
+
+This type of error is generally not caused by anything you did wrong in your request, but rather indicates an internal issue with Unkey's system integrity.
+
+## How To Fix
+
+Since this is an internal system error, there's usually nothing you can directly do to fix it. However, you can try the following:
+
+1. **Retry the request**: Some assertion failures may be due to temporary conditions that resolve themselves
+2. **Contact Unkey support**: Report the error with the request ID to help Unkey address the underlying issue
+3. **Check for workarounds**: In some cases, using a different API endpoint or approach might avoid the issue
+
+When contacting support, be sure to include:
+- The full error response, including the request ID
+- The API endpoint you were calling
+- The request payload (with sensitive information redacted)
+- Any patterns you've noticed (e.g., if it happens consistently or intermittently)
+
+## Important Notes
+
+- Assertion failures indicate bugs or data integrity issues that Unkey needs to fix
+- Unlike many other errors, changing your request is unlikely to resolve the issue
+- These errors are typically logged and monitored by Unkey's engineering team
+- If you encounter this error consistently, there may be an underlying issue with your account data
+
+## Related Errors
+- [err:unkey:application:unexpected_error](./unexpected_error) - A more general internal error
+- [err:unkey:application:service_unavailable](./service_unavailable) - When a service is temporarily unavailable

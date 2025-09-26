@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -62,13 +61,8 @@ func TestAuthorizationErrors(t *testing.T) {
 	permissionID := keyResponse.PermissionIds[0]
 
 	req := handler.Request{
-		KeyId: keyID,
-		Permissions: []struct {
-			Id   *string `json:"id,omitempty"`
-			Slug *string `json:"slug,omitempty"`
-		}{
-			{Id: &permissionID},
-		},
+		KeyId:       keyID,
+		Permissions: []string{permissionID},
 	}
 
 	t.Run("root key without required permissions", func(t *testing.T) {
@@ -120,6 +114,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			ID:        otherWorkspaceID,
 			OrgID:     uid.New("test_org"),
 			Name:      "Other Workspace",
+			Slug:      uid.New("slug"),
 			CreatedAt: time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -145,13 +140,8 @@ func TestAuthorizationErrors(t *testing.T) {
 		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
 
 		reqWithOtherKey := handler.Request{
-			KeyId: otherKeyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       otherKeyID,
+			Permissions: []string{permissionID},
 		}
 
 		headers := http.Header{
@@ -169,58 +159,6 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 404, res.Status) // Key not found (because it belongs to different workspace)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "key was not found")
-	})
-
-	t.Run("permission belongs to different workspace", func(t *testing.T) {
-		// Create another workspace
-		otherWorkspaceID := uid.New(uid.WorkspacePrefix)
-		err := db.Query.InsertWorkspace(ctx, h.DB.RW(), db.InsertWorkspaceParams{
-			ID:        otherWorkspaceID,
-			OrgID:     uid.New("test_org"),
-			Name:      "Other Workspace",
-			CreatedAt: time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		// Create permission in other workspace
-		otherPermissionID := uid.New(uid.TestPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: otherPermissionID,
-			WorkspaceID:  otherWorkspaceID,
-			Name:         "other.permission.remove",
-			Slug:         "other.permission.remove",
-			Description:  sql.NullString{Valid: true, String: "Permission in other workspace"},
-		})
-		require.NoError(t, err)
-
-		// Create root key for original workspace
-		authorizedRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
-
-		reqWithOtherPermission := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &otherPermissionID},
-			},
-		}
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", authorizedRootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			reqWithOtherPermission,
-		)
-
-		require.Equal(t, 404, res.Status) // Permission not found (because it belongs to different workspace)
-		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "was not found")
 	})
 
 	t.Run("root key with no permissions", func(t *testing.T) {

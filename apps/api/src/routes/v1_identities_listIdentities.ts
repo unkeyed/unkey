@@ -8,8 +8,12 @@ import { schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["identities"],
   operationId: "listIdentities",
+  summary: "List identities",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "get",
   path: "/v1/identities.listIdentities",
   security: [{ bearerAuth: [] }],

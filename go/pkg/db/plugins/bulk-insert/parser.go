@@ -11,9 +11,10 @@ type SQLParser struct{}
 
 // ParsedQuery represents a parsed INSERT query.
 type ParsedQuery struct {
-	InsertPart           string
-	ValuesPart           string
-	OnDuplicateKeyUpdate string
+	InsertPart             string
+	ValuesPart             string
+	OnDuplicateKeyUpdate   string
+	ValuesPlaceholderCount int
 }
 
 // NewSQLParser creates a new SQL parser.
@@ -31,11 +32,13 @@ func (p *SQLParser) Parse(query *plugin.Query) (*ParsedQuery, error) {
 
 	insertPart, valuesPart := p.parseInsertQuery(originalSQL)
 	onDuplicateKeyUpdate := p.extractOnDuplicateKeyUpdate(originalSQL)
+	placeholderCount := p.countPlaceholders(valuesPart)
 
 	return &ParsedQuery{
-		InsertPart:           insertPart,
-		ValuesPart:           valuesPart,
-		OnDuplicateKeyUpdate: onDuplicateKeyUpdate,
+		InsertPart:             insertPart,
+		ValuesPart:             valuesPart,
+		OnDuplicateKeyUpdate:   onDuplicateKeyUpdate,
+		ValuesPlaceholderCount: placeholderCount,
 	}, nil
 }
 
@@ -116,4 +119,15 @@ func (p *SQLParser) extractOnDuplicateKeyUpdate(originalSQL string) string {
 		return strings.TrimSpace(originalSQL[idx:])
 	}
 	return ""
+}
+
+// countPlaceholders counts the number of ? placeholders in the values clause.
+func (p *SQLParser) countPlaceholders(valuesPart string) int {
+	count := 0
+	for _, ch := range valuesPart {
+		if ch == '?' {
+			count++
+		}
+	}
+	return count
 }

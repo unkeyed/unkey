@@ -1,0 +1,346 @@
+---
+title: "/v1/apis.*"
+description: "Migrate API namespace management endpoints from v1 to v2"
+---
+
+This guide covers API namespace management endpoints for creating and managing API containers that organize your keys.
+
+## Overview
+
+API endpoints manage the namespaces that contain your keys, providing CRUD operations for API management and key listing.
+
+### Key Changes in v2:
+- **Response format**: Direct responses → `{meta, data}` envelope
+- **HTTP methods**: Some GET → POST changes for consistency
+- **Enhanced responses**: Request IDs for debugging and pagination metadata
+- **Consistent structure**: All responses follow same envelope pattern
+
+### Migration Impact:
+- **Existing in v1**: Full API CRUD operations and key listing functionality
+- **Enhanced in v2**: Improved response format, better pagination, and enhanced filtering
+- **Maintained in v2**: All core API management functionality with consistent request patterns
+
+---
+
+## POST /v1/apis.createApi → POST /v2/apis.createApi
+
+**Key Changes:**
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Request Format">
+```json title="Create API Request" icon="plus-circle"
+{
+  "name": "Production API"
+}
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="Create API Response Diff" icon="database" expandable
+// v1 Response (direct, no wrapper)
+{
+  "apiId": "api_1234567890abcdef" // [!code --]
+}
+
+// v2 Response (with meta envelope)
+{
+  "meta": { // [!code ++]
+    "requestId": "req_createapi123" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "apiId": "api_1234567890abcdef" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="API Endpoint & Domain Change" icon="arrow-right"
+# v1: api.unkey.dev domain
+curl -X POST https://api.unkey.dev/v1/apis.createApi # [!code --]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"name": "Production API"}'
+
+# v2: api.unkey.com domain
+curl -X POST https://api.unkey.com/v2/apis.createApi # [!code ++]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"name": "Production API"}'
+```
+</Tab>
+</Tabs>
+
+---
+
+## GET /v1/apis.getApi → POST /v2/apis.getApi
+
+**Key Changes:**
+- HTTP method: GET → POST
+- Request body format required instead of query parameters
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Method Change">
+```bash title="HTTP Method & Parameter Change" icon="arrow-right"
+# v1: GET with query parameters
+curl -X GET "https://api.unkey.dev/v1/apis.getApi?apiId=api_123" # [!code --]
+  -H "Authorization: Bearer <your-root-key>"
+
+# v2: POST with request body
+curl -X POST https://api.unkey.com/v2/apis.getApi # [!code ++]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"apiId": "api_123"}' # [!code ++]
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="Get API Response Diff" icon="database" expandable
+// v1 Response (direct, no wrapper)
+{
+  "id": "api_123", // [!code --]
+  "workspaceId": "ws_xyz789", // [!code --]
+  "name": "Production API" // [!code --]
+}
+
+// v2 Response (with meta envelope, no workspaceId)
+{
+  "meta": { // [!code ++]
+    "requestId": "req_getapi456" // [!code ++]
+  }, // [!code ++]
+  "data": { // [!code ++]
+    "id": "api_123", // [!code ++]
+    "name": "Production API" // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="Complete Examples">
+```bash title="Complete Examples" icon="terminal"
+# v1: GET with query parameters
+curl -X GET "https://api.unkey.dev/v1/apis.getApi?apiId=api_123" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# v2: POST with request body
+curl -X POST https://api.unkey.com/v2/apis.getApi # [!code ++]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"apiId": "api_123"}' # [!code ++]
+```
+</Tab>
+</Tabs>
+
+---
+
+## GET /v1/apis.listKeys → POST /v2/apis.listKeys
+
+**Key Changes:**
+- HTTP method: GET → POST
+- Request body format required instead of query parameters
+- Enhanced filtering and pagination options
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Request Changes">
+```json title="List Keys Request Diff" icon="list" expandable
+// v1: Query parameters only
+// ?apiId=api_123&limit=100
+
+// v2: Request body with enhanced options
+{
+  "apiId": "api_123",
+  "limit": 100,
+  "cursor": "optional_cursor_for_pagination", // [!code ++]
+  "externalId": "optional_filter_by_external_id" // [!code ++]
+}
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="List Keys Response Diff" icon="database" expandable
+// v1 Response (direct structure with metadata)
+{
+  "keys": [ // [!code --]
+    { // [!code --]
+      "id": "key_123", // [!code --]
+      "name": "Production Key", // [!code --]
+      "start": "prod_1234" // [!code --]
+    } // [!code --]
+  ], // [!code --]
+  "cursor": "next_page_cursor", // [!code --]
+  "total": 42 // [!code --]
+}
+
+// v2 Response (meta envelope with direct key array)
+{
+  "meta": { // [!code ++]
+    "requestId": "req_listkeys789" // [!code ++]
+  }, // [!code ++]
+  "data": [ // [!code ++]
+    { // [!code ++]
+      "keyId": "key_123", // [!code ++]
+      "name": "Production Key", // [!code ++]
+      "start": "prod_1234", // [!code ++]
+      "externalId": "customer_789", // [!code ++]
+      "enabled": true // [!code ++]
+    } // [!code ++]
+  ], // [!code ++]
+  "pagination": { // [!code ++]
+    "cursor": "next_page_cursor_here", // [!code ++]
+    "hasMore": true // [!code ++]
+  } // [!code ++]
+}
+```
+</Tab>
+<Tab title="Filtering Examples">
+```json title="Enhanced Filtering Options" icon="filter"
+// Basic listing
+{
+  "apiId": "api_123",
+  "limit": 50
+}
+
+// Filter by external ID
+{
+  "apiId": "api_123",
+  "externalId": "customer_789", // [!code focus]
+  "limit": 50
+}
+
+// Pagination
+{
+  "apiId": "api_123",
+  "cursor": "cursor_from_previous_response", // [!code focus]
+  "limit": 50
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="Method & Parameter Changes" icon="arrow-right"
+# v1: GET with query parameters
+curl -X GET "https://api.unkey.dev/v1/apis.listKeys?apiId=api_123&limit=100" # [!code --]
+  -H "Authorization: Bearer <your-root-key>" # [!code --]
+
+# v2: POST with enhanced request body
+curl -X POST https://api.unkey.com/v2/apis.listKeys # [!code ++]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json" # [!code ++]
+  -d '{"apiId": "api_123", "limit": 100, "cursor": "optional_cursor", "externalId": "optional_filter"}' # [!code ++]
+```
+</Tab>
+</Tabs>
+
+---
+
+## POST /v1/apis.deleteApi → POST /v2/apis.deleteApi
+
+**Key Changes:**
+- Response format: Direct response → `{meta, data}` envelope
+
+<Tabs>
+<Tab title="Request Format">
+```json title="Delete API Request" icon="trash"
+{
+  "apiId": "api_123"
+}
+```
+</Tab>
+<Tab title="Response Changes">
+```json title="Delete API Response Diff" icon="check-circle"
+// v1 Response (empty object)
+{} // [!code --]
+
+// v2 Response (meta envelope with empty data)
+{
+  "meta": { // [!code ++]
+    "requestId": "req_deleteapi999" // [!code ++]
+  }, // [!code ++]
+  "data": {} // [!code ++]
+}
+```
+</Tab>
+<Tab title="cURL Examples">
+```bash title="Domain Change Only" icon="arrow-right"
+# v1: api.unkey.dev domain
+curl -X POST https://api.unkey.dev/v1/apis.deleteApi # [!code --]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123"}'
+
+# v2: api.unkey.com domain
+curl -X POST https://api.unkey.com/v2/apis.deleteApi # [!code ++]
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123"}'
+```
+</Tab>
+</Tabs>
+
+---
+
+## POST /v1/apis.deleteKeys → Removed in v2
+
+**Purpose:** Delete all keys within an API namespace.
+
+**Migration Path:** Use individual `POST /v2/keys.deleteKey` calls for each key or delete the entire API with `POST /v2/apis.deleteApi`.
+
+<Tabs>
+<Tab title="v1 Usage" icon="code">
+```bash title="v1: Delete all keys in API" icon="trash"
+curl -X POST https://api.unkey.dev/v1/apis.deleteKeys
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123"}'
+```
+</Tab>
+<Tab title="v2 Migration Options" icon="arrow-right">
+```bash title="Option 1: Delete Individual Keys" icon="key"
+# First, list keys to get their IDs
+curl -X POST https://api.unkey.com/v2/apis.listKeys
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123"}'
+
+# Then delete each key individually
+curl -X POST https://api.unkey.com/v2/keys.deleteKey
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"keyId": "key_123"}'
+```
+
+```bash title="Option 2: Delete Entire API" icon="database"
+curl -X POST https://api.unkey.com/v2/apis.deleteApi
+  -H "Authorization: Bearer <your-root-key>"
+  -H "Content-Type: application/json"
+  -d '{"apiId": "api_123"}'
+```
+</Tab>
+<Tab title="v2 Implementation" icon="terminal">
+```typescript title="Programmatic Migration Example"
+// v2: Migration helper function
+async function deleteAllKeysInApi(apiId: string) {
+  // List all keys first
+  const response = await fetch('/v2/apis.listKeys', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer <root-key>',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ apiId })
+  });
+
+  const { data } = await response.json();
+
+  // Delete each key individually
+  for (const key of data) {
+    await fetch('/v2/keys.deleteKey', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer <root-key>',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ keyId: key.keyId })
+    });
+  }
+}
+```
+</Tab>
+</Tabs>

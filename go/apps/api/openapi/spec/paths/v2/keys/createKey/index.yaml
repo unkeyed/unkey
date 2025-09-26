@@ -1,0 +1,73 @@
+post:
+  tags:
+    - keys
+  summary: Create API key
+  description: |
+    Create a new API key for user authentication and authorization.
+
+    Use this endpoint when users sign up, upgrade subscription tiers, or need additional keys. Keys are cryptographically secure and unique to the specified API namespace.
+
+    **Important**: The key is returned only once. Store it immediately and provide it to your user, as it cannot be retrieved later.
+
+    **Common use cases:**
+    - Generate keys for new user registrations
+    - Create additional keys for different applications
+    - Issue keys with specific permissions or limits
+
+    **Required Permissions**
+
+    Your root key needs one of:
+    - `api.*.create_key` (create keys in any API)
+    - `api.<api_id>.create_key` (create keys in specific API)
+  operationId: createKey
+  x-speakeasy-name-override: createKey
+  security:
+    - rootKey: []
+
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysCreateKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysCreateKeyResponseBody.yaml"
+      description: "Successfully created a new API key. The response includes
+        both the keyId (for reference in your system) and the full key string.
+        IMPORTANT: This is the only time the complete key is available - it cannot
+        be retrieved later. You must securely provide this key to your end user
+        immediately."
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal server error

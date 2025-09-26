@@ -1,0 +1,9 @@
+type: object
+required:
+  - data
+  - meta
+properties:
+  data:
+    "$ref": "../../../../common/Identity.yaml"
+  meta:
+    "$ref": "../../../../common/Meta.yaml"

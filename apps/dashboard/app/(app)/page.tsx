@@ -1,16 +1,18 @@
-import { getAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default async function TenantOverviewPage() {
-  const { orgId } = await getAuth();
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-  });
-  if (!workspace) {
-    return redirect("/new");
-  }
-  return redirect("/apis");
+export default function AppHomePage() {
+  const { workspace } = useWorkspace();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (workspace) {
+      router.push(`/${workspace.slug}/apis`);
+    }
+  }, [workspace, router]);
+
+  return null; // Layout handles loading states
 }

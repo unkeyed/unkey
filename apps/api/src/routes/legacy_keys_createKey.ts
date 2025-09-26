@@ -11,7 +11,9 @@ import { KeyV1 } from "@unkey/keys";
 
 const route = createRoute({
   operationId: "deprecated.createKey",
+  summary: "Create key (deprecated)",
   "x-speakeasy-ignore": true,
+  "x-excluded": true,
 
   method: "post",
   path: "/v1/keys",

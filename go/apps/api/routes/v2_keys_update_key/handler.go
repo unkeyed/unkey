@@ -11,10 +11,13 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -22,14 +25,18 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysUpdateKeyRequestBody
-type Response = openapi.V2KeysUpdateKeyResponseBody
+type (
+	Request  = openapi.V2KeysUpdateKeyRequestBody
+	Response = openapi.V2KeysUpdateKeyResponseBody
+)
 
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	UsageLimiter usagelimiter.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -46,7 +53,8 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.updateKey")
 
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -56,13 +64,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindKeyByIdOrHash(ctx,
-		h.DB.RO(),
-		db.FindKeyByIdOrHashParams{
-			ID:   sql.NullString{String: req.KeyId, Valid: true},
-			Hash: sql.NullString{String: "", Valid: false},
-		},
-	)
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -88,15 +90,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.Api.DeletedAtM.Valid {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to deleted api"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	// TODO: We should actually check if the user has permission to set/remove roles.
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -112,28 +107,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	auditLogs := []auditlog.AuditLog{}
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Prepare update parameters with three-state handling
+		auditLogs := []auditlog.AuditLog{}
+
 		update := db.UpdateKeyParams{
 			ID:                         key.ID,
 			Now:                        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			NameSpecified:              0,
-			Name:                       sql.NullString{Valid: false},
+			Name:                       sql.NullString{Valid: false, String: ""},
 			IdentityIDSpecified:        0,
-			IdentityID:                 sql.NullString{Valid: false},
+			IdentityID:                 sql.NullString{Valid: false, String: ""},
 			EnabledSpecified:           0,
-			Enabled:                    sql.NullBool{Valid: false},
+			Enabled:                    sql.NullBool{Valid: false, Bool: false},
 			MetaSpecified:              0,
-			Meta:                       sql.NullString{Valid: false},
+			Meta:                       sql.NullString{Valid: false, String: ""},
 			ExpiresSpecified:           0,
-			Expires:                    sql.NullTime{Valid: false},
+			Expires:                    sql.NullTime{Valid: false, Time: time.Time{}},
 			RemainingRequestsSpecified: 0,
-			RemainingRequests:          sql.NullInt32{Valid: false},
+			RemainingRequests:          sql.NullInt32{Valid: false, Int32: 0},
 			RefillAmountSpecified:      0,
-			RefillAmount:               sql.NullInt32{Valid: false},
+			RefillAmount:               sql.NullInt32{Valid: false, Int32: 0},
 			RefillDaySpecified:         0,
-			RefillDay:                  sql.NullInt16{Valid: false},
+			RefillDay:                  sql.NullInt16{Valid: false, Int16: 0},
 		}
 
 		if req.Name.IsSpecified() {
@@ -153,9 +148,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				externalID := req.ExternalId.MustGet()
 
 				// Try to find existing identity
-				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+				identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
-					ExternalID:  externalID,
+					Identity:    externalID,
 					Deleted:     false,
 				})
 
@@ -178,7 +173,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						CreatedAt:   time.Now().UnixMilli(),
 						Meta:        []byte("{}"),
 					})
-
 					if err != nil {
 						// Incase of duplicate key error just find existing identity
 						if !db.IsDuplicateKeyError(err) {
@@ -189,12 +183,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							)
 						}
 
-						identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+						identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 							WorkspaceID: auth.AuthorizedWorkspaceID,
-							ExternalID:  externalID,
+							Identity:    externalID,
 							Deleted:     false,
 						})
-
 						if err != nil {
 							return fault.Wrap(err,
 								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -202,6 +195,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								fault.Public("Failed to find identity."),
 							)
 						}
+
+						identityID = identity.ID
 					}
 
 					update.IdentityID = sql.NullString{Valid: true, String: identityID}
@@ -243,52 +238,75 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if req.Credits != nil {
-			if req.Credits.Remaining.IsSpecified() {
+		if req.Credits.IsSpecified() {
+			if req.Credits.IsNull() {
 				update.RemainingRequestsSpecified = 1
-				if req.Credits.Remaining.IsNull() {
-					update.RemainingRequests = sql.NullInt32{Valid: false}
-				} else {
-					update.RemainingRequests = sql.NullInt32{
-						Valid: true,
-						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
-					}
-				}
-			}
-
-			if req.Credits.Refill != nil {
 				update.RefillAmountSpecified = 1
-				update.RefillAmount = sql.NullInt32{
-					Valid: true,
-					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
+				update.RefillDaySpecified = 1
+				update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+				update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
+				update.RemainingRequests = sql.NullInt32{Valid: false}
+			} else {
+				credits := req.Credits.MustGet()
+				if credits.Remaining.IsSpecified() {
+					update.RemainingRequestsSpecified = 1
+					if credits.Remaining.IsNull() {
+						// This also clears refilling
+						update.RefillAmountSpecified = 1
+						update.RefillDaySpecified = 1
+						update.RemainingRequests = sql.NullInt32{Valid: false}
+						update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+						update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
+					} else {
+						update.RemainingRequests = sql.NullInt32{
+							Valid: true,
+							Int32: int32(credits.Remaining.MustGet()), // nolint:gosec
+						}
+					}
 				}
 
-				update.RefillDaySpecified = 1
-				switch req.Credits.Refill.Interval {
-				case openapi.Monthly:
-					if req.Credits.Refill.RefillDay == nil {
-						return fault.New("missing refillDay",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Internal("refillDay required for monthly interval"),
-							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
-						)
-					}
+				if credits.Refill.IsSpecified() {
+					if credits.Refill.IsNull() {
+						update.RefillAmountSpecified = 1
+						update.RefillDaySpecified = 1
+						update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+						update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
+					} else {
+						refill := credits.Refill.MustGet()
+						update.RefillAmountSpecified = 1
+						update.RefillAmount = sql.NullInt32{
+							Valid: true,
+							Int32: int32(refill.Amount), // nolint:gosec
+						}
 
-					update.RefillDay = sql.NullInt16{
-						Valid: true,
-						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
-					}
-				case openapi.Daily:
-					if req.Credits.Refill.RefillDay != nil {
-						return fault.New("invalid refillDay",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Internal("refillDay cannot be set for daily interval"),
-							fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
-						)
-					}
+						update.RefillDaySpecified = 1
+						switch refill.Interval {
+						case openapi.UpdateKeyCreditsRefillIntervalMonthly:
+							if refill.RefillDay == nil {
+								return fault.New("missing refillDay",
+									fault.Code(codes.App.Validation.InvalidInput.URN()),
+									fault.Internal("refillDay required for monthly interval"),
+									fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+								)
+							}
 
-					// For daily, refill_day should remain NULL
-					update.RefillDay = sql.NullInt16{Valid: false}
+							update.RefillDay = sql.NullInt16{
+								Valid: true,
+								Int16: int16(*refill.RefillDay), // nolint:gosec
+							}
+						case openapi.UpdateKeyCreditsRefillIntervalDaily:
+							if refill.RefillDay != nil {
+								return fault.New("invalid refillDay",
+									fault.Code(codes.App.Validation.InvalidInput.URN()),
+									fault.Internal("refillDay cannot be set for daily interval"),
+									fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
+								)
+							}
+
+							// For daily, refill_day should remain NULL
+							update.RefillDay = sql.NullInt16{Valid: false}
+						}
+					}
 				}
 			}
 		}
@@ -343,20 +361,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Insert or update ratelimits
 			ratelimitsToInsert := []db.InsertKeyRatelimitParams{}
+			now := time.Now().UnixMilli()
 			for name, newRL := range newRatelimitMap {
 				_, exists := existingRatelimitMap[name]
+
+				var rlID string
 				if exists {
-					continue
+					rlID = existingRatelimitMap[name].ID
+				} else {
+					rlID = uid.New(uid.RatelimitPrefix)
 				}
 
 				ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
-					ID:          uid.New(uid.RatelimitPrefix),
+					ID:          rlID,
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: key.ID, Valid: true},
 					Name:        newRL.Name,
 					Limit:       int32(newRL.Limit), // nolint:gosec
 					Duration:    newRL.Duration,
-					CreatedAt:   time.Now().UnixMilli(),
+					CreatedAt:   now,
+					UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 					AutoApply:   newRL.AutoApply,
 				})
 			}
@@ -378,7 +402,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Slugs:       *req.Permissions,
 			})
-
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -387,13 +410,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			existingPermMap := make(map[string]db.FindPermissionsBySlugsRow)
+			existingPermMap := make(map[string]db.Permission)
 			for _, p := range existingPermissions {
 				existingPermMap[p.Slug] = p
 			}
 
 			permissionsToCreate := []db.InsertPermissionParams{}
-			requestedPermissions := []db.FindPermissionsBySlugsRow{}
+			requestedPermissions := []db.Permission{}
 
 			for _, requestedSlug := range *req.Permissions {
 				existingPerm, exists := existingPermMap[requestedSlug]
@@ -408,17 +431,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
-					Description:  sql.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
+					Description:  dbtype.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
 					CreatedAtM:   time.Now().UnixMilli(),
 				})
 
-				requestedPermissions = append(requestedPermissions, db.FindPermissionsBySlugsRow{
+				requestedPermissions = append(requestedPermissions, db.Permission{
 					ID:   newPermID,
 					Slug: requestedSlug,
 				})
 			}
 
 			if len(permissionsToCreate) > 0 {
+				for _, toCreate := range permissionsToCreate {
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.PermissionCreateEvent,
+						ActorType:   auditlog.RootKeyActor,
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorMeta:   map[string]any{},
+						Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								Type:        auditlog.PermissionResourceType,
+								ID:          toCreate.PermissionID,
+								Name:        toCreate.Slug,
+								DisplayName: toCreate.Name,
+								Meta: map[string]interface{}{
+									"name": toCreate.Name,
+									"slug": toCreate.Slug,
+								},
+							},
+						},
+					})
+				}
+
 				err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
 				if err != nil {
 					return fault.Wrap(err,
@@ -429,7 +478,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// Clear all existing permissions for this key
 			err = db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.ID)
 			if err != nil {
 				return fault.Wrap(err,
@@ -439,12 +487,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			permissionsToInsert := []db.InsertKeyPermissionParams{}
+			now := time.Now().UnixMilli()
 			for _, reqPerm := range requestedPermissions {
 				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
 					KeyID:        key.ID,
 					PermissionID: reqPerm.ID,
 					WorkspaceID:  auth.AuthorizedWorkspaceID,
-					CreatedAt:    time.Now().UnixMilli(),
+					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Int64: now, Valid: true},
 				})
 			}
 
@@ -490,7 +540,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("role not found",
 					fault.Code(codes.Data.Role.NotFound.URN()),
 					fault.Internal("role not found"),
-					fault.Public(fmt.Sprintf("Role %q was not found.", requestedName)),
+					fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
 				)
 			}
 
@@ -537,14 +587,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserAgent:   s.UserAgent(),
 			Resources: []auditlog.AuditLogResource{
 				{
-					Type:        "key",
+					Type:        auditlog.KeyResourceType,
 					ID:          key.ID,
 					DisplayName: key.Name.String,
 					Name:        key.Name.String,
 					Meta:        map[string]any{},
 				},
 				{
-					Type:        "api",
+					Type:        auditlog.APIResourceType,
 					ID:          key.Api.ID,
 					DisplayName: key.Api.Name,
 					Name:        key.Api.Name,
@@ -564,11 +614,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	h.KeyCache.Remove(ctx, key.Hash)
+	if req.Credits.IsSpecified() {
+		if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
+			h.Logger.Error("Failed to invalidate usage limit",
+				"error", err.Error(),
+				"key_id", key.ID,
+			)
+		}
+	}
+
 	// Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: &openapi.KeysUpdateKeyResponseData{},
+		Data: openapi.EmptyResponse{},
 	})
 }

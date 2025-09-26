@@ -1,4 +1,4 @@
-import { fetchApiOverview } from "@/app/(app)/apis/actions";
+import { fetchApiOverview } from "@/app/(app)/[workspaceSlug]/apis/actions";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 
 import { TRPCError } from "@trpc/server";

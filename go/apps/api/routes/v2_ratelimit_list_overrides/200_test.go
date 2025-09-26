@@ -64,7 +64,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 	// Test getting by namespace name
 	t.Run("get by namespace name", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceName: &namespaceName,
+			Namespace: namespaceName,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -72,7 +72,6 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Len(t, res.Body.Data, 1)
 		require.Equal(t, overrideID, res.Body.Data[0].OverrideId)
-		require.Equal(t, namespaceID, res.Body.Data[0].NamespaceId)
 		require.Equal(t, identifier, res.Body.Data[0].Identifier)
 		require.Equal(t, int64(limit), res.Body.Data[0].Limit)
 		require.Equal(t, int64(duration), res.Body.Data[0].Duration)
@@ -81,7 +80,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 	// Test getting by namespace ID
 	t.Run("get by namespace ID", func(t *testing.T) {
 		req := handler.Request{
-			NamespaceId: &namespaceID,
+			Namespace: namespaceID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -89,7 +88,6 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Len(t, res.Body.Data, 1)
 		require.Equal(t, overrideID, res.Body.Data[0].OverrideId)
-		require.Equal(t, namespaceID, res.Body.Data[0].NamespaceId)
 		require.Equal(t, identifier, res.Body.Data[0].Identifier)
 		require.Equal(t, int64(limit), res.Body.Data[0].Limit)
 		require.Equal(t, int64(duration), res.Body.Data[0].Duration)
@@ -109,7 +107,7 @@ func TestListOverridesSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			NamespaceId: &emptyNamespaceID,
+			Namespace: emptyNamespaceID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

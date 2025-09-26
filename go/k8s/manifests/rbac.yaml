@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: unkey-serviceaccount
+  namespace: unkey
+  labels:
+    app: unkey
+    component: metald
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metald-vm-manager
+  labels:
+    app: unkey
+    component: metald
+rules:
+  # Pod management for VMs
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Service management for VM networking
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Job management for VM workloads
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+
+  # Events access for debugging
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metald-vm-manager-binding
+  labels:
+    app: unkey
+    component: metald
+subjects:
+  - kind: ServiceAccount
+    name: unkey-serviceaccount
+    namespace: unkey
+roleRef:
+  kind: ClusterRole
+  name: metald-vm-manager
+  apiGroup: rbac.authorization.k8s.io

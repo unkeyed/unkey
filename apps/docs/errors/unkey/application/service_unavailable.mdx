@@ -1,0 +1,102 @@
+---
+title: "service_unavailable"
+description: "A service is temporarily unavailable"
+---
+
+<Danger>`err:unkey:application:service_unavailable`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The service is temporarily unavailable. Please try again later.",
+    "status": 503,
+    "title": "Service Unavailable",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/service_unavailable"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when a component of the Unkey platform is temporarily unavailable or unable to process your request. Unlike an unexpected error, this is a known state where the system has detected that it cannot currently provide the requested service.
+
+Possible causes of this error:
+- Scheduled maintenance
+- High load or capacity issues
+- Dependent service outages
+- Regional infrastructure problems
+- Database overload or maintenance
+
+Here's an example of a request that might receive this error during a service disruption:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "apiId": "api_123abc",
+    "name": "My API Key"
+  }'
+```
+
+## How To Fix
+
+Since this is a temporary service issue, the best approach is to wait and retry. Here are some strategies:
+
+1. **Implement retry logic**: Add automatic retries with exponential backoff to your code
+2. **Check service status**: Visit the Unkey status page for updates on service availability
+3. **Try alternate regions**: If Unkey offers region-specific endpoints, try an alternate region
+4. **Wait and retry manually**: If it's a one-time operation, simply try again later
+
+Here's an example of a robust retry strategy:
+
+```bash
+# Bash script with retry logic
+max_attempts=5
+attempt=0
+backoff_time=1
+
+while [ $attempt -lt $max_attempts ]; do
+  response=$(curl -s -w "\n%{http_code}" \
+    -X POST https://api.unkey.com/v2/keys.createKey \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+    -d '{
+      "apiId": "api_123abc",
+      "name": "My API Key"
+    }')
+    
+  http_code=$(echo "$response" | tail -n1)
+  body=$(echo "$response" | sed '$ d')
+  
+  if [ $http_code -eq 503 ]; then
+    attempt=$((attempt+1))
+    if [ $attempt -eq $max_attempts ]; then
+      echo "Service still unavailable after $max_attempts attempts"
+      exit 1
+    fi
+    
+    echo "Service unavailable, retrying in $backoff_time seconds... (Attempt $attempt/$max_attempts)"
+    sleep $backoff_time
+    backoff_time=$((backoff_time*2))
+  else
+    echo "$body"
+    exit 0
+  fi
+done
+```
+
+## Important Notes
+
+- This error is temporary, and the service will typically recover automatically
+- For critical applications, implement circuit breakers to prevent cascading failures
+- If the service remains unavailable for an extended period, check Unkey's status page or contact support
+- Include the `requestId` from the error response when contacting support
+
+## Related Errors
+- [err:unkey:application:unexpected_error](./unexpected_error) - When an unhandled error occurs
+- [err:unkey:authorization:workspace_disabled](../authorization/workspace_disabled) - When the workspace is disabled (a different type of unavailability)

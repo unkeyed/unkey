@@ -51,7 +51,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -61,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -93,8 +94,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		meta = rawMeta
 	}
 
+	identityID := uid.New(uid.IdentityPrefix)
+
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		identityID := uid.New(uid.IdentityPrefix)
 		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
@@ -109,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if db.IsDuplicateKeyError(err) {
 				return fault.Wrap(err,
 					fault.Code(codes.Data.Identity.Duplicate.URN()),
-					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId \"%s\" already exists in this workspace.", req.ExternalId)),
+					fault.Internal("identity already exists"), fault.Public(fmt.Sprintf("Identity with externalId '%s' already exists in this workspace.", req.ExternalId)),
 				)
 			}
 
@@ -212,6 +214,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.IdentitiesCreateIdentityResponseData{},
+		Data: openapi.V2IdentitiesCreateIdentityResponseData{IdentityId: identityID},
 	})
 }

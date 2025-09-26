@@ -2,52 +2,45 @@ package quotacheck
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"context"
-
+	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
-
-	"github.com/urfave/cli/v3"
 )
 
 var Cmd = &cli.Command{
-	Name:        "quotacheck",
-	Description: "Check for exceeded quotas",
-	Flags: []cli.Flag{
+	Name:  "quotacheck",
+	Usage: "Check for exceeded quotas",
+	Description: `Check for exceeded quotas and optionally send Slack notifications.
 
-		&cli.StringFlag{
-			Name:     "clickhouse-url",
-			Usage:    "URL for the ClickHouse database",
-			Sources:  cli.EnvVars("CLICKHOUSE_URL"),
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:     "database-dsn",
-			Usage:    "DSN for the primary database",
-			Sources:  cli.EnvVars("DATABASE_DSN"),
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:    "slack-webhook-url",
-			Usage:   "Slack webhook URL to send notifications",
-			Sources: cli.EnvVars("SLACK_WEBHOOK_URL"),
-		},
+This command monitors quota usage by querying ClickHouse for current usage metrics and comparing them against configured limits in the primary database. When quotas are exceeded, it can automatically send notifications via Slack webhook.
+
+CONFIGURATION:
+The command requires ClickHouse and database connections to function. Slack notifications are optional but recommended for production monitoring.
+
+EXAMPLES:
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db  # Check quotas without notifications
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn postgres://user:pass@localhost/db --slack-webhook-url https://hooks.slack.com/services/...  # Check quotas with Slack notifications
+CLICKHOUSE_URL=... DATABASE_DSN=... SLACK_WEBHOOK_URL=... unkey quotacheck  # Using environment variables`,
+	Flags: []cli.Flag{
+		cli.String("clickhouse-url", "URL for the ClickHouse database", cli.EnvVar("CLICKHOUSE_URL"), cli.Required()),
+		cli.String("database-dsn", "DSN for the primary database", cli.EnvVar("DATABASE_DSN"), cli.Required()),
+		cli.String("slack-webhook-url", "Slack webhook URL to send notifications", cli.EnvVar("SLACK_WEBHOOK_URL")),
 	},
 	Action: run,
 }
 
 // nolint:gocognit
 func run(ctx context.Context, cmd *cli.Command) error {
-
 	year, month, _ := time.Now().Date()
 
 	logger := logging.New()
@@ -59,7 +52,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		ReadOnlyDSN: "",
 		Logger:      logger,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -68,7 +60,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		URL:    cmd.String("clickhouse-url"),
 		Logger: logger,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -130,9 +121,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 // sendSlackNotification sends a message to a Slack webhook
 func sendSlackNotification(webhookURL string, e db.ListWorkspacesRow, used int64) error {
-
 	payload := map[string]any{
-
 		"text": fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name),
 		"blocks": []map[string]any{
 			{
@@ -167,7 +156,6 @@ func sendSlackNotification(webhookURL string, e db.ListWorkspacesRow, used int64
 			{
 				"type": "section",
 				"fields": []map[string]any{
-
 					{
 						"type": "mrkdwn",
 						"text": fmt.Sprintf("*Workspace Tier:*\n%s", e.Workspace.Tier.String),
@@ -181,7 +169,6 @@ func sendSlackNotification(webhookURL string, e db.ListWorkspacesRow, used int64
 			{
 				"type": "section",
 				"fields": []map[string]any{
-
 					{
 						"type": "mrkdwn",
 						"text": fmt.Sprintf("*Limit:*\n%s", message.NewPrinter(language.English).Sprint(number.Decimal(e.Quotas.RequestsPerMonth))),

@@ -1,0 +1,88 @@
+type: object
+properties:
+  keyId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: Unique identifier for this key.
+    example: key_1234567890abcdef
+  start:
+    type: string
+    minLength: 1
+    maxLength: 50
+    description: First few characters of the key for identification.
+    example: sk_test_abc123
+  enabled:
+    type: boolean
+    description: Whether the key is enabled or disabled.
+    example: true
+  name:
+    type: string
+    maxLength: 255
+    description: Human-readable name for this key.
+    example: Production API Key
+  meta:
+    type: object
+    additionalProperties: true
+    maxProperties: 100
+    description: Custom metadata associated with this key.
+    example:
+    plan: premium
+    region: us-east-1
+  createdAt:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Unix timestamp in milliseconds when key was created.
+    example: 1701425400000
+  updatedAt:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Unix timestamp in milliseconds when key was last updated.
+    example: 1701425400000
+  expires:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Unix timestamp in milliseconds when key expires (if set).
+    example: 1735689600000
+  permissions:
+    type: array
+    items:
+      type: string
+      description: List of permission slugs granted to this key.
+    example:
+      - documents.read
+      - documents.write
+  roles:
+    type: array
+    items:
+      type: string
+      description: List of roles assigned to this key.
+    example:
+      - editor
+      - viewer
+  credits:
+    "$ref": "./KeyCreditsData.yaml"
+  identity:
+    "$ref": "./Identity.yaml"
+  plaintext:
+    type: string
+    description: Decrypted key value (only when decrypt=true).
+    example: sk_test_abc123def456
+  ratelimits:
+    type: array
+    maxItems: 50
+    items:
+      "$ref": "./RatelimitResponse.yaml"
+required:
+  - keyId
+  - start
+  - createdAt
+  - enabled
+additionalProperties: false

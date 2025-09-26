@@ -63,12 +63,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		// Request without authorization header
@@ -118,12 +113,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		// Request with invalid bearer token
@@ -174,12 +164,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		// Request with malformed authorization header (missing Bearer prefix)
@@ -230,12 +215,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		// Request with empty bearer token
@@ -286,12 +266,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		// Request with properly formatted but non-existent root key
@@ -346,12 +321,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Roles: []struct {
-				Id   *string `json:"id,omitempty"`
-				Name *string `json:"name,omitempty"`
-			}{
-				{Id: &roleID},
-			},
+			Roles: []string{roleID},
 		}
 
 		// Request with root key from different workspace

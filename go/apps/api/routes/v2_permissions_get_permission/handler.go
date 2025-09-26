@@ -40,19 +40,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.getPermission")
 
 	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
@@ -63,8 +62,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Get permission by ID
-	permission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), req.PermissionId)
+	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Search:      req.Permission,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("permission not found",
@@ -78,24 +79,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Check if permission belongs to authorized workspace
-	if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("permission does not belong to authorized workspace",
-			fault.Code(codes.Data.Permission.NotFound.URN()),
-			fault.Public("The requested permission does not exist."),
-		)
-	}
-
-	// 6. Return success response
 	permissionResponse := openapi.Permission{
 		Id:          permission.ID,
 		Name:        permission.Name,
 		Slug:        permission.Slug,
 		Description: nil,
-		CreatedAt:   permission.CreatedAtM,
 	}
 
-	// Add description only if it's valid
 	if permission.Description.Valid {
 		permissionResponse.Description = &permission.Description.String
 	}
@@ -104,8 +94,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.PermissionsGetPermissionResponseData{
-			Permission: permissionResponse,
-		},
+		Data: permissionResponse,
 	})
 }

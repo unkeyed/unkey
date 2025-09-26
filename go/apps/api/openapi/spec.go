@@ -7,5 +7,5 @@ import (
 // Spec is the OpenAPI specification for the service
 // It's loaded from our openapi file and embedded into the binary
 //
-//go:embed openapi.yaml
+//go:embed openapi-generated.yaml
 var Spec []byte

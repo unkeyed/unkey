@@ -74,6 +74,65 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Request Timeout errors
+			case codes.UserErrorsBadRequestRequestTimeout:
+				return s.JSON(http.StatusRequestTimeout, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Request Timeout",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusRequestTimeout,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Client Closed Request errors (499 - non-standard but widely used)
+			case codes.UserErrorsBadRequestClientClosedRequest:
+				return s.JSON(499, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Client Closed Request",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: 499,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Request Entity Too Large errors
+			case codes.UserErrorsBadRequestRequestBodyTooLarge:
+				return s.JSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Request Entity Too Large",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusRequestEntityTooLarge,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Request Entity Too Large errors
+			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
+				return s.JSON(http.StatusGone, openapi.GoneErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Resource Gone",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusGone,
+					},
+				})
+
 			// Unauthorized errors
 			case
 				codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
@@ -116,18 +175,23 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Status: http.StatusForbidden,
 					},
 				})
-			case codes.UnkeyDataErrorsIdentityDuplicate:
+
+			// Duplicate errors
+			case codes.UnkeyDataErrorsIdentityDuplicate,
+				codes.UnkeyDataErrorsRoleDuplicate,
+				codes.UnkeyDataErrorsPermissionDuplicate:
 				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
 					Error: openapi.BaseError{
-						Title:  "Duplicate Identity",
+						Title:  "Conflicting Resource",
 						Type:   code.DocsURL(),
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusConflict,
 					},
 				})
+
 			// Protected Resource
 			case codes.UnkeyAppErrorsProtectionProtectedResource:
 				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
@@ -196,6 +260,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				"requestId", s.RequestID(),
 				"publicMessage", fault.UserFacingMessage(err),
 			)
+
 			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),

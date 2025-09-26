@@ -41,19 +41,18 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 1. Authentication
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
-
 	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	// 3. Permission check
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
@@ -64,33 +63,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 4. Check if permission exists and belongs to authorized workspace
-	permission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), req.PermissionId)
+	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Search:      req.Permission,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("permission not found",
 				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission not found"), fault.Public("The requested permission does not exist."),
+				fault.Internal("permission not found"),
+				fault.Public("The requested permission does not exist."),
 			)
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve permission information."),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve permission information."),
 		)
 	}
 
-	// Check if permission belongs to authorized workspace
-	if permission.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("permission not found",
-			fault.Code(codes.Data.Permission.NotFound.URN()),
-			fault.Internal("permission not found"), fault.Public("The requested permission does not exist."),
-		)
-	}
-
-	// 5. Delete the permission in a transaction
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Delete role-permission relationships
-		err = db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyRolePermissionsByPermissionID(ctx, tx, permission.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -98,8 +91,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Delete key-permission relationships
-		err = db.Query.DeleteManyKeyPermissionsByPermissionID(ctx, tx, req.PermissionId)
+		err = db.Query.DeleteManyKeyPermissionsByPermissionID(ctx, tx, permission.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -107,8 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Delete the permission itself
-		err = db.Query.DeletePermission(ctx, tx, req.PermissionId)
+		err = db.Query.DeletePermission(ctx, tx, permission.ID)
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -116,26 +107,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Create audit log for permission deletion
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       "permission.delete",
+				Event:       auditlog.PermissionDeleteEvent,
 				ActorType:   auditlog.RootKeyActor,
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
-				Display:     "Deleted " + req.PermissionId,
+				Display:     "Deleted " + permission.ID,
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						Type:        "permission",
-						ID:          req.PermissionId,
-						Name:        permission.Name,
+						Type:        auditlog.PermissionResourceType,
+						ID:          permission.ID,
+						Name:        permission.Slug,
 						DisplayName: permission.Name,
 						Meta: map[string]interface{}{
 							"name":        permission.Name,
+							"slug":        permission.Slug,
 							"description": permission.Description.String,
 						},
 					},
@@ -152,10 +143,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 6. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
+		Data: openapi.EmptyResponse{},
 	})
 }

@@ -1,0 +1,57 @@
+post:
+  tags:
+    - apis
+  summary: Create API namespace
+  description: |
+    Create an API namespace for organizing keys by environment, service, or product.
+
+    Use this to separate production from development keys, isolate different services, or manage multiple products. Each API gets a unique identifier and dedicated infrastructure for secure key operations.
+
+    **Important**: API names must be unique within your workspace and cannot be changed after creation.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.create_api` (to create APIs in any workspace)
+  operationId: createApi
+  x-speakeasy-name-override: createApi
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisCreateApiRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisCreateApiResponseBody.yaml"
+      description: |
+        API namespace created successfully. The response contains the unique API ID for referencing this namespace in key operations.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

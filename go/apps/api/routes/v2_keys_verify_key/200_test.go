@@ -50,8 +50,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -68,8 +67,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -94,8 +92,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -113,8 +110,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -133,8 +129,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -153,8 +148,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: 5,
 				},
@@ -176,8 +170,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: 15,
 				},
@@ -188,7 +181,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should be usage exceeded but got %s", res.Body.Data.Code)
 			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(5), "Key should have 5 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("allow credits 0 even when remaining 0", func(t *testing.T) {
@@ -199,8 +192,7 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId: api.ID,
-				Key:   key.Key,
+				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
 					Cost: 0,
 				},
@@ -219,12 +211,11 @@ func TestSuccess(t *testing.T) {
 		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeyAuthID:   ipWhitelistApi.KeyAuthID.String,
 		})
 
 		req := handler.Request{
-			ApiId: ipWhitelistApi.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -252,7 +243,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("domain.write"),
 			}
@@ -277,7 +267,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("domain.read"),
 			}
@@ -296,7 +285,6 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("domain.write"),
 			}
@@ -328,9 +316,107 @@ func TestSuccess(t *testing.T) {
 			})
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P("api.read AND api.write"),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		})
+
+		t.Run("with wildcard permission query", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{
+					{
+						Name:        "All endpoints",
+						Slug:        "api.*",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+					{
+						Name:        "api.edit",
+						Slug:        "api.edit",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+				},
+			})
+
+			req := handler.Request{
+				Key:         key.Key,
+				Permissions: ptr.P("api.* OR api.edit"),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		})
+
+		t.Run("with colon namespace permissions", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{
+					{
+						Name:        "System Admin Read",
+						Slug:        "system:admin:read",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+					{
+						Name:        "System Admin Write",
+						Slug:        "system:admin:write",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+					{
+						Name:        "User Basic Read",
+						Slug:        "user:basic:read",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+				},
+			})
+
+			req := handler.Request{
+				Key:         key.Key,
+				Permissions: ptr.P("system:admin:read AND (system:admin:write OR user:basic:read)"),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		})
+
+		t.Run("with mixed characters including colons and asterisks", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				Permissions: []seed.CreatePermissionRequest{
+					{
+						Name:        "All System Admin",
+						Slug:        "system:admin:*",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+					{
+						Name:        "API v2 Test Read",
+						Slug:        "api_v2-test:read",
+						Description: nil,
+						WorkspaceID: workspace.ID,
+					},
+				},
+			})
+
+			req := handler.Request{
+				Key:         key.Key,
+				Permissions: ptr.P("system:admin:* AND api_v2-test:read"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -382,7 +468,6 @@ func TestSuccess(t *testing.T) {
 				"audit.view AND delete.users AND delete.comments AND delete.files"
 
 			req := handler.Request{
-				ApiId:       api.ID,
 				Key:         key.Key,
 				Permissions: ptr.P(largeQuery),
 			}
@@ -410,8 +495,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -443,7 +527,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId:      api.ID,
+
 			Key:        key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests"}},
 		}
@@ -468,7 +552,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId:      api.ID,
+
 			Key:        key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests", Cost: ptr.P(15), Duration: ptr.P(int(time.Minute.Milliseconds())), Limit: ptr.P(20)}},
 		}
@@ -511,7 +595,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId:      api.ID,
+
 			Key:        key.Key,
 			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "tokens", Cost: ptr.P(4)}},
 		}
@@ -569,8 +653,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			ApiId: api.ID,
-			Key:   key.Key,
+			Key: key.Key,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -580,7 +663,53 @@ func TestSuccess(t *testing.T) {
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
-		require.EqualValues(t, openapi.Identity{ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
+		require.EqualValues(t, openapi.Identity{Id: identity, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
 		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
+	})
+
+	t.Run("root key with wrong api permissions", func(t *testing.T) {
+		api2 := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeyAuthID:   api2.KeyAuthID.String,
+		})
+		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.verify_key", api.ID))
+
+		req := handler.Request{
+			Key: key.Key,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+	})
+
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeyAuthID:   api.KeyAuthID.String,
+	})
+
+	t.Run("root key without sufficient permissions", func(t *testing.T) {
+		// Create root key with insufficient permissions
+		limitedRootKey := h.CreateRootKey(workspace.ID, "api.*.read") // Wrong permission
+
+		req := handler.Request{
+			Key: key.Key,
+		}
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", limitedRootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
 	})
 }

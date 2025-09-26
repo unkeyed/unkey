@@ -1,0 +1,5 @@
+type: array
+maxItems: 1000
+description: Array of roles with their assigned permissions.
+items:
+  "$ref": "../../../../common/Role.yaml"

@@ -1,0 +1,72 @@
+get:
+  x-speakeasy-ignore: true
+  x-excluded: true
+  tags:
+    - liveness
+  security: []
+  operationId: liveness
+  summary: Health check
+  description: |
+    Check if the Unkey API service is healthy and ready to handle requests.
+
+    Use this for load balancer health checks, monitoring systems, and orchestration platforms. No authentication required with minimal processing overhead.
+
+    **Required Permissions**
+
+    None - this endpoint requires no authentication.
+
+    **Side Effects**
+
+    None - this is a read-only health check that does not modify any data or state.
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2LivenessResponseBody.yaml"
+          examples:
+            healthy:
+              summary: Healthy service
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  message: OK
+      description: |
+        Service is healthy and ready to process requests. Returns 'OK' message for normal operation.
+    "412":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            degraded:
+              summary: Service in degraded state
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                error:
+                  title: Precondition Failed
+                  detail: Service is in a degraded state. Some functionality may
+                    be limited.
+                  status: 412
+                  type: https://unkey.dev/errors/precondition-failed
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            unhealthy:
+              summary: Service unhealthy
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                error:
+                  title: Internal Server Error
+                  detail: The service is currently experiencing issues and may
+                    not be fully operational.
+                  status: 500
+                  type: https://unkey.dev/errors/internal-server-error
+      description: |
+        Service is unhealthy and unable to process requests properly. Significant service issue requiring immediate attention.

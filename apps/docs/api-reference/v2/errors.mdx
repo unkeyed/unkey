@@ -1,0 +1,118 @@
+---
+title: Error Handling
+description: 'Understanding and working with API errors'
+---
+
+Error responses maintain the same top-level structure as successful responses, but with an `error` object instead of `data`:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "error": {
+    "title": "Validation Error",
+    "detail": "You must provide a valid API ID.",
+    "status": 400,
+    "type": "https://unkey.com/docs/errors/validation-error",
+    "errors": [
+      {
+        "location": "body.apiId",
+        "message": "API not found",
+        "fix": "Provide a valid API ID or create a new API"
+      }
+    ]
+  }
+}
+```
+
+## Error Format
+
+Our error format follows RFC7807 Problem Details standard within our consistent envelope structure, providing:
+
+- **title**: A short, human-readable summary of the problem
+- **detail**: A human-readable explanation specific to this occurrence
+- **status**: The HTTP status code (also returned in the HTTP response)
+- **type**: A URI reference that identifies the problem type and points to documentation
+- **errors**: (Optional) An array of specific validation errors when multiple issues occur
+
+## Common Error Types
+
+| Status | Error Type | Description |
+|--------|------------|-------------|
+| 400 | validation-error | The request body failed validation |
+| 401 | unauthorized | Missing or invalid authorization |
+| 403 | forbidden | Valid authorization but insufficient permissions |
+| 404 | not-found | The requested resource was not found |
+| 409 | conflict | The request conflicts with the current state |
+| 429 | rate-limited | You've exceeded your rate limit |
+| 500 | internal-server-error | An unexpected error occurred on our servers |
+
+## Validation Errors
+
+For validation errors, we provide detailed information about each failed validation:
+
+- **location**: Where in the request the error occurred (e.g., `body.name`, `query.limit`)
+- **message**: What went wrong with the specific field
+- **fix**: (When possible) A suggestion for how to fix the issue
+
+## Error Recovery
+
+Our error messages are designed to be actionable. Each error includes:
+
+1. A clear explanation of what went wrong
+2. Often, a suggestion for how to fix the issue
+3. For validation errors, the specific fields that failed validation
+
+## Using the Request ID for Support
+
+When reporting issues to our support team, always include the `requestId` from the error response. This unique identifier allows us to quickly locate the specific request in our logs and provide faster, more accurate assistance.
+
+## Error Handling Best Practices
+
+1. **Check for Status Codes**: Always check HTTP status codes first to determine broad error categories
+2. **Extract Error Details**: Parse the error object for detailed information
+3. **Implement Retries Carefully**: Only retry on 5xx errors or when explicitly advised
+4. **Log Complete Errors**: Log the full error response for debugging purposes
+
+Example error handling in JavaScript:
+
+```javascript
+try {
+  const response = await fetch('https://api.unkey.com/v2/keys.create', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${rootKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(keyData)
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    // Extract and handle the error
+    const { meta, error } = data;
+    console.error(`Error ${error.status}: ${error.title}`, {
+      requestId: meta.requestId,
+      detail: error.detail,
+      docs: error.type
+    });
+
+    // Handle validation errors specifically
+    if (error.errors) {
+      error.errors.forEach(err => {
+        console.error(`- ${err.location}: ${err.message}`);
+      });
+    }
+
+    throw new Error(`API Error: ${error.detail}`);
+  }
+
+  return data.data; // Return just the data portion on success
+} catch (err) {
+  // Handle network errors or other exceptions
+  console.error('Request failed:', err);
+  throw err;
+}
+```

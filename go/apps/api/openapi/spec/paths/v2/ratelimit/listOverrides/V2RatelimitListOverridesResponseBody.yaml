@@ -1,0 +1,11 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2RatelimitListOverridesResponseData.yaml"
+  pagination:
+    "$ref": "../../../../common/Pagination.yaml"

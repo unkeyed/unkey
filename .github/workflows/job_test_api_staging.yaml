@@ -16,7 +16,6 @@ on:
         required: true
       CLICKHOUSE_URL:
         required: true
-
 jobs:
   test:
     name: API Test Staging
@@ -27,27 +26,25 @@ jobs:
       fail-fast: false
       matrix:
         shard: ["1/9", "2/9", "3/9", "4/9", "5/9", "6/9", "7/9", "8/9", "9/9"]
-
     steps:
       - uses: actions/checkout@v4
-
       # Our staging server goes to sleep to save money, this will wake it up
       # before running our tests
       - name: Wake ClickHouse
         run: curl -X GET ${{ secrets.CLICKHOUSE_URL }}/ping
-
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
-
+        env:
+          CI: 1
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
+          CI: 1
           UNKEY_BASE_URL: ${{ inputs.UNKEY_BASE_URL }}
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}

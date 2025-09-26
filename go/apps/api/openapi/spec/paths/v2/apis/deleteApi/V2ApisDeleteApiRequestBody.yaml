@@ -1,0 +1,22 @@
+type: object
+required:
+  - apiId
+properties:
+  apiId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which API namespace to permanently delete from your workspace.
+      Must be a valid API ID that begins with 'api_' and exists within your workspace.
+
+      Before proceeding, ensure you have the correct API ID and understand that this action cannot be undone. If you need to migrate functionality, create replacement keys in a new API namespace and update client applications before deletion.
+    example: api_1234abcd
+additionalProperties: false
+examples:
+  delete:
+    summary: Delete an API
+    description: Remove API an API by providing its id
+    value:
+      apiId: api_abcd1234

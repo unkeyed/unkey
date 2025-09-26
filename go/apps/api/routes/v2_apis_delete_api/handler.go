@@ -20,8 +20,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2ApisDeleteApiRequestBody
-type Response = openapi.V2ApisDeleteApiResponseBody
+type (
+	Request  = openapi.V2ApisDeleteApiRequestBody
+	Response = openapi.V2ApisDeleteApiResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 APIs delete API endpoint
 type Handler struct {
@@ -45,7 +47,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -54,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -154,11 +157,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Caches.ApiByID.SetNull(ctx, req.ApiId)
+	h.Caches.LiveApiByID.SetNull(ctx, req.ApiId)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
+		Data: openapi.EmptyResponse{},
 	})
 }

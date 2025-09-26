@@ -25,7 +25,7 @@
 //	}
 //
 //	// Buffer events for batch processing
-//	ch.BufferApiRequest(schema.ApiRequestV1{
+//	ch.BufferRequest(schema.ApiRequestV1{
 //	    RequestID:      "req_123",
 //	    Time:           time.Now().UnixMilli(),
 //	    WorkspaceID:    "ws_abc",

@@ -35,12 +35,12 @@ func TestNotFound(t *testing.T) {
 			"test": "value",
 		}
 		req := handler.Request{
-			ExternalId: nonExistentExternalID,
-			Meta:       &meta,
+			Identity: nonExistentExternalID,
+			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, got: %d", res.Status)
-		require.Equal(t, "https://unkey.com/docs/api-reference/errors-v2/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
 		require.Equal(t, "Identity not found in this workspace", res.Body.Error.Detail)
 		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Not Found", res.Body.Error.Title)

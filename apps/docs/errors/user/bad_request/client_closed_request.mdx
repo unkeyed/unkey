@@ -1,0 +1,98 @@
+---
+title: "client_closed_request"
+description: "Client cancelled the request before the server could complete processing"
+---
+
+<Danger>`err:user:bad_request:client_closed_request`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Client closed request",
+    "status": 499,
+    "title": "Client Closed Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/client_closed_request",
+    "errors": []
+  }
+}
+```
+
+## What Happened?
+
+Your client cancelled the request before our server finished processing it. This happens when:
+
+- Your client timeout is shorter than the processing time
+- Network connection was lost during the request
+- Your application cancelled the request (user navigated away, etc.)
+- Load balancer or proxy terminated the connection
+
+<Note>
+**HTTP Status 499** is a non-standard but widely used status code that means "Client Closed Request". It was originally defined by nginx and is now used by many web servers to indicate when a client disconnects before receiving the full response.
+</Note>
+
+## Common Causes
+
+### 1. Client Timeout Too Short
+
+Your HTTP client may have a timeout that's shorter than our processing time. Make sure your client timeout allows enough time for the operation to complete (typically 30+ seconds).
+
+### 2. Command Line Tools
+
+Tools like `curl` or `timeout` commands may have short default timeouts. Use `--max-time 30` with curl or longer timeout values with other tools.
+
+### 3. User Interface Cancellations
+
+In web applications, users might navigate away or close tabs before requests complete. This is normal user behavior and should be handled gracefully in your application.
+
+## How to Fix It
+
+### 1. Increase Client Timeouts
+
+Make sure your client timeout is reasonable for the operation (typically 30+ seconds). Check your HTTP client documentation for timeout configuration options.
+
+### 2. Handle Network Issues
+
+If you're experiencing network connectivity problems that cause your client to disconnect, check your network stability and consider increasing timeout values.
+
+### 3. Check Your Infrastructure
+
+If you're using proxies, load balancers, or CDNs:
+
+- Verify their timeout settings
+- Check if they're terminating long-running requests
+- Ensure they're configured to handle the expected request duration
+
+## When You See This Error
+
+### It's Usually Not Our Fault
+Status 499 means your client cancelled the request, so the issue is typically:
+- Your client timeout settings
+- Network connectivity problems
+- User behavior (closing browser, etc.)
+
+### Check Your Logs
+Look for patterns:
+- Is it happening at specific times?
+- Are certain operations more affected?
+- Are there network errors in your client logs?
+
+### You Won't See 499 Errors in Your Client
+
+**Important:** Since the client cancels the request before getting a response, your application typically won't receive a 499 status code. Instead, you'll see:
+
+- Network timeout errors
+- Request cancelled/aborted errors
+- Connection reset errors
+
+You can only see 499 errors in server logs, not in your client application. This is why this error mainly helps server operators understand why requests failed.
+
+## Difference from Other Errors
+
+- **408 Request Timeout**: Server took too long (server-side issue)
+- **499 Client Closed Request**: Client cancelled early (client-side issue)
+- **504 Gateway Timeout**: Upstream service timeout (infrastructure issue)
+
+If you're seeing mostly 499 errors, focus on your client configuration and network connectivity rather than server performance.

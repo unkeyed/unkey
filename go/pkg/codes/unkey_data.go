@@ -22,12 +22,18 @@ type dataApi struct {
 
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
+	// Duplicate indicates the requested permission already exists.
+	Duplicate Code
+
 	// NotFound indicates the requested permission was not found.
 	NotFound Code
 }
 
 // dataRole defines errors related to role operations.
 type dataRole struct {
+	// Duplicate indicates the requested role already exists.
+	Duplicate Code
+
 	// NotFound indicates the requested role was not found.
 	NotFound Code
 }
@@ -42,6 +48,8 @@ type dataKeyAuth struct {
 type dataRatelimitNamespace struct {
 	// NotFound indicates the requested rate limit namespace was not found.
 	NotFound Code
+	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
+	Gone Code
 }
 
 // dataRatelimitOverride defines errors related to rate limit override operations.
@@ -98,11 +106,13 @@ var Data = UnkeyDataErrors{
 	},
 
 	Permission: dataPermission{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "permission_not_found"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "permission_not_found"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "permission_already_exists"},
 	},
 
 	Role: dataRole{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "role_not_found"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "role_not_found"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "role_already_exists"},
 	},
 
 	KeyAuth: dataKeyAuth{
@@ -111,6 +121,7 @@ var Data = UnkeyDataErrors{
 
 	RatelimitNamespace: dataRatelimitNamespace{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
+		Gone:     Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
 	},
 
 	RatelimitOverride: dataRatelimitOverride{

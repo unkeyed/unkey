@@ -1,0 +1,62 @@
+type: object
+properties:
+  exceeded:
+    type: boolean
+    description: Whether the rate limit was exceeded.
+  id:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^rl_[a-zA-Z0-9_]+$"
+    description: Unique identifier for this rate limit configuration.
+    example: rl_1234567890abcdef
+  name:
+    type: string
+    minLength: 1
+    maxLength: 128
+    description: Human-readable name for this rate limit.
+    example: api_requests
+  limit:
+    type: integer
+    format: int64
+    minimum: 1
+    maximum: 1000000
+    description: Maximum requests allowed within the time window.
+    example: 1000
+  duration:
+    type: integer
+    format: int64
+    minimum: 1000
+    maximum: 2592000000
+    description: Rate limit window duration in milliseconds.
+    example: 3600000
+  reset:
+    type: integer
+    format: int64
+    minimum: 1000
+    maximum: 2592000000
+    description: Rate limit reset duration in milliseconds.
+    example: 3600000
+  remaining:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 1000000
+    description: Rate limit remaining requests within the time window.
+    example: 999
+  autoApply:
+    type: boolean
+    description: |
+      Whether this rate limit should be automatically applied when verifying keys.
+      When true, we will automatically apply this limit during verification without it being explicitly listed.
+    example: true
+required:
+  - id
+  - exceeded
+  - name
+  - limit
+  - duration
+  - reset
+  - remaining
+  - autoApply
+additionalProperties: false

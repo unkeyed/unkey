@@ -53,6 +53,51 @@ func TestRBAC_EvaluatePermissions(t *testing.T) {
 			permissions: []string{"api.api1.read_api", "api.api1.update_api", "rbac.role1.read_role"},
 			wantValid:   true,
 		},
+		{
+			name:        "Asterisk permission literal match (Pass)",
+			query:       S("api.*"),
+			permissions: []string{"api.*", "api.read", "api.write"},
+			wantValid:   true,
+		},
+		{
+			name:        "Asterisk permission NOT wildcard (Fail)",
+			query:       S("api.*"),
+			permissions: []string{"api.read", "api.write", "api.delete"},
+			wantValid:   false,
+		},
+		{
+			name: "Complex query with asterisk permissions",
+			query: Or(
+				S("api.*"),
+				S("api.read"),
+			),
+			permissions: []string{"api.read"},
+			wantValid:   true,
+		},
+		{
+			name:        "Permission with colon namespace (Pass)",
+			query:       S("system:admin:read"),
+			permissions: []string{"system:admin:read", "system:admin:write"},
+			wantValid:   true,
+		},
+		{
+			name:        "Permission with colon namespace (Fail)",
+			query:       S("system:admin:write"),
+			permissions: []string{"system:admin:read", "user:basic:read"},
+			wantValid:   false,
+		},
+		{
+			name: "Complex query with colons and other characters",
+			query: And(
+				S("system:admin:*"),
+				Or(
+					S("api_v2:read"),
+					S("api-v2:write"),
+				),
+			),
+			permissions: []string{"system:admin:*", "api_v2:read", "user:basic:read"},
+			wantValid:   true,
+		},
 	}
 
 	rbac := New()

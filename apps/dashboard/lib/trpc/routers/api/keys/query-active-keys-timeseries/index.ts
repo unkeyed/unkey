@@ -1,4 +1,4 @@
-import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
+import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

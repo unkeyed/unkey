@@ -1,0 +1,64 @@
+post:
+  tags:
+    - keys
+  summary: Delete API keys
+  description: |
+    Delete API keys permanently from user accounts or for cleanup purposes.
+
+    Use this for user-requested key deletion, account deletion workflows, or cleaning up unused keys. Keys are immediately invalidated. Two modes: soft delete (default, preserves audit records) and permanent delete.
+
+    **Important**: For temporary access control, use `updateKey` with `enabled: false` instead of deletion.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.delete_key` (to delete keys in any API)
+    - `api.<api_id>.delete_key` (to delete keys in a specific API)
+  operationId: deleteKey
+  x-speakeasy-name-override: deleteKey
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2KeysDeleteKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2KeysDeleteKeyResponseBody.yaml"
+      description: |
+        Key deleted successfully. Verification fails immediately with up to 30-second edge propagation.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

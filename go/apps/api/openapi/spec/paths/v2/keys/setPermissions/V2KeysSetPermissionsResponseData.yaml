@@ -1,0 +1,14 @@
+type: array
+description: |-
+  Complete list of all permissions now directly assigned to the key after the set operation has completed.
+
+  The response includes:
+  - The comprehensive, updated set of direct permissions (reflecting the complete replacement)
+  - Both ID and name for each permission for easy reference
+
+  Important notes:
+  - This only shows direct permissions, not those granted through roles
+  - An empty array means the key has no direct permissions assigned
+  - For a complete permission picture including roles, use keys.getKey instead
+items:
+  "$ref": "../../../../common/Permission.yaml"

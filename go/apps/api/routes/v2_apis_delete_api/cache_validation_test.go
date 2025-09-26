@@ -46,10 +46,11 @@ func TestCacheInvalidation(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		// Get API to ensure it's in the cache
-		_, err := h.Caches.ApiByID.SWR(ctx, api.ID, func(ctx context.Context) (db.Api, error) {
-			return db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
+		_, hit, err := h.Caches.LiveApiByID.SWR(ctx, api.ID, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+			return db.Query.FindLiveApiByID(ctx, h.DB.RO(), api.ID)
 		}, caches.DefaultFindFirstOp)
 		require.NoError(t, err)
+		require.Equal(t, cache.Hit, hit)
 		// Delete the API
 		req := handler.Request{
 			ApiId: api.ID,
@@ -70,7 +71,7 @@ func TestCacheInvalidation(t *testing.T) {
 		require.True(t, apiAfterDelete.DeletedAtM.Valid)
 
 		// Verify the API is deleted in the cache
-		_, hit := h.Caches.ApiByID.Get(ctx, api.ID)
+		_, hit = h.Caches.LiveApiByID.Get(ctx, api.ID)
 		require.Equal(t, cache.Null, hit)
 	})
 }

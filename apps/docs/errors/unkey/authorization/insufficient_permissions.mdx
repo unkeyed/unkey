@@ -1,0 +1,77 @@
+---
+title: "insufficient_permissions"
+description: "The authenticated entity lacks sufficient permissions for the requested operation"
+---
+
+<Danger>`err:unkey:authorization:insufficient_permissions`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The authenticated API key does not have permission to perform this operation",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/authorization/insufficient_permissions"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when your API key is valid and properly authenticated, but it doesn't have the necessary permissions to perform the requested operation. In Unkey, different API keys can have different permission levels.
+
+Common scenarios that trigger this error:
+- Using a read-only key to perform write operations
+- Using a key limited to specific resources to access other resources
+- Attempting to access resources across workspaces with a workspace-scoped key
+- Using a key with limited permissions to perform administrative actions
+
+Here's an example of a request using a key with insufficient permissions:
+
+```bash
+# Using a read-only key to create a new API key
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_READ_ONLY_KEY" \
+  -d '{
+    "apiId": "api_123",
+    "name": "New API Key"
+  }'
+```
+
+## How To Fix
+
+You need to use an API key with the appropriate permissions for the operation you're trying to perform. Here are some steps to resolve this issue:
+
+1. **Check permissions**: Verify the permissions of your current Unkey API key in the [Unkey dashboard](https://app.unkey.com)
+2. **Create a new key**: If needed, create a new Unkey API key with the required permissions
+3. **Use role-based keys**: Consider using separate keys for different operations based on their permission requirements
+
+Here's an example using a key with the appropriate permissions:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_ADMIN_KEY" \
+  -d '{
+    "apiId": "api_123",
+    "name": "New API Key"
+  }'
+```
+
+## Common Mistakes
+
+- **Using development keys in production**: Keys may have different permissions across environments
+- **Mixing key scopes**: Using a key scoped to one resource to access another
+- **Role misunderstanding**: Not understanding the specific permissions granted to each role
+- **Workspace boundaries**: Attempting to cross workspace boundaries with a limited key
+- **Permission level confusion**: Not understanding what operations require elevated permissions
+- **Expired or downgraded privileges**: Using a key whose permissions have been reduced since it was issued
+
+## Related Errors
+- [err:unkey:authorization:forbidden](./forbidden) - When the operation is not allowed for policy reasons
+- [err:unkey:authorization:key_disabled](./key_disabled) - When the authentication key is disabled

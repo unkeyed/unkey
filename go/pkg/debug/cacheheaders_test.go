@@ -85,7 +85,7 @@ func TestRecordCacheHitWithSession(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/test", nil)
 			recorder := httptest.NewRecorder()
 			session := &zen.Session{}
-			err := session.Init(recorder, req)
+			err := session.Init(recorder, req, 0)
 			require.NoError(t, err)
 
 			ctx := zen.WithSession(context.Background(), session)
@@ -106,7 +106,7 @@ func TestRecordCacheHitMultipleOperations(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	recorder := httptest.NewRecorder()
 	session := &zen.Session{}
-	err := session.Init(recorder, req)
+	err := session.Init(recorder, req, 0)
 	require.NoError(t, err)
 
 	ctx := zen.WithSession(context.Background(), session)
@@ -134,7 +134,7 @@ func TestRecordCacheHitSessionRetrieval(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	recorder := httptest.NewRecorder()
 	session := &zen.Session{}
-	err := session.Init(recorder, req)
+	err := session.Init(recorder, req, 0)
 	require.NoError(t, err)
 
 	t.Run("with session in context", func(t *testing.T) {
@@ -230,7 +230,7 @@ func TestCacheHeaderName(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	recorder := httptest.NewRecorder()
 	session := &zen.Session{}
-	err := session.Init(recorder, req)
+	err := session.Init(recorder, req, 0)
 	require.NoError(t, err)
 
 	ctx := zen.WithSession(context.Background(), session)

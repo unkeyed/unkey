@@ -1,0 +1,26 @@
+type: object
+required:
+  - externalId
+properties:
+  externalId:
+    type: string
+    description: The external identifier for this identity in your system. This
+      is the ID you provided during identity creation.
+    example: user_abc123
+  meta:
+    type: object
+    additionalProperties: true
+    description: Custom metadata associated with this identity. This can include
+      any JSON-serializable data you stored with the identity during creation
+      or updates.
+    example:
+      name: Alice Smith
+      email: alice@example.com
+      plan: premium
+  ratelimits:
+    type: array
+    items:
+      $ref: "../../../../common/RatelimitResponse.yaml"
+    description: Rate limits associated with this identity. These limits are
+      shared across all API keys linked to this identity, providing consistent
+      rate limiting regardless of which key is used.

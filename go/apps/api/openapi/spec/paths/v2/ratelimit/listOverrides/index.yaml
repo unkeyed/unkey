@@ -1,0 +1,108 @@
+post:
+  tags:
+    - ratelimit
+  summary: List ratelimit overrides
+  description: |
+    Retrieve a paginated list of all rate limit overrides in a namespace.
+
+    Use this to audit rate limiting policies, build admin dashboards, or manage override configurations.
+
+    **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
+
+    **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+  operationId: ratelimit.listOverrides
+  x-speakeasy-name-override: listOverrides
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitListOverridesRequestBody.yaml"
+        examples:
+          basic:
+            summary: List all overrides
+            value:
+              namespaceName: api.requests
+              limit: 20
+          pagination:
+            summary: Get next page
+            value:
+              namespaceName: api.requests
+              cursor: cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitListOverridesResponseBody.yaml"
+      description: Overrides retrieved successfully. Includes pagination metadata if more results are available.
+      examples:
+        withOverrides:
+          summary: List of overrides returned
+          value:
+            meta:
+              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+            data:
+              overrides:
+                - overrideId: ovr_1234567890abcdef
+                  identifier: premium_user_123
+                  limit: 1000
+                  duration: 60000
+                - overrideId: ovr_2345678901bcdefg
+                  identifier: premium_*
+                  limit: 500
+                  duration: 60000
+              cursor: cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9
+        empty:
+          summary: No overrides found
+          value:
+            meta:
+              requestId: req_7zF4mNyP9BsRj2aQwDxVkT
+            data:
+              overrides: []
+              cursor: null
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'ratelimit.*.read_override'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Error

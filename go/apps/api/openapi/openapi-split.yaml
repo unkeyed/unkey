@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  title: Unkey API
+  version: 2.0.0
+  description: |-
+    Unkey's API provides programmatic access for all resources within our platform.
+
+
+    ### Authentication
+    #
+    This API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the `Authorization` header:
+    ```
+    Authorization: Bearer unkey_xxxxxxxxxxx
+    ```
+
+    All responses follow a consistent envelope structure that separates operational metadata from actual data. This design provides several benefits:
+    - Debugging: Every response includes a unique requestId for tracing issues
+    - Consistency: Predictable response format across all endpoints
+    - Extensibility: Easy to add new metadata without breaking existing integrations
+    - Error Handling: Unified error format with actionable information
+
+    ### Success Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_123456"
+      },
+      "data": {
+        // Actual response data here
+      }
+    }
+    ```
+
+    The meta object contains operational information:
+    - `requestId`: Unique identifier for this request (essential for support)
+
+    The data object contains the actual response data specific to each endpoint.
+
+    ### Paginated Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_123456"
+      },
+      "data": [
+        // Array of results
+      ],
+      "pagination": {
+        "cursor": "next_page_token",
+        "hasMore": true
+      }
+    }
+    ```
+
+    The pagination object appears on list endpoints and contains:
+    - `cursor`: Token for requesting the next page
+    - `hasMore`: Whether more results are available
+
+    ### Error Response Format:
+    ```json
+    {
+      "meta": {
+        "requestId": "req_2c9a0jf23l4k567"
+      },
+      "error": {
+        "detail": "The resource you are attempting to modify is protected and cannot be changed",
+        "status": 403,
+        "title": "Forbidden",
+        "type": "https://unkey.com/docs/errors/unkey/application/protected_resource"
+      }
+    }
+    ```
+
+    Error responses include comprehensive diagnostic information:
+    - `title`: Human-readable error summary
+    - `detail`: Specific description of what went wrong
+    - `status`: HTTP status code
+    - `type`: Link to error documentation
+    - `errors`: Array of validation errors (for 400 responses)
+
+    This structure ensures you always have the context needed to debug issues and take corrective action.
+
+servers:
+  - url: https://api.unkey.com
+
+x-speakeasy-retries:
+  strategy: backoff
+  backoff:
+    initialInterval: 50
+    maxInterval: 1000
+    maxElapsedTime: 10000
+    exponent: 1.5
+  statusCodes:
+    - 5XX
+  retryConnectionErrors: true
+
+security:
+  - rootKey: []
+
+tags:
+  - name: apis
+    description: API management operations
+  - name: identities
+    description: Identity management operations
+  - name: keys
+    description: API key management operations
+  - name: liveness
+    description: Health check operations
+  - name: permissions
+    description: Permission and role management operations
+  - name: ratelimit
+    description: Rate limiting operations
+
+paths:
+  # Health Endpoints
+  /v2/liveness:
+    $ref: "./spec/paths/v2/liveness/index.yaml"
+
+  # API Endpoints
+  /v2/apis.createApi:
+    $ref: "./spec/paths/v2/apis/createApi/index.yaml"
+  /v2/apis.deleteApi:
+    $ref: "./spec/paths/v2/apis/deleteApi/index.yaml"
+  /v2/apis.getApi:
+    $ref: "./spec/paths/v2/apis/getApi/index.yaml"
+  /v2/apis.listKeys:
+    $ref: "./spec/paths/v2/apis/listKeys/index.yaml"
+
+  # Identity Endpoints
+  /v2/identities.createIdentity:
+    $ref: "./spec/paths/v2/identities/createIdentity/index.yaml"
+  /v2/identities.deleteIdentity:
+    $ref: "./spec/paths/v2/identities/deleteIdentity/index.yaml"
+  /v2/identities.getIdentity:
+    $ref: "./spec/paths/v2/identities/getIdentity/index.yaml"
+  /v2/identities.listIdentities:
+    $ref: "./spec/paths/v2/identities/listIdentities/index.yaml"
+  /v2/identities.updateIdentity:
+    $ref: "./spec/paths/v2/identities/updateIdentity/index.yaml"
+
+  # Key Endpoints
+  /v2/keys.addPermissions:
+    $ref: "./spec/paths/v2/keys/addPermissions/index.yaml"
+  /v2/keys.setPermissions:
+    $ref: "./spec/paths/v2/keys/setPermissions/index.yaml"
+  /v2/keys.removePermissions:
+    $ref: "./spec/paths/v2/keys/removePermissions/index.yaml"
+  /v2/keys.addRoles:
+    $ref: "./spec/paths/v2/keys/addRoles/index.yaml"
+  /v2/keys.setRoles:
+    $ref: "./spec/paths/v2/keys/setRoles/index.yaml"
+  /v2/keys.removeRoles:
+    $ref: "./spec/paths/v2/keys/removeRoles/index.yaml"
+
+  /v2/keys.createKey:
+    $ref: "./spec/paths/v2/keys/createKey/index.yaml"
+  /v2/keys.rerollKey:
+    $ref: "./spec/paths/v2/keys/rerollKey/index.yaml"
+  /v2/keys.updateKey:
+    $ref: "./spec/paths/v2/keys/updateKey/index.yaml"
+  /v2/keys.updateCredits:
+    $ref: "./spec/paths/v2/keys/updateCredits/index.yaml"
+  /v2/keys.deleteKey:
+    $ref: "./spec/paths/v2/keys/deleteKey/index.yaml"
+  /v2/keys.getKey:
+    $ref: "./spec/paths/v2/keys/getKey/index.yaml"
+  /v2/keys.whoami:
+    $ref: "./spec/paths/v2/keys/whoami/index.yaml"
+  /v2/keys.verifyKey:
+    $ref: "./spec/paths/v2/keys/verifyKey/index.yaml"
+
+  # Ratelimit Endpoints
+  /v2/ratelimit.limit:
+    $ref: "./spec/paths/v2/ratelimit/limit/index.yaml"
+  /v2/ratelimit.setOverride:
+    $ref: "./spec/paths/v2/ratelimit/setOverride/index.yaml"
+  /v2/ratelimit.getOverride:
+    $ref: "./spec/paths/v2/ratelimit/getOverride/index.yaml"
+  /v2/ratelimit.listOverrides:
+    $ref: "./spec/paths/v2/ratelimit/listOverrides/index.yaml"
+  /v2/ratelimit.deleteOverride:
+    $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
+
+  # Permissions Endpoints
+  /v2/permissions.createRole:
+    $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
+  /v2/permissions.getRole:
+    $ref: "./spec/paths/v2/permissions/getRole/index.yaml"
+  /v2/permissions.listRoles:
+    $ref: "./spec/paths/v2/permissions/listRoles/index.yaml"
+  /v2/permissions.deleteRole:
+    $ref: "./spec/paths/v2/permissions/deleteRole/index.yaml"
+  /v2/permissions.createPermission:
+    $ref: "./spec/paths/v2/permissions/createPermission/index.yaml"
+  /v2/permissions.getPermission:
+    $ref: "./spec/paths/v2/permissions/getPermission/index.yaml"
+  /v2/permissions.listPermissions:
+    $ref: "./spec/paths/v2/permissions/listPermissions/index.yaml"
+  /v2/permissions.deletePermission:
+    $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
+
+  # ClickHouse Proxy Endpoints (Internal)
+  /_internal/chproxy/verifications:
+    $ref: "./spec/paths/chproxy/verifications/index.yaml"
+  /_internal/chproxy/metrics:
+    $ref: "./spec/paths/chproxy/metrics/index.yaml"
+  /_internal/chproxy/ratelimits:
+    $ref: "./spec/paths/chproxy/ratelimits/index.yaml"
+
+components:
+  securitySchemes:
+    rootKey:
+      type: http
+      scheme: bearer
+      bearerFormat: root key
+      description: |-
+        Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
+        To authenticate, include your root key in the Authorization header of each request:
+        ```
+        Authorization: Bearer unkey_123
+        ```
+        Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
+        Security best practices:
+        - Keep root keys secure and never expose them in client-side code
+        - Use different root keys for different environments
+        - Rotate keys periodically, especially after team member departures
+        - Create keys with minimal necessary permissions following least privilege principle
+        - Monitor key usage with audit logs.

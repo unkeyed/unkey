@@ -7,7 +7,6 @@ on:
       CLOUDFLARE_API_TOKEN:
         required: true
         description: "Cloudflare API Token"
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,21 +22,23 @@ jobs:
     name: Deploy ${{ matrix.workers.domain }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Setup Wrangler
+        uses: ./.github/actions/setup-wrangler
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
-
+        env:
+          CI: 1
       - name: Configure worker
         run: |
           sed -i 's/__CUSTOM_NAME__/${{matrix.workers.name }}/g' ./wrangler.custom.toml
           sed -i 's/__CUSTOM_DOMAIN__/${{matrix.workers.domain}}/g' ./wrangler.custom.toml
         working-directory: apps/api
-
       - name: Deploy
         run: wrangler deploy --config=./wrangler.custom.toml --var VERSION:$(git rev-parse --short HEAD)
         working-directory: apps/api

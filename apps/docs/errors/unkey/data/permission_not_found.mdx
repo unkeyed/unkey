@@ -1,0 +1,72 @@
+---
+title: "permission_not_found"
+description: "The requested permission was not found"
+---
+
+<Danger>
+err:unkey:data:permission_not_found
+</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested permission could not be found",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/permission_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to perform an operation on a permission that doesn't exist in the Unkey system. Permissions in Unkey are used to control access to resources and operations.
+
+Common scenarios that trigger this error:
+- Using an incorrect permission ID or name
+- Referencing a permission that has been deleted
+- Trying to assign a permission that doesn't exist in the current workspace
+- Typos in permission names when using name-based lookups
+
+## How To Fix
+
+Verify that you're using the correct permission ID or name and that the permission still exists in your workspace:
+
+1. List all permissions in your workspace to find the correct ID
+2. Check if the permission has been deleted and recreate it if necessary
+3. Verify you're working in the correct workspace
+
+Here's how to list all permissions in your workspace:
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.listPermissions \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY"
+```
+
+If you need to create a new permission, use the appropriate API endpoint:
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.createPermission \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "name": "read:keys",
+    "description": "Allows reading key information"
+  }'
+```
+
+## Common Mistakes
+
+- **Incorrect identifiers**: Using wrong permission IDs or names
+- **Deleted permissions**: Referencing permissions that have been removed
+- **Case sensitivity**: Permissions names might be case-sensitive
+- **Workspace boundaries**: Trying to use permissions from another workspace
+
+## Related Errors
+- [err:unkey:data:role_not_found](./role_not_found) - When the requested role doesn't exist
+- [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
+- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on permissions

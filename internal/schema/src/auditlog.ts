@@ -12,6 +12,7 @@ export const unkeyAuditLogEvents = z.enum([
   "api.update",
   "api.delete",
   "key.create",
+  "key.reroll",
   "key.update",
   "key.delete",
   "ratelimitNamespace.create",
@@ -52,6 +53,10 @@ export const unkeyAuditLogEvents = z.enum([
   "ratelimit.read_override",
   "ratelimit.delete_override",
   "auditLogBucket.create",
+  "project.create",
+  "environment.create",
+  "deployment.rollback",
+  "deployment.promote",
 ]);
 
 export const auditLogSchemaV1 = z.object({

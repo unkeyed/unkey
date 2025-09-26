@@ -1,0 +1,106 @@
+post:
+  tags:
+    - ratelimit
+  summary: Set ratelimit override
+  description: |
+    Create or update a custom rate limit for specific identifiers, bypassing the namespace default.
+
+    Use this to create premium tiers with higher limits, apply stricter limits to specific users, or implement emergency throttling.
+
+    **Important:** Overrides take effect immediately and completely replace the default limit for matching identifiers. Use wildcard patterns (e.g., `premium_*`) to match multiple identifiers.
+
+    **Permissions:** Requires `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`
+  operationId: ratelimit.setOverride
+  x-speakeasy-name-override: setOverride
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitSetOverrideRequestBody.yaml"
+        examples:
+          premium:
+            summary: Higher limit for premium user
+            value:
+              namespaceName: api.requests
+              identifier: premium_user_123
+              limit: 1000
+              duration: 60000
+          wildcard:
+            summary: Pattern for multiple identifiers
+            value:
+              namespaceName: api.requests
+              identifier: premium_*
+              limit: 500
+              duration: 60000
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitSetOverrideResponseBody.yaml"
+      description: Override successfully created or updated and is now active.
+      examples:
+        standard:
+          summary: Override created successfully
+          value:
+            meta:
+              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+            data:
+              overrideId: ovr_1234567890abcdef
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `ratelimit.*.set_override`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_0uVwX4yZaAbCdEfGhIjKl
+                error:
+                  title: Forbidden
+                  detail:
+                    Your root key requires the 'ratelimit.*.set_override'
+                    permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - Namespace not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            namespaceNotFound:
+              summary: Namespace not found
+              value:
+                meta:
+                  requestId: req_2wXyZaAbCdEfGhIjKlMnOp
+                error:
+                  title: Not Found
+                  detail: This namespace does not exist.
+                  status: 404
+                  type: not_found
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

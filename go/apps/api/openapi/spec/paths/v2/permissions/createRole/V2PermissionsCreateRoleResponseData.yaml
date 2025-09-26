@@ -1,0 +1,16 @@
+type: object
+properties:
+  roleId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The unique identifier assigned to the newly created role.
+      Use this ID to reference the role in permission assignments, key operations, and role management calls.
+      Always begins with 'role_' followed by a unique alphanumeric sequence.
+      Store this ID if you need to manage, modify, or assign this role in future operations.
+    example: role_1234567890abcdef
+required:
+  - roleId
+additionalProperties: false

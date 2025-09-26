@@ -9,8 +9,12 @@ import { eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["keys"],
   operationId: "deleteKey",
+  summary: "Delete API key",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post",
   path: "/v1/keys.deleteKey",
   security: [{ bearerAuth: [] }],

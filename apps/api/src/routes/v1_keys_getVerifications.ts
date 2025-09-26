@@ -8,11 +8,14 @@ import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/veri
 import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["keys"],
   operationId: "keys.getVerifications",
   method: "get",
   path: "/v1/keys.getVerifications",
   "x-speakeasy-name-override": "getVerifications",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({

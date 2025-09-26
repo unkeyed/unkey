@@ -19,7 +19,6 @@ import (
 )
 
 func TestGetKeyForbidden(t *testing.T) {
-
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
@@ -122,7 +121,7 @@ func TestGetKeyForbidden(t *testing.T) {
 	require.NoError(t, err)
 
 	req := handler.Request{
-		KeyId:   ptr.P(keyID),
+		KeyId:   keyID,
 		Decrypt: ptr.P(true),
 	}
 
@@ -196,6 +195,54 @@ func TestGetKeyForbidden(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("decrypt permission without read permission", func(t *testing.T) {
+		// Create root key with only decrypt permission, no read permission
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.decrypt_key")
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		// Try to get key
+		readReq := handler.Request{
+			KeyId:   keyID,
+			Decrypt: ptr.P(false), // Even without decrypt, should fail on read permission
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, readReq)
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("wrong resource type permissions", func(t *testing.T) {
+		// Create root key with permissions for different resource type
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "workspace.*.read", "identity.*.read")
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		require.Equal(t, 403, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("specific API permission but wrong action", func(t *testing.T) {
+		// Create root key with permission for correct API but wrong action
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.delete_key", apiID))
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 	})

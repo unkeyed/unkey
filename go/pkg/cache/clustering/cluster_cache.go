@@ -117,9 +117,11 @@ func (c *ClusterCache[K, V]) SetNull(ctx context.Context, key K) {
 }
 
 // Remove removes a value from the local cache and broadcasts invalidation
-func (c *ClusterCache[K, V]) Remove(ctx context.Context, key K) {
-	c.localCache.Remove(ctx, key)
-	c.broadcastInvalidation(ctx, key)
+func (c *ClusterCache[K, V]) Remove(ctx context.Context, keys ...K) {
+	for _, key := range keys {
+		c.localCache.Remove(ctx, key)
+		c.broadcastInvalidation(ctx, key)
+	}
 }
 
 // SWR performs stale-while-revalidate lookup
@@ -128,7 +130,7 @@ func (c *ClusterCache[K, V]) SWR(
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	op func(error) cache.Op,
-) (V, error) {
+) (V, cache.CacheHit, error) {
 	return c.localCache.SWR(ctx, key, refreshFromOrigin, op)
 }
 

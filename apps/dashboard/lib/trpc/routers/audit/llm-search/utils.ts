@@ -1,7 +1,7 @@
 import {
   auditFilterOutputSchema,
   auditLogsFilterFieldConfig,
-} from "@/app/(app)/audit/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import type OpenAI from "openai";
@@ -102,8 +102,8 @@ Query: "show events from last 30m"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "30m"
     }]
   }
@@ -113,15 +113,15 @@ Query: "find logs between yesterday and today"
 Result: [
   {
     field: "startTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS - 24 * 60 * 60 * 1000}
     }]
   },
   {
     field: "endTime",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: ${usersReferenceMS}
     }]
   }
@@ -183,8 +183,8 @@ Result: [
   },
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
+    filters: [{
+      operator: "is",
       value: "2h"
     }]
   },
@@ -215,7 +215,7 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - workspace.create, workspace.update, workspace.delete, workspace.opt_in
    - gateway.create, llmGateway.create, llmGateway.delete
    - api.create, api.update, api.delete
-   - key.create, key.update, key.delete
+   - key.create, key.update, key.delete, key.reroll
    - ratelimitNamespace.create, ratelimitNamespace.update, ratelimitNamespace.delete
    - vercelIntegration.create, vercelIntegration.update, vercelIntegration.delete
    - vercelBinding.create, vercelBinding.update, vercelBinding.delete
@@ -253,9 +253,9 @@ Query: "show events from last week"
 Result: [
   {
     field: "since",
-    filters: [{ 
-      operator: "is", 
-      value: "1w"  
+    filters: [{
+      operator: "is",
+      value: "1w"
     }]
   }
 ]`;

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -28,11 +27,11 @@ type Response = openapi.V2RatelimitSetOverrideResponseBody
 // Handler implements zen.Route interface for the v2 ratelimit set override endpoint
 type Handler struct {
 	// Services as public fields
-	Logger                        logging.Logger
-	DB                            db.Database
-	Keys                          keys.KeyService
-	Auditlogs                     auditlogs.AuditLogService
-	RatelimitNamespaceByNameCache cache.Cache[string, db.FindRatelimitNamespace]
+	Logger                  logging.Logger
+	DB                      db.Database
+	Keys                    keys.KeyService
+	Auditlogs               auditlogs.AuditLogService
+	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -47,7 +46,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
 	if err != nil {
 		return err
 	}
@@ -57,44 +57,65 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	namespace, err := getNamespace(ctx, h, auth.AuthorizedWorkspaceID, req)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fault.Wrap(err,
+	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		namespace, err := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Namespace:   req.Namespace,
+		})
+		if err != nil {
+			if db.IsNotFound(err) {
+				return "", fault.New("namespace not found",
+					fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+					fault.Public("This namespace does not exist."),
+				)
+			}
+			return "", err
+		}
+
+		if namespace.DeletedAtM.Valid {
+			return "", fault.New("namespace was deleted",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"), fault.Public("This namespace does not exist."),
+				fault.Public("This namespace does not exist."),
 			)
 		}
-		return err
-	}
 
-	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("This namespace does not exist."),
-		)
-	}
+		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   namespace.ID,
+				Action:       rbac.SetOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.SetOverride,
+			}),
+		)))
+		if err != nil {
+			return "", err
+		}
 
-	err = auth.Verify(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   namespace.ID,
-			Action:       rbac.SetOverride,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   "*",
-			Action:       rbac.SetOverride,
-		}),
-	)))
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("unable to check permissions"), fault.Public("We're unable to check the permissions of your key."),
-		)
-	}
+		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			NamespaceID: namespace.ID,
+			Identifier:  req.Identifier,
+		})
 
-	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		if err != nil && !db.IsNotFound(err) {
+			return "", fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed"),
+				fault.Public("The database is unavailable."),
+			)
+		}
+
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
+		if !db.IsNotFound(err) {
+			overrideID = override.ID
+		}
+
+		now := time.Now().UnixMilli()
+
 		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -102,12 +123,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Identifier:  req.Identifier,
 			Limit:       int32(req.Limit),    // nolint:gosec
 			Duration:    int32(req.Duration), //nolint:gosec
-			CreatedAt:   time.Now().UnixMilli(),
+			CreatedAt:   now,
+			UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 		})
 		if err != nil {
 			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed"), fault.Public("The database is unavailable."),
+				fault.Internal("database failed"),
+				fault.Public("The database is unavailable."),
 			)
 		}
 
@@ -137,7 +160,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return "", err
 		}
 
-		h.RatelimitNamespaceByNameCache.Remove(ctx, namespace.Name)
+		h.RatelimitNamespaceCache.Remove(ctx,
+			cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         namespace.ID,
+			},
+			cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         namespace.Name,
+			},
+		)
 
 		return overrideID, nil
 	})
@@ -149,31 +181,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.RatelimitSetOverrideResponseData{
+		Data: openapi.V2RatelimitSetOverrideResponseData{
 			OverrideId: overrideID,
 		},
 	})
-}
-
-func getNamespace(ctx context.Context, h *Handler, workspaceID string, req Request) (db.RatelimitNamespace, error) {
-
-	switch {
-	case req.NamespaceId != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByID(ctx, h.DB.RO(), *req.NamespaceId)
-		}
-	case req.NamespaceName != nil:
-		{
-			return db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
-				WorkspaceID: workspaceID,
-				Name:        *req.NamespaceName,
-			})
-		}
-	}
-
-	return db.RatelimitNamespace{}, fault.New("missing namespace id or name",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Internal("missing namespace id or name"), fault.Public("You must provide either a namespace ID or name."),
-	)
-
 }

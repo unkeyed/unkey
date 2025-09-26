@@ -1,0 +1,71 @@
+post:
+  tags:
+    - apis
+  summary: Delete API namespace
+  description: |
+    Permanently delete an API namespace and immediately invalidate all associated keys.
+
+    Use this for cleaning up development environments, retiring deprecated services, or removing unused resources.
+    All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
+
+    **Important**: This operation is immediate and permanent. Verify you have the correct API ID before deletion.
+    If delete protection is enabled, disable it first through the dashboard or API configuration.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `api.*.delete_api` (to delete any API)
+    - `api.<api_id>.delete_api` (to delete a specific API)
+  operationId: deleteApi
+  x-speakeasy-name-override: deleteApi
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ApisDeleteApiRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ApisDeleteApiResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: Delete protection is enabled. Disable protection through the dashboard or API configuration, then retry the deletion.
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

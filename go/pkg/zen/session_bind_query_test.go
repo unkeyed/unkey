@@ -255,7 +255,7 @@ func TestSession_BindQuery_Init(t *testing.T) {
 
 		// Create and initialize a session
 		sess := &Session{}
-		err := sess.init(w, req)
+		err := sess.Init(w, req, 0)
 		require.NoError(t, err)
 
 		// Bind query params

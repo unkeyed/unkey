@@ -454,6 +454,7 @@ func (w *worker) executeWorkflow(ctx context.Context, e *store.WorkflowExecution
 		workerID:        w.config.WorkerID,
 		db:              w.engine.GetDB(),
 		marshaller:      w.engine.marshaller,
+		logger:          w.engine.logger.With("execution_id", e.ID, "namespace", e.Namespace, "workflow_name", e.WorkflowName),
 		stepTimeout:     5 * time.Minute, // Default step timeout
 		stepMaxAttempts: 3,               // Default step max attempts
 	}
@@ -747,7 +748,6 @@ func (w *worker) processCronJobs(ctx context.Context) {
 }
 
 func (w *worker) processDueCronJobs(ctx context.Context) {
-
 	now := w.engine.clock.Now().UnixMilli()
 
 	dueCrons, err := store.Query.GetDueCronJobs(ctx, w.engine.GetDB(), store.GetDueCronJobsParams{
@@ -898,7 +898,7 @@ func (w *worker) acquireWorkflowLease(ctx context.Context, workflowID, workerID 
 		return err
 	}
 	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && rollbackErr != sql.ErrTxDone {
 			w.engine.logger.Error("failed to rollback transaction", "error", rollbackErr)
 		}
 	}()

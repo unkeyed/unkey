@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_get_permission"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -40,7 +40,7 @@ func TestPermissionErrors(t *testing.T) {
 		WorkspaceID:  workspace.ID,
 		Name:         permissionName,
 		Slug:         "test-permission-access",
-		Description:  sql.NullString{Valid: true, String: "Test permission for authorization tests"},
+		Description:  dbtype.NullString{Valid: true, String: "Test permission for authorization tests"},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -56,7 +56,7 @@ func TestPermissionErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
@@ -83,7 +83,7 @@ func TestPermissionErrors(t *testing.T) {
 		}
 
 		req := handler.Request{
-			PermissionId: permissionID,
+			Permission: permissionID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](

@@ -17,15 +17,17 @@ Let's create a new key that can be used 100 times a day.
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.createKey \
-  --header 'Authorization: Bearer <UNKEY>' \
+  --url https://api.unkey.com/v2/keys.createKey \
+  --header 'Authorization: Bearer <ROOT_KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-    "apiId":"<API_ID>",
-    "remaining": 100,
-    "refill": {
-      "interval": "daily",
-      "amount": 100
+    "apiId": "<API_ID>",
+    "credits": {
+      "remaining": 100,
+      "refill": {
+        "interval": "daily",
+        "amount": 100
+      }
     }
   }'
 ```
@@ -34,24 +36,32 @@ Now, when you verify the new key, you will receive the remaining verifications. 
 
 ```bash
 curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --url https://api.unkey.com/v2/keys.verifyKey \
   --header 'Content-Type: application/json' \
   --data '{
-		"key": "<NEW_KEY>"
-	}'
+    "key": "<KEY>",
+    "credits": {
+       "cost": 1
+    }
+  }'
 ```
 
 ```json
 {
-  "keyId": "<KEY_ID>",
-  "valid": true,
-  "meta": {},
-  "remaining": 99
+  "meta": {
+    "requestId": "req_abc123def456"
+  },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "<KEY_ID>",
+    "credits": 99
+  }
 }
 ```
 
 <Note>
-  The returned `remaining` value represents how many verifications are remaining
+  The returned `credits` value represents how many verifications are remaining
   after the current one. A value of 3, means you can verify the key successfully
   3 more times.
 </Note>

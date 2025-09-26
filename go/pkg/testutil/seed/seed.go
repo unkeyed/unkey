@@ -9,11 +9,14 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 // Resources represents seed data created for tests
@@ -28,14 +31,16 @@ type Resources struct {
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
+	Vault     *vault.Service
 	Resources Resources
 }
 
 // New creates a new Seeder instance
-func New(t *testing.T, database db.Database) *Seeder {
+func New(t *testing.T, database db.Database, vault *vault.Service) *Seeder {
 	return &Seeder{
 		t:         t,
 		DB:        database,
+		Vault:     vault,
 		Resources: Resources{}, //nolint:exhaustruct
 	}
 }
@@ -45,6 +50,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		ID:        uid.New("test_ws"),
 		OrgID:     uid.New("test_org"),
 		Name:      uid.New("test_name"),
+		Slug:      uid.New("slug"),
 		CreatedAt: time.Now().UnixMilli(),
 	}
 
@@ -148,7 +154,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				Name:         permission,
 				Slug:         permission,
-				Description:  sql.NullString{String: "", Valid: false},
+				Description:  dbtype.NullString{String: "", Valid: false},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 
@@ -190,6 +196,8 @@ type CreateKeyRequest struct {
 	Name        *string
 	Deleted     bool
 
+	Recoverable bool
+
 	RefillAmount *int32
 	RefillDay    *int16
 
@@ -223,7 +231,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		ForWorkspaceID:    sql.NullString{String: "", Valid: false},
 		Meta:              sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:        sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
-		Expires:           sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Now()), Valid: req.Expires != nil},
+		Expires:           sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
 		RemainingRequests: sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
 		RefillAmount:      sql.NullInt32{Int32: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
 		RefillDay:         sql.NullInt16{Int16: ptr.SafeDeref(req.RefillDay, 0), Valid: req.RefillDay != nil},
@@ -239,6 +247,24 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		err = db.Query.SoftDeleteKeyByID(ctx, s.DB.RW(), db.SoftDeleteKeyByIDParams{
 			Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 			ID:  keyID,
+		})
+
+		require.NoError(s.t, err)
+	}
+
+	if req.Recoverable && s.Vault != nil {
+		encryption, err := s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: req.WorkspaceID,
+			Data:    key,
+		})
+		require.NoError(s.t, err)
+
+		err = db.Query.InsertKeyEncryption(ctx, s.DB.RW(), db.InsertKeyEncryptionParams{
+			WorkspaceID:     req.WorkspaceID,
+			KeyID:           keyID,
+			CreatedAt:       time.Now().UnixMilli(),
+			Encrypted:       encryption.GetEncrypted(),
+			EncryptionKeyID: encryption.GetKeyId(),
 		})
 
 		require.NoError(s.t, err)
@@ -411,7 +437,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		WorkspaceID:  req.WorkspaceID,
 		Name:         req.Name,
 		Slug:         req.Slug,
-		Description:  sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+		Description:  dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:   time.Now().UnixMilli(),
 	})
 	require.NoError(s.t, err)

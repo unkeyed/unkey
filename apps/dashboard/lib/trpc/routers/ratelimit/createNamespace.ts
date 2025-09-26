@@ -47,7 +47,8 @@ export const createNamespace = t.procedure
         });
       })
       .catch((e) => {
-        if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
+        console.error("Failed to create namespace", e);
+        if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
           throw new TRPCError({
             code: "CONFLICT",
             message: `A namespace with name "${input.name}" already exists in this workspace. Please choose a different name.`,

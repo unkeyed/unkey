@@ -27,13 +27,14 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	res := Response{
+	s.DisableClickHouseLogging()
+
+	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.LivenessResponseData{
+		Data: openapi.V2LivenessResponseData{
 			Message: "we're cooking",
 		},
-	}
-	return s.JSON(http.StatusOK, res)
+	})
 }

@@ -22,6 +22,7 @@ import (
 const (
 	maxBufferSize int = 50000
 	maxBatchSize  int = 10000
+	maxBatchRows  int = 5000 // Max rows per individual batch
 )
 
 var (
@@ -154,13 +155,28 @@ func main() {
 			"row_count", len(rows),
 			"table", strings.Split(query, " ")[2])
 
-		buffer <- &Batch{
+		batch := &Batch{
 			Params: params,
 			Rows:   rows,
 			Table:  strings.Split(query, " ")[2],
 		}
 
-		w.Write([]byte("ok"))
+		select {
+		case buffer <- batch:
+			// Successfully sent to buffer
+			w.Write([]byte("ok"))
+		default:
+			// Buffer is full, drop the message
+			telemetry.Metrics.ErrorCounter.Add(ctx, 1)
+			config.Logger.Warn("buffer full, dropping message",
+				"row_count", len(rows),
+				"table", batch.Table,
+				"remote_addr", r.RemoteAddr)
+
+			span.SetStatus(codes.Error, "buffer full")
+			http.Error(w, "service overloaded", 529)
+			return
+		}
 		span.SetStatus(codes.Ok, "")
 		span.SetAttributes(
 			attribute.Int("row_count", len(rows)),

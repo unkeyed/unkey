@@ -21,11 +21,10 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Create a namespace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
-		Name:        namespaceName,
+		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -45,10 +44,10 @@ func TestWorkspacePermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:                            h.DB,
-		Keys:                          h.Keys,
-		Logger:                        h.Logger,
-		RatelimitNamespaceByNameCache: h.Caches.RatelimitNamespaceByName,
+		DB:                      h.DB,
+		Keys:                    h.Keys,
+		Logger:                  h.Logger,
+		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
@@ -63,8 +62,8 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	// Try to access the override with a key from a different workspace
 	req := handler.Request{
-		NamespaceId: &namespaceID,
-		Identifier:  identifier,
+		Namespace:  namespaceID,
+		Identifier: identifier,
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

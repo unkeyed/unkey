@@ -1,29 +1,24 @@
 name: Build
 on:
   workflow_call:
-
 permissions:
   contents: read
-
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d mysql planetscale
-
-      - name: Install
-        uses: ./.github/actions/install
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
         with:
-          ts: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
-
+        env:
+          CI: 1
       - name: Create .dev.vars
         run: |
           cat <<EOF > .dev.vars
@@ -35,16 +30,18 @@ jobs:
       - name: Run worker
         run: pnpm dev & sleep 15
         working-directory: apps/api
-
+        env:
+          CI: 1
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
         env:
+          CI: 1
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-
       - name: Build
         run: pnpm build
         env:
+          CI: 1
           DATABASE_HOST: localhost:8080
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password

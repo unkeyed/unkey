@@ -7,6 +7,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
 import {
+  DrizzleQueryError,
   type InsertEncryptedKey,
   type InsertIdentity,
   type InsertKey,
@@ -19,8 +20,12 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  deprecated: true,
   tags: ["migrations"],
   operationId: "v1.migrations.createKeys",
+  summary: "Migrate keys",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "post" as const,
   path: "/v1/migrations.createKeys",
   security: [{ bearerAuth: [] }],
@@ -418,13 +423,13 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
         let identityId: string | null = null;
         if (key.externalId) {
           const identity = await cache.identityByExternalId.swr(
-            key.externalId,
-            async (externalId) => {
+            `${authorizedWorkspaceId}:${key.externalId}`,
+            async () => {
               return await db.readonly.query.identities.findFirst({
                 where: (table, { eq, and }) =>
                   and(
                     eq(table.workspaceId, authorizedWorkspaceId),
-                    eq(table.externalId, externalId),
+                    eq(table.externalId, key.externalId!),
                   ),
               });
             },
@@ -550,14 +555,14 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           .insert(schema.keys)
           .values(keys)
           .catch((e) => {
-            if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
-              logger.warn("migrating duplicate key", {
-                error: e.body.message,
-                workspaceId: authorizedWorkspaceId,
-              });
+            if (
+              e instanceof DrizzleQueryError &&
+              e.cause instanceof DatabaseError &&
+              e.cause.message.includes("Duplicate entry")
+            ) {
               throw new UnkeyApiError({
                 code: "CONFLICT",
-                message: e.body.message,
+                message: e.message,
               });
             }
             throw e;

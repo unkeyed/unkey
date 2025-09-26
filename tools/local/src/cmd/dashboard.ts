@@ -32,6 +32,9 @@ export async function bootstrapDashboard(resources: {
     Clickhouse: {
       CLICKHOUSE_URL: "http://default:password@localhost:8123",
     },
+    ControlPlane: {
+      CTRL_URL: "http://localhost:7091",
+    },
   });
 
   if (fs.existsSync(envPath)) {

@@ -6,8 +6,12 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
-  tags: ["ratelimit"],
+  deprecated: true,
+  tags: ["ratelimits"],
   operationId: "getOverride",
+  summary: "Get rate limit override",
+  description:
+    "**DEPRECATED**: This API version is deprecated. Please migrate to v2. See https://www.unkey.com/docs/api-reference/v1/migration for more information.",
   method: "get",
   path: "/v1/ratelimits.getOverride",
   security: [{ bearerAuth: [] }],

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -33,25 +34,40 @@ func startBufferProcessor(
 			startTime := time.Now()
 
 			telemetryConfig.Metrics.FlushCounter.Add(ctx, 1)
+			telemetryConfig.Metrics.FlushBatchCount.Record(ctx, int64(len(batchesByParams)))
 
 			span.SetAttributes(
 				attribute.Int("batch_count", len(batchesByParams)),
 				attribute.Int("buffered_rows", buffered),
 			)
 
+			// Process batches in parallel for better throughput
+			var wg sync.WaitGroup
 			for _, batch := range batchesByParams {
-				err := persist(ctx, batch, config)
-				if err != nil {
-					span.RecordError(err)
-					span.SetStatus(codes.Error, err.Error())
+				wg.Add(1)
+				go func(b *Batch) {
+					defer wg.Done()
 
-					config.Logger.Error("error persisting batch",
-						"error", err.Error(),
-						"table", batch.Table,
-						"query", batch.Params.Get("query"),
-					)
-				}
+					batchStart := time.Now()
+					err := persist(ctx, b, config)
+					batchDuration := time.Since(batchStart).Seconds()
+					telemetryConfig.Metrics.BatchPersistDuration.Record(ctx, batchDuration)
+
+					if err != nil {
+						span.RecordError(err)
+						span.SetStatus(codes.Error, err.Error())
+
+						config.Logger.Error("error persisting batch, data dropped",
+							"error", err.Error(),
+							"table", b.Table,
+							"rows_dropped", len(b.Rows),
+							"batch_duration_seconds", batchDuration,
+							"query", b.Params.Get("query"),
+						)
+					}
+				}(batch)
 			}
+			wg.Wait() // Wait for all parallel persists to complete
 
 			duration := time.Since(startTime).Seconds()
 			telemetryConfig.Metrics.FlushDuration.Record(ctx, duration)
@@ -83,12 +99,42 @@ func startBufferProcessor(
 				batch, ok := batchesByParams[params]
 				if !ok {
 					batchesByParams[params] = b
-					config.Logger.Debug("new batch type received",
-						"query", b.Params.Get("query"))
+					config.Logger.Info("new batch type received",
+						"query", b.Params.Get("query"),
+						"table", b.Table,
+						"params", params,
+						"total_batch_types", len(batchesByParams))
 				} else {
-					batch.Rows = append(batch.Rows, b.Rows...)
+					// Check if adding these rows would exceed the per-batch limit
+					if len(batch.Rows)+len(b.Rows) > maxBatchRows {
+						// Flush the current batch to make room
+						config.Logger.Info("flushing batch due to individual batch size limit",
+							"current_rows", len(batch.Rows),
+							"incoming_rows", len(b.Rows),
+							"table", batch.Table)
+
+						err := persist(ctx, batch, config)
+
+						// Always free the memory by resetting batch, regardless of persist success
+						// Update buffered count: subtract old rows, will add new rows below
+						buffered -= len(batch.Rows)
+
+						if err != nil {
+							config.Logger.Error("error persisting batch during size limit flush, data dropped",
+								"error", err.Error(),
+								"table", batch.Table,
+								"rows_dropped", len(batch.Rows),
+								"query", batch.Params.Get("query"))
+						}
+
+						// Reset this batch and start fresh with the new rows
+						batch.Rows = b.Rows
+					} else {
+						batch.Rows = append(batch.Rows, b.Rows...)
+					}
 				}
 
+				// Always add the new incoming rows to the buffer count
 				buffered += len(b.Rows)
 				SetBufferSize(int64(buffered))
 

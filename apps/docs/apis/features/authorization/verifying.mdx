@@ -1,88 +1,69 @@
 ---
-title: Verifying
-description: Verifying permissions through the API
+title: "Verifying"
+description: "Verifying permissions through the API"
 ---
 
-
-
-Once a key is generated, you can verify it using the [verify](/api-reference/keys/verify) endpoint. Our system verifies whether the key has the necessary permissions to perform the requested action(s). If the user's role grants the required permissions, the request is allowed to proceed; otherwise, access is denied.
+Once a key is generated, you can verify it using the [verify](https://www.unkey.com/docs/api-reference/v2/keys/verify-api-key) endpoint. Our system verifies whether the key has the necessary permissions to perform the requested action(s). If the user's role grants the required permissions, the request is allowed to proceed; otherwise, access is denied.
 
 <Tabs>
-<Tab title="Single Permission">
-This will return valid if the key has the permission: `admin`
-```bash Single Permission
+  <Tab title="Single Permission">
+    This will return valid if the key has the permission: `admin`
 
-curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "apiId": "api_1234",
-    "key": "sk_1234",
-    "authorization": {
-      "permissions": "admin"
-    }
-  }'
-```
-</Tab>
-<Tab title="Nested Query">
- This will return valid if the key has either `admin` or both `dns.record.read` and `dns.record.update` permissions.
-```bash Nested Query
-curl --request POST \
-  --url https://api.unkey.dev/v1/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "apiId": "api_1234",
-    "key": "sk_1234",
-    "authorization": {
-      "permissions": {
-        "or": [
-          "admin",
-          {
-            "and": [
-              "dns.record.read",
-              "dns.record.update"
-            ]
-          }
-        ]
-      }
-    }
-  }'
-```
-</Tab>
+    ```bash Single Permission
+    curl --request POST \
+      --url https://api.unkey.com/v2/keys.verifyKey \
+      --header 'Authorization: Bearer <ROOT_KEY>' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "key": "sk_1234",
+        "permissions": "admin"
+      }'
+    ```
+  </Tab>
+  <Tab title="Nested Query">
+    This will return valid if the key has either `admin` or both `dns.record.read` and `dns.record.update` permissions.
 
+    ```bash Nested Query
+    curl --request POST \
+      --url https://api.unkey.com/v2/keys.verifyKey \
+      --header 'Authorization: Bearer <ROOT_KEY>' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "key": "sk_1234",
+        "permissions": "admin OR (dns.record.read OR dns.record.update)"
+      }'
+    ```
+  </Tab>
 </Tabs>
-
-
-
 
 Sometimes you just don't know what permissions are required before loading resources from your database.
 In these cases you can manually check permissions as well.
 
 <Steps>
- 
-<Step title="Verify">
-Verify the key and all permissions that you already know before needing to query your database.
+  <Step title="Verify">
+    Verify the key and all permissions that you already know before querying your database.
 
-If the response is invalid, you can return early.
-</Step>
+    If the response is invalid, you can return early.
+  </Step>
+  <Step title="Query your database">
+    The key is at least valid, so you can query our database to fetch more information.
+  </Step>
+  <Step title="Verify Permissions">
+    The verification response from step 1 includes all permissions attached to the keys and looks something like this:
 
-<Step title="Query your database">
-The key is at least valid, so you can query our database to fetch more information.
-</Step>
-<Step title="Verify Permissions">
+    ```json
+    {
+      "meta": {
+      	"requestId": "req_123"
+      },
+      "data": {
+       	"valid": true,
+    	"permissions": ["admin"]
+    	// rest omited for brevity
+      }
+    }
+    ```
 
-The verification response from step 1 includes all permissions attached to the keys and looks something like this:
-```json
-{
-  valid: true,
-  permissions: ["permission1", "permission2", ...]
-  //... omited for brevity
-}
-```
-
-Use the attached permissions and the context loaded from your database to determine if you should proceed handling the request or returning an authorization error.
-
-
-</Step>
-
+    Use the attached permissions and the context loaded from your database to determine if you should proceed handling the request or returning an authorization error.
+  </Step>
 </Steps>

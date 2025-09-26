@@ -1,8 +1,8 @@
 // Clean external types that map to detailed internal types
-type Size = "sm" | "md" | "lg" | "xl" | "2xl";
-type Weight = "thin" | "regular" | "medium" | "bold";
+export type Size = "sm" | "md" | "lg" | "xl" | "2xl";
+export type Weight = "thin" | "regular" | "medium" | "bold";
 
-type IconSize = `${Size}-${Weight}`;
+export type IconSize = `${Size}-${Weight}`;
 
 export const sizeMap = {
   "sm-thin": { size: 12, strokeWidth: 1 },
@@ -32,4 +32,6 @@ export type IconProps = {
   title?: string;
   size?: IconSize;
   filled?: boolean;
+  focusable?: boolean;
+  style?: React.CSSProperties;
 };

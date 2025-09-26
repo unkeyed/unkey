@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -32,90 +32,13 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace and root key
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key")
 
 	// Set up request headers
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
-
-	t.Run("remove single permission by ID", func(t *testing.T) {
-		// Create API with keyring using testutil helper
-		defaultPrefix := "test"
-		defaultBytes := int32(16)
-		api := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   workspace.ID,
-			DefaultPrefix: &defaultPrefix,
-			DefaultBytes:  &defaultBytes,
-		})
-
-		// Create a test key with permission using testutil helper
-		keyName := "Test Key"
-		permissionDescription := "Read documents permission"
-		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			Name:        &keyName,
-			Permissions: []seed.CreatePermissionRequest{
-				{
-					WorkspaceID: workspace.ID,
-					Name:        "documents.read.remove.single.id",
-					Slug:        "documents.read.remove.single.id",
-					Description: &permissionDescription,
-				},
-			},
-		})
-		keyID := keyResponse.KeyID
-		permissionID := keyResponse.PermissionIds[0]
-
-		// Verify key has the permission initially
-		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.Len(t, currentPermissions, 1)
-
-		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.NotNil(t, res.Body.Data)
-
-		// Verify permission was removed from key
-		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.Len(t, finalPermissions, 0)
-
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.NotEmpty(t, auditLogs)
-
-		foundDisconnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.disconnect_permission_and_key" {
-				foundDisconnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Removed permission documents.read.remove.single.id from key")
-				break
-			}
-		}
-		require.True(t, foundDisconnectEvent, "Should find a permission disconnect audit log event")
-	})
 
 	t.Run("remove single permission by name", func(t *testing.T) {
 		// Create API with keyring using testutil helper
@@ -147,13 +70,8 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Slug: &permissionName},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permissionName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -195,10 +113,11 @@ func TestSuccess(t *testing.T) {
 
 		// Create permissions using testutil helpers
 		permission1Description := "Read documents permission"
+		permission1Name := "documents.read.remove.multiple"
 		permission1ID := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "documents.read.remove.multiple",
-			Slug:        "documents.read.remove.multiple",
+			Name:        permission1Name,
+			Slug:        permission1Name,
 			Description: &permission1Description,
 		})
 
@@ -229,14 +148,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission1ID},
-				{Slug: &permission2Name},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission1Name, permission2Name},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -277,21 +190,17 @@ func TestSuccess(t *testing.T) {
 
 		// Create a permission but don't assign it to the key
 		permissionDescription := "Read documents permission"
-		permissionID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission1Name := "documents.read.remove.idempotent"
+		h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "documents.read.remove.idempotent",
-			Slug:        "documents.read.remove.idempotent",
+			Name:        permission1Name,
+			Slug:        permission1Name,
 			Description: &permissionDescription,
 		})
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permissionID},
-			},
+			KeyId:       keyID,
+			Permissions: []string{permission1Name},
 		}
 
 		// Remove permission (which isn't assigned)
@@ -347,17 +256,18 @@ func TestSuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Name:         "documents.read.remove.partial.keep",
 			Slug:         "documents.read.remove.partial.keep",
-			Description:  sql.NullString{Valid: true, String: "Read documents permission"},
+			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
 		})
 		require.NoError(t, err)
 
 		removePermissionID := uid.New(uid.TestPrefix)
+		removePermissionName := "documents.write.remove.partial.remove"
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: removePermissionID,
 			WorkspaceID:  workspace.ID,
-			Name:         "documents.write.remove.partial.remove",
-			Slug:         "documents.write.remove.partial.remove",
-			Description:  sql.NullString{Valid: true, String: "Write documents permission"},
+			Name:         removePermissionName,
+			Slug:         removePermissionName,
+			Description:  dbtype.NullString{Valid: true, String: "Write documents permission"},
 		})
 		require.NoError(t, err)
 
@@ -379,13 +289,8 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		req := handler.Request{
-			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &removePermissionID}, // Only remove this one
-			},
+			KeyId:       keyID,
+			Permissions: []string{removePermissionName},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -427,26 +332,29 @@ func TestSuccess(t *testing.T) {
 
 		// Create multiple permissions using testutil helpers
 		permission1Description := "Read documents permission"
+		permission1Name := "documents.read.remove.all.1"
 		permission1ID := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "documents.read.remove.all.1",
-			Slug:        "documents.read.remove.all.1",
+			Name:        permission1Name,
+			Slug:        permission1Name,
 			Description: &permission1Description,
 		})
 
 		permission2Description := "Write documents permission"
+		permission2Name := "documents.write.remove.all.2"
 		permission2ID := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "documents.write.remove.all.2",
-			Slug:        "documents.write.remove.all.2",
+			Name:        permission2Name,
+			Slug:        permission2Name,
 			Description: &permission2Description,
 		})
 
 		permission3Description := "Delete documents permission"
+		permission3Name := "documents.delete.remove.all.3"
 		permission3ID := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        "documents.delete.remove.all.3",
-			Slug:        "documents.delete.remove.all.3",
+			Name:        permission3Name,
+			Slug:        permission3Name,
 			Description: &permission3Description,
 		})
 
@@ -482,13 +390,10 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId: keyID,
-			Permissions: []struct {
-				Id   *string `json:"id,omitempty"`
-				Slug *string `json:"slug,omitempty"`
-			}{
-				{Id: &permission1ID},
-				{Id: &permission2ID},
-				{Id: &permission3ID},
+			Permissions: []string{
+				permission1Name,
+				permission2Name,
+				permission3Name,
 			},
 		}
 

@@ -1,0 +1,25 @@
+type: object
+required:
+  - name
+properties:
+  name:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for API names
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$" # Must start with letter, then alphanumeric/underscore/dot/hyphen
+    description: |
+      Unique identifier for this API namespace within your workspace.
+      Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+    example: payment-service-production
+additionalProperties: false
+examples:
+  basic:
+    summary: Basic API creation
+    description: Create an API for a payment service
+    value:
+      name: payment-service-prod
+  withEnvironment:
+    summary: Environment-specific API
+    description: Create separate APIs for different environments
+    value:
+      name: user-api-dev
