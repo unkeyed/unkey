@@ -66,7 +66,7 @@ export const ControlPill = <TFilter extends FilterValue>({
         {metadata?.icon}
         {field === "endTime" || field === "startTime" ? (
           <TimestampInfo
-            value={formatValue(value, field)}
+            value={value}
             className={cn("font-mono group-hover:underline decoration-dotted")}
           />
         ) : (

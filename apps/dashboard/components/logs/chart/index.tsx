@@ -79,8 +79,14 @@ export function LogsTimeseriesBarChart({
     if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
+
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
     const numericLabel = Number(e.activeLabel);
+
+    if (!Number.isFinite(numericLabel) || !timestamp) {
+      return;
+    }
+
     setSelection({
       start: numericLabel,
       end: numericLabel,
@@ -95,9 +101,15 @@ export function LogsTimeseriesBarChart({
     }
     if (selection.start !== undefined) {
       const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      const numericLabel = Number(e.activeLabel);
+
+      if (!Number.isFinite(numericLabel) || !timestamp) {
+        return;
+      }
+
       setSelection((prev) => ({
         ...prev,
-        end: Number(e.activeLabel),
+        end: numericLabel,
         endTimestamp: timestamp,
       }));
     }
@@ -108,7 +120,7 @@ export function LogsTimeseriesBarChart({
       return;
     }
     if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
         return;
       }
 
