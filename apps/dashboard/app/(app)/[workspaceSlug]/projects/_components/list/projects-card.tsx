@@ -1,3 +1,4 @@
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { CodeBranch, Cube, User } from "@unkey/icons";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
@@ -30,17 +31,20 @@ export const ProjectCard = ({
   actions,
   projectId,
 }: ProjectCardProps) => {
+  const workspace = useWorkspaceNavigation();
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleLinkClick = useCallback(() => {
     setIsNavigating(true);
   }, []);
 
+  const projectPath = `/${workspace.slug}/projects/${projectId}`;
+
   return (
     <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
       <Link
-        href={`/projects/${projectId}`}
+        href={projectPath}
         className="absolute inset-0 z-0"
         aria-label={`View ${name} project`}
         onClick={handleLinkClick}
@@ -58,7 +62,7 @@ export const ProjectCard = ({
           {/*Top Section > Project Name*/}
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
-              href={`/projects/${projectId}`}
+              href={projectPath}
               className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
             >
               {name}

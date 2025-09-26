@@ -86,7 +86,10 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
               }))}
               shortcutKey="N"
             >
-              <div className="text-accent-10 group-hover:text-accent-12">{namespace?.name}</div>
+              <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
+                {namespace?.name}
+                <ChevronExpandY className="size-4" />
+              </div>
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>

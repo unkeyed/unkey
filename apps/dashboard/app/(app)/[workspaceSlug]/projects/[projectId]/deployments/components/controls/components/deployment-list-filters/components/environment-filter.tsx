@@ -1,4 +1,4 @@
-import { useProjectLayout } from "@/app/(app)/projects/[projectId]/layout-provider";
+import { useProjectLayout } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/layout-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFilters } from "../../../../../hooks/use-filters";
