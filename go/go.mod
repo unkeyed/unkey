@@ -19,7 +19,6 @@ require (
 	github.com/firecracker-microvm/firecracker-go-sdk v1.0.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-acme/lego/v4 v4.25.2
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golangci/golangci-lint/v2 v2.4.0
 	github.com/lmittmann/tint v1.1.1
@@ -33,6 +32,7 @@ require (
 	github.com/pressly/goose/v3 v3.25.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.9.0
+	github.com/segmentio/kafka-go v0.4.48
 	github.com/shirou/gopsutil/v4 v4.25.7
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/sqlc-dev/sqlc v1.29.0

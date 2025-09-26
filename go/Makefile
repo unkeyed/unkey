@@ -24,7 +24,7 @@ pull:
 	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up: pull
-	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel
+	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka
 
 
 clean:

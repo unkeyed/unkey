@@ -87,7 +87,7 @@ func TestSession_BindBody(t *testing.T) {
 
 			// Create a session
 			sess := &Session{}
-			err := sess.init(httptest.NewRecorder(), req, 0)
+			err := sess.Init(httptest.NewRecorder(), req, 0)
 			require.NoError(t, err)
 
 			// Call BindBody
@@ -119,7 +119,7 @@ func TestSession_BindBody_ReadError(t *testing.T) {
 
 	// Create a session and try to init it (this should fail)
 	sess := &Session{}
-	err := sess.init(httptest.NewRecorder(), req, 0)
+	err := sess.Init(httptest.NewRecorder(), req, 0)
 
 	// Verify the init error
 	require.Error(t, err)
@@ -164,7 +164,7 @@ func TestSession_BindBody_LargeBody(t *testing.T) {
 
 	// Create a session
 	sess := &Session{}
-	err = sess.init(httptest.NewRecorder(), req, 0)
+	err = sess.Init(httptest.NewRecorder(), req, 0)
 	require.NoError(t, err)
 
 	type LargeStruct struct {
@@ -188,7 +188,7 @@ func TestSession_BindBody_Integration(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	sess := &Session{}
-	err := sess.init(w, req, 0)
+	err := sess.Init(w, req, 0)
 	require.NoError(t, err)
 
 	type TestData struct {

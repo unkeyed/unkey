@@ -20,6 +20,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 		Logger: h.Logger,
 		DB:     h.DB,
 		Keys:   h.Keys,
+		Caches: h.Caches,
 	}
 
 	h.Register(route)
