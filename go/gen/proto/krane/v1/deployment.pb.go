@@ -27,9 +27,7 @@ const (
 	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED DeploymentStatus = 0
 	DeploymentStatus_DEPLOYMENT_STATUS_PENDING     DeploymentStatus = 1 // Deployment request accepted, container/pod creation in progress
 	DeploymentStatus_DEPLOYMENT_STATUS_RUNNING     DeploymentStatus = 2 // Container/pod is running and healthy
-	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 3 // Container/pod failed to start or crashed
-	DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING DeploymentStatus = 4 // Container/pod is being terminated
-	DeploymentStatus_DEPLOYMENT_STATUS_TERMINATED  DeploymentStatus = 5 // Container/pod has been terminated
+	DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING DeploymentStatus = 3 // Container/pod is being terminated
 )
 
 // Enum value maps for DeploymentStatus.
@@ -38,17 +36,13 @@ var (
 		0: "DEPLOYMENT_STATUS_UNSPECIFIED",
 		1: "DEPLOYMENT_STATUS_PENDING",
 		2: "DEPLOYMENT_STATUS_RUNNING",
-		3: "DEPLOYMENT_STATUS_FAILED",
-		4: "DEPLOYMENT_STATUS_TERMINATING",
-		5: "DEPLOYMENT_STATUS_TERMINATED",
+		3: "DEPLOYMENT_STATUS_TERMINATING",
 	}
 	DeploymentStatus_value = map[string]int32{
 		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
 		"DEPLOYMENT_STATUS_PENDING":     1,
 		"DEPLOYMENT_STATUS_RUNNING":     2,
-		"DEPLOYMENT_STATUS_FAILED":      3,
-		"DEPLOYMENT_STATUS_TERMINATING": 4,
-		"DEPLOYMENT_STATUS_TERMINATED":  5,
+		"DEPLOYMENT_STATUS_TERMINATING": 3,
 	}
 )
 
@@ -481,7 +475,6 @@ func (x *GetDeploymentRequest) GetDeploymentId() string {
 
 type GetDeploymentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        DeploymentStatus       `protobuf:"varint,1,opt,name=status,proto3,enum=krane.v1.DeploymentStatus" json:"status,omitempty"`
 	Instances     []*Instance            `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -517,13 +510,6 @@ func (*GetDeploymentResponse) Descriptor() ([]byte, []int) {
 	return file_krane_v1_deployment_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *GetDeploymentResponse) GetStatus() DeploymentStatus {
-	if x != nil {
-		return x.Status
-	}
-	return DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
-}
-
 func (x *GetDeploymentResponse) GetInstances() []*Instance {
 	if x != nil {
 		return x.Instances
@@ -535,6 +521,7 @@ type Instance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Status        DeploymentStatus       `protobuf:"varint,3,opt,name=status,proto3,enum=krane.v1.DeploymentStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -583,6 +570,13 @@ func (x *Instance) GetAddress() string {
 	return ""
 }
 
+func (x *Instance) GetStatus() DeploymentStatus {
+	if x != nil {
+		return x.Status
+	}
+	return DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
+}
+
 var File_krane_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_krane_v1_deployment_proto_rawDesc = "" +
@@ -613,20 +607,18 @@ const file_krane_v1_deployment_proto_rawDesc = "" +
 	"\x18DeleteDeploymentResponse\"Y\n" +
 	"\x14GetDeploymentRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"}\n" +
-	"\x15GetDeploymentResponse\x122\n" +
-	"\x06status\x18\x01 \x01(\x0e2\x1a.krane.v1.DeploymentStatusR\x06status\x120\n" +
-	"\tinstances\x18\x02 \x03(\v2\x12.krane.v1.InstanceR\tinstances\"4\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"I\n" +
+	"\x15GetDeploymentResponse\x120\n" +
+	"\tinstances\x18\x02 \x03(\v2\x12.krane.v1.InstanceR\tinstances\"h\n" +
 	"\bInstance\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress*\xd6\x01\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x122\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1a.krane.v1.DeploymentStatusR\x06status*\x96\x01\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1d\n" +
-	"\x19DEPLOYMENT_STATUS_RUNNING\x10\x02\x12\x1c\n" +
-	"\x18DEPLOYMENT_STATUS_FAILED\x10\x03\x12!\n" +
-	"\x1dDEPLOYMENT_STATUS_TERMINATING\x10\x04\x12 \n" +
-	"\x1cDEPLOYMENT_STATUS_TERMINATED\x10\x052\x9b\x02\n" +
+	"\x19DEPLOYMENT_STATUS_RUNNING\x10\x02\x12!\n" +
+	"\x1dDEPLOYMENT_STATUS_TERMINATING\x10\x032\x9b\x02\n" +
 	"\x11DeploymentService\x12Y\n" +
 	"\x10CreateDeployment\x12!.krane.v1.CreateDeploymentRequest\x1a\".krane.v1.CreateDeploymentResponse\x12P\n" +
 	"\rGetDeployment\x12\x1e.krane.v1.GetDeploymentRequest\x1a\x1f.krane.v1.GetDeploymentResponse\x12Y\n" +
@@ -663,8 +655,8 @@ var file_krane_v1_deployment_proto_depIdxs = []int32{
 	1,  // 0: krane.v1.CreateDeploymentRequest.deployment:type_name -> krane.v1.DeploymentRequest
 	0,  // 1: krane.v1.CreateDeploymentResponse.status:type_name -> krane.v1.DeploymentStatus
 	1,  // 2: krane.v1.UpdateDeploymentRequest.deployment:type_name -> krane.v1.DeploymentRequest
-	0,  // 3: krane.v1.GetDeploymentResponse.status:type_name -> krane.v1.DeploymentStatus
-	10, // 4: krane.v1.GetDeploymentResponse.instances:type_name -> krane.v1.Instance
+	10, // 3: krane.v1.GetDeploymentResponse.instances:type_name -> krane.v1.Instance
+	0,  // 4: krane.v1.Instance.status:type_name -> krane.v1.DeploymentStatus
 	2,  // 5: krane.v1.DeploymentService.CreateDeployment:input_type -> krane.v1.CreateDeploymentRequest
 	8,  // 6: krane.v1.DeploymentService.GetDeployment:input_type -> krane.v1.GetDeploymentRequest
 	6,  // 7: krane.v1.DeploymentService.DeleteDeployment:input_type -> krane.v1.DeleteDeploymentRequest

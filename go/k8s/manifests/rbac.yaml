@@ -29,7 +29,7 @@ rules:
 
   # Job management for VM workloads
   - apiGroups: ["apps"]
-    resources: ["deployments"]
+    resources: ["statefulsets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Events access for debugging

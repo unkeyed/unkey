@@ -21,9 +21,49 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		"deployment_id", k8sDeploymentID,
 	)
 
-	deployment, err := k.clientset.AppsV1().Deployments(req.Msg.GetDeployment().GetNamespace()).Create(
-		ctx,
-		&appsv1.Deployment{
+	service, err := k.clientset.CoreV1().
+		Services(req.Msg.GetDeployment().GetNamespace()).
+		Create(ctx,
+			&corev1.Service{
+
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      k8sDeploymentID,
+					Namespace: req.Msg.GetDeployment().GetNamespace(),
+					Labels: map[string]string{
+						"unkey.deployment.id": k8sDeploymentID,
+						"unkey.managed.by":    "krane",
+					},
+
+					Annotations: map[string]string{
+						"unkey.deployment.id": k8sDeploymentID,
+					},
+				},
+
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
+					Selector: map[string]string{
+						"unkey.deployment.id": k8sDeploymentID,
+					},
+					ClusterIP:                "None",
+					PublishNotReadyAddresses: true,
+					Ports: []corev1.ServicePort{
+						{
+							Port:       8080,
+							TargetPort: intstr.FromInt(8080),
+							Protocol:   corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service: %w", err))
+	}
+
+	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetDeployment().GetNamespace()).Create(ctx,
+		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      k8sDeploymentID,
 				Namespace: req.Msg.GetDeployment().GetNamespace(),
@@ -32,8 +72,10 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 					"unkey.managed.by":    "krane",
 				},
 			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: ptr.P(int32(req.Msg.GetDeployment().GetReplicas())),
+
+			Spec: appsv1.StatefulSetSpec{
+				ServiceName: service.Name,
+				Replicas:    ptr.P(int32(req.Msg.GetDeployment().GetReplicas())),
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"unkey.deployment.id": k8sDeploymentID,
@@ -73,67 +115,37 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						},
 					},
 				},
+				PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+					WhenDeleted: appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
+					WhenScaled:  appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
+				},
 			},
-		},
-		metav1.CreateOptions{},
-	)
+		}, metav1.CreateOptions{})
+
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create deployment: %w", err))
 	}
 
+	sfs.OwnerReferences = []metav1.OwnerReference{
+		// Automatically clean up the service, when the deployment gets deleted
+		{
+			APIVersion: "apps/v1",
+			Kind:       "StatefulSet",
+			Name:       k8sDeploymentID,
+			UID:        sfs.UID,
+		},
+	}
+
+	_, err = k.clientset.AppsV1().StatefulSets(req.Msg.GetDeployment().GetNamespace()).Update(ctx, sfs, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
+	}
+
 	k.logger.Info("Deployment created successfully",
-		"deployment", deployment.String(),
+		"deployment", sfs.String(),
 	)
 
 	// Create service to expose the VM with specific ClusterIP
-
-	service, err := k.clientset.CoreV1().
-		Services(req.Msg.GetDeployment().GetNamespace()).
-		Create(ctx,
-			&corev1.Service{
-
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      k8sDeploymentID,
-					Namespace: req.Msg.GetDeployment().GetNamespace(),
-					Labels: map[string]string{
-						"unkey.deployment.id": k8sDeploymentID,
-						"unkey.managed.by":    "krane",
-					},
-					Annotations: map[string]string{
-						// Add annotation to help gateway discovery
-						"unkey.deployment.id": "TODO", //networkInfo["deployment_id"],
-					},
-					OwnerReferences: []metav1.OwnerReference{
-						// Automatically clean up the service, when the deployment gets deleted
-						{
-							APIVersion: "apps/v1",
-							Kind:       "Deployment",
-							Name:       k8sDeploymentID,
-							UID:        deployment.UID,
-						},
-					},
-				},
-
-				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
-					Selector: map[string]string{
-						"unkey.deployment.id": k8sDeploymentID,
-					},
-					Ports: []corev1.ServicePort{
-						{
-							Port:       8080,
-							TargetPort: intstr.FromInt(8080),
-							Protocol:   corev1.ProtocolTCP,
-						},
-					},
-				},
-			},
-			metav1.CreateOptions{},
-		)
-
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service: %w", err))
-	}
 
 	k.logger.Info("Service created successfully",
 		"service", service.String(),

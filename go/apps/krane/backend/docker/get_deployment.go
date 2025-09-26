@@ -36,7 +36,7 @@ func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1
 	if containerJSON.State.Running {
 		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING
 	} else if containerJSON.State.Dead || containerJSON.State.ExitCode != 0 {
-		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
+		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING
 	} else {
 		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
 	}
@@ -57,9 +57,8 @@ func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1
 	)
 
 	return connect.NewResponse(&kranev1.GetDeploymentResponse{
-		Status: status,
 		Instances: []*kranev1.Instance{
-			{Id: containerJSON.ID, Address: fmt.Sprintf("%s:%d", containerJSON.Name, assignedPort)},
+			{Id: containerJSON.ID, Address: fmt.Sprintf("%s:%d", containerJSON.Name, assignedPort), Status: status},
 		},
 	}), nil
 }

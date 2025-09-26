@@ -270,7 +270,7 @@ if start_krane:
         resource_deps=krane_deps,
         labels=['unkey'],
         auto_init=True,
-        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+        trigger_mode=TRIGGER_MODE_AUTO
     )
 
 # Dashboard service

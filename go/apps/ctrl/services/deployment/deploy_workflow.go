@@ -144,7 +144,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				Namespace:     hardcodedNamespace,
 				DeploymentId:  req.DeploymentID,
 				Image:         req.DockerImage,
-				Replicas:      1,
+				Replicas:      3,
 				CpuMillicores: 1000,
 				MemorySizeMib: 1024,
 			},
@@ -181,7 +181,6 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	createdInstances, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*kranev1.Instance, error) {
 		// prevent updating the db unnecessarily
-		writeCache := make(map[string]*kranev1.Instance)
 
 		for i := range 300 {
 			time.Sleep(time.Second)
@@ -197,40 +196,58 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				return nil, fmt.Errorf("krane GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
 			}
 
-			if resp.Msg.Status != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
-				continue
-			}
+			w.logger.Info("deployment status",
+				"deployment_id", req.DeploymentID,
+				"status", resp.Msg,
+			)
 
+			allReady := true
 			for _, instance := range resp.Msg.GetInstances() {
-				_, ok := writeCache[instance.Id]
-				if !ok {
-					upsertParams := partitiondb.UpsertVMParams{
-						ID:            instance.Id,
-						DeploymentID:  req.DeploymentID,
-						Address:       sql.NullString{Valid: true, String: instance.Address},
-						CpuMillicores: 1000,                         // TODO derive from spec
-						MemoryMb:      1024,                         // TODO derive from spec
-						Status:        partitiondb.VmsStatusRunning, // TODO
-					}
-
-					w.logger.Info("upserting VM to database",
-						"vm_id", instance.Id,
-						"deployment_id", req.DeploymentID,
-						"address", instance.Address,
-						"status", "running")
-
-					if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
-						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
-					}
-
-					w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
-
-					writeCache[instance.Id] = instance
+				if instance.Status != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
+					allReady = false
 				}
 
+				var status partitiondb.VmsStatus
+				switch instance.Status {
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
+					status = partitiondb.VmsStatusProvisioning
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
+					status = partitiondb.VmsStatusRunning
+
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
+					status = partitiondb.VmsStatusStopping
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
+					status = partitiondb.VmsStatusAllocated
+				}
+
+				upsertParams := partitiondb.UpsertVMParams{
+					ID:            instance.Id,
+					DeploymentID:  req.DeploymentID,
+					Address:       sql.NullString{Valid: true, String: instance.Address},
+					CpuMillicores: 1000,   // TODO derive from spec
+					MemoryMb:      1024,   // TODO derive from spec
+					Status:        status, // TODO
+				}
+
+				w.logger.Info("upserting VM to database",
+					"vm_id", instance.Id,
+					"deployment_id", req.DeploymentID,
+					"address", instance.Address,
+					"status", "running")
+
+				if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
+				}
+
+				w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
+
 			}
 
-			return resp.Msg.GetInstances(), nil
+			if allReady {
+				return resp.Msg.GetInstances(), nil
+			}
+			// next loop
+
 		}
 
 		return nil, fmt.Errorf("deployment never became ready")

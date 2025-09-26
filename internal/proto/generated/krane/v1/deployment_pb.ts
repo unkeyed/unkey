@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file krane/v1/deployment.proto.
  */
 export const file_krane_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChlrcmFuZS92MS9kZXBsb3ltZW50LnByb3RvEghrcmFuZS52MSKPAQoRRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkSDQoFaW1hZ2UYAyABKAkSEAoIcmVwbGljYXMYBCABKA0SFgoOY3B1X21pbGxpY29yZXMYBSABKA0SFwoPbWVtb3J5X3NpemVfbWliGAYgASgEIkoKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0Ei8KCmRlcGxveW1lbnQYASABKAsyGy5rcmFuZS52MS5EZXBsb3ltZW50UmVxdWVzdCJGChhDcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USKgoGc3RhdHVzGAEgASgOMhoua3JhbmUudjEuRGVwbG95bWVudFN0YXR1cyJKChdVcGRhdGVEZXBsb3ltZW50UmVxdWVzdBIvCgpkZXBsb3ltZW50GAEgASgLMhsua3JhbmUudjEuRGVwbG95bWVudFJlcXVlc3QiKwoYVXBkYXRlRGVwbG95bWVudFJlc3BvbnNlEg8KB3BvZF9pZHMYASADKAkiQwoXRGVsZXRlRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkiGgoYRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlIkAKFEdldERlcGxveW1lbnRSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIVCg1kZXBsb3ltZW50X2lkGAIgASgJImoKFUdldERlcGxveW1lbnRSZXNwb25zZRIqCgZzdGF0dXMYASABKA4yGi5rcmFuZS52MS5EZXBsb3ltZW50U3RhdHVzEiUKCWluc3RhbmNlcxgCIAMoCzISLmtyYW5lLnYxLkluc3RhbmNlIicKCEluc3RhbmNlEgoKAmlkGAEgASgJEg8KB2FkZHJlc3MYAiABKAkq1gEKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHQoZREVQTE9ZTUVOVF9TVEFUVVNfUlVOTklORxACEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBADEiEKHURFUExPWU1FTlRfU1RBVFVTX1RFUk1JTkFUSU5HEAQSIAocREVQTE9ZTUVOVF9TVEFUVVNfVEVSTUlOQVRFRBAFMpsCChFEZXBsb3ltZW50U2VydmljZRJZChBDcmVhdGVEZXBsb3ltZW50EiEua3JhbmUudjEuQ3JlYXRlRGVwbG95bWVudFJlcXVlc3QaIi5rcmFuZS52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USUAoNR2V0RGVwbG95bWVudBIeLmtyYW5lLnYxLkdldERlcGxveW1lbnRSZXF1ZXN0Gh8ua3JhbmUudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlElkKEERlbGV0ZURlcGxveW1lbnQSIS5rcmFuZS52MS5EZWxldGVEZXBsb3ltZW50UmVxdWVzdBoiLmtyYW5lLnYxLkRlbGV0ZURlcGxveW1lbnRSZXNwb25zZUI4WjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2tyYW5lL3YxO2tyYW5ldjFiBnByb3RvMw");
+  fileDesc("ChlrcmFuZS92MS9kZXBsb3ltZW50LnByb3RvEghrcmFuZS52MSKPAQoRRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkSDQoFaW1hZ2UYAyABKAkSEAoIcmVwbGljYXMYBCABKA0SFgoOY3B1X21pbGxpY29yZXMYBSABKA0SFwoPbWVtb3J5X3NpemVfbWliGAYgASgEIkoKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0Ei8KCmRlcGxveW1lbnQYASABKAsyGy5rcmFuZS52MS5EZXBsb3ltZW50UmVxdWVzdCJGChhDcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USKgoGc3RhdHVzGAEgASgOMhoua3JhbmUudjEuRGVwbG95bWVudFN0YXR1cyJKChdVcGRhdGVEZXBsb3ltZW50UmVxdWVzdBIvCgpkZXBsb3ltZW50GAEgASgLMhsua3JhbmUudjEuRGVwbG95bWVudFJlcXVlc3QiKwoYVXBkYXRlRGVwbG95bWVudFJlc3BvbnNlEg8KB3BvZF9pZHMYASADKAkiQwoXRGVsZXRlRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkiGgoYRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlIkAKFEdldERlcGxveW1lbnRSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIVCg1kZXBsb3ltZW50X2lkGAIgASgJIj4KFUdldERlcGxveW1lbnRSZXNwb25zZRIlCglpbnN0YW5jZXMYAiADKAsyEi5rcmFuZS52MS5JbnN0YW5jZSJTCghJbnN0YW5jZRIKCgJpZBgBIAEoCRIPCgdhZGRyZXNzGAIgASgJEioKBnN0YXR1cxgDIAEoDjIaLmtyYW5lLnYxLkRlcGxveW1lbnRTdGF0dXMqlgEKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHQoZREVQTE9ZTUVOVF9TVEFUVVNfUlVOTklORxACEiEKHURFUExPWU1FTlRfU1RBVFVTX1RFUk1JTkFUSU5HEAMymwIKEURlcGxveW1lbnRTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIS5rcmFuZS52MS5DcmVhdGVEZXBsb3ltZW50UmVxdWVzdBoiLmtyYW5lLnYxLkNyZWF0ZURlcGxveW1lbnRSZXNwb25zZRJQCg1HZXREZXBsb3ltZW50Eh4ua3JhbmUudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHy5rcmFuZS52MS5HZXREZXBsb3ltZW50UmVzcG9uc2USWQoQRGVsZXRlRGVwbG95bWVudBIhLmtyYW5lLnYxLkRlbGV0ZURlcGxveW1lbnRSZXF1ZXN0GiIua3JhbmUudjEuRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlQjhaNmdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8va3JhbmUvdjE7a3JhbmV2MWIGcHJvdG8z");
 
 /**
  * @generated from message krane.v1.DeploymentRequest
@@ -184,11 +184,6 @@ export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> = /*@_
  */
 export type GetDeploymentResponse = Message<"krane.v1.GetDeploymentResponse"> & {
   /**
-   * @generated from field: krane.v1.DeploymentStatus status = 1;
-   */
-  status: DeploymentStatus;
-
-  /**
    * @generated from field: repeated krane.v1.Instance instances = 2;
    */
   instances: Instance[];
@@ -214,6 +209,11 @@ export type Instance = Message<"krane.v1.Instance"> & {
    * @generated from field: string address = 2;
    */
   address: string;
+
+  /**
+   * @generated from field: krane.v1.DeploymentStatus status = 3;
+   */
+  status: DeploymentStatus;
 };
 
 /**
@@ -247,25 +247,11 @@ export enum DeploymentStatus {
   RUNNING = 2,
 
   /**
-   * Container/pod failed to start or crashed
-   *
-   * @generated from enum value: DEPLOYMENT_STATUS_FAILED = 3;
-   */
-  FAILED = 3,
-
-  /**
    * Container/pod is being terminated
    *
-   * @generated from enum value: DEPLOYMENT_STATUS_TERMINATING = 4;
+   * @generated from enum value: DEPLOYMENT_STATUS_TERMINATING = 3;
    */
-  TERMINATING = 4,
-
-  /**
-   * Container/pod has been terminated
-   *
-   * @generated from enum value: DEPLOYMENT_STATUS_TERMINATED = 5;
-   */
-  TERMINATED = 5,
+  TERMINATING = 3,
 }
 
 /**

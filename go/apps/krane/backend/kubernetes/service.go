@@ -36,7 +36,7 @@ func New(logger logging.Logger) (*k8s, error) {
 
 	repeat.Every(time.Minute, func() {
 		ctx := context.Background()
-		deployments, err := clientset.AppsV1().Deployments("unkey").List(ctx, metav1.ListOptions{
+		deployments, err := clientset.AppsV1().StatefulSets("unkey").List(ctx, metav1.ListOptions{
 			LabelSelector: "unkey.managed.by=krane",
 		})
 
