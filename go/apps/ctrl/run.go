@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
@@ -203,16 +204,32 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	// Create the service handlers with interceptors
-	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
-	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	// Create authentication middleware (required except for health check and ACME routes)
+	authMiddleware := middleware.NewAuthMiddleware(middleware.AuthConfig{
+		APIKey: cfg.APIKey,
+	})
+	authInterceptor := authMiddleware.ConnectInterceptor()
+
+	if cfg.APIKey != "" {
+		logger.Info("API key authentication enabled for ctrl service")
+	} else {
+		logger.Warn("No API key configured - authentication will reject all requests except health check and ACME routes")
+	}
+
+	// Create the service handlers with auth interceptor (always applied)
+	connectOptions := []connect.HandlerOption{
+		connect.WithInterceptors(authInterceptor),
+	}
+
+	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
+	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger), connectOptions...))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
 		HydraEngine: hydraEngine,
 		Logger:      logger,
-	})))
+	}), connectOptions...))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
