@@ -60,28 +60,29 @@ export const NestedNavItem = ({
     if (!hasChildren || !pathname) {
       return;
     }
+
     const hasMatchingChild = item.items?.some(
       (subItem) =>
         subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
     );
+
     // Only auto-open children if user hasn't manually collapsed them
     if (!childrenUserManuallyCollapsed) {
-      setIsChildrenOpen(!!hasMatchingChild);
+      setIsChildrenOpen(Boolean(hasMatchingChild));
     }
-    if (typeof item.label === "string") {
-      const itemPath = `/${slugify(item.label, {
-        lower: true,
-        replacement: "-",
-      })}`;
+
+    // Check if current pathname matches this item's href path
+    // item.href is already workspace-aware (e.g., "/workspace-slug/projects")
+    if (item.href && pathname.startsWith(item.href)) {
       // Only auto-open parent if user hasn't manually collapsed it AND not force collapsed
-      if (pathname.startsWith(itemPath) && !userManuallyCollapsed && !forceCollapsed) {
+      if (!userManuallyCollapsed && !forceCollapsed) {
         setIsOpen(true);
       }
     }
   }, [
     pathname,
     item.items,
-    item.label,
+    item.href,
     hasChildren,
     userManuallyCollapsed,
     childrenUserManuallyCollapsed,

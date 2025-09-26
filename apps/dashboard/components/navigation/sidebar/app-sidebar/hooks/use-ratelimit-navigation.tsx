@@ -30,10 +30,8 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
     }
 
     return data.map((namespace) => {
-      const currentNamespaceActive =
-        segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
-
-      const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
+      const rIndex = segments.findIndex((s) => s === "ratelimits");
+      const currentNamespaceActive = rIndex !== -1 && segments.at(rIndex + 1) === namespace.id;
 
       // Create sub-items for logs, settings, and overrides
       const subItems: NavItem[] = [
@@ -41,25 +39,25 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
           icon: ArrowOppositeDirectionY,
           href: `${basePath}/ratelimits/${namespace.id}`,
           label: "Requests",
-          active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
+          active: currentNamespaceActive && !segments.at(3),
         },
         {
           icon: Layers3,
           href: `${basePath}/ratelimits/${namespace.id}/logs`,
           label: "Logs",
-          active: currentNamespaceActive && segments.at(2) === "logs",
+          active: currentNamespaceActive && segments.at(3) === "logs",
         },
         {
           icon: Gear,
           href: `${basePath}/ratelimits/${namespace.id}/settings`,
           label: "Settings",
-          active: currentNamespaceActive && segments.at(2) === "settings",
+          active: currentNamespaceActive && segments.at(3) === "settings",
         },
         {
           icon: ArrowDottedRotateAnticlockwise,
           href: `${basePath}/ratelimits/${namespace.id}/overrides`,
           label: "Overrides",
-          active: currentNamespaceActive && segments.at(2) === "overrides",
+          active: currentNamespaceActive && segments.at(3) === "overrides",
         },
       ];
 
