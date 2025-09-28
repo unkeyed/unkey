@@ -1,4 +1,4 @@
-import { verificationQueryTimeseriesPayload } from "@/app/(app)/apis/_components/hooks/query-timeseries.schema";
+import { verificationQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/_components/hooks/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 

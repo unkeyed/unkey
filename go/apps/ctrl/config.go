@@ -67,6 +67,10 @@ type Config struct {
 	// KraneAddress is the full URL of the krane service for deployment operations (e.g., "https://krane.example.com:8080")
 	KraneAddress string
 
+  // APIKey is the API key for simple authentication (demo purposes only)
+	// TODO: Replace with JWT authentication when moving to private IP
+	APIKey string
+
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
 	SPIFFESocketPath string
 

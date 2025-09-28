@@ -29,6 +29,7 @@ export const env = () =>
       AGENT_TOKEN: z.string(),
 
       CTRL_URL: z.string().url().optional(),
+      CTRL_API_KEY: z.string().optional(),
 
       GITHUB_KEYS_URI: z.string().optional(),
 

@@ -34,6 +34,7 @@ export async function bootstrapDashboard(resources: {
     },
     ControlPlane: {
       CTRL_URL: "http://localhost:7091",
+      CTRL_API_KEY: "your-local-dev-key",
     },
   });
 

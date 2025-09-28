@@ -27,6 +27,7 @@ export const NestedNavItem = ({
   maxDepth = 1,
   isSubItem = false,
   forceCollapsed = false,
+  className,
 }: NavProps & {
   depth?: number;
   maxDepth?: number;
@@ -59,28 +60,29 @@ export const NestedNavItem = ({
     if (!hasChildren || !pathname) {
       return;
     }
+
     const hasMatchingChild = item.items?.some(
       (subItem) =>
         subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
     );
+
     // Only auto-open children if user hasn't manually collapsed them
     if (!childrenUserManuallyCollapsed) {
-      setIsChildrenOpen(!!hasMatchingChild);
+      setIsChildrenOpen(Boolean(hasMatchingChild));
     }
-    if (typeof item.label === "string") {
-      const itemPath = `/${slugify(item.label, {
-        lower: true,
-        replacement: "-",
-      })}`;
+
+    // Check if current pathname matches this item's href path
+    // item.href is already workspace-aware (e.g., "/workspace-slug/projects")
+    if (item.href && pathname.startsWith(item.href)) {
       // Only auto-open parent if user hasn't manually collapsed it AND not force collapsed
-      if (pathname.startsWith(itemPath) && !userManuallyCollapsed && !forceCollapsed) {
+      if (!userManuallyCollapsed && !forceCollapsed) {
         setIsOpen(true);
       }
     }
   }, [
     pathname,
     item.items,
-    item.label,
+    item.href,
     hasChildren,
     userManuallyCollapsed,
     childrenUserManuallyCollapsed,
@@ -154,17 +156,16 @@ export const NestedNavItem = ({
     // If this subitem has children and is not at max depth, render it as another NestedNavItem
     if (hasChildren && depth < maxDepth) {
       return (
-        <SidebarMenuSubItem key={subItem.label?.toString() ?? index}>
-          <NestedNavItem
-            item={subItem}
-            onLoadMore={onLoadMore}
-            onToggleCollapse={onToggleCollapse}
-            depth={depth + 1}
-            maxDepth={maxDepth}
-            isSubItem={true}
-            forceCollapsed={forceCollapsed}
-          />
-        </SidebarMenuSubItem>
+        <NestedNavItem
+          key={subItem.label?.toString() ?? index}
+          item={subItem}
+          onLoadMore={onLoadMore}
+          onToggleCollapse={onToggleCollapse}
+          depth={depth + 1}
+          maxDepth={maxDepth}
+          isSubItem={true}
+          forceCollapsed={forceCollapsed}
+        />
       );
     }
     // Otherwise render as a regular sub-item
@@ -227,7 +228,7 @@ export const NestedNavItem = ({
       onOpenChange={handleOpenChange}
       className="group/collapsible"
     >
-      <SidebarMenuItem>
+      <SidebarMenuItem className={isSubItem ? undefined : className}>
         <SidebarMenuButton
           tooltip={item.tooltip}
           // Only highlight if this item itself is active, not if its children are active

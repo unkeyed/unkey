@@ -3,7 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretRight } from "@unkey/icons";
-import { Button, KeyboardButton } from "@unkey/ui";
+import { KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
@@ -275,11 +275,14 @@ const PopoverItem = ({
       </div>
       {!hideRightIcon && (
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
+          <div className="size-5 flex items-center justify-center">
             <CaretRight
-              className={cn(isActive ? "text-gray-12" : "text-gray-7 group-hover:text-gray-10")}
+              className={cn(
+                "size-2",
+                isActive ? "text-gray-12" : "text-gray-7 group-hover:text-gray-10",
+              )}
             />
-          </Button>
+          </div>
         </div>
       )}
     </button>

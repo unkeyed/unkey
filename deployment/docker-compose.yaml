@@ -326,6 +326,9 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
+      # API key for simple authentication (temporary, will be replaced with JWT)
+      UNKEY_API_KEY: "your-local-dev-key"
+
   otel:
     networks:
       - default
@@ -380,6 +383,7 @@ services:
       # Environment
       NODE_ENV: "production"
       CTRL_URL: "http://ctrl:7091"
+      CTRL_API_KEY: "your-local-dev-key"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
 volumes:
