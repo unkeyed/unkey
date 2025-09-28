@@ -13,7 +13,7 @@ Use --init to create a configuration template file. This generates an unkey.json
 ## Deployment Process
 
 1. Load configuration from unkey.json or flags
-2. Build Docker image from your application  
+2. Build Docker image from your application
 3. Push image to container registry
 4. Create deployment version on Unkey platform
 5. Monitor deployment status until active
@@ -122,6 +122,13 @@ Project ID
 - **Environment:** `UNKEY_PROJECT_ID`
 </Callout>
 
+<Callout type="info" title="--keyspace-id">
+Keyspace ID for API key authentication
+
+- **Type:** string
+- **Environment:** `UNKEY_KEYSPACE_ID`
+</Callout>
+
 <Callout type="info" title="--context">
 Build context path
 
@@ -162,6 +169,13 @@ Container registry
 - **Environment:** `UNKEY_REGISTRY`
 </Callout>
 
+<Callout type="info" title="--env">
+Environment slug to deploy to
+
+- **Type:** string
+- **Default:** `"preview"`
+</Callout>
+
 <Callout type="info" title="--skip-push">
 Skip pushing to registry (for local testing)
 
@@ -171,6 +185,13 @@ Skip pushing to registry (for local testing)
 
 <Callout type="info" title="--verbose">
 Show detailed output for build and deployment operations
+
+- **Type:** boolean
+- **Default:** `false`
+</Callout>
+
+<Callout type="info" title="--linux">
+Build Docker image for linux/amd64 platform (for deployment to cloud clusters)
 
 - **Type:** boolean
 - **Default:** `false`
@@ -188,4 +209,11 @@ Control plane auth token
 
 - **Type:** string
 - **Default:** `"ctrl-secret-token"`
+</Callout>
+
+<Callout type="info" title="--api-key">
+API key for ctrl service authentication
+
+- **Type:** string
+- **Environment:** `API_KEY`
 </Callout>
