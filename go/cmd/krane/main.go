@@ -30,6 +30,13 @@ unkey run krane                                   # Run with default configurati
 
 		cli.String("backend", "Backend type for the service. Either kubernetes or docker. Default: kubernetes",
 			cli.Default("kubernetes"), cli.EnvVar("UNKEY_KRANE_BACKEND")),
+
+		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
+			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
+
+		// This has no use outside of our demo cluster and will be removed soon
+		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m",
+			cli.Default(0), cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
 	},
 
 	Action: action,
@@ -49,6 +56,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           false,
 		OtelTraceSamplingRate: 1.0,
 		InstanceID:            cmd.String("instance-id"),
+		DockerSocketPath:      cmd.String("docker-socket"),
+		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
 	}
 
 	// Validate configuration

@@ -12,6 +12,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GetDeployment retrieves the current status and instance information for a Kubernetes deployment.
+//
+// This method queries the Kubernetes API for StatefulSet status and associated
+// pod information to provide a comprehensive view of the deployment state.
+// It returns detailed information about each pod instance including stable
+// DNS addresses, current status, and resource allocation.
 func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.GetDeploymentRequest]) (*connect.Response[kranev1.GetDeploymentResponse], error) {
 
 	err := assert.All(

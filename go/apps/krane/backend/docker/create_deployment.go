@@ -3,7 +3,6 @@ package docker
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
@@ -12,6 +11,11 @@ import (
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 )
 
+// CreateDeployment creates containers for a deployment with the specified replica count.
+//
+// Creates multiple containers with shared labels, dynamic port mapping to port 8080,
+// and resource limits. Returns DEPLOYMENT_STATUS_PENDING as containers may not be
+// immediately ready.
 func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kranev1.CreateDeploymentRequest]) (*connect.Response[kranev1.CreateDeploymentResponse], error) {
 	deployment := req.Msg.GetDeployment()
 
@@ -40,6 +44,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Container configuration
 	containerConfig := &container.Config{
+
 		Image: deployment.GetImage(),
 		Labels: map[string]string{
 			"unkey.deployment.id": deployment.GetDeploymentId(),
@@ -53,6 +58,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Host configuration
 	hostConfig := &container.HostConfig{
+
 		PortBindings: portBindings,
 		RestartPolicy: container.RestartPolicy{
 			Name: "unless-stopped",
@@ -67,45 +73,26 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 	networkConfig := &network.NetworkingConfig{}
 
 	// Create container
-	containerName := deployment.GetDeploymentId()
-	resp, err := d.client.ContainerCreate(
-		ctx,
-		containerConfig,
-		hostConfig,
-		networkConfig,
-		nil,
-		containerName,
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create container: %w", err))
-	}
 
-	// Start container
-	err = d.client.ContainerStart(ctx, resp.ID, container.StartOptions{})
-	if err != nil {
-		// Clean up container if start fails
-		_ = d.client.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to start container: %w", err))
-	}
+	for i := range req.Msg.Deployment.Replicas {
+		resp, err := d.client.ContainerCreate(
+			ctx,
+			containerConfig,
+			hostConfig,
+			networkConfig,
+			nil,
+			fmt.Sprintf("%s-%d", deployment.GetDeploymentId(), i),
+		)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create container: %w", err))
+		}
 
-	// Get container info to retrieve the assigned port
-	containerJSON, err := d.client.ContainerInspect(ctx, resp.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to inspect container: %w", err))
-	}
-
-	var assignedPort int32
-	if bindings, exists := containerJSON.NetworkSettings.Ports["8080/tcp"]; exists && len(bindings) > 0 {
-		if port, err := strconv.Atoi(bindings[0].HostPort); err == nil {
-			assignedPort = int32(port)
+		// Start container
+		err = d.client.ContainerStart(ctx, resp.ID, container.StartOptions{})
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to start container: %w", err))
 		}
 	}
-
-	d.logger.Info("container created and started",
-		"container_id", resp.ID,
-		"deployment_id", deployment.GetDeploymentId(),
-		"assigned_port", assignedPort,
-	)
 
 	return connect.NewResponse(&kranev1.CreateDeploymentResponse{
 		Status: kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,

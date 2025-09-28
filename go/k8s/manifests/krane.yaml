@@ -33,6 +33,8 @@ spec:
             # Server configuration
             - name: UNKEY_HTTP_PORT
               value: "8080"
+            - name: UNKEY_DEPLOYMENT_EVICTION_TTL
+              value: "2h"
 
 ---
 apiVersion: v1

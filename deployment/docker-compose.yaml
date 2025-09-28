@@ -283,6 +283,8 @@ services:
 
       # Backend configuration - use Docker backend for development
       UNKEY_KRANE_BACKEND: "docker"
+      UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
+      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
   ctrl:
     networks:

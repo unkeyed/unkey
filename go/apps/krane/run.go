@@ -18,6 +18,14 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
+// Run starts the krane server with the provided configuration.
+//
+// Initializes the selected backend (Docker or Kubernetes), sets up HTTP/2
+// server with Connect protocol, and handles graceful shutdown on context
+// cancellation.
+//
+// When cfg.OtelEnabled is true, initializes OpenTelemetry tracing, metrics,
+// and logging integration.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -63,7 +71,10 @@ func Run(ctx context.Context, cfg Config) error {
 	case Kubernetes:
 		{
 
-			svc, err = kubernetes.New(logger)
+			svc, err = kubernetes.New(kubernetes.Config{
+				Logger:                logger,
+				DeploymentEvictionTTL: cfg.DeploymentEvictionTTL,
+			})
 			if err != nil {
 				return fmt.Errorf("unable to init kubernetes backend: %w", err)
 			}

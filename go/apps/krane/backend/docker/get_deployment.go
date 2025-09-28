@@ -3,62 +3,61 @@ package docker
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"connectrpc.com/connect"
-	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 )
 
+// GetDeployment retrieves container status and addresses for a deployment.
+//
+// Finds containers by deployment ID label and returns instance information
+// with host.docker.internal addresses using dynamically assigned ports.
 func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1.GetDeploymentRequest]) (*connect.Response[kranev1.GetDeploymentResponse], error) {
 	deploymentID := req.Msg.GetDeploymentId()
 
 	d.logger.Info("getting deployment", "deployment_id", deploymentID)
-
-	// Find container by deployment ID (using container name)
-	containerJSON, err := d.client.ContainerInspect(ctx, deploymentID)
+	containers, err := d.client.ContainerList(ctx, container.ListOptions{
+		Filters: filters.NewArgs(
+			filters.Arg("label", fmt.Sprintf("unkey.deployment.id=%s", deploymentID)),
+		),
+	})
 	if err != nil {
-		// Check if container doesn't exist
-		if client.IsErrNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", deploymentID))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list containers: %w", err))
+	}
+
+	res := &kranev1.GetDeploymentResponse{
+		Instances: []*kranev1.Instance{},
+	}
+
+	for _, c := range containers {
+
+		d.logger.Info("container found", "container", c)
+
+		// Determine container status
+		var status kranev1.DeploymentStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
+		switch c.State {
+		case container.StateRunning:
+			status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING
+		case container.StateExited:
+			status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING
+		case container.StateCreated:
+			status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to inspect container: %w", err))
+
+		d.logger.Info("deployment found",
+			"deployment_id", deploymentID,
+			"container_id", c.ID,
+			"status", status.String(),
+			"port", c.Ports[0].PublicPort,
+		)
+
+		res.Instances = append(res.Instances, &kranev1.Instance{
+			Id:      c.ID,
+			Address: fmt.Sprintf("host.docker.internal:%d", c.Ports[0].PublicPort),
+			Status:  status,
+		})
 	}
-
-	// Check if this container is managed by Krane
-	managedBy, exists := containerJSON.Config.Labels["unkey.managed.by"]
-	if !exists || managedBy != "krane" {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", deploymentID))
-	}
-
-	// Determine container status
-	var status kranev1.DeploymentStatus
-	if containerJSON.State.Running {
-		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING
-	} else if containerJSON.State.Dead || containerJSON.State.ExitCode != 0 {
-		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING
-	} else {
-		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
-	}
-
-	// Get assigned port
-	var assignedPort int32
-	if bindings, exists := containerJSON.NetworkSettings.Ports["8080/tcp"]; exists && len(bindings) > 0 {
-		if port, err := strconv.Atoi(bindings[0].HostPort); err == nil {
-			assignedPort = int32(port)
-		}
-	}
-
-	d.logger.Info("deployment found",
-		"deployment_id", deploymentID,
-		"container_id", containerJSON.ID,
-		"status", status.String(),
-		"port", assignedPort,
-	)
-
-	return connect.NewResponse(&kranev1.GetDeploymentResponse{
-		Instances: []*kranev1.Instance{
-			{Id: containerJSON.ID, Address: fmt.Sprintf("%s:%d", containerJSON.Name, assignedPort), Status: status},
-		},
-	}), nil
+	return connect.NewResponse(res), nil
 }

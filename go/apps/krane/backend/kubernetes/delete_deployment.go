@@ -11,6 +11,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// DeleteDeployment removes a deployment and all associated Kubernetes resources.
+//
+// This method performs a complete cleanup of a deployment by removing both
+// the Service and StatefulSet resources. The cleanup follows Kubernetes
+// best practices for resource deletion with background propagation to
+// ensure associated pods and other resources are properly terminated.
 func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1.DeleteDeploymentRequest]) (*connect.Response[kranev1.DeleteDeploymentResponse], error) {
 	k8sDeploymentID := strings.ReplaceAll(req.Msg.GetDeploymentId(), "_", "-")
 
@@ -26,7 +32,7 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete service: %w", err))
 	}
 
-	err = k.clientset.AppsV1().Deployments(req.Msg.GetNamespace()).Delete(ctx, k8sDeploymentID, metav1.DeleteOptions{
+	err = k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Delete(ctx, k8sDeploymentID, metav1.DeleteOptions{
 		PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
 	})
 	if err != nil {
