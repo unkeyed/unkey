@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: krane
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: krane
+  template:
+    metadata:
+      labels:
+        app: krane
+        component: krane
+        # Add gateway label for potential service discovery
+        unkey.component: gateway
+    spec:
+      serviceAccountName: unkey-serviceaccount
+      containers:
+        - name: krane
+          image: unkey-krane:latest
+          imagePullPolicy: Never # Use local images
+          command: ["/unkey", "run", "krane"]
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            # Server configuration
+            - name: UNKEY_HTTP_PORT
+              value: "8080"
+            - name: UNKEY_DEPLOYMENT_EVICTION_TTL
+              value: "2h"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: krane
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+      protocol: TCP
+  selector:
+    app: krane
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: krane-data-pvc
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

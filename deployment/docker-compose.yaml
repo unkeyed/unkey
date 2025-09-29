@@ -264,45 +264,27 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
-  metald:
+  krane:
     build:
       context: ../go
       dockerfile: Dockerfile
       args:
         VERSION: "latest"
-    container_name: metald
-    command: ["run", "metald"]
+    container_name: krane
+    command: ["run", "krane"]
     ports:
       - "8090:8080"
-    depends_on:
-      - mysql
     volumes:
       # Mount Docker socket for Docker backend support
       - /var/run/docker.sock:/var/run/docker.sock
-      # Mount SQLite database locally for direct access
-      - ./data/metald:/var/lib/metald
     environment:
       # Server configuration
-      UNKEY_METALD_ADDRESS: "0.0.0.0"
-      UNKEY_METALD_PORT: "8080"
+      UNKEY_HTTP_PORT: "8080"
 
       # Backend configuration - use Docker backend for development
-      UNKEY_METALD_BACKEND: "docker"
-
-      # Database configuration
-      UNKEY_METALD_DATABASE_DIR: "/var/lib/metald"
-
-      # Asset manager configuration (disabled for local development)
-      UNKEY_METALD_ASSETMANAGER_ENABLED: "false"
-
-      # Billing configuration (disabled for local development)
-      UNKEY_METALD_BILLING_ENABLED: "false"
-
-      # TLS configuration (disabled for local development)
-      UNKEY_METALD_TLS_MODE: "disabled"
-
-      # OpenTelemetry configuration
-      UNKEY_METALD_OTEL_ENABLED: "false"
+      UNKEY_KRANE_BACKEND: "docker"
+      UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
+      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
   ctrl:
     networks:
@@ -323,7 +305,7 @@ services:
       s3:
         condition: service_healthy
         required: true
-      metald:
+      krane:
         condition: service_started
         required: true
     volumes:
@@ -335,7 +317,7 @@ services:
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_METALD_ADDRESS: "http://metald:8080"
+      UNKEY_KRANE_ADDRESS: "http://krane:8080"
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
 
       UNKEY_VAULT_S3_URL: "http://s3:3902"

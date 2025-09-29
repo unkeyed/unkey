@@ -6,7 +6,7 @@ load('ext://namespace', 'namespace_create')
 load('ext://restart_process', 'docker_build_with_restart')
 
 # Tilt configuration
-config.define_string_list("services", args=False, usage="Services to run (mysql,ctrl,metald,clickhouse,s3,observability,planetscale or all)")
+config.define_string_list("services", args=False, usage="Services to run (mysql,ctrl,clickhouse,s3,observability,planetscale or all)")
 config.define_bool("debug", args=False, usage="Enable debug mode")
 
 cfg = config.parse()
@@ -27,7 +27,7 @@ start_planetscale = 'all' in services or 'planetscale' in services
 start_api = 'all' in services or 'api' in services
 start_gw = 'all' in services or 'gateway' in services or 'gw' in services
 start_ctrl = 'all' in services or 'ctrl' in services
-start_metald = 'all' in services or 'metald' in services
+start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
 
 # Apply RBAC
@@ -128,7 +128,7 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
-if start_api or start_gw or start_ctrl or start_metald:
+if start_api or start_gw or start_ctrl or start_krane:
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -241,15 +241,15 @@ if start_ctrl:
         trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
-# Metald service (1 replica)
-if start_metald:
-    print("Setting up Metald service...")
+# Krane service (1 replica)
+if start_krane:
+    print("Setting up krane service...")
 
     docker_build_with_restart(
-        'unkey-metald:latest',
+        'unkey-krane:latest',
         '.',
         dockerfile='Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'metald'],
+        entrypoint=['/unkey', 'run', 'krane'],
         only=['./bin'],
         live_update=[
             sync('./bin/unkey', '/unkey'),
@@ -257,21 +257,20 @@ if start_metald:
         ignore=['./cmd/api', './cmd/gw', './cmd/ctrl', './apps/api', './apps/gw', './apps/ctrl']
     )
 
-    k8s_yaml('k8s/manifests/metald.yaml')
+    k8s_yaml('k8s/manifests/krane.yaml')
 
     # Build dependency list
-    metald_deps = []
-    # Metald uses SQLite so no MySQL dependency needed
+    krane_deps = []
     # Add compilation dependency for Unkey services
-    metald_deps.append('unkey-compile')
+    krane_deps.append('unkey-compile')
 
     k8s_resource(
-        'metald',
+        'krane',
         port_forwards='8090:8080',
-        resource_deps=metald_deps,
+        resource_deps=krane_deps,
         labels=['unkey'],
         auto_init=True,
-        trigger_mode=TRIGGER_MODE_AUTO if debug_mode else TRIGGER_MODE_MANUAL
+        trigger_mode=TRIGGER_MODE_AUTO
     )
 
 # Dashboard service
@@ -314,7 +313,6 @@ if start_observability: active_services.extend(['prometheus', 'otel-collector'])
 if start_api: active_services.append('api')
 if start_gw: active_services.append('gw')
 if start_ctrl: active_services.append('ctrl')
-if start_metald: active_services.append('metald')
 if start_dashboard: active_services.append('dashboard')
 
 print("""
@@ -329,7 +327,7 @@ Dashboard: http://localhost:3000
 API: http://localhost:7070
 Gateway: http://localhost:8080
 Ctrl: http://localhost:7091
-Metald: http://localhost:8090
+Krane: http://localhost:8090
 Prometheus: http://localhost:9090
 S3 Console: http://localhost:9000
 ClickHouse: http://localhost:8123

@@ -297,6 +297,12 @@ func main() {
 		fmt.Fprint(w, "OK")
 	})
 
+	mux.HandleFunc("/env", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, os.Environ())
+	})
+
 	// Debug endpoint - dumps request headers and body
 	mux.HandleFunc("/v1/debug", func(w http.ResponseWriter, r *http.Request) {
 		// Read body
