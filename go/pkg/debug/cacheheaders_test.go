@@ -40,7 +40,7 @@ func TestRecordCacheHitWithSession(t *testing.T) {
 			cacheName: "RootKeyByHash",
 			status:    "FRESH",
 			latency:   150 * time.Microsecond,
-			expected:  "RootKeyByHash:150μs:FRESH",
+			expected:  "RootKeyByHash:150us:FRESH",
 		},
 		{
 			name:      "stale cache with exact millisecond",
@@ -54,14 +54,14 @@ func TestRecordCacheHitWithSession(t *testing.T) {
 			cacheName: "WorkspaceById",
 			status:    "FRESH",
 			latency:   10 * time.Microsecond,
-			expected:  "WorkspaceById:10μs:FRESH",
+			expected:  "WorkspaceById:10us:FRESH",
 		},
 		{
 			name:      "cache error",
 			cacheName: "KeyVerification",
 			status:    "ERROR",
 			latency:   500 * time.Microsecond,
-			expected:  "KeyVerification:500μs:ERROR",
+			expected:  "KeyVerification:500us:ERROR",
 		},
 		{
 			name:      "very slow operation",
@@ -75,7 +75,7 @@ func TestRecordCacheHitWithSession(t *testing.T) {
 			cacheName: "FastCache",
 			status:    "FRESH",
 			latency:   100 * time.Nanosecond,
-			expected:  "FastCache:0μs:FRESH",
+			expected:  "FastCache:0us:FRESH",
 		},
 	}
 
@@ -122,8 +122,8 @@ func TestRecordCacheHitMultipleOperations(t *testing.T) {
 
 	expected := []string{
 		"ApiByID:2.00ms:MISS",
-		"RootKeyByHash:150μs:FRESH",
-		"PermissionsByApiId:750μs:STALE",
+		"RootKeyByHash:150us:FRESH",
+		"PermissionsByApiId:750us:STALE",
 	}
 
 	require.Equal(t, expected, headers)
@@ -150,7 +150,7 @@ func TestRecordCacheHitSessionRetrieval(t *testing.T) {
 
 		headers := recorder.Header().Values("X-Unkey-Debug-Cache")
 		require.Len(t, headers, 1)
-		require.Equal(t, "TestCache:50μs:HIT", headers[0])
+		require.Equal(t, "TestCache:50us:HIT", headers[0])
 	})
 
 	t.Run("without session in context", func(t *testing.T) {
@@ -178,22 +178,22 @@ func TestFormatDuration(t *testing.T) {
 		{
 			name:     "sub-microsecond rounds to zero",
 			duration: 100 * time.Nanosecond,
-			expected: "0μs",
+			expected: "0us",
 		},
 		{
 			name:     "microseconds with decimal",
 			duration: 1500 * time.Nanosecond,
-			expected: "2μs", // 1.5 rounds to 2
+			expected: "2us", // 1.5 rounds to 2
 		},
 		{
 			name:     "exact microseconds",
 			duration: 150 * time.Microsecond,
-			expected: "150μs",
+			expected: "150us",
 		},
 		{
 			name:     "microseconds just under 1ms",
 			duration: 999 * time.Microsecond,
-			expected: "999μs",
+			expected: "999us",
 		},
 		{
 			name:     "exactly 1 millisecond",
