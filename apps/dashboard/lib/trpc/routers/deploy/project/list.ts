@@ -62,13 +62,13 @@ export const listProjects = t.procedure
         gitRepositoryUrl: row.git_repository_url,
         liveDeploymentId: row.live_deployment_id,
         isRolledBack: row.is_rolled_back,
-        commitTitle: row.git_commit_message ?? "[DUMMY] Initial commit",
+        commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",
-        author: row.git_commit_author_handle ?? "[DUMMY] Unknown Author",
+        author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
         regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
-        domain: row.domain ?? "project-temp.unkey.app",
+        domain: row.domain,
       }),
     );
   });

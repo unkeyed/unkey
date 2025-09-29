@@ -117,8 +117,9 @@ export const ProjectDetailsExpandable = ({
                     {data.project.name}
                   </span>
                   <div className="gap-2 items-center flex min-w-0 max-w-[250px]">
+                    {/* # is okay. This section is not accessible without deploy*/}
                     <a
-                      href={data.project.domain}
+                      href={data.project.domain ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-9 text-sm truncate block transition-all hover:underline decoration-dashed underline-offset-2"
