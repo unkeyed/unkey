@@ -18,7 +18,6 @@ type ProjectCollections = {
   environments: ReturnType<typeof createEnvironmentsCollection>;
   domains: ReturnType<typeof createDomainsCollection>;
   deployments: ReturnType<typeof createDeploymentsCollection>;
-  projects: typeof projects;
 };
 
 class CollectionManager {
@@ -33,7 +32,6 @@ class CollectionManager {
         environments: createEnvironmentsCollection(projectId),
         domains: createDomainsCollection(projectId),
         deployments: createDeploymentsCollection(projectId),
-        projects,
       });
     }
     // biome-ignore lint/style/noNonNullAssertion: Its okay
