@@ -117,7 +117,8 @@
                       },
                       "apis/features/revocation",
                       "apis/features/enabled",
-                      "apis/features/environments"
+                      "apis/features/environments",
+                      "apis/features/distributed-cache-invalidation"
                     ]
                   }
                 ]
