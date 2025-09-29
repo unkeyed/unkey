@@ -1,9 +1,9 @@
 "use client";
-import { collectionManager } from "@/lib/collections";
+import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { DoubleChevronLeft } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProjectDetailsExpandable } from "./details/project-details-expandables";
 import { ProjectLayoutContext } from "./layout-provider";
 import { ProjectNavigation } from "./navigations/project-navigation";
@@ -31,10 +31,18 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const collections = collectionManager.getProjectCollections(projectId);
 
   const projects = useLiveQuery((q) =>
-    q.from({ project: collections.projects }).where(({ project }) => eq(project.id, projectId)),
+    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
   );
 
   const liveDeploymentId = projects.data.at(0)?.liveDeploymentId;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We just wanna refetch domains as soon as liveDeploymentId changes.
+  useEffect(() => {
+    //@ts-expect-error Without this we can't refetch domains on-demand. It's either this or we do `refetchInternal` on domains collection level.
+    // Second approach causing too any re-renders. This is fine because data is partitioned and centralized in this context.
+    // Until they introduce a way to invalidate collections properly we stick to this.
+    collections.domains.utils.refetch();
+  }, [liveDeploymentId]);
 
   const getTooltipContent = () => {
     if (!liveDeploymentId) {
