@@ -22,11 +22,11 @@ const (
 )
 
 type GetOpenApiDiffRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OldVersionId  string                 `protobuf:"bytes,1,opt,name=old_version_id,json=oldVersionId,proto3" json:"old_version_id,omitempty"`
-	NewVersionId  string                 `protobuf:"bytes,2,opt,name=new_version_id,json=newVersionId,proto3" json:"new_version_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	OldDeploymentId string                 `protobuf:"bytes,1,opt,name=old_deployment_id,json=oldDeploymentId,proto3" json:"old_deployment_id,omitempty"`
+	NewDeploymentId string                 `protobuf:"bytes,2,opt,name=new_deployment_id,json=newDeploymentId,proto3" json:"new_deployment_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetOpenApiDiffRequest) Reset() {
@@ -59,16 +59,16 @@ func (*GetOpenApiDiffRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_openapi_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetOpenApiDiffRequest) GetOldVersionId() string {
+func (x *GetOpenApiDiffRequest) GetOldDeploymentId() string {
 	if x != nil {
-		return x.OldVersionId
+		return x.OldDeploymentId
 	}
 	return ""
 }
 
-func (x *GetOpenApiDiffRequest) GetNewVersionId() string {
+func (x *GetOpenApiDiffRequest) GetNewDeploymentId() string {
 	if x != nil {
-		return x.NewVersionId
+		return x.NewDeploymentId
 	}
 	return ""
 }
@@ -393,10 +393,10 @@ var File_ctrl_v1_openapi_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_openapi_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/openapi.proto\x12\actrl.v1\"c\n" +
-	"\x15GetOpenApiDiffRequest\x12$\n" +
-	"\x0eold_version_id\x18\x01 \x01(\tR\foldVersionId\x12$\n" +
-	"\x0enew_version_id\x18\x02 \x01(\tR\fnewVersionId\"\xb5\x01\n" +
+	"\x15ctrl/v1/openapi.proto\x12\actrl.v1\"o\n" +
+	"\x15GetOpenApiDiffRequest\x12*\n" +
+	"\x11old_deployment_id\x18\x01 \x01(\tR\x0foldDeploymentId\x12*\n" +
+	"\x11new_deployment_id\x18\x02 \x01(\tR\x0fnewDeploymentId\"\xb5\x01\n" +
 	"\x0eChangelogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12\x14\n" +

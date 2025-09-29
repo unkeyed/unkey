@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -17,8 +18,11 @@ import (
 // exceed the configured time-to-live threshold.
 func (k *k8s) autoEvictDeployments(ttl time.Duration) {
 
+	k.logger.Info(fmt.Sprintf("Krane setup to auto-evict deployments after %s", ttl.String()))
 	repeat.Every(time.Minute, func() {
 		ctx := context.Background()
+		k.logger.Info("evicting old deployments")
+
 		deployments, err := k.clientset.AppsV1().StatefulSets("unkey").List(ctx, metav1.ListOptions{
 			LabelSelector: "unkey.managed.by=krane",
 		})

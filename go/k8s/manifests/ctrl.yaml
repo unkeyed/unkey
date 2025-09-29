@@ -72,6 +72,9 @@ spec:
 
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
+            - name: UNKEY_API_KEY
+              value: "your-local-dev-key"
+
           command: ["/unkey", "run", "ctrl"]
       initContainers:
         - name: wait-for-dependencies

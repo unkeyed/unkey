@@ -22,29 +22,27 @@ export const rollback = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     // Validate that ctrl service URL is configured
-    const ctrlUrl = env().CTRL_URL;
-    if (!ctrlUrl) {
+    const { CTRL_URL, CTRL_API_KEY } = env();
+    if (!CTRL_URL || !CTRL_API_KEY) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "ctrl service is not configured",
       });
     }
-
     // Here we make the client itself, combining the service
     // definition with the transport.
     const ctrl = createClient(
       DeploymentService,
       createConnectTransport({
-        baseUrl: ctrlUrl,
+        baseUrl: CTRL_URL,
         interceptors: [
           (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${env().CTRL_API_KEY}`);
+            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
             return next(req);
           },
         ],
       }),
     );
-
     try {
       // Verify the target deployment exists and belongs to this workspace
       const targetDeployment = await db.query.deployments.findFirst({

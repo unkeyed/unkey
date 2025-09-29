@@ -35,8 +35,7 @@ unkey run krane                                   # Run with default configurati
 			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
 
 		// This has no use outside of our demo cluster and will be removed soon
-		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m",
-			cli.Default(0), cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
+		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
 	},
 
 	Action: action,

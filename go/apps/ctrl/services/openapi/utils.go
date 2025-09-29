@@ -7,11 +7,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
-func (s *Service) loadVersionSpec(ctx context.Context, versionID string) (string, error) {
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), versionID)
+func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) (string, error) {
+	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	if err != nil {
 		return "", err
 	}
+
+	s.logger.Info("Deploymet", "raw", deployment)
 
 	if !deployment.OpenapiSpec.Valid {
 		return "", fault.New("deployment has no OpenAPI spec stored",
