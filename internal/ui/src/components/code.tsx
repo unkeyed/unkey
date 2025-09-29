@@ -1,6 +1,6 @@
 "use client";
 import { type VariantProps, cva } from "class-variance-authority";
-import type React from "react";
+import React from "react";
 import { cn } from "../lib/utils";
 
 const codeVariants = cva(
@@ -18,7 +18,7 @@ const codeVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
 );
 
 export interface CodeProps
@@ -46,14 +46,14 @@ function Code({
       <pre
         className={cn(
           "border-none bg-transparent focus:outline-none focus:ring-0 pr-2 pt-2",
-          preClassName,
+          preClassName
         )}
         {...props}
       />
       <div
         className={cn(
           "flex items-center justify-between gap-2 flex-shrink-0 mt-1",
-          buttonsClassName,
+          buttonsClassName
         )}
       >
         {visibleButton}
