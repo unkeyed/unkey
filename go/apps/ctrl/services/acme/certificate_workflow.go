@@ -51,7 +51,6 @@ func (w *CertificateChallenge) Name() string {
 
 // CertificateChallengeRequest defines the input for the certificate challenge workflow
 type CertificateChallengeRequest struct {
-	ID          uint64 `json:"id"`
 	WorkspaceID string `json:"workspace_id"`
 	Domain      string `json:"domain"`
 }
@@ -64,17 +63,16 @@ type EncryptedCertificate struct {
 
 // Run executes the complete build and deployment workflow
 func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateChallengeRequest) error {
-	w.logger.Info("starting lets-encrypt challenge", "workspace_id", req.WorkspaceID, "domain", req.Domain)
+	w.logger.Info("starting certificate challenge", "workspace_id", req.WorkspaceID, "domain", req.Domain)
 
-	dom, err := hydra.Step(ctx, "find-domain", func(stepCtx context.Context) (db.Domain, error) {
-		return db.Query.FindDomainByDomain(ctx.Context(), w.db.RO(), req.Domain)
+	dom, err := hydra.Step(ctx, "resolve-domain", func(stepCtx context.Context) (db.Domain, error) {
+		return db.Query.FindDomainByDomain(stepCtx, w.db.RO(), req.Domain)
 	})
 	if err != nil {
-		w.logger.Error("failed to find domain", "error", err)
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "claim-challenge", func(stepCtx context.Context) error {
+	err = hydra.StepVoid(ctx, "acquire-challenge", func(stepCtx context.Context) error {
 		return db.Query.UpdateAcmeChallengeTryClaiming(stepCtx, w.db.RW(), db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
 			Status:    db.AcmeChallengesStatusPending,
@@ -82,11 +80,10 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to claim challenge", "error", err)
 		return err
 	}
 
-	cert, err := hydra.Step(ctx, "get-and-encrypt-cert", func(stepCtx context.Context) (EncryptedCertificate, error) {
+	cert, err := hydra.Step(ctx, "obtain-certificate", func(stepCtx context.Context) (EncryptedCertificate, error) {
 		// A certificate request can be either
 		// A: We have a new domain WITHOUT a certificate
 		// B: We have to renew a existing certificate
@@ -97,7 +94,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-			w.logger.Error("failed to obtain certificate", "error", err)
 			return EncryptedCertificate{}, err
 		}
 
@@ -129,7 +125,6 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			})
 		}
 		if err != nil {
-			w.logger.Error("failed to renew/issue certificate", "error", err)
 			return EncryptedCertificate{}, err
 		}
 
@@ -153,11 +148,10 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		}, nil
 	})
 	if err != nil {
-		w.logger.Error("failed to get and store certs in vault", "error", err)
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "store-cert", func(stepCtx context.Context) error {
+	err = hydra.StepVoid(ctx, "persist-certificate", func(stepCtx context.Context) error {
 		now := time.Now().UnixMilli()
 		return pdb.Query.InsertCertificate(stepCtx, w.partitionDB.RW(), pdb.InsertCertificateParams{
 			WorkspaceID:         dom.WorkspaceID,
@@ -169,19 +163,18 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to store cert in vault", "error", err)
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "set-expires-at", func(stepCtx context.Context) error {
-		return db.Query.UpdateAcmeChallengeExpiresAt(stepCtx, w.db.RW(), db.UpdateAcmeChallengeExpiresAtParams{
+	err = hydra.StepVoid(ctx, "complete-challenge", func(stepCtx context.Context) error {
+		return db.Query.UpdateAcmeChallengeVerifiedWithExpiry(stepCtx, w.db.RW(), db.UpdateAcmeChallengeVerifiedWithExpiryParams{
+			Status:    db.AcmeChallengesStatusVerified,
 			ExpiresAt: cert.ExpiresAt,
-			ID:        0, //        "TODO: I need the challenge id"
-
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			DomainID:  dom.ID,
 		})
 	})
 	if err != nil {
-		w.logger.Error("failed to store expires at", "error", err)
 		return err
 	}
 

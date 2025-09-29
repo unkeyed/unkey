@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -78,6 +79,36 @@ func (f *StringFlag) Value() string { return f.value }
 
 // HasValue returns true if the flag has any non-empty value or came from environment
 func (f *StringFlag) HasValue() bool { return f.value != "" || f.hasEnvValue }
+
+// DurationFlag represents a duration command line flag
+type DurationFlag struct {
+	baseFlag
+	value       time.Duration // Current value
+	hasEnvValue bool          // Track if value came from environment
+}
+
+// Parse sets the flag value from a string
+func (f *DurationFlag) Parse(value string) error {
+	// Run validation if provided
+	if f.validate != nil {
+		if err := f.validate(value); err != nil {
+			return newValidationError(f.name, err)
+		}
+	}
+	var err error
+	f.value, err = time.ParseDuration(value)
+	if err != nil {
+		return newValidationError(f.name, err)
+	}
+	f.set = true
+	return nil
+}
+
+// Value returns the current string value
+func (f *DurationFlag) Value() time.Duration { return f.value }
+
+// HasValue returns true if the flag has any non-empty value or came from environment
+func (f *DurationFlag) HasValue() bool { return f.value != 0 || f.hasEnvValue }
 
 // BoolFlag represents a boolean command line flag
 type BoolFlag struct {
@@ -399,6 +430,46 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 				}
 			}
 			flag.value = envValue
+			flag.hasEnvValue = true
+			// Don't mark as explicitly set - this is from environment
+		}
+	}
+
+	return flag
+}
+
+// Duration creates a new string flag with optional configuration
+func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
+	flag := &DurationFlag{
+		baseFlag: baseFlag{
+			name:     name,
+			usage:    usage,
+			required: false, // Default to not required
+		},
+		value: 0, // Default to empty string
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(flag)
+	}
+
+	// Check environment variable for default value if specified
+	if flag.envVar != "" {
+		if envValue := os.Getenv(flag.envVar); envValue != "" {
+			// Apply validation to environment variable values
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
+			}
+			var err error
+			flag.value, err = time.ParseDuration(envValue)
+			if err != nil {
+				Exit(fmt.Sprintf("Environment variable error: parsing duration failed for %s=%q: %v",
+					flag.envVar, envValue, err), 1)
+			}
 			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
 		}

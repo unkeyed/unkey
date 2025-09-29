@@ -37,17 +37,22 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
-import { getDeploymentBuildLogs } from "./deploy/project/active-deployment/getBuildLogs";
-import { getDeploymentDetails } from "./deploy/project/active-deployment/getDetails";
+import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { listDeployments } from "./deploy/deployment/list";
+import { searchDeployments } from "./deploy/deployment/llm-search";
+import { promote } from "./deploy/deployment/promote";
+import { rollback } from "./deploy/deployment/rollback";
+import { listDomains } from "./deploy/domains/list";
+import { getEnvs } from "./deploy/envs/list";
 import { createProject } from "./deploy/project/create";
-import { queryDeployments } from "./deploy/project/deployment/list";
-import { deploymentListLlmSearch } from "./deploy/project/deployment/llm-search";
-import { getEnvs } from "./deploy/project/envs/list";
-import { queryProjects } from "./deploy/project/list";
-import { deploymentRouter } from "./deployment";
+import { listProjects } from "./deploy/project/list";
+import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
+import { getIdentityById } from "./identity/getById";
 import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
+import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -87,12 +92,11 @@ import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
-import { searchNamespace } from "./ratelimit/namespace-search";
+import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
+import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
-import { queryRatelimitWorkspaceDetails } from "./ratelimit/query-namespace-details";
-import { queryRatelimitNamespaces } from "./ratelimit/query-namespaces";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -118,6 +122,7 @@ import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
+import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -197,6 +202,7 @@ export const router = t.router({
   }),
   workspace: t.router({
     create: createWorkspace,
+    getCurrent: getCurrentWorkspace,
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
@@ -261,10 +267,8 @@ export const router = t.router({
       }),
     }),
     namespace: t.router({
+      list: listRatelimitNamespaces,
       queryRatelimitLastUsed,
-      query: queryRatelimitNamespaces,
-      queryDetails: queryRatelimitWorkspaceDetails,
-      search: searchNamespace,
       create: createNamespace,
       update: t.router({
         name: updateNamespaceName,
@@ -272,6 +276,7 @@ export const router = t.router({
       delete: deleteNamespace,
     }),
     override: t.router({
+      list: listRatelimitOverrides,
       create: createOverride,
       update: updateOverride,
       delete: deleteOverride,
@@ -308,28 +313,33 @@ export const router = t.router({
     }),
   }),
   identity: t.router({
+    searchWithRelations: searchIdentitiesWithRelations,
     create: createIdentity,
     query: queryIdentities,
     search: searchIdentities,
+    getById: getIdentityById,
   }),
   deploy: t.router({
     project: t.router({
-      list: queryProjects,
+      list: listProjects,
       create: createProject,
-      activeDeployment: t.router({
-        details: getDeploymentDetails,
-        buildLogs: getDeploymentBuildLogs,
-      }),
-      envs: t.router({
-        getEnvs,
-      }),
-      deployment: t.router({
-        list: queryDeployments,
-        search: deploymentListLlmSearch,
-      }),
+    }),
+    environment: t.router({
+      list_dummy: getEnvs,
+      list: listEnvironments,
+    }),
+    domain: t.router({
+      list: listDomains,
+    }),
+    deployment: t.router({
+      list: listDeployments,
+      buildSteps: getDeploymentBuildSteps,
+      search: searchDeployments,
+      getOpenApiDiff: getOpenApiDiff,
+      rollback,
+      promote,
     }),
   }),
-  deployment: deploymentRouter,
 });
 
 // export type definition of API

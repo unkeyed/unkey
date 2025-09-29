@@ -1,74 +1,57 @@
 "use client";
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
-import { trpc } from "@/lib/trpc/client";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
 export const useProjectNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.deploy.project.list.useInfiniteQuery(
-      { query: [] },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
-    );
+  const workspace = useWorkspaceNavigation();
 
+  const { data, isLoading } = useLiveQuery((q) =>
+    q.from({ project: collection.projects }).orderBy(({ project }) => project.id, "desc"),
+  );
+
+  const basePath = `/${workspace.slug}/projects`;
   const projectNavItems = useMemo(() => {
-    if (!data?.pages) {
+    if (!data) {
       return [];
     }
-    return data.pages.flatMap((page) =>
-      page.projects.map((project) => {
-        const currentProjectActive = segments.at(0) === "projects" && segments.at(1) === project.id;
+    return data.map((project) => {
+      const pIndex = segments.findIndex((s) => s === "projects");
+      const currentProjectActive = pIndex !== -1 && segments.at(pIndex + 1) === project.id;
 
-        const projectNavItem: NavItem = {
-          href: `/projects/${project.id}`,
-          icon: null,
-          label: project.name,
-          active: currentProjectActive,
-          showSubItems: true,
-        };
+      const projectNavItem: NavItem = {
+        href: `${basePath}/${project.id}`,
+        icon: null,
+        label: project.name,
+        active: currentProjectActive,
+        showSubItems: true,
+      };
 
-        return projectNavItem;
-      }),
-    );
-  }, [data?.pages, segments]);
+      return projectNavItem;
+    });
+  }, [data, segments, basePath]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const projectsItemIndex = items.findIndex((item) => item.href === "/projects");
+    const projectsItemIndex = items.findIndex((item) => item.href === basePath);
 
     if (projectsItemIndex !== -1) {
       const projectsItem = { ...items[projectsItemIndex] };
       projectsItem.showSubItems = true;
       projectsItem.items = [...(projectsItem.items || []), ...projectNavItems];
 
-      if (hasNextPage) {
-        projectsItem.items?.push({
-          icon: () => null,
-          href: "#load-more-projects",
-          label: <div className="font-normal decoration-dotted underline">More</div>,
-          active: false,
-          loadMoreAction: true,
-        });
-      }
-
       items[projectsItemIndex] = projectsItem;
     }
 
     return items;
-  }, [baseNavItems, projectNavItems, hasNextPage]);
-
-  const loadMore = () => {
-    if (!isFetchingNextPage && hasNextPage) {
-      fetchNextPage();
-    }
-  };
+  }, [baseNavItems, projectNavItems, basePath]);
 
   return {
     enhancedNavItems,
     isLoading,
-    loadMore,
   };
 };

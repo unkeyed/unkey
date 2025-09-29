@@ -1,235 +1,71 @@
-import { projectsQueryPayload as projectsInputSchema } from "@/app/(app)/projects/_components/list/projects-list.schema";
-import {
-  and,
-  count,
-  db,
-  desc,
-  eq,
-  exists,
-  inArray,
-  isNotNull,
-  isNull,
-  like,
-  lt,
-  or,
-  schema,
-} from "@/lib/db";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Project } from "@/lib/collections/deploy/projects";
+import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
+import { deployments, domains, projects } from "@unkey/db/src/schema";
 
-const HostnameResponse = z.object({
-  id: z.string(),
-  hostname: z.string(),
-});
+type ProjectRow = {
+  id: string;
+  name: string;
+  slug: string;
+  updated_at: number | null;
+  git_repository_url: string | null;
+  live_deployment_id: string | null;
+  is_rolled_back: boolean;
+  git_commit_message: string | null;
+  git_branch: string | null;
+  git_commit_author_name: string | null;
+  git_commit_timestamp: number | null;
+  runtime_config: Deployment["runtimeConfig"] | null;
+  domain: string | null;
+};
 
-const ProjectResponse = z.object({
-  id: z.string(),
-  name: z.string(),
-  slug: z.string(),
-  gitRepositoryUrl: z.string().nullable(),
-  branch: z.string().nullable(),
-  deleteProtection: z.boolean().nullable(),
-  createdAt: z.number(),
-  updatedAt: z.number().nullable(),
-  hostnames: z.array(HostnameResponse),
-});
-
-const projectsOutputSchema = z.object({
-  projects: z.array(ProjectResponse),
-  hasMore: z.boolean(),
-  total: z.number(),
-  nextCursor: z.number().int().nullish(),
-});
-
-type ProjectsOutputSchema = z.infer<typeof projectsOutputSchema>;
-export type Project = z.infer<typeof ProjectResponse>;
-
-export const PROJECTS_LIMIT = 10;
-
-export const queryProjects = t.procedure
+export const listProjects = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
-  .input(projectsInputSchema)
-  .output(projectsOutputSchema)
-  .query(async ({ ctx, input }) => {
-    // Build base conditions
-    const baseConditions = [eq(schema.projects.workspaceId, ctx.workspace.id)];
+  .query(async ({ ctx }) => {
+    const result = await db.execute(sql`
+      SELECT
+        ${projects.id},
+        ${projects.name},
+        ${projects.slug},
+        ${projects.updatedAt},
+        ${projects.gitRepositoryUrl},
+        ${projects.liveDeploymentId},
+        ${projects.isRolledBack},
+        ${deployments.gitCommitMessage},
+        ${deployments.gitBranch},
+        ${deployments.gitCommitAuthorName},
+        ${deployments.gitCommitTimestamp},
+        ${deployments.runtimeConfig},
+        ${domains.domain}
+      FROM ${projects}
+      LEFT JOIN ${deployments}
+        ON ${projects.liveDeploymentId} = ${deployments.id}
+        AND ${deployments.workspaceId} = ${ctx.workspace.id}
+      LEFT JOIN ${domains}
+        ON ${projects.id} = ${domains.projectId}
+        AND ${domains.workspaceId} = ${ctx.workspace.id}
+      WHERE ${projects.workspaceId} = ${ctx.workspace.id}
+      ORDER BY ${projects.updatedAt} DESC
+    `);
 
-    // Add cursor condition for pagination
-    if (input.cursor && typeof input.cursor === "number") {
-      const cursorDate = input.cursor;
-      const sql = or(
-        // updatedAt exists and is less than cursor
-        and(isNotNull(schema.projects.updatedAt), lt(schema.projects.updatedAt, cursorDate)),
-        // updatedAt is null, use createdAt instead
-        and(isNull(schema.projects.updatedAt), lt(schema.projects.createdAt, cursorDate)),
-      );
-
-      if (!sql) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid cursor: Failed to create pagination condition",
-        });
-      }
-
-      baseConditions.push(sql);
-    }
-    const filterConditions = [];
-
-    // Single query field that searches across name, branch, and hostnames
-    if (input.query && input.query.length > 0) {
-      const searchConditions = [];
-
-      // Process each query filter
-      for (const filter of input.query) {
-        if (filter.operator !== "contains") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Unsupported query operator: ${filter.operator}`,
-          });
-        }
-
-        const searchValue = `%${filter.value}%`;
-        const queryConditions = [];
-
-        // Search in project name
-        queryConditions.push(like(schema.projects.name, searchValue));
-
-        // Search in project branch (defaultBranch)
-        queryConditions.push(like(schema.projects.defaultBranch, searchValue));
-
-        // Search in hostnames
-        queryConditions.push(
-          exists(
-            db
-              .select({ projectId: schema.domains.projectId })
-              .from(schema.domains)
-              .where(
-                and(
-                  eq(schema.domains.workspaceId, ctx.workspace.id),
-                  eq(schema.domains.projectId, schema.projects.id),
-                  like(schema.domains.domain, searchValue),
-                ),
-              ),
-          ),
-        );
-
-        // Combine all search conditions with OR for this specific query value
-        if (queryConditions.length > 0) {
-          searchConditions.push(or(...queryConditions));
-        }
-      }
-
-      if (searchConditions.length > 0) {
-        filterConditions.push(or(...searchConditions));
-      }
-    }
-
-    // Combine all conditions
-    const allConditions = [...baseConditions, ...filterConditions];
-
-    try {
-      const [totalResult, projectsResult] = await Promise.all([
-        db
-          .select({ count: count() })
-          .from(schema.projects)
-          .where(and(...allConditions)),
-        db.query.projects.findMany({
-          where: and(...allConditions),
-          orderBy: [desc(schema.projects.updatedAt)],
-          limit: PROJECTS_LIMIT + 1,
-          columns: {
-            id: true,
-            name: true,
-            slug: true,
-            gitRepositoryUrl: true,
-            defaultBranch: true,
-            deleteProtection: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        }),
-      ]);
-
-      // Check if we have more results
-      const hasMore = projectsResult.length > PROJECTS_LIMIT;
-      const projectsWithoutExtra = hasMore
-        ? projectsResult.slice(0, PROJECTS_LIMIT)
-        : projectsResult;
-
-      // Get project IDs for hostname lookup
-      const projectIds = projectsWithoutExtra.map((p) => p.id);
-
-      // Fetch hostnames for all projects - only .unkey.app domains
-      const hostnamesResult =
-        projectIds.length > 0
-          ? await db.query.domains.findMany({
-              where: and(
-                eq(schema.domains.workspaceId, ctx.workspace.id),
-                inArray(schema.domains.projectId, projectIds),
-                like(schema.domains.domain, "%.unkey.app"),
-              ),
-              columns: {
-                id: true,
-                projectId: true,
-                domain: true,
-              },
-              orderBy: [desc(schema.projects.updatedAt), desc(schema.projects.createdAt)],
-            })
-          : [];
-
-      // Group hostnames by projectId
-      const hostnamesByProject = hostnamesResult.reduce(
-        (acc, hostname) => {
-          // Make typescript happy, we already ensure this is the case in the drizzle query
-          const projectId = hostname.projectId;
-          if (!projectId) {
-            return acc;
-          }
-
-          if (!acc[projectId]) {
-            acc[projectId] = [];
-          }
-          acc[projectId].push({
-            id: hostname.id,
-            hostname: hostname.domain,
-          });
-          return acc;
-        },
-        {} as Record<string, Array<{ id: string; hostname: string }>>,
-      );
-
-      const projects = projectsWithoutExtra.map((project) => ({
-        id: project.id,
-        name: project.name,
-        slug: project.slug,
-        gitRepositoryUrl: project.gitRepositoryUrl,
-        branch: project.defaultBranch,
-        deleteProtection: project.deleteProtection,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
-        hostnames: hostnamesByProject[project.id] || [],
-      }));
-
-      const response: ProjectsOutputSchema = {
-        projects,
-        hasMore,
-        total: totalResult[0]?.count ?? 0,
-        nextCursor:
-          hasMore && projects.length > 0
-            ? (projects[projects.length - 1].updatedAt ?? projects[projects.length - 1].createdAt)
-            : null,
-      };
-
-      return response;
-    } catch (error) {
-      console.error("Error querying projects:", error);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Failed to retrieve projects due to an error. If this issue persists, please contact support.",
-      });
-    }
+    return (result.rows as ProjectRow[]).map(
+      (row): Project => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        updatedAt: row.updated_at,
+        gitRepositoryUrl: row.git_repository_url,
+        liveDeploymentId: row.live_deployment_id,
+        isRolledBack: row.is_rolled_back,
+        commitTitle: row.git_commit_message ?? "[DUMMY] Initial commit",
+        branch: row.git_branch ?? "main",
+        author: row.git_commit_author_name ?? "[DUMMY] Unknown Author",
+        commitTimestamp: row.git_commit_timestamp ?? Date.now() - 86400000,
+        regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
+        domain: row.domain ?? "project-temp.unkey.app",
+      }),
+    );
   });

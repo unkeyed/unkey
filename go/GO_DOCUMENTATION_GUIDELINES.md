@@ -46,7 +46,7 @@ Create a `doc.go` file in each package with this structure:
 //
 // # Key Types
 //
-// The main entry point is [RateLimiter], which provides the [RateLimiter.Allow] 
+// The main entry point is [RateLimiter], which provides the [RateLimiter.Allow]
 // method for checking rate limits. Configuration is handled through [Config].
 //
 // # Usage
@@ -99,7 +99,7 @@ Every exported function and method must be documented. Focus on:
 Every public function must be thoroughly documented. Here's what comprehensive documentation looks like:
 
 ```go
-// Allow determines whether the specified identifier can perform the requested number 
+// Allow determines whether the specified identifier can perform the requested number
 // of operations within the configured rate limit window.
 //
 // This method implements distributed rate limiting with strong consistency guarantees
@@ -120,11 +120,6 @@ Every public function must be thoroughly documented. Here's what comprehensive d
 //   - Coordinates with other cluster nodes if necessary to maintain consistency
 //   - Updates the rate limit counters atomically if the request is allowed
 //   - Implements fair queuing to prevent starvation under high load
-//
-// Performance:
-//   - Typical latency: <1ms for cached identifiers, <10ms for distributed coordination
-//   - Scales linearly with cluster size up to ~100 nodes
-//   - Memory usage: ~100 bytes per active identifier
 //
 // Returns:
 //   - (true, nil): Request is allowed and counters have been updated
@@ -200,10 +195,10 @@ Document all exported types, focusing on:
 type Config struct {
     // Window is the time period over which operations are counted
     Window time.Duration
-    
+
     // Limit is the maximum number of operations allowed within Window
     Limit int64
-    
+
     // ClusterNodes lists all nodes participating in distributed rate limiting.
     // Must include at least the local node.
     ClusterNodes []string
@@ -225,7 +220,7 @@ type Cache[T any] interface {
     // Get retrieves a value by key. Returns the value and whether it was found.
     // A cache miss (found=false) is not an error.
     Get(ctx context.Context, key string) (value T, found bool, err error)
-    
+
     // Set stores a value. The value will be replicated to other cache nodes
     // asynchronously. Use SetSync if you need immediate consistency.
     Set(ctx context.Context, key string, value T) error
@@ -241,7 +236,7 @@ var (
     // ErrRateLimited is returned when an operation exceeds the configured rate limit.
     // This is expected behavior, not a system error.
     ErrRateLimited = errors.New("rate limit exceeded")
-    
+
     // ErrClusterUnavailable indicates that the required number of cluster nodes
     // are not reachable. Operations may still succeed if configured to fail-open.
     ErrClusterUnavailable = errors.New("insufficient cluster nodes available")
@@ -264,7 +259,7 @@ const (
     // DefaultWindow is the standard rate limiting window for new limiters.
     // Chosen as a balance between memory usage and granularity for most use cases.
     DefaultWindow = time.Minute
-    
+
     // MaxBurstRatio determines how much bursting is allowed above the base rate.
     // Set to 1.5 based on analysis of traffic patterns in production.
     MaxBurstRatio = 1.5
@@ -301,7 +296,7 @@ func (r *RateLimiter) distributeTokens(ctx context.Context, required int64) (gra
     if r.localTokens.Load() >= required {
         // ... implementation
     }
-    
+
     // Cluster coordination required
     // We use Raft consensus here instead of eventual consistency because
     // rate limiting must be strictly enforced for security and billing
@@ -321,25 +316,25 @@ func Example_basicUsage() {
         Limit:  1000,
         ClusterNodes: []string{"localhost:8080"},
     }
-    
+
     limiter, err := New(cfg)
     if err != nil {
         log.Fatal(err)
     }
     defer limiter.Close()
-    
+
     // Check if user can make 5 API calls
     allowed, err := limiter.Allow(context.Background(), "user:alice", 5)
     if err != nil {
         log.Printf("System error: %v", err)
         return
     }
-    
+
     if !allowed {
         log.Println("Rate limit exceeded")
         return
     }
-    
+
     log.Println("Request allowed")
     // Output: Request allowed
 }
@@ -395,7 +390,7 @@ Follow these formatting and style conventions:
 9. **Self-contained documentation** - provide all necessary information
 10. **Cross-references** using Go's `[Reference]` format:
     - `[OtherFunc]` for functions
-    - `[TypeName]` for structs/interfaces  
+    - `[TypeName]` for structs/interfaces
     - `[ConstantName]` for constants
 
 ## Best Practices and Anti-Patterns
@@ -409,11 +404,11 @@ Follow these formatting and style conventions:
 //
 // IMPORTANT: Do not call Allow() in a loop without backoff - this can
 // overwhelm the system. Instead use:
-//   
+//
 //   // Bad:
 //   for !limiter.Allow(ctx, id, 1) { /* busy wait */ }
-//   
-//   // Good:  
+//
+//   // Good:
 //   if allowed, err := limiter.Allow(ctx, id, 1); !allowed {
 //       return ErrRateLimited
 //   }
@@ -427,7 +422,7 @@ Before submitting code, verify:
 
 - [ ] **Every package has a dedicated `doc.go` file** with comprehensive package documentation
 - [ ] Every exported function, method, type, constant, and variable is documented
-- [ ] Package documentation in `doc.go` explains purpose, key concepts, and includes examples
+- [ ] Package documentation in `doc.go` explains purpose, key concepts but not details
 - [ ] Internal code explains "why" decisions were made, not just "what" it does
 - [ ] Error conditions and return values are clearly explained
 - [ ] Complex algorithms include reasoning for the chosen approach
@@ -436,7 +431,7 @@ Before submitting code, verify:
 - [ ] All documentation follows Go formatting conventions (proper line breaks, etc.)
 - [ ] Cross-references use proper `[Reference]` format
 - [ ] Edge cases and non-obvious behaviors are documented
-- [ ] Anti-patterns are prevented with clear guidance
+- [ ] Concurrency guarantees are documented if and only if the code is designed to be concurrently safe
 
 ## Deprecation and Breaking Changes
 
@@ -444,11 +439,11 @@ When deprecating APIs, provide clear migration paths:
 
 ```go
 // Deprecated: Use NewRateLimiterV2 instead. This function will be removed in v2.0.
-// 
+//
 // Migration example:
 //   // Old:
 //   limiter := NewRateLimiter(100, time.Minute)
-//   
+//
 //   // New:
 //   limiter := NewRateLimiterV2(Config{Limit: 100, Window: time.Minute})
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter

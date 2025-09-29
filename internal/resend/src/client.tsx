@@ -6,7 +6,6 @@ import React from "react";
 import { ApiV1Migration } from "../emails/api_v1_migration";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
-import { TrialEnded } from "../emails/trial_ended";
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   public readonly client: Client;
@@ -14,30 +13,6 @@ export class Resend {
 
   constructor(opts: { apiKey: string }) {
     this.client = new Client(opts.apiKey);
-  }
-
-  public async sendTrialEnded(req: {
-    email: string;
-    name: string;
-    workspace: string;
-  }): Promise<void> {
-    const html = render(<TrialEnded username={req.name} workspaceName={req.workspace} />);
-    try {
-      const result = await this.client.emails.send({
-        to: req.email,
-        from: "James from Unkey <james@updates.unkey.com>",
-        replyTo: this.replyTo,
-        subject: "Your Unkey trial has ended",
-        html,
-      });
-
-      if (!result.error) {
-        return;
-      }
-      throw result.error;
-    } catch (error) {
-      console.error("Error occurred sending subscription email ", JSON.stringify(error));
-    }
   }
 
   public async sendWelcomeEmail(req: { email: string }) {

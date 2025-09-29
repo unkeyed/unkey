@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"time"
+
 	openapi "github.com/unkeyed/unkey/go/apps/api/routes/openapi"
 	"github.com/unkeyed/unkey/go/apps/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/go/apps/api/routes/v2_liveness"
@@ -63,13 +65,15 @@ func Register(srv *zen.Server, svc *Services) {
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
 	withValidation := zen.WithValidation(svc.Validator)
+	withTimeout := zen.WithTimeout(time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
+		withPanicRecovery,
 		withTracing,
 		withMetrics,
 		withLogging,
-		withPanicRecovery,
 		withErrorHandling,
+		withTimeout,
 		withValidation,
 	}
 
@@ -416,11 +420,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateKey.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			UsageLimiter: svc.UsageLimiter,
 		},
 	)
 
@@ -452,11 +457,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysUpdateCredits.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			UsageLimiter: svc.UsageLimiter,
 		},
 	)
 

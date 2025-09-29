@@ -1,5 +1,4 @@
-import { setCookie } from "@/lib/auth/cookies";
-import { UNKEY_SESSION_COOKIE } from "@/lib/auth/types";
+import { setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
@@ -34,6 +33,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const utils = trpc.useUtils();
 
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -48,17 +48,18 @@ export const useWorkspaceStep = (): OnboardingStep => {
         return;
       }
 
-      await setCookie({
-        name: UNKEY_SESSION_COOKIE,
-        value: sessionData.token,
-        options: {
-          httpOnly: true,
-          secure: true,
-          sameSite: "strict",
-          path: "/",
-          maxAge: Math.floor((sessionData.expiresAt.getTime() - Date.now()) / 1000),
-        },
+      await setSessionCookie({
+        token: sessionData.token,
+        expiresAt: sessionData.expiresAt,
       });
+      // invalidate the user cache and workspace cache.
+      await utils.user.getCurrentUser.invalidate();
+      await utils.workspace.getCurrent.invalidate();
+      await utils.api.invalidate();
+      await utils.ratelimit.invalidate();
+      // Force a router refresh to ensure the server-side layout
+      // re-renders with the new session context and fresh workspace data
+      router.refresh();
     },
     onError: (error) => {
       toast.error(`Failed to load new workspace: ${error.message}`);

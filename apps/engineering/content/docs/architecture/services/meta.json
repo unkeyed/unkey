@@ -7,6 +7,7 @@
     "clickhouse",
     "clickhouse-proxy",
     "deploy",
+    "gw",
     "healthcheck",
     "quotacheck",
     "run",

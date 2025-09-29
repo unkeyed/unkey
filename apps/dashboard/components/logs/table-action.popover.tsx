@@ -2,12 +2,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type FC, type PropsWithChildren, useEffect, useRef, useState } from "react";
+import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
 
 export type ActionComponentProps = {
   isOpen: boolean;
   onClose: () => void;
 };
+
+interface ReactLoadableProps {
+  isLoading?: boolean;
+  pastDelay?: boolean;
+  timedOut?: boolean;
+  retry?: () => void;
+  error?: Error | null;
+}
 
 export type MenuItem = {
   id: string;
@@ -76,8 +84,23 @@ export const TableActionPopover = ({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger onClick={(e) => e.stopPropagation()}>
-        {children ? children : <TableActionPopoverDefaultTrigger />}
+      <PopoverTrigger asChild>
+        {children ? (
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+              }
+            }}
+            className="contents"
+          >
+            {children}
+          </button>
+        ) : (
+          <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />
+        )}
       </PopoverTrigger>
       <PopoverContent
         className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
@@ -147,10 +170,25 @@ export const TableActionPopover = ({
   );
 };
 
-export const TableActionPopoverDefaultTrigger = () => {
+export const TableActionPopoverDefaultTrigger = forwardRef<
+  HTMLButtonElement,
+  { onClick?: (e: React.MouseEvent) => void } & React.ComponentProps<typeof Button> &
+    ReactLoadableProps
+>(({ onClick, ...props }, ref) => {
+  // Filter out React Loadable props that shouldn't be passed to DOM elements
+  const { isLoading, pastDelay, timedOut, retry, error, ...buttonProps } = props;
+
   return (
-    <Button variant="outline" className="size-5 [&_svg]:size-3 rounded">
+    <Button
+      ref={ref}
+      variant="outline"
+      className="size-5 [&_svg]:size-3 rounded"
+      onClick={onClick}
+      {...buttonProps}
+    >
       <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
     </Button>
   );
-};
+});
+
+TableActionPopoverDefaultTrigger.displayName = "TableActionPopoverDefaultTrigger";

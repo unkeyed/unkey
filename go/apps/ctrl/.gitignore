@@ -1,0 +1,3 @@
+# Environment variables with secrets
+.env
+.env.local

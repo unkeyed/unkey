@@ -1,0 +1,122 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gw
+  namespace: unkey
+  labels:
+    app: gw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gw
+  template:
+    metadata:
+      labels:
+        app: gw
+    spec:
+      containers:
+        - name: gw
+          image: unkey-gw:latest
+          imagePullPolicy: Never # Use local images
+          ports:
+            - containerPort: 8080
+            - containerPort: 8443
+          env:
+            # Server Configuration
+            - name: UNKEY_HTTP_PORT
+              value: "8080"
+            - name: UNKEY_HTTPS_PORT
+              value: "8443"
+            - name: UNKEY_TLS_ENABLED
+              value: "true"
+            # Instance Identification
+            - name: UNKEY_PLATFORM
+              value: "kubernetes"
+            - name: UNKEY_IMAGE
+              value: "unkey:latest"
+            - name: UNKEY_REGION
+              value: "local"
+            - name: UNKEY_GATEWAY_ID
+              value: "gw-dev"
+            - name: UNKEY_MAIN_DOMAIN
+              value: ""
+            - name: UNKEY_DEFAULT_CERT_DOMAIN
+              value: "unkey.local"
+            - name: UNKEY_REQUIRE_LOCAL_CERT
+              value: "true"
+            - name: UNKEY_CTRL_ADDR
+              value: "ctrl:7091"
+            # Database Configuration - Partitioned (for gateway operations)
+            - name: UNKEY_DATABASE_PRIMARY
+              value: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
+            # Database Configuration - Keys Service
+            - name: UNKEY_KEYS_DATABASE_PRIMARY
+              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+            # ClickHouse Configuration
+            - name: UNKEY_CLICKHOUSE_URL
+              value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+            # Redis Configuration
+            - name: UNKEY_REDIS_URL
+              value: "redis://redis:6379"
+            # Observability - DISABLED for development
+            - name: UNKEY_OTEL
+              value: "false"
+            - name: UNKEY_PROMETHEUS_PORT
+              value: "0"
+            # Vault Configuration
+            - name: UNKEY_VAULT_MASTER_KEYS
+              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+            - name: UNKEY_VAULT_S3_URL
+              value: "http://s3:3902"
+            - name: UNKEY_VAULT_S3_BUCKET
+              value: "vault"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
+              value: "minio_root_user"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
+              value: "minio_root_password"
+          command: ["/unkey", "run", "gw"]
+          readinessProbe:
+            httpGet:
+              path: /unkey/_internal/liveness
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /unkey/_internal/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306; do echo waiting for dependencies; sleep 2; done;",
+            ]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gw
+  namespace: unkey
+  labels:
+    app: gw
+spec:
+  selector:
+    app: gw
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 8443
+      targetPort: 8443
+      protocol: TCP
+  type: ClusterIP

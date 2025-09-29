@@ -22,3 +22,7 @@ dist
 .react-email
 
 .secrets.json
+certs/
+deployment/data/*
+metald.db
+bin/

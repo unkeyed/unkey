@@ -28,6 +28,9 @@ export const env = () =>
       AGENT_URL: z.string().url(),
       AGENT_TOKEN: z.string(),
 
+      CTRL_URL: z.string().url().optional(),
+      CTRL_API_KEY: z.string().optional(),
+
       GITHUB_KEYS_URI: z.string().optional(),
 
       // This key is used for ratelimiting our trpc procedures

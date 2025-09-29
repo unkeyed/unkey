@@ -1,0 +1,199 @@
+---
+title: "Gw"
+description: "Run the Unkey Gateway server"
+---
+
+## Command Syntax
+
+```bash
+unkey run gw [flags]
+```
+
+<Banner type="warn">
+Some flags are required for this command to work properly.
+</Banner>
+
+## Flags
+
+<Callout type="info" title="--http-port">
+HTTP port for the GW server to listen on. Default: 6060
+
+- **Type:** integer
+- **Default:** `6060`
+- **Environment:** `UNKEY_HTTP_PORT`
+</Callout>
+
+<Callout type="info" title="--https-port">
+HTTPS port for the GW server to listen on. Default: 6433
+
+- **Type:** integer
+- **Default:** `6433`
+- **Environment:** `UNKEY_HTTPS_PORT`
+</Callout>
+
+<Callout type="info" title="--tls-enabled">
+Enable TLS termination for the gateway. Default: false
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_TLS_ENABLED`
+</Callout>
+
+<Callout type="info" title="--platform">
+Cloud platform identifier for this node. Used for logging and metrics.
+
+- **Type:** string
+- **Environment:** `UNKEY_PLATFORM`
+</Callout>
+
+<Callout type="info" title="--image">
+Container image identifier. Used for logging and metrics.
+
+- **Type:** string
+- **Environment:** `UNKEY_IMAGE`
+</Callout>
+
+<Callout type="info" title="--region">
+Geographic region identifier. Used for logging and routing. Default: unknown
+
+- **Type:** string
+- **Default:** `"unknown"`
+- **Environment:** `AWS_REGION`
+</Callout>
+
+<Callout type="info" title="--gateway-id">
+Unique identifier for this instance. Auto-generated if not provided.
+
+- **Type:** string
+- **Default:** `"gw_5TuSkS"`
+- **Environment:** `UNKEY_GATEWAY_ID`
+</Callout>
+
+<Callout type="info" title="--default-cert-domain">
+Domain to use for fallback TLS certificate when a domain has no cert configured
+
+- **Type:** string
+- **Environment:** `UNKEY_DEFAULT_CERT_DOMAIN`
+</Callout>
+
+<Callout type="info" title="--main-domain">
+Main gateway domain for internal endpoints (e.g., gateway.unkey.com)
+
+- **Type:** string
+- **Environment:** `UNKEY_MAIN_DOMAIN`
+</Callout>
+
+<Callout type="info" title="--ctrl-addr">
+Address for the control plane to connect to
+
+- **Type:** string
+- **Environment:** `UNKEY_CTRL_ADDR`
+</Callout>
+
+<Callout type="info" title="--database-primary (required)">
+MySQL connection string for partitioned primary database (gateway operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_PRIMARY`
+</Callout>
+
+<Callout type="info" title="--database-replica">
+MySQL connection string for partitioned read-replica (gateway operations). Format same as database-primary.
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_REPLICA`
+</Callout>
+
+<Callout type="info" title="--main-database-primary (required)">
+MySQL connection string for keys service primary database (non-partitioned). Required. Example: user:pass@host:3306/unkey?parseTime=true
+
+- **Type:** string
+- **Environment:** `UNKEY_KEYS_DATABASE_PRIMARY`
+</Callout>
+
+<Callout type="info" title="--main-database-replica">
+MySQL connection string for keys service read-replica (non-partitioned). Format same as main-database-primary.
+
+- **Type:** string
+- **Environment:** `UNKEY_KEYS_DATABASE_REPLICA`
+</Callout>
+
+<Callout type="info" title="--clickhouse-url">
+ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey
+
+- **Type:** string
+- **Environment:** `UNKEY_CLICKHOUSE_URL`
+</Callout>
+
+<Callout type="info" title="--redis-url">
+Redis connection string for caching. Recommended for production. Example: redis://user:pass@host:6379/0
+
+- **Type:** string
+- **Environment:** `UNKEY_REDIS_URL`
+</Callout>
+
+<Callout type="info" title="--otel">
+Enable OpenTelemetry tracing and metrics
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_OTEL`
+</Callout>
+
+<Callout type="info" title="--otel-trace-sampling-rate">
+Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25
+
+- **Type:** float
+- **Default:** `0.25`
+- **Environment:** `UNKEY_OTEL_TRACE_SAMPLING_RATE`
+</Callout>
+
+<Callout type="info" title="--prometheus-port">
+Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.
+
+- **Type:** integer
+- **Environment:** `UNKEY_PROMETHEUS_PORT`
+</Callout>
+
+<Callout type="info" title="--vault-master-keys">
+Vault master keys for encryption
+
+- **Type:** string[]
+- **Environment:** `UNKEY_VAULT_MASTER_KEYS`
+</Callout>
+
+<Callout type="info" title="--vault-s3-url">
+S3 Compatible Endpoint URL
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_URL`
+</Callout>
+
+<Callout type="info" title="--vault-s3-bucket">
+S3 bucket name
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_BUCKET`
+</Callout>
+
+<Callout type="info" title="--vault-s3-access-key-id">
+S3 access key ID
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_ID`
+</Callout>
+
+<Callout type="info" title="--vault-s3-access-key-secret">
+S3 secret access key
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_SECRET`
+</Callout>
+
+<Callout type="info" title="--require-local-cert">
+Generate and use self-signed certificate for *.unkey.local if it doesn't exist
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_REQUIRE_LOCAL_CERT`
+</Callout>

@@ -1,4 +1,4 @@
-import type { AuditQueryLogsPayload } from "@/app/(app)/audit/components/table/query-logs.schema";
+import type { AuditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/components/table/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { AuditQueryLogsParams } from "./schema";
 
