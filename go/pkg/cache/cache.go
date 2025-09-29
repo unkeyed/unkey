@@ -10,7 +10,6 @@ import (
 	"github.com/maypok86/otter"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/debug"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
@@ -110,25 +109,17 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 
 	e, ok := c.get(ctx, key)
 	if !ok {
-		debug.RecordCacheHit(ctx, c.resource, "MISS", c.clock.Now().Sub(start))
 		return value, Miss
 	}
 
 	now := c.clock.Now()
 
 	if now.Before(e.Stale) {
-		if now.Before(e.Fresh) {
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", c.clock.Now().Sub(start))
-		} else {
-			debug.RecordCacheHit(ctx, c.resource, "STALE", c.clock.Now().Sub(start))
-		}
-
 		return e.Value, e.Hit
 	}
 
 	c.otter.Delete(key)
 
-	debug.RecordCacheHit(ctx, c.resource, "MISS", c.clock.Now().Sub(start))
 	return value, Miss
 }
 
@@ -259,17 +250,12 @@ func (c *cache[K, V]) SWR(
 	e, ok := c.get(ctx, key)
 	if ok {
 		// Cache Hit
-
 		if now.Before(e.Fresh) {
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", c.clock.Now().Sub(now))
-
 			// We have data and it's fresh, so we return it
 			return e.Value, e.Hit, nil
 		}
 
 		if now.Before(e.Stale) {
-			debug.RecordCacheHit(ctx, c.resource, "STALE", c.clock.Now().Sub(now))
-
 			c.revalidateC <- func() {
 				// If we don't uncancel the context, the revalidation will get canceled when
 				// the api response is returned
@@ -285,7 +271,6 @@ func (c *cache[K, V]) SWR(
 
 	// Cache Miss - measure total time including all overhead
 	v, err := refreshFromOrigin(ctx)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", c.clock.Now().Sub(now))
 
 	switch op(err) {
 	case WriteValue:
