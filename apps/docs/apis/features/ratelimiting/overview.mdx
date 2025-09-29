@@ -1,15 +1,33 @@
 ---
-title: Overview
-description: "How rate limiting works in unkey"
+title: Key-Based Rate Limiting
+description: Rate limiting attached to API keys that are checked during key verification
 ---
+
+# Overview
+
+How rate limiting works in unkey
+
+<Note>
+**Key-Based vs Standalone Rate Limiting**
+
+This documentation covers **key-based rate limiting** - rate limits that are attached to specific API keys and checked during key verification. This is different from Unkey's [standalone rate limiting service](/docs/ratelimiting/introduction), which protects serverless functions using any identifier (IP, user ID, etc.) without requiring API keys.
+
+**Key-based rate limiting** is for:
+- Rate limits tied to specific API keys
+- Limits checked automatically during key verification
+- Part of your API key management system
+
+**Standalone rate limiting** is for:
+- Protecting serverless functions and upstream services
+- Using any identifier (IP address, user ID, session ID, etc.)
+- Independent of API keys - works as a separate service
+</Note>
 
 Unkey's ratelimiting system controls the number of requests a key can make within a given timeframe. This prevents abuse, protects your API from being overwhelmed, and enables usage-based billing models.
 
 ## Multi-Ratelimit System
 
-Unkey supports multiple named ratelimits per key, providing fine-grained control over different aspects of your API usage. You can define separate limits for different operations, time windows, and use cases within a single key.
-
-The system offers two types of ratelimits: auto-apply ratelimits that check automatically during verification, and manual ratelimits that require explicit specification in requests.
+Unkey supports multiple named ratelimits per key, providing fine-grained control over different aspects of your API usage. You can define separate limits for different operations, time windows, and use cases within a single key. The system offers two types of ratelimits: auto-apply ratelimits that check automatically during verification, and manual ratelimits that require explicit specification in requests.
 
 ## Auto-Apply vs Manual Ratelimits
 
@@ -109,13 +127,9 @@ You can apply different costs to operations by specifying a cost parameter durin
 
 ## Migration from Legacy System
 
-<Note>
 The legacy `ratelimit` field is deprecated. Use the `ratelimits` array instead.
-</Note>
 
-Existing keys with the legacy `ratelimit` field are automatically migrated to use a special "default" ratelimit with `autoApply: true`. This maintains backward compatibility without requiring code changes.
-
-The legacy format converts automatically:
+Existing keys with the legacy `ratelimit` field are automatically migrated to use a special "default" ratelimit with `autoApply: true`. This maintains backward compatibility without requiring code changes. The legacy format converts automatically:
 
 ```bash
 # Legacy format (deprecated)
