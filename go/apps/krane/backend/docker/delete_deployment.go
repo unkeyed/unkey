@@ -20,6 +20,7 @@ func (d *docker) DeleteDeployment(ctx context.Context, req *connect.Request[kran
 	d.logger.Info("getting deployment", "deployment_id", deploymentID)
 
 	containers, err := d.client.ContainerList(ctx, container.ListOptions{
+		All: true,
 		Filters: filters.NewArgs(
 			filters.Arg("label", fmt.Sprintf("unkey.deployment.id=%s", deploymentID)),
 		),
