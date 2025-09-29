@@ -1,0 +1,188 @@
+---
+title: Overview
+description: "Unkey tracks everything for you"
+---
+
+<Note>
+Analytics endpoints are currently only available in our v1 API. We're working on bringing these to v2 - stay tuned for updates!
+</Note>
+
+
+Consumption based billing for APIs is getting more and more popular, but it's tedious to build in house. For low frequency events, it's quite possible to emit usage events directly to Stripe or similar, but this becomes very noisy quickly. Furthermore if you want to build end-user facing or internal analytics, you need to be able to query the events from Stripe, which often does not provide the granularity required.
+
+Most teams end up without end-user facing analytics, or build their own system to store and query usage metrics.
+
+Since Unkey already stores and aggregates verification events by time, outcome and identity, we can offer this data via an API.
+
+
+## Available data
+
+Unkey stores an event for every single verification, the relevent fields are described below:
+
+| Data           | Type          | Explanation                                                                            |
+|----------------|---------------|----------------------------------------------------------------------------------------|
+| `request_id`   | String        | Each request has a unique id, making it possible to retrieve later.                    |
+| `time`         | Int64         | A unix milli timestamp.                                                                |
+| `key_space_id` | String        | Each workspace may have multiple key spaces. Each API you create has its own keyspace. |
+| `key_id`       | String        | The individual key being verified.                                                     |
+| `outcome`      | String        | The outcome of the verification. `VALID`, `RATE_LIMITED` etc.                          |
+| `identity_id`  | String        | The identity connected to this key.                                                    |
+| `tags`         | Array(String) | Arbitrary tags you may add during the verification to filter later.                    |
+
+We can return this data aggregated by `hour`, `day`, `month`, `tag`, `tags`, `identity`, `key` and `outcome`.
+As well as filter by `identity_id`, `key_space_id`, `key_id`, `tags`, `outcome`, `start` and `end` time.
+
+## Example
+
+For an internal dashboard you want to find the top 5 users of a specific endpoint. In order to let Unkey know about the endpoint, you specify it as a tag when verifying keys:
+
+```bash Tagging a verification {6}
+curl -XPOST 'https://api.unkey.dev/v1/keys.verifyKey' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "key": "<API_KEY>",
+    "apiId": "api_<API_ID>",
+    "tags": [ "path=/my/endpoint" ],
+  }'
+```
+
+
+You can now query `api.unkey.dev/v1/analytics.getVerifications` via query parameters.
+While we can't provide raw SQL access, we wanted to stay as close to SQL semantics as possible, so you didn't need to learn a new concept and to keep the translation layer simple.
+
+| Name           | Value                            | Explanation                                                                    |
+|----------------|----------------------------------|--------------------------------------------------------------------------------|
+| `start`        | 1733749385000                    | A unix milli timestamp to limit the query to a specific time frame.            |
+| `end`          | 1736431397000                    | A unix milli timestamp to limit the query to a specific time frame.            |
+| `apiId`        | api_262b3iR7gkmP7aUyZ24uihcijsCe | The API ID to filter keys.                                                     |
+| `groupBy`      | identity                         | We're not interested in individual keys, but the user/org.                     |
+| `orderBy`      | total                            | We want to see the most active users, by how many verifications they're doing. |
+| `order`        | desc                             | We're ordering from most active to least active user.                          |
+| `limit`        | 5                                | Only return the top 5.                                                        |
+
+Below is a curl command putting everything together:
+
+```bash
+curl 'https://api.unkey.dev/v1/analytics.getVerifications?start=1733749385000&end=1736431397000&apiId=api_262b3iR7gkmP7aUyZ24uihcijsCe&groupBy=identity&orderBy=total&order=desc&limit=5' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>'
+```
+
+You'll receive a json response with a breakdown of each outcome, per identity ordered by `total`.
+
+<CodeGroup>
+
+```json First Row
+[
+  {
+    "valid": 186,
+    "notFound": 0,
+    "forbidden": 0,
+    "usageExceeded": 0,
+    "rateLimited": 184,
+    "unauthorized": 0,
+    "disabled": 182,
+    "insufficientPermissions": 0,
+    "expired": 0,
+    "total": 552,
+    "apiId": "api_262b3iR7gkmP7aUyZ24uihcijsCe",
+    "identity": {
+      "id": "test_2ipPuAgat7xuVNGpK6AuPQ2Lbk11",
+      "externalId": "user_2rNBR4YXxKwzM8bzVrCR5q6dFlc"
+    }
+  },
+  ...
+]
+```
+
+```json Full Response
+[
+  {
+    "valid": 186,
+    "notFound": 0,
+    "forbidden": 0,
+    "usageExceeded": 0,
+    "rateLimited": 184,
+    "unauthorized": 0,
+    "disabled": 182,
+    "insufficientPermissions": 0,
+    "expired": 0,
+    "total": 552,
+    "apiId": "api_262b3iR7gkmP7aUyZ24uihcijsCe",
+    "identity": {
+      "id": "test_2ipPuAgat7xuVNGpK6AuPQ2Lbk11",
+      "externalId": "user_2rNBR4YXxKwzM8bzVrCR5q6dFlc"
+    }
+  },
+  {
+    "valid": 190,
+    "notFound": 0,
+    "forbidden": 0,
+    "usageExceeded": 0,
+    "rateLimited": 161,
+    "unauthorized": 0,
+    "disabled": 200,
+    "insufficientPermissions": 0,
+    "expired": 0,
+    "total": 551,
+    "apiId": "api_262b3iR7gkmP7aUyZ24uihcijsCe",
+    "identity": {
+      "id": "test_2ipPuAiGJ3L3TUNKA6gp5eLeuyj7",
+      "externalId": "user_2rLz6cM63ZQ2v3IU0mryKbHetjK"
+    }
+  },
+  {
+    "valid": 197,
+    "notFound": 0,
+    "forbidden": 0,
+    "usageExceeded": 0,
+    "rateLimited": 154,
+    "unauthorized": 0,
+    "disabled": 200,
+    "insufficientPermissions": 0,
+    "expired": 0,
+    "total": 551,
+    "apiId": "api_262b3iR7gkmP7aUyZ24uihcijsCe",
+    "identity": {
+      "id": "test_2ipPuAwJVE4Hdet3dyEpYreP8ob7",
+      "externalId": "user_2rLwFchrbyIDb4LUfFp4CpTG0L3"
+    }
+  },
+  {
+    "valid": 191,
+    "notFound": 0,
+    "forbidden": 0,
+    "usageExceeded": 0,
+    "rateLimited": 184,
+    "unauthorized": 0,
+    "disabled": 171,
+    "insufficientPermissions": 0,
+    "expired": 0,
+    "total": 546,
+    "apiId": "api_262b3iR7gkmP7aUyZ24uihcijsCe",
+    "identity": {
+      "id": "test_2ipPuB23PVchmbkt9mMjjcpvLM8N",
+      "externalId": "user_2rLwCGvQKtnfnemH8HTL4cxWBFo"
+    }
+  },
+  {
+    "valid": 207,
+    "notFound": 0,
+    "forbidden": 0,
+    "usageExceeded": 0,
+    "rateLimited": 171,
+    "unauthorized": 0,
+    "disabled": 162,
+    "insufficientPermissions": 0,
+    "expired": 0,
+    "total": 540,
+    "apiId": "api_262b3iR7gkmP7aUyZ24uihcijsCe",
+    "identity": {
+      "id": "test_2ipPuApEvEAXJo9UParPL6inHLLJ",
+      "externalId": "user_2rLDPPVfeNB2hn1ARMh2808CdwG"
+    }
+  }
+]
+
+```
+</CodeGroup>
