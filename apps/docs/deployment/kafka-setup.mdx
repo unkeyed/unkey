@@ -1,0 +1,324 @@
+---
+title: Kafka setup for cache invalidation
+description: Deploy and configure Kafka for Unkey's distributed cache invalidation system
+---
+
+This guide covers setting up Kafka infrastructure to enable distributed cache invalidation across multiple Unkey API nodes.
+
+## Prerequisites
+
+- Multiple Unkey API nodes (horizontal scaling)
+- Kafka cluster (minimum 3 brokers for production)
+- Network connectivity between API nodes and Kafka brokers
+
+## Kafka cluster setup
+
+### Production deployment
+
+#### 1. Kafka broker configuration
+
+Create a Kafka cluster with at least 3 brokers for high availability:
+
+```yaml
+# kafka-broker-1.yml
+version: '3.8'
+services:
+  kafka-1:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: false
+    volumes:
+      - kafka-1-data:/bitnami/kafka
+    networks:
+      - unkey-network
+
+volumes:
+  kafka-1-data:
+
+networks:
+  unkey-network:
+    external: true
+```
+
+Repeat for `kafka-2` and `kafka-3` with appropriate node IDs.
+
+#### 2. Create cache invalidation topic
+
+```bash
+kafka-topics.sh --bootstrap-server kafka-1:9092,kafka-2:9092,kafka-3:9092 \
+  --create \
+  --topic cache-invalidations \
+  --partitions 1 \
+  --replication-factor 3 \
+  --config retention.ms=86400000  # 24 hours retention
+```
+
+#### 3. Configure API nodes
+
+Set environment variables for each API node:
+
+```bash
+UNKEY_KAFKA_BROKERS="kafka-1:9092,kafka-2:9092,kafka-3:9092"
+UNKEY_CACHE_INVALIDATION_TOPIC="cache-invalidations"
+```
+
+### Development setup
+
+#### Docker Compose
+
+For local development, use a single Kafka broker:
+
+```yaml
+version: '3.8'
+services:
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@localhost:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - kafka-data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  api-node-1:
+    # ... your API configuration
+    environment:
+      UNKEY_KAFKA_BROKERS: "kafka:9092"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  api-node-2:
+    # ... your API configuration  
+    environment:
+      UNKEY_KAFKA_BROKERS: "kafka:9092"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+volumes:
+  kafka-data:
+```
+
+## Kubernetes deployment
+
+### Kafka StatefulSet
+
+Deploy Kafka using StatefulSet for persistent storage:
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  serviceName: kafka-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: bitnami/kafka:latest
+        ports:
+        - containerPort: 9092
+        - containerPort: 9093
+        env:
+        - name: KAFKA_CFG_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_CFG_PROCESS_ROLES
+          value: "controller,broker"
+        - name: KAFKA_CFG_LISTENERS
+          value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+        - name: KAFKA_CFG_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://$(POD_NAME).kafka-headless:9092"
+        - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+          value: "kafka-0@kafka-0.kafka-headless:9093,kafka-1@kafka-1.kafka-headless:9093,kafka-2@kafka-2.kafka-headless:9093"
+        volumeMounts:
+        - name: kafka-storage
+          mountPath: /bitnami/kafka
+  volumeClaimTemplates:
+  - metadata:
+      name: kafka-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+```
+
+### API Deployment
+
+Configure API nodes to connect to Kafka:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unkey-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: unkey-api
+  template:
+    metadata:
+      labels:
+        app: unkey-api
+    spec:
+      containers:
+      - name: api
+        image: unkey/api:latest
+        env:
+        - name: UNKEY_KAFKA_BROKERS
+          value: "kafka-0.kafka-headless:9092,kafka-1.kafka-headless:9092,kafka-2.kafka-headless:9092"
+        - name: UNKEY_CACHE_INVALIDATION_TOPIC
+          value: "cache-invalidations"
+```
+
+## Monitoring and alerting
+
+### Kafka metrics
+
+Monitor key Kafka metrics:
+
+```yaml
+# Prometheus monitoring
+- alert: KafkaBrokerDown
+  expr: kafka_server_broker_state != 3
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Kafka broker is down"
+
+- alert: CacheInvalidationTopicLag
+  expr: kafka_consumer_lag_sum{topic="cache-invalidations"} > 1000
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "High lag in cache invalidation topic"
+```
+
+### Cache performance
+
+Monitor cache hit rates using debug headers:
+
+```bash
+# Extract cache metrics from API responses
+curl -s -H "Authorization: Bearer $ROOT_KEY" \
+     https://api.unkey.com/v2/apis.getApi \
+     -d '{"apiId": "api_123"}' \
+     -D headers.txt
+
+grep "X-Unkey-Debug-Cache" headers.txt
+```
+
+## Security hardening
+
+### Network security
+
+1. **Isolate Kafka network**: Use private networks for Kafka communication
+2. **Firewall rules**: Restrict access to Kafka ports (9092, 9093)
+3. **VPC/subnet isolation**: Deploy Kafka in dedicated network segments
+
+### Authentication (future)
+
+Planned security features:
+
+```bash
+# SASL/SCRAM authentication (planned)
+UNKEY_KAFKA_SECURITY_PROTOCOL="SASL_SSL"
+UNKEY_KAFKA_SASL_MECHANISM="SCRAM-SHA-256"
+UNKEY_KAFKA_SASL_USERNAME="unkey-api"
+UNKEY_KAFKA_SASL_PASSWORD="secure-password"
+
+# mTLS authentication (planned)
+UNKEY_KAFKA_SECURITY_PROTOCOL="SSL"
+UNKEY_KAFKA_SSL_CERT_FILE="/path/to/client.crt"
+UNKEY_KAFKA_SSL_KEY_FILE="/path/to/client.key"
+UNKEY_KAFKA_SSL_CA_FILE="/path/to/ca.crt"
+```
+
+## Validation and testing
+
+### Verify setup
+
+1. **Check topic creation:**
+```bash
+kafka-topics.sh --bootstrap-server kafka-1:9092 --list
+```
+
+2. **Test event production:**
+```bash
+# Monitor events in real-time
+kafka-console-consumer.sh --bootstrap-server kafka-1:9092 --topic cache-invalidations
+```
+
+3. **Verify API connectivity:**
+```bash
+# Check API logs for Kafka initialization
+docker logs unkey-api-1 | grep "Initializing cache invalidation topic"
+```
+
+### Load testing
+
+Test cache invalidation under load:
+
+1. **Generate cache operations** across multiple API nodes
+2. **Monitor invalidation latency** using debug headers
+3. **Verify cache consistency** across all nodes
+4. **Check Kafka performance** under high event volume
+
+## Migration strategy
+
+### Enabling distributed invalidation
+
+1. **Deploy Kafka infrastructure** without connecting API nodes
+2. **Update API configuration** to include Kafka brokers
+3. **Rolling restart** API nodes to enable cache invalidation
+4. **Monitor cache performance** and invalidation effectiveness
+5. **Verify cluster consistency** across all nodes
+
+### Rollback plan
+
+If issues occur:
+
+1. **Remove Kafka configuration** from API nodes
+2. **Rolling restart** to disable distributed invalidation
+3. **Fall back to local caching** until issues are resolved
+4. **Investigate and fix** Kafka-related problems
+5. **Re-enable** distributed invalidation after validation
+
+## Related documentation
+
+- [Distributed cache invalidation](/apis/features/distributed-cache-invalidation) - Feature overview and usage
+- [Kafka configuration](/configuration/kafka) - Environment variable reference
