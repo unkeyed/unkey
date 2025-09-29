@@ -217,10 +217,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize cache invalidation topic
 	var cacheInvalidationTopic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
 	if len(cfg.KafkaBrokers) > 0 {
-		logger.Info("Initializing cache invalidation topic",
-			"brokers", cfg.KafkaBrokers,
-			"instanceID", cfg.InstanceID)
-		logger.Info("DEBUG: Raw broker strings", "raw_brokers", fmt.Sprintf("%#v", cfg.KafkaBrokers))
+		logger.Info("Initializing cache invalidation topic", "brokers", cfg.KafkaBrokers, "instanceID", cfg.InstanceID)
 
 		topicName := cfg.CacheInvalidationTopic
 		if topicName == "" {

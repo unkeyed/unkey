@@ -27,10 +27,10 @@ func TestCacheHeader_String(t *testing.T) {
 			name: "microsecond duration",
 			header: CacheHeader{
 				CacheName: "verification_key_by_hash",
-				Latency:   750 * time.Microsecond, // 750μs
+				Latency:   750 * time.Microsecond, // 750us
 				Status:    "MISS",
 			},
-			expected: "verification_key_by_hash:750μs:MISS",
+			expected: "verification_key_by_hash:750us:MISS",
 		},
 		{
 			name: "large millisecond duration",
@@ -48,7 +48,7 @@ func TestCacheHeader_String(t *testing.T) {
 				Latency:   100 * time.Microsecond,
 				Status:    "ERROR",
 			},
-			expected: "test_cache:100μs:ERROR",
+			expected: "test_cache:100us:ERROR",
 		},
 	}
 
@@ -79,7 +79,7 @@ func TestFromString(t *testing.T) {
 		},
 		{
 			name:  "valid microsecond header",
-			input: "verification_key_by_hash:750μs:MISS",
+			input: "verification_key_by_hash:750us:MISS",
 			expected: CacheHeader{
 				CacheName: "verification_key_by_hash",
 				Latency:   750 * time.Microsecond,

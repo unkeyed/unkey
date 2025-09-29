@@ -91,7 +91,6 @@ var Cmd = &cli.Command{
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-
 	// Check if TLS flags are properly set (both or none)
 	tlsCertFile := cmd.String("tls-cert-file")
 	tlsKeyFile := cmd.String("tls-key-file")
