@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,14 +29,15 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 	err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Delete(ctx, k8sDeploymentID, metav1.DeleteOptions{
 		PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
 	})
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete service: %w", err))
+
 	}
 
 	err = k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Delete(ctx, k8sDeploymentID, metav1.DeleteOptions{
 		PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
 	})
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete deployment: %w", err))
 	}
 	return connect.NewResponse(&kranev1.DeleteDeploymentResponse{}), nil
