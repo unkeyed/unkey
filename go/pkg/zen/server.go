@@ -276,9 +276,8 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 			for i := len(middlewares) - 1; i >= 0; i-- {
 				handle = middlewares[i](handle)
 			}
-			ctx := WithSession(r.Context(), sess)
 
-			err = handle(ctx, sess)
+			err = handle(WithSession(r.Context(), sess), sess)
 
 			if err != nil {
 				panic(err)

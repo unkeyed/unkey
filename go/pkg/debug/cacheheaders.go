@@ -44,7 +44,7 @@ import (
 // Example headers:
 //
 //	X-Unkey-Debug-Cache: ApiByID:1.25ms:FRESH
-//	X-Unkey-Debug-Cache: RootKeyByHash:150μs:MISS
+//	X-Unkey-Debug-Cache: RootKeyByHash:150us:MISS
 //	X-Unkey-Debug-Cache: PermissionsByApiId:2.1ms:STALE
 //
 // Latency formatting:
@@ -99,7 +99,7 @@ func RecordCacheHit(ctx context.Context, cacheName, status string, latency time.
 //
 // Formatting rules:
 //   - Durations >= 1ms: Displayed as milliseconds with 2 decimal places (e.g., "1.25ms")
-//   - Durations < 1ms: Displayed as whole microseconds (e.g., "750μs")
+//   - Durations < 1ms: Displayed as whole microseconds (e.g., "750us")
 //
 // This formatting strikes a balance between precision for performance analysis
 // and readability in HTTP headers. The approach ensures that both fast cache
@@ -109,12 +109,12 @@ func RecordCacheHit(ctx context.Context, cacheName, status string, latency time.
 // Examples:
 //
 //	formatDuration(1500 * time.Microsecond) // "1.50ms"
-//	formatDuration(750 * time.Microsecond)  // "750μs"
+//	formatDuration(750 * time.Microsecond)  // "750us"
 //	formatDuration(2 * time.Millisecond)    // "2.00ms"
-//	formatDuration(100 * time.Nanosecond)   // "0μs"
+//	formatDuration(100 * time.Nanosecond)   // "0us"
 func formatDuration(d time.Duration) string {
 	if d >= time.Millisecond {
 		return fmt.Sprintf("%.2fms", float64(d.Microseconds())/1000)
 	}
-	return fmt.Sprintf("%.0fμs", float64(d.Nanoseconds())/1000)
+	return fmt.Sprintf("%.0fus", float64(d.Nanoseconds())/1000)
 }

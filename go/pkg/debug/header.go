@@ -63,6 +63,16 @@ func parseDuration(durationStr string) (time.Duration, error) {
 		return time.Duration(ms * float64(time.Millisecond)), nil
 	}
 
+	if strings.HasSuffix(durationStr, "us") {
+		usStr := strings.TrimSuffix(durationStr, "us")
+		us, err := strconv.ParseFloat(usStr, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid microsecond value: %w", err)
+		}
+		return time.Duration(us * float64(time.Microsecond)), nil
+	}
+
+	// Also support the legacy μs format for backward compatibility
 	if strings.HasSuffix(durationStr, "μs") {
 		usStr := strings.TrimSuffix(durationStr, "μs")
 		us, err := strconv.ParseFloat(usStr, 64)
@@ -72,5 +82,5 @@ func parseDuration(durationStr string) (time.Duration, error) {
 		return time.Duration(us * float64(time.Microsecond)), nil
 	}
 
-	return 0, fmt.Errorf("unsupported duration format: expected 'ms' or 'μs' suffix")
+	return 0, fmt.Errorf("unsupported duration format: expected 'ms', 'us', or 'μs' suffix")
 }

@@ -16,6 +16,7 @@ import (
 type ClusterCache[K comparable, V any] struct {
 	localCache     cache.Cache[K, V]
 	topic          *eventstream.Topic[*cachev1.CacheInvalidationEvent]
+	producer       eventstream.Producer[*cachev1.CacheInvalidationEvent]
 	cacheName      string
 	nodeID         string
 	logger         logging.Logger
@@ -69,6 +70,7 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 			if key, ok := any(s).(K); ok {
 				return key, nil
 			}
+
 			var zero K
 			return zero, fmt.Errorf("cannot convert string %q to key type %T", s, zero)
 		}
@@ -87,8 +89,9 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		},
 	}
 
-	// Register with the global invalidation manager
+	// Create a reusable producer if topic is provided
 	if config.Topic != nil {
+		c.producer = config.Topic.NewProducer()
 		GetManager().Register(c)
 	}
 
@@ -116,12 +119,12 @@ func (c *ClusterCache[K, V]) SetNull(ctx context.Context, key K) {
 	c.broadcastInvalidation(ctx, key)
 }
 
-// Remove removes a value from the local cache and broadcasts invalidation
+// Remove removes one or more values from the local cache and broadcasts invalidation
 func (c *ClusterCache[K, V]) Remove(ctx context.Context, keys ...K) {
-	for _, key := range keys {
-		c.localCache.Remove(ctx, key)
-		c.broadcastInvalidation(ctx, key)
-	}
+	// Remove from local cache
+	c.localCache.Remove(ctx, keys...)
+	// Broadcast invalidation for all keys to other nodes
+	c.broadcastInvalidation(ctx, keys...)
 }
 
 // SWR performs stale-while-revalidate lookup
@@ -185,25 +188,29 @@ func (c *ClusterCache[K, V]) ProcessInvalidationEvent(ctx context.Context, event
 	return true
 }
 
-// broadcastInvalidation sends a cache invalidation event to other cluster nodes
-func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, key K) {
-	if c.topic == nil {
+// broadcastInvalidation sends cache invalidation events to other cluster nodes
+func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, keys ...K) {
+	if c.producer == nil || len(keys) == 0 {
 		return
 	}
 
-	event := &cachev1.CacheInvalidationEvent{
-		CacheName:      c.cacheName,
-		CacheKey:       c.keyToString(key),
-		Timestamp:      time.Now().UnixMilli(),
-		SourceInstance: c.nodeID,
+	// Create invalidation events for all keys
+	events := make([]*cachev1.CacheInvalidationEvent, len(keys))
+	for i, key := range keys {
+		events[i] = &cachev1.CacheInvalidationEvent{
+			CacheName:      c.cacheName,
+			CacheKey:       c.keyToString(key),
+			Timestamp:      time.Now().UnixMilli(),
+			SourceInstance: c.nodeID,
+		}
 	}
 
-	producer := c.topic.NewProducer()
-	if err := producer.Produce(ctx, event); err != nil {
-		c.logger.Error("Failed to broadcast cache invalidation",
+	// Send all events in a single batch
+	if err := c.producer.Produce(ctx, events...); err != nil {
+		c.logger.Error("Failed to broadcast cache invalidations",
 			"error", err,
 			"cache", c.cacheName,
-			"key", key)
+			"keys", keys)
 		// Don't fail the operation if broadcasting fails
 	}
 }

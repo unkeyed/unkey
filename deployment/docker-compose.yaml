@@ -108,7 +108,7 @@ services:
   # The Kafka broker, available at localhost:9092
   kafka:
     container_name: kafka
-    image: bitnami/kafka:latest
+    image: bitnamilegacy/kafka:4.0.0-debian-12-r10
     ports:
       - 9092:9092
     environment:

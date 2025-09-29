@@ -70,8 +70,7 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 		}
 		if parsedHeader.CacheName == "api_by_id" && parsedHeader.Status == "FRESH" {
 			foundFresh = true
-			t.Logf("Found FRESH cache: cache=%s, latency=%v, status=%s",
-				parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
+			t.Logf("Found FRESH cache: cache=%s, latency=%v, status=%s", parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
 			break
 		}
 	}

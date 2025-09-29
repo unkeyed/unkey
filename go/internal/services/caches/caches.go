@@ -26,7 +26,7 @@ type Caches struct {
 
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
-	LiveApiByID cache.Cache[string, db.FindLiveApiByIDRow]
+	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -58,6 +58,8 @@ type Config struct {
 // Parameters:
 //   - config: The main configuration containing clustering settings
 //   - cacheConfig: The specific cache configuration (freshness, staleness, size, etc.)
+//   - keyToString: Optional converter from key type to string for serialization
+//   - stringToKey: Optional converter from string to key type for deserialization
 //
 // Returns:
 //   - cache.Cache[K, V]: The initialized cache instance
@@ -65,6 +67,8 @@ type Config struct {
 func createCache[K comparable, V any](
 	config Config,
 	cacheConfig cache.Config[K, V],
+	keyToString func(K) string,
+	stringToKey func(string) (K, error),
 ) (cache.Cache[K, V], error) {
 	// Create local cache
 	localCache, err := cache.New(cacheConfig)
@@ -80,10 +84,12 @@ func createCache[K comparable, V any](
 	// Wrap with clustering for distributed invalidation
 	// The cluster cache will automatically subscribe to invalidation events
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
-		LocalCache: localCache,
-		Topic:      config.CacheInvalidationTopic,
-		Logger:     config.Logger,
-		NodeID:     config.NodeID,
+		LocalCache:  localCache,
+		Topic:       config.CacheInvalidationTopic,
+		Logger:      config.Logger,
+		NodeID:      config.NodeID,
+		KeyToString: keyToString,
+		StringToKey: stringToKey,
 	})
 	if err != nil {
 		return nil, err
@@ -130,41 +136,56 @@ func New(config Config) (Caches, error) {
 		clustering.GetManager().Start(config.CacheInvalidationTopic, config.Logger)
 	}
 
-	// Create ratelimit namespace cache
-	ratelimitNamespace, err := createCache(config, cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
-		Fresh:    time.Minute,
-		Stale:    24 * time.Hour,
-		Logger:   config.Logger,
-		MaxSize:  1_000_000,
-		Resource: "ratelimit_namespace",
-		Clock:    config.Clock,
-	})
+	// Create ratelimit namespace cache (uses ScopedKey)
+	ratelimitNamespace, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
+			Fresh:    time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "ratelimit_namespace",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
 	if err != nil {
 		return Caches{}, err
 	}
 
-	// Create verification key cache
-	verificationKeyByHash, err := createCache(config, cache.Config[string, db.FindKeyForVerificationRow]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		Logger:   config.Logger,
-		MaxSize:  1_000_000,
-		Resource: "verification_key_by_hash",
-		Clock:    config.Clock,
-	})
+	// Create verification key cache (uses string keys, no conversion needed)
+	verificationKeyByHash, err := createCache(
+		config,
+		cache.Config[string, db.FindKeyForVerificationRow]{
+			Fresh:    10 * time.Second,
+			Stale:    10 * time.Minute,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "verification_key_by_hash",
+			Clock:    config.Clock,
+		},
+		nil, // String keys don't need custom converters
+		nil,
+	)
 	if err != nil {
 		return Caches{}, err
 	}
 
-	// Create API cache
-	liveApiByID, err := createCache(config, cache.Config[string, db.FindLiveApiByIDRow]{
-		Fresh:    10 * time.Second,
-		Stale:    24 * time.Hour,
-		Logger:   config.Logger,
-		MaxSize:  1_000_000,
-		Resource: "live_api_by_id",
-		Clock:    config.Clock,
-	})
+	// Create API cache (uses ScopedKey)
+	liveApiByID, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
+			Fresh:    10 * time.Second,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "live_api_by_id",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
 	if err != nil {
 		return Caches{}, err
 	}

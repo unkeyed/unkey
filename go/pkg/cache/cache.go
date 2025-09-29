@@ -122,6 +122,7 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 		} else {
 			debug.RecordCacheHit(ctx, c.resource, "STALE", c.clock.Now().Sub(start))
 		}
+
 		return e.Value, e.Hit
 	}
 

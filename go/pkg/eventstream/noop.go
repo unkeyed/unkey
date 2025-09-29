@@ -15,7 +15,7 @@ func newNoopProducer[T proto.Message]() Producer[T] {
 }
 
 // Produce does nothing (no-op)
-func (n *noopProducer[T]) Produce(ctx context.Context, event T) error {
+func (n *noopProducer[T]) Produce(ctx context.Context, events ...T) error {
 	return nil
 }
 

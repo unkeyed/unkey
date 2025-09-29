@@ -163,9 +163,10 @@ func (c *consumer[T]) Consume(ctx context.Context, handler func(context.Context,
 	c.subscribed = true
 
 	readerConfig := kafka.ReaderConfig{
-		Brokers: c.brokers,
-		Topic:   c.topic,
-		GroupID: fmt.Sprintf("%s::%s", c.topic, c.instanceID),
+		Brokers:     c.brokers,
+		Topic:       c.topic,
+		GroupID:     fmt.Sprintf("%s::%s", c.topic, c.instanceID),
+		StartOffset: kafka.LastOffset,
 	}
 
 	if c.fromBeginning {

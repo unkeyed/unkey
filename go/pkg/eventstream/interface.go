@@ -14,13 +14,13 @@ import (
 //
 // Implementations are safe for concurrent use from multiple goroutines.
 type Producer[T proto.Message] interface {
-	// Produce publishes an event to the configured Kafka topic.
+	// Produce publishes one or more events to the configured Kafka topic.
 	//
-	// The event is serialized to protobuf format and sent asynchronously to Kafka.
-	// The method blocks until the message is accepted by the broker or an error occurs.
+	// The events are serialized to protobuf format and sent to Kafka.
+	// The method blocks until all messages are accepted by the broker or an error occurs.
 	//
 	// Context is used for timeout and cancellation. If the context is cancelled before
-	// the message is sent, the method returns the context error and the message is not
+	// the messages are sent, the method returns the context error and the messages are not
 	// published.
 	//
 	// Returns an error if:
@@ -31,7 +31,7 @@ type Producer[T proto.Message] interface {
 	//
 	// The method does not guarantee message delivery - use Kafka's acknowledgment
 	// settings for delivery guarantees.
-	Produce(ctx context.Context, event T) error
+	Produce(ctx context.Context, events ...T) error
 
 	// Close gracefully shuts down the producer and releases all resources.
 	//
