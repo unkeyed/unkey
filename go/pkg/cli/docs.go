@@ -336,6 +336,8 @@ func (c *Command) getTypeString(flag Flag) string {
 	switch flag.(type) {
 	case *StringFlag:
 		return "string"
+	case *DurationFlag:
+		return "duration"
 	case *BoolFlag:
 		return "boolean"
 	case *IntFlag:

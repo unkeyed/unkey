@@ -9,8 +9,8 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	metaldv1 "github.com/unkeyed/unkey/go/gen/proto/metald/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
+	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
@@ -20,12 +20,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+const hardcodedNamespace = "unkey" // TODO change to workspace scope
+
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
 type DeployWorkflow struct {
 	db            db.Database
 	partitionDB   db.Database
 	logger        logging.Logger
-	metaldClient  metaldv1connect.VmServiceClient
+	krane         kranev1connect.DeploymentServiceClient
 	defaultDomain string
 }
 
@@ -33,7 +35,7 @@ type DeployWorkflowConfig struct {
 	Logger        logging.Logger
 	DB            db.Database
 	PartitionDB   db.Database
-	MetalD        metaldv1connect.VmServiceClient
+	Krane         kranev1connect.DeploymentServiceClient
 	DefaultDomain string
 }
 
@@ -43,7 +45,7 @@ func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
 		db:            cfg.DB,
 		partitionDB:   cfg.PartitionDB,
 		logger:        cfg.Logger,
-		metaldClient:  cfg.MetalD,
+		krane:         cfg.Krane,
 		defaultDomain: cfg.DefaultDomain,
 	}
 }
@@ -135,30 +137,31 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	metaldDeployment, err := hydra.Step(ctx, "create-deployment", func(stepCtx context.Context) (*metaldv1.CreateDeploymentResponse, error) {
+	err = hydra.StepVoid(ctx, "create-deployment", func(stepCtx context.Context) error {
 		// Create deployment request
-		deploymentReq := &metaldv1.CreateDeploymentRequest{
-			Deployment: &metaldv1.DeploymentRequest{
+		deploymentReq := &kranev1.CreateDeploymentRequest{
+			Deployment: &kranev1.DeploymentRequest{
+				Namespace:     hardcodedNamespace,
 				DeploymentId:  req.DeploymentID,
 				Image:         req.DockerImage,
-				VmCount:       1,
-				Cpu:           1,
+				Replicas:      3,
+				CpuMillicores: 1000,
 				MemorySizeMib: 1024,
 			},
 		}
 
-		resp, err := w.metaldClient.CreateDeployment(stepCtx, connect.NewRequest(deploymentReq))
+		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(deploymentReq))
 		if err != nil {
-			return nil, fmt.Errorf("metald CreateDeployment failed for image %s: %w", req.DockerImage, err)
+			return fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.DockerImage, err)
 		}
 
-		return resp.Msg, nil
+		return nil
 	})
 	if err != nil {
 		return err
 	}
 
-	w.logger.Info("deployment created", "deployment_id", req.DeploymentID, "vm_count", len(metaldDeployment.GetVmIds()))
+	w.logger.Info("deployment created", "deployment_id", req.DeploymentID)
 
 	// Update version status to deploying
 	_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
@@ -176,8 +179,8 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		return err
 	}
 
-	createdVMs, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*metaldv1.GetDeploymentResponse_Vm, error) {
-		instances := make(map[string]*metaldv1.GetDeploymentResponse_Vm)
+	createdInstances, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*kranev1.Instance, error) {
+		// prevent updating the db unnecessarily
 
 		for i := range 300 {
 			time.Sleep(time.Second)
@@ -185,69 +188,66 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
 			}
 
-			resp, err := w.metaldClient.GetDeployment(stepCtx, connect.NewRequest(&metaldv1.GetDeploymentRequest{
+			resp, err := w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
+				Namespace:    hardcodedNamespace,
 				DeploymentId: req.DeploymentID,
 			}))
 			if err != nil {
-				return nil, fmt.Errorf("metald GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
+				return nil, fmt.Errorf("krane GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
 			}
 
-			vms := resp.Msg.GetVms()
+			w.logger.Info("deployment status",
+				"deployment_id", req.DeploymentID,
+				"status", resp.Msg,
+			)
 
 			allReady := true
-			for _, instance := range vms {
-				known, ok := instances[instance.Id]
-				if !ok || known.State != instance.State {
-					upsertParams := partitiondb.UpsertVMParams{
-						ID:            instance.Id,
-						DeploymentID:  req.DeploymentID,
-						Address:       sql.NullString{Valid: true, String: fmt.Sprintf("%s:%d", instance.Host, instance.Port)},
-						CpuMillicores: 1000,                         // TODO derive from spec
-						MemoryMb:      1024,                         // TODO derive from spec
-						Status:        partitiondb.VmsStatusRunning, // TODO
-					}
-
-					w.logger.Info("upserting VM to database",
-						"vm_id", instance.Id,
-						"deployment_id", req.DeploymentID,
-						"address", fmt.Sprintf("%s:%d", instance.Host, instance.Port),
-						"status", "running")
-
-					if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
-						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
-					}
-
-					w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
-
-					instances[instance.Id] = instance
-				}
-
-				w.logger.Debug("checking VM readiness", "vm_id", instance.Id, "state", instance.State.String())
-				if instance.State != metaldv1.VmState_VM_STATE_RUNNING {
+			for _, instance := range resp.Msg.GetInstances() {
+				if instance.Status != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
 					allReady = false
-					w.logger.Debug("vm not ready", "vm_id", instance.Id, "state", instance.State.String())
 				}
+
+				var status partitiondb.VmsStatus
+				switch instance.Status {
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
+					status = partitiondb.VmsStatusProvisioning
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
+					status = partitiondb.VmsStatusRunning
+
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
+					status = partitiondb.VmsStatusStopping
+				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
+					status = partitiondb.VmsStatusAllocated
+				}
+
+				upsertParams := partitiondb.UpsertVMParams{
+					ID:            instance.Id,
+					DeploymentID:  req.DeploymentID,
+					Address:       sql.NullString{Valid: true, String: instance.Address},
+					CpuMillicores: 1000,   // TODO derive from spec
+					MemoryMb:      1024,   // TODO derive from spec
+					Status:        status, // TODO
+				}
+
+				w.logger.Info("upserting VM to database",
+					"vm_id", instance.Id,
+					"deployment_id", req.DeploymentID,
+					"address", instance.Address,
+					"status", "running")
+
+				if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
+				}
+
+				w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
+
 			}
 
 			if allReady {
-				w.logger.Info("all VMs ready, deployment complete",
-					"deployment_id", req.DeploymentID,
-					"vm_count", len(vms),
-					"vms", func() []string {
-						var ids []string
-						for _, vm := range vms {
-							ids = append(ids, vm.Id)
-						}
-						return ids
-					}())
-
-				return vms, nil
+				return resp.Msg.GetInstances(), nil
 			}
+			// next loop
 
-			w.logger.Debug("deployment not ready yet, continuing to poll",
-				"deployment_id", req.DeploymentID,
-				"iteration", i,
-				"all_ready", allReady)
 		}
 
 		return nil, fmt.Errorf("deployment never became ready")
@@ -349,7 +349,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			}
 
 			// Create gateway config for this domain
-			gatewayConfig, err := createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdVMs)
+			gatewayConfig, err := createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdInstances)
 			if err != nil {
 				w.logger.Error("failed to create gateway config for domain",
 					"domain", domain,
@@ -589,17 +589,17 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 // and readability during development/demo. This makes it simpler to inspect and
 // modify configs directly in the database.
 // IMPORTANT: Always use protojson.Marshal for writes and protojson.Unmarshal for reads.
-func createGatewayConfig(deploymentID, keyspaceID string, vms []*metaldv1.GetDeploymentResponse_Vm) (*partitionv1.GatewayConfig, error) {
+func createGatewayConfig(deploymentID, keyspaceID string, instances []*kranev1.Instance) (*partitionv1.GatewayConfig, error) {
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
 		Deployment: &partitionv1.Deployment{
 			Id:        deploymentID,
 			IsEnabled: true,
 		},
-		Vms: make([]*partitionv1.VM, len(vms)),
+		Vms: make([]*partitionv1.VM, len(instances)),
 	}
 
-	for i, vm := range vms {
+	for i, vm := range instances {
 		gatewayConfig.Vms[i] = &partitionv1.VM{
 			Id: vm.Id,
 		}
