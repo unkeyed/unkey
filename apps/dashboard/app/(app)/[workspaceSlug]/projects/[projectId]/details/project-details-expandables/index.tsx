@@ -33,12 +33,24 @@ export const ProjectDetailsExpandable = ({
   );
 
   const data = query.data.at(0);
+  const { data: domainsData } = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collections.domains })
+        .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
+        .select(({ domain }) => ({ domain: domain.domain }))
+        .orderBy(({ domain }) => domain.id, "asc"),
+    [data?.project.liveDeploymentId],
+  );
 
   if (!data?.deployment) {
     return null;
   }
 
-  const detailSections = createDetailSections(data.deployment);
+  const detailSections = createDetailSections({
+    ...data.deployment,
+    repository: data.project.gitRepositoryUrl,
+  });
 
   return (
     <div className="flex">
@@ -101,35 +113,37 @@ export const ProjectDetailsExpandable = ({
                   <Cube size="2xl-medium" className="!size-[20px]" />
                 </Button>
                 <div className="flex flex-col gap-1">
-                  <span className="text-accent-12 font-medium text-sm">dashboard</span>
-                  <div className="gap-2 items-center flex">
+                  <span className="text-accent-12 font-medium text-sm truncate">
+                    {data.project.name}
+                  </span>
+                  <div className="gap-2 items-center flex min-w-0 max-w-[250px]">
                     <a
-                      href="https://api.gateway.com"
+                      href={data.project.domain}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-9 text-sm hover:underline"
+                      className="text-gray-9 text-sm truncate block transition-all hover:underline decoration-dashed underline-offset-2"
                     >
-                      api.gateway.com
+                      {data.project.domain}
                     </a>
                     <InfoTooltip
                       position={{
                         side: "bottom",
                       }}
                       content={
-                        <div className="space-y-1">
-                          {["staging.gateway.com", "dev.gateway.com"].map((region) => (
+                        <div className="space-y-2 max-w-[300px] py-2">
+                          {domainsData.slice(1).map((d) => (
                             <div
-                              key={region}
+                              key={d.domain}
                               className="text-xs font-medium flex items-center gap-1.5"
                             >
-                              <div className="w-1 h-1 bg-gray-8 rounded-full" />
+                              <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />
                               <a
-                                href={`https://${region}`}
+                                href={`https://${d.domain}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:underline"
+                                className="transition-all hover:underline decoration-dashed underline-offset-2"
                               >
-                                {region}
+                                {d.domain}
                               </a>
                             </div>
                           ))}
@@ -137,7 +151,7 @@ export const ProjectDetailsExpandable = ({
                       }
                     >
                       <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums">
-                        +2
+                        +{domainsData.slice(1).length}
                       </div>
                     </InfoTooltip>
                   </div>

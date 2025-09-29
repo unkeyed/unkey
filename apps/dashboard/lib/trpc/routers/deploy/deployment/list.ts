@@ -20,9 +20,7 @@ export const listDeployments = t.procedure
           gitCommitSha: true,
           gitBranch: true,
           gitCommitMessage: true,
-          gitCommitAuthorName: true,
-          gitCommitAuthorEmail: true,
-          gitCommitAuthorUsername: true,
+          gitCommitAuthorHandle: true,
           gitCommitAuthorAvatarUrl: true,
           gitCommitTimestamp: true,
           runtimeConfig: true,
@@ -34,16 +32,10 @@ export const listDeployments = t.procedure
 
       return deployments.map((deployment) => ({
         ...deployment,
-        // Replace NULL git fields with dummy data that clearly indicates it's fake
-        gitCommitSha: deployment.gitCommitSha ?? "abc123ef456789012345678901234567890abcdef",
         gitBranch: deployment.gitBranch ?? "main",
-        gitCommitMessage: deployment.gitCommitMessage ?? "[DUMMY] Initial commit",
-        gitCommitAuthorName: deployment.gitCommitAuthorName ?? "[DUMMY] Unknown Author",
-        gitCommitAuthorEmail: deployment.gitCommitAuthorEmail ?? "dummy@example.com",
-        gitCommitAuthorUsername: deployment.gitCommitAuthorUsername ?? "dummy-user",
         gitCommitAuthorAvatarUrl:
           deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
-        gitCommitTimestamp: deployment.gitCommitTimestamp ?? Date.now() - 86400000,
+        gitCommitTimestamp: deployment.gitCommitTimestamp,
       }));
     } catch (_error) {
       throw new TRPCError({

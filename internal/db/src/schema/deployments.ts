@@ -20,9 +20,7 @@ export const deployments = mysqlTable(
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
     gitBranch: varchar("git_branch", { length: 256 }),
     gitCommitMessage: text("git_commit_message"),
-    gitCommitAuthorName: varchar("git_commit_author_name", { length: 256 }),
-    gitCommitAuthorEmail: varchar("git_commit_author_email", { length: 256 }),
-    gitCommitAuthorUsername: varchar("git_commit_author_username", {
+    gitCommitAuthorHandle: varchar("git_commit_author_handle", {
       length: 256,
     }),
     gitCommitAuthorAvatarUrl: varchar("git_commit_author_avatar_url", {

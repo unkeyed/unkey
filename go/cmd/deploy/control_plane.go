@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
@@ -50,15 +52,27 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 
 // CreateDeployment creates a new deployment in the control plane
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
+	// Get git commit information
+	commitInfo, err := git.GetCommitInfo()
+	if err != nil {
+		// Log warning but don't fail the deployment if git info is unavailable
+		log.Printf("Warning: failed to get git commit info: %v", err)
+		commitInfo = &git.CommitInfo{} // Use empty struct
+	}
+
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:     c.opts.WorkspaceID,
-		ProjectId:       c.opts.ProjectID,
-		KeyspaceId:      &c.opts.KeyspaceID,
-		Branch:          c.opts.Branch,
-		SourceType:      ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
-		GitCommitSha:    c.opts.Commit,
-		EnvironmentSlug: c.opts.Environment,
-		DockerImage:     dockerImage,
+		WorkspaceId:              c.opts.WorkspaceID,
+		ProjectId:                c.opts.ProjectID,
+		KeyspaceId:               &c.opts.KeyspaceID,
+		Branch:                   c.opts.Branch,
+		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		EnvironmentSlug:          c.opts.Environment,
+		DockerImage:              dockerImage,
+		GitCommitSha:             commitInfo.SHA,
+		GitCommitMessage:         commitInfo.Message,
+		GitCommitAuthorHandle:    commitInfo.AuthorHandle,
+		GitCommitAuthorAvatarUrl: commitInfo.AuthorAvatarURL,
+		GitCommitTimestamp:       commitInfo.CommitTimestamp,
 	})
 
 	// Use API key for authentication if provided, fallback to auth token

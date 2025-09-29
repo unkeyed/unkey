@@ -127,7 +127,6 @@ export const DeploymentsList = () => {
           <DomainList
             key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
             deploymentId={deployment.id}
-            hackyRevalidateDependency={project?.liveDeploymentId}
           />
         ),
       },
@@ -237,13 +236,13 @@ export const DeploymentsList = () => {
                     <div className="flex gap-3 items-center w-full">
                       <Avatar
                         src={deployment.gitCommitAuthorAvatarUrl}
-                        alt={deployment.gitCommitAuthorUsername ?? "Author"}
+                        alt={deployment.gitCommitAuthorHandle ?? "Author"}
                       />
 
                       <div className="w-[200px]">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-grayA-12 text-xs">
-                            {deployment.gitCommitAuthorUsername}
+                            {deployment.gitCommitAuthorHandle}
                           </span>
                         </div>
                         <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
@@ -283,10 +282,10 @@ export const DeploymentsList = () => {
                   <div className="flex items-center gap-2">
                     <Avatar
                       src={deployment.gitCommitAuthorAvatarUrl}
-                      alt={deployment.gitCommitAuthorUsername ?? "Author"}
+                      alt={deployment.gitCommitAuthorHandle ?? "Author"}
                     />
                     <span className="font-medium text-grayA-12 text-xs">
-                      {deployment.gitCommitAuthorName}
+                      {deployment.gitCommitAuthorHandle}
                     </span>
                   </div>
                 );

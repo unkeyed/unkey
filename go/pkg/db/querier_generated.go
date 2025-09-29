@@ -149,8 +149,7 @@ type Querier interface {
 	//      git_branch,
 	//      runtime_config,
 	//      git_commit_message,
-	//      git_commit_author_name,
-	//      git_commit_author_username,
+	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
 	//      git_commit_timestamp,
 	//      openapi_spec,
@@ -884,8 +883,7 @@ type Querier interface {
 	//      git_branch,
 	//      runtime_config,
 	//      git_commit_message,
-	//      git_commit_author_name,
-	//      git_commit_author_username,
+	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
 	//      git_commit_timestamp, -- Unix epoch milliseconds
 	//      openapi_spec,
@@ -894,7 +892,6 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,

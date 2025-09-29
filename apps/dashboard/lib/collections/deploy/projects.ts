@@ -16,6 +16,7 @@ const schema = z.object({
   commitTitle: z.string(),
   branch: z.string(),
   author: z.string(),
+  authorAvatar: z.string().nullable(),
   commitTimestamp: z.number().int().nullable(),
   regions: z.array(z.string()),
   // Domain field

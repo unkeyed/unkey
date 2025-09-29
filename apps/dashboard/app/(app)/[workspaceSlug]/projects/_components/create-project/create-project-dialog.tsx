@@ -44,6 +44,7 @@ export const CreateProjectDialog = () => {
         updatedAt: null,
         id: "will-be-replace-by-server",
         author: "will-be-replace-by-server",
+        authorAvatar: "will-be-replace-by-server",
         branch: "will-be-replace-by-server",
         commitTimestamp: Date.now(),
         commitTitle: "will-be-replace-by-server",

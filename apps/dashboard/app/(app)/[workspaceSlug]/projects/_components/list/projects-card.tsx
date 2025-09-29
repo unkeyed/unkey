@@ -1,9 +1,10 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { CodeBranch, Cube, User } from "@unkey/icons";
+import { CodeBranch, Cube } from "@unkey/icons";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
+import { Avatar } from "../../[projectId]/details/active-deployment-card/git-avatar";
 import { RegionBadges } from "./region-badges";
 
 type ProjectCardProps = {
@@ -13,6 +14,7 @@ type ProjectCardProps = {
   commitTimestamp?: number | null;
   branch: string;
   author: string;
+  authorAvatar: string | null;
   regions: string[];
   repository?: string;
   actions: ReactNode;
@@ -26,6 +28,7 @@ export const ProjectCard = ({
   commitTimestamp,
   branch,
   author,
+  authorAvatar,
   regions,
   repository,
   actions,
@@ -104,9 +107,7 @@ export const ProjectCard = ({
             <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
           </InfoTooltip>
           <span className="text-xs text-gray-10">by</span>
-          <div className="border border-grayA-6 items-center justify-center rounded-full size-[18px] flex">
-            <User className="text-gray-11 shrink-0" size="sm-regular" />
-          </div>
+          <Avatar alt="Author avatar" src={authorAvatar} />
           <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
             <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">{author}</span>
           </InfoTooltip>
