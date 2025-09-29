@@ -62,7 +62,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmClose = () => {
+  const handleConfirmClose = async () => {
     if (!pendingAction) {
       console.error("No pending action when confirming close");
       return;
@@ -72,13 +72,13 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
 
     try {
       // Always close the dialog first
-      onClose();
+      await Promise.resolve(onClose());
 
       // Then execute the specific action
       switch (pendingAction) {
         case "create-another":
           if (onCreateAnother) {
-            onCreateAnother();
+            await Promise.resolve(onCreateAnother());
           } else {
             console.warn("onCreateAnother callback not provided");
           }
@@ -129,7 +129,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
         onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px] truncate">
+          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px] overflow-auto">
             <div className="py-4 mt-[30px]">
               <div className="flex gap-4">
                 <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
@@ -202,8 +202,8 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             <KeySecretSection
               keyValue={keyData.key}
               apiId={apiId}
-              className="mt-6 w-full truncate"
-              secretKeyClassName="bg-white dark:bg-black truncate"
+              className="mt-6 w-full"
+              secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
               codeClassName="p-0"
             />
             <div className="mt-6">

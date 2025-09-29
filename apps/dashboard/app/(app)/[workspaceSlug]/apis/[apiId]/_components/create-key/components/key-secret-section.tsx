@@ -64,19 +64,27 @@ export const KeySecretSection = ({
       </div>
       <div className="flex flex-col gap-2 items-start w-full mt-8">
         <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
-        <div className="relative min-w-full gap-2 p-[2px]">
+        <div className="relative w-full">
+          <Code
+            className={codeClassName}
+            preClassName="overflow-x-auto p-0 mb-0"
+          >
+            <div className="p-4">
+              {showKeyInSnippet
+                ? snippet
+                : snippet.replace(keyValue, maskedKey)}
+            </div>
+          </Code>
           <VisibleButton
             isVisible={showKeyInSnippet}
             setIsVisible={setShowKeyInSnippet}
-            className="absolute right-12 top-6"
+            className="absolute right-12 top-3 md:top-4"
           />
-          <CopyButton value={snippet} className="absolute right-4 top-6" />
+          <CopyButton
+            value={snippet}
+            className="absolute right-3 md:right-4 top-3 md:top-4"
+          />
         </div>
-        <Code className={codeClassName} preClassName="overflow-x-auto p-0 mb-0">
-          <div className="overflow-auto p-4">
-            {showKeyInSnippet ? snippet : snippet.replace(keyValue, maskedKey)}
-          </div>
-        </Code>
         <Alert variant="warn">
           <div className="flex items-start mb-1 gap-2">
             <CircleInfo
