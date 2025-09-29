@@ -59,6 +59,9 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 
 	// Get the service to retrieve port info
 	service, err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sDeploymentID))
+	}
 	var port int32 = 8080 // default
 	if err == nil && len(service.Spec.Ports) > 0 {
 		port = service.Spec.Ports[0].Port
