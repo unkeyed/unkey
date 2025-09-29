@@ -1,53 +1,56 @@
 ---
-title: Overview
-description: Ratelimit your serverless functions.
-mode: "wide"
+title: Standalone Rate Limiting
+description: Ratelimit your serverless functions using any identifier without requiring API keys
 ---
 
+# Overview
 
-Serverless functions offer a ton of benefits but unfortunately make some things much harder too.
-Ratelimiting is one of these things as it requires some persistent state to coordinate different limits.
+Ratelimit your serverless functions.
 
-Unkey's ratelimit API provides a global low latency solution to limit your functions and protect
-upstream services.
+<Note>
+**Standalone vs Key-Based Rate Limiting**
 
+This documentation covers **standalone rate limiting** - a separate service for protecting serverless functions and upstream services using any identifier (IP, user ID, etc.) without requiring API keys. This is different from Unkey's [key-based rate limiting](/docs/apis/features/ratelimiting/overview), which is attached to specific API keys and checked during key verification.
+
+**Standalone rate limiting** is for:
+- Protecting serverless functions and upstream services
+- Using any identifier (IP address, user ID, session ID, etc.)
+- Independent of API keys - works as a separate service
+- Global low-latency rate limiting with persistent state
+
+**Key-based rate limiting** is for:
+- Rate limits tied to specific API keys
+- Limits checked automatically during key verification
+- Part of your API key management system
+</Note>
+
+Serverless functions offer a ton of benefits but unfortunately make some things much harder too. Ratelimiting is one of these things as it requires some persistent state to coordinate different limits. Unkey's ratelimit API provides a global low latency solution to limit your functions and protect upstream services.
 
 ## Get your API key
 
-<Steps>
-  <Step title="Go to the dashboard">
-    Visit [/app/settings-root-keys/new](https://app.unkey.com/settings/root-keys/new)
-  </Step>
-  <Step title="Enter a name">
-    You can give your key a name to make it easier to find later, but that's optional.
-  </Step>
-  <Step title="Add permissions">
-    Your key needs at least these permissions:
-    - `create_namespace`
-    - `limit`
+### 1. Go to the dashboard
 
-    <Frame>
-    <img src="/ratelimiting/create-root-key-permissions.png"/>
-    </Frame>
+Visit [/app/settings-root-keys/new](https://app.unkey.com/settings/root-keys/new)
 
+### 2. Enter a name
 
-  After selecting both permissions, click `Create New Key` at the bottom of the page and copy the generated key to your `.env` file.
-  For security reasons, this key can not be shown again. In case you lose it, you need to create a new one.
-  <Frame>
+You can give your key a name to make it easier to find later, but that's optional.
 
-      <img src="/ratelimiting/copy-key.png"/>
+### 3. Add permissions
 
-  </Frame>
-  </Step>
+Your key needs at least these permissions:
 
-</Steps>
+- `create_namespace`
+- `limit`
+
+![](https://mintcdn.com/unkey/Gp9TE7mbv_eBZfmw/ratelimiting/create-root-key-permissions.png?fit=max&auto=format&n=Gp9TE7mbv_eBZfmw&q=85&s=f47f8803c02cf2fcd12fa13205a48a07)
+
+After selecting both permissions, click `Create New Key` at the bottom of the page and copy the generated key to your `.env` file. For security reasons, this key can not be shown again. In case you lose it, you need to create a new one.
+
+![](https://mintcdn.com/unkey/Gp9TE7mbv_eBZfmw/ratelimiting/copy-key.png?fit=max&auto=format&n=Gp9TE7mbv_eBZfmw&q=85&s=edd20af4ee51664be149565aa70a1c8e)
 
 ## Ratelimit your functions
 
-<Info>
-We're currently only offering a Typescript SDK but you can check out the [api reference](/api-reference/ratelimits/limit) and do the network call manually if you are using another language.
-Also please let us know what language you're using, so we can prioritize adding support for it.
-</Info>
+We're currently only offering a Typescript SDK but you can check out the [api reference](/docs/api-reference/ratelimits/limit) and do the network call manually if you are using another language. Also please let us know what language you're using, so we can prioritize adding support for it.
 
-
-Please follow the [@unkey/ratelimit](/libraries/ts/ratelimit) documentation for setup and configuration options.
+Please follow the [@unkey/ratelimit](/docs/libraries/ts/ratelimit) documentation for setup and configuration options.
