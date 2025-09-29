@@ -1,0 +1,206 @@
+---
+title: Kafka configuration
+description: Configure Kafka for distributed cache invalidation across API nodes
+---
+
+Kafka configuration enables distributed cache invalidation across multiple Unkey API nodes, ensuring cache consistency in horizontally scaled deployments.
+
+## Environment variables
+
+### UNKEY_KAFKA_BROKERS
+
+**Required for distributed cache invalidation**
+
+Comma-separated list of Kafka broker addresses for cache invalidation event streaming.
+
+```bash
+UNKEY_KAFKA_BROKERS="kafka1:9092,kafka2:9092,kafka3:9092"
+```
+
+**Examples:**
+
+Single broker (development):
+```bash
+UNKEY_KAFKA_BROKERS="localhost:9092"
+```
+
+Multiple brokers (production):
+```bash
+UNKEY_KAFKA_BROKERS="kafka-1.example.com:9092,kafka-2.example.com:9092,kafka-3.example.com:9092"
+```
+
+Docker Compose:
+```bash
+UNKEY_KAFKA_BROKERS="kafka:9092"
+```
+
+### UNKEY_CACHE_INVALIDATION_TOPIC
+
+**Optional**
+
+Kafka topic name for cache invalidation events. Defaults to `cache-invalidations` if not specified.
+
+```bash
+UNKEY_CACHE_INVALIDATION_TOPIC="cache-invalidations"
+```
+
+**Custom topic example:**
+```bash
+UNKEY_CACHE_INVALIDATION_TOPIC="unkey-cache-events"
+```
+
+## Behavior
+
+### When Kafka is configured
+
+With `UNKEY_KAFKA_BROKERS` set:
+- Cache operations (`Set`, `SetNull`, `Remove`) broadcast invalidation events
+- All nodes consume events and invalidate their local caches
+- Ensures cache consistency across the cluster
+- Provides debug headers for cache monitoring
+
+### When Kafka is not configured
+
+Without `UNKEY_KAFKA_BROKERS`:
+- Falls back to local-only caching
+- No distributed invalidation occurs
+- Each node maintains independent cache state
+- Suitable for single-node deployments or testing
+
+## Topic management
+
+### Automatic topic creation
+
+If the configured topic doesn't exist, Unkey will attempt to create it automatically with:
+- **Partitions**: 1 (sufficient for cache invalidation events)
+- **Replication factor**: 1 (should be increased for production)
+
+### Manual topic creation
+
+For production environments, create the topic manually:
+
+```bash
+kafka-topics.sh --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 \
+  --create \
+  --topic cache-invalidations \
+  --partitions 1 \
+  --replication-factor 3
+```
+
+## Production considerations
+
+### High availability
+
+Use multiple Kafka brokers with proper replication:
+
+```bash
+# Minimum 3 brokers for production
+UNKEY_KAFKA_BROKERS="kafka-1:9092,kafka-2:9092,kafka-3:9092"
+```
+
+### Security
+
+Configure authentication and encryption:
+
+```bash
+# Example with SASL/SCRAM authentication
+UNKEY_KAFKA_BROKERS="kafka-1:9093,kafka-2:9093,kafka-3:9093"
+UNKEY_KAFKA_SECURITY_PROTOCOL="SASL_SSL"
+UNKEY_KAFKA_SASL_MECHANISM="SCRAM-SHA-256"
+UNKEY_KAFKA_SASL_USERNAME="unkey-api"
+UNKEY_KAFKA_SASL_PASSWORD="secure-password"
+```
+
+<Callout type="info">
+Security configuration environment variables are planned for future releases. Currently, only plaintext connections are supported.
+</Callout>
+
+### Monitoring
+
+Monitor Kafka cluster health and cache invalidation metrics:
+
+- **Kafka broker availability**: Ensure all brokers are accessible
+- **Topic lag**: Monitor consumer lag for cache invalidation events
+- **Event volume**: Track invalidation event frequency
+- **Cache hit rates**: Use debug headers to monitor cache performance
+
+## Troubleshooting
+
+### Connection issues
+
+**Broker unreachable:**
+```
+Failed to connect to Kafka broker: kafka1:9092
+```
+
+Solutions:
+- Verify broker addresses and ports
+- Check network connectivity between API nodes and Kafka
+- Ensure Kafka brokers are running and healthy
+
+**Topic creation failed:**
+```
+Failed to create topic: cache-invalidations
+```
+
+Solutions:
+- Create topic manually with appropriate permissions
+- Verify Kafka user has topic creation permissions
+- Check Kafka cluster configuration
+
+### Performance issues
+
+**High invalidation latency:**
+- Check Kafka broker performance and disk I/O
+- Monitor network latency between nodes and Kafka
+- Consider increasing Kafka broker resources
+
+**Excessive cache misses:**
+- May indicate over-aggressive invalidation
+- Review cache freshness/staleness windows
+- Monitor invalidation event frequency
+
+## Development setup
+
+### Docker Compose
+
+Add Kafka to your development environment:
+
+```yaml
+services:
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@localhost:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+
+  api:
+    environment:
+      UNKEY_KAFKA_BROKERS: "kafka:9092"
+    depends_on:
+      kafka:
+        condition: service_started
+```
+
+### Local testing
+
+Test cache invalidation locally:
+
+1. Start multiple API nodes with the same Kafka configuration
+2. Perform cache-modifying operations on one node
+3. Verify cache invalidation propagates to other nodes
+4. Monitor debug headers for cache status
+
+## Related documentation
+
+- [Distributed cache invalidation](/apis/features/distributed-cache-invalidation) - Complete feature overview
+- [Security overview](/security/overview) - General security considerations
