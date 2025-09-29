@@ -150,6 +150,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 					Spec: corev1.PodSpec{
 						RestartPolicy: corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
+
 							corev1.Container{
 								Name:  "todo",
 								Image: req.Msg.GetDeployment().GetImage(),
@@ -181,6 +182,12 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		}, metav1.CreateOptions{})
 
 	if err != nil {
+		k.logger.Info("Deleting service, because deployment creation failed")
+		// Delete service
+		if rollbackErr := k.clientset.CoreV1().Services(req.Msg.GetDeployment().GetNamespace()).Delete(ctx, service.Name, metav1.DeleteOptions{}); rollbackErr != nil {
+			k.logger.Error("Failed to delete service", "error", rollbackErr.Error())
+		}
+
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create deployment: %w", err))
 	}
 
