@@ -2,7 +2,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
+import {
+  type FC,
+  type PropsWithChildren,
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type ActionComponentProps = {
   isOpen: boolean;
@@ -157,11 +164,14 @@ export const TableActionPopover = ({
 
 export const TableActionPopoverDefaultTrigger = forwardRef<
   HTMLButtonElement,
-  { onClick?: (e: React.MouseEvent) => void } & React.ComponentProps<typeof Button> &
+  { onClick?: (e: React.MouseEvent) => void } & React.ComponentProps<
+    typeof Button
+  > &
     ReactLoadableProps
 >(({ onClick, ...props }, ref) => {
   // Filter out React Loadable props that shouldn't be passed to DOM elements
-  const { isLoading, pastDelay, timedOut, retry, error, ...buttonProps } = props;
+  const { isLoading, pastDelay, timedOut, retry, error, ...buttonProps } =
+    props;
 
   return (
     <Button
@@ -171,9 +181,13 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
       onClick={onClick}
       {...buttonProps}
     >
-      <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      <Dots
+        className="group-hover:text-gray-12 text-gray-11"
+        iconsize="sm-regular"
+      />
     </Button>
   );
 });
 
-TableActionPopoverDefaultTrigger.displayName = "TableActionPopoverDefaultTrigger";
+TableActionPopoverDefaultTrigger.displayName =
+  "TableActionPopoverDefaultTrigger";

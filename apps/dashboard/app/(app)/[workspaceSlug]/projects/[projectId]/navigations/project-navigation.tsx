@@ -45,8 +45,15 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
+          <Navbar.Breadcrumbs.Link href={basePath}>
+            Projects
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href="#"
+            isIdentifier
+            className="group max-md:hidden"
+            noop
+          >
             <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -60,7 +67,9 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube />}>
-        <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={basePath}>
+          Projects
+        </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
           href={`${basePath}/${activeProject.id}`}
           isIdentifier
@@ -88,7 +97,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
         {activeProject.gitRepositoryUrl && (
           <>
             <div className="text-gray-11 text-xs flex items-center gap-2.5">
-              <Refresh3 className="text-gray-12" size="sm-regular" />
+              <Refresh3 className="text-gray-12" iconsize="sm-regular" />
               <span>Auto-deploys from pushes to </span>
               <RepoDisplay
                 url={activeProject.gitRepositoryUrl}

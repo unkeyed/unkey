@@ -7,7 +7,10 @@ type CopyableIDButtonProps = {
   className?: string;
 };
 
-export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProps) => {
+export const CopyableIDButton = ({
+  value,
+  className = "",
+}: CopyableIDButtonProps) => {
   const textRef = useRef<HTMLDivElement>(null);
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const copyButtonRef = useRef<HTMLButtonElement>(null);
@@ -65,14 +68,16 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
   };
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-mono font-medium ph-no-capture h-7 bg-grayA-2 hover:bg-grayA-3 w-[190px] border border-grayA-6 cursor-pointer transition-colors ${className}`}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      aria-label="Copy ID to clipboard"
     >
       <div className="flex gap-2 items-center justify-between w-full min-w-0 px-2">
         <div ref={textRef} className="select-text truncate min-w-0 flex-1">
@@ -86,6 +91,6 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           className="pointer-events-none flex-shrink-0"
         />
       </div>
-    </button>
+    </div>
   );
 };
