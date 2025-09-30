@@ -11,13 +11,7 @@ import { formatNumber } from "@/lib/fmt";
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  ReferenceArea,
-  ResponsiveContainer,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 import { createTimeIntervalFormatter } from "../overview-charts/utils";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
@@ -125,22 +119,12 @@ export function LogsTimeseriesBarChart({
     if (!enableSelection) {
       return;
     }
-    if (
-      selection.start !== undefined &&
-      selection.end !== undefined &&
-      onSelectionChange
-    ) {
-      if (
-        selection.startTimestamp === undefined ||
-        selection.endTimestamp === undefined
-      ) {
+    if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
+      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
         return;
       }
 
-      const [start, end] = [
-        selection.startTimestamp,
-        selection.endTimestamp,
-      ].sort((a, b) => a - b);
+      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
       onSelectionChange({ start, end });
     }
     setSelection({
@@ -165,7 +149,7 @@ export function LogsTimeseriesBarChart({
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now()
+              data.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time) => (
               <div key={time.getTime()} className="z-10">
                 {formatTimestampLabel(time)}
@@ -173,11 +157,7 @@ export function LogsTimeseriesBarChart({
             ))
           : null}
       </div>
-      <ResponsiveContainer
-        width="100%"
-        height={height}
-        className="border-b border-gray-4"
-      >
+      <ResponsiveContainer width="100%" height={height} className="border-b border-gray-4">
         <ChartContainer config={config}>
           <BarChart
             data={data}
@@ -200,11 +180,7 @@ export function LogsTimeseriesBarChart({
                 strokeOpacity: 0.7,
               }}
               content={({ active, payload, label }) => {
-                if (
-                  !active ||
-                  !payload?.length ||
-                  payload?.[0]?.payload.total === 0
-                ) {
+                if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
                   return null;
                 }
 
@@ -222,9 +198,7 @@ export function LogsTimeseriesBarChart({
                               <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                 All
                               </span>
-                              <span className="capitalize text-accent-12 text-xs">
-                                Total
-                              </span>
+                              <span className="capitalize text-accent-12 text-xs">Total</span>
                             </div>
                             <div className="ml-auto">
                               <span className="font-mono tabular-nums text-accent-12">
@@ -240,36 +214,25 @@ export function LogsTimeseriesBarChart({
                       createTimeIntervalFormatter(
                         data,
                         undefined,
-                        granularity
-                      )(
-                        (payload ?? []).map(
-                          (p) => (p as { payload: TimeseriesData }).payload
-                        )
-                      )
+                        granularity,
+                      )((payload ?? []).map((p) => (p as { payload: TimeseriesData }).payload))
                     }
                   />
                 );
               }}
             />
             {Object.keys(config).map((key) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                stackId="a"
-                fill={config[key].color}
-              />
+              <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
             ))}
-            {enableSelection &&
-              selection.start !== undefined &&
-              selection.end !== undefined && (
-                <ReferenceArea
-                  isAnimationActive
-                  x1={Math.min(selection.start, selection.end)}
-                  x2={Math.max(selection.start, selection.end)}
-                  fill="hsl(var(--chart-selection))"
-                  radius={[4, 4, 0, 0]}
-                />
-              )}
+            {enableSelection && selection.start !== undefined && selection.end !== undefined && (
+              <ReferenceArea
+                isAnimationActive
+                x1={Math.min(selection.start, selection.end)}
+                x2={Math.max(selection.start, selection.end)}
+                fill="hsl(var(--chart-selection))"
+                radius={[4, 4, 0, 0]}
+              />
+            )}
           </BarChart>
         </ChartContainer>
       </ResponsiveContainer>
