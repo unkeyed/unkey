@@ -296,8 +296,9 @@ func (x *AuthConfig) GetKeyAuthId() string {
 
 // Request validation middleware configuration
 type ValidationConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OpenapiSpec   string                 `protobuf:"bytes,1,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Base64 standard encoding of the OpenAPI specification or empty string if not available
+	OpenapiSpec   string `protobuf:"bytes,1,opt,name=openapi_spec,json=openapiSpec,proto3" json:"openapi_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

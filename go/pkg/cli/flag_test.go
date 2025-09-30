@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -183,6 +184,90 @@ func TestFloatFlag_ValidationOnEnvVar(t *testing.T) {
 	}()
 
 	Float("rate", "rate flag", EnvVar("INVALID_RANGE"), Validate(validateRange))
+}
+
+func TestDurationFlag_BasicParsing(t *testing.T) {
+	flag := Duration("timeout", "timeout flag")
+	err := flag.Parse("5m30s")
+	require.NoError(t, err)
+	require.Equal(t, time.Duration(5*time.Minute+30*time.Second), flag.Value())
+	require.True(t, flag.IsSet())
+	require.True(t, flag.HasValue())
+}
+
+func TestDurationFlag_InvalidDuration(t *testing.T) {
+	flag := Duration("timeout", "timeout flag")
+	err := flag.Parse("invalid-duration")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "validation failed")
+}
+
+func TestDurationFlag_WithDefault(t *testing.T) {
+	flag := Duration("timeout", "timeout flag", Default(time.Hour))
+	require.Equal(t, time.Hour, flag.Value())
+	require.False(t, flag.IsSet())
+	require.True(t, flag.HasValue())
+}
+
+func TestDurationFlag_ZeroValue(t *testing.T) {
+	flag := Duration("timeout", "timeout flag")
+	require.Equal(t, time.Duration(0), flag.Value())
+	require.False(t, flag.IsSet())
+	require.False(t, flag.HasValue())
+}
+
+func TestDurationFlag_WithEnvVar(t *testing.T) {
+	os.Setenv("TEST_DURATION", "2h30m")
+	defer os.Unsetenv("TEST_DURATION")
+
+	flag := Duration("timeout", "timeout flag", EnvVar("TEST_DURATION"))
+	require.Equal(t, time.Duration(2*time.Hour+30*time.Minute), flag.Value())
+	require.False(t, flag.IsSet())
+	require.True(t, flag.HasValue())
+}
+
+func TestDurationFlag_CommandOverridesEnv(t *testing.T) {
+	os.Setenv("TEST_DURATION", "1h")
+	defer os.Unsetenv("TEST_DURATION")
+
+	flag := Duration("timeout", "timeout flag", EnvVar("TEST_DURATION"))
+	err := flag.Parse("30m")
+	require.NoError(t, err)
+	require.Equal(t, time.Duration(30*time.Minute), flag.Value())
+	require.True(t, flag.IsSet())
+}
+
+func TestDurationFlag_ValidationOnEnvVar(t *testing.T) {
+	os.Setenv("INVALID_DURATION", "not-a-duration")
+	defer os.Unsetenv("INVALID_DURATION")
+
+	exitCode, exitCalled, cleanup := mockExit()
+	defer cleanup()
+
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Expected panic from mocked Exit")
+		require.Equal(t, "exit called", r)
+		require.True(t, *exitCalled, "Exit should have been called")
+		require.Equal(t, 1, *exitCode, "Exit code should be 1")
+	}()
+
+	Duration("timeout", "timeout flag", EnvVar("INVALID_DURATION"))
+}
+
+func TestCommand_Duration_Integration(t *testing.T) {
+	cmd := &Command{
+		Name: "test",
+		Flags: []Flag{
+			Duration("timeout", "timeout for operation", Default(time.Minute*5)),
+		},
+	}
+
+	err := cmd.parse(context.Background(), []string{"--timeout", "2h30m"})
+	require.NoError(t, err)
+
+	duration := cmd.Duration("timeout")
+	require.Equal(t, time.Duration(2*time.Hour+30*time.Minute), duration)
 }
 
 func TestStringSliceFlag_CommaSeparated(t *testing.T) {
