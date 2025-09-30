@@ -5,7 +5,11 @@ import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
+import {
+  DomainRow,
+  DomainRowEmpty,
+  DomainRowSkeleton,
+} from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProjectLayout } from "./layout-provider";
 
@@ -23,8 +27,10 @@ export default function ProjectDetails() {
     (q) =>
       q
         .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, project?.liveDeploymentId)),
-    [project?.liveDeploymentId],
+        .where(({ domain }) =>
+          eq(domain.deploymentId, project?.liveDeploymentId)
+        ),
+    [project?.liveDeploymentId]
   );
 
   return (
@@ -37,10 +43,12 @@ export default function ProjectDetails() {
       <div className="max-w-[960px] flex flex-col w-full mt-4 gap-5">
         <Section>
           <SectionHeader
-            icon={<Cloud size="md-regular" className="text-gray-9" />}
+            icon={<Cloud iconsize="md-regular" className="text-gray-9" />}
             title="Active Deployment"
           />
-          <ActiveDeploymentCard deploymentId={project?.liveDeploymentId ?? null} />
+          <ActiveDeploymentCard
+            deploymentId={project?.liveDeploymentId ?? null}
+          />
         </Section>
         <Section>
           <SectionHeader
@@ -54,7 +62,9 @@ export default function ProjectDetails() {
                 <DomainRowSkeleton />
               </>
             ) : domains?.length > 0 ? (
-              domains.map((domain) => <DomainRow key={domain.id} domain={domain.domain} />)
+              domains.map((domain) => (
+                <DomainRow key={domain.id} domain={domain.domain} />
+              ))
             ) : (
               <DomainRowEmpty />
             )}
