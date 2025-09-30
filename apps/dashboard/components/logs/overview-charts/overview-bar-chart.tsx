@@ -1,7 +1,9 @@
 "use client";
 
+import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { formatTooltipInterval } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -9,13 +11,15 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
+import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { parseTimestamp } from "../parseTimestamp";
+
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-import { createTimeIntervalFormatter } from "./utils";
 
 type ChartTooltipItem = {
   label: string;
@@ -40,6 +44,7 @@ type OverviewBarChartProps = {
   labels: ChartLabels;
   tooltipItems?: ChartTooltipItem[];
   onMount?: (distanceToTop: number) => void;
+  granularity?: CompoundTimeseriesGranularity;
 };
 
 export function OverviewBarChart({
@@ -52,9 +57,26 @@ export function OverviewBarChart({
   labels,
   tooltipItems = [],
   onMount,
+  granularity,
 }: OverviewBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  // Precompute timestamp-to-index mapping for O(1) lookup
+  const timestampToIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    if (data?.length) {
+      data.forEach((item, index) => {
+        if (item?.originalTimestamp) {
+          const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
+          if (Number.isFinite(normalizedTimestamp)) {
+            map.set(normalizedTimestamp, index);
+          }
+        }
+      });
+    }
+    return map;
+  }, [data]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
@@ -64,9 +86,8 @@ export function OverviewBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  // biome-ignore lint/suspicious/noExplicitAny: safe to leave
-  const handleMouseDown = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseDown = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
@@ -78,16 +99,16 @@ export function OverviewBarChart({
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: safe to leave
-  const handleMouseMove = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseMove = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     if (selection.start) {
       const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      const activeLabel = e.activeLabel;
       setSelection((prev) => ({
         ...prev,
-        end: e.activeLabel,
+        end: activeLabel,
         endTimestamp: timestamp,
       }));
     }
@@ -251,13 +272,15 @@ export function OverviewBarChart({
                         </div>
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(_, tooltipPayload) =>
-                        createTimeIntervalFormatter(
-                          data,
-                          "HH:mm",
-                          //@ts-expect-error safe to ignore for now
-                        )(tooltipPayload)
-                      }
+                      labelFormatter={(_, tooltipPayload) => {
+                        const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                        return formatTooltipInterval(
+                          payloadTimestamp,
+                          data || [],
+                          granularity,
+                          timestampToIndexMap,
+                        );
+                      }}
                     />
                   );
                 }}

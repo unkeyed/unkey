@@ -1,9 +1,36 @@
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format, fromUnixTime } from "date-fns";
 
+// Memoization cache with bounded size
+const formatCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
+
+// Memoized format function
+const memoizedFormat = (date: Date, formatString: string): string => {
+  const cacheKey = `${date.getTime()}-${formatString}`;
+
+  const cachedValue = formatCache.get(cacheKey);
+  if (cachedValue !== undefined) {
+    return cachedValue;
+  }
+
+  const formattedValue = format(date, formatString);
+
+  // Evict oldest entries if cache is full
+  if (formatCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = formatCache.keys().next().value;
+    if (firstKey !== undefined) {
+      formatCache.delete(firstKey);
+    }
+  }
+
+  formatCache.set(cacheKey, formattedValue);
+  return formattedValue;
+};
+
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
   const date = new Date(timestamp);
-  return format(date, "MMM dd, h:mma").toUpperCase();
+  return memoizedFormat(date, "MMM dd, h:mm a").toUpperCase();
 };
 
 export const formatTimestampForChart = (
@@ -14,29 +41,29 @@ export const formatTimestampForChart = (
 
   switch (granularity) {
     case "perMinute":
-      return format(localDate, "HH:mm:ss");
+      return memoizedFormat(localDate, "h:mm:ss a");
     case "per5Minutes":
     case "per15Minutes":
     case "per30Minutes":
-      return format(localDate, "HH:mm");
+      return memoizedFormat(localDate, "h:mm a");
     case "perHour":
     case "per2Hours":
     case "per4Hours":
     case "per6Hours":
-      return format(localDate, "MMM d, HH:mm");
+      return memoizedFormat(localDate, "MMM d, h:mm a");
     case "perDay":
-      return format(localDate, "MMM d");
+      return memoizedFormat(localDate, "MMM d");
 
     case "per12Hours":
-      return format(localDate, "MMM d, HH:mm");
+      return memoizedFormat(localDate, "MMM d, h:mm a");
     case "per3Days":
-      return format(localDate, "MMM d");
+      return memoizedFormat(localDate, "MMM d");
     case "perWeek":
-      return format(localDate, "MMM d");
+      return memoizedFormat(localDate, "MMM d");
     case "perMonth":
-      return format(localDate, "MMM yyyy");
+      return memoizedFormat(localDate, "MMM yyyy");
     default:
-      return format(localDate, "Pp");
+      return memoizedFormat(localDate, "Pp");
   }
 };
 
@@ -51,6 +78,18 @@ const isUnixMicro = (unix: string | number): boolean => {
 };
 
 export const formatTimestampTooltip = (value: string | number) => {
-  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return format(date, "MMM dd HH:mm:ss");
+  // Coerce numeric strings to numbers to prevent Invalid Date
+  const parsed = typeof value === "string" ? Number(value) : value;
+
+  let date: Date;
+  if (isUnixMicro(parsed)) {
+    date = unixMicroToDate(parsed);
+  } else if (typeof parsed === "number") {
+    date = new Date(parsed);
+  } else {
+    // Fallback for non-numeric strings
+    date = new Date(String(value));
+  }
+
+  return memoizedFormat(date, "MMM dd, h:mm:ss a");
 };
