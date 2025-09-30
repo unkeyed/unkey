@@ -302,11 +302,11 @@ export default function DiffPage({ params }: Props) {
             <div className="border-b border-border p-6">
               <h3 className="text-lg font-semibold text-content">Diff Results</h3>
               <p className="text-content-subtle mt-1">
-                {diffData.diff.changes?.length || 0} changes detected
+                {diffData.changes?.length || 0} changes detected
               </p>
             </div>
             <div className="p-6">
-              <DiffViewer diffData={diffData.diff} />
+              <DiffViewer changelog={diffData.changes} />
             </div>
           </div>
         )}

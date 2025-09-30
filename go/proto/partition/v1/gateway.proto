@@ -42,5 +42,6 @@ message AuthConfig {
 
 // Request validation middleware configuration
 message ValidationConfig {
+  // Base64 standard encoding of the OpenAPI specification or empty string if not available
   string openapi_spec = 1;
 }

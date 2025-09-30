@@ -310,6 +310,8 @@ func Required() FlagOption {
 			flag.required = true
 		case *StringSliceFlag:
 			flag.required = true
+		case *DurationFlag:
+			flag.required = true
 		}
 	}
 }
@@ -330,6 +332,8 @@ func EnvVar(envVar string) FlagOption {
 			flag.envVar = envVar
 		case *StringSliceFlag:
 			flag.envVar = envVar
+		case *DurationFlag:
+			flag.envVar = envVar
 		}
 	}
 }
@@ -349,6 +353,8 @@ func Validate(fn ValidateFunc) FlagOption {
 		case *FloatFlag:
 			flag.validate = fn
 		case *StringSliceFlag:
+			flag.validate = fn
+		case *DurationFlag:
 			flag.validate = fn
 		}
 	}
@@ -395,6 +401,12 @@ func Default(value any) FlagOption {
 			} else {
 				err = fmt.Errorf("default value for string slice flag '%s' must be []string, got %T", flag.name, value)
 			}
+		case *DurationFlag:
+			if v, ok := value.(time.Duration); ok {
+				flag.value = v
+			} else {
+				err = fmt.Errorf("default value for duration flag '%s' must be time.Duration, got %T", flag.name, value)
+			}
 		}
 
 		if err != nil {
@@ -438,7 +450,7 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 	return flag
 }
 
-// Duration creates a new string flag with optional configuration
+// Duration creates a new duration flag with optional configuration
 func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 	flag := &DurationFlag{
 		baseFlag: baseFlag{
@@ -446,7 +458,7 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 			usage:    usage,
 			required: false, // Default to not required
 		},
-		value: 0, // Default to empty string
+		value: time.Duration(0), // Default to false
 	}
 
 	// Apply options
@@ -457,6 +469,11 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 	// Check environment variable for default value if specified
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
+			parsed, err := time.ParseDuration(envValue)
+			if err != nil {
+				Exit(fmt.Sprintf("Environment variable error: invalid duration value in %s=%q: %v",
+					flag.envVar, envValue, err), 1)
+			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
@@ -464,17 +481,11 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 						flag.envVar, envValue, err), 1)
 				}
 			}
-			var err error
-			flag.value, err = time.ParseDuration(envValue)
-			if err != nil {
-				Exit(fmt.Sprintf("Environment variable error: parsing duration failed for %s=%q: %v",
-					flag.envVar, envValue, err), 1)
-			}
+			flag.value = parsed
 			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
 		}
 	}
-
 	return flag
 }
 

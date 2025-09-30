@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangelogEntry } from "@unkey/proto";
 import {
   AlertTriangle,
   BarChart3,
@@ -20,10 +21,8 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
-import type { DiffChange, DiffData } from "../types";
-
 interface DiffViewerProps {
-  diffData: DiffData;
+  changelog: ChangelogEntry[];
   fromDeployment?: string;
   toDeployment?: string;
 }
@@ -31,12 +30,12 @@ interface DiffViewerProps {
 type ViewMode = "changes" | "side-by-side" | "timeline";
 
 export const DiffViewer: React.FC<DiffViewerProps> = ({
-  diffData,
+  changelog,
   fromDeployment = "v1",
   toDeployment = "v2",
 }) => {
   // Early return if no diffData
-  if (!diffData) {
+  if (!changelog) {
     return (
       <div className="p-8 text-center">
         <AlertTriangle className="w-12 h-12 text-warn mx-auto mb-4" />
@@ -62,22 +61,20 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
   // Statistics
   const stats = useMemo(() => {
-    const changes = diffData?.changes || [];
-    const breaking = changes.filter((c) => c.level === 3).length;
-    const warning = changes.filter((c) => c.level === 2).length;
-    const info = changes.filter((c) => c.level === 1).length;
-    const total = changes.length;
+    const breaking = changelog.filter((c) => c.level === 3).length;
+    const warning = changelog.filter((c) => c.level === 2).length;
+    const info = changelog.filter((c) => c.level === 1).length;
+    const total = changelog.length;
 
-    const operations = [...new Set(changes.map((c) => c.operation))];
-    const paths = [...new Set(changes.map((c) => c.path))];
+    const operations = [...new Set(changelog.map((c) => c.operation))];
+    const paths = [...new Set(changelog.map((c) => c.path))];
 
     return { breaking, warning, info, total, operations, paths };
-  }, [diffData?.changes]);
+  }, [changelog]);
 
   // Filter changes
   const filteredChanges = useMemo(() => {
-    const changes = diffData?.changes || [];
-    return changes.filter((change) => {
+    return changelog.filter((change) => {
       if (filters.level !== null && change.level !== filters.level) {
         return false;
       }
@@ -94,11 +91,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
       }
       return true;
     });
-  }, [diffData?.changes, filters]);
+  }, [changelog, filters]);
 
   // Group changes by path and operation
   const groupedChanges = useMemo(() => {
-    const grouped: Record<string, Record<string, DiffChange[]>> = {};
+    const grouped: Record<string, Record<string, ChangelogEntry[]>> = {};
 
     filteredChanges.forEach((change) => {
       if (!grouped[change.path]) {
@@ -186,7 +183,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
         }
       },
       {
-        "name": "offset", 
+        "name": "offset",
         "in": "query",
         "schema": {
           "type": "integer",
@@ -224,7 +221,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     "parameters": [
       {
         "name": "pageSize",
-        "in": "query", 
+        "in": "query",
         "schema": {
           "type": "integer",
           "default": 10
@@ -234,7 +231,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
         "name": "page",
         "in": "query",
         "schema": {
-          "type": "integer", 
+          "type": "integer",
           "default": 1
         }
       },
@@ -375,7 +372,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
           {selectedPath && selectedOperation && (
             <div className="flex items-center space-x-2 text-sm text-content-subtle">
               <span
-                className={`px-2 py-1 rounded text-xs font-medium ${getOperationColor(selectedOperation)}`}
+                className={`px-2 py-1 rounded text-xs font-medium ${getOperationColor(
+                  selectedOperation,
+                )}`}
               >
                 {selectedOperation}
               </span>
@@ -413,7 +412,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 <FileText className="w-4 h-4 text-content-subtle" />
                 <span className="font-mono text-sm text-content">{selectedPath}</span>
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${getOperationColor(selectedOperation)}`}
+                  className={`px-2 py-1 rounded text-xs font-medium ${getOperationColor(
+                    selectedOperation,
+                  )}`}
                 >
                   {selectedOperation}
                 </span>
@@ -454,7 +455,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
             <div className="mt-4 p-3 bg-background-subtle rounded-lg border-l-4 border-l-brand">
               <h4 className="text-sm font-medium text-content mb-2">Changes for this endpoint:</h4>
               <div className="space-y-1 text-sm">
-                {(diffData?.changes || [])
+                {changelog
                   .filter((c) => c.path === selectedPath && c.operation === selectedOperation)
                   .map((change, _index) => (
                     <div
@@ -525,7 +526,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 <div className="flex-1 bg-background-subtle rounded-lg p-4 hover:bg-gray-100 transition-colors cursor-pointer">
                   <div className="flex items-center space-x-2 mb-2">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium border ${getOperationColor(change.operation)}`}
+                      className={`px-2 py-1 rounded text-xs font-medium border ${getOperationColor(
+                        change.operation,
+                      )}`}
                     >
                       {change.operation}
                     </span>
@@ -546,14 +549,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                     {getChangeIcon(change.id)}
                   </div>
                   <p className="text-content text-sm mb-2">{change.text}</p>
-                  {change.comment && (
+                  {change.text && (
                     <p className="text-xs text-content-subtle italic bg-background p-2 rounded">
-                      {change.comment}
+                      {change.text}
                     </p>
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <div className="text-xs text-content-subtle">
-                      ID: {change.id} • Section: {change.section}
+                      ID: {change.id} • Section: {change.id}
                     </div>
                     <button
                       type="button"
@@ -706,7 +709,10 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                           type="text"
                           value={filters.searchQuery}
                           onChange={(e) =>
-                            setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
+                            setFilters((prev) => ({
+                              ...prev,
+                              searchQuery: e.target.value,
+                            }))
                           }
                           placeholder="Search changes..."
                           className="w-full pl-10 pr-4 py-2 border border-border rounded-md text-sm bg-background text-content focus:ring-2 focus:ring-brand focus:border-brand"
@@ -714,7 +720,12 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                         {filters.searchQuery && (
                           <button
                             type="button"
-                            onClick={() => setFilters((prev) => ({ ...prev, searchQuery: "" }))}
+                            onClick={() =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                searchQuery: "",
+                              }))
+                            }
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-background-subtle rounded p-1"
                           >
                             <X className="w-4 h-4 text-content-subtle hover:text-content" />
@@ -759,7 +770,10 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                         id="http-method"
                         value={filters.operation}
                         onChange={(e) =>
-                          setFilters((prev) => ({ ...prev, operation: e.target.value }))
+                          setFilters((prev) => ({
+                            ...prev,
+                            operation: e.target.value,
+                          }))
                         }
                         className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background text-content focus:ring-2 focus:ring-brand focus:border-brand"
                       >
@@ -778,7 +792,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          setFilters({ level: null, operation: "all", searchQuery: "" })
+                          setFilters({
+                            level: null,
+                            operation: "all",
+                            searchQuery: "",
+                          })
                         }
                         className="w-full px-3 py-2 text-sm text-content-subtle border border-border rounded-md hover:bg-background-subtle transition-colors"
                       >
@@ -803,7 +821,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          setFilters({ level: null, operation: "all", searchQuery: "" })
+                          setFilters({
+                            level: null,
+                            operation: "all",
+                            searchQuery: "",
+                          })
                         }
                         className="mt-4 px-4 py-2 bg-brand text-brand-foreground rounded-md hover:bg-brand/90 transition-colors"
                       >
@@ -839,7 +861,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                               {Object.keys(operations).map((op) => (
                                 <span
                                   key={op}
-                                  className={`px-2 py-1 rounded text-xs font-medium ${getOperationColor(op)}`}
+                                  className={`px-2 py-1 rounded text-xs font-medium ${getOperationColor(
+                                    op,
+                                  )}`}
                                 >
                                   {op}
                                 </span>
@@ -869,7 +893,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                 >
                                   <div className="flex items-center space-x-2 mb-3">
                                     <span
-                                      className={`px-3 py-1 rounded text-xs font-medium ${getOperationColor(operation)}`}
+                                      className={`px-3 py-1 rounded text-xs font-medium ${getOperationColor(
+                                        operation,
+                                      )}`}
                                     >
                                       {operation}
                                     </span>
@@ -885,7 +911,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                         key={`${change.path}-${change.operation}-${change.id}-${index}`}
                                         className={`p-3 rounded-r-lg cursor-pointer transition-all duration-200 text-left w-full ${getSeverityColor(
                                           change.level,
-                                        )} ${selectedChange === `${change.id}-${index}` ? "ring-2 ring-brand shadow-md" : ""}`}
+                                        )} ${
+                                          selectedChange === `${change.id}-${index}`
+                                            ? "ring-2 ring-brand shadow-md"
+                                            : ""
+                                        }`}
                                         onClick={() =>
                                           setSelectedChange(
                                             selectedChange === `${change.id}-${index}`
@@ -903,9 +933,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                             <p className="text-sm text-content font-medium mb-1">
                                               {change.text}
                                             </p>
-                                            {change.comment && (
+                                            {change.text && (
                                               <p className="text-xs text-content-subtle italic bg-background/70 p-2 rounded border-l-2 border-gray-300">
-                                                💡 {change.comment}
+                                                💡 {change.text}
                                               </p>
                                             )}
                                             <div className="flex items-center justify-between mt-3">
@@ -913,7 +943,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                                                 <span className="font-mono bg-gray-200 px-2 py-1 rounded">
                                                   ID: {change.id}
                                                 </span>
-                                                <span>Section: {change.section}</span>
+                                                <span>Section: {change.id}</span>
                                               </div>
                                               <button
                                                 type="button"
