@@ -9,7 +9,10 @@ export async function POST(request: Request) {
     const currentToken = request.headers.get("x-current-token");
     if (!currentToken) {
       console.error("Session refresh failed: no current token");
-      return Response.json({ success: false, error: "Failed to refresh session" }, { status: 401 });
+      return Response.json(
+        { success: false, error: "Failed to refresh session" },
+        { status: 401 }
+      );
     }
     // Call refreshSession logic here and get new token
     const { newToken, expiresAt } = await auth.refreshSession(currentToken);
@@ -19,14 +22,16 @@ export async function POST(request: Request) {
       name: UNKEY_SESSION_COOKIE,
       value: newToken,
       options: {
-        ...getAuthCookieOptions(),
-        maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000), // seconds
+
       },
     });
 
     return Response.json({ success: true });
   } catch (error) {
     console.error("Session refresh failed:", error);
-    return Response.json({ success: false, error: "Failed to refresh session" }, { status: 401 });
+    return Response.json(
+      { success: false, error: "Failed to refresh session" },
+      { status: 401 }
+    );
   }
 }

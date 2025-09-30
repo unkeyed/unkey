@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import type React from "react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,7 +23,7 @@ const workspaceSchema = z.object({
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens)."
     ),
 });
 
@@ -48,9 +49,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
         return;
       }
 
-      await setSessionCookie({
-        token: sessionData.token,
-        expiresAt: sessionData.expiresAt,
+
       });
       // invalidate the user cache and workspace cache.
       await utils.user.getCurrentUser.invalidate();
@@ -98,6 +97,19 @@ export const useWorkspaceStep = (): OnboardingStep => {
       }
     },
   });
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    const currentSlug = form.getValues("slug");
+    const isSlugDirty = form.formState.dirtyFields.slug;
+
+    // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
+    if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
+      form.setValue("slug", slugify(name), {
+        shouldValidate: true,
+      });
+    }
+  };
 
   const onSubmit = async (data: WorkspaceFormData) => {
     if (workspaceCreated) {
@@ -153,20 +165,11 @@ export const useWorkspaceStep = (): OnboardingStep => {
           {/* <div className="space-y-4 pt-7"> */}
           <div className="space-y-4 p-1">
             <FormInput
-              {...form.register("workspaceName")}
+              {...form.register("workspaceName", {
+                onChange: handleNameChange,
+              })}
               placeholder="Enter workspace name"
               label="Workspace name"
-              onBlur={(evt) => {
-                const currentSlug = form.getValues("slug");
-                const isSlugDirty = form.formState.dirtyFields.slug;
-
-                // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
-                if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
-                  form.setValue("slug", slugify(evt.currentTarget.value), {
-                    shouldValidate: true,
-                  });
-                }
-              }}
               required
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
