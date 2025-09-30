@@ -213,11 +213,12 @@ func isGitRepo() bool {
 
 // getCurrentBranch gets the current branch name
 func getCurrentBranch() string {
+	// Try to get branch name from HEAD
 	branch, err := execGitCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return ""
 	}
-
+	// If we're in detached HEAD state, try to get branch from describe
 	if branch == "HEAD" {
 		describeBranch, describeErr := execGitCommand("git", "describe", "--contains", "--all", "HEAD")
 		if describeErr != nil {
@@ -242,16 +243,17 @@ func getCommitSHA() string {
 
 // isWorkingDirDirty checks if there are uncommitted changes
 func isWorkingDirDirty() bool {
+	// Check for staged changes
 	_, err := execGitCommand("git", "diff-index", "--quiet", "--cached", "HEAD")
 	if err != nil {
 		return true
 	}
-
+	// Check for unstaged changes
 	_, err = execGitCommand("git", "diff-files", "--quiet")
 	if err != nil {
 		return true
 	}
-
+	// Check for untracked files
 	untrackedOutput, untrackedErr := execGitCommand("git", "ls-files", "--others", "--exclude-standard")
 	if untrackedErr != nil {
 		return false
