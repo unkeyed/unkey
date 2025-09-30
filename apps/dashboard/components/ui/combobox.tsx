@@ -125,7 +125,7 @@ export function Combobox({
             {leftIcon}
           </div>
         )}
-        <PopoverTrigger className="w-full">
+        <PopoverTrigger asChild className="w-full">
           <Button
             variant="outline"
             // biome-ignore lint/a11y/useSemanticElements: <explanation>

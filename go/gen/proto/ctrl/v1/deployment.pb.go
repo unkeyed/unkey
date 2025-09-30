@@ -898,9 +898,7 @@ func (x *RollbackRequest) GetTargetDeploymentId() string {
 }
 
 type RollbackResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// the rolled back domains
-	Domains       []string `protobuf:"bytes,1,rep,name=domains,proto3" json:"domains,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -935,11 +933,84 @@ func (*RollbackResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *RollbackResponse) GetDomains() []string {
+type PromoteRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TargetDeploymentId string                 `protobuf:"bytes,1,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PromoteRequest) Reset() {
+	*x = PromoteRequest{}
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromoteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromoteRequest) ProtoMessage() {}
+
+func (x *PromoteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[10]
 	if x != nil {
-		return x.Domains
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return nil
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromoteRequest.ProtoReflect.Descriptor instead.
+func (*PromoteRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *PromoteRequest) GetTargetDeploymentId() string {
+	if x != nil {
+		return x.TargetDeploymentId
+	}
+	return ""
+}
+
+type PromoteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PromoteResponse) Reset() {
+	*x = PromoteResponse{}
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromoteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromoteResponse) ProtoMessage() {}
+
+func (x *PromoteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromoteResponse.ProtoReflect.Descriptor instead.
+func (*PromoteResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{11}
 }
 
 var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
@@ -1025,9 +1096,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"u\n" +
 	"\x0fRollbackRequest\x120\n" +
 	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +
-	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\",\n" +
-	"\x10RollbackResponse\x12\x18\n" +
-	"\adomains\x18\x01 \x03(\tR\adomains*\xef\x01\n" +
+	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\"\x12\n" +
+	"\x10RollbackResponse\"B\n" +
+	"\x0ePromoteRequest\x120\n" +
+	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
+	"\x0fPromoteResponse*\xef\x01\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1040,11 +1113,12 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\x83\x02\n" +
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xc3\x02\n" +
 	"\x11DeploymentService\x12Y\n" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
-	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00\x12>\n" +
+	"\aPromote\x12\x17.ctrl.v1.PromoteRequest\x1a\x18.ctrl.v1.PromoteResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
 
 var (
 	file_ctrl_v1_deployment_proto_rawDescOnce sync.Once
@@ -1059,7 +1133,7 @@ func file_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),            // 0: ctrl.v1.DeploymentStatus
 	(SourceType)(0),                  // 1: ctrl.v1.SourceType
@@ -1073,25 +1147,29 @@ var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(*RegionalConfig)(nil),           // 9: ctrl.v1.RegionalConfig
 	(*RollbackRequest)(nil),          // 10: ctrl.v1.RollbackRequest
 	(*RollbackResponse)(nil),         // 11: ctrl.v1.RollbackResponse
-	nil,                              // 12: ctrl.v1.Deployment.EnvironmentVariablesEntry
+	(*PromoteRequest)(nil),           // 12: ctrl.v1.PromoteRequest
+	(*PromoteResponse)(nil),          // 13: ctrl.v1.PromoteResponse
+	nil,                              // 14: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	1,  // 0: ctrl.v1.CreateDeploymentRequest.source_type:type_name -> ctrl.v1.SourceType
 	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
 	6,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
 	0,  // 3: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	12, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	14, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
 	8,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
 	7,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	9,  // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
 	2,  // 8: ctrl.v1.DeploymentService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
 	4,  // 9: ctrl.v1.DeploymentService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
 	10, // 10: ctrl.v1.DeploymentService.Rollback:input_type -> ctrl.v1.RollbackRequest
-	3,  // 11: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	5,  // 12: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	11, // 13: ctrl.v1.DeploymentService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	11, // [11:14] is the sub-list for method output_type
-	8,  // [8:11] is the sub-list for method input_type
+	12, // 11: ctrl.v1.DeploymentService.Promote:input_type -> ctrl.v1.PromoteRequest
+	3,  // 12: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	5,  // 13: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	11, // 14: ctrl.v1.DeploymentService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	13, // 15: ctrl.v1.DeploymentService.Promote:output_type -> ctrl.v1.PromoteResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1109,7 +1187,7 @@ func file_ctrl_v1_deployment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

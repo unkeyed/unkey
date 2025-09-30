@@ -61,7 +61,12 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 		DockerImage:     dockerImage,
 	})
 
-	createReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
+	// Use API key for authentication if provided, fallback to auth token
+	authHeader := c.opts.APIKey
+	if authHeader == "" {
+		authHeader = c.opts.AuthToken
+	}
+	createReq.Header().Set("Authorization", "Bearer "+authHeader)
 
 	createResp, err := c.client.CreateDeployment(ctx, createReq)
 	if err != nil {
@@ -81,7 +86,12 @@ func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId str
 	getReq := connect.NewRequest(&ctrlv1.GetDeploymentRequest{
 		DeploymentId: deploymentId,
 	})
-	getReq.Header().Set("Authorization", "Bearer "+c.opts.AuthToken)
+	// Use API key for authentication if provided, fallback to auth token
+	authHeader := c.opts.APIKey
+	if authHeader == "" {
+		authHeader = c.opts.AuthToken
+	}
+	getReq.Header().Set("Authorization", "Bearer "+authHeader)
 
 	getResp, err := c.client.GetDeployment(ctx, getReq)
 	if err != nil {
@@ -226,10 +236,15 @@ func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
 	// Check if it's an auth error
 	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
 		if connectErr.Code() == connect.CodeUnauthenticated {
+			// Determine which auth method was used for better error message
+			authMethod := "API key"
+			if c.opts.APIKey == "" {
+				authMethod = "auth token"
+			}
 			return fault.Wrap(err,
 				fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-				fault.Internal(fmt.Sprintf("Authentication failed with token: %s", c.opts.AuthToken)),
-				fault.Public("Authentication failed. Check your auth token."),
+				fault.Internal(fmt.Sprintf("Authentication failed with %s", authMethod)),
+				fault.Public(fmt.Sprintf("Authentication failed. Check your %s.", authMethod)),
 			)
 		}
 	}

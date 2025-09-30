@@ -19,9 +19,6 @@ jobs:
         uses: ./.github/actions/setup-go
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install Go test tools
-        run: go install github.com/mfridman/tparse@v0.14.0
-        working-directory: go
       - name: Run unit and light integration tests
         run: make test-integration
         working-directory: go

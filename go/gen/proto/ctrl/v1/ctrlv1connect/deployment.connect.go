@@ -42,6 +42,9 @@ const (
 	// DeploymentServiceRollbackProcedure is the fully-qualified name of the DeploymentService's
 	// Rollback RPC.
 	DeploymentServiceRollbackProcedure = "/ctrl.v1.DeploymentService/Rollback"
+	// DeploymentServicePromoteProcedure is the fully-qualified name of the DeploymentService's Promote
+	// RPC.
+	DeploymentServicePromoteProcedure = "/ctrl.v1.DeploymentService/Promote"
 )
 
 // DeploymentServiceClient is a client for the ctrl.v1.DeploymentService service.
@@ -52,6 +55,8 @@ type DeploymentServiceClient interface {
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Reassign the sticky domains of the projects live deployment to the target deployment
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
+	// Promote the deployment to the live environment
+	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 }
 
 // NewDeploymentServiceClient constructs a client for the ctrl.v1.DeploymentService service. By
@@ -83,6 +88,12 @@ func NewDeploymentServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(deploymentServiceMethods.ByName("Rollback")),
 			connect.WithClientOptions(opts...),
 		),
+		promote: connect.NewClient[v1.PromoteRequest, v1.PromoteResponse](
+			httpClient,
+			baseURL+DeploymentServicePromoteProcedure,
+			connect.WithSchema(deploymentServiceMethods.ByName("Promote")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -91,6 +102,7 @@ type deploymentServiceClient struct {
 	createDeployment *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
 	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	rollback         *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
+	promote          *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeploymentService.CreateDeployment.
@@ -108,6 +120,11 @@ func (c *deploymentServiceClient) Rollback(ctx context.Context, req *connect.Req
 	return c.rollback.CallUnary(ctx, req)
 }
 
+// Promote calls ctrl.v1.DeploymentService.Promote.
+func (c *deploymentServiceClient) Promote(ctx context.Context, req *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
+	return c.promote.CallUnary(ctx, req)
+}
+
 // DeploymentServiceHandler is an implementation of the ctrl.v1.DeploymentService service.
 type DeploymentServiceHandler interface {
 	// Create a new deployment
@@ -116,6 +133,8 @@ type DeploymentServiceHandler interface {
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Reassign the sticky domains of the projects live deployment to the target deployment
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
+	// Promote the deployment to the live environment
+	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 }
 
 // NewDeploymentServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -143,6 +162,12 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 		connect.WithSchema(deploymentServiceMethods.ByName("Rollback")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deploymentServicePromoteHandler := connect.NewUnaryHandler(
+		DeploymentServicePromoteProcedure,
+		svc.Promote,
+		connect.WithSchema(deploymentServiceMethods.ByName("Promote")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.DeploymentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeploymentServiceCreateDeploymentProcedure:
@@ -151,6 +176,8 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 			deploymentServiceGetDeploymentHandler.ServeHTTP(w, r)
 		case DeploymentServiceRollbackProcedure:
 			deploymentServiceRollbackHandler.ServeHTTP(w, r)
+		case DeploymentServicePromoteProcedure:
+			deploymentServicePromoteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -170,4 +197,8 @@ func (UnimplementedDeploymentServiceHandler) GetDeployment(context.Context, *con
 
 func (UnimplementedDeploymentServiceHandler) Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.Rollback is not implemented"))
+}
+
+func (UnimplementedDeploymentServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.Promote is not implemented"))
 }

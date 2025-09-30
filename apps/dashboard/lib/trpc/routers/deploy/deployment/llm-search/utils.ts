@@ -1,7 +1,7 @@
 import {
   deploymentListFilterFieldConfig,
   deploymentListFilterOutputSchema,
-} from "@/app/(app)/projects/[projectId]/deployments/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/deployments/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";

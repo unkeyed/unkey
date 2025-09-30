@@ -206,6 +206,8 @@ func (c *Command) getEnvVar(flag Flag) string {
 		return f.EnvVar()
 	case *StringSliceFlag:
 		return f.EnvVar()
+	case *DurationFlag:
+		return f.EnvVar()
 	default:
 		return ""
 	}
@@ -233,6 +235,10 @@ func (c *Command) getDefaultValue(flag Flag) string {
 	case *StringSliceFlag:
 		if val := f.Value(); len(val) > 0 {
 			return fmt.Sprintf(`["%s"]`, strings.Join(val, `", "`))
+		}
+	case *DurationFlag:
+		if f.HasValue() {
+			return fmt.Sprintf("%s", f.Value())
 		}
 	}
 	return ""

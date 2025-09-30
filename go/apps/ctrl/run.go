@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
@@ -16,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/go/gen/proto/metald/v1/metaldv1connect"
+	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel"
@@ -141,7 +142,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create hydra worker: %w", err)
 	}
 
-	// Create metald client for VM operations
+	// Create krane client for VM operations
 	var httpClient *http.Client
 	var authMode string
 
@@ -160,7 +161,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 		tlsProvider, tlsErr := deployTLS.NewProvider(ctx, tlsConfig)
 		if tlsErr != nil {
-			return fmt.Errorf("failed to create TLS provider for metald: %w", tlsErr)
+			return fmt.Errorf("failed to create TLS provider for krane: %w", tlsErr)
 		}
 
 		httpClient = tlsProvider.HTTPClient()
@@ -173,26 +174,24 @@ func Run(ctx context.Context, cfg Config) error {
 
 	httpClient.Timeout = 30 * time.Second
 
-	metaldClient := metaldv1connect.NewVmServiceClient(
+	kraneClient := kranev1connect.NewDeploymentServiceClient(
 		httpClient,
-		cfg.MetaldAddress,
+		cfg.KraneAddress,
 		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-				logger.Info("Adding auth headers to metald request", "procedure", req.Spec().Procedure)
 				req.Header().Set("Authorization", "Bearer dev_user_ctrl")
-				req.Header().Set("X-Tenant-ID", "ctrl-tenant")
 				return next(ctx, req)
 			}
 		})),
 	)
-	logger.Info("metald client configured", "address", cfg.MetaldAddress, "auth_mode", authMode)
+	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
 	// Register deployment workflow with Hydra worker
 	deployWorkflow := deployment.NewDeployWorkflow(deployment.DeployWorkflowConfig{
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
-		MetalD:        metaldClient,
+		Krane:         kraneClient,
 		DefaultDomain: cfg.DefaultDomain,
 	})
 	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
@@ -203,16 +202,32 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	// Create the service handlers with interceptors
-	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger)))
-	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	// Create authentication middleware (required except for health check and ACME routes)
+	authMiddleware := middleware.NewAuthMiddleware(middleware.AuthConfig{
+		APIKey: cfg.APIKey,
+	})
+	authInterceptor := authMiddleware.ConnectInterceptor()
+
+	if cfg.APIKey != "" {
+		logger.Info("API key authentication enabled for ctrl service")
+	} else {
+		logger.Warn("No API key configured - authentication will reject all requests except health check and ACME routes")
+	}
+
+	// Create the service handlers with auth interceptor (always applied)
+	connectOptions := []connect.HandlerOption{
+		connect.WithInterceptors(authInterceptor),
+	}
+
+	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
+	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger), connectOptions...))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
 		HydraEngine: hydraEngine,
 		Logger:      logger,
-	})))
+	}), connectOptions...))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

@@ -8,6 +8,11 @@ CREATE TABLE api_requests_raw_v2 (
   -- Examples: "GET", "POST", "PUT", "DELETE"
   method LowCardinality (String),
   path String,
+  -- Raw query string (e.g., "a=b&c=d")
+  query_string String,
+  -- Parsed query parameters as map for efficient querying
+  -- Example: {"a": ["b"], "c": ["d", "e"]} for multi-value params
+  query_params Map(String, Array(String)),
   -- "Key: Value" pairs
   request_headers Array(String),
   request_body String,
@@ -24,7 +29,6 @@ CREATE TABLE api_requests_raw_v2 (
   region LowCardinality (String),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
-PARTITION BY toYYYYMMDD(fromUnixTimestamp64Milli(time))
 ORDER BY
   (workspace_id, time, request_id)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
@@ -41,6 +45,8 @@ SELECT
   host,
   method,
   path,
+  '' as query_string,
+  CAST(mapFromArrays(CAST([],'Array(String)'), CAST([],'Array(Array(String))')), 'Map(String, Array(String))') AS query_params,
   request_headers,
   request_body,
   response_status,

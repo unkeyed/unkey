@@ -37,32 +37,30 @@ generate:
 	buf generate
 	go generate ./...
 
-generate-builder:
-	buf generate --path proto/deploy/builderd
 
 test: test-unit
 
 test-unit: up
 	@echo "Running tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) -race ./... | tparse -all -progress -smallscreen
+	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) -race ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 test-stress: export INTEGRATION_TEST=true
 test-stress: export SIMULATION_TEST=false
 test-stress: up
 	@echo "Running stress tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=stress,integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
+	@go test -tags=stress,integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 test-integration-long: export INTEGRATION_TEST=true
 test-integration-long: export SIMULATION_TEST=false
 test-integration-long: up
 	@echo "Running long-ish integration tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
+	@go test -tags=integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 test-integration: export INTEGRATION_TEST=true
 test-integration: export SIMULATION_TEST=false
 test-integration: up
 	@echo "Running integration tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | tparse -all -progress -smallscreen
+	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 # ============================================================================
 # Kubernetes Development Commands
@@ -89,6 +87,7 @@ k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
 	@kubectl wait --for=condition=ready pod -l app=api -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=gw -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=ctrl -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=krane -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=dashboard -n unkey --timeout=180s
 	@echo "Kubernetes environment is ready!"
 	@echo ""

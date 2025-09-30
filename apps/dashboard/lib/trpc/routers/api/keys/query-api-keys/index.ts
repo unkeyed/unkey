@@ -1,4 +1,4 @@
-import { keysQueryListPayload } from "@/app/(app)/apis/[apiId]/keys/[keyAuthId]/_components/components/table/query-logs.schema";
+import { keysQueryListPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/query-logs.schema";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";

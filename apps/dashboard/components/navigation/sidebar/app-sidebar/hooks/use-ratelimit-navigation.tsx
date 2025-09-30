@@ -1,6 +1,7 @@
 "use client";
 
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
@@ -14,13 +15,14 @@ import { useMemo } from "react";
 
 export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
   const segments = useSelectedLayoutSegments() ?? [];
-
+  const workspace = useWorkspaceNavigation();
   const { data } = useLiveQuery((q) =>
     q
       .from({ namespace: collection.ratelimitNamespaces })
       .orderBy(({ namespace }) => namespace.id, "desc"),
   );
 
+  const basePath = `/${workspace.slug}`;
   // Convert ratelimit namespaces data to navigation items with sub-items
   const ratelimitNavItems = useMemo(() => {
     if (data.length === 0) {
@@ -28,43 +30,41 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
     }
 
     return data.map((namespace) => {
-      const currentNamespaceActive =
-        segments.at(0) === "ratelimits" && segments.at(1) === namespace.id;
-
-      const isExactlyRatelimitRoot = currentNamespaceActive && segments.length === 2;
+      const rIndex = segments.findIndex((s) => s === "ratelimits");
+      const currentNamespaceActive = rIndex !== -1 && segments.at(rIndex + 1) === namespace.id;
 
       // Create sub-items for logs, settings, and overrides
       const subItems: NavItem[] = [
         {
           icon: ArrowOppositeDirectionY,
-          href: `/ratelimits/${namespace.id}`,
+          href: `${basePath}/ratelimits/${namespace.id}`,
           label: "Requests",
-          active: isExactlyRatelimitRoot || (currentNamespaceActive && !segments.at(2)),
+          active: currentNamespaceActive && !segments.at(3),
         },
         {
           icon: Layers3,
-          href: `/ratelimits/${namespace.id}/logs`,
+          href: `${basePath}/ratelimits/${namespace.id}/logs`,
           label: "Logs",
-          active: currentNamespaceActive && segments.at(2) === "logs",
+          active: currentNamespaceActive && segments.at(3) === "logs",
         },
         {
           icon: Gear,
-          href: `/ratelimits/${namespace.id}/settings`,
+          href: `${basePath}/ratelimits/${namespace.id}/settings`,
           label: "Settings",
-          active: currentNamespaceActive && segments.at(2) === "settings",
+          active: currentNamespaceActive && segments.at(3) === "settings",
         },
         {
           icon: ArrowDottedRotateAnticlockwise,
-          href: `/ratelimits/${namespace.id}/overrides`,
+          href: `${basePath}/ratelimits/${namespace.id}/overrides`,
           label: "Overrides",
-          active: currentNamespaceActive && segments.at(2) === "overrides",
+          active: currentNamespaceActive && segments.at(3) === "overrides",
         },
       ];
 
       // Create the main namespace nav item
       const namespaceNavItem: NavItem = {
         icon: null,
-        href: `/ratelimits/${namespace.id}`,
+        href: `${basePath}/ratelimits/${namespace.id}`,
         label: namespace.name,
         active: currentNamespaceActive,
         // Include sub-items
@@ -73,11 +73,11 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
 
       return namespaceNavItem;
     });
-  }, [data, segments]);
+  }, [data, segments, basePath]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const ratelimitsItemIndex = items.findIndex((item) => item.href === "/ratelimits");
+    const ratelimitsItemIndex = items.findIndex((item) => item.href === `${basePath}/ratelimits`);
 
     if (ratelimitsItemIndex !== -1) {
       const ratelimitsItem = { ...items[ratelimitsItemIndex] };
@@ -87,7 +87,7 @@ export const useRatelimitNavigation = (baseNavItems: NavItem[]) => {
     }
 
     return items;
-  }, [baseNavItems, ratelimitNavItems]);
+  }, [baseNavItems, ratelimitNavItems, basePath]);
 
   return {
     enhancedNavItems,

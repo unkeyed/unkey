@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "@/lib/auth/utils";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { Laptop2, MoonStars, Sun } from "@unkey/icons";
 import { useTheme } from "next-themes";
 import type React from "react";
@@ -32,6 +33,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
 }) => {
   const { data: user, isLoading } = trpc.user.getCurrentUser.useQuery();
   const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
 
   const displayName = user?.fullName ?? user?.email ?? "";
 
@@ -65,6 +67,16 @@ export const UserButton: React.FC<UserButtonProps> = ({
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="start">
+        {user?.email && (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <span title={user.email} className="text-accent-11 text-xs truncate max-w-44">
+                {user.email}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuGroup className="w-full">
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
@@ -82,11 +94,13 @@ export const UserButton: React.FC<UserButtonProps> = ({
           </Tabs>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+
         <DropdownMenuGroup className="w-full">
           <DropdownMenuItem
             asChild
             className="cursor-pointer"
             onClick={async () => {
+              queryClient.clear();
               await signOut();
             }}
           >

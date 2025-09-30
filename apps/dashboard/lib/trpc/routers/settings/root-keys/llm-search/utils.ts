@@ -1,7 +1,7 @@
 import {
   filterOutputSchema,
   rootKeysFilterFieldConfig,
-} from "@/app/(app)/settings/root-keys/filters.schema";
+} from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
@@ -382,7 +382,7 @@ Special handling rules:
    - "admin" → check both name and permission fields
 3. Handle variations and aliases:
    - "prod" → "production"
-   - "dev" → "development" 
+   - "dev" → "development"
    - "critical" → "delete", "decrypt", "remove"
    - "dangerous" → "delete", "decrypt"
 

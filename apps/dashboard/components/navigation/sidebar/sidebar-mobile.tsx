@@ -2,12 +2,11 @@
 import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
 import { useSidebar } from "@/components/ui/sidebar";
-import type { Workspace } from "@unkey/db";
 import { SidebarLeftShow } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { HelpButton } from "./help-button";
 
-export const SidebarMobile = ({ workspace }: { workspace: Workspace }) => {
+export const SidebarMobile = () => {
   const { isMobile, setOpenMobile, state, openMobile } = useSidebar();
 
   if (!isMobile) {
@@ -23,7 +22,7 @@ export const SidebarMobile = ({ workspace }: { workspace: Workspace }) => {
       >
         <SidebarLeftShow iconsize="xl-medium" className="text-gray-9" />
       </Button>
-      <WorkspaceSwitcher workspace={workspace} />
+      <WorkspaceSwitcher />
       <div className="flex gap-4 items-center">
         <HelpButton />
         <UserButton
