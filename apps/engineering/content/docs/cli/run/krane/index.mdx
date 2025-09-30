@@ -1,0 +1,61 @@
+---
+title: "Krane"
+description: "Run the k8s management service"
+---
+krane (/kreɪn/) is the kubernetes deployment service for Unkey infrastructure.
+
+It manages the lifecycle of deployments in a kubernetes cluster:
+
+## Command Syntax
+
+```bash
+unkey run krane [flags]
+```
+
+## Examples
+
+### Run with default configuration
+
+```bash
+unkey run krane
+```
+
+## Flags
+
+<Callout type="info" title="--http-port">
+Port for the server to listen on. Default: 8080
+
+- **Type:** integer
+- **Default:** `8080`
+- **Environment:** `UNKEY_HTTP_PORT`
+</Callout>
+
+<Callout type="info" title="--instance-id">
+Unique identifier for this instance. Auto-generated if not provided.
+
+- **Type:** string
+- **Default:** `"ins_6EFeEJ"`
+- **Environment:** `UNKEY_INSTANCE_ID`
+</Callout>
+
+<Callout type="info" title="--backend">
+Backend type for the service. Either kubernetes or docker. Default: kubernetes
+
+- **Type:** string
+- **Default:** `"kubernetes"`
+- **Environment:** `UNKEY_KRANE_BACKEND`
+</Callout>
+
+<Callout type="info" title="--docker-socket">
+Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock
+
+- **Type:** string
+- **Default:** `"/var/run/docker.sock"`
+- **Environment:** `UNKEY_DOCKER_SOCKET`
+</Callout>
+
+<Callout type="info" title="--deployment-eviction-ttl">
+Automatically delete deployments after some time. Use go duration formats such as 2h30m
+
+- **Type:** duration
+</Callout>

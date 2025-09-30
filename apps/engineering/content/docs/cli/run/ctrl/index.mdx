@@ -57,7 +57,7 @@ Geographic region identifier. Used for logging and routing. Default: unknown
 Unique identifier for this instance. Auto-generated if not provided.
 
 - **Type:** string
-- **Default:** `"ins_26qK8q"`
+- **Default:** `"ins_5PkxT8"`
 - **Environment:** `UNKEY_INSTANCE_ID`
 </Callout>
 
@@ -66,6 +66,13 @@ MySQL connection string for primary database. Required for all deployments. Exam
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_PRIMARY`
+</Callout>
+
+<Callout type="info" title="--database-partition (required)">
+MySQL connection string for partition database. Required for all deployments. Example: user:pass@host:3306/partition_002?parseTime=true
+
+- **Type:** string
+- **Environment:** `UNKEY_DATABASE_PARTITION`
 </Callout>
 
 <Callout type="info" title="--database-hydra (required)">
@@ -112,11 +119,18 @@ Authentication token for control plane API access. Required for secure deploymen
 - **Environment:** `UNKEY_AUTH_TOKEN`
 </Callout>
 
-<Callout type="info" title="--metald-address (required)">
-Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080
+<Callout type="info" title="--krane-address (required)">
+Full URL of the krane service for VM operations. Required for deployments. Example: https://krane.example.com:8080
 
 - **Type:** string
-- **Environment:** `UNKEY_METALD_ADDRESS`
+- **Environment:** `UNKEY_KRANE_ADDRESS`
+</Callout>
+
+<Callout type="info" title="--api-key (required)">
+API key for simple authentication (demo purposes only). Will be replaced with JWT authentication.
+
+- **Type:** string
+- **Environment:** `UNKEY_API_KEY`
 </Callout>
 
 <Callout type="info" title="--spiffe-socket-path">
@@ -125,4 +139,70 @@ Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/age
 - **Type:** string
 - **Default:** `"/var/lib/spire/agent/agent.sock"`
 - **Environment:** `UNKEY_SPIFFE_SOCKET_PATH`
+</Callout>
+
+<Callout type="info" title="--vault-master-keys (required)">
+Vault master keys for encryption
+
+- **Type:** string[]
+- **Environment:** `UNKEY_VAULT_MASTER_KEYS`
+</Callout>
+
+<Callout type="info" title="--vault-s3-url (required)">
+S3 Compatible Endpoint URL
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_URL`
+</Callout>
+
+<Callout type="info" title="--vault-s3-bucket (required)">
+S3 bucket name
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_BUCKET`
+</Callout>
+
+<Callout type="info" title="--vault-s3-access-key-id (required)">
+S3 access key ID
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_ID`
+</Callout>
+
+<Callout type="info" title="--vault-s3-access-key-secret (required)">
+S3 secret access key
+
+- **Type:** string
+- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_SECRET`
+</Callout>
+
+<Callout type="info" title="--acme-enabled">
+Enable Let's Encrypt for acme challenges
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_ACME_ENABLED`
+</Callout>
+
+<Callout type="info" title="--acme-cloudflare-enabled">
+Enable Cloudflare for wildcard certificates
+
+- **Type:** boolean
+- **Default:** `false`
+- **Environment:** `UNKEY_ACME_CLOUDFLARE_ENABLED`
+</Callout>
+
+<Callout type="info" title="--acme-cloudflare-api-token">
+Cloudflare API token for Let's Encrypt
+
+- **Type:** string
+- **Environment:** `UNKEY_ACME_CLOUDFLARE_API_TOKEN`
+</Callout>
+
+<Callout type="info" title="--default-domain">
+Default domain for auto-generated hostnames
+
+- **Type:** string
+- **Default:** `"unkey.app"`
+- **Environment:** `UNKEY_DEFAULT_DOMAIN`
 </Callout>

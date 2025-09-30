@@ -37,8 +37,6 @@ generate:
 	buf generate
 	go generate ./...
 
-generate-builder:
-	buf generate --path proto/deploy/builderd
 
 test: test-unit
 
@@ -89,6 +87,7 @@ k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
 	@kubectl wait --for=condition=ready pod -l app=api -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=gw -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=ctrl -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=krane -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=dashboard -n unkey --timeout=180s
 	@echo "Kubernetes environment is ready!"
 	@echo ""

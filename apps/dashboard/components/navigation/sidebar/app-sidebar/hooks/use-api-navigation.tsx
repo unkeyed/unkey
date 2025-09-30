@@ -31,21 +31,21 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
-        const currentApiActive = segments.at(0) === "apis" && segments.at(1) === api.id;
-        const isExactlyApiRoot = currentApiActive && segments.length === 2;
+        const aIndex = segments.findIndex((s) => s === "apis");
+        const currentApiActive = aIndex !== -1 && segments.at(aIndex + 1) === api.id;
 
         const settingsItem: NavItem = {
           icon: Gear,
           href: `/${workspace.slug}/apis/${api.id}/settings`,
           label: "Settings",
-          active: currentApiActive && segments.at(2) === "settings",
+          active: currentApiActive && segments.at(3) === "settings",
         };
 
         const overviewItem: NavItem = {
           icon: ArrowOppositeDirectionY,
           href: `/${workspace.slug}/apis/${api.id}`,
           label: "Requests",
-          active: isExactlyApiRoot || (currentApiActive && !segments.at(2)),
+          active: currentApiActive && !segments.at(3),
         };
 
         const subItems: NavItem[] = [overviewItem];
@@ -55,7 +55,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
             icon: Key,
             href: `/${workspace.slug}/apis/${api.id}/keys/${api.keyspaceId}`,
             label: "Keys",
-            active: currentApiActive && segments.at(2) === "keys",
+            active: currentApiActive && segments.at(3) === "keys",
           };
 
           subItems.push(keysItem);
