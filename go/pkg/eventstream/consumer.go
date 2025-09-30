@@ -206,9 +206,11 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 			// Call handler
 			if c.handler != nil {
 				handlerCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				if err := c.handler(handlerCtx, t); err != nil {
-				} else {
+				err := c.handler(handlerCtx, t)
+				if err != nil {
+					c.logger.Error("Error handling event", "err", err, "event", t, "topic", c.topic)
 				}
+
 				cancel()
 			}
 		}

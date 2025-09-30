@@ -105,8 +105,6 @@ func (c *cache[K, V]) registerMetrics() {
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
-	start := c.clock.Now()
-
 	e, ok := c.get(ctx, key)
 	if !ok {
 		return value, Miss
