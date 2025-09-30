@@ -1,5 +1,5 @@
 "use client";
-import { Button, CopyButton } from "@unkey/ui";
+import { CopyButton } from "@unkey/ui";
 import { useRef } from "react";
 
 type CopyableIDButtonProps = {
@@ -55,17 +55,26 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle Enter and Space keys for accessibility
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      // Programmatically click the CopyButton
+      copyButtonRef.current?.click();
+    }
+  };
+
   return (
-    <Button
-      variant="outline"
-      size="md"
-      className={`text-xs font-mono font-medium ph-no-capture h-7 bg-grayA-2 hover:bg-grayA-3 w-[190px] ${className}`}
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-mono font-medium ph-no-capture h-7 bg-grayA-2 hover:bg-grayA-3 w-[190px] border border-grayA-6 cursor-pointer transition-colors ${className}`}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
     >
-      <div className="flex gap-2 items-center justify-between w-full min-w-0">
+      <div className="flex gap-2 items-center justify-between w-full min-w-0 px-2">
         <div ref={textRef} className="select-text truncate min-w-0 flex-1">
           {value}
         </div>
@@ -77,6 +86,6 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           className="pointer-events-none flex-shrink-0"
         />
       </div>
-    </Button>
+    </button>
   );
 };

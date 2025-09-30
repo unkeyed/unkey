@@ -1,4 +1,4 @@
-import type { AllOperatorsUrlValue } from "@/app/(app)/apis/[apiId]/_overview/filters.schema";
+import type { AllOperatorsUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { type SQL, db, like, or } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
@@ -111,7 +111,7 @@ export async function getAllKeys({
         const tagQuery = clickhouse.querier.query({
           query: `
             SELECT DISTINCT key_id
-            FROM verifications.raw_key_verifications_v1
+            FROM default.key_verifications_raw_v2
             WHERE workspace_id = {workspaceId: String}
               AND key_space_id = {keyspaceId: String}
               AND (${tagQueries.map(({ condition }) => condition).join(" OR ")})

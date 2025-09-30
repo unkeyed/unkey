@@ -7,8 +7,8 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitio
 // GatewayConfig contains all configuration needed for a hostname
 // including deployment metadata and middleware configurations
 message GatewayConfig {
+  Project project = 1;
 
-  Project project= 1;
   // Deployment information
   Deployment deployment = 2;
 
@@ -17,7 +17,6 @@ message GatewayConfig {
   // Middleware configurations
   optional AuthConfig auth_config = 4;
   optional ValidationConfig validation_config = 5;
-
 }
 
 message Deployment {
@@ -43,5 +42,6 @@ message AuthConfig {
 
 // Request validation middleware configuration
 message ValidationConfig {
+  // Base64 standard encoding of the OpenAPI specification or empty string if not available
   string openapi_spec = 1;
 }

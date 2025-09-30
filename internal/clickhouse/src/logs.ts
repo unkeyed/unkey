@@ -15,6 +15,7 @@ export const getLogsClickhousePayload = z.object({
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
+  excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   requestIds: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
@@ -75,37 +76,44 @@ export function getLogs(ch: Querier) {
     const filterConditions = `
       workspace_id = {workspaceId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-      
+
       ---------- Apply request ID filter if present (highest priority)
       AND (
         CASE
-          WHEN length({requestIds: Array(String)}) > 0 THEN 
+          WHEN length({requestIds: Array(String)}) > 0 THEN
             request_id IN {requestIds: Array(String)}
           ELSE TRUE
         END
       )
-      
+
       ---------- Apply host filter
       AND (
         CASE
-          WHEN length({hosts: Array(String)}) > 0 THEN 
+          WHEN length({hosts: Array(String)}) > 0 THEN
             host IN {hosts: Array(String)}
           ELSE TRUE
         END
       )
-      
+      AND (
+        CASE
+          WHEN length({excludeHosts: Array(String)}) > 0 THEN
+            host NOT IN {excludeHosts: Array(String)}
+          ELSE TRUE
+        END
+      )
+
       ---------- Apply method filter
       AND (
         CASE
-          WHEN length({methods: Array(String)}) > 0 THEN 
+          WHEN length({methods: Array(String)}) > 0 THEN
             method IN {methods: Array(String)}
           ELSE TRUE
         END
       )
-      
+
       ---------- Apply path filter using pre-generated conditions
       AND (${pathConditions})
-      
+
       ---------- Apply status code filter
       AND (
         CASE
@@ -133,7 +141,7 @@ export function getLogs(ch: Querier) {
       query: `
         SELECT
           count(request_id) as total_count
-        FROM metrics.raw_api_requests_v1
+        FROM default.api_requests_raw_v2
         WHERE ${filterConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
@@ -157,7 +165,7 @@ export function getLogs(ch: Querier) {
         response_body,
         error,
         service_latency
-      FROM metrics.raw_api_requests_v1
+      FROM default.api_requests_raw_v2
       WHERE ${filterConditions} AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
       ORDER BY time DESC
       LIMIT {limit: Int}`,
@@ -185,6 +193,7 @@ export const logsTimeseriesParams = z.object({
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
+  excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   statusCodes: z.array(z.number().int()).nullable(),
 });
@@ -210,47 +219,47 @@ type TimeInterval = {
 
 const INTERVALS: Record<string, TimeInterval> = {
   minute: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 5,
   },
   fifteenMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 15,
   },
   thirtyMinutes: {
-    table: "metrics.api_requests_per_minute_v1",
+    table: "default.api_requests_per_minute_v2",
     step: "MINUTES",
     stepSize: 30,
   },
   hour: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 2,
   },
   fourHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 4,
   },
   sixHours: {
-    table: "metrics.api_requests_per_hour_v1",
+    table: "default.api_requests_per_hour_v2",
     step: "HOURS",
     stepSize: 6,
   },
   day: {
-    table: "metrics.api_requests_per_day_v1",
+    table: "default.api_requests_per_day_v2",
     step: "DAY",
     stepSize: 1,
   },
@@ -310,34 +319,40 @@ function getLogsTimeseriesWhereClause(
     "workspace_id = {workspaceId: String}",
     // Host filter
     `(CASE
-        WHEN length({hosts: Array(String)}) > 0 THEN 
+        WHEN length({hosts: Array(String)}) > 0 THEN
           host IN {hosts: Array(String)}
+        ELSE TRUE
+      END)
+      AND
+      (CASE
+        WHEN length({excludeHosts: Array(String)}) > 0 THEN
+          host NOT IN {excludeHosts: Array(String)}
         ELSE TRUE
       END)`,
     // Method filter
     `(CASE
-        WHEN length({methods: Array(String)}) > 0 THEN 
+        WHEN length({methods: Array(String)}) > 0 THEN
           method IN {methods: Array(String)}
         ELSE TRUE
       END)`,
     // Status code filter
-    `(CASE 
+    `(CASE
         WHEN length({statusCodes: Array(UInt16)}) > 0 THEN
           response_status IN (
-            SELECT status 
+            SELECT status
             FROM (
               SELECT multiIf(
                 code = 200, arrayJoin(range(200, 300)),
                 code = 400, arrayJoin(range(400, 500)),
                 code = 500, arrayJoin(range(500, 600)),
                 code
-              ) as status 
+              ) as status
               FROM (
                 SELECT arrayJoin({statusCodes: Array(UInt16)}) as code
               )
             )
-          ) 
-        ELSE TRUE 
+          )
+        ELSE TRUE
       END)`,
     ...additionalConditions,
   ];

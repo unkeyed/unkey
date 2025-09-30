@@ -171,6 +171,7 @@ export function OverviewBarChart({
             <BarChart
               data={data}
               margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+              barCategoryGap={0.5}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -251,8 +252,11 @@ export function OverviewBarChart({
                       }
                       className="rounded-lg shadow-lg border border-gray-4"
                       labelFormatter={(_, tooltipPayload) =>
-                        //@ts-expect-error safe to ignore for now
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
+                        createTimeIntervalFormatter(
+                          data,
+                          "HH:mm",
+                          //@ts-expect-error safe to ignore for now
+                        )(tooltipPayload)
                       }
                     />
                   );

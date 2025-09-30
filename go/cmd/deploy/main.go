@@ -90,11 +90,13 @@ type DeployOptions struct {
 	Dockerfile      string
 	Commit          string
 	Registry        string
+	Environment     string
 	SkipPush        bool
 	Verbose         bool
 	ControlPlaneURL string
 	AuthToken       string
-	Hostname        string
+	APIKey          string
+	Linux           bool
 }
 
 var DeployFlags = []cli.Flag{
@@ -116,12 +118,14 @@ var DeployFlags = []cli.Flag{
 	cli.String("registry", "Container registry",
 		cli.Default(DefaultRegistry),
 		cli.EnvVar(EnvRegistry)),
+	cli.String("env", "Environment slug to deploy to", cli.Default("preview")),
 	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
+	cli.Bool("linux", "Build Docker image for linux/amd64 platform (for deployment to cloud clusters)"),
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
-	cli.String("hostname", "Gateway hostname for routing (e.g., api.unkey.com)"),
+	cli.String("api-key", "API key for ctrl service authentication", cli.EnvVar("API_KEY")),
 }
 
 // WARNING: Changing the "Description" part will also affect generated MDX.
@@ -199,11 +203,13 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Dockerfile:      cmd.String("dockerfile"),
 		Commit:          cmd.String("commit"),
 		Registry:        cmd.String("registry"),
+		Environment:     cmd.String("env"),
 		SkipPush:        cmd.Bool("skip-push"),
 		Verbose:         cmd.Bool("verbose"),
 		ControlPlaneURL: cmd.String("control-plane-url"),
 		AuthToken:       cmd.String("auth-token"),
-		Hostname:        cmd.String("hostname"),
+		APIKey:          cmd.String("api-key"),
+		Linux:           cmd.Bool("linux"),
 	}
 
 	return executeDeploy(ctx, opts)

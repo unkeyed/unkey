@@ -3,21 +3,22 @@ INSERT INTO domains (
     id,
     workspace_id,
     project_id,
+    environment_id,
     deployment_id,
     domain,
     type,
-    created_at
+    sticky,
+    created_at,
+    updated_at
 ) VALUES (
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
-) ON DUPLICATE KEY UPDATE
-    workspace_id = VALUES(workspace_id),
-    project_id = VALUES(project_id),
-    deployment_id = VALUES(deployment_id),
-    type = VALUES(type),
-    updated_at = ?;
+    sqlc.arg(id),
+    sqlc.arg(workspace_id),
+    sqlc.arg(project_id),
+    sqlc.arg(environment_id),
+    sqlc.arg(deployment_id),
+    sqlc.arg(domain),
+    sqlc.arg(type),
+    sqlc.arg(sticky),
+    sqlc.arg(created_at),
+    null
+);

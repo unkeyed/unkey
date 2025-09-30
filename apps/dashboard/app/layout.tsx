@@ -1,5 +1,6 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
+import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
@@ -58,12 +59,14 @@ export default function RootLayout({
         <body className="min-h-full antialiased">
           <ReactQueryProvider>
             <ThemeProvider attribute="class">
-              <Toaster />
-              {children}
-              <CommandMenu />
-              <Suspense>
-                <Feedback />
-              </Suspense>
+              <WorkspaceProvider>
+                <Toaster />
+                {children}
+                <CommandMenu />
+                <Suspense>
+                  <Feedback />
+                </Suspense>
+              </WorkspaceProvider>
             </ThemeProvider>
           </ReactQueryProvider>
         </body>

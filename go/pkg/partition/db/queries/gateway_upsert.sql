@@ -1,3 +1,17 @@
 -- name: UpsertGateway :exec
-INSERT INTO gateways (hostname, config)
-VALUES (?, ?) ON DUPLICATE KEY UPDATE config = VALUES(config);
+INSERT INTO gateways (
+workspace_id,
+deployment_id,
+hostname,
+config
+)
+VALUES (
+sqlc.arg(workspace_id),
+sqlc.arg(deployment_id),
+sqlc.arg(hostname),
+sqlc.arg(config)
+)
+ON DUPLICATE KEY UPDATE
+    workspace_id = sqlc.arg(workspace_id),
+    deployment_id = sqlc.arg(deployment_id),
+    config = sqlc.arg(config);

@@ -54,8 +54,10 @@ var Cmd = &cli.Command{
 		// Control Plane Specific
 		cli.String("auth-token", "Authentication token for control plane API access. Required for secure deployments.",
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
-		cli.String("metald-address", "Full URL of the metald service for VM operations. Required for deployments. Example: https://metald.example.com:8080",
-			cli.Required(), cli.EnvVar("UNKEY_METALD_ADDRESS")),
+		cli.String("krane-address", "Full URL of the krane service for VM operations. Required for deployments. Example: https://krane.example.com:8080",
+			cli.Required(), cli.EnvVar("UNKEY_KRANE_ADDRESS")),
+		cli.String("api-key", "API key for simple authentication (demo purposes only). Will be replaced with JWT authentication.",
+			cli.Required(), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
@@ -72,6 +74,10 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
+		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
+		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
+
+		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 	},
 	Action: action,
 }
@@ -116,7 +122,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Control Plane Specific
 		AuthToken:        cmd.String("auth-token"),
-		MetaldAddress:    cmd.String("metald-address"),
+		KraneAddress:     cmd.String("krane-address"),
+		APIKey:           cmd.String("api-key"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
 		// Vault configuration
@@ -128,7 +135,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 		},
 
-		AcmeEnabled: cmd.Bool("acme-enabled"),
+		// Acme configuration
+		Acme: ctrl.AcmeConfig{
+			Enabled: cmd.Bool("acme-enabled"),
+			Cloudflare: ctrl.CloudflareConfig{
+				Enabled:  cmd.Bool("acme-cloudflare-enabled"),
+				ApiToken: cmd.String("acme-cloudflare-api-token"),
+			},
+		},
+
+		DefaultDomain: cmd.String("default-domain"),
 
 		// Common
 		Clock: clock.New(),
