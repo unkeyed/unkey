@@ -29,7 +29,9 @@ const memoizedFormat = (date: Date, formatString: string): string => {
 };
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
-  const date = new Date(timestamp);
+  const isNumericString = typeof timestamp === "string" && /^\d+$/.test(timestamp);
+  const input = isNumericString ? Number(timestamp) : timestamp;
+  const date = input instanceof Date ? input : new Date(input);
   return memoizedFormat(date, "MMM dd, h:mm a").toUpperCase();
 };
 
@@ -77,18 +79,24 @@ const isUnixMicro = (unix: string | number): boolean => {
   return isNum && digitLength;
 };
 
-export const formatTimestampTooltip = (value: string | number) => {
-  // Coerce numeric strings to numbers to prevent Invalid Date
-  const parsed = typeof value === "string" ? Number(value) : value;
+export const formatTimestampTooltip = (value: string | number | Date) => {
+  const isNumericString = typeof value === "string" && /^\d+$/.test(value);
+  const parsed = isNumericString ? Number(value) : value;
 
   let date: Date;
-  if (isUnixMicro(parsed)) {
-    date = unixMicroToDate(parsed);
-  } else if (typeof parsed === "number") {
-    date = new Date(parsed);
+  if (typeof parsed === "number" && Number.isFinite(parsed)) {
+    // handle both Unix-micro and epoch-ms numbers
+    date = isUnixMicro(parsed) ? unixMicroToDate(parsed) : new Date(parsed);
+  } else if (parsed instanceof Date) {
+    // already a Date
+    date = parsed;
   } else {
-    // Fallback for non-numeric strings
-    date = new Date(String(value));
+    // try parsing any other string; if that fails, return the raw input
+    const d = new Date(String(value));
+    if (Number.isNaN(d.getTime())) {
+      return String(value);
+    }
+    date = d;
   }
 
   return memoizedFormat(date, "MMM dd, h:mm:ss a");
