@@ -5,8 +5,8 @@ package ctrl.v1;
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
 message GetOpenApiDiffRequest {
-  string old_version_id = 1;
-  string new_version_id = 2;
+  string old_deployment_id = 1;
+  string new_deployment_id = 2;
 }
 
 message ChangelogEntry {
