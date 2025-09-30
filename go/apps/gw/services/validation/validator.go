@@ -2,6 +2,7 @@ package validation
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 
@@ -61,6 +62,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 
 	// Get or create validator for this spec
 	v, err := s.getOrCreateValidator(ctx, config.Deployment.Id, config.ValidationConfig.OpenapiSpec)
+
 	if err != nil {
 		s.logger.Error("failed to get validator",
 			"requestId", sess.RequestID(),
@@ -127,7 +129,13 @@ func (s *Service) getOrCreateValidator(ctx context.Context, deploymentID string,
 	)
 
 	// Parse OpenAPI document
-	document, err := libopenapi.NewDocument([]byte(spec))
+	b, err := base64.StdEncoding.DecodeString(spec)
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Internal("failed to parse OpenAPI document as base64"),
+		)
+	}
+	document, err := libopenapi.NewDocument(b)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Internal("failed to parse OpenAPI document"),

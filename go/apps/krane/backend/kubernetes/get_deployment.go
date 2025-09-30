@@ -41,8 +41,6 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	k.logger.Info("deployment retrieved", "deployment", sfs.String())
-
 	// Check if this job is managed by Krane
 	managedBy, exists := sfs.Labels["unkey.managed.by"]
 	if !exists || managedBy != "krane" {

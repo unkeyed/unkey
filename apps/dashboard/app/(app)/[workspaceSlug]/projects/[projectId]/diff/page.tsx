@@ -30,7 +30,9 @@ export default function DiffSelectionPage(): JSX.Element {
 
   const handleCompare = () => {
     if (selectedFromDeployment && selectedToDeployment) {
-      router.push(`/projects/${projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`);
+      router.push(
+        `/${params?.workspaceSlug}/projects/${projectId}/diff/${selectedFromDeployment}/${selectedToDeployment}`,
+      );
     }
   };
 
