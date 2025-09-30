@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -53,13 +52,7 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 // CreateDeployment creates a new deployment in the control plane
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
 	// Get git commit information
-	commitInfo, err := git.GetCommitInfo()
-	if err != nil {
-		// Log warning but don't fail the deployment if git info is unavailable
-		log.Printf("Warning: failed to get git commit info: %v", err)
-		commitInfo = &git.CommitInfo{} // Use empty struct
-	}
-
+	commitInfo := git.GetInfo()
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		WorkspaceId:              c.opts.WorkspaceID,
 		ProjectId:                c.opts.ProjectID,
@@ -68,7 +61,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,
 		DockerImage:              dockerImage,
-		GitCommitSha:             commitInfo.SHA,
+		GitCommitSha:             commitInfo.CommitSHA,
 		GitCommitMessage:         commitInfo.Message,
 		GitCommitAuthorHandle:    commitInfo.AuthorHandle,
 		GitCommitAuthorAvatarUrl: commitInfo.AuthorAvatarURL,

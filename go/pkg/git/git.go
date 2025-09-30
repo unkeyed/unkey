@@ -11,23 +11,22 @@ import (
 	"time"
 )
 
-// Info contains Git repository information
+// Info contains comprehensive Git repo and commit information
 type Info struct {
-	Branch    string // Current branch name (e.g., "main", "feature/auth")
+	// Basic repo status
+	Branch  string // Current branch name (e.g., "main", "feature/auth")
+	IsDirty bool   // Whether there are uncommitted changes
+	IsRepo  bool   // Whether we're in a Git repo
+
+	// Commit identification
 	CommitSHA string // Full commit SHA (e.g., "abc123def456...")
 	ShortSHA  string // Short commit SHA (e.g., "abc123d")
-	IsDirty   bool   // Whether there are uncommitted changes
-	IsRepo    bool   // Whether we're in a Git repository
-}
 
-// CommitInfo contains detailed information about the current commit
-type CommitInfo struct {
-	SHA             string // Full commit SHA
-	Branch          string // Current branch name
+	// Commit details
 	Message         string // Commit message (first line only)
 	AuthorHandle    string // Author's GitHub handle
 	AuthorAvatarURL string // URL to author's avatar image
-	CommitTimestamp int64  // Unix timestamp of the commit
+	CommitTimestamp int64  // Unix timestamp of the commit in milliseconds
 }
 
 // githubCommitResponse represents the GitHub API commit response
@@ -40,13 +39,12 @@ type githubCommitResponse struct {
 
 // GetInfo safely extracts Git information from the current directory.
 // It never fails - returns sensible defaults if Git is unavailable or we're not in a repo.
+// Extended commit details (message, author, timestamp) are populated when available.
 func GetInfo() Info {
 	info := Info{
-		Branch:    "main", // Default branch
-		CommitSHA: "",     // Empty if not available
-		ShortSHA:  "",     // Empty if not available
-		IsDirty:   false,  // Assume clean if unknown
-		IsRepo:    false,  // Assume not a repo until proven otherwise
+		Branch:  "main", // Default branch
+		IsDirty: false,  // Assume clean if unknown
+		IsRepo:  false,  // Assume not a repo until proven otherwise
 	}
 
 	// Check if we're in a Git repository
@@ -71,60 +69,34 @@ func GetInfo() Info {
 	// Check if working directory is dirty
 	info.IsDirty = isWorkingDirDirty()
 
-	return info
-}
+	// Get extended commit details (best effort - ignore errors)
+	if info.CommitSHA != "" {
+		// Get commit message (first line only)
+		if message, err := execGitCommand("git", "log", "-1", "--pretty=%s"); err == nil {
+			info.Message = message
+		}
 
-// GetCommitInfo retrieves detailed information about the current commit.
-// Returns error if not in a git repository or if git commands fail.
-func GetCommitInfo() (*CommitInfo, error) {
-	info := &CommitInfo{}
+		// Get commit timestamp
+		if timestampStr, err := execGitCommand("git", "log", "-1", "--pretty=%ct"); err == nil {
+			if timestamp, err := strconv.ParseInt(timestampStr, 10, 64); err == nil {
+				info.CommitTimestamp = timestamp * 1000 // Convert to milliseconds
+			}
+		}
 
-	// Get commit SHA
-	sha, err := execGitCommand("git", "rev-parse", "HEAD")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit SHA: %w", err)
-	}
-	info.SHA = sha
-
-	// Get current branch
-	branch, err := execGitCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get branch: %w", err)
-	}
-	info.Branch = branch
-
-	// Get commit message (first line only)
-	message, err := execGitCommand("git", "log", "-1", "--pretty=%s")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit message: %w", err)
-	}
-	info.Message = message
-
-	// Get commit timestamp
-	timestampStr, err := execGitCommand("git", "log", "-1", "--pretty=%ct")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit timestamp: %w", err)
-	}
-	info.CommitTimestamp, err = strconv.ParseInt(timestampStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse timestamp: %w", err)
-	}
-	info.CommitTimestamp = info.CommitTimestamp * 1000
-
-	// Get remote URL to determine if it's a GitHub repo
-	remoteURL, err := execGitCommand("git", "config", "--get", "remote.origin.url")
-	if err == nil && isGitHubURL(remoteURL) {
-		// Extract owner and repo from GitHub URL
-		owner, repo := parseGitHubURL(remoteURL)
-		if owner != "" && repo != "" {
-			// Fetch author info from GitHub API
-			handle, avatarURL := fetchGitHubAuthorInfo(owner, repo, sha)
-			info.AuthorHandle = handle
-			info.AuthorAvatarURL = avatarURL
+		// Get remote URL to determine if it's a GitHub repo
+		if remoteURL, err := execGitCommand("git", "config", "--get", "remote.origin.url"); err == nil && isGitHubURL(remoteURL) {
+			// Extract owner and repo from GitHub URL
+			owner, repo := parseGitHubURL(remoteURL)
+			if owner != "" && repo != "" {
+				// Fetch author info from GitHub API (best effort)
+				handle, avatarURL := fetchGitHubAuthorInfo(owner, repo, info.CommitSHA)
+				info.AuthorHandle = handle
+				info.AuthorAvatarURL = avatarURL
+			}
 		}
 	}
 
-	return info, nil
+	return info
 }
 
 // isGitHubURL checks if the URL is a GitHub repository URL
