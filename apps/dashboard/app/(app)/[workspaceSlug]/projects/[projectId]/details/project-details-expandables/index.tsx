@@ -52,6 +52,10 @@ export const ProjectDetailsExpandable = ({
     repository: data.project.gitRepositoryUrl,
   });
 
+  // This "environment" domain never changes even when you do a rollback this one stays stable.
+  const mainDomain = domainsData.at(0)?.domain;
+  const gitShaAndBranchNameDomains = domainsData.slice(1);
+
   return (
     <div className="flex">
       <div
@@ -119,12 +123,12 @@ export const ProjectDetailsExpandable = ({
                   <div className="gap-2 items-center flex min-w-0 max-w-[250px]">
                     {/* # is okay. This section is not accessible without deploy*/}
                     <a
-                      href={data.project.domain ?? "#"}
+                      href={mainDomain ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-9 text-sm truncate block transition-all hover:underline decoration-dashed underline-offset-2"
                     >
-                      {data.project.domain}
+                      {mainDomain}
                     </a>
                     <InfoTooltip
                       position={{
@@ -132,7 +136,7 @@ export const ProjectDetailsExpandable = ({
                       }}
                       content={
                         <div className="space-y-2 max-w-[300px] py-2">
-                          {domainsData.slice(1).map((d) => (
+                          {gitShaAndBranchNameDomains.map((d) => (
                             <div
                               key={d.domain}
                               className="text-xs font-medium flex items-center gap-1.5"
@@ -152,7 +156,7 @@ export const ProjectDetailsExpandable = ({
                       }
                     >
                       <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums">
-                        +{domainsData.slice(1).length}
+                        +{gitShaAndBranchNameDomains.length}
                       </div>
                     </InfoTooltip>
                   </div>

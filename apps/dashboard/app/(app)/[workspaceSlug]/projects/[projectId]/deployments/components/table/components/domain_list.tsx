@@ -14,6 +14,10 @@ export const DomainList = ({ deploymentId }: Props) => {
       .orderBy(({ domain }) => domain.domain, "asc"),
   );
 
+  if (domains.isLoading || !domains.data.length) {
+    return <DomainListSkeleton />;
+  }
+
   return (
     <ul className="flex flex-col list-none py-2">
       {domains.data.map((domain) => (
@@ -22,3 +26,13 @@ export const DomainList = ({ deploymentId }: Props) => {
     </ul>
   );
 };
+
+const DomainListSkeleton = () => (
+  <ul className="flex flex-col list-none py-2 gap-1">
+    {[1, 2, 3].map((i) => (
+      <li key={i}>
+        <div className="h-3 w-64 bg-grayA-3 rounded animate-pulse" />
+      </li>
+    ))}
+  </ul>
+);
