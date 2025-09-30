@@ -38,7 +38,10 @@ export const ProjectDetailsExpandable = ({
       q
         .from({ domain: collections.domains })
         .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
-        .select(({ domain }) => ({ domain: domain.domain }))
+        .select(({ domain }) => ({
+          domain: domain.domain,
+          environment: domain.sticky,
+        }))
         .orderBy(({ domain }) => domain.id, "asc"),
     [data?.project.liveDeploymentId],
   );
@@ -53,8 +56,8 @@ export const ProjectDetailsExpandable = ({
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.
-  const mainDomain = domainsData.at(0)?.domain;
-  const gitShaAndBranchNameDomains = domainsData.slice(1);
+  const mainDomain = domainsData.find((d) => d.environment === "environment")?.domain;
+  const gitShaAndBranchNameDomains = domainsData.filter((d) => d.environment !== "environment");
 
   return (
     <div className="flex">
