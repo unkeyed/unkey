@@ -22,8 +22,8 @@ export const promote = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     // Validate that ctrl service URL is configured
-    const ctrlUrl = env().CTRL_URL;
-    if (!ctrlUrl) {
+    const { CTRL_URL, CTRL_API_KEY } = env();
+    if (!CTRL_URL || !CTRL_API_KEY) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "ctrl service is not configured",
@@ -35,7 +35,13 @@ export const promote = t.procedure
     const ctrl = createClient(
       DeploymentService,
       createConnectTransport({
-        baseUrl: ctrlUrl,
+        baseUrl: CTRL_URL,
+        interceptors: [
+          (next) => (req) => {
+            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
+            return next(req);
+          },
+        ],
       }),
     );
 

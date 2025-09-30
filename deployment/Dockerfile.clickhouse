@@ -1,4 +1,4 @@
-FROM bitnami/clickhouse:25.6.4
+FROM bitnamilegacy/clickhouse:25.6.4
 
 # Copy ClickHouse schemas
 COPY go/pkg/clickhouse/migrations /opt/clickhouse-schemas/

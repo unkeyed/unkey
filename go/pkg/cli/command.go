@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 var (
@@ -66,6 +67,33 @@ func (c *Command) RequireString(name string) string {
 	sf, ok := flag.(*StringFlag)
 	if !ok {
 		panic(c.newWrongFlagTypeError(name, flag, "StringFlag"))
+	}
+
+	return sf.Value()
+}
+
+// Duration returns the value of a duration flag by name
+// Returns 0 if flag doesn't exist or isn't a DurationFlag
+func (c *Command) Duration(name string) time.Duration {
+	if flag, ok := c.flagMap[name]; ok {
+		if sf, ok := flag.(*DurationFlag); ok {
+			return sf.Value()
+		}
+	}
+	return time.Duration(0)
+}
+
+// RequireDuration returns the value of a duration flag by name
+// Panics if flag doesn't exist or isn't a DurationFlag
+func (c *Command) RequireDuration(name string) time.Duration {
+	flag, ok := c.flagMap[name]
+	if !ok {
+		panic(c.newFlagNotFoundError(name))
+	}
+
+	sf, ok := flag.(*DurationFlag)
+	if !ok {
+		panic(c.newWrongFlagTypeError(name, flag, "DurationFlag"))
 	}
 
 	return sf.Value()

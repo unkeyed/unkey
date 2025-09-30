@@ -51,8 +51,8 @@ spec:
             # Control Plane Specific
             - name: UNKEY_AUTH_TOKEN
               value: "dev-auth-token"
-            - name: UNKEY_METALD_ADDRESS
-              value: "http://metald-placeholder:8080"
+            - name: UNKEY_KRANE_ADDRESS
+              value: "http://krane:8080"
             - name: UNKEY_SPIFFE_SOCKET_PATH
               value: "/var/lib/spire/agent/agent.sock"
             # Vault Configuration (required)
@@ -69,10 +69,12 @@ spec:
             # Additional Configuration
             - name: UNKEY_ACME_ENABLED
               value: "false"
-            - name: UNKEY_METALD_ADDRESS
-              value: "http://metald:8080"
+
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
+            - name: UNKEY_API_KEY
+              value: "your-local-dev-key"
+
           command: ["/unkey", "run", "ctrl"]
       initContainers:
         - name: wait-for-dependencies

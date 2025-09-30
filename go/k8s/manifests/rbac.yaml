@@ -6,16 +6,16 @@ metadata:
   namespace: unkey
   labels:
     app: unkey
-    component: metald
+    component: krane
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: metald-vm-manager
+  name: krane-vm-manager
   labels:
     app: unkey
-    component: metald
+    component: krane
 rules:
   # Pod management for VMs
   - apiGroups: [""]
@@ -28,10 +28,9 @@ rules:
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Job management for VM workloads
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
 
   # Events access for debugging
   - apiGroups: [""]
@@ -42,15 +41,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: metald-vm-manager-binding
+  name: krane-vm-manager-binding
   labels:
     app: unkey
-    component: metald
+    component: krane
 subjects:
   - kind: ServiceAccount
     name: unkey-serviceaccount
     namespace: unkey
 roleRef:
   kind: ClusterRole
-  name: metald-vm-manager
+  name: krane-vm-manager
   apiGroup: rbac.authorization.k8s.io
