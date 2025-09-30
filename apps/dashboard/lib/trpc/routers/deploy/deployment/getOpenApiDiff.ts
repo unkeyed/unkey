@@ -1,4 +1,3 @@
-// trpc/routers/deployments/getOpenApiDiff.ts
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
