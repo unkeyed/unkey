@@ -21,8 +21,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_branch,
     runtime_config,
     git_commit_message,
-    git_commit_author_name,
-    git_commit_author_username,
+    git_commit_author_handle,
     git_commit_author_avatar_url,
     git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
@@ -31,7 +30,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     updated_at
 )
 VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -59,8 +57,7 @@ type InsertDeploymentParams struct {
 	GitBranch                sql.NullString    `db:"git_branch"`
 	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
 	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
-	GitCommitAuthorName      sql.NullString    `db:"git_commit_author_name"`
-	GitCommitAuthorUsername  sql.NullString    `db:"git_commit_author_username"`
+	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
 	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
 	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
@@ -80,8 +77,7 @@ type InsertDeploymentParams struct {
 //	    git_branch,
 //	    runtime_config,
 //	    git_commit_message,
-//	    git_commit_author_name,
-//	    git_commit_author_username,
+//	    git_commit_author_handle,
 //	    git_commit_author_avatar_url,
 //	    git_commit_timestamp, -- Unix epoch milliseconds
 //	    openapi_spec,
@@ -90,7 +86,6 @@ type InsertDeploymentParams struct {
 //	    updated_at
 //	)
 //	VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -117,8 +112,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitBranch,
 		arg.RuntimeConfig,
 		arg.GitCommitMessage,
-		arg.GitCommitAuthorName,
-		arg.GitCommitAuthorUsername,
+		arg.GitCommitAuthorHandle,
 		arg.GitCommitAuthorAvatarUrl,
 		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
