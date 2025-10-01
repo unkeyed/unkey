@@ -3,7 +3,10 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -147,9 +150,9 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 				Namespace:     hardcodedNamespace,
 				DeploymentId:  req.DeploymentID,
 				Image:         req.DockerImage,
-				Replicas:      3,
-				CpuMillicores: 1000,
-				MemorySizeMib: 1024,
+				Replicas:      1,
+				CpuMillicores: 512,
+				MemorySizeMib: 512,
 			},
 		}
 
@@ -257,6 +260,61 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 	if err != nil {
 		return err
 	}
+
+	openapiSpec, err := hydra.Step(ctx, "scrape-openapi-spec", func(stepCtx context.Context) (string, error) {
+
+		for _, instance := range createdInstances {
+			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
+			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", req.DeploymentID)
+
+			resp, err := http.DefaultClient.Get(openapiURL)
+			if err != nil {
+				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID)
+				continue
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID)
+				continue
+			}
+
+			// Read the OpenAPI spec
+			specBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID)
+				continue
+			}
+
+			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
+			return base64.StdEncoding.EncodeToString(specBytes), nil
+		}
+		// not an error really, just no OpenAPI spec found
+		return "", nil
+
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if openapiSpec != "" {
+
+		err = hydra.StepVoid(ctx, "update openapi for deployment", func(innerCtx context.Context) error {
+
+			return db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
+				ID:          deployment.ID,
+				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
+			})
+
+		})
+
+	}
+
+	w.logger.Info("openapi",
+
+		"spec", openapiSpec)
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -343,22 +401,38 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		// Prepare gateway configs for all non-local domains
 		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
-
 		for _, domain := range changedDomains {
 			if isLocalHostname(domain, w.defaultDomain) {
 				skippedDomains = append(skippedDomains, domain)
 				continue
 			}
 
-			// Create gateway config for this domain
-			gatewayConfig, err := createGatewayConfig(req.DeploymentID, req.KeyspaceID, createdInstances)
-			if err != nil {
-				w.logger.Error("failed to create gateway config for domain",
-					"domain", domain,
-					"error", err,
-					"deployment_id", req.DeploymentID)
-				// Continue with other domains rather than failing the entire deployment
-				continue
+			// Create VM protobuf objects for gateway config
+			gatewayConfig := &partitionv1.GatewayConfig{
+				Deployment: &partitionv1.Deployment{
+					Id:        req.DeploymentID,
+					IsEnabled: true,
+				},
+				Vms: make([]*partitionv1.VM, len(createdInstances)),
+			}
+
+			for i, vm := range createdInstances {
+				gatewayConfig.Vms[i] = &partitionv1.VM{
+					Id: vm.Id,
+				}
+			}
+
+			// Only add AuthConfig if we have a KeyspaceID
+			if req.KeyspaceID != "" {
+				gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
+					KeyAuthId: req.KeyspaceID,
+				}
+			}
+
+			if openapiSpec != "" {
+				gatewayConfig.ValidationConfig = &partitionv1.ValidationConfig{
+					OpenapiSpec: openapiSpec,
+				}
 			}
 
 			// Marshal protobuf to bytes
@@ -375,7 +449,6 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 				Config:       configBytes,
 			})
 		}
-
 		// Perform bulk upsert for all gateway configs
 		if len(gatewayParams) > 0 {
 			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, w.partitionDB.RW(), gatewayParams); err != nil {
@@ -419,6 +492,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 			return err
 		}
 	}
+
 	/*
 
 		// Step 23: Scrape OpenAPI spec from container (using host port mapping)

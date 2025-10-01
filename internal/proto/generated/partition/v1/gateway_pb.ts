@@ -149,6 +149,8 @@ export const AuthConfigSchema: GenMessage<AuthConfig> =
  */
 export type ValidationConfig = Message<"partition.v1.ValidationConfig"> & {
   /**
+   * Base64 standard encoding of the OpenAPI specification or empty string if not available
+   *
    * @generated from field: string openapi_spec = 1;
    */
   openapiSpec: string;

@@ -79,6 +79,11 @@ spec:
               value: "http://restate:8080"
             - name: UNKEY_RESTATE_ADMIN_URL
               value: "http://restate:9070"
+
+            # Additional Configuration
+            - name: UNKEY_API_KEY
+              value: "your-local-dev-key"
+
           command: ["/unkey", "run", "ctrl"]
       initContainers:
         - name: wait-for-dependencies
