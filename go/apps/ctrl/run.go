@@ -2,33 +2,28 @@ package ctrl
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
-	certificatecron "github.com/unkeyed/unkey/go/apps/ctrl/cron/certificate"
+	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
-	ctrlrestate "github.com/unkeyed/unkey/go/apps/ctrl/restate"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
-	certificateworkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/certificate"
-	deploymentworkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/deployment"
+	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
+	workflowsv1 "github.com/unkeyed/unkey/go/gen/proto/workflows/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
@@ -99,6 +94,8 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create vault service: %w", err)
 		}
 	}
+	// make go happy
+	_ = vaultSvc
 
 	// Initialize database
 	database, err := db.New(db.Config{
@@ -167,100 +164,26 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
 	// Restate Client and Server
-	restateClient := ctrlrestate.NewClient(cfg.Restate.IngressURL)
 
-	deployWorkflow := deploymentworkflow.NewDeployWorkflow(deploymentworkflow.DeployWorkflowConfig{
+	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
+
+	restateSrv := restateServer.NewRestate()
+
+	restateSrv.Bind(workflowsv1.NewDeployWorkflowsServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
 		DefaultDomain: cfg.DefaultDomain,
-	})
-
-	var certificateWorkflow *certificateworkflow.CertificateChallenge
-	var certificateCron *certificatecron.CertificateCron
-	if cfg.Acme.Enabled {
-		// Initialize ACME client early for certificate workflow registration
-		acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
-			DB:          database,
-			Logger:      logger,
-			Vault:       vaultSvc,
-			WorkspaceID: "unkey",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create ACME user: %w", err)
-		}
-
-		certificateWorkflow = certificateworkflow.NewCertificateChallenge(certificateworkflow.CertificateChallengeConfig{
-			DB:          database,
-			PartitionDB: partitionDB,
-			Logger:      logger,
-			AcmeClient:  acmeClient,
-			Vault:       vaultSvc,
-		})
-
-		// Determine supported challenge types
-		supportedTypes := []db.AcmeChallengesType{db.AcmeChallengesTypeHTTP01}
-		if cfg.Acme.Cloudflare.Enabled {
-			supportedTypes = append(supportedTypes, db.AcmeChallengesTypeDNS01)
-		}
-
-		certificateCron = certificatecron.NewCertificateCron(certificatecron.CertificateCronConfig{
-			DB:                  database,
-			Logger:              logger,
-			SupportedTypes:      supportedTypes,
-			CheckIntervalMins:   5, // Run every 5 minutes
-			RestateClient:       restateClient,
-			CertificateWorkflow: certificateWorkflow,
-		})
-	}
-
-	// Create and start Restate server
-	restateSrv := ctrlrestate.NewServer(ctrlrestate.ServerConfig{
-		Port:                cfg.Restate.HttpPort,
-		DeployWorkflow:      deployWorkflow,
-		CertificateWorkflow: certificateWorkflow,
-		CertificateCron:     certificateCron,
-	})
+	})))
 
 	go func() {
-		logger.Info("Starting Restate server", "port", cfg.Restate.HttpPort)
-		if startErr := restateSrv.Start(ctx); startErr != nil {
+		addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
+		logger.Info("Starting Restate server", "addr", addr)
+		if startErr := restateSrv.Start(ctx, addr); startErr != nil {
 			logger.Error("failed to start restate server", "error", startErr.Error())
 		}
 	}()
-
-	// Register deployment with Restate for discovery
-	go func() {
-		time.Sleep(2 * time.Second) // Wait for server to start
-
-		err := ctrlrestate.RegisterDeployment(ctx, ctrlrestate.DiscoveryConfig{
-			AdminURL:   fmt.Sprintf("%s:9070", strings.Replace(cfg.Restate.IngressURL, ":8080", "", 1)),
-			ServiceURL: fmt.Sprintf("http://ctrl:%d", cfg.Restate.HttpPort),
-			Logger:     logger,
-		})
-		if err != nil {
-			logger.Error("failed to register with Restate", "error", err)
-		}
-	}()
-
-	// Trigger the initial certificate cron run if ACME is enabled
-	if cfg.Acme.Enabled && certificateCron != nil {
-		go func() {
-			// Wait a bit for the Restate server to start
-			time.Sleep(5 * time.Second)
-
-			logger.Info("Triggering initial certificate cron run")
-			invocation := restateIngress.ServiceSend[certificatecron.CronTriggerRequest](restateClient.Raw(), "certificate_cron", "Run").Send(ctx, certificatecron.CronTriggerRequest{
-				Timestamp: time.Now().UnixMilli(),
-			})
-			if invocation.Error != nil {
-				logger.Error("Failed to trigger initial certificate cron", "error", invocation.Error)
-			} else {
-				logger.Info("Successfully triggered initial certificate cron")
-			}
-		}()
-	}
 
 	// Create the connect handler
 	mux := http.NewServeMux()
@@ -283,7 +206,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
-	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, restateClient, deployWorkflow, logger), connectOptions...))
+	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
+		Database:    database,
+		PartitionDB: partitionDB,
+		Restate:     restateClient,
+		Logger:      logger,
+	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
@@ -342,86 +270,6 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("Server failed", "error", err)
 		}
 	}()
-
-	if cfg.Acme.Enabled && certificateWorkflow != nil {
-		// Set up our custom HTTP-01 challenge provider on the ACME client
-		acmeClient := certificateWorkflow.AcmeClient()
-		httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
-			DB:     database,
-			Logger: logger,
-		})
-		err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
-		if err != nil {
-			return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
-		}
-
-		// Set up Cloudflare DNS-01 challenge provider if enabled
-		if cfg.Acme.Cloudflare.Enabled {
-			cloudflareProvider, err := providers.NewCloudflareProvider(providers.CloudflareProviderConfig{
-				DB:            database,
-				Logger:        logger,
-				APIToken:      cfg.Acme.Cloudflare.ApiToken,
-				DefaultDomain: cfg.DefaultDomain,
-			})
-			if err != nil {
-				logger.Error("failed to create Cloudflare DNS provider", "error", err)
-				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", err)
-			}
-
-			err = acmeClient.Challenge.SetDNS01Provider(cloudflareProvider)
-			if err != nil {
-				logger.Error("failed to set DNS-01 provider", "error", err)
-				return fmt.Errorf("failed to set DNS-01 provider: %w", err)
-			}
-
-			logger.Info("Cloudflare DNS-01 challenge provider configured")
-
-			if cfg.DefaultDomain != "" {
-				wildcardDomain := "*." + cfg.DefaultDomain
-
-				// Check if we already have a challenge or certificate for the wildcard domain
-				_, err := db.Query.FindDomainByDomain(ctx, database.RO(), wildcardDomain)
-				if err != nil && !db.IsNotFound(err) {
-					logger.Error("Failed to check existing wildcard domain", "error", err, "domain", wildcardDomain)
-				} else if db.IsNotFound(err) {
-					now := time.Now().UnixMilli()
-					domainID := uid.New("domain")
-
-					// Insert domain record
-					err = db.Query.InsertDomain(ctx, database.RW(), db.InsertDomainParams{
-						ID:          domainID,
-						WorkspaceID: "unkey", // Default workspace for wildcard cert
-						Domain:      wildcardDomain,
-						CreatedAt:   now,
-						Type:        db.DomainsTypeCustom,
-					})
-					if err != nil {
-						logger.Error("Failed to create wildcard domain", "error", err, "domain", wildcardDomain)
-					} else {
-						// Insert challenge record
-						expiresAt := time.Now().Add(90 * 24 * time.Hour).UnixMilli() // 90 days
-
-						err = db.Query.InsertAcmeChallenge(ctx, database.RW(), db.InsertAcmeChallengeParams{
-							WorkspaceID:   "unkey",
-							DomainID:      domainID,
-							Token:         "",
-							Authorization: "",
-							Status:        db.AcmeChallengesStatusWaiting,
-							Type:          db.AcmeChallengesTypeDNS01, // Use DNS-01 for wildcard
-							CreatedAt:     now,
-							UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-							ExpiresAt:     expiresAt,
-						})
-						if err != nil {
-							logger.Error("Failed to create wildcard challenge", "error", err, "domain", wildcardDomain)
-						} else {
-							logger.Info("Created wildcard domain and challenge", "domain", wildcardDomain)
-						}
-					}
-				}
-			}
-		}
-	}
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
