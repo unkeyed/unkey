@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: restate-pvc
+  namespace: unkey
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: restate
+  namespace: unkey
+  labels:
+    app: restate
+spec:
+  serviceName: "restate"
+  replicas: 1  # Restate requires single-replica for development
+  selector:
+    matchLabels:
+      app: restate
+  template:
+    metadata:
+      labels:
+        app: restate
+    spec:
+      containers:
+        - name: restate
+          image: docker.io/restatedev/restate:1.2.0
+          ports:
+            - containerPort: 8080
+              name: ingress
+            - containerPort: 9070
+              name: admin
+          volumeMounts:
+            - name: restate-storage
+              mountPath: /restate-data
+          env:
+            - name: RESTATE_WORKER__STORAGE__DATA_DIR
+              value: "/restate-data"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9070
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9070
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: restate-storage
+          persistentVolumeClaim:
+            claimName: restate-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restate
+  namespace: unkey
+  labels:
+    app: restate
+spec:
+  selector:
+    app: restate
+  ports:
+    - name: ingress
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: admin
+      port: 9070
+      targetPort: 9070
+      protocol: TCP
+  type: LoadBalancer

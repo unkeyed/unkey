@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+
+	deploymentworkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/deployment"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -146,7 +147,7 @@ func (s *Service) CreateDeployment(
 	)
 
 	// Start the deployment workflow directly
-	deployReq := &DeployRequest{
+	deployReq := deploymentworkflow.DeployRequest{
 		WorkspaceID:   req.Msg.GetWorkspaceId(),
 		ProjectID:     req.Msg.GetProjectId(),
 		EnvironmentID: env.ID,
@@ -155,12 +156,7 @@ func (s *Service) CreateDeployment(
 		KeyspaceID:    req.Msg.GetKeyspaceId(),
 	}
 
-	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,
-		hydra.WithMaxAttempts(3),
-		hydra.WithTimeout(25*time.Minute),
-		hydra.WithRetryBackoff(1*time.Minute),
-	)
-
+	err = s.deployWorkflow.Start(ctx, s.restate.Raw(), deployReq)
 	if err != nil {
 		s.logger.Error("failed to start deployment workflow",
 			"deployment_id", deploymentID,
@@ -168,8 +164,7 @@ func (s *Service) CreateDeployment(
 		// Don't fail deployment creation - workflow can be retried
 	} else {
 		s.logger.Info("deployment workflow started",
-			"deployment_id", deploymentID,
-			"execution_id", executionID)
+			"deployment_id", deploymentID)
 	}
 
 	res := connect.NewResponse(&ctrlv1.CreateDeploymentResponse{

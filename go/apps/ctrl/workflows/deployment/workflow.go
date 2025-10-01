@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -50,11 +50,6 @@ func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
 	}
 }
 
-// Name returns the workflow name for registration
-func (w *DeployWorkflow) Name() string {
-	return "deployment"
-}
-
 // DeployRequest defines the input for the deploy workflow
 type DeployRequest struct {
 	WorkspaceID   string `json:"workspace_id"`
@@ -71,44 +66,51 @@ type DeploymentResult struct {
 	Status       string `json:"status"`
 }
 
+// invocation := restateIngress.WorkflowSend[deploymentworkflow.DeployRequest](s.restate, "DeployWorkflow", deploymentID, "Run").Send(ctx, deployReq)
+
+func (w *DeployWorkflow) Invoke() string {
+	return "DeployWorkflow"
+}
+
 // Run executes the complete build and deployment workflow
-func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) error {
+func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) error {
 	w.logger.Info("starting deployment workflow",
-		"execution_id", ctx.ExecutionID(),
+		"execution_id", ctx.Request().ID,
 		"deployment_id", req.DeploymentID,
 		"docker_image", req.DockerImage,
 		"workspace_id", req.WorkspaceID,
 		"project_id", req.ProjectID,
 	)
 
-	workspace, err := hydra.Step(ctx, "get-workspace", func(stepCtx context.Context) (db.Workspace, error) {
+	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
+
 		return db.Query.FindWorkspaceByID(stepCtx, w.db.RW(), req.WorkspaceID)
-	})
+	}, restate.WithName("finding workspace"))
 	if err != nil {
 		return err
 	}
-	project, err := hydra.Step(ctx, "get-project", func(stepCtx context.Context) (db.FindProjectByIdRow, error) {
+	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
 		return db.Query.FindProjectById(stepCtx, w.db.RW(), req.ProjectID)
-	})
+	}, restate.WithName("finding project"))
 	if err != nil {
 		return err
 	}
-	environment, err := hydra.Step(ctx, "get-environment", func(stepCtx context.Context) (db.FindEnvironmentByIdRow, error) {
+	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
 		return db.Query.FindEnvironmentById(stepCtx, w.db.RW(), req.EnvironmentID)
-	})
+	}, restate.WithName("finding environment"))
 	if err != nil {
 		return err
 	}
-	deployment, err := hydra.Step(ctx, "get-deployment", func(stepCtx context.Context) (db.FindDeploymentByIdRow, error) {
+	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.DeploymentID)
-	})
+	}, restate.WithName("finding deployment"))
 	if err != nil {
 		return err
 	}
 
 	// Log deployment pending
-	err = hydra.StepVoid(ctx, "log-deployment-pending", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		err = db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			WorkspaceID:  req.WorkspaceID,
 			ProjectID:    req.ProjectID,
 			DeploymentID: req.DeploymentID,
@@ -116,28 +118,29 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			Message:      "Deployment queued and ready to start",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
-	})
+		return restate.Void{}, err
+	}, restate.WithName("logging deployment pending"))
 	if err != nil {
 		return err
 	}
 
 	// Update version status to building
-	_, err = hydra.Step(ctx, "update-version-building", func(stepCtx context.Context) (*struct{}, error) {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		updateErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusBuilding,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if updateErr != nil {
-			return nil, fmt.Errorf("failed to update version status to building: %w", updateErr)
+			return restate.Void{}, fmt.Errorf("failed to update version status to building: %w", updateErr)
 		}
-		return &struct{}{}, nil
-	})
+		return restate.Void{}, nil
+	}, restate.WithName("updating deployment status to building"))
 	if err != nil {
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "create-deployment", func(stepCtx context.Context) error {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Create deployment request
 		deploymentReq := &kranev1.CreateDeploymentRequest{
 			Deployment: &kranev1.DeploymentRequest{
@@ -152,11 +155,11 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(deploymentReq))
 		if err != nil {
-			return fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.DockerImage, err)
+			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.DockerImage, err)
 		}
 
-		return nil
-	})
+		return restate.Void{}, nil
+	}, restate.WithName("creating deployment in krane"))
 	if err != nil {
 		return err
 	}
@@ -164,22 +167,21 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	w.logger.Info("deployment created", "deployment_id", req.DeploymentID)
 
 	// Update version status to deploying
-	_, err = hydra.Step(ctx, "update-version-deploying", func(stepCtx context.Context) (*struct{}, error) {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		deployingErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusDeploying,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if deployingErr != nil {
-			return nil, fmt.Errorf("failed to update version status to deploying: %w", deployingErr)
+			return restate.Void{}, fmt.Errorf("failed to update version status to deploying: %w", deployingErr)
 		}
-		return &struct{}{}, nil
-	})
+		return restate.Void{}, nil
+	}, restate.WithName("updating deployment status to deploying"))
 	if err != nil {
 		return err
 	}
-
-	createdInstances, err := hydra.Step(ctx, "polling deployment prepare", func(stepCtx context.Context) ([]*kranev1.Instance, error) {
+	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
 		// prevent updating the db unnecessarily
 
 		for i := range 300 {
@@ -251,7 +253,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}
 
 		return nil, fmt.Errorf("deployment never became ready")
-	})
+	}, restate.WithName("polling deployment status"))
 	if err != nil {
 		return err
 	}
@@ -272,7 +274,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	for _, domain := range allDomains {
 
-		err = hydra.StepVoid(ctx, fmt.Sprintf("create-domain-entry-%s", domain.domain), func(stepCtx context.Context) error {
+		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 
 			now := time.Now().UnixMilli()
 
@@ -280,7 +282,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 			// A simple ON DUPLICATE UPDATE was insufficient, because it could leak domains into other workspaces
 			// because workspace slugs can change over time.
 			// And we also need more control over updating rolled back domains
-			return db.Tx(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			return restate.Void{}, db.Tx(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 
 				existing, err := db.Query.FindDomainByDomain(txCtx, tx, domain.domain)
 				if err != nil {
@@ -329,7 +331,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				return nil
 
 			})
-		})
+		}, restate.WithName("upserting domain"))
 	}
 
 	if err != nil {
@@ -337,7 +339,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	}
 
 	// Create gateway configs for all domains in bulk (except local ones)
-	err = hydra.StepVoid(ctx, "create-gateway-configs-bulk", func(stepCtx context.Context) error {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Prepare gateway configs for all non-local domains
 		var gatewayParams []partitiondb.UpsertGatewayParams
 		var skippedDomains []string
@@ -377,42 +379,42 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		// Perform bulk upsert for all gateway configs
 		if len(gatewayParams) > 0 {
 			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, w.partitionDB.RW(), gatewayParams); err != nil {
-				return fmt.Errorf("failed to upsert %d gateway configs for deployment %s: %w", len(gatewayParams), req.DeploymentID, err)
+				return restate.Void{}, fmt.Errorf("failed to upsert %d gateway configs for deployment %s: %w", len(gatewayParams), req.DeploymentID, err)
 			}
 		}
 
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       db.DeploymentStepsStatusAssigningDomains,
 			Message:      fmt.Sprintf("Created %d gateway configs for %d domains (skipped %d local domains)", len(gatewayParams), len(allDomains), len(skippedDomains)),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
-	})
+	}, restate.WithName("creating gateway configs"))
 	if err != nil {
 		return err
 	}
 
 	// Update deployment status to ready
-	err = hydra.StepVoid(ctx, "update-deployment-ready", func(stepCtx context.Context) error {
-		return db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        req.DeploymentID,
 			Status:    db.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
-	})
+	}, restate.WithName("updating deployment status to ready"))
 	if err != nil {
 		return err
 	}
 
 	if !project.IsRolledBack {
 		// only update this if the deployment is not rolled back
-		err = hydra.StepVoid(ctx, "update-project-deployment-pointers", func(stepCtx context.Context) error {
-			return db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
+		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
 				ID:               req.ProjectID,
 				LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
 				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-		})
+		}, restate.WithName("updating project live deployment"))
 		if err != nil {
 			return err
 		}
@@ -420,7 +422,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 	/*
 
 		// Step 23: Scrape OpenAPI spec from container (using host port mapping)
-		openapiSpec, err := hydra.Step(ctx, "scrape-openapi-spec", func(stepCtx context.Context) (string, error) {
+		openapiSpec, err := restate.Run(ctx, "scrape-openapi-spec", func(stepCtx restate.RunContext) (string, error) {
 
 			// Find the port mapping for container port 8080
 			var hostPort int32
@@ -480,7 +482,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}
 
 		// Step 24: Update gateway config with OpenAPI spec
-		err = hydra.StepVoid(ctx, "update-gateway-config-openapi", func(stepCtx context.Context) error {
+		err = restate.Run(ctx, "update-gateway-config-openapi", func(stepCtx restate.RunContext) error {
 			// Only update if we have both hostname and OpenAPI spec
 			if req.Hostname == "" || openapiSpec == "" {
 				w.logger.Info("skipping gateway config OpenAPI update",
@@ -536,7 +538,7 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 		}
 
 		// Step 25: Store OpenAPI spec in database
-		err = hydra.StepVoid(ctx, "store-openapi-spec", func(stepCtx context.Context) error {
+		err = restate.Run(ctx, "store-openapi-spec", func(stepCtx restate.RunContext) error {
 			if openapiSpec == "" {
 				w.logger.Info("no OpenAPI spec to store", "deployment_id", req.DeploymentID)
 				return nil
@@ -562,14 +564,14 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 
 	*/
 	// Log deployment completed
-	err = hydra.StepVoid(ctx, "log-completed", func(stepCtx context.Context) error {
-		return db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			DeploymentID: req.DeploymentID,
 			Status:       "completed",
 			Message:      "Deployment completed successfully",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
-	})
+	}, restate.WithName("logging deployment completed"))
 	if err != nil {
 		return err
 	}
