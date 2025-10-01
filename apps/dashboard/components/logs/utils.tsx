@@ -2,7 +2,7 @@ import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/gra
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
 import type { TimeseriesData } from "./overview-charts/types";
-import { parseTimestamp } from "./parseTimestamp";
+import { parseTimestamp } from "./parse-timestamp";
 
 // Default time buffer for granularity fallbacks (1 minute)
 const DEFAULT_TIME_BUFFER_MS = 60_000;

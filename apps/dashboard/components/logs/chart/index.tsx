@@ -1,6 +1,8 @@
 // GenericTimeseriesChart.tsx
 "use client";
 
+import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { formatTooltipInterval } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -10,13 +12,12 @@ import {
 import { formatNumber } from "@/lib/fmt";
 import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { createTimeIntervalFormatter } from "../overview-charts/utils";
+import { parseTimestamp } from "../parse-timestamp";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
-import { formatTimestampLabel } from "./utils/format-timestamp";
 
 type Selection = {
   start: number | undefined;
@@ -67,6 +68,21 @@ export function LogsTimeseriesBarChart({
     end: undefined,
   });
 
+  // Precompute timestamp-to-index mapping for O(1) lookup
+  const timestampToIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    if (data?.length) {
+      data.forEach((item, index) => {
+        if (item?.originalTimestamp) {
+          const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
+          if (Number.isFinite(normalizedTimestamp)) {
+            map.set(normalizedTimestamp, index);
+          }
+        }
+      });
+    }
+    return map;
+  }, [data]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
     if (onMount) {
@@ -183,7 +199,7 @@ export function LogsTimeseriesBarChart({
                 if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
                   return null;
                 }
-
+                console.log(payload);
                 return (
                   <ChartTooltipContent
                     payload={payload}
@@ -210,13 +226,15 @@ export function LogsTimeseriesBarChart({
                       </div>
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
-                    labelFormatter={(_, payload) =>
-                      createTimeIntervalFormatter(
-                        data,
-                        undefined,
+                    labelFormatter={(_, tooltipPayload) => {
+                      const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                      return formatTooltipInterval(
+                        payloadTimestamp,
+                        data || [],
                         granularity,
-                      )((payload ?? []).map((p) => (p as { payload: TimeseriesData }).payload))
-                    }
+                        timestampToIndexMap,
+                      );
+                    }}
                   />
                 );
               }}

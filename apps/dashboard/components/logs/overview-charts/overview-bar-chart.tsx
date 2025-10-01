@@ -15,7 +15,7 @@ import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/gra
 import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { parseTimestamp } from "../parseTimestamp";
+import { parseTimestamp } from "../parse-timestamp";
 
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";

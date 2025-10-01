@@ -2,6 +2,7 @@ import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/gra
 import { format, fromUnixTime } from "date-fns";
 
 // Memoization cache with bounded size
+// Speed improvement so we do not repeat each timeStampFormat
 const formatCache = new Map<string, string>();
 const MAX_CACHE_SIZE = 1000;
 

@@ -22,7 +22,7 @@ import {
   ResponsiveContainer,
   YAxis,
 } from "recharts";
-import { parseTimestamp } from "../parseTimestamp";
+import { parseTimestamp } from "../parse-timestamp";
 
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";

@@ -1,6 +1,9 @@
-import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import {
+  type CompoundTimeseriesGranularity,
+  TIMESERIES_GRANULARITIES,
+} from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
-import { parseTimestamp } from "../parseTimestamp";
+import { parseTimestamp } from "../parse-timestamp";
 import type { TimeseriesData } from "./types";
 
 // Default time buffer for granularity fallbacks (1 minute)
@@ -23,36 +26,21 @@ type TooltipPayloadItem = {
 /**
  * Get appropriate formatted time based on granularity (12-hour format without timezone)
  */
-function formatTimeForGranularity(date: Date, granularity?: CompoundTimeseriesGranularity): string {
+export function formatTimeForGranularity(
+  date: Date,
+  granularity?: CompoundTimeseriesGranularity,
+): string {
   if (!granularity) {
     return format(date, "h:mma");
   }
 
-  switch (granularity) {
-    case "perMinute":
-      return format(date, "h:mm:ssa");
-    case "per5Minutes":
-    case "per15Minutes":
-    case "per30Minutes":
-      return format(date, "h:mma");
-    case "perHour":
-    case "per2Hours":
-    case "per4Hours":
-    case "per6Hours":
-    case "per12Hours":
-      return format(date, "MMM d h:mma");
-    case "perDay":
-      return format(date, "MMM d");
-    case "per3Days":
-      return format(date, "MMM d");
-    case "perWeek":
-      return format(date, "MMM d");
-    case "perMonth":
-      return format(date, "MMM yy");
-    default:
-      return format(date, "h:mma");
-  }
+  const config = TIMESERIES_GRANULARITIES[granularity];
+  return format(date, config.format);
 }
+
+export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
+  return TIMESERIES_GRANULARITIES[granularity].ms;
+};
 
 /**
  * Get timezone abbreviation for a given date
