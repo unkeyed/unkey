@@ -14,7 +14,8 @@ type ProjectRow = {
   is_rolled_back: boolean;
   git_commit_message: string | null;
   git_branch: string | null;
-  git_commit_author_name: string | null;
+  git_commit_author_handle: string | null;
+  git_commit_author_avatar_url: string | null;
   git_commit_timestamp: number | null;
   runtime_config: Deployment["runtimeConfig"] | null;
   domain: string | null;
@@ -36,7 +37,8 @@ export const listProjects = t.procedure
         ${projects.isRolledBack},
         ${deployments.gitCommitMessage},
         ${deployments.gitBranch},
-        ${deployments.gitCommitAuthorName},
+        ${deployments.gitCommitAuthorHandle},
+        ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
         ${deployments.runtimeConfig},
         ${domains.domain}
@@ -60,12 +62,13 @@ export const listProjects = t.procedure
         gitRepositoryUrl: row.git_repository_url,
         liveDeploymentId: row.live_deployment_id,
         isRolledBack: row.is_rolled_back,
-        commitTitle: row.git_commit_message ?? "[DUMMY] Initial commit",
+        commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",
-        author: row.git_commit_author_name ?? "[DUMMY] Unknown Author",
-        commitTimestamp: row.git_commit_timestamp ?? Date.now() - 86400000,
+        author: row.git_commit_author_handle,
+        commitTimestamp: Number(row.git_commit_timestamp),
+        authorAvatar: row.git_commit_author_avatar_url,
         regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
-        domain: row.domain ?? "project-temp.unkey.app",
+        domain: row.domain,
       }),
     );
   });

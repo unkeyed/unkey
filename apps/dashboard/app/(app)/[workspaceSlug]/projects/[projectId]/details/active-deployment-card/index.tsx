@@ -135,7 +135,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
               <span className="text-gray-9 text-xs">Created by</span>
               <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
               <span className="font-medium text-grayA-12 text-xs">
-                {deployment.gitCommitAuthorName}
+                {deployment.gitCommitAuthorHandle}
               </span>
             </div>
           </div>

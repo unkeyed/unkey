@@ -7,61 +7,63 @@ metadata:
   labels:
     app: dashboard
 spec:
-    replicas: 1
-    selector:
-        matchLabels:
-            app: dashboard
-    template:
-        metadata:
-            labels:
-                app: dashboard
-        spec:
-            initContainers:
-                - name: wait-for-dependencies
-                  image: busybox:1.36
-                  command:
-                      - sh
-                      - -c
-                      - |
-                          until nc -z planetscale 3900; do
-                            echo waiting for planetscale
-                            sleep 2
-                          done
-            containers:
-                - name: dashboard
-                  image: unkey/dashboard:latest
-                  imagePullPolicy: Never
-                  ports:
-                      - containerPort: 3000
-                  env:
-                      # Database configuration
-                      - name: DATABASE_HOST
-                        value: "planetscale:3900"
-                      # ClickHouse configuration
-                      - name: CLICKHOUSE_URL
-                        value: "http://unkey:password@clickhouse:8123"
-                      # Environment
-                      - name: NODE_ENV
-                        value: "production"
-                      # Instance identification
-                      - name: UNKEY_PLATFORM
-                        value: "kubernetes"
-                      - name: UNKEY_REGION
-                        value: "local"
-                      - name: CTRL_URL
-                        value: "http://ctrl:7091"
-                  readinessProbe:
-                      httpGet:
-                          path: /
-                          port: 3000
-                      initialDelaySeconds: 10
-                      periodSeconds: 5
-                  livenessProbe:
-                      httpGet:
-                          path: /
-                          port: 3000
-                      initialDelaySeconds: 30
-                      periodSeconds: 10
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z planetscale 3900; do
+                echo waiting for planetscale
+                sleep 2
+              done
+      containers:
+        - name: dashboard
+          image: unkey/dashboard:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            # Database configuration
+            - name: DATABASE_HOST
+              value: "planetscale:3900"
+            # ClickHouse configuration
+            - name: CLICKHOUSE_URL
+              value: "http://unkey:password@clickhouse:8123"
+            # Environment
+            - name: NODE_ENV
+              value: "production"
+            # Instance identification
+            - name: UNKEY_PLATFORM
+              value: "kubernetes"
+            - name: UNKEY_REGION
+              value: "local"
+            - name: CTRL_URL
+              value: "http://ctrl:7091"
+            - name: CTRL_API_KEY
+              value: "your-local-dev-key"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
 
 ---
 apiVersion: v1

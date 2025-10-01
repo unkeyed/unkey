@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"context"
+	"encoding/base64"
 
 	"connectrpc.com/connect"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -13,7 +14,7 @@ import (
 
 func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv1.GetOpenApiDiffRequest]) (*connect.Response[ctrlv1.GetOpenApiDiffResponse], error) {
 	// Load old version spec
-	oldSpec, err := s.loadVersionSpec(ctx, req.Msg.OldVersionId)
+	oldSpec, err := s.loadOpenApiSpec(ctx, req.Msg.OldDeploymentId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, fault.Wrap(err,
 			fault.Internal("failed to load old version spec"),
@@ -22,7 +23,7 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	// Load new version spec
-	newSpec, err := s.loadVersionSpec(ctx, req.Msg.NewVersionId)
+	newSpec, err := s.loadOpenApiSpec(ctx, req.Msg.NewDeploymentId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, fault.Wrap(err,
 			fault.Internal("failed to load new version spec"),
@@ -34,7 +35,15 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 	loader := openapi3.NewLoader()
 	loader.IsExternalRefsAllowed = true
 
-	s1, err := loader.LoadFromData([]byte(oldSpec))
+	b1, err := base64.StdEncoding.DecodeString(oldSpec)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fault.Wrap(err,
+			fault.Internal("failed to decode old version spec"),
+			fault.Public("Invalid base64 encoding in old version"),
+		))
+	}
+
+	s1, err := loader.LoadFromData(b1)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fault.Wrap(err,
 			fault.Internal("failed to parse old OpenAPI spec"),
@@ -42,7 +51,15 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 		))
 	}
 
-	s2, err := loader.LoadFromData([]byte(newSpec))
+	b2, err := base64.StdEncoding.DecodeString(newSpec)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fault.Wrap(err,
+			fault.Internal("failed to decode new version spec"),
+			fault.Public("Invalid base64 encoding in new version"),
+		))
+	}
+
+	s2, err := loader.LoadFromData(b2)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fault.Wrap(err,
 			fault.Internal("failed to parse new OpenAPI spec"),

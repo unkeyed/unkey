@@ -331,9 +331,7 @@ CREATE TABLE `deployments` (
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
-	`git_commit_author_name` varchar(256),
-	`git_commit_author_email` varchar(256),
-	`git_commit_author_username` varchar(256),
+	`git_commit_author_handle` varchar(256),
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
 	`runtime_config` json NOT NULL,
@@ -420,4 +418,3 @@ CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
-

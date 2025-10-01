@@ -53,12 +53,10 @@ func (s *Service) GetDeployment(
 	if deployment.GitCommitMessage.Valid {
 		protoDeployment.GitCommitMessage = deployment.GitCommitMessage.String
 	}
-	if deployment.GitCommitAuthorName.Valid {
-		protoDeployment.GitCommitAuthorName = deployment.GitCommitAuthorName.String
-	}
+
 	// Email removed to avoid storing PII - TODO: implement GitHub API lookup
-	if deployment.GitCommitAuthorUsername.Valid {
-		protoDeployment.GitCommitAuthorUsername = deployment.GitCommitAuthorUsername.String
+	if deployment.GitCommitAuthorHandle.Valid {
+		protoDeployment.GitCommitAuthorHandle = deployment.GitCommitAuthorHandle.String
 	}
 	if deployment.GitCommitAuthorAvatarUrl.Valid {
 		protoDeployment.GitCommitAuthorAvatarUrl = deployment.GitCommitAuthorAvatarUrl.String
