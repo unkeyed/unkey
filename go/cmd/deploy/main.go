@@ -16,7 +16,7 @@ const (
 	DefaultBranch          = "main"
 	DefaultDockerfile      = "Dockerfile"
 	DefaultRegistry        = "ghcr.io/unkeyed/deploy"
-	DefaultControlPlaneURL = "http://localhost:7091"
+	DefaultControlPlaneURL = "https://ctrl.unkey.cloud"
 	DefaultAuthToken       = "ctrl-secret-token"
 	DefaultEnvironment     = "Production"
 
