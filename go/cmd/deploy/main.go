@@ -22,7 +22,7 @@ const (
 
 	// Environment variables
 	EnvWorkspaceID = "UNKEY_WORKSPACE_ID"
-	EnvKeyspaceID  = "UNKEY_KEYSPACE_ID"
+	EnvApiId  = "UNKEY_API_ID"
 	EnvRegistry    = "UNKEY_REGISTRY"
 
 	// URL prefixes
@@ -83,7 +83,7 @@ var stepSequence = map[string]string{
 type DeployOptions struct {
 	WorkspaceID     string
 	ProjectID       string
-	KeyspaceID      string
+	ApiID      		string
 	Context         string
 	Branch          string
 	DockerImage     string
@@ -108,7 +108,7 @@ var DeployFlags = []cli.Flag{
 	// Required flags (can be provided via config file)
 	cli.String("workspace-id", "Workspace ID", cli.EnvVar(EnvWorkspaceID)),
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
-	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar(EnvKeyspaceID)),
+	cli.String("api-id", "API ID for API key authentication", cli.EnvVar(EnvApiID)),
 	// Optional flags with defaults
 	cli.String("context", "Build context path"),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
@@ -184,7 +184,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	finalConfig := cfg.mergeWithFlags(
 		cmd.String("workspace-id"),
 		cmd.String("project-id"),
-		cmd.String("keyspace-id"),
+		cmd.String("api-id"),
 		cmd.String("context"),
 	)
 
@@ -195,7 +195,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 	opts := DeployOptions{
 		WorkspaceID:     finalConfig.WorkspaceID,
-		KeyspaceID:      finalConfig.KeyspaceID,
+		ApiID:      	 finalConfig.ApiID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
