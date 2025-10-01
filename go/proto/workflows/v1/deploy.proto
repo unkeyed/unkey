@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package workflows.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/workflows/v1;workflowsv1";
+
+service DeployWorkflows {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+  rpc Deploy(DeployRequest) returns (DeployResponse) {}
+}
+
+message DeployRequest {
+  string deployment_id = 1;
+  string docker_image = 2;
+  optional string key_auth_id = 3;
+}
+
+message DeployResponse {}

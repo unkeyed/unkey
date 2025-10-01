@@ -129,7 +129,8 @@ const file_ctrl_v1_service_proto_rawDesc = "" +
 	"\vinstance_id\x18\x03 \x01(\tR\n" +
 	"instanceId2P\n" +
 	"\vCtrlService\x12A\n" +
-	"\bLiveness\x12\x18.ctrl.v1.LivenessRequest\x1a\x19.ctrl.v1.LivenessResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\bLiveness\x12\x18.ctrl.v1.LivenessRequest\x1a\x19.ctrl.v1.LivenessResponse\"\x00B\x8e\x01\n" +
+	"\vcom.ctrl.v1B\fServiceProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
 	file_ctrl_v1_service_proto_rawDescOnce sync.Once

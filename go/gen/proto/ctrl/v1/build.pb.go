@@ -453,7 +453,9 @@ const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\x16BUILD_STATUS_CANCELLED\x10\x052\x9d\x01\n" +
 	"\fBuildService\x12J\n" +
 	"\vCreateBuild\x12\x1b.ctrl.v1.CreateBuildRequest\x1a\x1c.ctrl.v1.CreateBuildResponse\"\x00\x12A\n" +
-	"\bGetBuild\x12\x18.ctrl.v1.GetBuildRequest\x1a\x19.ctrl.v1.GetBuildResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\bGetBuild\x12\x18.ctrl.v1.GetBuildRequest\x1a\x19.ctrl.v1.GetBuildResponse\"\x00B\x8c\x01\n" +
+	"\vcom.ctrl.v1B\n" +
+	"BuildProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
 	file_ctrl_v1_build_proto_rawDescOnce sync.Once

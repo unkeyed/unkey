@@ -1,4 +1,4 @@
-package deployment
+package deploy
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
+	workflowsv1 "github.com/unkeyed/unkey/go/gen/proto/workflows/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
@@ -26,7 +27,8 @@ import (
 const hardcodedNamespace = "unkey" // TODO change to workspace scope
 
 // DeployWorkflow orchestrates the complete build and deployment process using Hydra
-type DeployWorkflow struct {
+type Workflow struct {
+	workflowsv1.UnimplementedDeployWorkflowsServer
 	db            db.Database
 	partitionDB   db.Database
 	logger        logging.Logger
@@ -34,7 +36,9 @@ type DeployWorkflow struct {
 	defaultDomain string
 }
 
-type DeployWorkflowConfig struct {
+var _ workflowsv1.DeployWorkflowsServer = (*Workflow)(nil)
+
+type Config struct {
 	Logger        logging.Logger
 	DB            db.Database
 	PartitionDB   db.Database
@@ -42,9 +46,9 @@ type DeployWorkflowConfig struct {
 	DefaultDomain string
 }
 
-// NewDeployWorkflow creates a new deploy workflow instance
-func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
-	return &DeployWorkflow{
+// New creates a new deploy workflow instance
+func New(cfg Config) *Workflow {
+	return &Workflow{
 		db:            cfg.DB,
 		partitionDB:   cfg.PartitionDB,
 		logger:        cfg.Logger,
@@ -53,70 +57,43 @@ func NewDeployWorkflow(cfg DeployWorkflowConfig) *DeployWorkflow {
 	}
 }
 
-// DeployRequest defines the input for the deploy workflow
-type DeployRequest struct {
-	WorkspaceID   string `json:"workspace_id"`
-	ProjectID     string `json:"project_id"`
-	KeyspaceID    string `json:"keyspace_id"`
-	DeploymentID  string `json:"deployment_id"`
-	EnvironmentID string `json:"environment_id"`
-	DockerImage   string `json:"docker_image"`
-}
-
-// DeploymentResult holds the deployment outcome
-type DeploymentResult struct {
-	DeploymentID string `json:"deployment_id"`
-	Status       string `json:"status"`
-}
-
 // invocation := restateIngress.WorkflowSend[deploymentworkflow.DeployRequest](s.restate, "DeployWorkflow", deploymentID, "Run").Send(ctx, deployReq)
 
-func (w *DeployWorkflow) Invoke() string {
-	return "DeployWorkflow"
-}
+func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *workflowsv1.DeployRequest) (*workflowsv1.DeployResponse, error) {
 
-// Run executes the complete build and deployment workflow
-func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) error {
-	w.logger.Info("starting deployment workflow",
-		"execution_id", ctx.Request().ID,
-		"deployment_id", req.DeploymentID,
-		"docker_image", req.DockerImage,
-		"workspace_id", req.WorkspaceID,
-		"project_id", req.ProjectID,
-	)
-
-	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
-
-		return db.Query.FindWorkspaceByID(stepCtx, w.db.RW(), req.WorkspaceID)
-	}, restate.WithName("finding workspace"))
-	if err != nil {
-		return err
-	}
-	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
-		return db.Query.FindProjectById(stepCtx, w.db.RW(), req.ProjectID)
-	}, restate.WithName("finding project"))
-	if err != nil {
-		return err
-	}
-	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
-		return db.Query.FindEnvironmentById(stepCtx, w.db.RW(), req.EnvironmentID)
-	}, restate.WithName("finding environment"))
-	if err != nil {
-		return err
-	}
 	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
-		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.DeploymentID)
+		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.DeploymentId)
 	}, restate.WithName("finding deployment"))
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
+		return db.Query.FindWorkspaceByID(stepCtx, w.db.RW(), deployment.WorkspaceID)
+	}, restate.WithName("finding workspace"))
+	if err != nil {
+		return nil, err
+	}
+
+	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
+		return db.Query.FindProjectById(stepCtx, w.db.RW(), deployment.ProjectID)
+	}, restate.WithName("finding project"))
+	if err != nil {
+		return nil, err
+	}
+	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
+		return db.Query.FindEnvironmentById(stepCtx, w.db.RW(), deployment.EnvironmentID)
+	}, restate.WithName("finding environment"))
+	if err != nil {
+		return nil, err
 	}
 
 	// Log deployment pending
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			WorkspaceID:  req.WorkspaceID,
-			ProjectID:    req.ProjectID,
-			DeploymentID: req.DeploymentID,
+			WorkspaceID:  deployment.WorkspaceID,
+			ProjectID:    deployment.ProjectID,
+			DeploymentID: deployment.ID,
 			Status:       "pending",
 			Message:      "Deployment queued and ready to start",
 			CreatedAt:    time.Now().UnixMilli(),
@@ -124,13 +101,13 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		return restate.Void{}, err
 	}, restate.WithName("logging deployment pending"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Update version status to building
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		updateErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:        req.DeploymentID,
+			ID:        deployment.ID,
 			Status:    db.DeploymentsStatusBuilding,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -140,23 +117,23 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		return restate.Void{}, nil
 	}, restate.WithName("updating deployment status to building"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Create deployment request
-		deploymentReq := &kranev1.CreateDeploymentRequest{
+
+		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
+
 			Deployment: &kranev1.DeploymentRequest{
 				Namespace:     hardcodedNamespace,
-				DeploymentId:  req.DeploymentID,
+				DeploymentId:  deployment.ID,
 				Image:         req.DockerImage,
 				Replicas:      1,
 				CpuMillicores: 512,
 				MemorySizeMib: 512,
 			},
-		}
-
-		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(deploymentReq))
+		}))
 		if err != nil {
 			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.DockerImage, err)
 		}
@@ -164,15 +141,15 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		return restate.Void{}, nil
 	}, restate.WithName("creating deployment in krane"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	w.logger.Info("deployment created", "deployment_id", req.DeploymentID)
+	w.logger.Info("deployment created", "deployment_id", deployment.ID)
 
 	// Update version status to deploying
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		deployingErr := db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:        req.DeploymentID,
+			ID:        deployment.ID,
 			Status:    db.DeploymentsStatusDeploying,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -182,7 +159,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		return restate.Void{}, nil
 	}, restate.WithName("updating deployment status to deploying"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
 		// prevent updating the db unnecessarily
@@ -190,19 +167,19 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		for i := range 300 {
 			time.Sleep(time.Second)
 			if i%10 == 0 { // Log every 10 seconds instead of every second
-				w.logger.Info("polling deployment status", "deployment_id", req.DeploymentID, "iteration", i)
+				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
 			}
 
 			resp, err := w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
 				Namespace:    hardcodedNamespace,
-				DeploymentId: req.DeploymentID,
+				DeploymentId: deployment.ID,
 			}))
 			if err != nil {
-				return nil, fmt.Errorf("krane GetDeployment failed for deployment %s: %w", req.DeploymentID, err)
+				return nil, fmt.Errorf("krane GetDeployment failed for deployment %s: %w", deployment.ID, err)
 			}
 
 			w.logger.Info("deployment status",
-				"deployment_id", req.DeploymentID,
+				"deployment_id", deployment.ID,
 				"status", resp.Msg,
 			)
 
@@ -227,7 +204,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 
 				upsertParams := partitiondb.UpsertVMParams{
 					ID:            instance.Id,
-					DeploymentID:  req.DeploymentID,
+					DeploymentID:  deployment.ID,
 					Address:       sql.NullString{Valid: true, String: instance.Address},
 					CpuMillicores: 1000,   // TODO derive from spec
 					MemoryMb:      1024,   // TODO derive from spec
@@ -236,7 +213,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 
 				w.logger.Info("upserting VM to database",
 					"vm_id", instance.Id,
-					"deployment_id", req.DeploymentID,
+					"deployment_id", deployment.ID,
 					"address", instance.Address,
 					"status", "running")
 
@@ -258,63 +235,60 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		return nil, fmt.Errorf("deployment never became ready")
 	}, restate.WithName("polling deployment status"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	openapiSpec, err := hydra.Step(ctx, "scrape-openapi-spec", func(stepCtx context.Context) (string, error) {
+	openapiSpec, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 
 		for _, instance := range createdInstances {
 			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
-			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", req.DeploymentID)
+			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", deployment.ID)
 
 			resp, err := http.DefaultClient.Get(openapiURL)
 			if err != nil {
-				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID)
+				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID)
+				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue
 			}
 
 			// Read the OpenAPI spec
 			specBytes, err := io.ReadAll(resp.Body)
 			if err != nil {
-				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID)
+				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue
 			}
 
-			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.GetAddress(), "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
+			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.GetAddress(), "deployment_id", deployment.ID, "spec_size", len(specBytes))
 			return base64.StdEncoding.EncodeToString(specBytes), nil
 		}
 		// not an error really, just no OpenAPI spec found
 		return "", nil
 
-	})
+	}, restate.WithName("scrape openapi spec"))
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if openapiSpec != "" {
 
-		err = hydra.StepVoid(ctx, "update openapi for deployment", func(innerCtx context.Context) error {
+		_, err = restate.Run(ctx, func(innerCtx restate.RunContext) (restate.Void, error) {
 
-			return db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
+			return restate.Void{}, db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
 				ID:          deployment.ID,
 				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
 			})
 
-		})
+		}, restate.WithName("update deployment openapi spec"))
 
 	}
 
-	w.logger.Info("openapi",
-
-		"spec", openapiSpec)
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -345,24 +319,24 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 				existing, err := db.Query.FindDomainByDomain(txCtx, tx, domain.domain)
 				if err != nil {
 					if !db.IsNotFound(err) {
-						return fmt.Errorf("failed to find domain entry for deployment %s: %w", req.DeploymentID, err)
+						return fmt.Errorf("failed to find domain entry for deployment %s: %w", deployment.ID, err)
 
 					}
 
 					// Domain does not exist, create it
 					insertError := db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
 						ID:            uid.New("domain"),
-						WorkspaceID:   req.WorkspaceID,
-						ProjectID:     sql.NullString{Valid: true, String: req.ProjectID},
-						EnvironmentID: sql.NullString{Valid: true, String: req.EnvironmentID},
+						WorkspaceID:   deployment.WorkspaceID,
+						ProjectID:     sql.NullString{Valid: true, String: deployment.ProjectID},
+						EnvironmentID: sql.NullString{Valid: true, String: deployment.EnvironmentID},
 						Domain:        domain.domain,
 						Sticky:        domain.sticky,
-						DeploymentID:  sql.NullString{Valid: true, String: req.DeploymentID},
+						DeploymentID:  sql.NullString{Valid: true, String: deployment.ID},
 						CreatedAt:     now,
 						Type:          db.DomainsTypeWildcard,
 					})
 					if insertError != nil {
-						return fmt.Errorf("failed to create domain entry for deployment %s: %w", req.DeploymentID, err)
+						return fmt.Errorf("failed to create domain entry for deployment %s: %w", deployment.ID, err)
 					}
 					changedDomains = append(changedDomains, domain.domain)
 					return nil
@@ -378,11 +352,11 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 				updateErr := db.Query.ReassignDomain(txCtx, tx, db.ReassignDomainParams{
 					ID:                existing.ID,
 					TargetWorkspaceID: workspace.ID,
-					DeploymentID:      sql.NullString{Valid: true, String: req.DeploymentID},
+					DeploymentID:      sql.NullString{Valid: true, String: deployment.ID},
 				})
 
 				if updateErr != nil {
-					return fmt.Errorf("failed to update domain entry for deployment %s: %w", req.DeploymentID, updateErr)
+					return fmt.Errorf("failed to update domain entry for deployment %s: %w", deployment.ID, updateErr)
 				}
 				changedDomains = append(changedDomains, existing.Domain)
 
@@ -393,7 +367,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 	}
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Create gateway configs for all domains in bulk (except local ones)
@@ -410,7 +384,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 			// Create VM protobuf objects for gateway config
 			gatewayConfig := &partitionv1.GatewayConfig{
 				Deployment: &partitionv1.Deployment{
-					Id:        req.DeploymentID,
+					Id:        deployment.ID,
 					IsEnabled: true,
 				},
 				Vms: make([]*partitionv1.VM, len(createdInstances)),
@@ -423,9 +397,9 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 			}
 
 			// Only add AuthConfig if we have a KeyspaceID
-			if req.KeyspaceID != "" {
+			if req.GetKeyAuthId() != "" {
 				gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
-					KeyAuthId: req.KeyspaceID,
+					KeyAuthId: req.GetKeyAuthId(),
 				}
 			}
 
@@ -443,8 +417,8 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 			}
 
 			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
-				WorkspaceID:  req.WorkspaceID,
-				DeploymentID: req.DeploymentID,
+				WorkspaceID:  deployment.WorkspaceID,
+				DeploymentID: deployment.ID,
 				Hostname:     domain,
 				Config:       configBytes,
 			})
@@ -452,44 +426,44 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		// Perform bulk upsert for all gateway configs
 		if len(gatewayParams) > 0 {
 			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, w.partitionDB.RW(), gatewayParams); err != nil {
-				return restate.Void{}, fmt.Errorf("failed to upsert %d gateway configs for deployment %s: %w", len(gatewayParams), req.DeploymentID, err)
+				return restate.Void{}, fmt.Errorf("failed to upsert %d gateway configs for deployment %s: %w", len(gatewayParams), deployment.ID, err)
 			}
 		}
 
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
+			DeploymentID: deployment.ID,
 			Status:       db.DeploymentStepsStatusAssigningDomains,
 			Message:      fmt.Sprintf("Created %d gateway configs for %d domains (skipped %d local domains)", len(gatewayParams), len(allDomains), len(skippedDomains)),
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	}, restate.WithName("creating gateway configs"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Update deployment status to ready
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-			ID:        req.DeploymentID,
+			ID:        deployment.ID,
 			Status:    db.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("updating deployment status to ready"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !project.IsRolledBack {
 		// only update this if the deployment is not rolled back
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
-				ID:               req.ProjectID,
-				LiveDeploymentID: sql.NullString{Valid: true, String: req.DeploymentID},
+				ID:               deployment.ProjectID,
+				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		}, restate.WithName("updating project live deployment"))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -508,7 +482,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 			}
 
 			if hostPort == 0 {
-				w.logger.Warn("no host port mapping found for container port 8080", "deployment_id", req.DeploymentID)
+				w.logger.Warn("no host port mapping found for container port 8080", "deployment_id", deployment.ID)
 				return "", nil
 			}
 
@@ -524,28 +498,28 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 
 			for _, hostAddr := range hostAddresses {
 				openapiURL := fmt.Sprintf("http://%s:%d/openapi.yaml", hostAddr, hostPort)
-				w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", hostPort, "deployment_id", req.DeploymentID)
+				w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", hostPort, "deployment_id", deployment.ID)
 
 				resp, err := client.Get(openapiURL)
 				if err != nil {
-					w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", hostAddr, "deployment_id", deployment.ID)
 					continue
 				}
 				defer resp.Body.Close()
 
 				if resp.StatusCode != http.StatusOK {
-					w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", hostAddr, "deployment_id", deployment.ID)
 					continue
 				}
 
 				// Read the OpenAPI spec
 				specBytes, err := io.ReadAll(resp.Body)
 				if err != nil {
-					w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", hostAddr, "deployment_id", req.DeploymentID)
+					w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", hostAddr, "deployment_id", deployment.ID)
 					continue
 				}
 
-				w.logger.Info("openapi spec scraped successfully", "host_addr", hostAddr, "deployment_id", req.DeploymentID, "spec_size", len(specBytes))
+				w.logger.Info("openapi spec scraped successfully", "host_addr", hostAddr, "deployment_id", deployment.ID, "spec_size", len(specBytes))
 				return string(specBytes), nil
 			}
 
@@ -562,11 +536,11 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 				w.logger.Info("skipping gateway config OpenAPI update",
 					"has_hostname", req.Hostname != "",
 					"has_openapi_spec", openapiSpec != "",
-					"deployment_id", req.DeploymentID)
+					"deployment_id", deployment.ID)
 				return nil
 			}
 
-			w.logger.Info("updating gateway config with OpenAPI spec", "hostname", req.Hostname, "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
+			w.logger.Info("updating gateway config with OpenAPI spec", "hostname", req.Hostname, "deployment_id", deployment.ID, "spec_size", len(openapiSpec))
 
 			// Fetch existing gateway config
 			existingConfig, err := partitiondb.Query.FindGatewayByHostname(stepCtx, w.partitionDB.RO(), req.Hostname)
@@ -604,7 +578,7 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 				return fmt.Errorf("failed to update gateway config with OpenAPI spec for %s: %w", req.Hostname, err)
 			}
 
-			w.logger.Info("gateway config updated with OpenAPI spec successfully", "hostname", req.Hostname, "deployment_id", req.DeploymentID)
+			w.logger.Info("gateway config updated with OpenAPI spec successfully", "hostname", req.Hostname, "deployment_id", deployment.ID)
 			return nil
 		})
 		if err != nil {
@@ -614,22 +588,22 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 		// Step 25: Store OpenAPI spec in database
 		err = restate.Run(ctx, "store-openapi-spec", func(stepCtx restate.RunContext) error {
 			if openapiSpec == "" {
-				w.logger.Info("no OpenAPI spec to store", "deployment_id", req.DeploymentID)
+				w.logger.Info("no OpenAPI spec to store", "deployment_id", deployment.ID)
 				return nil
 			}
 
 			// Store in database
 			err := db.Query.UpdateDeploymentOpenapiSpec(stepCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
-				ID:          req.DeploymentID,
+				ID:          deployment.ID,
 				OpenapiSpec: sql.NullString{String: openapiSpec, Valid: true},
 				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if err != nil {
-				w.logger.Warn("failed to store OpenAPI spec in database", "error", err, "deployment_id", req.DeploymentID)
+				w.logger.Warn("failed to store OpenAPI spec in database", "error", err, "deployment_id", deployment.ID)
 				return nil // Don't fail the deployment
 			}
 
-			w.logger.Info("openapi spec stored in database successfully", "deployment_id", req.DeploymentID, "spec_size", len(openapiSpec))
+			w.logger.Info("openapi spec stored in database successfully", "deployment_id", deployment.ID, "spec_size", len(openapiSpec))
 			return nil
 		})
 		if err != nil {
@@ -640,22 +614,22 @@ func (w *DeployWorkflow) Run(ctx restate.WorkflowContext, req DeployRequest) err
 	// Log deployment completed
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			DeploymentID: req.DeploymentID,
+			DeploymentID: deployment.ID,
 			Status:       "completed",
 			Message:      "Deployment completed successfully",
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 	}, restate.WithName("logging deployment completed"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	w.logger.Info("deployment workflow completed",
-		"deployment_id", req.DeploymentID,
+		"deployment_id", deployment.ID,
 		"status", "succeeded",
 		"domains", len(allDomains))
 
-	return nil
+	return &workflowsv1.DeployResponse{}, nil
 }
 
 // createGatewayConfig creates a gateway configuration protobuf object

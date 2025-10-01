@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-
-	deploymentworkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/deployment"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	workflowsv1 "github.com/unkeyed/unkey/go/gen/proto/workflows/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -144,25 +144,26 @@ func (s *Service) CreateDeployment(
 	)
 
 	// Start the deployment workflow directly
-	deployReq := deploymentworkflow.DeployRequest{
-		WorkspaceID:   req.Msg.GetWorkspaceId(),
-		ProjectID:     req.Msg.GetProjectId(),
-		EnvironmentID: env.ID,
-		DeploymentID:  deploymentID,
-		DockerImage:   req.Msg.GetDockerImage(),
-		KeyspaceID:    req.Msg.GetKeyspaceId(),
+	deployReq := &workflowsv1.DeployRequest{
+		DeploymentId: deploymentID,
+		DockerImage:  req.Msg.GetDockerImage(),
+		KeyAuthId:    req.Msg.KeyspaceId,
 	}
-
-	err = s.deployWorkflow.Start(ctx, s.restate.Raw(), deployReq)
-	if err != nil {
-		s.logger.Error("failed to start deployment workflow",
-			"deployment_id", deploymentID,
-			"error", err)
-		// Don't fail deployment creation - workflow can be retried
-	} else {
-		s.logger.Info("deployment workflow started",
-			"deployment_id", deploymentID)
+	// this is ugly, but we're waiting for
+	// https://github.com/restatedev/sdk-go/issues/103
+	invocation := restateingress.WorkflowSend[*workflowsv1.DeployRequest](
+		s.restate,
+		"workflows.v1.DeployWorkflows",
+		deploymentID,
+		"Deploy",
+	).Send(ctx, deployReq)
+	if invocation.Error != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	s.logger.Info("deployment workflow started",
+		"deployment_id", deploymentID,
+		"invocation_id", invocation.Id,
+	)
 
 	res := connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
 		DeploymentId: deploymentID,
