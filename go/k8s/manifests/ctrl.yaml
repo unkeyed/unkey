@@ -23,6 +23,7 @@ spec:
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
+            - containerPort: 9080
           env:
             # Server Configuration
             - name: UNKEY_HTTP_PORT
@@ -72,6 +73,12 @@ spec:
 
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
+
+            # Restate Configuration
+            - name: UNKEY_RESTATE_INGRESS_URL
+              value: "http://restate:8080"
+            - name: UNKEY_RESTATE_ADMIN_URL
+              value: "http://restate:9070"
           command: ["/unkey", "run", "ctrl"]
       initContainers:
         - name: wait-for-dependencies
@@ -80,7 +87,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z s3 3902; do echo waiting for dependencies; sleep 2; done;",
+              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080; do echo waiting for dependencies; sleep 2; done;",
             ]
 
 ---

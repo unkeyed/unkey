@@ -6,20 +6,25 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
+	restateIngress "github.com/restatedev/sdk-go/ingress"
+	certificatecron "github.com/unkeyed/unkey/go/apps/ctrl/cron/certificate"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
+	ctrlrestate "github.com/unkeyed/unkey/go/apps/ctrl/restate"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
+	certificateworkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/certificate"
+	deploymentworkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/deployment"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -117,31 +122,6 @@ func Run(ctx context.Context, cfg Config) error {
 	shutdowns.Register(partitionDB.Close)
 	shutdowns.Register(database.Close)
 
-	// Initialize Hydra workflow engine with DSN
-	hydraEngine, err := hydra.New(hydra.Config{
-		DSN:        cfg.DatabaseHydra,
-		Namespace:  "ctrl",
-		Clock:      cfg.Clock,
-		Logger:     logger,
-		Marshaller: hydra.NewJSONMarshaller(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize hydra engine: %w", err)
-	}
-
-	// Create Hydra worker
-	hydraWorker, err := hydra.NewWorker(hydraEngine, hydra.WorkerConfig{
-		WorkerID:          cfg.InstanceID,
-		Concurrency:       10,
-		PollInterval:      2 * time.Second, // Less aggressive polling
-		HeartbeatInterval: 30 * time.Second,
-		ClaimTimeout:      30 * time.Minute, // Handle long builds
-		CronInterval:      1 * time.Minute,  // Standard cron interval
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create hydra worker: %w", err)
-	}
-
 	// Create krane client for VM operations
 	var httpClient *http.Client
 	var authMode string
@@ -186,17 +166,100 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
-	// Register deployment workflow with Hydra worker
-	deployWorkflow := deployment.NewDeployWorkflow(deployment.DeployWorkflowConfig{
+	// Restate Client and Server
+	restateClient := ctrlrestate.NewClient(cfg.Restate.IngressURL)
+
+	deployWorkflow := deploymentworkflow.NewDeployWorkflow(deploymentworkflow.DeployWorkflowConfig{
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
 		DefaultDomain: cfg.DefaultDomain,
 	})
-	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
-	if err != nil {
-		return fmt.Errorf("unable to register deployment workflow: %w", err)
+
+	var certificateWorkflow *certificateworkflow.CertificateChallenge
+	var certificateCron *certificatecron.CertificateCron
+	if cfg.Acme.Enabled {
+		// Initialize ACME client early for certificate workflow registration
+		acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
+			DB:          database,
+			Logger:      logger,
+			Vault:       vaultSvc,
+			WorkspaceID: "unkey",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create ACME user: %w", err)
+		}
+
+		certificateWorkflow = certificateworkflow.NewCertificateChallenge(certificateworkflow.CertificateChallengeConfig{
+			DB:          database,
+			PartitionDB: partitionDB,
+			Logger:      logger,
+			AcmeClient:  acmeClient,
+			Vault:       vaultSvc,
+		})
+
+		// Determine supported challenge types
+		supportedTypes := []db.AcmeChallengesType{db.AcmeChallengesTypeHTTP01}
+		if cfg.Acme.Cloudflare.Enabled {
+			supportedTypes = append(supportedTypes, db.AcmeChallengesTypeDNS01)
+		}
+
+		certificateCron = certificatecron.NewCertificateCron(certificatecron.CertificateCronConfig{
+			DB:                  database,
+			Logger:              logger,
+			SupportedTypes:      supportedTypes,
+			CheckIntervalMins:   5, // Run every 5 minutes
+			RestateClient:       restateClient,
+			CertificateWorkflow: certificateWorkflow,
+		})
+	}
+
+	// Create and start Restate server
+	restateSrv := ctrlrestate.NewServer(ctrlrestate.ServerConfig{
+		Port:                cfg.Restate.HttpPort,
+		DeployWorkflow:      deployWorkflow,
+		CertificateWorkflow: certificateWorkflow,
+		CertificateCron:     certificateCron,
+	})
+
+	go func() {
+		logger.Info("Starting Restate server", "port", cfg.Restate.HttpPort)
+		if startErr := restateSrv.Start(ctx); startErr != nil {
+			logger.Error("failed to start restate server", "error", startErr.Error())
+		}
+	}()
+
+	// Register deployment with Restate for discovery
+	go func() {
+		time.Sleep(2 * time.Second) // Wait for server to start
+
+		err := ctrlrestate.RegisterDeployment(ctx, ctrlrestate.DiscoveryConfig{
+			AdminURL:   fmt.Sprintf("%s:9070", strings.Replace(cfg.Restate.IngressURL, ":8080", "", 1)),
+			ServiceURL: fmt.Sprintf("http://ctrl:%d", cfg.Restate.HttpPort),
+			Logger:     logger,
+		})
+		if err != nil {
+			logger.Error("failed to register with Restate", "error", err)
+		}
+	}()
+
+	// Trigger the initial certificate cron run if ACME is enabled
+	if cfg.Acme.Enabled && certificateCron != nil {
+		go func() {
+			// Wait a bit for the Restate server to start
+			time.Sleep(5 * time.Second)
+
+			logger.Info("Triggering initial certificate cron run")
+			invocation := restateIngress.ServiceSend[certificatecron.CronTriggerRequest](restateClient.Raw(), "certificate_cron", "Run").Send(ctx, certificatecron.CronTriggerRequest{
+				Timestamp: time.Now().UnixMilli(),
+			})
+			if invocation.Error != nil {
+				logger.Error("Failed to trigger initial certificate cron", "error", invocation.Error)
+			} else {
+				logger.Info("Successfully triggered initial certificate cron")
+			}
+		}()
 	}
 
 	// Create the connect handler
@@ -220,12 +283,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
-	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger), connectOptions...))
+	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, restateClient, deployWorkflow, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
-		HydraEngine: hydraEngine,
+		HydraEngine: nil,
 		Logger:      logger,
 	}), connectOptions...))
 
@@ -280,18 +343,9 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	if cfg.Acme.Enabled {
-		acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
-			DB:          database,
-			Logger:      logger,
-			Vault:       vaultSvc,
-			WorkspaceID: "unkey",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create ACME user: %w", err)
-		}
-
+	if cfg.Acme.Enabled && certificateWorkflow != nil {
 		// Set up our custom HTTP-01 challenge provider on the ACME client
+		acmeClient := certificateWorkflow.AcmeClient()
 		httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
 			DB:     database,
 			Logger: logger,
@@ -367,80 +421,7 @@ func Run(ctx context.Context, cfg Config) error {
 				}
 			}
 		}
-
-		// Register deployment workflow with Hydra worker
-		acmeWorkflows := acme.NewCertificateChallenge(acme.CertificateChallengeConfig{
-			DB:          database,
-			PartitionDB: partitionDB,
-			Logger:      logger,
-			AcmeClient:  acmeClient,
-			Vault:       vaultSvc,
-		})
-		err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
-		if err != nil {
-			logger.Error("unable to register ACME certificate workflow", "error", err)
-			return fmt.Errorf("unable to register deployment workflow: %w", err)
-		}
-
-		go func() {
-			logger.Info("Starting cert worker")
-
-			// HTTP-01 challenges are always available (we always set up HTTP provider)
-			supportedTypes := []db.AcmeChallengesType{db.AcmeChallengesTypeHTTP01}
-
-			// DNS-01 challenges require Cloudflare to be enabled
-			if cfg.Acme.Cloudflare.Enabled {
-				supportedTypes = append(supportedTypes, db.AcmeChallengesTypeDNS01)
-			}
-
-			registerErr := hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
-				executableChallenges, err := db.Query.ListExecutableChallenges(ctx, database.RO(), supportedTypes)
-				if err != nil {
-					logger.Error("Failed to start workflow", "error", err)
-					return err
-				}
-
-				logger.Info("Starting certificate challenges",
-					"executable_challenges", len(executableChallenges),
-					"supported_types", supportedTypes)
-
-				for _, challenge := range executableChallenges {
-					executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
-						acme.CertificateChallengeRequest{
-							WorkspaceID: challenge.WorkspaceID,
-							Domain:      challenge.Domain,
-						},
-						hydra.WithMaxAttempts(24),
-						hydra.WithTimeout(25*time.Hour),
-						hydra.WithRetryBackoff(1*time.Hour),
-					)
-					if err != nil {
-						logger.Error("Failed to start workflow", "error", err)
-						continue
-					}
-
-					logger.Info("Workflow started", "executionID", executionID)
-				}
-
-				return nil
-			})
-
-			if registerErr != nil {
-				logger.Error("Failed to register daily report cron job", "error", err)
-				return
-			}
-		}()
 	}
-
-	// Start Hydra worker
-	go func() {
-		logger.Info("Starting Hydra workflow worker")
-		if err := hydraWorker.Start(ctx); err != nil {
-			logger.Error("Failed to start Hydra worker", "error", err)
-		}
-	}()
-
-	shutdowns.RegisterCtx(hydraWorker.Shutdown)
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")

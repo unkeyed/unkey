@@ -1,4 +1,4 @@
-package acme
+package certificate
 
 import (
 	"context"
@@ -7,9 +7,10 @@ import (
 
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
+	restate "github.com/restatedev/sdk-go"
+	restateIngress "github.com/restatedev/sdk-go/ingress"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/vault"
@@ -49,6 +50,22 @@ func (w *CertificateChallenge) Name() string {
 	return "certificate_challenge"
 }
 
+// AcmeClient returns the underlying ACME client for provider configuration
+func (w *CertificateChallenge) AcmeClient() *lego.Client {
+	return w.acmeClient
+}
+
+// Start triggers a new certificate challenge workflow instance
+func (w *CertificateChallenge) Start(ctx context.Context, client *restateIngress.Client, req CertificateChallengeRequest) error {
+	invocation := restateIngress.WorkflowSend[CertificateChallengeRequest](
+		client,
+		w.Name(),
+		req.Domain,
+		"Run",
+	).Send(ctx, req)
+	return invocation.Error
+}
+
 // CertificateChallengeRequest defines the input for the certificate challenge workflow
 type CertificateChallengeRequest struct {
 	WorkspaceID string `json:"workspace_id"`
@@ -62,34 +79,34 @@ type EncryptedCertificate struct {
 }
 
 // Run executes the complete build and deployment workflow
-func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateChallengeRequest) error {
+func (w *CertificateChallenge) Run(ctx restate.WorkflowContext, req CertificateChallengeRequest) error {
 	w.logger.Info("starting certificate challenge", "workspace_id", req.WorkspaceID, "domain", req.Domain)
 
-	dom, err := hydra.Step(ctx, "resolve-domain", func(stepCtx context.Context) (db.Domain, error) {
+	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Domain, error) {
 		return db.Query.FindDomainByDomain(stepCtx, w.db.RO(), req.Domain)
-	})
+	}, restate.WithName("resolving domain"))
 	if err != nil {
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "acquire-challenge", func(stepCtx context.Context) error {
-		return db.Query.UpdateAcmeChallengeTryClaiming(stepCtx, w.db.RW(), db.UpdateAcmeChallengeTryClaimingParams{
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.UpdateAcmeChallengeTryClaiming(stepCtx, w.db.RW(), db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
 			Status:    db.AcmeChallengesStatusPending,
 			UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		})
-	})
+	}, restate.WithName("acquiring challenge"))
 	if err != nil {
 		return err
 	}
 
-	cert, err := hydra.Step(ctx, "obtain-certificate", func(stepCtx context.Context) (EncryptedCertificate, error) {
+	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
 		// A certificate request can be either
 		// A: We have a new domain WITHOUT a certificate
 		// B: We have to renew a existing certificate
 		// Regardless we first claim the challenge so that no-other job tries to do the same, this will just annoy acme ratelimits
 		if err != nil {
-			db.Query.UpdateAcmeChallengeStatus(ctx.Context(), w.db.RW(), db.UpdateAcmeChallengeStatusParams{
+			db.Query.UpdateAcmeChallengeStatus(stepCtx, w.db.RW(), db.UpdateAcmeChallengeStatusParams{
 				DomainID:  dom.ID,
 				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -146,14 +163,14 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			Certificate:         string(certificates.Certificate),
 			EncryptedPrivateKey: resp.Encrypted,
 		}, nil
-	})
+	}, restate.WithName("obtaining certificate"))
 	if err != nil {
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "persist-certificate", func(stepCtx context.Context) error {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		now := time.Now().UnixMilli()
-		return pdb.Query.InsertCertificate(stepCtx, w.partitionDB.RW(), pdb.InsertCertificateParams{
+		return restate.Void{}, pdb.Query.InsertCertificate(stepCtx, w.partitionDB.RW(), pdb.InsertCertificateParams{
 			WorkspaceID:         dom.WorkspaceID,
 			Hostname:            req.Domain,
 			Certificate:         cert.Certificate,
@@ -161,19 +178,19 @@ func (w *CertificateChallenge) Run(ctx hydra.WorkflowContext, req *CertificateCh
 			CreatedAt:           now,
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
 		})
-	})
+	}, restate.WithName("persisting certificate"))
 	if err != nil {
 		return err
 	}
 
-	err = hydra.StepVoid(ctx, "complete-challenge", func(stepCtx context.Context) error {
-		return db.Query.UpdateAcmeChallengeVerifiedWithExpiry(stepCtx, w.db.RW(), db.UpdateAcmeChallengeVerifiedWithExpiryParams{
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.UpdateAcmeChallengeVerifiedWithExpiry(stepCtx, w.db.RW(), db.UpdateAcmeChallengeVerifiedWithExpiryParams{
 			Status:    db.AcmeChallengesStatusVerified,
 			ExpiresAt: cert.ExpiresAt,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			DomainID:  dom.ID,
 		})
-	})
+	}, restate.WithName("completing challenge"))
 	if err != nil {
 		return err
 	}
