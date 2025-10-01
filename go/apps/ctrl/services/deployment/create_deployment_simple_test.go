@@ -70,27 +70,23 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 			// Test that special characters are preserved in protobuf
 			req := &ctrlv1.CreateDeploymentRequest{
 				GitCommitMessage:         tt.input,
-				GitCommitAuthorName:      tt.input,
-				GitCommitAuthorUsername:  tt.input,
+				GitCommitAuthorHandle:    tt.input,
 				GitCommitAuthorAvatarUrl: tt.input,
 			}
 
 			require.Equal(t, tt.expected, req.GetGitCommitMessage())
-			require.Equal(t, tt.expected, req.GetGitCommitAuthorName())
-			require.Equal(t, tt.expected, req.GetGitCommitAuthorUsername())
+			require.Equal(t, tt.expected, req.GetGitCommitAuthorHandle())
 			require.Equal(t, tt.expected, req.GetGitCommitAuthorAvatarUrl())
 
 			// Test that special characters are preserved in database model
 			deployment := db.Deployment{
 				GitCommitMessage:         sql.NullString{String: tt.input, Valid: true},
-				GitCommitAuthorName:      sql.NullString{String: tt.input, Valid: true},
-				GitCommitAuthorUsername:  sql.NullString{String: tt.input, Valid: true},
+				GitCommitAuthorHandle:    sql.NullString{String: tt.input, Valid: true},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: tt.input, Valid: true},
 			}
 
 			require.Equal(t, tt.expected, deployment.GitCommitMessage.String)
-			require.Equal(t, tt.expected, deployment.GitCommitAuthorName.String)
-			require.Equal(t, tt.expected, deployment.GitCommitAuthorUsername.String)
+			require.Equal(t, tt.expected, deployment.GitCommitAuthorHandle.String)
 			require.Equal(t, tt.expected, deployment.GitCommitAuthorAvatarUrl.String)
 		})
 	}
@@ -105,32 +101,27 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 		WorkspaceId:              "ws_test",
 		ProjectId:                "proj_test",
 		GitCommitMessage:         "",
-		GitCommitAuthorName:      "",
-		GitCommitAuthorUsername:  "",
 		GitCommitAuthorAvatarUrl: "",
 		GitCommitTimestamp:       0,
 	}
 
 	// Empty strings should be returned as-is
 	require.Equal(t, "", req.GetGitCommitMessage())
-	require.Equal(t, "", req.GetGitCommitAuthorName())
-	require.Equal(t, "", req.GetGitCommitAuthorUsername())
+	require.Equal(t, "", req.GetGitCommitAuthorHandle())
 	require.Equal(t, "", req.GetGitCommitAuthorAvatarUrl())
 	require.Equal(t, int64(0), req.GetGitCommitTimestamp())
 
 	// Test NULL database fields
 	deployment := db.Deployment{
 		GitCommitMessage:         sql.NullString{Valid: false},
-		GitCommitAuthorName:      sql.NullString{Valid: false},
-		GitCommitAuthorUsername:  sql.NullString{Valid: false},
+		GitCommitAuthorHandle:    sql.NullString{Valid: false},
 		GitCommitAuthorAvatarUrl: sql.NullString{Valid: false},
 		GitCommitTimestamp:       sql.NullInt64{Valid: false},
 	}
 
 	// NULL fields should be invalid
 	require.False(t, deployment.GitCommitMessage.Valid)
-	require.False(t, deployment.GitCommitAuthorName.Valid)
-	require.False(t, deployment.GitCommitAuthorUsername.Valid)
+	require.False(t, deployment.GitCommitAuthorHandle.Valid)
 	require.False(t, deployment.GitCommitAuthorAvatarUrl.Valid)
 	require.False(t, deployment.GitCommitTimestamp.Valid)
 }
@@ -290,8 +281,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
 				GitCommitSha:             "abc123def456789",
 				GitCommitMessage:         "feat: implement new feature",
-				GitCommitAuthorName:      "Jane Doe",
-				GitCommitAuthorUsername:  "janedoe",
+				GitCommitAuthorHandle:    "janedoe",
 				GitCommitAuthorAvatarUrl: "https://github.com/janedoe.png",
 				GitCommitTimestamp:       1724251845123, // Fixed millisecond timestamp
 			},
@@ -336,8 +326,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
 				GitCommitSha:             "",
 				GitCommitMessage:         "",
-				GitCommitAuthorName:      "",
-				GitCommitAuthorUsername:  "",
+				GitCommitAuthorHandle:    "",
 				GitCommitAuthorAvatarUrl: "",
 				GitCommitTimestamp:       0,
 			},
@@ -382,8 +371,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
 				GitCommitSha:             "xyz789abc123",
 				GitCommitMessage:         "fix: critical security issue",
-				GitCommitAuthorName:      "", // Empty
-				GitCommitAuthorUsername:  "", // Empty
+				GitCommitAuthorHandle:    "", // Empty
 				GitCommitAuthorAvatarUrl: "", // Empty
 				GitCommitTimestamp:       1724251845999,
 			},
@@ -436,8 +424,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitCommitSha:             sql.NullString{String: tt.request.GetGitCommitSha(), Valid: tt.request.GetGitCommitSha() != ""},
 				GitBranch:                sql.NullString{String: tt.request.GetBranch(), Valid: true},
 				GitCommitMessage:         sql.NullString{String: tt.request.GetGitCommitMessage(), Valid: tt.request.GetGitCommitMessage() != ""},
-				GitCommitAuthorName:      sql.NullString{String: tt.request.GetGitCommitAuthorName(), Valid: tt.request.GetGitCommitAuthorName() != ""},
-				GitCommitAuthorUsername:  sql.NullString{String: tt.request.GetGitCommitAuthorUsername(), Valid: tt.request.GetGitCommitAuthorUsername() != ""},
+				GitCommitAuthorHandle:    sql.NullString{String: tt.request.GetGitCommitAuthorHandle(), Valid: tt.request.GetGitCommitAuthorHandle() != ""},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: tt.request.GetGitCommitAuthorAvatarUrl(), Valid: tt.request.GetGitCommitAuthorAvatarUrl() != ""},
 				GitCommitTimestamp:       sql.NullInt64{Int64: tt.request.GetGitCommitTimestamp(), Valid: tt.request.GetGitCommitTimestamp() != 0},
 				RuntimeConfig:            []byte("{}"),
@@ -457,11 +444,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			require.Equal(t, tt.expected.gitCommitMessage, params.GitCommitMessage.String, "GitCommitMessage string mismatch")
 			require.Equal(t, tt.expected.gitCommitMessageValid, params.GitCommitMessage.Valid, "GitCommitMessage valid flag mismatch")
 
-			require.Equal(t, tt.expected.gitCommitAuthorName, params.GitCommitAuthorName.String, "GitCommitAuthorName string mismatch")
-			require.Equal(t, tt.expected.gitCommitAuthorNameValid, params.GitCommitAuthorName.Valid, "GitCommitAuthorName valid flag mismatch")
-
-			require.Equal(t, tt.expected.gitCommitAuthorUsername, params.GitCommitAuthorUsername.String, "GitCommitAuthorUsername string mismatch")
-			require.Equal(t, tt.expected.gitCommitAuthorUsernameValid, params.GitCommitAuthorUsername.Valid, "GitCommitAuthorUsername valid flag mismatch")
+			require.Equal(t, tt.expected.gitCommitAuthorUsername, params.GitCommitAuthorHandle.String, "GitCommitAuthorUsername string mismatch")
+			require.Equal(t, tt.expected.gitCommitAuthorUsernameValid, params.GitCommitAuthorHandle.Valid, "GitCommitAuthorUsername valid flag mismatch")
 
 			require.Equal(t, tt.expected.gitCommitAuthorAvatarUrl, params.GitCommitAuthorAvatarUrl.String, "GitCommitAuthorAvatarUrl string mismatch")
 			require.Equal(t, tt.expected.gitCommitAuthorAvatarUrlValid, params.GitCommitAuthorAvatarUrl.Valid, "GitCommitAuthorAvatarUrl valid flag mismatch")
