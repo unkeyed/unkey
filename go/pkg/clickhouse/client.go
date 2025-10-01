@@ -8,6 +8,7 @@ import (
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/go/pkg/batch"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
@@ -288,4 +289,64 @@ func (c *clickhouse) BufferRatelimit(req schema.RatelimitRequestV1) {
 
 func (c *clickhouse) Conn() ch.Conn {
 	return c.conn
+}
+
+// QueryToMaps executes a query and scans all rows into a slice of maps.
+// Each map represents a row with column names as keys and values as ch.Dynamic.
+// Returns fault-wrapped errors with appropriate codes:
+// - 400 (InvalidInput) for user query errors (unknown columns, syntax errors, etc.)
+// - 500 (ServiceUnavailable) for system errors (connection issues, timeouts, etc.)
+func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+	rows, err := c.conn.Query(ctx, query, args...)
+	if err != nil {
+		// Check if this is a user error (bad query) or system error
+		if IsUserQueryError(err) {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public(ExtractUserFriendlyError(err)),
+			)
+		}
+
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Public("Query execution failed"),
+		)
+	}
+	defer rows.Close()
+
+	columns := rows.Columns()
+	var results []map[string]any
+
+	for rows.Next() {
+		// Create slice of ch.Dynamic to scan into
+		values := make([]ch.Dynamic, len(columns))
+		valuePtrs := make([]any, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Public("Failed to read query results"),
+			)
+		}
+
+		// Build map from column names to values
+		row := make(map[string]any)
+		for i, col := range columns {
+			row[col] = values[i]
+		}
+
+		results = append(results, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Public("Query execution failed"),
+		)
+	}
+
+	return results, nil
 }

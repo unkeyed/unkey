@@ -501,6 +501,34 @@ type UpdateKeyCreditsRefill struct {
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
 
+// V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
+type V2AnalyticsGetVerificationsRequestBody struct {
+	// Query SQL query to execute against your analytics data.
+	//
+	// The query will be automatically rewritten to:
+	// - Inject workspace_id filters for data isolation
+	// - Map table aliases (e.g., key_verifications → default.key_verifications_raw_v2)
+	// - Resolve virtual columns (apiId, externalId)
+	// - Block dangerous operations
+	//
+	// Only SELECT queries are allowed.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetVerificationsResponseBody defines model for V2AnalyticsGetVerificationsResponseBody.
+type V2AnalyticsGetVerificationsResponseBody struct {
+	Data V2AnalyticsGetVerificationsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetVerificationsResponseData defines model for V2AnalyticsGetVerificationsResponseData.
+type V2AnalyticsGetVerificationsResponseData struct {
+	// Verifications Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+	Verifications []map[string]interface{} `json:"verifications"`
+}
+
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
 	// Name Unique identifier for this API namespace within your workspace.
@@ -2015,6 +2043,9 @@ type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
 
 // ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
 type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
+
+// GetVerificationsJSONRequestBody defines body for GetVerifications for application/json ContentType.
+type GetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody

@@ -240,6 +240,14 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	//FindIdentities
+	//
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//   AND deleted = ?
+	//   AND (external_id IN(/*SLICE:identities*/?) OR id IN (/*SLICE:identities*/?))
+	FindIdentities(ctx context.Context, db DBTX, arg FindIdentitiesParams) ([]Identity, error)
 	//FindIdentity
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -248,6 +256,15 @@ type Querier interface {
 	//   AND (external_id = ? OR id = ?)
 	//   AND deleted = ?
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
+	//FindKeyAuthsByIds
+	//
+	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  FROM apis a
+	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  WHERE a.id IN (/*SLICE:api_ids*/?)
+	//      AND ka.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	FindKeyAuthsByIds(ctx context.Context, db DBTX, apiIds []string) ([]FindKeyAuthsByIdsRow, error)
 	//FindKeyByID
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k

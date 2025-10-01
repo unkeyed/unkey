@@ -45,12 +45,12 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 			Addr:         kafka.TCP(t.brokers...),
 			Topic:        t.topic,
 			Balancer:     &kafka.LeastBytes{},
-			RequiredAcks: kafka.RequireNone, // Fire-and-forget for maximum speed
-			Async:        true,               // Async for better performance
-			ReadTimeout:  1 * time.Second,  // Reduced from 10s
-			WriteTimeout: 1 * time.Second,  // Reduced from 10s
-			BatchSize:    100,              // Batch up to 100 messages
-			BatchBytes:   1048576,          // Batch up to 1MB
+			RequiredAcks: kafka.RequireNone,     // Fire-and-forget for maximum speed
+			Async:        true,                  // Async for better performance
+			ReadTimeout:  1 * time.Second,       // Reduced from 10s
+			WriteTimeout: 1 * time.Second,       // Reduced from 10s
+			BatchSize:    100,                   // Batch up to 100 messages
+			BatchBytes:   1048576,               // Batch up to 1MB
 			BatchTimeout: 10 * time.Millisecond, // Send batch after 10ms even if not full
 		},
 		instanceID: t.instanceID,

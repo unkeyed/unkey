@@ -49,6 +49,11 @@ func (n *noop) Conn() ch.Conn {
 	return nil
 }
 
+// QueryToMaps implements the Querier interface but always returns an empty slice.
+func (n *noop) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+	return []map[string]any{}, nil
+}
+
 // NewNoop creates a new no-op implementation of the Bufferer interface.
 // This implementation simply discards all events without processing them.
 //

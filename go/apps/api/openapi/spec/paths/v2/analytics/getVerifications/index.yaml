@@ -1,0 +1,136 @@
+post:
+  tags:
+    - analytics
+  security:
+    - rootKey: []
+  operationId: getVerifications
+  x-speakeasy-name-override: getVerifications
+  summary: Query key verification data
+  description: |
+    Execute a SQL query against your analytics data with automatic workspace isolation and security controls.
+
+    This endpoint allows you to run custom SQL queries against your key verification data using a simplified interface. The query rewriter automatically:
+    - Injects workspace_id filters to ensure data isolation
+    - Maps user-friendly table names to actual ClickHouse tables
+    - Resolves virtual columns (apiId, externalId) via database lookups
+    - Blocks dangerous operations (INSERT, UPDATE, DELETE, system tables)
+    - Prevents SQL injection attacks
+
+    **Available Tables**
+
+    1. `key_verifications` - Raw verification events (TTL: 1 month)
+       - Individual events with full details
+       - Columns: request_id, time, workspace_id, key_space_id, identity_id, key_id, region, outcome, tags, spent_credits, latency
+
+    2. `key_verifications_per_minute` - Minute-level aggregates (TTL: 7 days)
+       - Pre-aggregated by minute for fast queries
+       - Columns: time, workspace_id, key_space_id, identity_id, key_id, outcome, tags, count, spent_credits, latency_avg, latency_p75, latency_p99
+       - Use `-Merge` functions: `avgMerge(latency_avg)`, `quantilesTDigestMerge(0.75)(latency_p75)`
+
+    3. `key_verifications_per_hour` - Hour-level aggregates (TTL: 30 days)
+    4. `key_verifications_per_day` - Day-level aggregates (TTL: 100 days)
+    5. `key_verifications_per_month` - Month-level aggregates (TTL: 3 years)
+
+    **Virtual Columns**
+
+    - `apiId` - Resolves to the actual key_space_id via database lookup
+    - `externalId` - Resolves to the actual identity_id via database lookup
+
+    **Time Column Notes**
+
+    - `key_verifications` table: `time` is Int64 (unix milliseconds)
+    - Aggregated tables: `time` is DateTime or Date
+    - Use `now64()` for DateTime64 functions, or calculate millis: `(toUnixTimestamp(now()) - 7*24*3600) * 1000`
+
+    **Example Queries**
+
+    Query raw events (time is Int64 unix millis):
+    ```sql
+    SELECT COUNT(*) as total
+    FROM key_verifications
+    WHERE outcome = 'VALID'
+      AND time >= (toUnixTimestamp(now()) - 7*24*3600) * 1000
+    ```
+
+    Query hourly aggregates with latency metrics (time is DateTime):
+    ```sql
+    SELECT
+      toStartOfHour(time) as hour,
+      sum(count) as total_verifications,
+      avgMerge(latency_avg) as avg_latency,
+      quantilesTDigestMerge(0.99)(latency_p99)[1] as p99_latency
+    FROM key_verifications_per_hour
+    WHERE time >= now() - INTERVAL 7 DAY
+    GROUP BY hour
+    ORDER BY hour
+    ```
+
+    Filter by API using virtual column (time is Int64 unix millis):
+    ```sql
+    SELECT COUNT(*) as total
+    FROM key_verifications
+    WHERE apiId = 'api_123'
+      AND time >= (toUnixTimestamp(now()) - 24*3600) * 1000
+    ```
+
+    Multiple APIs with IN clause (aggregated table, time is DateTime):
+    ```sql
+    SELECT
+      outcome,
+      sum(count) as total
+    FROM key_verifications_per_hour
+    WHERE apiId IN ('api_123', 'api_456')
+      AND time >= now() - INTERVAL 30 DAY
+    GROUP BY outcome
+    ```
+
+    **Required Permissions**
+
+    - `api.*.read_api`
+
+    **Side Effects**
+
+    None - this is a read-only endpoint that does not modify any data.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AnalyticsGetVerificationsRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AnalyticsGetVerificationsResponseBody.yaml"
+      description: Query executed successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid SQL query or blocked operation
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+      description: Referenced API or identity not found
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Query execution failed

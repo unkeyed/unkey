@@ -35,6 +35,11 @@ type Querier interface {
 	// Conn returns a connection to the ClickHouse database.
 	Conn() ch.Conn
 
+	// QueryToMaps executes a query and scans all rows into a slice of maps.
+	// Each map represents a row with column names as keys.
+	// This is useful for dynamic queries where the schema is not known at compile time.
+	QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error)
+
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 }

@@ -1,4 +1,4 @@
-.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
+.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev install-tools download-tools
 
 # Detect OS and set GOMAXPROCS accordingly
 UNAME_S := $(shell uname -s)
@@ -34,7 +34,7 @@ build:
 	go build -o unkey ./main.go
 
 generate:
-	buf generate
+	go run github.com/bufbuild/buf/cmd/buf generate
 	go generate ./...
 
 

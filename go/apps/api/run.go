@@ -136,7 +136,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Caches will be created after invalidation consumer is set up
-
 	srv, err := zen.New(zen.Config{
 		Logger: logger,
 		Flags: &zen.Flags{

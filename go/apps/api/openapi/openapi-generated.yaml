@@ -94,22 +94,25 @@ components:
                     type: string
                     description: Processing status
                     example: "OK"
-        V2ApisCreateApiRequestBody:
+        V2AnalyticsGetVerificationsRequestBody:
             type: object
             required:
-                - name
+                - query
             properties:
-                name:
+                query:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
                     description: |
-                        Unique identifier for this API namespace within your workspace.
-                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-                    example: payment-service-production
-            additionalProperties: false
-        V2ApisCreateApiResponseBody:
+                        SQL query to execute against your analytics data.
+
+                        The query will be automatically rewritten to:
+                        - Inject workspace_id filters for data isolation
+                        - Map table aliases (e.g., key_verifications → default.key_verifications_raw_v2)
+                        - Resolve virtual columns (apiId, externalId)
+                        - Block dangerous operations
+
+                        Only SELECT queries are allowed.
+                    example: "SELECT COUNT(*) as total FROM key_verifications WHERE outcome = 'VALID' AND time >= toUnixTimestamp64Milli(now() - INTERVAL 7 DAY)"
+        V2AnalyticsGetVerificationsResponseBody:
             type: object
             required:
                 - meta
@@ -118,8 +121,7 @@ components:
                 meta:
                     $ref: "#/components/schemas/Meta"
                 data:
-                    $ref: "#/components/schemas/V2ApisCreateApiResponseData"
-            additionalProperties: false
+                    $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
         UnauthorizedErrorResponse:
             type: object
             required:
@@ -154,6 +156,49 @@ components:
                 - Access to the requested resource is restricted based on workspace settings
 
                 To resolve this error, ensure your root key has the necessary permissions or contact your workspace administrator.
+        NotFoundErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource cannot be found. This occurs when:
+                - The specified resource ID doesn't exist in your workspace
+                - The resource has been deleted or moved
+                - The resource exists but is not accessible with current permissions
+
+                To resolve this error, verify the resource ID is correct and that you have access to it.
+        V2ApisCreateApiRequestBody:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    description: |
+                        Unique identifier for this API namespace within your workspace.
+                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+                    example: payment-service-production
+            additionalProperties: false
+        V2ApisCreateApiResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2ApisCreateApiResponseData"
+            additionalProperties: false
         V2ApisDeleteApiRequestBody:
             type: object
             required:
@@ -182,23 +227,6 @@ components:
                 data:
                     $ref: "#/components/schemas/EmptyResponse"
             additionalProperties: false
-        NotFoundErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource cannot be found. This occurs when:
-                - The specified resource ID doesn't exist in your workspace
-                - The resource has been deleted or moved
-                - The resource exists but is not accessible with current permissions
-
-                To resolve this error, verify the resource ID is correct and that you have access to it.
         PreconditionFailedErrorResponse:
             type: object
             required:
@@ -2034,6 +2062,25 @@ components:
                 - message
             type: object
             description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
+        V2AnalyticsGetVerificationsResponseData:
+            type: object
+            required:
+                - verifications
+            properties:
+                verifications:
+                    type: array
+                    description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+                    items:
+                        type: object
+                        additionalProperties: true
+                        description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
+                    example:
+                        - outcome: "VALID"
+                          count: 1234
+                          time: 1696118400000
+                        - outcome: "RATE_LIMITED"
+                          count: 56
+                          time: 1696118400000
         V2ApisCreateApiResponseData:
             type: object
             properties:
@@ -3255,6 +3302,143 @@ paths:
                 - chproxy
             x-excluded: true
             x-speakeasy-ignore: true
+    /v2/analytics.getVerifications:
+        post:
+            description: |
+                Execute a SQL query against your analytics data with automatic workspace isolation and security controls.
+
+                This endpoint allows you to run custom SQL queries against your key verification data using a simplified interface. The query rewriter automatically:
+                - Injects workspace_id filters to ensure data isolation
+                - Maps user-friendly table names to actual ClickHouse tables
+                - Resolves virtual columns (apiId, externalId) via database lookups
+                - Blocks dangerous operations (INSERT, UPDATE, DELETE, system tables)
+                - Prevents SQL injection attacks
+
+                **Available Tables**
+
+                1. `key_verifications` - Raw verification events (TTL: 1 month)
+                   - Individual events with full details
+                   - Columns: request_id, time, workspace_id, key_space_id, identity_id, key_id, region, outcome, tags, spent_credits, latency
+
+                2. `key_verifications_per_minute` - Minute-level aggregates (TTL: 7 days)
+                   - Pre-aggregated by minute for fast queries
+                   - Columns: time, workspace_id, key_space_id, identity_id, key_id, outcome, tags, count, spent_credits, latency_avg, latency_p75, latency_p99
+                   - Use `-Merge` functions: `avgMerge(latency_avg)`, `quantilesTDigestMerge(0.75)(latency_p75)`
+
+                3. `key_verifications_per_hour` - Hour-level aggregates (TTL: 30 days)
+                4. `key_verifications_per_day` - Day-level aggregates (TTL: 100 days)
+                5. `key_verifications_per_month` - Month-level aggregates (TTL: 3 years)
+
+                **Virtual Columns**
+
+                - `apiId` - Resolves to the actual key_space_id via database lookup
+                - `externalId` - Resolves to the actual identity_id via database lookup
+
+                **Time Column Notes**
+
+                - `key_verifications` table: `time` is Int64 (unix milliseconds)
+                - Aggregated tables: `time` is DateTime or Date
+                - Use `now64()` for DateTime64 functions, or calculate millis: `(toUnixTimestamp(now()) - 7*24*3600) * 1000`
+
+                **Example Queries**
+
+                Query raw events (time is Int64 unix millis):
+                ```sql
+                SELECT COUNT(*) as total
+                FROM key_verifications
+                WHERE outcome = 'VALID'
+                  AND time >= (toUnixTimestamp(now()) - 7*24*3600) * 1000
+                ```
+
+                Query hourly aggregates with latency metrics (time is DateTime):
+                ```sql
+                SELECT
+                  toStartOfHour(time) as hour,
+                  sum(count) as total_verifications,
+                  avgMerge(latency_avg) as avg_latency,
+                  quantilesTDigestMerge(0.99)(latency_p99)[1] as p99_latency
+                FROM key_verifications_per_hour
+                WHERE time >= now() - INTERVAL 7 DAY
+                GROUP BY hour
+                ORDER BY hour
+                ```
+
+                Filter by API using virtual column (time is Int64 unix millis):
+                ```sql
+                SELECT COUNT(*) as total
+                FROM key_verifications
+                WHERE apiId = 'api_123'
+                  AND time >= (toUnixTimestamp(now()) - 24*3600) * 1000
+                ```
+
+                Multiple APIs with IN clause (aggregated table, time is DateTime):
+                ```sql
+                SELECT
+                  outcome,
+                  sum(count) as total
+                FROM key_verifications_per_hour
+                WHERE apiId IN ('api_123', 'api_456')
+                  AND time >= now() - INTERVAL 30 DAY
+                GROUP BY outcome
+                ```
+
+                **Required Permissions**
+
+                - `api.*.read_api`
+
+                **Side Effects**
+
+                None - this is a read-only endpoint that does not modify any data.
+            operationId: getVerifications
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2AnalyticsGetVerificationsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2AnalyticsGetVerificationsResponseBody'
+                    description: Query executed successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid SQL query or blocked operation
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Referenced API or identity not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Query execution failed
+            security:
+                - rootKey: []
+            summary: Query key verification data
+            tags:
+                - analytics
+            x-speakeasy-name-override: getVerifications
     /v2/apis.createApi:
         post:
             description: |
@@ -6044,7 +6228,10 @@ security:
     - rootKey: []
 servers:
     - url: https://api.unkey.com
+    - url: http://127.0.0.1:7070
 tags:
+    - description: Analytics query operations
+      name: analytics
     - description: API management operations
       name: apis
     - description: Identity management operations
