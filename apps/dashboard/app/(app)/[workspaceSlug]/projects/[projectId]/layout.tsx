@@ -58,6 +58,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
         setIsDetailsOpen,
         projectId,
         collections,
+        liveDeploymentId,
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">

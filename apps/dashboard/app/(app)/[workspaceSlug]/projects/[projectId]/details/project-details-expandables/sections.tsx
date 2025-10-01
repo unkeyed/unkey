@@ -16,11 +16,13 @@ import {
 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { RepoDisplay } from "../../../_components/list/repo-display";
 import { Avatar } from "../active-deployment-card/git-avatar";
+import { OpenApiDiff } from "./sections/open-api-diff";
 
 export type DetailItem = {
-  icon: ReactNode;
-  label: string;
+  icon: ReactNode | null;
+  label: string | null;
   content: ReactNode;
   alignment?: "center" | "start";
 };
@@ -30,7 +32,20 @@ export type DetailSection = {
   items: DetailItem[];
 };
 
-export const createDetailSections = (details: Deployment): DetailSection[] => [
+export const createDetailSections = (
+  details: Deployment & { repository: string | null },
+): DetailSection[] => [
+  {
+    title: "OpenAPI changes",
+    items: [
+      {
+        icon: null,
+        label: null,
+        alignment: "start",
+        content: <OpenApiDiff />,
+      },
+    ],
+  },
   {
     title: "Active deployment",
     items: [
@@ -38,9 +53,11 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
         icon: <Github className="size-[16px] text-gray-12" />,
         label: "Repository",
         content: (
-          <div className="text-grayA-10">
-            <span className="text-gray-12 font-medium">TODO</span>/ TODO
-          </div>
+          <RepoDisplay
+            url={details.repository || "—"}
+            showIcon={false}
+            className="text-gray-12 font-medium"
+          />
         ),
       },
       {
@@ -96,11 +113,9 @@ export const createDetailSections = (details: Deployment): DetailSection[] => [
           <div className="flex gap-2 items-center">
             <Avatar
               src={details.gitCommitAuthorAvatarUrl}
-              alt={details.gitCommitAuthorUsername ?? ""}
+              alt={details.gitCommitAuthorHandle ?? ""}
             />
-            <span className="font-medium text-grayA-12">
-              {details.gitCommitAuthorUsername}
-            </span>
+            <span className="font-medium text-grayA-12">{details.gitCommitAuthorHandle}</span>
           </div>
         ),
       },

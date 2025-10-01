@@ -85,6 +85,7 @@ export const ProjectsList = () => {
             commitTimestamp={project.commitTimestamp}
             branch={project.branch}
             author={project.author}
+            authorAvatar={project.authorAvatar}
             regions={project.regions}
             repository={project.gitRepositoryUrl || undefined}
             actions={

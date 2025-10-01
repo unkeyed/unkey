@@ -2,7 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { cn } from "@/lib/utils";
-import { Cloud, GridCircle, Layers3 } from "@unkey/icons";
+import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -47,7 +47,7 @@ export const ProjectSubNavigation = ({
     const tabIndex = segments.findIndex((segment) => segment === projectId) + 1;
     const currentTab = segments[tabIndex];
 
-    const validTabs = ["overview", "deployments", "gateway-logs", "settings"];
+    const validTabs = ["overview", "deployments", "gateway-logs", "settings", "openapi-diff"];
     return validTabs.includes(currentTab) ? currentTab : "overview";
   };
 
@@ -72,6 +72,12 @@ export const ProjectSubNavigation = ({
       label: "Gateway Logs",
       icon: Layers3,
       path: `${basePath}/${projectId}/gateway-logs`,
+    },
+    {
+      id: "openapi-diff",
+      label: "Open API Diff",
+      icon: Connections,
+      path: `${basePath}/${projectId}/openapi-diff`,
     },
   ];
 
