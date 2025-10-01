@@ -1,5 +1,6 @@
 import { Github } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
 
 type RepositoryDisplayProps = {
@@ -19,12 +20,20 @@ export const RepoDisplay = ({
   const safeHref = isSafeHttpUrl(url) ? url : undefined;
 
   return (
-    <InfoTooltip content={url} asChild>
+    <InfoTooltip
+      content={url}
+      asChild
+      position={{ side: "top", align: "center" }}
+      className="z-auto"
+    >
       <a
         href={safeHref}
         target="_blank"
         rel="noopener noreferrer"
-        className={`flex items-center gap-1.5 hover:opacity-75 transition-opacity ${className}`}
+        className={cn(
+          "flex items-center gap-1.5 transition-all hover:underline decoration-dashed underline-offset-2",
+          className,
+        )}
       >
         {showIcon && <Github size="lg-medium" className="shrink-0" />}
         {children || <span className="truncate">{repoName}</span>}
