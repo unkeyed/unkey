@@ -14,6 +14,8 @@ const schema = z.object({
   gitCommitAuthorHandle: z.string().nullable(),
   gitCommitAuthorAvatarUrl: z.string(),
   gitCommitTimestamp: z.number().int().nullable(),
+  // OpenAPI
+  hasOpenApiSpec: z.boolean(),
   // Immutable configuration snapshot
   runtimeConfig: z.object({
     regions: z.array(
