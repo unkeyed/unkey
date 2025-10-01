@@ -41,8 +41,8 @@ message CreateDeploymentRequest {
   string git_commit_author_avatar_url = 10;
   int64 git_commit_timestamp = 11; // Unix epoch milliseconds
 
-  // Keyspace ID for authentication
-  optional string keyspace_id = 12;
+  // API ID for authentication
+  optional string api_id = 12;
 }
 
 message CreateDeploymentResponse {
@@ -139,6 +139,17 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
+message GetProjectRequest {
+  string project_id = 1;
+}
+
+message GetProjectResponse {
+  string project_id = 1;
+  string workspace_id = 2;
+  string name = 3;
+  string slug = 4;
+}
+
 service DeploymentService {
   // Create a new deployment
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
@@ -151,4 +162,7 @@ service DeploymentService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+
+  // Get project details by ID
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse) {}
 }

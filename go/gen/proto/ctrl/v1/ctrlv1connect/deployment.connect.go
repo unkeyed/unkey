@@ -45,6 +45,9 @@ const (
 	// DeploymentServicePromoteProcedure is the fully-qualified name of the DeploymentService's Promote
 	// RPC.
 	DeploymentServicePromoteProcedure = "/ctrl.v1.DeploymentService/Promote"
+	// DeploymentServiceGetProjectProcedure is the fully-qualified name of the DeploymentService's
+	// GetProject RPC.
+	DeploymentServiceGetProjectProcedure = "/ctrl.v1.DeploymentService/GetProject"
 )
 
 // DeploymentServiceClient is a client for the ctrl.v1.DeploymentService service.
@@ -57,6 +60,8 @@ type DeploymentServiceClient interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
+	// Get project details by ID
+	GetProject(context.Context, *connect.Request[v1.GetProjectRequest]) (*connect.Response[v1.GetProjectResponse], error)
 }
 
 // NewDeploymentServiceClient constructs a client for the ctrl.v1.DeploymentService service. By
@@ -94,6 +99,12 @@ func NewDeploymentServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(deploymentServiceMethods.ByName("Promote")),
 			connect.WithClientOptions(opts...),
 		),
+		getProject: connect.NewClient[v1.GetProjectRequest, v1.GetProjectResponse](
+			httpClient,
+			baseURL+DeploymentServiceGetProjectProcedure,
+			connect.WithSchema(deploymentServiceMethods.ByName("GetProject")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -103,6 +114,7 @@ type deploymentServiceClient struct {
 	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	rollback         *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
 	promote          *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
+	getProject       *connect.Client[v1.GetProjectRequest, v1.GetProjectResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeploymentService.CreateDeployment.
@@ -125,6 +137,11 @@ func (c *deploymentServiceClient) Promote(ctx context.Context, req *connect.Requ
 	return c.promote.CallUnary(ctx, req)
 }
 
+// GetProject calls ctrl.v1.DeploymentService.GetProject.
+func (c *deploymentServiceClient) GetProject(ctx context.Context, req *connect.Request[v1.GetProjectRequest]) (*connect.Response[v1.GetProjectResponse], error) {
+	return c.getProject.CallUnary(ctx, req)
+}
+
 // DeploymentServiceHandler is an implementation of the ctrl.v1.DeploymentService service.
 type DeploymentServiceHandler interface {
 	// Create a new deployment
@@ -135,6 +152,8 @@ type DeploymentServiceHandler interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
+	// Get project details by ID
+	GetProject(context.Context, *connect.Request[v1.GetProjectRequest]) (*connect.Response[v1.GetProjectResponse], error)
 }
 
 // NewDeploymentServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -168,6 +187,12 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 		connect.WithSchema(deploymentServiceMethods.ByName("Promote")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deploymentServiceGetProjectHandler := connect.NewUnaryHandler(
+		DeploymentServiceGetProjectProcedure,
+		svc.GetProject,
+		connect.WithSchema(deploymentServiceMethods.ByName("GetProject")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.DeploymentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeploymentServiceCreateDeploymentProcedure:
@@ -178,6 +203,8 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 			deploymentServiceRollbackHandler.ServeHTTP(w, r)
 		case DeploymentServicePromoteProcedure:
 			deploymentServicePromoteHandler.ServeHTTP(w, r)
+		case DeploymentServiceGetProjectProcedure:
+			deploymentServiceGetProjectHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,4 +228,8 @@ func (UnimplementedDeploymentServiceHandler) Rollback(context.Context, *connect.
 
 func (UnimplementedDeploymentServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.Promote is not implemented"))
+}
+
+func (UnimplementedDeploymentServiceHandler) GetProject(context.Context, *connect.Request[v1.GetProjectRequest]) (*connect.Response[v1.GetProjectResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.GetProject is not implemented"))
 }

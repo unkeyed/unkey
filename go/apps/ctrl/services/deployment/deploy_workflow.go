@@ -62,7 +62,7 @@ func (w *DeployWorkflow) Name() string {
 type DeployRequest struct {
 	WorkspaceID   string `json:"workspace_id"`
 	ProjectID     string `json:"project_id"`
-	KeyspaceID    string `json:"keyspace_id"`
+	ApiID         string `json:"api_id"`
 	DeploymentID  string `json:"deployment_id"`
 	EnvironmentID string `json:"environment_id"`
 	DockerImage   string `json:"docker_image"`
@@ -420,10 +420,10 @@ func (w *DeployWorkflow) Run(ctx hydra.WorkflowContext, req *DeployRequest) erro
 				}
 			}
 
-			// Only add AuthConfig if we have a KeyspaceID
-			if req.KeyspaceID != "" {
+			// Only add AuthConfig if we have a ApiID
+			if req.ApiID != "" {
 				gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
-					KeyAuthId: req.KeyspaceID,
+					KeyAuthId: req.ApiID,
 				}
 			}
 

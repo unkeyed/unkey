@@ -149,7 +149,7 @@ func (s *Service) CreateDeployment(
 		EnvironmentID: env.ID,
 		DeploymentID:  deploymentID,
 		DockerImage:   req.Msg.GetDockerImage(),
-		KeyspaceID:    req.Msg.GetKeyspaceId(),
+		ApiID:    	   req.Msg.GetApiId(),
 	}
 
 	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,
