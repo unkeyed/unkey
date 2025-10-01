@@ -147,7 +147,7 @@ func (s *Service) CreateDeployment(
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
 		DockerImage:  req.Msg.GetDockerImage(),
-		KeyAuthId:    req.Msg.KeyspaceId,
+		KeyAuthId:    req.Msg.GetKeyspaceId(),
 	}
 	// this is ugly, but we're waiting for
 	// https://github.com/restatedev/sdk-go/issues/103

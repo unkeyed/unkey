@@ -62,7 +62,7 @@ func handleInit(cmd *cli.Command, ui *UI) error {
 
 	// Create configuration with user input
 	ui.Print("Creating configuration file")
-	if err := createConfigWithValues(configDir, workspaceID, projectID, context); err != nil {
+	if err := createConfigWithValues(configDir, projectID, context); err != nil {
 		ui.PrintError("Failed to create config file")
 		return fmt.Errorf("failed to create config file: %w", err)
 	}

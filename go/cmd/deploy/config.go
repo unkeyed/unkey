@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	ErrWorkspaceIDRequired = errors.New("workspace ID is required (use --workspace-id flag or edit unkey.json)")
 	ErrProjectIDRequired   = errors.New("project ID is required (use --project-id flag or edit unkey.json)")
 	ErrConfigPathResolve   = errors.New("failed to resolve config path")
 	ErrConfigFileRead      = errors.New("failed to read config file")
@@ -20,8 +19,7 @@ var (
 )
 
 type Config struct {
-	WorkspaceID string `json:"workspace_id"`
-	ApiId  		string `json:"api_id"`
+	ApiID  		string `json:"api_id"`
 	ProjectID   string `json:"project_id"`
 	Context     string `json:"context"`
 }
@@ -80,14 +78,13 @@ func getConfigFilePath(configDir string) string {
 }
 
 // createConfigWithValues creates a new unkey.json file with the provided values
-func createConfigWithValues(configDir, workspaceID, projectID, context string) error {
+func createConfigWithValues(configDir, projectID, context string) error {
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("%w %s: %w", ErrDirectoryCreate, configDir, err)
 	}
 
 	config := &Config{
-		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		Context:     context,
 	}
@@ -115,22 +112,18 @@ func writeConfig(configPath string, config *Config) error {
 }
 
 // mergeWithFlags merges config values with command flags, with flags taking precedence
-func (c *Config) mergeWithFlags(workspaceID, projectID, apiID, context string) *Config {
+func (c *Config) mergeWithFlags(projectID, apiID, context string) *Config {
 	merged := &Config{
-		WorkspaceID: c.WorkspaceID,
 		ApiID:  	 c.ApiID,
 		ProjectID:   c.ProjectID,
 		Context:     c.Context,
 	}
 	// Flags override config values
-	if workspaceID != "" {
-		merged.WorkspaceID = workspaceID
-	}
 	if projectID != "" {
 		merged.ProjectID = projectID
 	}
-	if ApiID != "" {
-		merged.ApiID = ApiID
+	if apiID != "" {
+		merged.ApiID = apiID
 	}
 	if context != "" {
 		merged.Context = context
@@ -144,9 +137,6 @@ func (c *Config) mergeWithFlags(workspaceID, projectID, apiID, context string) *
 
 // validate checks if required fields are present and not placeholder values
 func (c *Config) validate() error {
-	if c.WorkspaceID == "" || c.WorkspaceID == "ws_your_workspace_id" {
-		return ErrWorkspaceIDRequired
-	}
 	if c.ProjectID == "" || c.ProjectID == "proj_your_project_id" {
 		return ErrProjectIDRequired
 	}

@@ -149,8 +149,8 @@ type CreateDeploymentRequest struct {
 	GitCommitAuthorHandle    string `protobuf:"bytes,9,opt,name=git_commit_author_handle,json=gitCommitAuthorHandle,proto3" json:"git_commit_author_handle,omitempty"`
 	GitCommitAuthorAvatarUrl string `protobuf:"bytes,10,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
 	GitCommitTimestamp       int64  `protobuf:"varint,11,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
-	// Keyspace ID for authentication
-	KeyspaceId    *string `protobuf:"bytes,12,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
+	// API ID for authentication
+	ApiId         *string `protobuf:"bytes,12,opt,name=api_id,json=apiId,proto3,oneof" json:"api_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,9 +262,9 @@ func (x *CreateDeploymentRequest) GetGitCommitTimestamp() int64 {
 	return 0
 }
 
-func (x *CreateDeploymentRequest) GetKeyspaceId() string {
-	if x != nil && x.KeyspaceId != nil {
-		return *x.KeyspaceId
+func (x *CreateDeploymentRequest) GetApiId() string {
+	if x != nil && x.ApiId != nil {
+		return *x.ApiId
 	}
 	return ""
 }
@@ -997,11 +997,123 @@ func (*PromoteResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{11}
 }
 
+type GetProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProjectRequest) Reset() {
+	*x = GetProjectRequest{}
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProjectRequest) ProtoMessage() {}
+
+func (x *GetProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProjectRequest.ProtoReflect.Descriptor instead.
+func (*GetProjectRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetProjectRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+type GetProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Slug          string                 `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProjectResponse) Reset() {
+	*x = GetProjectResponse{}
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProjectResponse) ProtoMessage() {}
+
+func (x *GetProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProjectResponse.ProtoReflect.Descriptor instead.
+func (*GetProjectResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetProjectResponse) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *GetProjectResponse) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *GetProjectResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetProjectResponse) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
 var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xac\x04\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\x9d\x04\n" +
 	"\x17CreateDeploymentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -1016,10 +1128,9 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x18git_commit_author_handle\x18\t \x01(\tR\x15gitCommitAuthorHandle\x12>\n" +
 	"\x1cgit_commit_author_avatar_url\x18\n" +
 	" \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
-	"\x14git_commit_timestamp\x18\v \x01(\x03R\x12gitCommitTimestamp\x12$\n" +
-	"\vkeyspace_id\x18\f \x01(\tH\x00R\n" +
-	"keyspaceId\x88\x01\x01B\x0e\n" +
-	"\f_keyspace_id\"r\n" +
+	"\x14git_commit_timestamp\x18\v \x01(\x03R\x12gitCommitTimestamp\x12\x1a\n" +
+	"\x06api_id\x18\f \x01(\tH\x00R\x05apiId\x88\x01\x01B\t\n" +
+	"\a_api_id\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
@@ -1082,7 +1193,16 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse*\xef\x01\n" +
+	"\x0fPromoteResponse\"2\n" +
+	"\x11GetProjectRequest\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\"~\n" +
+	"\x12GetProjectResponse\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12!\n" +
+	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slug*\xef\x01\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1095,7 +1215,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xc3\x02\n" +
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\x8c\x03\n" +
 	"\x11DeploymentService\x12Y\n" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
@@ -1116,7 +1236,7 @@ func file_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),            // 0: ctrl.v1.DeploymentStatus
 	(SourceType)(0),                  // 1: ctrl.v1.SourceType
@@ -1132,14 +1252,16 @@ var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(*RollbackResponse)(nil),         // 11: ctrl.v1.RollbackResponse
 	(*PromoteRequest)(nil),           // 12: ctrl.v1.PromoteRequest
 	(*PromoteResponse)(nil),          // 13: ctrl.v1.PromoteResponse
-	nil,                              // 14: ctrl.v1.Deployment.EnvironmentVariablesEntry
+	(*GetProjectRequest)(nil),        // 14: ctrl.v1.GetProjectRequest
+	(*GetProjectResponse)(nil),       // 15: ctrl.v1.GetProjectResponse
+	nil,                              // 16: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	1,  // 0: ctrl.v1.CreateDeploymentRequest.source_type:type_name -> ctrl.v1.SourceType
 	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
 	6,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
 	0,  // 3: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	14, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	16, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
 	8,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
 	7,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	9,  // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
@@ -1147,12 +1269,14 @@ var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	4,  // 9: ctrl.v1.DeploymentService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
 	10, // 10: ctrl.v1.DeploymentService.Rollback:input_type -> ctrl.v1.RollbackRequest
 	12, // 11: ctrl.v1.DeploymentService.Promote:input_type -> ctrl.v1.PromoteRequest
-	3,  // 12: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	5,  // 13: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	11, // 14: ctrl.v1.DeploymentService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	13, // 15: ctrl.v1.DeploymentService.Promote:output_type -> ctrl.v1.PromoteResponse
-	12, // [12:16] is the sub-list for method output_type
-	8,  // [8:12] is the sub-list for method input_type
+	14, // 12: ctrl.v1.DeploymentService.GetProject:input_type -> ctrl.v1.GetProjectRequest
+	3,  // 13: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	5,  // 14: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	11, // 15: ctrl.v1.DeploymentService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	13, // 16: ctrl.v1.DeploymentService.Promote:output_type -> ctrl.v1.PromoteResponse
+	15, // 17: ctrl.v1.DeploymentService.GetProject:output_type -> ctrl.v1.GetProjectResponse
+	13, // [13:18] is the sub-list for method output_type
+	8,  // [8:13] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1170,7 +1294,7 @@ func file_ctrl_v1_deployment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
