@@ -158,7 +158,8 @@ func (s *Service) CreateDeployment(
 		"Deploy",
 	).Send(ctx, deployReq)
 	if invocation.Error != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		s.logger.Error("failed to start deployment workflow", "error", invocation.Error.Error())
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", invocation.Error))
 	}
 	s.logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,

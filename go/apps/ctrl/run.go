@@ -1,10 +1,12 @@
 package ctrl
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"connectrpc.com/connect"
@@ -23,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -36,6 +39,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	fmt.Println(os.Environ())
 
 	shutdowns := shutdown.New()
 
@@ -184,6 +188,53 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("failed to start restate server", "error", startErr.Error())
 		}
 	}()
+
+	// Register with Restate admin API if RegisterAs is configured
+	if cfg.Restate.RegisterAs != "" {
+		go func() {
+			// Wait a moment for the restate server to be ready
+			time.Sleep(2 * time.Second)
+
+			registerURL := fmt.Sprintf("%s/deployments", cfg.Restate.AdminURL)
+			payload := fmt.Sprintf(`{"uri": "%s"}`, cfg.Restate.RegisterAs)
+
+			logger.Info("Registering with Restate", "admin_url", registerURL, "service_uri", cfg.Restate.RegisterAs)
+
+			retrier := retry.New(
+				retry.Attempts(10),
+				retry.Backoff(func(n int) time.Duration {
+					return 5 * time.Second
+				}),
+			)
+
+			err := retrier.Do(func() error {
+				req, err := http.NewRequestWithContext(ctx, "POST", registerURL, bytes.NewBufferString(payload))
+				if err != nil {
+					return fmt.Errorf("failed to create registration request: %w", err)
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return fmt.Errorf("failed to register with Restate: %w", err)
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+					return nil
+				}
+
+				return fmt.Errorf("registration returned status %d", resp.StatusCode)
+			})
+
+			if err != nil {
+				logger.Error("failed to register with Restate after retries", "error", err.Error())
+			} else {
+				logger.Info("Successfully registered with Restate")
+			}
+		}()
+	}
 
 	// Create the connect handler
 	mux := http.NewServeMux()

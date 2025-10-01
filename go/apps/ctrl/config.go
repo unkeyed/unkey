@@ -34,8 +34,15 @@ type RestateConfig struct {
 	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
 	IngressURL string
 
+	// AdminURL is the URL of the Restate admin endpoint for service registration (e.g., "http://restate:9070")
+	AdminURL string
+
 	// RestateHttpPort is the port where the control plane listens for Restate HTTP requests
 	HttpPort int
+
+	// RegisterAs is the url of this service, used for self-registration with the Restate platform
+	// ie: http://ctrl:9080
+	RegisterAs string
 }
 
 type Config struct {
