@@ -9,7 +9,6 @@ export const listDeployments = t.procedure
   .input(z.object({ projectId: z.string() }))
   .query(async ({ ctx, input }) => {
     try {
-      // Get all deployments for this workspace and specific project
       const deployments = await db.query.deployments.findMany({
         where: (table, { eq, and }) =>
           and(eq(table.workspaceId, ctx.workspace.id), eq(table.projectId, input.projectId)),
@@ -25,16 +24,18 @@ export const listDeployments = t.procedure
           gitCommitTimestamp: true,
           runtimeConfig: true,
           status: true,
+          openapiSpec: true,
           createdAt: true,
         },
         limit: 500,
       });
 
-      return deployments.map((deployment) => ({
+      return deployments.map(({ openapiSpec, ...deployment }) => ({
         ...deployment,
         gitBranch: deployment.gitBranch ?? "main",
         gitCommitAuthorAvatarUrl:
           deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
+        hasOpenApiSpec: Boolean(openapiSpec),
         gitCommitTimestamp: deployment.gitCommitTimestamp,
       }));
     } catch (_error) {
