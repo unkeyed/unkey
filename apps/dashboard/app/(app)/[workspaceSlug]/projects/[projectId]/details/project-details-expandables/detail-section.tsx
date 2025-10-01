@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import type { DetailItem } from "./sections";
 
 type DetailRowProps = {
-  icon: ReactNode;
-  label: string;
+  icon: ReactNode | null;
+  label: string | null;
   children: ReactNode;
   alignment?: "center" | "start";
 };
@@ -11,13 +11,24 @@ type DetailRowProps = {
 function DetailRow({ icon, label, children, alignment = "center" }: DetailRowProps) {
   const alignmentClass = alignment === "start" ? "items-start" : "items-center";
 
+  // If both icon and label are missing, let children take full space
+  if (!icon && !label) {
+    return (
+      <div className={`flex ${alignmentClass}`}>
+        <div className="text-grayA-11 text-[13px] min-w-0 flex-1">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex ${alignmentClass}`}>
       <div className="flex items-center gap-3 w-[135px]">
-        <div className="bg-grayA-3 size-[22px] rounded-md flex items-center justify-center">
-          {icon}
-        </div>
-        <span className="text-grayA-11 text-[13px]">{label}</span>
+        {icon && (
+          <div className="bg-grayA-3 size-[22px] rounded-md flex items-center justify-center">
+            {icon}
+          </div>
+        )}
+        {label && <span className="text-grayA-11 text-[13px]">{label}</span>}
       </div>
       <div className="text-grayA-11 text-[13px] min-w-0 flex-1">{children}</div>
     </div>
