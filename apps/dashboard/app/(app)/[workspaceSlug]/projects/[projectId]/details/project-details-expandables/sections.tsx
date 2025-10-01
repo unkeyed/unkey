@@ -18,10 +18,11 @@ import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { Avatar } from "../active-deployment-card/git-avatar";
+import { OpenApiDiff } from "./sections/open-api-diff";
 
 export type DetailItem = {
-  icon: ReactNode;
-  label: string;
+  icon: ReactNode | null;
+  label: string | null;
   content: ReactNode;
   alignment?: "center" | "start";
 };
@@ -34,6 +35,17 @@ export type DetailSection = {
 export const createDetailSections = (
   details: Deployment & { repository: string | null },
 ): DetailSection[] => [
+  {
+    title: "OpenAPI changes",
+    items: [
+      {
+        icon: null,
+        label: null,
+        alignment: "start",
+        content: <OpenApiDiff />,
+      },
+    ],
+  },
   {
     title: "Active deployment",
     items: [
