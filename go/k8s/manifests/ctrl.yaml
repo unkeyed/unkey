@@ -79,6 +79,10 @@ spec:
               value: "http://restate:8080"
             - name: UNKEY_RESTATE_ADMIN_URL
               value: "http://restate:9070"
+            - name: UNKEY_RESTATE_HTTP_PORT
+              value: "9080"
+            - name: UNKEY_RESTATE_REGISTER_AS
+              value: "http://ctrl:9080"
 
             # Additional Configuration
             - name: UNKEY_API_KEY
@@ -110,5 +114,9 @@ spec:
     - name: http
       port: 7091
       targetPort: 7091
+      protocol: TCP
+    - name: restate
+      port: 9080
+      targetPort: 9080
       protocol: TCP
   type: LoadBalancer

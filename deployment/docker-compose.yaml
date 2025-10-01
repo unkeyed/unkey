@@ -347,6 +347,8 @@ services:
       # Restate configuration
       UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
       UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
+      UNKEY_RESTATE_HTTP_PORT: "9080"
+      UNKEY_RESTATE_REGISTER_AS: "http://ctrl:9080"
 
       UNKEY_VAULT_S3_URL: "http://s3:3902"
       UNKEY_VAULT_S3_BUCKET: "acme-vault"

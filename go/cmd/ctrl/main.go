@@ -82,8 +82,12 @@ var Cmd = &cli.Command{
 		// Restate Configuration
 		cli.String("restate-ingress-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
+		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
+			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
 		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
+		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
+			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
 	},
 	Action: action,
 }
@@ -154,8 +158,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Restate configuration
 		Restate: ctrl.RestateConfig{
 			IngressURL: cmd.String("restate-ingress-url"),
-
-			HttpPort: cmd.Int("restate-http-port"),
+			AdminURL:   cmd.String("restate-admin-url"),
+			HttpPort:   cmd.Int("restate-http-port"),
+			RegisterAs: cmd.String("restate-register-as"),
 		},
 
 		// Common

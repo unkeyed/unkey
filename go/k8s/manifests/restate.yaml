@@ -21,7 +21,7 @@ metadata:
     app: restate
 spec:
   serviceName: "restate"
-  replicas: 1  # Restate requires single-replica for development
+  replicas: 1 # Restate requires single-replica for development
   selector:
     matchLabels:
       app: restate
@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: restate
-          image: docker.io/restatedev/restate:1.2.0
+          image: docker.io/restatedev/restate:1.5.1
           ports:
             - containerPort: 8080
               name: ingress
