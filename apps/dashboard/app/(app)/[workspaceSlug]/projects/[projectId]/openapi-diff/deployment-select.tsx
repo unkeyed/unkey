@@ -52,13 +52,18 @@ export function DeploymentSelect({
       const shortSha = deployment.gitCommitSha?.substring(0, 7) || deployment.id.substring(0, 7);
 
       return (
-        <SelectItem key={deployment.id} value={deployment.id} disabled={isDisabled}>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-gray-12">{truncatedMessage}</span>
-            <span className="text-gray-9">•</span>
-            <span className="text-gray-9">{deployedAt}</span>
-            <span className="text-gray-9">•</span>
-            <span className="text-gray-9 font-mono">{shortSha}</span>
+        <SelectItem
+          key={deployment.id}
+          value={deployment.id}
+          disabled={isDisabled}
+          title={isDisabled ? "Already selected for comparison" : undefined}
+        >
+          <div className="flex items-center gap-2.5 text-[13px]">
+            <span className="text-grayA-12 font-medium truncate">{truncatedMessage}</span>
+            <span className="text-grayA-9">•</span>
+            <span className="text-grayA-9">{deployedAt}</span>
+            <span className="text-grayA-9">•</span>
+            <span className="text-grayA-9 font-mono text-xs">{shortSha}</span>
           </div>
         </SelectItem>
       );

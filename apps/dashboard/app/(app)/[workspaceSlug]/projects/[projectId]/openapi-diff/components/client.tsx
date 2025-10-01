@@ -1,7 +1,6 @@
 "use client";
 import {
   ChevronDown,
-  ChevronRight,
   CircleInfo,
   CircleWarning,
   CircleXMark,
@@ -19,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import { useMemo, useState } from "react";
 
@@ -97,23 +97,23 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
     if (level === 2) {
       return <CircleWarning size="sm-regular" className="text-warningA-11" />;
     }
-    return <CircleInfo size="sm-regular" className="text-gray-9" />;
+    return <CircleInfo size="sm-regular" className="text-grayA-9" />;
   };
 
   const getSeverityColor = (level: number) => {
     if (level === 3) {
-      return "border-l-2 border-l-error-9 bg-errorA-2";
+      return "border border-error-6 bg-errorA-2";
     }
     if (level === 2) {
-      return "border-l-2 border-l-warning-9 bg-warningA-2";
+      return "border border-warning-6 bg-warningA-2";
     }
-    return "border-l-2 border-l-gray-6 bg-grayA-1";
+    return "border border-gray-4 bg-grayA-1";
   };
 
   if (!changelog || changelog.length === 0) {
     return (
       <div className="text-center py-12 mx-3 mb-3">
-        <p className="text-xs text-gray-9">
+        <p className="text-xs text-grayA-9">
           No differences between {fromDeployment} and {toDeployment}
         </p>
       </div>
@@ -122,26 +122,28 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
   return (
     <>
-      {/* Stats header - integrated into parent card */}
+      {/* Stats header */}
       <div className="px-3 pb-3">
         <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className="text-accent-12 font-medium text-xs">API Changes</div>
-            <div className="text-gray-9 text-xs">
+            <div className="text-accent-12 font-medium text-[13px]">API Changes</div>
+            <div className="text-grayA-9 text-xs">
               {stats.total} changes • {stats.paths.length} endpoints
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {stats.breaking > 0 && (
               <Badge variant="error" className="gap-1.5">
                 <TriangleWarning size="sm-regular" className="shrink-0" />
-                {stats.breaking} breaking
+                <span className="text-xs font-medium">{stats.breaking} breaking</span>
               </Badge>
             )}
             {stats.warning > 0 && (
-              <Badge variant="warning" className="gap-1.5 p-1.5">
+              <Badge variant="warning" className="gap-1.5">
                 <CircleWarning size="sm-regular" className="shrink-0" />
-                {stats.warning} warnings
+                <span className="text-xs">
+                  {stats.warning} warning{stats.warning !== 1 ? "s" : ""}
+                </span>
               </Badge>
             )}
           </div>
@@ -149,13 +151,13 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       </div>
 
       {/* Filters */}
-      <div className="px-3 pb-2 flex gap-2 items-center">
+      <div className="px-3 pb-2 flex gap-2.5 items-center">
         <Input
           type="text"
           value={filters.searchQuery}
           onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
           placeholder="Search changes..."
-          leftIcon={<InputSearch size="sm-regular" className="text-gray-9" />}
+          leftIcon={<InputSearch size="sm-regular" className="text-grayA-9" />}
           rightIcon={
             filters.searchQuery ? (
               <button
@@ -163,12 +165,12 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                 onClick={() => setFilters((p) => ({ ...p, searchQuery: "" }))}
                 className="cursor-pointer"
               >
-                <CircleXMark size="sm-regular" className="text-gray-9 hover:text-gray-12" />
+                <CircleXMark size="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
               </button>
             ) : null
           }
           wrapperClassName="flex-1"
-          className="text-xs h-9 min-w-[500px] rounded-md"
+          className="text-xs h-9 rounded-md"
         />
         <Select
           value={filters.level?.toString() || "all"}
@@ -220,82 +222,91 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       <div className="px-3 pb-3">
         {filteredChanges.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-xs text-gray-9">No changes match filters</p>
+            <p className="text-xs text-grayA-9">No changes match filters</p>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            {Object.entries(groupedChanges).map(([path, operations]) => (
-              <div key={path} className="border border-gray-4 rounded-md overflow-hidden bg-white">
-                <button
-                  type="button"
-                  onClick={() => togglePathExpansion(path)}
-                  className="w-full flex items-center justify-between py-2 px-3 text-left bg-gray-1 hover:bg-grayA-2 transition-colors"
+            {Object.entries(groupedChanges).map(([path, operations]) => {
+              const isExpanded = expandedPaths.has(path);
+              return (
+                <div
+                  key={path}
+                  className="border border-gray-4 rounded-md overflow-hidden bg-white dark:bg-black"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {expandedPaths.has(path) ? (
-                      <ChevronDown size="sm-regular" className="text-gray-9 shrink-0" />
-                    ) : (
-                      <ChevronRight size="sm-regular" className="text-gray-9 shrink-0" />
-                    )}
-                    <code className="font-mono text-xs text-gray-12 truncate">{path}</code>
-                    <span className="text-xs text-gray-9 shrink-0">
-                      {Object.values(operations).flat().length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {Object.keys(operations).map((op) => (
-                      <Badge key={op} variant="secondary" size="sm" className="text-[10px]">
-                        {op}
-                      </Badge>
-                    ))}
-                  </div>
-                </button>
-                {expandedPaths.has(path) && (
-                  <div className="border-t border-gray-4 bg-gray-1">
-                    {Object.entries(operations).map(([operation, changes]) => (
-                      <div
-                        key={operation}
-                        className="py-2 px-3 border-b border-gray-4 last:border-b-0"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="secondary" size="sm" className="text-[10px]">
-                            {operation}
+                  <button
+                    type="button"
+                    onClick={() => togglePathExpansion(path)}
+                    className="w-full flex items-center justify-between py-2 px-3 text-left bg-grayA-1 hover:bg-grayA-2 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <ChevronDown
+                        size="sm-regular"
+                        className={cn(
+                          "text-grayA-9 shrink-0 transition-transform duration-200",
+                          !isExpanded && "-rotate-90",
+                        )}
+                      />
+                      <code className="font-mono text-xs text-grayA-12 truncate">{path}</code>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span className="text-xs text-grayA-9 font-medium tabular-nums">
+                        {Object.values(operations).flat().length} changes
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {Object.keys(operations).map((op) => (
+                          <Badge key={op} variant="secondary" size="sm" className="text-[10px]">
+                            {op}
                           </Badge>
-                          <span className="text-xs text-gray-9">{changes.length}</span>
-                        </div>
-                        <div className="space-y-1">
-                          {changes.map((change, index) => (
-                            <div
-                              key={`${change.id}-${index}`}
-                              className={`px-2 py-1.5 rounded ${getSeverityColor(change.level)}`}
-                            >
-                              <div className="flex items-start gap-2">
-                                <div className="shrink-0 mt-0.5">
-                                  {getSeverityIcon(change.level)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-gray-12">{change.text}</p>
-                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                    <code className="text-[10px] text-gray-10 font-mono">
-                                      {change.id}
-                                    </code>
-                                    {change.operationId && (
-                                      <span className="text-[10px] text-gray-10">
-                                        • {change.operationId}
-                                      </span>
-                                    )}
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-gray-4 bg-grayA-1 animate-in slide-in-from-top-2 duration-200">
+                      {Object.entries(operations).map(([operation, changes]) => (
+                        <div
+                          key={operation}
+                          className="py-2 px-3 border-b border-gray-4 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-2.5 mb-2">
+                            <Badge variant="secondary" size="sm" className="text-[10px]">
+                              {operation}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1">
+                            {changes.map((change, index) => (
+                              <div
+                                key={`${change.id}-${index}`}
+                                className={`px-2 py-1.5 rounded ${getSeverityColor(change.level)}`}
+                              >
+                                <div className="flex items-start gap-2.5">
+                                  <div className="shrink-0 mt-0.5">
+                                    {getSeverityIcon(change.level)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-grayA-12">{change.text}</p>
+                                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                                      <code className="text-[10px] text-grayA-10 font-mono">
+                                        {change.id}
+                                      </code>
+                                      {change.operationId && (
+                                        <span className="text-[10px] text-grayA-10">
+                                          • {change.operationId}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
