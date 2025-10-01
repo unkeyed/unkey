@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Card } from "../details/card";
 import { useProjectLayout } from "../layout-provider";
 import { DiffViewerContent } from "./components/client";
-import { DeploymentSelect } from "./deployment-select";
+import { DeploymentSelect } from "./components/deployment-select";
 
 export default function DiffPage() {
   const { collections, isDetailsOpen, liveDeploymentId } = useProjectLayout();
