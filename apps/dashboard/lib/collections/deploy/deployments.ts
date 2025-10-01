@@ -8,18 +8,12 @@ const schema = z.object({
   id: z.string(),
   projectId: z.string(),
   environmentId: z.string(),
-  // Git information
-  // TEMP: Git fields as non-nullable for UI development with mock data
-  // TODO: Convert to nullable (.nullable()) when real git integration is added
-  // In production, deployments may not have git metadata if triggered manually
-  gitCommitSha: z.string(),
+  gitCommitSha: z.string().nullable(),
   gitBranch: z.string(),
-  gitCommitMessage: z.string(),
-  gitCommitAuthorName: z.string(),
-  gitCommitAuthorEmail: z.string(),
-  gitCommitAuthorUsername: z.string(),
+  gitCommitMessage: z.string().nullable(),
+  gitCommitAuthorHandle: z.string().nullable(),
   gitCommitAuthorAvatarUrl: z.string(),
-  gitCommitTimestamp: z.number().int(),
+  gitCommitTimestamp: z.number().int().nullable(),
   // Immutable configuration snapshot
   runtimeConfig: z.object({
     regions: z.array(

@@ -105,8 +105,7 @@ func (s *Service) CreateDeployment(
 	// Sanitize input values before persisting
 	gitCommitSha := req.Msg.GetGitCommitSha()
 	gitCommitMessage := trimLength(req.Msg.GetGitCommitMessage(), 10240)
-	gitCommitAuthorName := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256)
-	gitCommitAuthorUsername := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorUsername()), 256)
+	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
 	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
 
 	// Insert deployment into database
@@ -120,16 +119,14 @@ func (s *Service) CreateDeployment(
 		"cpus": 2,
 		"memory": 2048
 		}`),
-		OpenapiSpec:         sql.NullString{String: "", Valid: false},
-		Status:              db.DeploymentsStatusPending,
-		CreatedAt:           now,
-		UpdatedAt:           sql.NullInt64{Int64: now, Valid: true},
-		GitCommitSha:        sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
-		GitBranch:           sql.NullString{String: gitBranch, Valid: true},
-		GitCommitMessage:    sql.NullString{String: gitCommitMessage, Valid: req.Msg.GetGitCommitMessage() != ""},
-		GitCommitAuthorName: sql.NullString{String: gitCommitAuthorName, Valid: req.Msg.GetGitCommitAuthorName() != ""},
-		// TODO: Use email to lookup GitHub username/avatar via GitHub API instead of persisting PII
-		GitCommitAuthorUsername:  sql.NullString{String: gitCommitAuthorUsername, Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
+		OpenapiSpec:              sql.NullString{String: "", Valid: false},
+		Status:                   db.DeploymentsStatusPending,
+		CreatedAt:                now,
+		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
+		GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
+		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: req.Msg.GetGitCommitAuthorHandle() != ""},
 		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
 	})

@@ -3,23 +3,20 @@ import { useProjectLayout } from "../../../../layout-provider";
 
 type Props = {
   deploymentId: string;
-  // I couldn't figure out how to make the domains revalidate on a rollback
-  // From my understanding it should already work, because we're using the
-  // .util.refetch() in the trpc mutation, but it doesn't.
-  // We need to investigate this later
-  hackyRevalidateDependency?: unknown;
 };
 
-export const DomainList = ({ deploymentId, hackyRevalidateDependency }: Props) => {
+export const DomainList = ({ deploymentId }: Props) => {
   const { collections } = useProjectLayout();
-  const domains = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, deploymentId))
-        .orderBy(({ domain }) => domain.domain, "asc"),
-    [hackyRevalidateDependency],
+  const domains = useLiveQuery((q) =>
+    q
+      .from({ domain: collections.domains })
+      .where(({ domain }) => eq(domain.deploymentId, deploymentId))
+      .orderBy(({ domain }) => domain.domain, "asc"),
   );
+
+  if (domains.isLoading || !domains.data.length) {
+    return <DomainListSkeleton />;
+  }
 
   return (
     <ul className="flex flex-col list-none py-2">
@@ -29,3 +26,13 @@ export const DomainList = ({ deploymentId, hackyRevalidateDependency }: Props) =
     </ul>
   );
 };
+
+const DomainListSkeleton = () => (
+  <ul className="flex flex-col list-none py-2 gap-1">
+    {[1, 2, 3].map((i) => (
+      <li key={i}>
+        <div className="h-3 w-64 bg-grayA-3 rounded animate-pulse" />
+      </li>
+    ))}
+  </ul>
+);
