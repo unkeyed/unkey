@@ -54,9 +54,8 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 	// Get git commit information
 	commitInfo := git.GetInfo()
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:              c.opts.WorkspaceID,
 		ProjectId:                c.opts.ProjectID,
-		ApiId:               	  &c.opts.ApiID,
+		ApiId:                    &c.opts.ApiID,
 		Branch:                   c.opts.Branch,
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,
@@ -106,27 +105,6 @@ func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId str
 	}
 
 	return getResp.Msg.GetDeployment(), nil
-}
-
-// GetProject retrieve project information from the control plane. Needed to infer workspace id
-func (c *ControlPlaneClient) GetProject(ctx context.Context, projectID string) (*ctrlv1.GetProjectResponse, error) {
-	req := connect.NewRequest(&ctrlv1.GetProjectRequest{
-		ProjectId: projectID,
-	})
-
-	authHeader := c.opts.APIKey
-	if authHeader == "" {
-		authHeader = c.opts.AuthToken
-	}
-
-	req.Header().Set("Authorization", "Bearer "+authHeader)
-
-	resp, err := c.client.GetProject(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %w", err)
-	}
-
-	return resp.Msg, nil
 }
 
 // PollDeploymentStatus polls for deployment changes and calls event handlers

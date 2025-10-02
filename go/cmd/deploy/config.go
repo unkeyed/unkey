@@ -9,19 +9,19 @@ import (
 )
 
 var (
-	ErrProjectIDRequired   = errors.New("project ID is required (use --project-id flag or edit unkey.json)")
-	ErrConfigPathResolve   = errors.New("failed to resolve config path")
-	ErrConfigFileRead      = errors.New("failed to read config file")
-	ErrConfigFileParse     = errors.New("failed to parse config file")
-	ErrConfigFileWrite     = errors.New("failed to write config file")
-	ErrConfigMarshal       = errors.New("failed to marshal config")
-	ErrDirectoryCreate     = errors.New("failed to create directory")
+	ErrProjectIDRequired = errors.New("project ID is required (use --project-id flag or edit unkey.json)")
+	ErrConfigPathResolve = errors.New("failed to resolve config path")
+	ErrConfigFileRead    = errors.New("failed to read config file")
+	ErrConfigFileParse   = errors.New("failed to parse config file")
+	ErrConfigFileWrite   = errors.New("failed to write config file")
+	ErrConfigMarshal     = errors.New("failed to marshal config")
+	ErrDirectoryCreate   = errors.New("failed to create directory")
 )
 
 type Config struct {
-	ApiID  		string `json:"api_id"`
-	ProjectID   string `json:"project_id"`
-	Context     string `json:"context"`
+	ApiID     string `json:"api_id"`
+	ProjectID string `json:"project_id"`
+	Context   string `json:"context"`
 }
 
 // loadConfig loads configuration from unkey.json in the specified directory.
@@ -85,8 +85,8 @@ func createConfigWithValues(configDir, projectID, context string) error {
 	}
 
 	config := &Config{
-		ProjectID:   projectID,
-		Context:     context,
+		ProjectID: projectID,
+		Context:   context,
 	}
 
 	configPath := filepath.Join(configDir, "unkey.json")
@@ -114,9 +114,9 @@ func writeConfig(configPath string, config *Config) error {
 // mergeWithFlags merges config values with command flags, with flags taking precedence
 func (c *Config) mergeWithFlags(projectID, apiID, context string) *Config {
 	merged := &Config{
-		ApiID:  	 c.ApiID,
-		ProjectID:   c.ProjectID,
-		Context:     c.Context,
+		ApiID:     c.ApiID,
+		ProjectID: c.ProjectID,
+		Context:   c.Context,
 	}
 	// Flags override config values
 	if projectID != "" {
