@@ -1,4 +1,5 @@
 import { source } from "@/app/source";
+import { Mermaid } from "@/app/components/mermaid";
 import { Banner } from "fumadocs-ui/components/banner";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import defaultMdxComponents from "fumadocs-ui/mdx";
@@ -39,6 +40,7 @@ export default async function Page(props: {
             Tabs,
             Tab,
             Banner,
+            Mermaid,
           }}
         />
       </DocsBody>
