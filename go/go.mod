@@ -36,7 +36,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.8
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
-	github.com/sqlc-dev/sqlc v1.30.0
+	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/stretchr/testify v1.11.1
 	github.com/unkeyed/unkey/go/deploy/pkg/spiffe v0.0.0-20250929110415-ca2de7336e18
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2
@@ -369,6 +369,10 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
+// Yaml parsing errors
 replace github.com/dprotaso/go-yit => github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960
+
+// Sqlc engine errors
+replace github.com/pingcap/tidb/pkg/parser => github.com/pingcap/tidb/pkg/parser v0.0.0-20250806091815-327a22d5ebf8
 
 tool github.com/sqlc-dev/sqlc/cmd/sqlc

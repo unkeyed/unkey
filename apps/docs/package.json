@@ -3,12 +3,14 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx mintlify@latest dev"
+    "dev": "mintlify dev --local-schema",
+    "update-api-docs": "./update-api-docs.sh"
   },
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "mintlify": "^4.2.31"
+    "@mintlify/scraping": "^4.0.410",
+    "mintlify": "^4.2.140"
   },
   "dependencies": {
     "sharp": "^0.34.3"

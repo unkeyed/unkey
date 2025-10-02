@@ -49,7 +49,9 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": ["quickstart/identities/shared-ratelimits"]
+                    "pages": [
+                      "quickstart/identities/shared-ratelimits"
+                    ]
                   }
                 ]
               },
@@ -83,7 +85,10 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                "pages": [
+                  "concepts/identities/overview",
+                  "concepts/identities/ratelimits"
+                ]
               }
             ]
           },
@@ -100,7 +105,9 @@
                     "pages": [
                       {
                         "group": "Ratelimiting",
-                        "pages": ["apis/features/ratelimiting/overview"]
+                        "pages": [
+                          "apis/features/ratelimiting/overview"
+                        ]
                       },
                       "apis/features/temp-keys",
                       "apis/features/remaining",
@@ -135,12 +142,18 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": ["audit-log/introduction", "audit-log/types"]
+                "pages": [
+                  "audit-log/introduction",
+                  "audit-log/types"
+                ]
               },
               {
                 "group": "Analytics",
                 "icon": "chart-bar",
-                "pages": ["analytics/overview", "analytics/quickstarts"]
+                "pages": [
+                  "analytics/overview",
+                  "analytics/quickstarts"
+                ]
               }
             ]
           },
@@ -150,7 +163,10 @@
               {
                 "icon": "plane",
                 "group": "Migrating API Keys",
-                "pages": ["migrations/introduction", "migrations/keys"]
+                "pages": [
+                  "migrations/introduction",
+                  "migrations/keys"
+                ]
               }
             ]
           },
@@ -269,9 +285,82 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples",
+              "source": "http://127.0.0.1:7070/openapi.yaml",
               "directory": "api-reference/v2"
-            }
+            },
+            "hidden": true
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              {
+                "group": "analytics",
+                "pages": [
+                  "api-reference/v2/analytics/query-key-verification-data"
+                ]
+              },
+              {
+                "group": "apis",
+                "pages": [
+                  "api-reference/v2/apis/create-api-namespace",
+                  "api-reference/v2/apis/delete-api-namespace",
+                  "api-reference/v2/apis/get-api-namespace",
+                  "api-reference/v2/apis/list-api-keys"
+                ]
+              },
+              {
+                "group": "identities",
+                "pages": [
+                  "api-reference/v2/identities/create-identity",
+                  "api-reference/v2/identities/delete-identity",
+                  "api-reference/v2/identities/get-identity",
+                  "api-reference/v2/identities/list-identities",
+                  "api-reference/v2/identities/update-identity"
+                ]
+              },
+              {
+                "group": "keys",
+                "pages": [
+                  "api-reference/v2/keys/add-key-permissions",
+                  "api-reference/v2/keys/add-key-roles",
+                  "api-reference/v2/keys/create-api-key",
+                  "api-reference/v2/keys/delete-api-keys",
+                  "api-reference/v2/keys/get-api-key",
+                  "api-reference/v2/keys/remove-key-permissions",
+                  "api-reference/v2/keys/remove-key-roles",
+                  "api-reference/v2/keys/reroll-key",
+                  "api-reference/v2/keys/set-key-permissions",
+                  "api-reference/v2/keys/set-key-roles",
+                  "api-reference/v2/keys/update-key-credits",
+                  "api-reference/v2/keys/update-key-settings",
+                  "api-reference/v2/keys/verify-api-key",
+                  "api-reference/v2/keys/get-api-key-by-hash"
+                ]
+              },
+              {
+                "group": "permissions",
+                "pages": [
+                  "api-reference/v2/permissions/create-permission",
+                  "api-reference/v2/permissions/create-role",
+                  "api-reference/v2/permissions/delete-permission",
+                  "api-reference/v2/permissions/delete-role",
+                  "api-reference/v2/permissions/get-permission",
+                  "api-reference/v2/permissions/get-role",
+                  "api-reference/v2/permissions/list-permissions",
+                  "api-reference/v2/permissions/list-roles"
+                ]
+              },
+              {
+                "group": "ratelimit",
+                "pages": [
+                  "api-reference/v2/ratelimit/delete-ratelimit-override",
+                  "api-reference/v2/ratelimit/get-ratelimit-override",
+                  "api-reference/v2/ratelimit/apply-rate-limiting",
+                  "api-reference/v2/ratelimit/list-ratelimit-overrides",
+                  "api-reference/v2/ratelimit/set-ratelimit-override"
+                ]
+              }
+            ]
           }
         ]
       },
@@ -310,11 +399,15 @@
               },
               {
                 "group": "Go",
-                "pages": ["libraries/go/api"]
+                "pages": [
+                  "libraries/go/api"
+                ]
               },
               {
                 "group": "Python",
-                "pages": ["libraries/py/api"]
+                "pages": [
+                  "libraries/py/api"
+                ]
               }
             ]
           },
@@ -339,11 +432,15 @@
               },
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               },
               {
                 "group": "Rust",
-                "pages": ["libraries/rs/overview"]
+                "pages": [
+                  "libraries/rs/overview"
+                ]
               },
               {
                 "group": "Springboot",

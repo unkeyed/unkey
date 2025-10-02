@@ -16,18 +16,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request struct {
-	Query string `json:"query" validate:"required"`
-}
-
-type Response struct {
-	Meta openapi.Meta                        `json:"meta"`
-	Data V2AnalyticsGetVerificationsResponse `json:"data"`
-}
-
-type V2AnalyticsGetVerificationsResponse struct {
-	Verifications []map[string]any `json:"verifications"`
-}
+type Request = openapi.V2AnalyticsGetVerificationsRequestBody
+type Response = openapi.V2AnalyticsGetVerificationsResponseBody
+type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
@@ -76,6 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rewriter := chquery.New(chquery.Config{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Limit:       10_000,
 		TableAliases: map[string]string{
 			"key_verifications":            "default.key_verifications_raw_v2",
 			"key_verifications_per_minute": "default.key_verifications_per_minute_v2",
@@ -192,7 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: V2AnalyticsGetVerificationsResponse{
+		Data: ResponseData{
 			Verifications: verifications,
 		},
 	})

@@ -213,3 +213,83 @@ func TestRewriter_GroupByAndOrderBy(t *testing.T) {
 	require.Contains(t, strings.ToLower(output), "order by")
 	require.Contains(t, strings.ToLower(output), "limit")
 }
+
+func TestRewriter_EnforceLimit(t *testing.T) {
+	t.Run("adds limit when not present", func(t *testing.T) {
+		r := New(Config{
+			WorkspaceID: "ws_123",
+			Limit:       1000,
+			TableAliases: map[string]string{
+				"key_verifications": "default.key_verifications_v1",
+			},
+			AllowedTables: []string{
+				"default.key_verifications_v1",
+			},
+		})
+
+		input := "SELECT * FROM key_verifications"
+		output, err := r.Rewrite(context.Background(), input)
+		require.NoError(t, err)
+
+		require.Contains(t, strings.ToLower(output), "limit 1000")
+	})
+
+	t.Run("caps limit when higher than max", func(t *testing.T) {
+		r := New(Config{
+			WorkspaceID: "ws_123",
+			Limit:       100,
+			TableAliases: map[string]string{
+				"key_verifications": "default.key_verifications_v1",
+			},
+			AllowedTables: []string{
+				"default.key_verifications_v1",
+			},
+		})
+
+		input := "SELECT * FROM key_verifications LIMIT 500"
+		output, err := r.Rewrite(context.Background(), input)
+		require.NoError(t, err)
+
+		require.Contains(t, strings.ToLower(output), "limit 100")
+		require.NotContains(t, strings.ToLower(output), "limit 500")
+	})
+
+	t.Run("preserves limit when lower than max", func(t *testing.T) {
+		r := New(Config{
+			WorkspaceID: "ws_123",
+			Limit:       1000,
+			TableAliases: map[string]string{
+				"key_verifications": "default.key_verifications_v1",
+			},
+			AllowedTables: []string{
+				"default.key_verifications_v1",
+			},
+		})
+
+		input := "SELECT * FROM key_verifications LIMIT 10"
+		output, err := r.Rewrite(context.Background(), input)
+		require.NoError(t, err)
+
+		require.Contains(t, strings.ToLower(output), "limit 10")
+		require.NotContains(t, strings.ToLower(output), "limit 1000")
+	})
+
+	t.Run("no limit enforcement when Limit is 0", func(t *testing.T) {
+		r := New(Config{
+			WorkspaceID: "ws_123",
+			Limit:       0, // No limit
+			TableAliases: map[string]string{
+				"key_verifications": "default.key_verifications_v1",
+			},
+			AllowedTables: []string{
+				"default.key_verifications_v1",
+			},
+		})
+
+		input := "SELECT * FROM key_verifications"
+		output, err := r.Rewrite(context.Background(), input)
+		require.NoError(t, err)
+
+		require.NotContains(t, strings.ToLower(output), "limit")
+	})
+}

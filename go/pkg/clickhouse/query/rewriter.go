@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -42,6 +43,12 @@ type Config struct {
 	// VirtualColumns maps virtual column names to their configuration
 	// e.g., "apiId" -> VirtualColumn{ActualColumn: "key_space_id", Resolver: apiIdResolver}
 	VirtualColumns map[string]VirtualColumn
+
+	// Limit sets the maximum number of rows that can be returned.
+	// If the user query has no LIMIT, one will be added.
+	// If the user query has a LIMIT higher than Limit, it will be capped.
+	// If 0, no limit is enforced.
+	Limit int
 }
 
 // Rewriter rewrites and validates user SQL queries
@@ -111,30 +118,6 @@ func (r *Rewriter) Rewrite(ctx context.Context, userQuery string) (string, error
 	return safeQuery, nil
 }
 
-// rewriteQuery is the internal rewrite function that doesn't handle virtual columns
-func (r *Rewriter) rewriteQuery(userQuery string) (string, error) {
-	// Parse the SQL query
-	stmt, err := sqlparser.Parse(userQuery)
-	if err != nil {
-		return "", fault.Wrap(err, fault.Public("invalid SQL query"))
-	}
-
-	// Only allow SELECT queries
-	selectStmt, ok := stmt.(*sqlparser.Select)
-	if !ok {
-		return "", fault.New("only SELECT queries are allowed", fault.Public("Only SELECT queries are allowed"))
-	}
-
-	// Validate and rewrite the query
-	if err := r.rewriteSelect(selectStmt); err != nil {
-		return "", err
-	}
-
-	// Convert back to SQL string
-	rewritten := sqlparser.String(selectStmt)
-	return rewritten, nil
-}
-
 func (r *Rewriter) rewriteSelect(stmt *sqlparser.Select) error {
 	// Check for subqueries and validate them recursively
 	if err := r.validateExprs(stmt.SelectExprs); err != nil {
@@ -148,6 +131,11 @@ func (r *Rewriter) rewriteSelect(stmt *sqlparser.Select) error {
 
 	// Inject workspace_id filtering
 	if err := r.injectWorkspaceFilter(stmt); err != nil {
+		return err
+	}
+
+	// Enforce limit
+	if err := r.enforceLimit(stmt); err != nil {
 		return err
 	}
 
@@ -291,6 +279,42 @@ func (r *Rewriter) injectWorkspaceFilter(stmt *sqlparser.Select) error {
 	return nil
 }
 
+func (r *Rewriter) enforceLimit(stmt *sqlparser.Select) error {
+	// Skip if no limit configured
+	if r.config.Limit == 0 {
+		return nil
+	}
+
+	// Check if query already has a LIMIT clause
+	if stmt.Limit != nil && stmt.Limit.Rowcount != nil {
+		// Parse the existing limit value
+		if val, ok := stmt.Limit.Rowcount.(*sqlparser.SQLVal); ok {
+			if val.Type == sqlparser.IntVal {
+				// Parse the limit value
+				limitStr := string(val.Val)
+				var existingLimit int
+				_, err := fmt.Sscanf(limitStr, "%d", &existingLimit)
+				if err != nil {
+					return fault.Wrap(err, fault.Public("Invalid LIMIT value"))
+				}
+
+				// If existing limit is higher than configured limit, cap it
+				if existingLimit > r.config.Limit {
+					stmt.Limit.Rowcount = sqlparser.NewIntVal([]byte(fmt.Sprintf("%d", r.config.Limit)))
+				}
+				return nil
+			}
+		}
+	}
+
+	// No LIMIT clause exists, add one
+	stmt.Limit = &sqlparser.Limit{
+		Rowcount: sqlparser.NewIntVal([]byte(fmt.Sprintf("%d", r.config.Limit))),
+	}
+
+	return nil
+}
+
 func (r *Rewriter) validateExprs(exprs sqlparser.SelectExprs) error {
 	for _, expr := range exprs {
 		switch node := expr.(type) {
@@ -388,11 +412,5 @@ func (r *Rewriter) isDangerousFunction(funcName string) bool {
 		"pipe",
 	}
 
-	for _, dangerous := range dangerousFunctions {
-		if funcName == dangerous {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(dangerousFunctions, funcName)
 }
