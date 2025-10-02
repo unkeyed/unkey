@@ -15,13 +15,24 @@ type newDomain struct {
 	sticky db.NullDomainsSticky
 }
 
-// buildDomains looks at the deployment and returns a list of domains
-// that should be assigned to the deployment.
+// buildDomains generates the list of domains that should be assigned to a deployment.
 //
-// We want these domains per deployment
-//   - `<projectslug>-git-<gitsha>-<workspaceslug>.unkey.app` (this never gets reassigned)
-//   - `<projectslug>-git-<branchname>-<workspaceslug>.unkey.app` (this needs to point to the latest deployment of that branch, sluggify the branch name )
-//   - `<projectslug>-<environmentslug>-<workspaceslug>.unkey.app` (this needs to point to the latest deployment of that environment and be rolled back)
+// The function creates three types of domains:
+//
+// 1. Per-commit domain: `<project>-git-<sha>-<workspace>.<apex>`
+//   - Never reassigned, provides stable URL for specific commit
+//   - For CLI uploads, adds random suffix to prevent collisions
+//
+// 2. Per-branch domain: `<project>-git-<branch>-<workspace>.<apex>`
+//   - Sticky to branch, always points to latest deployment of that branch
+//   - Branch name is sluggified for URL safety
+//
+// 3. Per-environment domain: `<project>-<environment>-<workspace>.<apex>`
+//   - Sticky to environment, points to latest deployment in that environment
+//   - Can be rolled back to previous deployment
+//
+// The sticky behavior ensures branch and environment domains automatically update to point
+// to new deployments, while commit domains remain immutable.
 func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
 
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,
@@ -71,6 +82,18 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9\s]`)
 var multipleSpacesRegex = regexp.MustCompile(`\s+`)
 
+// sluggify converts a string into a URL-safe slug.
+//
+// The function performs these transformations:
+// - Removes all non-alphanumeric characters (except spaces, hyphens, underscores)
+// - Converts hyphens and underscores to spaces
+// - Collapses multiple spaces into single space
+// - Replaces spaces with hyphens
+// - Converts to lowercase
+// - Limits to 80 characters
+// - Removes trailing hyphens
+//
+// This is used to convert Git branch names into URL-safe domain components.
 func sluggify(s string) string {
 	// Trim whitespace
 	s = strings.TrimSpace(s)

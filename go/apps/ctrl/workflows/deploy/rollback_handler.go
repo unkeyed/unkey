@@ -11,7 +11,24 @@ import (
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
-// Rollback performs a rollback to a previous deployment
+// Rollback performs a rollback to a previous deployment.
+//
+// This durable workflow switches sticky domains (environment and live domains) from the
+// current live deployment back to a previous deployment. The operation is performed
+// atomically through the routing service to prevent partial updates that could leave
+// the system in an inconsistent state.
+//
+// The workflow validates that:
+// - Source deployment is the current live deployment
+// - Target deployment has running VMs
+// - Both deployments are in the same project and environment
+// - There are sticky domains to rollback
+//
+// After switching domains, the project is marked as rolled back to prevent new
+// deployments from automatically taking over the live domains.
+//
+// Returns terminal errors (400/404) for validation failures and retryable errors
+// for system failures.
 func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
 	w.logger.Info("initiating rollback",
 		"source", req.GetSourceDeploymentId(),

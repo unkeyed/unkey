@@ -11,13 +11,34 @@ import (
 	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
+// EncryptedCertificate holds a certificate and its encrypted private key.
 type EncryptedCertificate struct {
-	Certificate         string
+	// Certificate is the PEM-encoded certificate.
+	Certificate string
+
+	// EncryptedPrivateKey is the encrypted PEM-encoded private key.
 	EncryptedPrivateKey string
-	ExpiresAt           int64
+
+	// ExpiresAt is the certificate expiration time as Unix milliseconds.
+	ExpiresAt int64
 }
 
-// ProcessChallenge handles the complete ACME certificate challenge flow
+// ProcessChallenge handles the complete ACME certificate challenge flow.
+//
+// This method implements a multi-step durable workflow using Restate to obtain or renew
+// an SSL/TLS certificate for a domain. Each step is wrapped in restate.Run for durability,
+// allowing the workflow to resume from the last completed step if interrupted.
+//
+// The workflow performs these steps:
+// 1. Resolve domain - Verify domain exists and belongs to workspace
+// 2. Claim challenge - Acquire exclusive lock on the domain challenge
+// 3. Setup ACME client - Get or create ACME account (TODO: not yet implemented)
+// 4. Obtain certificate - Request certificate from CA (TODO: not yet implemented)
+// 5. Persist certificate - Store in partition DB for gateway access
+// 6. Mark verified - Update challenge status with expiry time
+//
+// Returns status "success" if certificate was issued, "failed" if the ACME challenge
+// failed or ACME client setup is not yet implemented.
 func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,

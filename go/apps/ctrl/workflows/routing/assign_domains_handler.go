@@ -14,7 +14,24 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// AssignDomains creates or reassigns domains to a deployment and creates gateway configs
+// AssignDomains creates or reassigns domains to a deployment and creates gateway configs.
+//
+// This durable workflow performs the following steps for each domain:
+// 1. Check if domain exists in the database
+// 2. If new, create domain record with specified sticky behavior
+// 3. If existing and not rolled back, reassign to new deployment
+// 4. If existing and rolled back, skip reassignment
+// 5. Create gateway configs for all changed domains (except local hostnames)
+//
+// Each domain upsert is wrapped in a separate restate.Run call with a unique name,
+// allowing partial completion tracking. If the workflow fails after creating some domains,
+// Restate will skip the already-created domains on retry.
+//
+// Gateway configs are updated in bulk for all changed domains, using protojson encoding
+// for easier debugging. Local hostnames (localhost, *.local, *.test) are skipped to
+// prevent unnecessary config creation during local development.
+//
+// Returns the list of domain names that were actually modified (created or reassigned).
 func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDomainsRequest) (*hydrav1.AssignDomainsResponse, error) {
 	s.logger.Info("assigning domains",
 		"deployment_id", req.GetDeploymentId(),

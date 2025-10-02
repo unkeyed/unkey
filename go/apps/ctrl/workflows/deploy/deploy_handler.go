@@ -18,6 +18,24 @@ import (
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
+// Deploy orchestrates the complete deployment of a new Docker image.
+//
+// This durable workflow performs the following steps:
+// 1. Load deployment, workspace, project, and environment data
+// 2. Create deployment in Krane (container orchestration)
+// 3. Poll for all instances to become ready
+// 4. Register VMs in partition database
+// 5. Scrape OpenAPI spec from running instances (if available)
+// 6. Assign domains and create gateway configs via routing service
+// 7. Update deployment status to ready
+// 8. Update project's live deployment pointer (if production and not rolled back)
+//
+// Each step is wrapped in restate.Run for durability. If the workflow is interrupted,
+// it resumes from the last completed step. A deferred error handler ensures that
+// failed deployments are properly marked in the database even if the workflow crashes.
+//
+// The workflow uses a 5-minute polling loop to wait for instances to become ready,
+// checking Krane deployment status every second and logging progress every 10 seconds.
 func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 
 	var finishedSuccessfully = false

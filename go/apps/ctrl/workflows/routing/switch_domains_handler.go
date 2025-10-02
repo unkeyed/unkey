@@ -11,7 +11,23 @@ import (
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
-// SwitchDomains reassigns existing domains to a different deployment
+// SwitchDomains reassigns existing domains to a different deployment.
+//
+// This durable workflow performs the following steps:
+// 1. Fetch gateway config for the target deployment from partition DB
+// 2. Fetch domain information (hostnames, workspace IDs) for given domain IDs
+// 3. Upsert gateway configs first (atomic update of routing)
+// 4. Reassign domains to the target deployment in main DB
+//
+// Gateway configs are updated BEFORE domain reassignment to ensure that when a domain
+// points to a new deployment, the gateway config is already in place. This prevents a
+// window where a domain might route to a deployment without proper configuration.
+//
+// Each step is wrapped in restate.Run for durability. If the workflow is interrupted,
+// it resumes from the last completed step.
+//
+// This operation is used during rollback and promote workflows to atomically switch
+// sticky domains between deployments.
 func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDomainsRequest) (*hydrav1.SwitchDomainsResponse, error) {
 	s.logger.Info("switching domains",
 		"target_deployment_id", req.GetTargetDeploymentId(),

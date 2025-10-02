@@ -11,7 +11,24 @@ import (
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
-// Promote reassigns all domains to a deployment and removes the rolled back state
+// Promote reassigns all sticky domains to a deployment and clears the rolled back state.
+//
+// This durable workflow moves sticky domains (environment and live domains) from the
+// current live deployment to a new target deployment. It reverses a previous rollback
+// and allows normal deployment flow to resume.
+//
+// The workflow validates that:
+// - Target deployment is ready (not building, deploying, or failed)
+// - Target deployment has running VMs
+// - Target deployment is not already the live deployment
+// - Project has sticky domains to promote
+//
+// After switching domains atomically through the routing service, the project's live
+// deployment pointer is updated and the rolled back flag is cleared, allowing future
+// deployments to automatically take over sticky domains.
+//
+// Returns terminal errors (400/404) for validation failures and retryable errors
+// for system failures.
 func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
 	w.logger.Info("initiating promotion", "target", req.GetTargetDeploymentId())
 
