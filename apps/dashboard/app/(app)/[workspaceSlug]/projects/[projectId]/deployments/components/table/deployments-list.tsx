@@ -114,10 +114,12 @@ export const DeploymentsList = () => {
         header: "Domains",
         width: "25%",
         render: ({ deployment }) => (
-          <DomainList
-            key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
-            deploymentId={deployment.id}
-          />
+          <div className="flex items-center min-h-[52px]">
+            <DomainList
+              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
+              deploymentId={deployment.id}
+            />
+          </div>
         ),
       },
       ...(isCompactView
@@ -365,6 +367,11 @@ export const DeploymentsList = () => {
             {column.key === "status" && <StatusColumnSkeleton />}
             {column.key === "instances" && <InstancesColumnSkeleton />}
             {column.key === "size" && <SizeColumnSkeleton />}
+            {column.key === "domains" && (
+              <div className="flex items-center min-h-[52px]">
+                <div className="h-4 bg-grayA-3 rounded w-32 animate-pulse" />
+              </div>
+            )}
             {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
             {column.key === "author" && <AuthorColumnSkeleton />}
