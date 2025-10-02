@@ -286,6 +286,26 @@ services:
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
       UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
+  restate:
+    networks:
+      - default
+    container_name: restate
+    image: docker.io/restatedev/restate:latest
+    ports:
+      - "8081:8080" # Ingress endpoint (host:container)
+      - "9070:9070" # Admin endpoint and UI
+    environment:
+      RESTATE_TRACING_ENDPOINT: "http://otel:4317"
+    depends_on:
+      otel:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9070/health"]
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+      interval: 5s
+
   ctrl:
     networks:
       - default
@@ -298,6 +318,7 @@ services:
     command: ["run", "ctrl"]
     ports:
       - "7091:7091"
+      - "9080:9080" # Restate workflow service port
     depends_on:
       mysql:
         condition: service_healthy
@@ -307,6 +328,9 @@ services:
         required: true
       krane:
         condition: service_started
+        required: true
+      restate:
+        condition: service_healthy
         required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -319,6 +343,12 @@ services:
       UNKEY_HTTP_PORT: "7091"
       UNKEY_KRANE_ADDRESS: "http://krane:8080"
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
+
+      # Restate configuration
+      UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
+      UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
+      UNKEY_RESTATE_HTTP_PORT: "9080"
+      UNKEY_RESTATE_REGISTER_AS: "http://ctrl:9080"
 
       UNKEY_VAULT_S3_URL: "http://s3:3902"
       UNKEY_VAULT_S3_BUCKET: "acme-vault"

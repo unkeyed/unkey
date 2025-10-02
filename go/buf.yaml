@@ -1,4 +1,5 @@
 version: v2
+
 modules:
   - path: proto
 lint:
@@ -13,3 +14,5 @@ breaking:
     - FIELD_NO_DELETE
     - FIELD_NO_DELETE_UNLESS_NAME_RESERVED
     - FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED
+deps:
+  - buf.build/restatedev/sdk-go
