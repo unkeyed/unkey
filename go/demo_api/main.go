@@ -769,7 +769,7 @@ paths:
     get:
       operationId: getHealth
       summary: Health check endpoint (renamed from liveness)
-      description: Returns OK if the service is healthy
+      description: Returns OK if the service is healthy some changes
       responses:
         '200':
           description: Service is healthy
