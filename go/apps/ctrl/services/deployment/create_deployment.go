@@ -11,7 +11,7 @@ import (
 	"connectrpc.com/connect"
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	workflowsv1 "github.com/unkeyed/unkey/go/gen/proto/workflows/v1"
+	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -144,17 +144,17 @@ func (s *Service) CreateDeployment(
 	)
 
 	// Start the deployment workflow directly
-	deployReq := &workflowsv1.DeployRequest{
+	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
 		DockerImage:  req.Msg.GetDockerImage(),
 		KeyAuthId:    req.Msg.KeyspaceId,
 	}
 	// this is ugly, but we're waiting for
 	// https://github.com/restatedev/sdk-go/issues/103
-	invocation := restateingress.WorkflowSend[*workflowsv1.DeployRequest](
+	invocation := restateingress.WorkflowSend[*hydrav1.DeployRequest](
 		s.restate,
-		"workflows.v1.DeployWorkflows",
-		deploymentID,
+		"hydra.v1.DeploymentService",
+		project.ID,
 		"Deploy",
 	).Send(ctx, deployReq)
 	if invocation.Error != nil {

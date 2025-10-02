@@ -1,0 +1,341 @@
+---
+title: Deployment Service
+description: Durable deployment workflow orchestration
+---
+
+# Deployment Service
+
+The `DeploymentService` is a Restate Virtual Object that orchestrates the complete deployment lifecycle, from building containers to assigning domains.
+
+## Overview
+
+**Location:** `go/apps/ctrl/workflows/deploy/`
+
+**Proto Definition:** `go/proto/hydra/v1/deployment.proto`
+
+**Service Type:** Virtual Object
+
+**Key:** `project_id` (ensures only one deployment operation per project runs at a time)
+
+## Operations
+
+### Deploy
+
+Creates a new deployment for a project.
+
+<Mermaid chart={`flowchart TD
+    Start([Deploy Request]) --> FetchMeta[Fetch Metadata<br/>deployment, workspace, project, env]
+    FetchMeta --> LogPending[Log: Pending]
+    LogPending --> StatusBuilding[Status: Building]
+    StatusBuilding --> CreateKrane[Create in Krane]
+    CreateKrane --> PollStatus{Poll Until<br/>All Running}
+    PollStatus -->|Polling| UpsertVMs[Upsert VM Records]
+    UpsertVMs --> PollStatus
+    PollStatus -->|All Ready| StatusDeploying[Status: Deploying]
+    StatusDeploying --> ScrapeAPI[Scrape OpenAPI Spec]
+    ScrapeAPI --> StoreAPI[Store OpenAPI in DB]
+    StoreAPI --> BuildDomains[Build Domain List<br/>SHA, branch, env]
+    BuildDomains --> AssignDomains[Call RoutingService<br/>AssignDomains]
+    AssignDomains --> StatusReady[Status: Ready]
+    StatusReady --> UpdateLive{Rolled Back?}
+    UpdateLive -->|No| SetLive[Update Live Deployment ID]
+    UpdateLive -->|Yes| LogComplete[Log: Completed]
+    SetLive --> LogComplete
+    LogComplete --> End([Success])
+
+    style AssignDomains fill:#e1f5fe
+    style StatusReady fill:#c8e6c9
+`} />
+
+**Flow:**
+1. Fetch deployment, workspace, project, and environment metadata
+2. Log deployment as pending
+3. Update deployment status to "building"
+4. Create deployment in Krane (container orchestration)
+5. Poll deployment status until all instances are running
+6. Upsert VM records to partition database
+7. Scrape OpenAPI specification from running instances
+8. Store OpenAPI spec in deployment record
+9. Build domain list (git SHA, branch, environment domains)
+10. **Call RoutingService.AssignDomains** (domains + gateway config)
+11. Update deployment status to "ready"
+12. Update project's live deployment ID (if not rolled back)
+13. Log deployment as completed
+
+**Key Features:**
+- Each step is durable - resumes from last successful step after failures
+- VM status is updated as instances come online
+- OpenAPI specs are scraped and validated
+- Domains are assigned atomically per domain
+- Gateway configs are created in bulk for performance
+
+**Example Call:**
+
+```go
+invocation := restateingress.WorkflowSend[*hydrav1.DeployRequest](
+    s.restate,
+    "hydra.v1.DeploymentService",
+    project.ID,  // Key: project_id
+    "Deploy",
+).Send(ctx, &hydrav1.DeployRequest{
+    DeploymentId: deploymentID,
+    DockerImage:  "my-image:tag",
+    KeyAuthId:    "key_auth_123",
+})
+```
+
+### Rollback
+
+Rolls back to a previous deployment by reassigning domains.
+
+<Mermaid chart={`flowchart TD
+    Start([Rollback Request]) --> ValidateDiff{Source ≠ Target?}
+    ValidateDiff -->|No| Error1[Terminal Error: Same Deployment]
+    ValidateDiff -->|Yes| FetchSource[Fetch Source Deployment]
+    FetchSource --> FetchTarget[Fetch Target Deployment]
+    FetchTarget --> ValidateEnv{Same Environment<br/>& Project?}
+    ValidateEnv -->|No| Error2[Terminal Error: Different Env/Project]
+    ValidateEnv -->|Yes| FetchProject[Fetch Project]
+    FetchProject --> ValidateLive{Source is Live?}
+    ValidateLive -->|No| Error3[Terminal Error: Not Live]
+    ValidateLive -->|Yes| CheckVMs[Check Target VMs]
+    CheckVMs --> HasRunning{Has Running VMs?}
+    HasRunning -->|No| Error4[Terminal Error: No VMs]
+    HasRunning -->|Yes| FindDomains[Find Sticky Domains<br/>live + environment]
+    FindDomains --> SwitchDomains[Call RoutingService<br/>SwitchDomains]
+    SwitchDomains --> UpdateProject[Update Live Deployment ID<br/>Set is_rolled_back=true]
+    UpdateProject --> End([Success])
+
+    style SwitchDomains fill:#e1f5fe
+    style UpdateProject fill:#c8e6c9
+    style Error1 fill:#ffcdd2
+    style Error2 fill:#ffcdd2
+    style Error3 fill:#ffcdd2
+    style Error4 fill:#ffcdd2
+`} />
+
+**Flow:**
+1. Validate source and target deployments exist and are different
+2. Validate deployments are in same environment and project
+3. Validate source is the current live deployment
+4. Check target deployment has running VMs
+5. Find all sticky domains (live/environment level)
+6. **Call RoutingService.SwitchDomains** (atomic domain + gateway switch)
+7. Update project's live deployment ID
+8. Set project's rolled back flag
+
+**Why Use RoutingService?**
+The RoutingService handles the critical section of updating gateway configs first, then domains. This ensures the data plane is ready before control plane pointers are updated.
+
+**Example Call:**
+
+```go
+_, err := restateingress.Object[*workflowsv1.RollbackRequest, *workflowsv1.RollbackResponse](
+    s.restate,
+    "workflows.v1.DeploymentService",
+    sourceDeployment.ProjectID,  // Key: project_id
+    "Rollback",
+).Request(ctx, &workflowsv1.RollbackRequest{
+    SourceDeploymentId: "deploy_current",
+    TargetDeploymentId: "deploy_previous",
+})
+```
+
+### Promote
+
+Promotes a deployment to live status, removing rolled-back state.
+
+<Mermaid chart={`flowchart TD
+    Start([Promote Request]) --> FetchTarget[Fetch Target Deployment]
+    FetchTarget --> ValidateReady{Status = Ready?}
+    ValidateReady -->|No| Error1[Terminal Error: Not Ready]
+    ValidateReady -->|Yes| FetchProject[Fetch Project]
+    FetchProject --> HasLive{Has Live Deployment?}
+    HasLive -->|No| Error2[Terminal Error: No Live]
+    HasLive -->|Yes| NotAlreadyLive{Target ≠ Live?}
+    NotAlreadyLive -->|No| Error3[Terminal Error: Already Live]
+    NotAlreadyLive -->|Yes| CheckVMs[Check Target VMs]
+    CheckVMs --> HasRunning{Has Running VMs?}
+    HasRunning -->|No| Error4[Terminal Error: No VMs]
+    HasRunning -->|Yes| FindDomains[Find Domains for Promotion<br/>live + environment]
+    FindDomains --> SwitchDomains[Call RoutingService<br/>SwitchDomains]
+    SwitchDomains --> UpdateProject[Update Live Deployment ID<br/>Set is_rolled_back=false]
+    UpdateProject --> End([Success])
+
+    style SwitchDomains fill:#e1f5fe
+    style UpdateProject fill:#c8e6c9
+    style Error1 fill:#ffcdd2
+    style Error2 fill:#ffcdd2
+    style Error3 fill:#ffcdd2
+    style Error4 fill:#ffcdd2
+`} />
+
+**Flow:**
+1. Validate target deployment exists and is ready
+2. Validate project has a live deployment
+3. Validate target is not already live
+4. Check target deployment has running VMs
+5. Find all sticky domains (live/environment level)
+6. **Call RoutingService.SwitchDomains** (atomic domain + gateway switch)
+7. Update project's live deployment ID
+8. Clear project's rolled back flag
+
+**Example Call:**
+
+```go
+_, err := restateingress.Object[*workflowsv1.PromoteRequest, *workflowsv1.PromoteResponse](
+    s.restate,
+    "workflows.v1.DeploymentService",
+    targetDeployment.ProjectID,  // Key: project_id
+    "Promote",
+).Request(ctx, &workflowsv1.PromoteRequest{
+    TargetDeploymentId: "deploy_123",
+})
+```
+
+## File Structure
+
+```
+go/apps/ctrl/workflows/deploy/
+├── service.go           # Struct definition and constructor
+├── deploy_handler.go    # Deploy RPC implementation
+├── rollback_handler.go  # Rollback RPC implementation
+├── promote_handler.go   # Promote RPC implementation
+├── helpers.go           # Helper functions
+└── domains.go           # Domain building logic
+```
+
+## Domain Types
+
+Deployments get multiple domains based on their git metadata:
+
+### 1. SHA Domain (Immutable)
+`<project>-git-<sha>-<workspace>.unkey.app`
+
+**Sticky:** No (never reassigned)
+**Example:** `myapp-git-abc1234-acme.unkey.app`
+**Purpose:** Permanent link to specific deployment
+
+### 2. Branch Domain (Reassignable)
+`<project>-git-<branch>-<workspace>.unkey.app`
+
+**Sticky:** Branch level
+**Example:** `myapp-git-main-acme.unkey.app`
+**Purpose:** Always points to latest deployment of a branch
+
+### 3. Environment Domain (Reassignable)
+`<project>-<environment>-<workspace>.unkey.app`
+
+**Sticky:** Environment level
+**Example:** `myapp-production-acme.unkey.app`
+**Purpose:** Always points to live deployment in environment
+
+## Concurrency Control
+
+The service is a **Virtual Object** keyed by `project_id`, which means:
+
+✅ **Allowed:** Multiple projects deploying simultaneously
+```
+Project A: Deploy (running)
+Project B: Deploy (running)  ← Runs in parallel
+```
+
+❌ **Prevented:** Multiple operations for same project
+```
+Project A: Deploy (running)
+Project A: Rollback (queued) ← Waits for Deploy to finish
+```
+
+This ensures:
+- No race conditions on domain assignments
+- No conflicting deployment status updates
+- Clean rollback/promote operations
+
+## Error Handling
+
+### Terminal Errors
+
+Used for validation failures that shouldn't retry:
+
+```go
+if sourceDeploymentID == targetDeploymentID {
+    return nil, restate.TerminalError(
+        fmt.Errorf("source and target must be different"),
+        400,
+    )
+}
+```
+
+### Retryable Errors
+
+Used for transient failures (network, database):
+
+```go
+deployment, err := db.Query.FindDeploymentById(ctx, w.db.RO(), id)
+if err != nil {
+    return nil, err  // Restate will retry automatically
+}
+```
+
+## Configuration
+
+Environment variables:
+- `UNKEY_RESTATE_HTTP_PORT`: Port for Restate handlers (default: 9080)
+- `UNKEY_RESTATE_INGRESS_URL`: Restate ingress endpoint
+- `UNKEY_RESTATE_ADMIN_URL`: Restate admin endpoint for registration
+- `UNKEY_RESTATE_REGISTER_AS`: Public URL of this service
+
+## Integration Points
+
+### Krane (Container Orchestration)
+- Creates deployments
+- Polls deployment status
+- Retrieves instance information
+
+### Partition Database
+- Stores VM records
+- Stores gateway configurations
+
+### Main Database
+- Stores deployment metadata
+- Stores domain records
+- Updates project live deployment
+
+### RoutingService
+*Future:* Will be called for atomic domain assignment operations
+
+## Monitoring
+
+View deployment workflows in Restate UI:
+1. Navigate to `http://localhost:9070` (or configured admin URL)
+2. Find invocations by project_id key
+3. Inspect step-by-step execution
+4. View failures and retries
+
+## Testing
+
+Run deployments locally:
+
+```bash
+# Start dependencies
+make start-dependencies
+
+# Run ctrl service (includes Restate server)
+go run ./cmd/ctrl
+
+# Trigger deployment via API
+curl -X POST http://localhost:8080/ctrl.v1.DeploymentService/CreateDeployment \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "ws_123",
+    "project_id": "proj_123",
+    "environment_slug": "production",
+    "docker_image": "my-app:latest"
+  }'
+```
+
+## Related
+
+- [Routing Service](./routing-service) - Domain assignment operations
+- [Creating Workflow Services](./creating-services) - How to add new workflows
+- [Restate Overview](./index) - Architecture overview

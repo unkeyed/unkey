@@ -18,10 +18,11 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
+	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/routing"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
-	workflowsv1 "github.com/unkeyed/unkey/go/gen/proto/workflows/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -173,11 +174,18 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv := restateServer.NewRestate()
 
-	restateSrv.Bind(workflowsv1.NewDeployWorkflowsServer(deploy.New(deploy.Config{
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
+		DefaultDomain: cfg.DefaultDomain,
+	})))
+
+	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
+		Logger:        logger,
+		DB:            database,
+		PartitionDB:   partitionDB,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
@@ -267,7 +275,6 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
-		HydraEngine: nil,
 		Logger:      logger,
 	}), connectOptions...))
 
