@@ -1,12 +1,11 @@
 "use client";
 
 import { cn } from "@unkey/ui/src/lib/utils";
-import type { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 import { useProject } from "../layout-provider";
 
-type ProjectContentWrapperProps = {
-  children: ReactNode;
-  className?: string;
+type ProjectContentWrapperProps = PropsWithChildren<{
+  className?: React.ComponentProps<"div">["className"];
   /**
    * If true, centers content and applies max-width constraint
    * @default false
@@ -17,7 +16,7 @@ type ProjectContentWrapperProps = {
    * @default "960px"
    */
   maxWidth?: string;
-};
+}>;
 
 export function ProjectContentWrapper({
   children,
