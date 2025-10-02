@@ -234,7 +234,7 @@ export const DeploymentsList = () => {
                       <div className="w-[200px]">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-grayA-12 text-xs">
-                            {deployment.gitCommitAuthorHandle}
+                            {deployment.gitCommitAuthorHandle || "—"}
                           </span>
                         </div>
                         <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
@@ -277,7 +277,7 @@ export const DeploymentsList = () => {
                       alt={deployment.gitCommitAuthorHandle ?? "Author"}
                     />
                     <span className="font-medium text-grayA-12 text-xs">
-                      {deployment.gitCommitAuthorHandle}
+                      {deployment.gitCommitAuthorHandle || "—"}
                     </span>
                   </div>
                 );
