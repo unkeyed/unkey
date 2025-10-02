@@ -8,12 +8,14 @@ description: Guide to adding new Restate workflow services
 ## When to Use Workflows
 
 Use Restate workflows for operations that:
+
 - ✅ Are long-running (seconds to hours)
 - ✅ Need guaranteed completion despite failures
 - ✅ Involve multiple external systems
 - ✅ Must not run concurrently (use Virtual Objects)
 
 Don't use workflows for:
+
 - ❌ Simple CRUD operations
 - ❌ Synchronous API calls
 - ❌ Operations that complete in milliseconds
@@ -45,6 +47,7 @@ message YourResponse {}
 ```
 
 **Key decisions:**
+
 - Service type: `VIRTUAL_OBJECT` for serialization, `SERVICE` otherwise
 - Key field: The field used for Virtual Object key (e.g., `user_id`, `project_id`)
 
@@ -60,6 +63,7 @@ make generate
 Create `go/apps/ctrl/workflows/yourservice/`:
 
 **service.go:**
+
 ```go
 package yourservice
 
@@ -81,6 +85,7 @@ func New(cfg Config) *Service {
 ```
 
 **your_operation_handler.go:**
+
 ```go
 func (s *Service) YourOperation(
     ctx restate.ObjectContext,
@@ -125,7 +130,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 ### 5. Call the Service
 
+These are ugly, they're working on generating proper clients from the proto definitions
+https://github.com/restatedev/sdk-go/issues/103
+
 **Blocking call:**
+
 ```go
 response, err := restateingress.Object[*hydrav1.YourRequest, *hydrav1.YourResponse](
     restateClient,
@@ -136,6 +145,7 @@ response, err := restateingress.Object[*hydrav1.YourRequest, *hydrav1.YourRespon
 ```
 
 **Fire-and-forget:**
+
 ```go
 invocation := restateingress.WorkflowSend[*hydrav1.YourRequest](
     restateClient,
@@ -149,13 +159,13 @@ invocation := restateingress.WorkflowSend[*hydrav1.YourRequest](
 
 1. **Small Steps**: Break operations into focused, single-purpose durable steps
 2. **Named Steps**: Always use `restate.WithName("step name")` for observability
-3. **Idempotent**: Use UPSERT instead of INSERT; handle retries gracefully
-4. **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for validation failures
-5. **Virtual Object Keys**: Choose keys that represent the resource being protected
+3. **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for validation failures
+4. **Virtual Object Keys**: Choose keys that represent the resource being protected
 
 ## Examples
 
 See existing implementations:
+
 - **DeploymentService**: `go/apps/ctrl/workflows/deploy/`
 - **RoutingService**: `go/apps/ctrl/workflows/routing/`
 - **CertificateService**: `go/apps/ctrl/workflows/certificate/`
