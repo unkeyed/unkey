@@ -5,243 +5,87 @@ description: How we use Restate for durable execution of deployment operations
 
 # Durable Workflows with Restate
 
-Unkey uses [Restate](https://restate.dev) for durable workflow execution in critical deployment operations. Restate provides guaranteed completion, automatic retries, and state management for long-running processes.
+Unkey uses [Restate](https://restate.dev) for durable workflow execution in critical deployment operations. Restate provides:
 
-## Why Restate?
-
-Deployment operations are complex and failure-prone:
-- Building and deploying containers can take minutes
-- Network failures can interrupt operations
-- Database transactions span multiple services
-- Domain routing changes must be atomic
-
-Restate solves these problems by:
-- **Durable Execution**: Operations resume automatically from the last successful step after failures
+- **Durable Execution**: Operations resume from the last successful step after failures
 - **Automatic Retries**: Transient failures are retried automatically
-- **State Management**: No need to manage workflow state in a database
+- **State Management**: Workflow state is managed by Restate, not in our database
 - **Observability**: Built-in UI to inspect running workflows
-
-## Architecture Overview
-
-<Mermaid chart={`flowchart TB
-    subgraph Ctrl["Ctrl Service"]
-        Connect["Connect Services<br/>(gRPC/HTTP)"]
-        RestateInProcess["Restate Server<br/>(Port 9080)"]
-
-        subgraph Workflows["Workflow Services"]
-            Deploy["DeploymentService<br/>(Virtual Object)"]
-            Routing["RoutingService<br/>(Virtual Object)"]
-        end
-
-        Connect -->|Calls| RestateInProcess
-        RestateInProcess -->|Registers| Workflows
-    end
-
-    RestateInProcess -->|HTTP Ingress| RestateExternal["External Restate Server"]
-
-    style Deploy fill:#e1f5fe
-    style Routing fill:#e1f5fe
-    style RestateInProcess fill:#fff3e0
-    style RestateExternal fill:#f3e5f5
-`} />
 
 ## Core Concepts
 
 ### Virtual Objects
 
-Virtual Objects are stateful entities with exclusive key-based concurrency control:
-- Only one handler can execute at a time per object key
-- Provides natural serialization without manual locking
-- Perfect for operations that must not run concurrently
-
-Example: `DeploymentService` is keyed by `project_id`, ensuring only one deployment operation per project runs at a time.
+Virtual Objects provide key-based concurrency control - only one handler can execute at a time per object key. Example: `DeploymentService` is keyed by `project_id`, ensuring only one deployment per project runs at a time.
 
 ### Durable Steps
 
-Durable steps are the building blocks of workflows. Each step:
-- Executes once and stores its result
-- Resumes from stored results after failures
-- Never re-executes successfully completed steps
-
-```go
-deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
-    return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.DeploymentId)
-}, restate.WithName("finding deployment"))
-```
+Each `restate.Run()` step executes once and stores its result. After failures, workflows resume from stored results without re-executing completed steps.
 
 ### Service Communication
 
-Services can call each other durably:
+Workflows call each other using blocking (`Object.Request`) or fire-and-forget (`WorkflowSend.Send`) patterns. See the Go implementation files for examples.
 
-```go
-// Blocking call - waits for response
-response, err := restateingress.Object[*Request, *Response](
-    client,
-    "hydra.v1.RoutingService",
-    projectID,  // Virtual Object key
-    "AssignDomains",
-).Request(ctx, request)
+## Workflow Services
 
-// Fire-and-forget call - returns invocation ID
-invocation := restateingress.WorkflowSend[*Request](
-    client,
-    "hydra.v1.DeploymentService",
-    projectID,
-    "Deploy",
-).Send(ctx, request)
-```
+### DeploymentService
 
-## Current Workflow Services
-
-### 1. DeploymentService
-
-Handles the complete deployment lifecycle:
-- Building and deploying containers via Krane
-- Polling deployment status
-- Scraping OpenAPI specifications
-- Managing domain assignments
-- Updating project metadata
-
+**Location:** `go/apps/ctrl/workflows/deploy/`
+**Proto:** `go/proto/hydra/v1/deployment.proto`
 **Key:** `project_id`
-**Type:** Virtual Object
 **Operations:** Deploy, Rollback, Promote
+
+Handles deployment lifecycle: building containers via Krane, polling status, scraping OpenAPI specs, and assigning domains.
 
 See: [Deployment Service](./deployment-service)
 
-### 2. RoutingService
+### RoutingService
 
-Manages atomic domain and gateway configuration changes:
-- Creating/reassigning domains to deployments
-- Updating gateway configurations
-- Ensuring consistency between control plane (domains DB) and data plane (gateway configs)
-
+**Location:** `go/apps/ctrl/workflows/routing/`
+**Proto:** `go/proto/hydra/v1/routing.proto`
 **Key:** `project_id`
-**Type:** Virtual Object
 **Operations:** AssignDomains, SwitchDomains
+
+Manages atomic domain and gateway configuration changes across control plane (domains DB) and data plane (gateway configs).
 
 See: [Routing Service](./routing-service)
 
-## Self-Registration
+### CertificateService
 
-The ctrl service automatically registers its Restate services with the Restate server on startup:
+**Location:** `go/apps/ctrl/workflows/certificate/`
+**Proto:** `go/proto/hydra/v1/certificate.proto`
+**Key:** `domain`
+**Operations:** ProcessChallenge
 
-```go
-// In run.go
-if cfg.Restate.RegisterAs != "" {
-    go func() {
-        time.Sleep(2 * time.Second)
-        registerURL := fmt.Sprintf("%s/deployments", cfg.Restate.AdminURL)
-        payload := fmt.Sprintf(`{"uri": "%s"}`, cfg.Restate.RegisterAs)
+Handles ACME certificate challenges and issuance for custom domains.
 
-        // Retry registration with backoff
-        retrier := retry.New(retry.Attempts(10), retry.Backoff(5 * time.Second))
-        err := retrier.Do(func() error {
-            resp, err := http.Post(registerURL, "application/json", bytes.NewBufferString(payload))
-            // ... handle response
-        })
-    }()
-}
-```
+## Configuration
 
-Environment variables:
-- `UNKEY_RESTATE_ADMIN_URL`: Admin endpoint (e.g., `http://restate:9070`)
-- `UNKEY_RESTATE_HTTP_PORT`: Port to expose handlers (e.g., `9080`)
-- `UNKEY_RESTATE_REGISTER_AS`: Public URL for registration (e.g., `http://ctrl:9080`)
+Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config fields (see `go/apps/ctrl/config.go`):
+
+- `Restate.IngressURL`: Restate ingress endpoint for invoking workflows
+- `Restate.AdminURL`: Restate admin endpoint for service registration
+- `Restate.HttpPort`: Port where ctrl listens for Restate HTTP requests
+- `Restate.RegisterAs`: Public URL of this service for self-registration
 
 ## Error Handling
 
-### Terminal Errors
-
-Use terminal errors for business logic failures that shouldn't be retried:
-
-```go
-if deployment.Status != "ready" {
-    return nil, restate.TerminalError(
-        fmt.Errorf("deployment not ready"),
-        400,  // HTTP status code
-    )
-}
-```
-
-### Transient Errors
-
-Regular errors are automatically retried by Restate:
-
-```go
-deployment, err := db.Query.FindDeploymentById(ctx, w.db.RO(), id)
-if err != nil {
-    return nil, err  // Will retry automatically
-}
-```
-
-## Observability
-
-Restate provides a built-in UI at `http://localhost:9070` (configurable) showing:
-- All running and completed invocations
-- Step-by-step execution history
-- Failures and retries
-- Invocation timelines
+- **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for business logic failures that shouldn't retry
+- **Transient Errors**: Return regular errors for automatic retry
 
 ## Best Practices
 
-### 1. Idempotent Steps
+1. **Idempotent Steps**: Use UPSERT instead of INSERT for database operations
+2. **Named Steps**: Always use `restate.WithName("step name")` for observability
+3. **Small Steps**: Break operations into focused, single-purpose steps
+4. **Virtual Objects**: Use for automatic serialization instead of manual locking
 
-Ensure each step can be safely re-executed:
+## Observability
 
-```go
-// Good: Using UPSERT
-db.Query.UpsertDomain(ctx, params)
-
-// Bad: Using INSERT without checking existence
-db.Query.InsertDomain(ctx, params)  // Fails on retry
-```
-
-### 2. Name Your Steps
-
-Always name steps for better observability:
-
-```go
-deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
-    return db.Query.FindDeploymentById(stepCtx, w.db.RO(), id)
-}, restate.WithName("finding deployment"))  // ✓ Named step
-```
-
-### 3. Small Durable Steps
-
-Break operations into small, focused steps:
-
-```go
-// Good: Separate steps for separate operations
-deployment, err := restate.Run(ctx, findDeployment, restate.WithName("find deployment"))
-project, err := restate.Run(ctx, findProject, restate.WithName("find project"))
-
-// Bad: One giant step doing everything
-result, err := restate.Run(ctx, doEverything, restate.WithName("do everything"))
-```
-
-### 4. Use Virtual Objects for Serialization
-
-When operations must not run concurrently, use Virtual Objects instead of manual locking:
-
-```go
-// ✓ Automatic serialization via Virtual Object key
-service RoutingService {
-  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
-  rpc AssignDomains(AssignDomainsRequest) returns (AssignDomainsResponse) {}
-}
-
-// ✗ Manual locking (error-prone)
-mutex.Lock()
-defer mutex.Unlock()
-assignDomains()
-```
-
-## Adding a New Workflow
-
-See: [Creating Workflow Services](./creating-services)
+Restate UI (port 9070) shows running/completed invocations, step execution history, failures, and retries.
 
 ## References
 
 - [Restate Official Docs](https://docs.restate.dev)
 - [Restate Go SDK](https://github.com/restatedev/sdk-go)
-- [Saga Pattern Guide](../../../go/restatedocs/guides/sagas.md)
+- [Creating Workflow Services](./creating-services)

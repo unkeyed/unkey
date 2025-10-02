@@ -1,11 +1,9 @@
 ---
 title: Creating Workflow Services
-description: Step-by-step guide to adding new Restate workflow services
+description: Guide to adding new Restate workflow services
 ---
 
 # Creating Workflow Services
-
-This guide walks through creating a new Restate workflow service in Unkey.
 
 ## When to Use Workflows
 
@@ -13,542 +11,156 @@ Use Restate workflows for operations that:
 - ✅ Are long-running (seconds to hours)
 - ✅ Need guaranteed completion despite failures
 - ✅ Involve multiple external systems
-- ✅ Require retries with state preservation
 - ✅ Must not run concurrently (use Virtual Objects)
 
 Don't use workflows for:
 - ❌ Simple CRUD operations
 - ❌ Synchronous API calls
 - ❌ Operations that complete in milliseconds
-- ❌ Stateless transformations
 
-## Step 1: Define the Proto
+## Steps
 
-Create a new proto file in `go/proto/hydra/v1/`:
+### 1. Define the Proto
+
+Create `go/proto/hydra/v1/yourservice.proto`:
 
 ```protobuf
-// go/proto/hydra/v1/notifications.proto
 syntax = "proto3";
-
 package hydra.v1;
 
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
 
-service NotificationService {
+service YourService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
-
-  // Send a notification to a user
-  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse) {}
-
-  // Send batch notifications
-  rpc SendBatch(SendBatchRequest) returns (SendBatchResponse) {}
+  rpc YourOperation(YourRequest) returns (YourResponse) {}
 }
 
-message SendNotificationRequest {
-  string user_id = 1;  // Used as Virtual Object key
-  string type = 2;     // email, slack, webhook
-  string message = 3;
+message YourRequest {
+  string key_field = 1;  // Used as Virtual Object key
 }
 
-message SendNotificationResponse {
-  string notification_id = 1;
-}
-
-message SendBatchRequest {
-  string user_id = 1;
-  repeated string notification_ids = 2;
-}
-
-message SendBatchResponse {
-  int32 sent_count = 1;
-}
+message YourResponse {}
 ```
 
-**Key Decisions:**
-- **Service Type:** `VIRTUAL_OBJECT` if operations must be serialized per key, otherwise `SERVICE`
-- **Key Field:** The field used for Virtual Object key (e.g., `user_id`, `project_id`)
-- **Message Design:** Keep simple - Restate handles serialization
+**Key decisions:**
+- Service type: `VIRTUAL_OBJECT` for serialization, `SERVICE` otherwise
+- Key field: The field used for Virtual Object key (e.g., `user_id`, `project_id`)
 
-## Step 2: Generate Code
-
-Run code generation:
+### 2. Generate Code
 
 ```bash
 cd go
 make generate
 ```
 
-This creates:
-- `go/gen/proto/hydra/v1/notifications.pb.go` - Message types
-- `go/gen/proto/hydra/v1/notifications_restate.pb.go` - Server interfaces
+### 3. Implement the Service
 
-## Step 3: Implement the Service
+Create `go/apps/ctrl/workflows/yourservice/`:
 
-Create a new directory and service file:
-
-```bash
-mkdir -p go/apps/ctrl/workflows/notifications
-```
-
-### Create service.go
-
+**service.go:**
 ```go
-// go/apps/ctrl/workflows/notifications/service.go
-package notifications
+package yourservice
 
 import (
-	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+    hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
+    "github.com/unkeyed/unkey/go/pkg/db"
+    "github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// Service handles notification workflows
 type Service struct {
-	hydrav1.UnimplementedNotificationServiceServer
-	db     db.Database
-	logger logging.Logger
-}
-
-var _ hydrav1.NotificationServiceServer = (*Service)(nil)
-
-type Config struct {
-	DB     db.Database
-	Logger logging.Logger
+    hydrav1.UnimplementedYourServiceServer
+    db     db.Database
+    logger logging.Logger
 }
 
 func New(cfg Config) *Service {
-	return &Service{
-		db:     cfg.DB,
-		logger: cfg.Logger,
-	}
+    return &Service{db: cfg.DB, logger: cfg.Logger}
 }
 ```
 
-### Create send_notification_handler.go
-
+**your_operation_handler.go:**
 ```go
-// go/apps/ctrl/workflows/notifications/send_notification_handler.go
-package notifications
+func (s *Service) YourOperation(
+    ctx restate.ObjectContext,
+    req *hydrav1.YourRequest,
+) (*hydrav1.YourResponse, error) {
+    // Step 1: Durable step example
+    data, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.YourData, error) {
+        return db.Query.FindYourData(stepCtx, s.db.RO(), req.KeyField)
+    }, restate.WithName("fetch data"))
+    if err != nil {
+        return nil, err
+    }
 
-import (
-	"context"
-	"fmt"
-	"time"
+    // Step 2: Another durable step
+    _, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+        // Your logic here
+        return restate.Void{}, nil
+    }, restate.WithName("process data"))
 
-	restate "github.com/restatedev/sdk-go"
-	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/go/pkg/db"
-)
-
-func (s *Service) SendNotification(
-	ctx restate.ObjectContext,
-	req *hydrav1.SendNotificationRequest,
-) (*hydrav1.SendNotificationResponse, error) {
-	s.logger.Info("sending notification",
-		"user_id", req.GetUserId(),
-		"type", req.GetType(),
-	)
-
-	// Step 1: Validate user exists
-	user, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.User, error) {
-		return db.Query.FindUserById(stepCtx, s.db.RO(), req.GetUserId())
-	}, restate.WithName("validate user"))
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(
-				fmt.Errorf("user not found: %s", req.GetUserId()),
-				404,
-			)
-		}
-		return nil, err
-	}
-
-	// Step 2: Create notification record
-	notificationID, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-		id := uid.New("notif")
-		err := db.Query.InsertNotification(stepCtx, s.db.RW(), db.InsertNotificationParams{
-			ID:        id,
-			UserID:    user.ID,
-			Type:      req.GetType(),
-			Message:   req.GetMessage(),
-			Status:    "pending",
-			CreatedAt: time.Now().UnixMilli(),
-		})
-		return id, err
-	}, restate.WithName("create notification record"))
-	if err != nil {
-		return nil, err
-	}
-
-	// Step 3: Send notification via external service
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		switch req.GetType() {
-		case "email":
-			return restate.Void{}, s.sendEmail(stepCtx, user.Email, req.GetMessage())
-		case "slack":
-			return restate.Void{}, s.sendSlack(stepCtx, user.SlackID, req.GetMessage())
-		default:
-			return restate.Void{}, fmt.Errorf("unsupported type: %s", req.GetType())
-		}
-	}, restate.WithName("send notification"))
-	if err != nil {
-		// Update status to failed
-		_ = s.updateNotificationStatus(ctx, notificationID, "failed")
-		return nil, err
-	}
-
-	// Step 4: Update notification status
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.updateNotificationStatus(stepCtx, notificationID, "sent")
-	}, restate.WithName("update notification status"))
-	if err != nil {
-		return nil, err
-	}
-
-	s.logger.Info("notification sent", "notification_id", notificationID)
-
-	return &hydrav1.SendNotificationResponse{
-		NotificationId: notificationID,
-	}, nil
-}
-
-func (s *Service) updateNotificationStatus(ctx context.Context, id, status string) error {
-	return db.Query.UpdateNotificationStatus(ctx, s.db.RW(), db.UpdateNotificationStatusParams{
-		ID:     id,
-		Status: status,
-	})
-}
-
-func (s *Service) sendEmail(ctx context.Context, email, message string) error {
-	// Implementation
-	return nil
-}
-
-func (s *Service) sendSlack(ctx context.Context, slackID, message string) error {
-	// Implementation
-	return nil
+    return &hydrav1.YourResponse{}, nil
 }
 ```
 
-## Step 4: Register the Service
+### 4. Register the Service
 
-Add the service to `go/apps/ctrl/run.go`:
+Update `go/apps/ctrl/run.go`:
 
 ```go
 import (
-	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/notifications"
-	// ... other imports
+    "github.com/unkeyed/unkey/go/apps/ctrl/workflows/yourservice"
 )
 
 func Run(ctx context.Context, cfg Config) error {
-	// ... existing setup
+    // ... existing setup ...
 
-	restateSrv := restateServer.NewRestate()
-
-	// Register existing services
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(...))
-	restateSrv.Bind(hydrav1.NewRoutingServiceServer(...))
-
-	// Register new service
-	restateSrv.Bind(hydrav1.NewNotificationServiceServer(notifications.New(notifications.Config{
-		DB:     database,
-		Logger: logger,
-	})))
-
-	// ... rest of setup
+    restateSrv.Bind(hydrav1.NewYourServiceServer(yourservice.New(yourservice.Config{
+        DB:     database,
+        Logger: logger,
+    })))
 }
 ```
 
-## Step 5: Update Configuration
+### 5. Call the Service
 
-Add any necessary configuration to `go/apps/ctrl/config.go` and `go/cmd/ctrl/main.go`.
-
-## Step 6: Test the Service
-
-### Build and Run
-
-```bash
-cd go
-go build ./apps/ctrl/...
-go run ./cmd/ctrl
-```
-
-### Call the Service
-
-From another service (blocking call):
-
+**Blocking call:**
 ```go
-response, err := restateingress.Object[*hydrav1.SendNotificationRequest, *hydrav1.SendNotificationResponse](
-	restateClient,
-	"hydra.v1.NotificationService",
-	userID,  // Virtual Object key
-	"SendNotification",
-).Request(ctx, &hydrav1.SendNotificationRequest{
-	UserId:  userID,
-	Type:    "email",
-	Message: "Your deployment is ready!",
-})
+response, err := restateingress.Object[*hydrav1.YourRequest, *hydrav1.YourResponse](
+    restateClient,
+    "hydra.v1.YourService",
+    keyValue,
+    "YourOperation",
+).Request(ctx, request)
 ```
 
-Fire-and-forget call:
-
+**Fire-and-forget:**
 ```go
-invocation := restateingress.WorkflowSend[*hydrav1.SendNotificationRequest](
-	restateClient,
-	"hydra.v1.NotificationService",
-	userID,
-	"SendNotification",
-).Send(ctx, &hydrav1.SendNotificationRequest{
-	UserId:  userID,
-	Type:    "email",
-	Message: "Your deployment is ready!",
-})
-
-fmt.Printf("Invocation ID: %s\n", invocation.Id)
+invocation := restateingress.WorkflowSend[*hydrav1.YourRequest](
+    restateClient,
+    "hydra.v1.YourService",
+    keyValue,
+    "YourOperation",
+).Send(ctx, request)
 ```
-
-### Monitor in UI
-
-1. Open Restate UI: `http://localhost:9070`
-2. Find your service: `hydra.v1.NotificationService`
-3. Inspect invocations by key (e.g., user_id)
-4. View step-by-step execution
 
 ## Best Practices
 
-### 1. Small, Focused Steps
+1. **Small Steps**: Break operations into focused, single-purpose durable steps
+2. **Named Steps**: Always use `restate.WithName("step name")` for observability
+3. **Idempotent**: Use UPSERT instead of INSERT; handle retries gracefully
+4. **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for validation failures
+5. **Virtual Object Keys**: Choose keys that represent the resource being protected
 
-```go
-// ✅ Good: Small, focused steps
-user, err := restate.Run(ctx, fetchUser, restate.WithName("fetch user"))
-notification, err := restate.Run(ctx, createNotification, restate.WithName("create notification"))
-err = restate.Run(ctx, sendEmail, restate.WithName("send email"))
+## Examples
 
-// ❌ Bad: One giant step
-err := restate.Run(ctx, doEverything, restate.WithName("do everything"))
-```
+See existing implementations:
+- **DeploymentService**: `go/apps/ctrl/workflows/deploy/`
+- **RoutingService**: `go/apps/ctrl/workflows/routing/`
+- **CertificateService**: `go/apps/ctrl/workflows/certificate/`
 
-### 2. Always Name Steps
+## References
 
-```go
-// ✅ Good: Named for observability
-user, err := restate.Run(ctx, fetchUser, restate.WithName("fetch user"))
-
-// ❌ Bad: Unnamed step
-user, err := restate.Run(ctx, fetchUser)
-```
-
-### 3. Use Terminal Errors for Validation
-
-```go
-// ✅ Good: Terminal error for validation
-if userID == "" {
-	return nil, restate.TerminalError(fmt.Errorf("user_id required"), 400)
-}
-
-// ❌ Bad: Regular error (will retry forever)
-if userID == "" {
-	return nil, fmt.Errorf("user_id required")
-}
-```
-
-### 4. Idempotent Operations
-
-```go
-// ✅ Good: UPSERT is idempotent
-db.Query.UpsertNotification(ctx, params)
-
-// ❌ Bad: INSERT fails on retry
-db.Query.InsertNotification(ctx, params)
-```
-
-### 5. Virtual Object Keys
-
-Choose keys that represent the resource being protected:
-
-```go
-// ✅ Good: One operation per user at a time
-service NotificationService {
-  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
-  rpc SendNotification(SendNotificationRequest) returns (...) {}
-}
-message SendNotificationRequest {
-  string user_id = 1;  // Key: prevents concurrent sends to same user
-}
-
-// ❌ Bad: Global serialization (everything waits)
-message SendNotificationRequest {
-  string workspace_id = 1;  // Key: all users in workspace wait
-}
-```
-
-## Testing
-
-### Unit Tests
-
-Mock the Restate context:
-
-```go
-func TestSendNotification(t *testing.T) {
-	// Setup mocks
-	mockDB := &MockDatabase{}
-	mockLogger := &MockLogger{}
-
-	service := notifications.New(notifications.Config{
-		DB:     mockDB,
-		Logger: mockLogger,
-	})
-
-	// Create mock context
-	ctx := restate.NewTestObjectContext(t)
-
-	// Test
-	response, err := service.SendNotification(ctx, &hydrav1.SendNotificationRequest{
-		UserId:  "user_123",
-		Type:    "email",
-		Message: "Test message",
-	})
-
-	assert.NoError(t, err)
-	assert.NotEmpty(t, response.NotificationId)
-}
-```
-
-### Integration Tests
-
-Test against real Restate:
-
-```bash
-# Start Restate server
-docker run -d -p 9070:9070 -p 8080:8080 restatedev/restate
-
-# Start your service
-go run ./cmd/ctrl
-
-# Register service
-curl -X POST http://localhost:9070/deployments \
-  -H "Content-Type: application/json" \
-  -d '{"uri": "http://localhost:9080"}'
-
-# Call service
-curl -X POST http://localhost:8080/hydra.v1.NotificationService/SendNotification \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "user_123",
-    "type": "email",
-    "message": "Test"
-  }'
-```
-
-## Common Patterns
-
-### Saga Pattern (Compensation)
-
-For operations that need rollback:
-
-```go
-func (s *Service) ProcessPayment(ctx restate.ObjectContext, req *Request) (*Response, error) {
-	// Reserve funds
-	reservationID, err := restate.Run(ctx, s.reserveFunds, restate.WithName("reserve funds"))
-	if err != nil {
-		return nil, err
-	}
-
-	// Defer compensation in case of failure
-	defer func() {
-		if err != nil && restate.IsTerminalError(err) {
-			_ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-				return restate.Void{}, s.releaseFunds(stepCtx, reservationID)
-			}, restate.WithName("release funds (compensation)"))
-		}
-	}()
-
-	// Charge customer
-	_, err = restate.Run(ctx, s.chargeCustomer, restate.WithName("charge customer"))
-	if err != nil {
-		return nil, err
-	}
-
-	return &Response{}, nil
-}
-```
-
-### Calling Other Workflows
-
-From one workflow to another:
-
-```go
-// Blocking call - wait for result
-deployResponse, err := restateingress.Object[*hydrav1.DeployRequest, *hydrav1.DeployResponse](
-	s.restateClient,
-	"hydra.v1.DeploymentService",
-	projectID,
-	"Deploy",
-).Request(ctx, deployRequest)
-
-// Fire-and-forget - don't wait
-invocation := restateingress.WorkflowSend[*hydrav1.NotificationRequest](
-	s.restateClient,
-	"hydra.v1.NotificationService",
-	userID,
-	"SendNotification",
-).Send(ctx, notificationRequest)
-```
-
-## Troubleshooting
-
-### Service Not Registering
-
-Check:
-1. Restate server is running
-2. `UNKEY_RESTATE_ADMIN_URL` is correct
-3. `UNKEY_RESTATE_REGISTER_AS` is reachable from Restate server
-4. Service binds correctly in `run.go`
-
-View registration logs:
-```bash
-# Check ctrl logs
-tail -f /var/log/ctrl.log | grep -i restate
-
-# Check Restate server logs
-docker logs <restate-container-id>
-```
-
-### Steps Not Durably Executing
-
-Ensure every operation is wrapped in `restate.Run()`:
-
-```go
-// ❌ Bad: Not durable
-user, err := db.Query.FindUserById(ctx, s.db.RO(), userID)
-
-// ✅ Good: Durable step
-user, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.User, error) {
-	return db.Query.FindUserById(stepCtx, s.db.RO(), userID)
-}, restate.WithName("find user"))
-```
-
-### Infinite Retries
-
-Use terminal errors for non-retryable failures:
-
-```go
-if userID == "" {
-	// ✅ Won't retry
-	return nil, restate.TerminalError(fmt.Errorf("user_id required"), 400)
-}
-
-if db.IsNotFound(err) {
-	// ✅ Won't retry
-	return nil, restate.TerminalError(err, 404)
-}
-```
-
-## Related Documentation
-
-- [Restate Overview](./index) - Architecture overview
-- [Deployment Service](./deployment-service) - Example service
-- [Routing Service](./routing-service) - Example service
 - [Restate Go SDK Docs](https://docs.restate.dev/develop/go/)
+- [Restate Overview](./index)

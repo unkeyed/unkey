@@ -5,417 +5,85 @@ description: Atomic domain and gateway configuration management
 
 # Routing Service
 
-The `RoutingService` is a Restate Virtual Object responsible for atomic domain assignment and gateway configuration updates. It ensures consistency between the control plane (domain database) and data plane (gateway configurations).
-
-## Overview
+The `RoutingService` manages atomic domain assignment and gateway configuration updates, ensuring consistency between control plane (domains DB) and data plane (gateway configs).
 
 **Location:** `go/apps/ctrl/workflows/routing/`
+**Proto:** `go/proto/hydra/v1/routing.proto`
+**Key:** `project_id`
 
-**Proto Definition:** `go/proto/hydra/v1/routing.proto`
+## Why Separate Service?
 
-**Service Type:** Virtual Object
-
-**Key:** `project_id` (ensures only one routing operation per project runs at a time)
-
-## Why a Separate Service?
-
-Domain and gateway operations are the **critical section** of deployment operations:
+Domain and gateway operations are the **critical section** of deployments:
 - Must be atomic - both succeed or both fail
 - Must be serialized per project to prevent race conditions
 - Should not block non-routing operations (like building containers)
 
-By separating routing into its own Virtual Object, we:
-- ✅ Allow multiple deployments to build in parallel
-- ✅ Serialize only the sensitive routing mutations
-- ✅ Provide clear boundaries for what needs concurrency control
-- ✅ Enable saga-style compensations for failed routing changes
+By separating routing, we:
+- Allow multiple deployments to build in parallel
+- Serialize only the sensitive routing mutations
+- Provide clear boundaries for concurrency control
 
 ## Operations
 
 ### AssignDomains
 
-Creates or reassigns domains to a deployment and creates gateway configurations. Used during initial deployment.
-
 <Mermaid chart={`flowchart TD
-    Start([AssignDomains Request]) --> LoopDomains{For Each Domain}
-    LoopDomains --> FindDomain[Find Domain by Name]
-    FindDomain --> Exists{Exists?}
-    Exists -->|No| InsertDomain[Insert New Domain<br/>Track as Changed]
-    Exists -->|Yes| CheckRollback{Is Rolled Back?}
-    CheckRollback -->|Yes| SkipDomain[Skip Domain]
-    CheckRollback -->|No| ReassignDomain[Reassign to Deployment<br/>Track as Changed]
-    InsertDomain --> NextDomain
-    SkipDomain --> NextDomain
-    ReassignDomain --> NextDomain
+    Start([AssignDomains]) --> LoopDomains{For Each Domain}
+    LoopDomains --> FindDomain[Find or Create Domain]
+    FindDomain --> NextDomain
     NextDomain --> LoopDomains
-    LoopDomains -->|All Done| PrepareGateway[Prepare Gateway Configs<br/>Exclude Local Domains]
-    PrepareGateway --> BulkUpsert[Bulk Upsert Gateway Configs<br/>to Partition DB]
-    BulkUpsert --> Return[Return Changed Domain Names]
-    Return --> End([Success])
+    LoopDomains --> PrepareGateway[Prepare Gateway Configs]
+    PrepareGateway --> BulkUpsert[Bulk Upsert to Partition DB]
+    BulkUpsert --> End([Return Changed Domains])
 
-    style InsertDomain fill:#c8e6c9
-    style ReassignDomain fill:#c8e6c9
     style BulkUpsert fill:#e1f5fe
 `} />
 
-**Proto:**
-```protobuf
-message AssignDomainsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string environment_id = 3;
-  string deployment_id = 4;
+Creates or reassigns domains to a deployment:
+1. For each domain: find existing or insert new domain record
+2. Skip domains marked as rolled back
+3. Prepare gateway configs (exclude local domains like `.local`, `.test`)
+4. Bulk upsert gateway configs to partition database
+5. Return list of changed domains
 
-  repeated DomainToAssign domains = 5;
-  partition.v1.GatewayConfig gateway_config = 6;
-  bool is_rolled_back = 7;
-}
+Implementation: `go/apps/ctrl/workflows/routing/assign_domains_handler.go`
 
-enum DomainSticky {
-  DOMAIN_STICKY_UNSPECIFIED = 0;  // Not sticky (per-commit)
-  DOMAIN_STICKY_BRANCH = 1;
-  DOMAIN_STICKY_ENVIRONMENT = 2;
-  DOMAIN_STICKY_LIVE = 3;
-}
-
-message DomainToAssign {
-  string name = 1;
-  DomainSticky sticky = 2;
-}
-```
-
-**Flow:**
-1. For each domain:
-   - Try to find existing domain by name
-   - If not found: Insert new domain record
-   - If found and not rolled back: Reassign to new deployment
-   - If found and rolled back: Skip reassignment
-   - Track which domains were changed
-2. For each changed domain (excluding local domains):
-   - Marshal gateway config to JSON
-   - Prepare gateway upsert parameters
-3. Bulk upsert all gateway configs to partition database
-4. Return list of changed domain names
-
-**Example Call:**
-
-```go
-// Called by DeploymentService
-response, err := restateingress.Object[*workflowsv1.AssignDomainsRequest, *workflowsv1.AssignDomainsResponse](
-    client,
-    "workflows.v1.RoutingService",
-    projectID,  // Key: ensures serialization per project
-    "AssignDomains",
-).Request(ctx, &workflowsv1.AssignDomainsRequest{
-    WorkspaceId: "ws_123",
-    ProjectId: projectID,
-    EnvironmentId: "env_prod",
-    DeploymentId: "deploy_456",
-    Domains: []*workflowsv1.DomainToAssign{
-        {Name: "myapp-production-acme.unkey.app", Sticky: "environment"},
-        {Name: "myapp-git-main-acme.unkey.app", Sticky: "branch"},
-    },
-    GatewayConfig: &partitionv1.GatewayConfig{
-        Deployment: &partitionv1.Deployment{Id: "deploy_456", IsEnabled: true},
-        Vms: []*partitionv1.VM{{Id: "vm_1"}, {Id: "vm_2"}},
-        AuthConfig: &partitionv1.AuthConfig{KeyAuthId: "key_auth_123"},
-    },
-    IsRolledBack: false,
-})
-```
+**Domain Sticky Levels:**
+- `UNSPECIFIED`: Per-commit domains (e.g., `abc123.domain.com`)
+- `BRANCH`: Branch-level (e.g., `main.domain.com`)
+- `ENVIRONMENT`: Environment-level (e.g., `staging.domain.com`)
+- `LIVE`: Production domain (e.g., `domain.com`)
 
 ### SwitchDomains
 
-Switches existing domains to a different deployment. Used for rollback/promote operations.
-
 <Mermaid chart={`flowchart TD
-    Start([SwitchDomains Request]) --> FetchGateway[Fetch Target Gateway Config<br/>from Partition DB]
-    FetchGateway --> FetchDomains[Fetch Domain Records<br/>by IDs]
-    FetchDomains --> PrepareGateway[Prepare Gateway Upserts<br/>Exclude Local Domains]
-    PrepareGateway --> UpsertGateway[Bulk Upsert Gateway Configs<br/>DATA PLANE FIRST]
-    UpsertGateway --> ReassignLoop{For Each Domain}
-    ReassignLoop --> ReassignDomain[Reassign Domain<br/>to Target Deployment]
-    ReassignDomain --> UpdateTime[Update Timestamp]
-    UpdateTime --> ReassignLoop
-    ReassignLoop -->|All Done| End([Success])
+    Start([SwitchDomains]) --> FetchGateway[Fetch Target Gateway Config]
+    FetchGateway --> FetchDomains[Fetch Domains by IDs]
+    FetchDomains --> UpsertGateway[Upsert Gateway Configs]
+    UpsertGateway --> ReassignDomains[Reassign Domains]
+    ReassignDomains --> End([Success])
 
     style UpsertGateway fill:#e1f5fe
-    style ReassignDomain fill:#c8e6c9
+    style ReassignDomains fill:#c8e6c9
 `} />
 
-**Proto:**
-```protobuf
-message SwitchDomainsRequest {
-  string target_deployment_id = 1;
-  repeated string domain_ids = 2;  // Domain IDs to switch
-}
-```
+Reassigns existing domains to a different deployment:
+1. Fetch target deployment's gateway config
+2. Fetch domain records
+3. Upsert gateway configs first (data plane ready)
+4. Reassign domains (control plane pointers updated)
 
-**Flow:**
-1. Fetch target deployment's gateway config from partition DB
-2. Fetch domain records by IDs (includes hostnames and workspace_id)
-3. **Upsert gateway configs FIRST** (data plane update)
-4. **Reassign domains SECOND** (control plane update)
-5. Update timestamps
+Implementation: `go/apps/ctrl/workflows/routing/switch_domains_handler.go`
 
-**Key Design Decision:**
-- Gateway configs are updated **before** domain reassignment to ensure the data plane is ready before control plane pointers change
-- The service fetches everything it needs internally - callers only provide domain IDs and target deployment ID
+## Order of Operations
 
-**Example Call:**
+Critical: Gateway configs are always updated **before** domain reassignment. This ensures:
+1. Gateway is ready to serve traffic before DNS/routing points to it
+2. No downtime during switches
+3. Rollback is possible if domain update fails
 
-```go
-// Called by DeploymentService.Rollback or .Promote
-_, err := restateingress.Object[*workflowsv1.SwitchDomainsRequest, *workflowsv1.SwitchDomainsResponse](
-    client,
-    "workflows.v1.RoutingService",
-    projectID,  // Key: project_id
-    "SwitchDomains",
-).Request(ctx, &workflowsv1.SwitchDomainsRequest{
-    TargetDeploymentId: "deploy_old",
-    DomainIds: []string{"domain_1", "domain_2", "domain_3"},
-})
-```
+## Local Domain Filtering
 
-## Atomic Operations
+Domains with `.local` or `.test` TLDs, or `localhost`/`127.0.0.1` are excluded from gateway config generation since they're for local development only.
 
-The routing service handles the **two-database problem**:
-- **Control Plane:** Domain records in main database
-- **Data Plane:** Gateway configs in partition database
-
-### Current Implementation
-
-Operations are durable but not transactional across databases:
-1. Update gateway configs (partition DB)
-2. Update domain assignments (main DB)
-
-Each step is wrapped in `restate.Run()` for durability. If a step fails, Restate automatically retries.
-
-### Future: Saga Pattern
-
-For true atomicity with compensations:
-
-```go
-func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *Request) (*Response, error) {
-    // Snapshot current state for compensation
-    oldGatewayConfigs := fetchCurrentGatewayConfigs()
-    oldDomainAssignments := fetchCurrentDomainAssignments()
-
-    // Register compensations (run in reverse if anything fails)
-    defer func() {
-        if err != nil && isTerminalError(err) {
-            // Revert gateway configs
-            restate.Run(ctx, func() { restoreGatewayConfigs(oldGatewayConfigs) })
-            // Revert domain assignments
-            restate.Run(ctx, func() { restoreDomainAssignments(oldDomainAssignments) })
-        }
-    }()
-
-    // Apply changes
-    restate.Run(ctx, updateGatewayConfigs)
-    restate.Run(ctx, updateDomainAssignments)
-}
-```
-
-See: [Restate Saga Documentation](../../../go/restatedocs/guides/sagas.md)
-
-## Concurrency Control
-
-As a Virtual Object keyed by `project_id`:
-
-✅ **Allowed:** Routing operations for different projects
-```
-Project A: AssignDomains (running)
-Project B: AssignDomains (running)  ← Runs in parallel
-```
-
-❌ **Prevented:** Multiple routing operations for same project
-```
-Project A: AssignDomains (running)
-Project A: SwitchDomains (queued)  ← Waits for AssignDomains
-```
-
-This prevents race conditions like:
-- Two deployments trying to claim the same domain
-- Rollback happening while deployment assigns domains
-- Concurrent gateway config updates corrupting state
-
-## Local Domains
-
-The service automatically skips gateway configuration for local development domains:
-
-```go
-func isLocalHostname(hostname, defaultDomain string) bool {
-    // Skip localhost
-    if hostname == "localhost" || hostname == "127.0.0.1" {
-        return true
-    }
-
-    // Skip .local and .test TLDs
-    if strings.HasSuffix(hostname, ".local") || strings.HasSuffix(hostname, ".test") {
-        return true
-    }
-
-    // Don't skip default domain (e.g., unkey.app)
-    if strings.HasSuffix(hostname, "."+defaultDomain) {
-        return false
-    }
-
-    return false
-}
-```
-
-## Domain Sticky Levels
-
-Domains have different "stickiness" determining when they're reassigned:
-
-```go
-func parseDomainSticky(sticky string) db.NullDomainsSticky {
-    switch strings.ToLower(sticky) {
-    case "branch":
-        return db.DomainsStickyBranch  // Reassigned on branch deploys
-    case "environment":
-        return db.DomainsStickyEnvironment  // Reassigned on env deploys
-    case "live":
-        return db.DomainsStickyLive  // Reassigned on promotion
-    default:
-        return db.NullDomainsSticky{Valid: false}  // Never reassigned
-    }
-}
-```
-
-## Error Handling
-
-### Database Errors
-
-Regular errors are retried automatically:
-
-```go
-domains, err := db.Query.FindDomainsByIds(ctx, s.db.RO(), domainIDs)
-if err != nil {
-    return nil, err  // Restate retries automatically
-}
-```
-
-### Validation Errors
-
-Terminal errors prevent retries:
-
-```go
-if len(req.GetDomainIds()) == 0 {
-    return nil, restate.TerminalError(
-        fmt.Errorf("no domains provided"),
-        400,
-    )
-}
-```
-
-## File Structure
-
-```
-go/apps/ctrl/workflows/routing/
-└── service.go  # Service implementation
-```
-
-## Database Queries
-
-The service uses several specialized queries:
-
-### FindDomainsByIds
-Fetches multiple domains in one query:
-
-```sql
--- name: FindDomainsByIds :many
-SELECT id, workspace_id, domain, deployment_id, sticky
-FROM domains
-WHERE id IN (sqlc.slice(ids));
-```
-
-### ReassignDomain
-Updates domain ownership:
-
-```sql
--- name: ReassignDomain :exec
-UPDATE domains
-SET
-    deployment_id = $2,
-    workspace_id = $3,
-    updated_at = $4
-WHERE id = $1;
-```
-
-## Integration Points
-
-### Called By
-- `DeploymentService.Deploy()` - Assigns domains after building
-- `DeploymentService.Rollback()` - Switches domains to previous deployment
-- `DeploymentService.Promote()` - Switches domains to promoted deployment
-
-### Calls To
-- Main Database - Domain records
-- Partition Database - Gateway configurations
-
-## Configuration
-
-The service requires:
-- `DefaultDomain` - Base domain for the platform (e.g., "unkey.app")
-
-Inherited from ctrl service:
-- Database connections
-- Logger
-- Partition database connection
-
-## Monitoring
-
-View routing operations in Restate UI:
-1. Navigate to admin URL (e.g., `http://localhost:9070`)
-2. Filter by service: `workflows.v1.RoutingService`
-3. Group by key to see per-project operations
-4. Inspect individual steps for failures
-
-## Testing
-
-Test routing operations:
-
-```bash
-# Via deployment workflow (preferred)
-curl -X POST http://localhost:8080/ctrl.v1.DeploymentService/CreateDeployment \
-  -H "Content-Type: application/json" \
-  -d '{"workspace_id": "ws_123", "project_id": "proj_123", ...}'
-
-# Direct call (for testing)
-curl -X POST http://localhost:8080/workflows.v1.RoutingService/AssignDomains \
-  -H "Content-Type: application/json" \
-  -d '{
-    "workspace_id": "ws_123",
-    "project_id": "proj_123",
-    "deployment_id": "deploy_456",
-    "domains": [{"name": "test.unkey.app", "sticky": "environment"}],
-    "gateway_config": {...}
-  }'
-```
-
-## Future Enhancements
-
-### Saga-Based Compensations
-Implement proper compensation logic for failed operations:
-- Snapshot state before changes
-- Revert on terminal errors
-- Log compensation actions
-
-### Bulk Operations
-Optimize for multiple projects:
-- `AssignDomainsForProjects()` - Batch domain assignments
-- `SwitchDomainsForProjects()` - Batch domain switches
-
-### Domain Verification
-Add DNS verification step:
-- Check domain DNS records
-- Validate SSL certificates
-- Update domain status
-
-## Related
-
-- [Deployment Service](./deployment-service) - Calls this service
-- [Creating Workflow Services](./creating-services) - How to add new services
-- [Restate Overview](./index) - Architecture overview
+Helper: `go/apps/ctrl/workflows/routing/helpers.go:isLocalHostname()`
