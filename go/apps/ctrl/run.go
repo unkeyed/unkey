@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"connectrpc.com/connect"
@@ -41,7 +40,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
-	fmt.Println(os.Environ())
 
 	shutdowns := shutdown.New()
 
