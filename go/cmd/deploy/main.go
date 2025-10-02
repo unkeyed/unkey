@@ -21,8 +21,8 @@ const (
 	DefaultEnvironment     = "preview"
 
 	// Environment variables
-	EnvApiID  	   = "UNKEY_API_ID"
-	EnvRegistry    = "UNKEY_REGISTRY"
+	EnvApiID    = "UNKEY_API_ID"
+	EnvRegistry = "UNKEY_REGISTRY"
 
 	// URL prefixes
 	HTTPSPrefix     = "https://"
@@ -80,9 +80,8 @@ var stepSequence = map[string]string{
 
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
-	WorkspaceID		string
 	ProjectID       string
-	ApiID      		string
+	ApiID           string
 	Context         string
 	Branch          string
 	DockerImage     string
@@ -189,23 +188,8 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		return err // Clean error message already
 	}
 
-	// Resolve workspace from project Id
-	tempOpts := DeployOptions{
-		ProjectID:			finalConfig.ProjectID,
-		ControlPlaneURL:	cmd.String("control-plane-url"),
-		AuthToken:			cmd.String("auth-token"),
-		APIKey:				cmd.String("api-key"),
-	}
-
-	controlPlane := NewControlPlaneClient(tempOpts)
-	project, err := controlPlane.GetProject(ctx, finalConfig.ProjectID)
-	if err != nil {
-		return fmt.Errorf("failed to resolve workspace from project 's%': %w", finalConfig.ProjectID, err)
-	}
-
 	opts := DeployOptions{
-		WorkspaceID:		 project.GetWorkspaceId(),
-		ApiID:      	 finalConfig.ApiID,
+		ApiID:           finalConfig.ApiID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
