@@ -185,8 +185,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					"vm_id", instance.Id,
 					"deployment_id", deployment.ID,
 					"address", instance.Address,
-					"status", "running")
-
+					"status", status)
 				if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
 					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
 				}
