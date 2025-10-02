@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/certificate"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/routing"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
@@ -187,6 +188,13 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		PartitionDB:   partitionDB,
 		DefaultDomain: cfg.DefaultDomain,
+	})))
+
+	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
+		Logger:      logger,
+		DB:          database,
+		PartitionDB: partitionDB,
+		Vault:       vaultSvc,
 	})))
 
 	go func() {
