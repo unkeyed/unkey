@@ -138,17 +138,6 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
-message GetProjectRequest {
-  string project_id = 1;
-}
-
-message GetProjectResponse {
-  string project_id = 1;
-  string workspace_id = 2;
-  string name = 3;
-  string slug = 4;
-}
-
 service DeploymentService {
   // Create a new deployment
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
@@ -161,7 +150,4 @@ service DeploymentService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
-
-  // Get project details by ID
-  rpc GetProject(GetProjectRequest) returns (GetProjectResponse) {}
 }
