@@ -83,7 +83,10 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                "pages": [
+                  "concepts/identities/overview",
+                  "concepts/identities/ratelimits"
+                ]
               }
             ]
           },
@@ -271,78 +274,7 @@
             "openapi": {
               "source": "http://127.0.0.1:7070/openapi.yaml",
               "directory": "api-reference/v2"
-            },
-            "hidden": true
-          },
-          {
-            "group": "Endpoints",
-            "pages": [
-              {
-                "group": "analytics",
-                "pages": ["api-reference/v2/analytics/query-key-verification-data"]
-              },
-              {
-                "group": "apis",
-                "pages": [
-                  "api-reference/v2/apis/create-api-namespace",
-                  "api-reference/v2/apis/delete-api-namespace",
-                  "api-reference/v2/apis/get-api-namespace",
-                  "api-reference/v2/apis/list-api-keys"
-                ]
-              },
-              {
-                "group": "identities",
-                "pages": [
-                  "api-reference/v2/identities/create-identity",
-                  "api-reference/v2/identities/delete-identity",
-                  "api-reference/v2/identities/get-identity",
-                  "api-reference/v2/identities/list-identities",
-                  "api-reference/v2/identities/update-identity"
-                ]
-              },
-              {
-                "group": "keys",
-                "pages": [
-                  "api-reference/v2/keys/add-key-permissions",
-                  "api-reference/v2/keys/add-key-roles",
-                  "api-reference/v2/keys/create-api-key",
-                  "api-reference/v2/keys/delete-api-keys",
-                  "api-reference/v2/keys/get-api-key",
-                  "api-reference/v2/keys/remove-key-permissions",
-                  "api-reference/v2/keys/remove-key-roles",
-                  "api-reference/v2/keys/reroll-key",
-                  "api-reference/v2/keys/set-key-permissions",
-                  "api-reference/v2/keys/set-key-roles",
-                  "api-reference/v2/keys/update-key-credits",
-                  "api-reference/v2/keys/update-key-settings",
-                  "api-reference/v2/keys/verify-api-key",
-                  "api-reference/v2/keys/get-api-key-by-hash"
-                ]
-              },
-              {
-                "group": "permissions",
-                "pages": [
-                  "api-reference/v2/permissions/create-permission",
-                  "api-reference/v2/permissions/create-role",
-                  "api-reference/v2/permissions/delete-permission",
-                  "api-reference/v2/permissions/delete-role",
-                  "api-reference/v2/permissions/get-permission",
-                  "api-reference/v2/permissions/get-role",
-                  "api-reference/v2/permissions/list-permissions",
-                  "api-reference/v2/permissions/list-roles"
-                ]
-              },
-              {
-                "group": "ratelimit",
-                "pages": [
-                  "api-reference/v2/ratelimit/delete-ratelimit-override",
-                  "api-reference/v2/ratelimit/get-ratelimit-override",
-                  "api-reference/v2/ratelimit/apply-rate-limiting",
-                  "api-reference/v2/ratelimit/list-ratelimit-overrides",
-                  "api-reference/v2/ratelimit/set-ratelimit-override"
-                ]
-              }
-            ]
+            }
           }
         ]
       },

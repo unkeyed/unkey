@@ -7,7 +7,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
-	chquery "github.com/unkeyed/unkey/go/pkg/clickhouse/query"
+	chquery "github.com/unkeyed/unkey/go/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -65,7 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	rewriter := chquery.New(chquery.Config{
+	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Limit:       10_000,
 		TableAliases: map[string]string{
@@ -154,8 +154,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 	})
 
-	// Rewrite the query (extracts/resolves virtual columns, validates, injects workspace filter)
-	safeQuery, err := rewriter.Rewrite(ctx, req.Query)
+	safeQuery, err := parser.Parse(ctx, req.Query)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Validation.InvalidInput.URN()),

@@ -138,6 +138,11 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindClickhouseWorkspaceSettingsByWorkspaceID
+	//
+	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, max_rows_to_read, created_at, updated_at FROM `clickhouse_workspace_settings`
+	//  WHERE workspace_id = ?
+	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
 	//FindDeploymentById
 	//
 	//  SELECT
@@ -890,6 +895,37 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertClickhouseWorkspaceSettings
+	//
+	//  INSERT INTO `clickhouse_workspace_settings` (
+	//      workspace_id,
+	//      username,
+	//      password_encrypted,
+	//      quota_duration_seconds,
+	//      max_queries_per_window,
+	//      max_execution_time_per_window,
+	//      max_query_execution_time,
+	//      max_query_memory_bytes,
+	//      max_query_result_rows,
+	//      max_rows_to_read,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1660,6 +1696,20 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateClickhouseWorkspaceSettingsLimits
+	//
+	//  UPDATE `clickhouse_workspace_settings`
+	//  SET
+	//      quota_duration_seconds = ?,
+	//      max_queries_per_window = ?,
+	//      max_execution_time_per_window = ?,
+	//      max_query_execution_time = ?,
+	//      max_query_memory_bytes = ?,
+	//      max_query_result_rows = ?,
+	//      max_rows_to_read = ?,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
 	//UpdateDeploymentOpenapiSpec
 	//
 	//  UPDATE deployments

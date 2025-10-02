@@ -27,6 +27,10 @@ type Caches struct {
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
+
+	// Clickhouse Configuration caches clickhouse configuration lookups by ID.
+	// Keys are string (ID) and values are db.ClickhouseWorkspaceSetting.
+	ClickhouseSetting cache.Cache[string, db.ClickhouseWorkspaceSetting]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -190,9 +194,27 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	clickhouseSetting, err := createCache(
+		config,
+		cache.Config[string, db.ClickhouseWorkspaceSetting]{
+			Fresh:    10 * time.Second,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "live_api_by_id",
+			Clock:    config.Clock,
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
 	}, nil
 }

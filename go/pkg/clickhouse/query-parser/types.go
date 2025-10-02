@@ -1,0 +1,33 @@
+package queryparser
+
+import (
+	"context"
+
+	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
+)
+
+// VirtualColumnResolver resolves virtual IDs to actual IDs
+type VirtualColumnResolver func(ctx context.Context, virtualIDs []string) (map[string]string, error)
+
+// VirtualColumn configuration
+type VirtualColumn struct {
+	ActualColumn string
+	Aliases      []string // Additional names that map to this column (e.g. ["api_id"] for "apiId")
+	Resolver     VirtualColumnResolver
+}
+
+// Config for the parser
+type Config struct {
+	WorkspaceID    string
+	TableAliases   map[string]string
+	AllowedTables  []string
+	VirtualColumns map[string]VirtualColumn
+	Limit          int
+}
+
+// Parser rewrites ClickHouse queries
+type Parser struct {
+	config   Config
+	stmt     *clickhouse.SelectQuery
+	aliasMap map[string]string // Maps aliases to canonical virtual column names
+}

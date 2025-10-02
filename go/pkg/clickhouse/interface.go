@@ -40,7 +40,11 @@ type Querier interface {
 	// This is useful for dynamic queries where the schema is not known at compile time.
 	QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error)
 
+	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)
+	Exec(ctx context.Context, sql string, args ...any) error
+
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
+
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 }
 

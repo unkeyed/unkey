@@ -350,3 +350,9 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 
 	return results, nil
 }
+
+// Exec executes a DDL or DML statement that doesn't return rows.
+// Used for CREATE, ALTER, DROP, GRANT, REVOKE, etc.
+func (c *clickhouse) Exec(ctx context.Context, sql string, args ...any) error {
+	return c.conn.Exec(ctx, sql, args...)
+}

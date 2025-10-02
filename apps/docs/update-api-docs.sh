@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# Currently not in used but maybe we want it later.
+
 cd "$(dirname "$0")"
 
 echo "Running @mintlify/scraping..."

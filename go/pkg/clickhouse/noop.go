@@ -54,6 +54,11 @@ func (n *noop) QueryToMaps(ctx context.Context, query string, args ...any) ([]ma
 	return []map[string]any{}, nil
 }
 
+// Exec implements the Querier interface but does nothing.
+func (n *noop) Exec(ctx context.Context, sql string, args ...any) error {
+	return nil
+}
+
 // NewNoop creates a new no-op implementation of the Bufferer interface.
 // This implementation simply discards all events without processing them.
 //

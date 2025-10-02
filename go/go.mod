@@ -6,6 +6,7 @@ toolchain go1.25.1
 
 require (
 	connectrpc.com/connect v1.19.0
+	github.com/AfterShip/clickhouse-sql-parser v0.4.13
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.3
 	github.com/aws/aws-sdk-go-v2 v1.39.2
 	github.com/aws/aws-sdk-go-v2/config v1.31.12
@@ -35,7 +36,6 @@ require (
 	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/stretchr/testify v1.11.1
 	github.com/unkeyed/unkey/go/deploy/pkg/spiffe v0.0.0-20250929110415-ca2de7336e18
-	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2
 	go.opentelemetry.io/contrib/bridges/otelslog v0.13.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.63.0
 	go.opentelemetry.io/contrib/processors/minsev v0.11.0

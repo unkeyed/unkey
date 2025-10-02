@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	clickhouseUser "github.com/unkeyed/unkey/go/cmd/create-clickhouse-user"
 	"github.com/unkeyed/unkey/go/cmd/deploy"
 	gateway "github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
@@ -28,6 +29,7 @@ func main() {
 			healthcheck.Cmd,
 			quotacheck.Cmd,
 			gateway.Cmd,
+			clickhouseUser.Cmd,
 		},
 	}
 
