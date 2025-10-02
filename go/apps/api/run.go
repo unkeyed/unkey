@@ -15,6 +15,10 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/analytics"
+	analyticsstorage "github.com/unkeyed/unkey/go/pkg/analytics/storage"
+	clickhousestorage "github.com/unkeyed/unkey/go/pkg/analytics/storage/clickhouse"
+	kafkastorage "github.com/unkeyed/unkey/go/pkg/analytics/storage/kafka"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -123,6 +127,34 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 		}()
 	}
+
+	// Initialize analytics writer: Kafka if available, otherwise ClickHouse
+	var writer analytics.Writer
+	if len(cfg.KafkaBrokers) > 0 {
+		logger.Info("using kafka for analytics", "brokers", cfg.KafkaBrokers)
+		w, err := kafkastorage.New(kafkastorage.Config{
+			Brokers: cfg.KafkaBrokers,
+			Topics:  kafkastorage.DefaultTopics(),
+		}, logger)
+		if err != nil {
+			return fmt.Errorf("unable to create kafka analytics writer: %w", err)
+		}
+		writer = w
+	} else if cfg.ClickhouseURL != "" {
+		logger.Info("using clickhouse for analytics")
+		w, err := clickhousestorage.New(clickhousestorage.Config{
+			URL: cfg.ClickhouseURL,
+		}, logger)
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse analytics writer: %w", err)
+		}
+		writer = w
+	} else {
+		logger.Info("no analytics backend configured, using noop")
+		writer = analyticsstorage.NewNoopWriter()
+	}
+
+	shutdowns.RegisterCtx(writer.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -250,7 +282,7 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyCache:     caches.VerificationKeyByHash,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
-		Clickhouse:   ch,
+		Analytics:    writer,
 		Region:       cfg.Region,
 		UsageLimiter: ulSvc,
 	})

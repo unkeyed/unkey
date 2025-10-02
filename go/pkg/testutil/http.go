@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	clickhousestorage "github.com/unkeyed/unkey/go/pkg/analytics/storage/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -98,6 +99,12 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	// Create analytics writer using ClickHouse
+	analyticsWriter, err := clickhousestorage.New(clickhousestorage.Config{
+		URL: chDSN,
+	}, logger)
+	require.NoError(t, err)
+
 	validator, err := validation.New()
 	require.NoError(t, err)
 
@@ -128,7 +135,7 @@ func NewHarness(t *testing.T) *Harness {
 		KeyCache:     caches.VerificationKeyByHash,
 		RateLimiter:  ratelimitService,
 		RBAC:         rbac.New(),
-		Clickhouse:   ch,
+		Analytics:    analyticsWriter,
 		Region:       "test",
 		UsageLimiter: ulSvc,
 	})

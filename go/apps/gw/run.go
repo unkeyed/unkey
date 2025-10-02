@@ -19,6 +19,9 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/analytics"
+	analyticsstorage "github.com/unkeyed/unkey/go/pkg/analytics/storage"
+	clickhousestorage "github.com/unkeyed/unkey/go/pkg/analytics/storage/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
@@ -180,6 +183,23 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	// Initialize analytics writer
+	var writer analytics.Writer
+	if cfg.ClickhouseURL != "" {
+		logger.Info("using clickhouse for analytics")
+		w, err := clickhousestorage.New(clickhousestorage.Config{
+			URL: cfg.ClickhouseURL,
+		}, logger)
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse analytics writer: %w", err)
+		}
+		writer = w
+	} else {
+		logger.Info("no analytics backend configured, using noop")
+		writer = analyticsstorage.NewNoopWriter()
+	}
+	shutdowns.RegisterCtx(writer.Close)
+
 	caches, err := caches.New(caches.Config{
 		Logger: logger,
 		Clock:  clk,
@@ -227,7 +247,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
 		UsageLimiter: ulSvc,
-		Clickhouse:   ch,
+		Analytics:    writer,
 		Region:       cfg.Region,
 	})
 	if err != nil {

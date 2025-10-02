@@ -99,6 +99,48 @@ func (ns NullAcmeChallengesType) Value() (driver.Value, error) {
 	return string(ns.AcmeChallengesType), nil
 }
 
+type AnalyticsConfigStorage string
+
+const (
+	AnalyticsConfigStorageIceberg    AnalyticsConfigStorage = "iceberg"
+	AnalyticsConfigStorageClickhouse AnalyticsConfigStorage = "clickhouse"
+)
+
+func (e *AnalyticsConfigStorage) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AnalyticsConfigStorage(s)
+	case string:
+		*e = AnalyticsConfigStorage(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AnalyticsConfigStorage: %T", src)
+	}
+	return nil
+}
+
+type NullAnalyticsConfigStorage struct {
+	AnalyticsConfigStorage AnalyticsConfigStorage
+	Valid                  bool // Valid is true if AnalyticsConfigStorage is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAnalyticsConfigStorage) Scan(value interface{}) error {
+	if value == nil {
+		ns.AnalyticsConfigStorage, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AnalyticsConfigStorage.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAnalyticsConfigStorage) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AnalyticsConfigStorage), nil
+}
+
 type ApisAuthType string
 
 const (
@@ -509,6 +551,15 @@ type AcmeUser struct {
 	RegistrationUri sql.NullString `db:"registration_uri"`
 	CreatedAt       int64          `db:"created_at"`
 	UpdatedAt       sql.NullInt64  `db:"updated_at"`
+}
+
+type AnalyticsConfig struct {
+	WorkspaceID string                 `db:"workspace_id"`
+	Storage     AnalyticsConfigStorage `db:"storage"`
+	Enabled     bool                   `db:"enabled"`
+	Config      json.RawMessage        `db:"config"`
+	CreatedAt   int64                  `db:"created_at"`
+	UpdatedAt   sql.NullInt64          `db:"updated_at"`
 }
 
 type Api struct {

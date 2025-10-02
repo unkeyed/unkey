@@ -179,7 +179,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
-	`slug` varchar(64),
+	`slug` varchar(64) NOT NULL,
 	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
@@ -301,7 +301,7 @@ CREATE TABLE `environments` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
-	CONSTRAINT `environments_workspace_id_slug_idx` UNIQUE(`workspace_id`,`slug`)
+	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 --> statement-breakpoint
 CREATE TABLE `projects` (
@@ -310,6 +310,8 @@ CREATE TABLE `projects` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`git_repository_url` varchar(500),
+	`live_deployment_id` varchar(256),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
@@ -363,26 +365,28 @@ CREATE TABLE `domains` (
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256),
+	`environment_id` varchar(256),
 	`deployment_id` varchar(256),
 	`domain` varchar(256) NOT NULL,
 	`type` enum('custom','wildcard') NOT NULL,
+	`sticky` enum('branch','environment','live'),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`)
+	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 --> statement-breakpoint
 CREATE TABLE `acme_challenges` (
-	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`domain_id` varchar(256) NOT NULL,
-	`token` varchar(256) NOT NULL,
+	`domain_id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`token` varchar(255) NOT NULL,
 	`type` enum('HTTP-01','DNS-01') NOT NULL,
-	`authorization` varchar(256) NOT NULL,
+	`authorization` varchar(255) NOT NULL,
 	`status` enum('waiting','pending','verified','failed') NOT NULL,
 	`expires_at` bigint NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `acme_challenges_id` PRIMARY KEY(`id`)
+	CONSTRAINT `acme_challenges_domain_id_pk` PRIMARY KEY(`domain_id`)
 );
 --> statement-breakpoint
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);--> statement-breakpoint
@@ -410,4 +414,6 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);--> statement-breakpoint
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `project_idx` ON `domains` (`project_id`);--> statement-breakpoint
-CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
+CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);--> statement-breakpoint
+CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);--> statement-breakpoint
+CREATE INDEX `status_idx` ON `acme_challenges` (`status`);

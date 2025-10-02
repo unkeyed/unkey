@@ -127,6 +127,11 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
 	FindAcmeUserByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (AcmeUser, error)
+	//FindAnalyticsConfigByWorkspaceID
+	//
+	//  SELECT workspace_id, storage, enabled, config, created_at, updated_at FROM `analytics_config`
+	//  WHERE workspace_id = ?
+	FindAnalyticsConfigByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (AnalyticsConfig, error)
 	//FindApiByID
 	//
 	//  SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -1791,6 +1796,16 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertAnalyticsConfig
+	//
+	//  INSERT INTO `analytics_config` (workspace_id, enabled, storage, config, created_at)
+	//  VALUES (?, TRUE, ?, ?, UNIX_TIMESTAMP() * 1000)
+	//  ON DUPLICATE KEY UPDATE
+	//  	enabled = TRUE,
+	//  	storage = VALUES(storage),
+	//  	config = VALUES(config),
+	//  	updated_at = UNIX_TIMESTAMP() * 1000
+	UpsertAnalyticsConfig(ctx context.Context, db DBTX, arg UpsertAnalyticsConfigParams) error
 }
 
 var _ Querier = (*Queries)(nil)

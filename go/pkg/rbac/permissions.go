@@ -28,6 +28,9 @@ const (
 
 	// Identity represents user and identity management resources
 	Identity ResourceType = "identity"
+
+	// Workspace represents workspace-level resources
+	Workspace ResourceType = "workspace"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -158,6 +161,13 @@ const (
 
 	// DeleteIdentity permits removing identities
 	DeleteIdentity ActionType = "delete_identity"
+)
+
+// Predefined workspace actions. These constants define operations that can be
+// performed on workspace-level resources.
+const (
+	// ReadAnalytics permits querying analytics data
+	ReadAnalytics ActionType = "read_analytics"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

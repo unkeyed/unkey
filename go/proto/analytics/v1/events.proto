@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package analytics.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/analytics/v1";
+
+// KeyVerificationEvent represents a key verification operation event.
+// This event is emitted whenever an API key is validated.
+message KeyVerificationEvent {
+  // Request ID for tracing correlation
+  string request_id = 1;
+
+  // Unix timestamp in milliseconds
+  int64 time = 2;
+
+  // Workspace identifier
+  string workspace_id = 3;
+
+  // Key space identifier (API identifier)
+  string key_space_id = 4;
+
+  // Identity identifier (empty if no identity)
+  string identity_id = 5;
+
+  // Key identifier
+  string key_id = 6;
+
+  // Geographic region where verification occurred
+  string region = 7;
+
+  // Verification outcome (e.g., "VALID", "EXPIRED", "RATE_LIMITED")
+  string outcome = 8;
+
+  // Tags associated with the key
+  repeated string tags = 9;
+
+  // Credits spent on this verification
+  int64 spent_credits = 10;
+
+  // Latency in milliseconds for this verification
+  double latency = 11;
+}
+
+// RatelimitEvent represents a rate limiting operation event.
+// This event is emitted whenever rate limiting is applied.
+message RatelimitEvent {
+  // Request ID for tracing correlation
+  string request_id = 1;
+
+  // Unix timestamp in milliseconds
+  int64 time = 2;
+
+  // Workspace identifier
+  string workspace_id = 3;
+
+  // Namespace identifier for the rate limit
+  string namespace_id = 4;
+
+  // Identifier being rate limited
+  string identifier = 5;
+
+  // Whether the request passed rate limiting
+  bool passed = 6;
+
+  // Latency in milliseconds for this rate limit check
+  double latency = 7;
+
+  // Override ID if any override was applied
+  string override_id = 8;
+
+  // Rate limit configuration
+  uint64 limit = 9;
+
+  // Remaining requests
+  uint64 remaining = 10;
+
+  // Reset timestamp
+  int64 reset_at = 11;
+}
+
+// ApiRequestEvent represents an HTTP API request event.
+// This event is emitted for API requests that need to be tracked.
+message ApiRequestEvent {
+  // Request ID for tracing correlation
+  string request_id = 1;
+
+  // Unix timestamp in milliseconds
+  int64 time = 2;
+
+  // Workspace identifier
+  string workspace_id = 3;
+
+  // Request host
+  string host = 4;
+
+  // HTTP method
+  string method = 5;
+
+  // Request path
+  string path = 6;
+
+  // Query string
+  string query_string = 7;
+
+  // Query parameters as key-value pairs
+  map<string, QueryParams> query_params = 8;
+
+  // Request headers
+  repeated string request_headers = 9;
+
+  // Request body (sanitized)
+  string request_body = 10;
+
+  // HTTP response status code
+  int32 response_status = 11;
+
+  // Response headers
+  repeated string response_headers = 12;
+
+  // Response body (sanitized)
+  string response_body = 13;
+
+  // Error message if any
+  string error = 14;
+
+  // Service latency in milliseconds
+  int64 service_latency = 15;
+
+  // User agent
+  string user_agent = 16;
+
+  // IP address
+  string ip_address = 17;
+
+  // Geographic region
+  string region = 18;
+}
+
+// QueryParams represents multiple values for a query parameter
+message QueryParams {
+  repeated string values = 1;
+}

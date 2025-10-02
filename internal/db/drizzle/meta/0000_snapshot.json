@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "feb5640a-c169-40c0-a711-90db24af469e",
+  "id": "ad22794f-5c18-40b2-8d51-900e6635e1c4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "apis": {
@@ -99,7 +99,8 @@
           "name": "apis_key_auth_id_unique",
           "columns": ["key_auth_id"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "keys_permissions": {
       "name": "keys_permissions",
@@ -165,7 +166,8 @@
           "name": "key_id_permission_id_idx",
           "columns": ["key_id", "permission_id"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "keys_roles": {
       "name": "keys_roles",
@@ -221,7 +223,8 @@
           "columns": ["role_id", "key_id", "workspace_id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "permissions": {
       "name": "permissions",
@@ -290,7 +293,8 @@
           "name": "unique_slug_per_workspace_idx",
           "columns": ["workspace_id", "slug"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "roles": {
       "name": "roles",
@@ -358,7 +362,8 @@
           "name": "unique_name_per_workspace_idx",
           "columns": ["name", "workspace_id"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "roles_permissions": {
       "name": "roles_permissions",
@@ -413,7 +418,8 @@
           "name": "unique_tuple_permission_id_role_id",
           "columns": ["permission_id", "role_id"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "key_auth": {
       "name": "key_auth",
@@ -502,7 +508,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "encrypted_keys": {
       "name": "encrypted_keys",
@@ -560,7 +567,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "keys": {
       "name": "keys",
@@ -773,7 +781,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "vercel_bindings": {
       "name": "vercel_bindings",
@@ -878,7 +887,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "vercel_integrations": {
       "name": "vercel_integrations",
@@ -942,7 +952,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "ratelimit_namespaces": {
       "name": "ratelimit_namespaces",
@@ -1004,7 +1015,8 @@
           "name": "unique_name_per_workspace_idx",
           "columns": ["workspace_id", "name"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "ratelimit_overrides": {
       "name": "ratelimit_overrides",
@@ -1101,7 +1113,8 @@
           "name": "unique_identifier_per_namespace_idx",
           "columns": ["namespace_id", "identifier"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "workspaces": {
       "name": "workspaces",
@@ -1131,7 +1144,7 @@
           "name": "slug",
           "type": "varchar(64)",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "partition_id": {
@@ -1248,7 +1261,8 @@
           "name": "workspaces_slug_unique",
           "columns": ["slug"]
         }
-      }
+      },
+      "checkConstraint": {}
     },
     "key_migration_errors": {
       "name": "key_migration_errors",
@@ -1297,7 +1311,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "identities": {
       "name": "identities",
@@ -1375,7 +1390,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "ratelimits": {
       "name": "ratelimits",
@@ -1476,7 +1492,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "quota": {
       "name": "quota",
@@ -1529,7 +1546,8 @@
           "columns": ["workspace_id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "audit_log": {
       "name": "audit_log",
@@ -1680,7 +1698,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "audit_log_bucket": {
       "name": "audit_log_bucket",
@@ -1750,7 +1769,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "audit_log_target": {
       "name": "audit_log_target",
@@ -1858,7 +1878,8 @@
           "columns": ["audit_log_id", "id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "environments": {
       "name": "environments",
@@ -1922,9 +1943,9 @@
         }
       },
       "indexes": {
-        "environments_workspace_id_slug_idx": {
-          "name": "environments_workspace_id_slug_idx",
-          "columns": ["workspace_id", "slug"],
+        "environments_project_id_slug_idx": {
+          "name": "environments_project_id_slug_idx",
+          "columns": ["project_id", "slug"],
           "isUnique": true
         }
       },
@@ -1935,7 +1956,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "projects": {
       "name": "projects",
@@ -1974,6 +1996,21 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "live_deployment_id": {
+          "name": "live_deployment_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_rolled_back": {
+          "name": "is_rolled_back",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "default_branch": {
           "name": "default_branch",
@@ -2025,7 +2062,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "deployments": {
       "name": "deployments",
@@ -2175,7 +2213,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "deployment_steps": {
       "name": "deployment_steps",
@@ -2231,7 +2270,8 @@
           "columns": ["deployment_id", "status"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "acme_users": {
       "name": "acme_users",
@@ -2293,7 +2333,8 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "domains": {
       "name": "domains",
@@ -2319,6 +2360,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "environment_id": {
+          "name": "environment_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "deployment_id": {
           "name": "deployment_id",
           "type": "varchar(256)",
@@ -2338,6 +2386,13 @@
           "type": "enum('custom','wildcard')",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "sticky": {
+          "name": "sticky",
+          "type": "enum('branch','environment','live')",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "created_at": {
@@ -2365,6 +2420,16 @@
           "name": "project_idx",
           "columns": ["project_id"],
           "isUnique": false
+        },
+        "deployment_idx": {
+          "name": "deployment_idx",
+          "columns": ["deployment_id"],
+          "isUnique": false
+        },
+        "unique_domain_idx": {
+          "name": "unique_domain_idx",
+          "columns": ["domain"],
+          "isUnique": true
         }
       },
       "foreignKeys": {},
@@ -2374,35 +2439,29 @@
           "columns": ["id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
     "acme_challenges": {
       "name": "acme_challenges",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "bigint unsigned",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "varchar(256)",
+        "domain_id": {
+          "name": "domain_id",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "domain_id": {
-          "name": "domain_id",
-          "type": "varchar(256)",
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "token": {
           "name": "token",
-          "type": "varchar(256)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -2416,7 +2475,7 @@
         },
         "authorization": {
           "name": "authorization",
-          "type": "varchar(256)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -2455,18 +2514,25 @@
           "name": "workspace_idx",
           "columns": ["workspace_id"],
           "isUnique": false
+        },
+        "status_idx": {
+          "name": "status_idx",
+          "columns": ["status"],
+          "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "acme_challenges_id": {
-          "name": "acme_challenges_id",
-          "columns": ["id"]
+        "acme_challenges_domain_id_pk": {
+          "name": "acme_challenges_domain_id_pk",
+          "columns": ["domain_id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     }
   },
+  "views": {},
   "_meta": {
     "schemas": {},
     "tables": {},

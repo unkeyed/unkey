@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	createiceberg "github.com/unkeyed/unkey/go/cmd/create-iceberg"
 	"github.com/unkeyed/unkey/go/cmd/deploy"
 	gateway "github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
+	"github.com/unkeyed/unkey/go/cmd/konsume"
+	queryiceberg "github.com/unkeyed/unkey/go/cmd/query-iceberg"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
 	"github.com/unkeyed/unkey/go/cmd/version"
@@ -28,6 +31,9 @@ func main() {
 			healthcheck.Cmd,
 			quotacheck.Cmd,
 			gateway.Cmd,
+			konsume.Cmd,
+			createiceberg.Cmd,
+			queryiceberg.Cmd,
 		},
 	}
 

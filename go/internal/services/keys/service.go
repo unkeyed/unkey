@@ -3,8 +3,8 @@ package keys
 import (
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/analytics"
 	"github.com/unkeyed/unkey/go/pkg/cache"
-	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -12,13 +12,13 @@ import (
 
 // Config holds the configuration for creating a new keys service instance.
 type Config struct {
-	Logger       logging.Logger        // Logger for service operations
-	DB           db.Database           // Database connection
-	RateLimiter  ratelimit.Service     // Rate limiting service
-	RBAC         *rbac.RBAC            // Role-based access control
-	Clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
-	Region       string                // Geographic region identifier
-	UsageLimiter usagelimiter.Service  // Redis Counter for usage limiting
+	Logger       logging.Logger       // Logger for service operations
+	DB           db.Database          // Database connection
+	RateLimiter  ratelimit.Service    // Rate limiting service
+	RBAC         *rbac.RBAC           // Role-based access control
+	Analytics    analytics.Writer     // Analytics writer for events
+	Region       string               // Geographic region identifier
+	UsageLimiter usagelimiter.Service // Redis Counter for usage limiting
 
 	KeyCache cache.Cache[string, db.FindKeyForVerificationRow] // Cache for key lookups
 }
@@ -29,7 +29,7 @@ type service struct {
 	raterLimiter ratelimit.Service
 	usageLimiter usagelimiter.Service
 	rbac         *rbac.RBAC
-	clickhouse   clickhouse.ClickHouse
+	analytics    analytics.Writer
 	region       string
 
 	// hash -> key
@@ -44,7 +44,7 @@ func New(config Config) (*service, error) {
 		rbac:         config.RBAC,
 		raterLimiter: config.RateLimiter,
 		usageLimiter: config.UsageLimiter,
-		clickhouse:   config.Clickhouse,
+		analytics:    config.Analytics,
 		region:       config.Region,
 		keyCache:     config.KeyCache,
 	}, nil

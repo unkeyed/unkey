@@ -1,4 +1,5 @@
 export * from "./apis";
+export * from "./analytics_config";
 export * from "./rbac";
 export * from "./keyAuth";
 export * from "./keys";

@@ -16,6 +16,16 @@ CREATE TABLE `apis` (
 	CONSTRAINT `apis_key_auth_id_unique` UNIQUE(`key_auth_id`)
 );
 
+CREATE TABLE `analytics_config` (
+	`workspace_id` varchar(255) NOT NULL,
+	`storage` enum('iceberg','clickhouse') NOT NULL,
+	`enabled` boolean NOT NULL DEFAULT false,
+	`config` json NOT NULL DEFAULT ('{}'),
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `analytics_config_workspace_id` PRIMARY KEY(`workspace_id`)
+);
+
 CREATE TABLE `keys_permissions` (
 	`temp_id` bigint AUTO_INCREMENT NOT NULL,
 	`key_id` varchar(256) NOT NULL,
@@ -393,6 +403,7 @@ CREATE TABLE `acme_challenges` (
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
+CREATE INDEX `domain_idx` ON `analytics_config` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);

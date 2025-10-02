@@ -8,6 +8,7 @@ import "context"
 type BulkQuerier interface {
 	InsertAcmeChallenges(ctx context.Context, db DBTX, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error
+	UpsertAnalyticsConfig(ctx context.Context, db DBTX, args []UpsertAnalyticsConfigParams) error
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error

@@ -6,7 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/analytics"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -48,11 +48,11 @@ type KeyVerifier struct {
 	region  string       // Geographic region identifier
 
 	// Services
-	rateLimiter  ratelimit.Service     // Rate limiting service
-	usageLimiter usagelimiter.Service  // Usage limiting service
-	rBAC         *rbac.RBAC            // Role-based access control service
-	clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
-	logger       logging.Logger        // Logger for verification operations
+	rateLimiter  ratelimit.Service    // Rate limiting service
+	usageLimiter usagelimiter.Service // Usage limiting service
+	rBAC         *rbac.RBAC           // Role-based access control service
+	analytics    analytics.Writer     // Analytics writer for events
+	logger       logging.Logger       // Logger for verification operations
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
@@ -121,17 +121,22 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 }
 
 func (k *KeyVerifier) log() {
-	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
-		RequestID:   k.session.RequestID(),
-		WorkspaceID: k.Key.WorkspaceID,
-		Time:        time.Now().UnixMilli(),
-		Outcome:     string(k.Status),
-		KeySpaceID:  k.Key.KeyAuthID,
-		KeyID:       k.Key.ID,
-		IdentityID:  k.Key.IdentityID.String,
-		Tags:        k.tags,
-		Region:      k.region,
+	err := k.analytics.KeyVerification(context.Background(), schema.KeyVerificationV2{
+		RequestID:    k.session.RequestID(),
+		WorkspaceID:  k.Key.WorkspaceID,
+		Time:         time.Now().UnixMilli(),
+		Outcome:      string(k.Status),
+		KeySpaceID:   k.Key.KeyAuthID,
+		KeyID:        k.Key.ID,
+		IdentityID:   k.Key.IdentityID.String,
+		Tags:         k.tags,
+		Region:       k.region,
+		SpentCredits: 0, // TODO: add credits tracking
+		Latency:      0, // TODO: add latency tracking
 	})
+	if err != nil {
+		k.logger.Error("failed to write key verification event", "error", err.Error())
+	}
 
 	keyType := "key"
 	if k.isRootKey {

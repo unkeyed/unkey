@@ -313,10 +313,9 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 		)
 	}
 	defer rows.Close()
-
 	columns := rows.Columns()
-	var results []map[string]any
 
+	var results []map[string]any
 	for rows.Next() {
 		// Create slice of ch.Dynamic to scan into
 		values := make([]ch.Dynamic, len(columns))
