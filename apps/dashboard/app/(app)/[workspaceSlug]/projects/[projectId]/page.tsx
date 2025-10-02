@@ -7,10 +7,10 @@ import type { ReactNode } from "react";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
-import { useProjectLayout } from "./layout-provider";
+import { useProject } from "./layout-provider";
 
 export default function ProjectDetails() {
-  const { isDetailsOpen, projectId, collections } = useProjectLayout();
+  const { isDetailsOpen, projectId, collections } = useProject();
 
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),

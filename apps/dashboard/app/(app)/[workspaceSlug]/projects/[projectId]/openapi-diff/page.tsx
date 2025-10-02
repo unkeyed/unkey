@@ -8,12 +8,12 @@ import { Loader } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "../details/card";
-import { useProjectLayout } from "../layout-provider";
+import { useProject } from "../layout-provider";
 import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";
 
 export default function DiffPage() {
-  const { collections, isDetailsOpen, liveDeploymentId } = useProjectLayout();
+  const { collections, isDetailsOpen, liveDeploymentId } = useProject();
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");

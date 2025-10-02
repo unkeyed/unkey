@@ -1,12 +1,12 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useProjectLayout } from "../../../../layout-provider";
+import { useProject } from "../../../../layout-provider";
 
 type Props = {
   deploymentId: string;
 };
 
 export const DomainList = ({ deploymentId }: Props) => {
-  const { collections } = useProjectLayout();
+  const { collections } = useProject();
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: collections.domains })

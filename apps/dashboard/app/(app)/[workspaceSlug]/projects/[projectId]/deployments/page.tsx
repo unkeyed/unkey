@@ -1,12 +1,12 @@
 "use client";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useProjectLayout } from "../layout-provider";
+import { useProject } from "../layout-provider";
 import { DeploymentsListControlCloud } from "./components/control-cloud";
 import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsList } from "./components/table/deployments-list";
 
 export default function Deployments() {
-  const { isDetailsOpen } = useProjectLayout();
+  const { isDetailsOpen } = useProject();
 
   return (
     <div

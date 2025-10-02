@@ -13,10 +13,10 @@ type ProjectLayoutContextType = {
 
 export const ProjectLayoutContext = createContext<ProjectLayoutContextType | null>(null);
 
-export const useProjectLayout = () => {
+export const useProject = () => {
   const context = useContext(ProjectLayoutContext);
   if (!context) {
-    throw new Error("useProjectLayout must be used within ProjectLayoutWrapper");
+    throw new Error("useProject must be used within ProjectLayout");
   }
   return context;
 };

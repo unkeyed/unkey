@@ -6,7 +6,7 @@ import { ArrowRight } from "@unkey/icons";
 import type { GetOpenApiDiffResponse } from "@unkey/proto";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useProjectLayout } from "../../../layout-provider";
+import { useProject } from "../../../layout-provider";
 import { type DiffStatus, StatusIndicator } from "../../active-deployment-card/status-indicator";
 
 const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
@@ -27,7 +27,7 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 
 export const OpenApiDiff = () => {
   const params = useParams();
-  const { collections, liveDeploymentId } = useProjectLayout();
+  const { collections, liveDeploymentId } = useProject();
 
   const query = useLiveQuery(
     (q) =>
