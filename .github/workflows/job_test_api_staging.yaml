@@ -27,7 +27,7 @@ jobs:
       matrix:
         shard: ["1/9", "2/9", "3/9", "4/9", "5/9", "6/9", "7/9", "8/9", "9/9"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       # Our staging server goes to sleep to save money, this will wake it up
       # before running our tests
       - name: Wake ClickHouse

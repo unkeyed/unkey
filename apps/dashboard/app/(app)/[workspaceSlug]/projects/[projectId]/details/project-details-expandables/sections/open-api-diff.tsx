@@ -4,10 +4,9 @@ import { trpc } from "@/lib/trpc/client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
 import type { GetOpenApiDiffResponse } from "@unkey/proto";
-import { InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useProjectLayout } from "../../../layout-provider";
+import { useProject } from "../../../layout-provider";
 import {
   type DiffStatus,
   StatusIndicator,
@@ -20,15 +19,18 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
   if (data.hasBreakingChanges) {
     return "breaking";
   }
-  if (data.summary?.diff) {
+
+  // Only show warning if there are actual changes in the changelog
+  if (data.summary?.diff && data.changes && data.changes.length > 0) {
     return "warning";
   }
+
   return "safe";
 };
 
 export const OpenApiDiff = () => {
   const params = useParams();
-  const { collections, liveDeploymentId } = useProjectLayout();
+  const { collections, liveDeploymentId } = useProject();
 
   const query = useLiveQuery(
     (q) =>
@@ -74,48 +76,39 @@ export const OpenApiDiff = () => {
 
   const diffUrl = `/${params?.workspaceSlug}/projects/${params?.projectId}/openapi-diff?from=${oldDeployment.id}&to=${newDeployment.id}`;
   return (
-    <InfoTooltip
-      content="View detailed API diff comparison"
-      position={{ side: "top", align: "center" }}
-      asChild
-    >
-      <Link
-        href={diffUrl}
-        className="hover:opacity-80 transition-opacity block"
-      >
-        <div className="gap-4 items-center flex w-full">
-          <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
-            <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
-              <StatusIndicator className="bg-transparent" />
-            </div>
-            <div className="flex flex-col flex-1 px-3">
-              <div className="text-grayA-9 text-xs">from</div>
-              <div className="text-accent-12 font-medium text-xs">
-                {shortenId(oldDeployment.id)}
-              </div>
-            </div>
+    <Link href={diffUrl} className="hover:opacity-80 transition-opacity block">
+      <div className="gap-4 items-center flex w-full">
+        <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
+          <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+            <StatusIndicator className="bg-transparent" />
           </div>
-          <ArrowRight
-            className="shrink-0 text-gray-9 size-[14px]"
-            iconsize="sm-regular"
-          />
-          <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
-            <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
-              <StatusIndicator
-                status={status}
-                withSignal
-                className="bg-transparent"
-              />
-            </div>
-            <div className="flex flex-col flex-1 px-3">
-              <div className="text-grayA-9 text-xs">to</div>
-              <div className="text-accent-12 font-medium text-xs">
-                {shortenId(newDeployment.id)}
-              </div>
+          <div className="flex flex-col flex-1 px-3">
+            <div className="text-grayA-9 text-xs">from</div>
+            <div className="text-accent-12 font-medium text-xs">
+              {shortenId(oldDeployment.id)}
             </div>
           </div>
         </div>
-      </Link>
-    </InfoTooltip>
+        <ArrowRight
+          className="shrink-0 text-gray-9 size-[14px]"
+          iconsize="sm-regular"
+        />
+        <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
+          <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+            <StatusIndicator
+              status={status}
+              withSignal
+              className="bg-transparent"
+            />
+          </div>
+          <div className="flex flex-col flex-1 px-3">
+            <div className="text-grayA-9 text-xs">to</div>
+            <div className="text-accent-12 font-medium text-xs">
+              {shortenId(newDeployment.id)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 };

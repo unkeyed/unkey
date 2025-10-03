@@ -3,7 +3,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Book2, Cube, DoubleChevronRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useProjectLayout } from "../../layout-provider";
+import { useProject } from "../../layout-provider";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
 
@@ -20,7 +20,7 @@ export const ProjectDetailsExpandable = ({
   onClose,
   projectId,
 }: ProjectDetailsExpandableProps) => {
-  const { collections } = useProjectLayout();
+  const { collections } = useProject();
   const query = useLiveQuery((q) =>
     q
       .from({ project: collection.projects })

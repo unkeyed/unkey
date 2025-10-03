@@ -100,20 +100,7 @@ export const TableActionPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {children ? (
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.stopPropagation();
-              }
-            }}
-            className="contents"
-          >
-            {children}
-          </button>
-        ) : (
+        {children ?? (
           <TableActionPopoverDefaultTrigger
             onClick={(e) => e.stopPropagation()}
           />

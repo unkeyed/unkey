@@ -16,7 +16,7 @@ import {
 import { Badge, Button, CopyButton, Input, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { format } from "date-fns";
-import { useProjectLayout } from "../../layout-provider";
+import { useProject } from "../../layout-provider";
 import { Card } from "../card";
 import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { FilterButton } from "./filter-button";
@@ -73,7 +73,7 @@ type Props = {
 };
 
 export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
-  const { collections } = useProjectLayout();
+  const { collections } = useProject();
   const { data, isLoading } = useLiveQuery(
     (q) =>
       q

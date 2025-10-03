@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
+
+service DeploymentService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+  rpc Deploy(DeployRequest) returns (DeployResponse) {}
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+}
+
+message DeployRequest {
+  string deployment_id = 1;
+  string docker_image = 2;
+  optional string key_auth_id = 3;
+}
+
+message DeployResponse {}
+
+message RollbackRequest {
+  string source_deployment_id = 1;
+  string target_deployment_id = 2;
+}
+
+message RollbackResponse {}
+
+message PromoteRequest {
+  string target_deployment_id = 1;
+}
+
+message PromoteResponse {}

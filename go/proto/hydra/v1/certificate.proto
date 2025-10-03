@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
+
+// CertificateService manages ACME certificate challenges and issuance
+service CertificateService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // ProcessChallenge handles the complete ACME certificate challenge flow
+  // Key: domain name (ensures only one challenge per domain at a time)
+  rpc ProcessChallenge(ProcessChallengeRequest) returns (ProcessChallengeResponse) {}
+}
+
+message ProcessChallengeRequest {
+  string workspace_id = 1;
+  string domain = 2;
+}
+
+message ProcessChallengeResponse {
+  string certificate_id = 1;
+  string status = 2; // "success", "failed", "pending"
+}

@@ -87,3 +87,12 @@ export const ActionColumnSkeleton = () => (
     <Dots className="text-gray-11 opacity-50" iconsize="sm-regular" />
   </button>
 );
+
+export const DomainListSkeleton = () => (
+  <div className="flex items-center gap-2">
+    <div className="h-4 w-36 bg-grayA-3 rounded animate-pulse" />
+    <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 animate-pulse size-[22px] flex items-center justify-center">
+      <div className="size-3 bg-grayA-3 rounded-full animate-pulse" />
+    </div>
+  </div>
+);

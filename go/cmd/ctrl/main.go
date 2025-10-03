@@ -78,6 +78,16 @@ var Cmd = &cli.Command{
 		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+
+		// Restate Configuration
+		cli.String("restate-ingress-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
+			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
+		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
+			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
+		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
+			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
+		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
+			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
 	},
 	Action: action,
 }
@@ -111,7 +121,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Database configuration
 		DatabasePrimary:   cmd.String("database-primary"),
 		DatabasePartition: cmd.String("database-partition"),
-		DatabaseHydra:     cmd.String("database-hydra"),
 
 		// Observability
 		OtelEnabled:           cmd.Bool("otel"),
@@ -145,6 +154,14 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		},
 
 		DefaultDomain: cmd.String("default-domain"),
+
+		// Restate configuration
+		Restate: ctrl.RestateConfig{
+			IngressURL: cmd.String("restate-ingress-url"),
+			AdminURL:   cmd.String("restate-admin-url"),
+			HttpPort:   cmd.Int("restate-http-port"),
+			RegisterAs: cmd.String("restate-register-as"),
+		},
 
 		// Common
 		Clock: clock.New(),

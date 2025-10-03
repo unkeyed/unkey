@@ -1,5 +1,5 @@
 "use client";
-import { useProjectLayout } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/layout-provider";
+import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/layout-provider";
 import {
   type MenuItem,
   TableActionPopover,
@@ -29,7 +29,7 @@ export const DeploymentListTableActions = ({
   environment,
 }: DeploymentListTableActionsProps) => {
   const workspace = useWorkspaceNavigation();
-  const { collections } = useProjectLayout();
+  const { collections } = useProject();
   const { data } = useLiveQuery((q) =>
     q
       .from({ domain: collections.domains })

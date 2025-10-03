@@ -371,7 +371,8 @@ const file_partition_v1_gateway_proto_rawDesc = "" +
 	"AuthConfig\x12\x1e\n" +
 	"\vkey_auth_id\x18\x01 \x01(\tR\tkeyAuthId\"5\n" +
 	"\x10ValidationConfig\x12!\n" +
-	"\fopenapi_spec\x18\x01 \x01(\tR\vopenapiSpecB@Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1b\x06proto3"
+	"\fopenapi_spec\x18\x01 \x01(\tR\vopenapiSpecB\xb1\x01\n" +
+	"\x10com.partition.v1B\fGatewayProtoP\x01Z>github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1\xa2\x02\x03PXX\xaa\x02\fPartition.V1\xca\x02\fPartition\\V1\xe2\x02\x18Partition\\V1\\GPBMetadata\xea\x02\rPartition::V1b\x06proto3"
 
 var (
 	file_partition_v1_gateway_proto_rawDescOnce sync.Once
