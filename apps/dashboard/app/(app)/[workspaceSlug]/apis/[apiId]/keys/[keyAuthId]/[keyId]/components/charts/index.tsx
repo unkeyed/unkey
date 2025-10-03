@@ -64,6 +64,7 @@ export const KeyDetailsLogsChart = ({
         onMount={onMount}
         onSelectionChange={handleSelectionChange}
         config={createOutcomeChartConfig()}
+        granularity={granularity}
         labels={{
           title: "REQUESTS",
           primaryLabel: "VALID",

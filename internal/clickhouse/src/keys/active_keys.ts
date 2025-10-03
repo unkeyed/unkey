@@ -71,6 +71,11 @@ const ACTIVE_KEYS_INTERVALS: Record<string, TimeInterval> = {
     step: "MINUTE",
     stepSize: 5,
   },
+  fifteenMinutes: {
+    table: "default.key_verifications_per_minute_v2",
+    step: "MINUTE",
+    stepSize: 15,
+  },
   thirtyMinutes: {
     table: "default.key_verifications_per_minute_v2",
     step: "MINUTE",
@@ -290,6 +295,9 @@ export const getMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier
 );
 export const getFiveMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.fiveMinutes,
+);
+export const getFifteenMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.fifteenMinutes,
 );
 export const getThirtyMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
   ACTIVE_KEYS_INTERVALS.thirtyMinutes,

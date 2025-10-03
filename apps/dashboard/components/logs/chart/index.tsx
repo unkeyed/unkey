@@ -1,6 +1,8 @@
 // GenericTimeseriesChart.tsx
 "use client";
 
+import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { formatTooltipInterval } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -8,18 +10,18 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
-import { createTimeIntervalFormatter } from "../overview-charts/utils";
+import { parseTimestamp } from "../parse-timestamp";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
-import { formatTimestampLabel } from "./utils/format-timestamp";
 
 type Selection = {
-  start: string | number;
-  end: string | number;
+  start: number | undefined;
+  end: number | undefined;
   startTimestamp?: number;
   endTimestamp?: number;
 };
@@ -28,6 +30,13 @@ type TimeseriesData = {
   originalTimestamp: number;
   total: number;
   [key: string]: unknown;
+};
+
+export type ChartMouseEvent = {
+  activeLabel?: string | number;
+  activePayload?: ReadonlyArray<{
+    payload: TimeseriesData;
+  }>;
 };
 
 type LogsTimeseriesBarChartProps = {
@@ -39,6 +48,7 @@ type LogsTimeseriesBarChartProps = {
   isLoading?: boolean;
   isError?: boolean;
   enableSelection?: boolean;
+  granularity?: TimeseriesGranularity;
 };
 
 export function LogsTimeseriesBarChart({
@@ -50,10 +60,29 @@ export function LogsTimeseriesBarChart({
   isLoading,
   isError,
   enableSelection = false,
+  granularity,
 }: LogsTimeseriesBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+  const [selection, setSelection] = useState<Selection>({
+    start: undefined,
+    end: undefined,
+  });
 
+  // Precompute timestamp-to-index mapping for O(1) lookup
+  const timestampToIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    if (data?.length) {
+      data.forEach((item, index) => {
+        if (item?.originalTimestamp) {
+          const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
+          if (Number.isFinite(normalizedTimestamp)) {
+            map.set(normalizedTimestamp, index);
+          }
+        }
+      });
+    }
+    return map;
+  }, [data]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
   useEffect(() => {
     if (onMount) {
@@ -62,31 +91,42 @@ export function LogsTimeseriesBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
-  const handleMouseDown = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseDown = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
+
     const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    const numericLabel = Number(e.activeLabel);
+
+    if (!Number.isFinite(numericLabel) || !timestamp) {
+      return;
+    }
+
     setSelection({
-      start: e.activeLabel,
-      end: e.activeLabel,
+      start: numericLabel,
+      end: numericLabel,
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: those are safe to leave
-  const handleMouseMove = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseMove = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
-    if (selection.start) {
+    if (selection.start !== undefined) {
       const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      const numericLabel = Number(e.activeLabel);
+
+      if (!Number.isFinite(numericLabel) || !timestamp) {
+        return;
+      }
+
       setSelection((prev) => ({
         ...prev,
-        end: e.activeLabel,
-        startTimestamp: timestamp,
+        end: numericLabel,
+        endTimestamp: timestamp,
       }));
     }
   };
@@ -95,8 +135,8 @@ export function LogsTimeseriesBarChart({
     if (!enableSelection) {
       return;
     }
-    if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+    if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
+      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
         return;
       }
 
@@ -104,8 +144,8 @@ export function LogsTimeseriesBarChart({
       onSelectionChange({ start, end });
     }
     setSelection({
-      start: "",
-      end: "",
+      start: undefined,
+      end: undefined,
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
@@ -126,9 +166,8 @@ export function LogsTimeseriesBarChart({
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
               data.at(-1)?.originalTimestamp ?? Date.now(),
-            ).map((time, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <div key={i} className="z-10">
+            ).map((time) => (
+              <div key={time.getTime()} className="z-10">
                 {formatTimestampLabel(time)}
               </div>
             ))
@@ -160,7 +199,6 @@ export function LogsTimeseriesBarChart({
                 if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
                   return null;
                 }
-
                 return (
                   <ChartTooltipContent
                     payload={payload}
@@ -187,10 +225,15 @@ export function LogsTimeseriesBarChart({
                       </div>
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
-                    labelFormatter={(_, payload) =>
-                      //@ts-expect-error This is okay to ignore
-                      createTimeIntervalFormatter(data, "HH:mm")(payload)
-                    }
+                    labelFormatter={(_, tooltipPayload) => {
+                      const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                      return formatTooltipInterval(
+                        payloadTimestamp,
+                        data || [],
+                        granularity,
+                        timestampToIndexMap,
+                      );
+                    }}
                   />
                 );
               }}
@@ -198,11 +241,11 @@ export function LogsTimeseriesBarChart({
             {Object.keys(config).map((key) => (
               <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
             ))}
-            {enableSelection && selection.start && selection.end && (
+            {enableSelection && selection.start !== undefined && selection.end !== undefined && (
               <ReferenceArea
                 isAnimationActive
-                x1={Math.min(Number(selection.start), Number(selection.end))}
-                x2={Math.max(Number(selection.start), Number(selection.end))}
+                x1={Math.min(selection.start, selection.end)}
+                x2={Math.max(selection.start, selection.end)}
                 fill="hsl(var(--chart-selection))"
                 radius={[4, 4, 0, 0]}
               />

@@ -1,6 +1,9 @@
 "use client";
+
+import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
+import { formatTooltipInterval } from "@/components/logs/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -8,8 +11,9 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -18,10 +22,11 @@ import {
   ResponsiveContainer,
   YAxis,
 } from "recharts";
+import { parseTimestamp } from "../parse-timestamp";
+
 import { OverviewAreaChartError } from "./overview-area-chart-error";
 import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
-import { createTimeIntervalFormatter } from "./utils";
 
 export type ChartMetric = {
   key: string;
@@ -38,6 +43,8 @@ export type TimeseriesChartLabels = {
   reverse?: boolean;
 };
 
+export type Granularity = TimeseriesGranularity | undefined;
+
 export interface TimeseriesAreaChartProps {
   data?: TimeseriesData[];
   config: ChartConfig;
@@ -46,6 +53,7 @@ export interface TimeseriesAreaChartProps {
   isError?: boolean;
   enableSelection?: boolean;
   labels: TimeseriesChartLabels;
+  granularity?: Granularity;
 }
 
 export const OverviewAreaChart = ({
@@ -56,8 +64,23 @@ export const OverviewAreaChart = ({
   isError,
   enableSelection = false,
   labels,
+  granularity,
 }: TimeseriesAreaChartProps) => {
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  // Precompute timestamp-to-index map for O(1) lookups during hover/tooltip
+  const timestampToIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    data.forEach((item, index) => {
+      if (item?.originalTimestamp) {
+        const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
+        if (Number.isFinite(normalizedTimestamp)) {
+          map.set(normalizedTimestamp, index);
+        }
+      }
+    });
+    return map;
+  }, [data]);
 
   const labelsWithDefaults = {
     ...labels,
@@ -65,9 +88,8 @@ export const OverviewAreaChart = ({
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const handleMouseDown = (e: any) => {
-    if (!enableSelection) {
+  const handleMouseDown = (e: ChartMouseEvent) => {
+    if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
@@ -79,15 +101,15 @@ export const OverviewAreaChart = ({
     });
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const handleMouseMove = (e: any) => {
-    if (!enableSelection || !selection.start) {
+  const handleMouseMove = (e: ChartMouseEvent) => {
+    if (!enableSelection || !selection.start || e.activeLabel === undefined) {
       return;
     }
     const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    const activeLabel = e.activeLabel;
     setSelection((prev) => ({
       ...prev,
-      end: e.activeLabel,
+      end: activeLabel,
       endTimestamp: timestamp,
     }));
   };
@@ -241,10 +263,15 @@ export const OverviewAreaChart = ({
                       label={label}
                       active={active}
                       className="rounded-lg shadow-lg border border-gray-4"
-                      labelFormatter={(_, tooltipPayload) =>
-                        //@ts-expect-error safe to leave as is for now
-                        createTimeIntervalFormatter(data, "HH:mm")(tooltipPayload)
-                      }
+                      labelFormatter={(_, tooltipPayload) => {
+                        const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                        return formatTooltipInterval(
+                          payloadTimestamp,
+                          data || [],
+                          granularity,
+                          timestampToIndexMap,
+                        );
+                      }}
                     />
                   );
                 }}
@@ -277,15 +304,20 @@ export const OverviewAreaChart = ({
 
       <div className="h-max border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
         {data.length > 0
-          ? calculateTimePoints(
-              data[0]?.originalTimestamp ?? Date.now(),
-              data.at(-1)?.originalTimestamp ?? Date.now(),
-            ).map((time, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <div key={i} className="z-10 text-center">
-                {formatTimestampLabel(time)}
-              </div>
-            ))
+          ? (() => {
+              const lastItem = data.at(-1);
+              return calculateTimePoints(
+                data[0]?.originalTimestamp ? parseTimestamp(data[0].originalTimestamp) : Date.now(),
+                lastItem?.originalTimestamp
+                  ? parseTimestamp(lastItem.originalTimestamp)
+                  : Date.now(),
+              ).map((time, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                <div key={i} className="z-10 text-center">
+                  {formatTimestampLabel(time)}
+                </div>
+              ));
+            })()
           : null}
       </div>
     </div>

@@ -258,10 +258,30 @@ const INTERVALS: Record<string, TimeInterval> = {
     step: "HOURS",
     stepSize: 6,
   },
+  twelveHours: {
+    table: "default.api_requests_per_hour_v2",
+    step: "HOURS",
+    stepSize: 12,
+  },
   day: {
     table: "default.api_requests_per_day_v2",
     step: "DAY",
     stepSize: 1,
+  },
+  week: {
+    table: "default.api_requests_per_day_v2",
+    step: "DAYS",
+    stepSize: 7,
+  },
+  month: {
+    table: "default.api_requests_per_month_v2",
+    step: "MONTH",
+    stepSize: 1,
+  },
+  quarter: {
+    table: "default.api_requests_per_quarter_v2",
+    step: "MONTHS",
+    stepSize: 3,
   },
 } as const;
 
@@ -273,7 +293,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
     HOUR: "hour",
     HOURS: "hour",
     DAY: "day",
+    DAYS: "day",
     MONTH: "month",
+    MONTHS: "month",
   }[interval.step];
 
   // For millisecond step calculation
@@ -283,7 +305,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
     HOUR: 3600_000,
     HOURS: 3600_000,
     DAY: 86400_000,
+    DAYS: 86400_000,
     MONTH: 2592000_000,
+    MONTHS: 2592000_000,
   }[interval.step];
 
   if (!msPerUnit) {
@@ -424,4 +448,9 @@ export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
 export const getTwoHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
 export const getFourHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
 export const getSixHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
+export const getTwelveHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.twelveHours);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);
+export const getThreeDayLogsTimeseries = createTimeseriesQuerier(INTERVALS.threeDays);
+export const getWeeklyLogsTimeseries = createTimeseriesQuerier(INTERVALS.week);
+export const getMonthlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.month);
+export const getQuarterlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.quarter);

@@ -102,6 +102,7 @@ export const RatelimitOverviewLogsCharts = ({
           isError={isError}
           enableSelection
           onSelectionChange={handleSelectionChange}
+          granularity={granularity}
           config={{
             success: {
               label: "Passed",

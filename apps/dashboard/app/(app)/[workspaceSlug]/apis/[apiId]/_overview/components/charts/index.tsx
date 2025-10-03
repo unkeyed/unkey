@@ -19,21 +19,24 @@ export const KeysOverviewLogsCharts = ({
     timeseries: verificationTimeseries,
     isLoading: verificationIsLoading,
     isError: verificationIsError,
+    granularity: verificationGranularity,
   } = useFetchVerificationTimeseries(apiId);
 
   const {
     timeseries: activeKeysTimeseries,
     isLoading: activeKeysIsLoading,
     isError: activeKeysIsError,
-    granularity,
+    granularity: activeKeysGranularity,
   } = useFetchActiveKeysTimeseries(apiId);
 
   const handleSelectionChange = ({
     start,
     end,
+    granularity,
   }: {
     start: number;
     end: number;
+    granularity?: typeof verificationGranularity;
   }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
@@ -90,7 +93,12 @@ export const KeysOverviewLogsCharts = ({
           isError={verificationIsError}
           enableSelection
           onMount={onMount}
-          onSelectionChange={handleSelectionChange}
+          onSelectionChange={(selection) =>
+            handleSelectionChange({
+              ...selection,
+              granularity: verificationGranularity,
+            })
+          }
           config={createOutcomeChartConfig()}
           labels={{
             title: "REQUESTS",
@@ -100,6 +108,7 @@ export const KeysOverviewLogsCharts = ({
             secondaryKey: "error",
           }}
           tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
+          granularity={verificationGranularity}
         />
       </div>
       <div className="w-full md:w-1/2 max-md:h-72">
@@ -108,9 +117,15 @@ export const KeysOverviewLogsCharts = ({
           isLoading={activeKeysIsLoading}
           isError={activeKeysIsError}
           enableSelection
-          onSelectionChange={handleSelectionChange}
+          onSelectionChange={(selection) =>
+            handleSelectionChange({
+              ...selection,
+              granularity: activeKeysGranularity,
+            })
+          }
           config={keysChartConfig}
           labels={keysChartLabels}
+          granularity={activeKeysGranularity}
         />
       </div>
     </div>

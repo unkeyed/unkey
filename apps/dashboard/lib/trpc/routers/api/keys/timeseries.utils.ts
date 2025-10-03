@@ -3,12 +3,12 @@ import { getTimestampFromRelative } from "@/lib/utils";
 import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import {
   type TimeseriesConfig,
-  type VerificationTimeseriesGranularity,
+  type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 export function transformVerificationFilters(params: KeysOverviewQueryTimeseriesPayload): {
   params: Omit<VerificationTimeseriesParams, "workspaceId" | "keyspaceId" | "keyId" | "apiId">;
-  granularity: VerificationTimeseriesGranularity;
+  granularity: TimeseriesGranularity;
 } {
   let timeConfig: TimeseriesConfig<"forVerifications">;
 
