@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package cache.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/cache/v1;cachev1";
+
+
+// CacheInvalidationEvent represents a cache invalidation event
+message CacheInvalidationEvent {
+  // The name/identifier of the cache to invalidate
+  string cache_name = 1;
+
+  // The cache key to invalidate
+  string cache_key = 2;
+
+  // Unix millisecond timestamp when the invalidation was triggered
+  int64 timestamp = 3;
+
+  // Optional: The node that triggered the invalidation (to avoid self-invalidation)
+  string source_instance = 4;
+}

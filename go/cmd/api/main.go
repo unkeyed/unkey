@@ -71,6 +71,10 @@ var Cmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
+		// Kafka Configuration
+		cli.StringSlice("kafka-brokers", "Comma-separated list of Kafka broker addresses for distributed cache invalidation",
+			cli.EnvVar("UNKEY_KAFKA_BROKERS")),
+
 		// ClickHouse Proxy Service Configuration
 		cli.String(
 			"chproxy-auth-token",
@@ -147,6 +151,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3:         vaultS3Config,
+
+		// Kafka configuration
+		KafkaBrokers: cmd.StringSlice("kafka-brokers"),
 
 		// ClickHouse proxy configuration
 		ChproxyToken: cmd.String("chproxy-auth-token"),

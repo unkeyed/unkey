@@ -185,3 +185,20 @@ func OTEL(t *testing.T) OTELConfig {
 		GrafanaURL:   "http://localhost:3000",
 	}
 }
+
+// Kafka returns Kafka broker addresses for integration testing.
+//
+// Returns broker addresses for connecting to the Kafka service running
+// in docker-compose. Kafka is used for distributed cache invalidation
+// and other event streaming scenarios.
+//
+// The function returns host addresses (for connecting from test runners) that
+// point to localhost:9092, matching the port mapping in docker-compose.yaml.
+//
+// Example usage:
+//
+//	brokers := containers.Kafka(t)
+//	// Use brokers with your Kafka client
+func Kafka(t *testing.T) []string {
+	return []string{"127.0.0.1:9092"}
+}
