@@ -90,21 +90,17 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
 
   if (timeRange >= QUARTER_IN_MS) {
     granularity = "perMonth";
-  } else if (timeRange >= MONTH_IN_MS * 2) {
-    granularity = "perWeek";
   } else if (timeRange >= MONTH_IN_MS) {
-    granularity = "per3Days";
-  } else if (timeRange >= WEEK_IN_MS) {
+    granularity = "perWeek";
+  } else if (timeRange >= DAY_IN_MS * 3 + HOUR_IN_MS) {
     granularity = "perDay";
-  } else if (timeRange >= DAY_IN_MS * 3) {
-    granularity = "perHour";
   } else if (timeRange >= DAY_IN_MS) {
-    granularity = "perHour";
-  } else if (timeRange >= HOUR_IN_MS * 16) {
-    granularity = "perHour";
-  } else if (timeRange >= HOUR_IN_MS * 8) {
+    granularity = "per2Hours";
+  } else if (timeRange >= HOUR_IN_MS * 12) {
     granularity = "per30Minutes";
   } else if (timeRange >= HOUR_IN_MS * 4) {
+    granularity = "per15Minutes";
+  } else if (timeRange >= HOUR_IN_MS * 2) {
     granularity = "per5Minutes";
   } else {
     granularity = "perMinute";

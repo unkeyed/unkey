@@ -269,7 +269,7 @@ const INTERVALS: Record<string, TimeInterval> = {
     stepSize: 1,
   },
   week: {
-    table: "default.api_requests_per_week_v2",
+    table: "default.api_requests_per_day_v2",
     step: "DAYS",
     stepSize: 7,
   },
