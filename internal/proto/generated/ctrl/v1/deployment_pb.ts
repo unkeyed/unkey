@@ -12,7 +12,7 @@ import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf
 export const file_ctrl_v1_deployment: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi8QIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg4KBmJyYW5jaBgDIAEoCRIYChBlbnZpcm9ubWVudF9zbHVnGAQgASgJEigKC3NvdXJjZV90eXBlGAUgASgOMhMuY3RybC52MS5Tb3VyY2VUeXBlEhQKDGRvY2tlcl9pbWFnZRgGIAEoCRIWCg5naXRfY29tbWl0X3NoYRgHIAEoCRIaChJnaXRfY29tbWl0X21lc3NhZ2UYCCABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGAkgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYCiABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYCyABKAMSGAoLa2V5c3BhY2VfaWQYDCABKAlIAIgBAUIOCgxfa2V5c3BhY2VfaWQiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQiiAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFgoOZ2l0X2NvbW1pdF9zaGEYBSABKAkSEgoKZ2l0X2JyYW5jaBgGIAEoCRIpCgZzdGF0dXMYByABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMSFQoNZXJyb3JfbWVzc2FnZRgIIAEoCRJMChVlbnZpcm9ubWVudF92YXJpYWJsZXMYCSADKAsyLS5jdHJsLnYxLkRlcGxveW1lbnQuRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRIjCgh0b3BvbG9neRgKIAEoCzIRLmN0cmwudjEuVG9wb2xvZ3kSEgoKY3JlYXRlZF9hdBgLIAEoAxISCgp1cGRhdGVkX2F0GAwgASgDEhEKCWhvc3RuYW1lcxgNIAMoCRIXCg9yb290ZnNfaW1hZ2VfaWQYDiABKAkSEAoIYnVpbGRfaWQYDyABKAkSJgoFc3RlcHMYECADKAsyFy5jdHJsLnYxLkRlcGxveW1lbnRTdGVwEhoKEmdpdF9jb21taXRfbWVzc2FnZRgRIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYEiABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgTIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgUIAEoAxo7ChlFbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoORGVwbG95bWVudFN0ZXASDgoGc3RhdHVzGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgDIqYBCghUb3BvbG9neRIWCg5jcHVfbWlsbGljb3JlcxgBIAEoBRIRCgltZW1vcnlfbWIYAiABKAUSKAoHcmVnaW9ucxgDIAMoCzIXLmN0cmwudjEuUmVnaW9uYWxDb25maWcSHAoUaWRsZV90aW1lb3V0X3NlY29uZHMYBCABKAUSGQoRaGVhbHRoX2NoZWNrX3BhdGgYBSABKAkSDAoEcG9ydBgGIAEoBSJOCg5SZWdpb25hbENvbmZpZxIOCgZyZWdpb24YASABKAkSFQoNbWluX2luc3RhbmNlcxgCIAEoBRIVCg1tYXhfaW5zdGFuY2VzGAMgASgFIk0KD1JvbGxiYWNrUmVxdWVzdBIcChRzb3VyY2VfZGVwbG95bWVudF9pZBgBIAEoCRIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgCIAEoCSISChBSb2xsYmFja1Jlc3BvbnNlIi4KDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJIhEKD1Byb21vdGVSZXNwb25zZSrvAQoQRGVwbG95bWVudFN0YXR1cxIhCh1ERVBMT1lNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfU1RBVFVTX1BFTkRJTkcQARIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIbChdERVBMT1lNRU5UX1NUQVRVU19SRUFEWRAFEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBAGKloKClNvdXJjZVR5cGUSGwoXU09VUkNFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9TT1VSQ0VfVFlQRV9HSVQQARIaChZTT1VSQ0VfVFlQRV9DTElfVVBMT0FEEAIywwIKEURlcGxveW1lbnRTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIC5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2UiABJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASQQoIUm9sbGJhY2sSGC5jdHJsLnYxLlJvbGxiYWNrUmVxdWVzdBoZLmN0cmwudjEuUm9sbGJhY2tSZXNwb25zZSIAEj4KB1Byb21vdGUSFy5jdHJsLnYxLlByb21vdGVSZXF1ZXN0GhguY3RybC52MS5Qcm9tb3RlUmVzcG9uc2UiAEI2WjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxYgZwcm90bzM",
+    "ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi0QIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSDgoGYnJhbmNoGAIgASgJEhgKEGVudmlyb25tZW50X3NsdWcYAyABKAkSKAoLc291cmNlX3R5cGUYBCABKA4yEy5jdHJsLnYxLlNvdXJjZVR5cGUSFAoMZG9ja2VyX2ltYWdlGAUgASgJEhYKDmdpdF9jb21taXRfc2hhGAYgASgJEhoKEmdpdF9jb21taXRfbWVzc2FnZRgHIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYCCABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgJIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgKIAEoAxITCgZhcGlfaWQYCyABKAlIAIgBAUIJCgdfYXBpX2lkIlwKGENyZWF0ZURlcGxveW1lbnRSZXNwb25zZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEikKBnN0YXR1cxgCIAEoDjIZLmN0cmwudjEuRGVwbG95bWVudFN0YXR1cyItChRHZXREZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIkAKFUdldERlcGxveW1lbnRSZXNwb25zZRInCgpkZXBsb3ltZW50GAEgASgLMhMuY3RybC52MS5EZXBsb3ltZW50IogFCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEhYKDmdpdF9jb21taXRfc2hhGAUgASgJEhIKCmdpdF9icmFuY2gYBiABKAkSKQoGc3RhdHVzGAcgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYCCABKAkSTAoVZW52aXJvbm1lbnRfdmFyaWFibGVzGAkgAygLMi0uY3RybC52MS5EZXBsb3ltZW50LkVudmlyb25tZW50VmFyaWFibGVzRW50cnkSIwoIdG9wb2xvZ3kYCiABKAsyES5jdHJsLnYxLlRvcG9sb2d5EhIKCmNyZWF0ZWRfYXQYCyABKAMSEgoKdXBkYXRlZF9hdBgMIAEoAxIRCglob3N0bmFtZXMYDSADKAkSFwoPcm9vdGZzX2ltYWdlX2lkGA4gASgJEhAKCGJ1aWxkX2lkGA8gASgJEiYKBXN0ZXBzGBAgAygLMhcuY3RybC52MS5EZXBsb3ltZW50U3RlcBIaChJnaXRfY29tbWl0X21lc3NhZ2UYESABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGBIgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYEyABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYFCABKAMaOwoZRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKDkRlcGxveW1lbnRTdGVwEg4KBnN0YXR1cxgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhUKDWVycm9yX21lc3NhZ2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoAyKmAQoIVG9wb2xvZ3kSFgoOY3B1X21pbGxpY29yZXMYASABKAUSEQoJbWVtb3J5X21iGAIgASgFEigKB3JlZ2lvbnMYAyADKAsyFy5jdHJsLnYxLlJlZ2lvbmFsQ29uZmlnEhwKFGlkbGVfdGltZW91dF9zZWNvbmRzGAQgASgFEhkKEWhlYWx0aF9jaGVja19wYXRoGAUgASgJEgwKBHBvcnQYBiABKAUiTgoOUmVnaW9uYWxDb25maWcSDgoGcmVnaW9uGAEgASgJEhUKDW1pbl9pbnN0YW5jZXMYAiABKAUSFQoNbWF4X2luc3RhbmNlcxgDIAEoBSJNCg9Sb2xsYmFja1JlcXVlc3QSHAoUc291cmNlX2RlcGxveW1lbnRfaWQYASABKAkSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYAiABKAkiEgoQUm9sbGJhY2tSZXNwb25zZSIuCg5Qcm9tb3RlUmVxdWVzdBIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgBIAEoCSIRCg9Qcm9tb3RlUmVzcG9uc2Uq7wEKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHgoaREVQTE9ZTUVOVF9TVEFUVVNfQlVJTERJTkcQAhIfChtERVBMT1lNRU5UX1NUQVRVU19ERVBMT1lJTkcQAxIdChlERVBMT1lNRU5UX1NUQVRVU19ORVRXT1JLEAQSGwoXREVQTE9ZTUVOVF9TVEFUVVNfUkVBRFkQBRIcChhERVBMT1lNRU5UX1NUQVRVU19GQUlMRUQQBipaCgpTb3VyY2VUeXBlEhsKF1NPVVJDRV9UWVBFX1VOU1BFQ0lGSUVEEAASEwoPU09VUkNFX1RZUEVfR0lUEAESGgoWU09VUkNFX1RZUEVfQ0xJX1VQTE9BRBACMsMCChFEZXBsb3ltZW50U2VydmljZRJZChBDcmVhdGVEZXBsb3ltZW50EiAuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVxdWVzdBohLmN0cmwudjEuQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlIgASUAoNR2V0RGVwbG95bWVudBIdLmN0cmwudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHi5jdHJsLnYxLkdldERlcGxveW1lbnRSZXNwb25zZSIAEkEKCFJvbGxiYWNrEhguY3RybC52MS5Sb2xsYmFja1JlcXVlc3QaGS5jdHJsLnYxLlJvbGxiYWNrUmVzcG9uc2UiABI+CgdQcm9tb3RlEhcuY3RybC52MS5Qcm9tb3RlUmVxdWVzdBoYLmN0cmwudjEuUHJvbW90ZVJlc3BvbnNlIgBCNlo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MWIGcHJvdG8z",
   );
 
 /**
@@ -20,34 +20,29 @@ export const file_ctrl_v1_deployment: GenFile =
  */
 export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest"> & {
   /**
-   * @generated from field: string workspace_id = 1;
-   */
-  workspaceId: string;
-
-  /**
-   * @generated from field: string project_id = 2;
+   * @generated from field: string project_id = 1;
    */
   projectId: string;
 
   /**
-   * @generated from field: string branch = 3;
+   * @generated from field: string branch = 2;
    */
   branch: string;
 
   /**
    * Source information
    *
-   * @generated from field: string environment_slug = 4;
+   * @generated from field: string environment_slug = 3;
    */
   environmentSlug: string;
 
   /**
-   * @generated from field: ctrl.v1.SourceType source_type = 5;
+   * @generated from field: ctrl.v1.SourceType source_type = 4;
    */
   sourceType: SourceType;
 
   /**
-   * @generated from field: string docker_image = 6;
+   * @generated from field: string docker_image = 5;
    */
   dockerImage: string;
 
@@ -56,40 +51,40 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
    *
    * For git sources
    *
-   * @generated from field: string git_commit_sha = 7;
+   * @generated from field: string git_commit_sha = 6;
    */
   gitCommitSha: string;
 
   /**
-   * @generated from field: string git_commit_message = 8;
+   * @generated from field: string git_commit_message = 7;
    */
   gitCommitMessage: string;
 
   /**
    * TODO: Add GitHub API integration to lookup username/avatar from email
    *
-   * @generated from field: string git_commit_author_handle = 9;
+   * @generated from field: string git_commit_author_handle = 8;
    */
   gitCommitAuthorHandle: string;
 
   /**
-   * @generated from field: string git_commit_author_avatar_url = 10;
+   * @generated from field: string git_commit_author_avatar_url = 9;
    */
   gitCommitAuthorAvatarUrl: string;
 
   /**
    * Unix epoch milliseconds
    *
-   * @generated from field: int64 git_commit_timestamp = 11;
+   * @generated from field: int64 git_commit_timestamp = 10;
    */
   gitCommitTimestamp: bigint;
 
   /**
-   * Keyspace ID for authentication
+   * API ID for authentication
    *
-   * @generated from field: optional string keyspace_id = 12;
+   * @generated from field: optional string api_id = 11;
    */
-  keyspaceId?: string;
+  apiId?: string;
 };
 
 /**
