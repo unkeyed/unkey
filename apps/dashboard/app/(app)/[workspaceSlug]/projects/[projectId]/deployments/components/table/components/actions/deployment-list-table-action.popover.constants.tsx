@@ -7,8 +7,8 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { PromotionDialog } from "../../../promotion-dialog";
-import { RollbackDialog } from "../../../rollback-dialog";
+import { PromotionDialog } from "./promotion-dialog";
+import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
   liveDeployment?: Deployment;
