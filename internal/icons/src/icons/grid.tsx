@@ -13,7 +13,7 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const Grid: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+  const { iconsize: pixelSize } = sizeMap[iconsize];
 
   return (
     <svg
