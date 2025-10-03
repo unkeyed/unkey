@@ -10,7 +10,7 @@ unkey run ctrl [flags]
 ```
 
 <Banner type="warn">
-Some flags are required for this command to work properly.
+  Some flags are required for this command to work properly.
 </Banner>
 
 ## Flags
@@ -21,7 +21,7 @@ HTTP port for the control plane server to listen on. Default: 8080
 - **Type:** integer
 - **Default:** `8080`
 - **Environment:** `UNKEY_HTTP_PORT`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--color">
 Enable colored log output. Default: true
@@ -29,21 +29,21 @@ Enable colored log output. Default: true
 - **Type:** boolean
 - **Default:** `true`
 - **Environment:** `UNKEY_LOGS_COLOR`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--platform">
 Cloud platform identifier for this node. Used for logging and metrics.
 
 - **Type:** string
 - **Environment:** `UNKEY_PLATFORM`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--image">
 Container image identifier. Used for logging and metrics.
 
 - **Type:** string
 - **Environment:** `UNKEY_IMAGE`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--region">
 Geographic region identifier. Used for logging and routing. Default: unknown
@@ -51,7 +51,7 @@ Geographic region identifier. Used for logging and routing. Default: unknown
 - **Type:** string
 - **Default:** `"unknown"`
 - **Environment:** `AWS_REGION`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--instance-id">
 Unique identifier for this instance. Auto-generated if not provided.
@@ -59,28 +59,21 @@ Unique identifier for this instance. Auto-generated if not provided.
 - **Type:** string
 - **Default:** `"ins_5PkxT8"`
 - **Environment:** `UNKEY_INSTANCE_ID`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--database-primary (required)">
 MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_PRIMARY`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--database-partition (required)">
 MySQL connection string for partition database. Required for all deployments. Example: user:pass@host:3306/partition_002?parseTime=true
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_PARTITION`
-</Callout>
-
-<Callout type="info" title="--database-hydra (required)">
-MySQL connection string for hydra database. Required for all deployments. Example: user:pass@host:3306/hydra?parseTime=true
-
-- **Type:** string
-- **Environment:** `UNKEY_DATABASE_HYDRA`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--otel">
 Enable OpenTelemetry tracing and metrics
@@ -88,7 +81,7 @@ Enable OpenTelemetry tracing and metrics
 - **Type:** boolean
 - **Default:** `false`
 - **Environment:** `UNKEY_OTEL`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--otel-trace-sampling-rate">
 Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25
@@ -96,42 +89,42 @@ Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provi
 - **Type:** float
 - **Default:** `0.25`
 - **Environment:** `UNKEY_OTEL_TRACE_SAMPLING_RATE`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--tls-cert-file">
 Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.
 
 - **Type:** string
 - **Environment:** `UNKEY_TLS_CERT_FILE`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--tls-key-file">
 Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.
 
 - **Type:** string
 - **Environment:** `UNKEY_TLS_KEY_FILE`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--auth-token">
 Authentication token for control plane API access. Required for secure deployments.
 
 - **Type:** string
 - **Environment:** `UNKEY_AUTH_TOKEN`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--krane-address (required)">
 Full URL of the krane service for VM operations. Required for deployments. Example: https://krane.example.com:8080
 
 - **Type:** string
 - **Environment:** `UNKEY_KRANE_ADDRESS`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--api-key (required)">
 API key for simple authentication (demo purposes only). Will be replaced with JWT authentication.
 
 - **Type:** string
 - **Environment:** `UNKEY_API_KEY`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--spiffe-socket-path">
 Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock
@@ -139,42 +132,42 @@ Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/age
 - **Type:** string
 - **Default:** `"/var/lib/spire/agent/agent.sock"`
 - **Environment:** `UNKEY_SPIFFE_SOCKET_PATH`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--vault-master-keys (required)">
 Vault master keys for encryption
 
 - **Type:** string[]
 - **Environment:** `UNKEY_VAULT_MASTER_KEYS`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--vault-s3-url (required)">
 S3 Compatible Endpoint URL
 
 - **Type:** string
 - **Environment:** `UNKEY_VAULT_S3_URL`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--vault-s3-bucket (required)">
 S3 bucket name
 
 - **Type:** string
 - **Environment:** `UNKEY_VAULT_S3_BUCKET`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--vault-s3-access-key-id (required)">
 S3 access key ID
 
 - **Type:** string
 - **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_ID`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--vault-s3-access-key-secret (required)">
 S3 secret access key
 
 - **Type:** string
 - **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_SECRET`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--acme-enabled">
 Enable Let's Encrypt for acme challenges
@@ -182,7 +175,7 @@ Enable Let's Encrypt for acme challenges
 - **Type:** boolean
 - **Default:** `false`
 - **Environment:** `UNKEY_ACME_ENABLED`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--acme-cloudflare-enabled">
 Enable Cloudflare for wildcard certificates
@@ -190,14 +183,14 @@ Enable Cloudflare for wildcard certificates
 - **Type:** boolean
 - **Default:** `false`
 - **Environment:** `UNKEY_ACME_CLOUDFLARE_ENABLED`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--acme-cloudflare-api-token">
 Cloudflare API token for Let's Encrypt
 
 - **Type:** string
 - **Environment:** `UNKEY_ACME_CLOUDFLARE_API_TOKEN`
-</Callout>
+  </Callout>
 
 <Callout type="info" title="--default-domain">
 Default domain for auto-generated hostnames
@@ -205,4 +198,4 @@ Default domain for auto-generated hostnames
 - **Type:** string
 - **Default:** `"unkey.app"`
 - **Environment:** `UNKEY_DEFAULT_DOMAIN`
-</Callout>
+  </Callout>
