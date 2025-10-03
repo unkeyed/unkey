@@ -38,15 +38,17 @@ class CollectionManager {
     return this.projectCollections.get(projectId)!;
   }
 
+  async preloadProject(projectId: string): Promise<void> {
+    const collections = this.getProjectCollections(projectId);
+    // Preload all collections in the object
+    await Promise.all(Object.values(collections).map((collection) => collection.preload()));
+  }
+
   async cleanup(projectId: string) {
     const collections = this.projectCollections.get(projectId);
     if (collections) {
-      await Promise.all([
-        collections.environments.cleanup(),
-        collections.domains.cleanup(),
-        collections.deployments.cleanup(),
-        // Note: projects is shared, don't clean it up per project
-      ]);
+      // Cleanup all collections in the object
+      await Promise.all(Object.values(collections).map((collection) => collection.cleanup()));
       this.projectCollections.delete(projectId);
     }
   }
@@ -56,10 +58,8 @@ class CollectionManager {
     const projectCleanupPromises = Array.from(this.projectCollections.keys()).map((projectId) =>
       this.cleanup(projectId),
     );
-
     // Clean up global collections
     const globalCleanupPromises = Object.values(collection).map((c) => c.cleanup());
-
     await Promise.all([...projectCleanupPromises, ...globalCleanupPromises]);
   }
 }

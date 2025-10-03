@@ -8,7 +8,6 @@ type ProjectRow = {
   id: string;
   name: string;
   slug: string;
-  updated_at: number | null;
   git_repository_url: string | null;
   live_deployment_id: string | null;
   is_rolled_back: boolean;
@@ -19,6 +18,7 @@ type ProjectRow = {
   git_commit_timestamp: number | null;
   runtime_config: Deployment["runtimeConfig"] | null;
   domain: string | null;
+  latest_deployment_id: string | null;
 };
 
 export const listProjects = t.procedure
@@ -41,7 +41,15 @@ export const listProjects = t.procedure
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
         ${deployments.runtimeConfig},
-        ${domains.domain}
+        ${domains.domain},
+        (
+          SELECT id
+          FROM ${deployments} d
+          WHERE d.project_id = ${projects.id}
+            AND d.workspace_id = ${ctx.workspace.id}
+          ORDER BY d.created_at DESC
+          LIMIT 1
+        ) as latest_deployment_id
       FROM ${projects}
       LEFT JOIN ${deployments}
         ON ${projects.liveDeploymentId} = ${deployments.id}
@@ -58,7 +66,6 @@ export const listProjects = t.procedure
         id: row.id,
         name: row.name,
         slug: row.slug,
-        updatedAt: row.updated_at,
         gitRepositoryUrl: row.git_repository_url,
         liveDeploymentId: row.live_deployment_id,
         isRolledBack: row.is_rolled_back,
@@ -69,6 +76,7 @@ export const listProjects = t.procedure
         authorAvatar: row.git_commit_author_avatar_url,
         regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
         domain: row.domain,
+        latestDeploymentId: row.latest_deployment_id,
       }),
     );
   });

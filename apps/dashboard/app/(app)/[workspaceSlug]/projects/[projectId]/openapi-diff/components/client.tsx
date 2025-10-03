@@ -112,14 +112,27 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
   if (!changelog || changelog.length === 0) {
     return (
-      <div className="text-center py-12 mx-3 mb-3">
-        <p className="text-xs text-grayA-9">
-          No differences between {fromDeployment} and {toDeployment}
-        </p>
+      <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
+          <div className="relative bg-gray-3 rounded-full p-3 transition-all duration-200">
+            <CircleInfo
+              className="text-grayA-9 size-6 transition-all duration-200 animate-pulse"
+              style={{ animationDuration: "2s" }}
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-grayA-12 font-medium text-sm">No noteworthy changes</h3>
+          <p className="text-grayA-9 text-xs max-w-[280px] leading-relaxed">
+            The specifications for <span className="text-grayA-11">{fromDeployment} </span>
+            and <span className="text-grayA-11">{toDeployment} </span>
+            are functionally identical.
+          </p>
+        </div>
       </div>
     );
   }
-
   return (
     <>
       {/* Stats header */}

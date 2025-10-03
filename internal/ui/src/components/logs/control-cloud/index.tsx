@@ -27,7 +27,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
 }: ControlCloudProps<TFilter>) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
-  useKeyboardShortcut("option+shift+d", () => {
+  useKeyboardShortcut("option+shift+a", () => {
     const timestamp = Date.now();
     updateFilters([
       {
@@ -45,7 +45,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
     ] as TFilter[]);
   });
 
-  useKeyboardShortcut("option+shift+c", () => {
+  useKeyboardShortcut("option+shift+s", () => {
     setFocusedIndex(0);
   });
 
@@ -130,7 +130,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
 
   return (
     <div
-      className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap"
+      className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap group"
       onKeyDown={handleKeyDown}
     >
       {filters.map((filter, index) => (
@@ -146,11 +146,19 @@ export const ControlCloud = <TFilter extends FilterValue>({
         />
       ))}
       <div className="flex items-center px-2 py-1 gap-2 ml-auto max-md:hidden">
-        <span className="text-gray-9 text-[13px]">Clear filters</span>
-        <KeyboardButton shortcut="⌥+⇧+D" />
-        <div className="w-px h-4 bg-gray-4" />
-        <span className="text-gray-9 text-[13px]">Focus filters</span>
-        <KeyboardButton shortcut="⌥+⇧+C" />
+        <div className="flex items-center gap-2">
+          <span className="text-gray-9 text-[13px]">Clear filters</span>
+          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+            <KeyboardButton shortcut="⌥+⇧+A" />
+          </div>
+        </div>
+        <div className="w-px h-4 bg-gray-4 mr-2" />
+        <div className="flex items-center gap-2">
+          <span className="text-gray-9 text-[13px]">Focus filters</span>
+          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+            <KeyboardButton shortcut="⌥+⇧+S" />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -7,8 +7,8 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { PromotionDialog } from "../../../promotion-dialog";
-import { RollbackDialog } from "../../../rollback-dialog";
+import { PromotionDialog } from "./promotion-dialog";
+import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
   liveDeployment?: Deployment;
@@ -80,7 +80,7 @@ export const DeploymentListTableActions = ({
         onClick: () => {
           //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
           router.push(
-            `${workspace.slug}/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
               .map((item) => `is:${item.host}`)
               .join(",")}`,
           );
