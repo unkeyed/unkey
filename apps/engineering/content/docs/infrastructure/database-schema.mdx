@@ -8,7 +8,6 @@ description: "How database schemas are managed and applied in the Unkey platform
 Unkey uses multiple MySQL databases that are automatically created and initialized during development:
 
 - **unkey**: Main application database containing APIs, keys, workspaces, and related data
-- **hydra**: Workflow orchestration engine database for managing deployment workflows
 - **partition_00X**: Dataplane partition database
 
 ## Schema Files
@@ -17,6 +16,7 @@ Schema definitions are maintained in separate files:
 
 - `go/pkg/db/schema.sql` - Main Unkey application schema
 - `go/pkg/partition/schema.sql` - Dataplane schema
+
 ## Docker Development Setup
 
 During local development, schemas are automatically applied via Docker:
