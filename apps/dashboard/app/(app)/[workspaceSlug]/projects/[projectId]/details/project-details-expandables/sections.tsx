@@ -64,14 +64,14 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <CodeBranch className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <CodeBranch className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Branch",
           content: (
             <span className="text-gray-12 font-medium truncate max-w-32">{details.gitBranch}</span>
           ),
         },
         {
-          icon: <CodeCommit className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <CodeCommit className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Commit",
           content: (
             <span className="text-gray-12 font-medium">
@@ -80,7 +80,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <MessageWriting className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <MessageWriting className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Description",
           content: (
             <div className="truncate max-w-[150px] min-w-0">
@@ -89,7 +89,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <User className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <User className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Author",
           content: (
             <div className="flex gap-2 items-center">
@@ -102,7 +102,9 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: (
+            <CircleHalfDottedClock className="size-[14px] text-gray-12" iconsize="md-regular" />
+          ),
           label: "Created",
           content: (
             <TimestampInfo
@@ -117,7 +119,7 @@ export const createDetailSections = (
       title: "Runtime settings",
       items: [
         {
-          icon: <Connections className="text-gray-12" size="md-regular" />,
+          icon: <Connections className="text-gray-12" iconsize="md-regular" />,
           label: "Instances",
           content: (
             <div className="text-grayA-10">
@@ -127,7 +129,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Location2 className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Location2 className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Regions",
           alignment: "start",
           content: (
@@ -144,7 +146,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Bolt className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Bolt className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "CPU",
           content: (
             <div className="text-grayA-10">
@@ -154,7 +156,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Grid className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Grid className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Memory",
           content: (
             <div className="text-grayA-10">
@@ -163,7 +165,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Harddrive className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Harddrive className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Storage",
           content: (
             <div className="text-grayA-10">
@@ -172,7 +174,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Heart className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Heart className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Healthcheck",
           alignment: "start",
           content: (
@@ -195,7 +197,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <ChartActivity className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <ChartActivity className="size-[14px] text-gray-12" iconsize="md-regular" />,
           label: "Scaling",
           alignment: "start",
           content: (

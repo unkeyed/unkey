@@ -83,7 +83,7 @@ export const SelectionControls = ({
               className="text-gray-12 font-medium text-[13px]"
               onClick={() => setIsBatchEditExternalIdOpen(true)}
             >
-              <ArrowOppositeDirectionY size="sm-regular" /> Change External ID
+              <ArrowOppositeDirectionY iconsize="sm-regular" /> Change External ID
             </Button>
             <Button
               variant="outline"
@@ -98,7 +98,7 @@ export const SelectionControls = ({
                 })
               }
             >
-              <CircleCheck size="sm-regular" />
+              <CircleCheck iconsize="sm-regular" />
               Enable key
             </Button>
             <Button
@@ -110,7 +110,7 @@ export const SelectionControls = ({
               onClick={handleDisableButtonClick}
               ref={disableButtonRef}
             >
-              <Ban size="sm-regular" />
+              <Ban iconsize="sm-regular" />
               Disable key
             </Button>
             <Button
@@ -122,7 +122,7 @@ export const SelectionControls = ({
               onClick={handleDeleteButtonClick}
               ref={deleteButtonRef}
             >
-              <Trash size="sm-regular" />
+              <Trash iconsize="sm-regular" />
               Delete key
             </Button>
             <Button

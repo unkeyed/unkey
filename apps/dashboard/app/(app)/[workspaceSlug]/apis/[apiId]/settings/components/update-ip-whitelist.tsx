@@ -54,9 +54,9 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
 
   const Badge = () =>
     isEnabled ? (
-      <StatusBadge variant="enabled" text="Enabled" icon={<Shield size="sm-thin" />} />
+      <StatusBadge variant="enabled" text="Enabled" icon={<Shield iconsize="sm-thin" />} />
     ) : (
-      <StatusBadge variant="locked" text="Locked" icon={<Lock size="sm-thin" />} />
+      <StatusBadge variant="locked" text="Locked" icon={<Lock iconsize="sm-thin" />} />
     );
 
   return (
@@ -78,7 +78,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               target="_blank"
               rel="noopener noreferrer"
               href="https://www.unkey.com/docs/apis/features/whitelist#ip-whitelisting"
-              icon={<ArrowUpRight size="sm-thin" />}
+              icon={<ArrowUpRight iconsize="sm-thin" />}
             />
           </div>
         }

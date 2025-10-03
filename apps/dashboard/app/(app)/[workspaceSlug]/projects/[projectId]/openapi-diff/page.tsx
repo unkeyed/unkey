@@ -132,7 +132,7 @@ export default function DiffPage() {
                 disabledDeploymentId={selectedToDeployment}
               />
 
-              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
+              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" iconsize="sm-regular" />
 
               <DeploymentSelect
                 value={selectedToDeployment}

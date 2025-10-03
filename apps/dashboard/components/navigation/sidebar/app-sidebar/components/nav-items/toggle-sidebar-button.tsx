@@ -17,7 +17,7 @@ export const ToggleSidebarButton = ({
         className={getButtonStyles(toggleNavItem.active)}
         onClick={toggleSidebar}
       >
-        {toggleNavItem.icon && <toggleNavItem.icon size="xl-medium" />}
+        {toggleNavItem.icon && <toggleNavItem.icon iconsize="xl-medium" />}
         <span>{toggleNavItem.label}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>

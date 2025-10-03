@@ -108,7 +108,7 @@ export const ProjectSubNavigation = ({
                 isActive && "text-accent-12 after:scale-x-100",
               )}
             >
-              <IconComponent size="sm-medium" />
+              <IconComponent iconsize="sm-medium" />
               <span>{tab.label}</span>
             </button>
           );

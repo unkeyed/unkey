@@ -408,9 +408,9 @@ function SortIcon({ direction }: { direction?: SortDirection | null }) {
     return <CaretExpandY className="color-gray-9" />;
   }
   return direction === "asc" ? (
-    <CaretUp className="color-gray-9" size="sm-thin" />
+    <CaretUp className="color-gray-9" iconsize="sm-thin" />
   ) : (
-    <CaretDown className="color-gray-9" size="sm-thin" />
+    <CaretDown className="color-gray-9" iconsize="sm-thin" />
   );
 }
 

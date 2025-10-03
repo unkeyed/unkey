@@ -12,15 +12,15 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const CodeBranch: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
+export const CodeBranch: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={pixelSize}
       height={pixelSize}
+      width={pixelSize}
       viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
       <g

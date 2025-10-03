@@ -24,7 +24,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     {
       id: "favorite-project",
       label: "Add favorite",
-      icon: <Gear size="md-regular" />,
+      icon: <Gear iconsize="md-medium" />,
       onClick: () => {},
       divider: true,
     },
@@ -32,7 +32,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
       id: "copy-project-id",
       label: "Copy project ID",
       className: "mt-1",
-      icon: <Clone size="md-regular" />,
+      icon: <Clone iconsize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(projectId)
@@ -49,7 +49,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     {
       id: "view-log",
       label: "View logs",
-      icon: <Layers3 size="md-regular" />,
+      icon: <Layers3 iconsize="md-medium" />,
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
@@ -59,7 +59,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     {
       id: "project-settings",
       label: "Project settings",
-      icon: <Gear size="md-regular" />,
+      icon: <Gear iconsize="md-medium" />,
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
@@ -70,7 +70,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     {
       id: "delete-project",
       label: "Delete project",
-      icon: <Trash size="md-regular" />,
+      icon: <Trash iconsize="md-medium" />,
       ActionComponent: () => null,
     },
   ];

@@ -29,7 +29,7 @@ export const LastUpdated = ({
       }}
     >
       <div>
-        <ChartActivity2 size="sm-regular" />
+        <ChartActivity2 iconsize="sm-regular" />
       </div>
       <div className="truncate">
         {lastUpdated ? (

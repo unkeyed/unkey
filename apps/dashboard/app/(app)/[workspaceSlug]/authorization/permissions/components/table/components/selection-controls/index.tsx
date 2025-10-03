@@ -72,7 +72,7 @@ export const SelectionControls = ({
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
-                  <Trash size="sm-regular" />
+                  <Trash iconsize="sm-regular" />
                   Delete permissions
                 </Button>
                 <Button

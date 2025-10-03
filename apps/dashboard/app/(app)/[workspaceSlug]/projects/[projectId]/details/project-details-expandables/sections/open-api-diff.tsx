@@ -84,7 +84,7 @@ export const OpenApiDiff = () => {
             <div className="text-accent-12 font-medium text-xs">{shortenId(oldDeployment.id)}</div>
           </div>
         </div>
-        <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
+        <ArrowRight className="shrink-0 text-gray-9 size-[14px]" iconsize="sm-regular" />
         <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
           <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
             <StatusIndicator status={status} withSignal className="bg-transparent" />

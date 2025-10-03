@@ -13,7 +13,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone size="md-regular" />,
+        icon: <Clone iconsize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -32,7 +32,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "filter",
         label: "Filter for identifier",
-        icon: <InputSearch size="md-regular" />,
+        icon: <InputSearch iconsize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           const newFilter = {

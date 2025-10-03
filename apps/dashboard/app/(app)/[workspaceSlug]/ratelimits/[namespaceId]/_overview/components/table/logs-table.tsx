@@ -105,7 +105,7 @@ export const RatelimitOverviewLogsTable = ({
                 )}
                 title={`${log.blocked_count.toLocaleString()} Blocked requests`}
               >
-                <Ban size="sm-regular" />
+                <Ban iconsize="sm-regular" />
                 {formatNumber(log.blocked_count)}
               </Badge>
               <InlineFilter
