@@ -6,13 +6,8 @@ import {
   type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
-export function transformVerificationFilters(
-  params: KeysOverviewQueryTimeseriesPayload
-): {
-  params: Omit<
-    VerificationTimeseriesParams,
-    "workspaceId" | "keyspaceId" | "keyId" | "apiId"
-  >;
+export function transformVerificationFilters(params: KeysOverviewQueryTimeseriesPayload): {
+  params: Omit<VerificationTimeseriesParams, "workspaceId" | "keyspaceId" | "keyId" | "apiId">;
   granularity: TimeseriesGranularity;
 } {
   let timeConfig: TimeseriesConfig<"forVerifications">;
@@ -21,17 +16,9 @@ export function transformVerificationFilters(
     const startTime = getTimestampFromRelative(params.since);
     const endTime = Date.now();
 
-    timeConfig = getTimeseriesGranularity(
-      "forVerifications",
-      startTime,
-      endTime
-    );
+    timeConfig = getTimeseriesGranularity("forVerifications", startTime, endTime);
   } else {
-    timeConfig = getTimeseriesGranularity(
-      "forVerifications",
-      params.startTime,
-      params.endTime
-    );
+    timeConfig = getTimeseriesGranularity("forVerifications", params.startTime, params.endTime);
   }
 
   return {
