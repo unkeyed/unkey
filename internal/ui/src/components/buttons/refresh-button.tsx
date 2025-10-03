@@ -44,7 +44,7 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
     setRefreshTimeout(timeout);
   };
 
-  useKeyboardShortcut("option+shift+r", handleRefresh, {
+  useKeyboardShortcut("option+shift+w", handleRefresh, {
     preventDefault: true,
     disabled: !isEnabled,
   });
@@ -62,14 +62,14 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           onClick={handleRefresh}
           variant="ghost"
           size="md"
-          title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+R)" : ""}
+          title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+W)" : ""}
           disabled={!isEnabled || isLoading}
           loading={isLoading}
           className="flex w-full items-center justify-center rounded-lg border border-gray-4"
         >
           <Refresh3 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>
-          <KeyboardButton shortcut="⌥+⇧+R" />
+          <KeyboardButton shortcut="⌥+⇧+W" />
         </Button>
       </div>
     </InfoTooltip>

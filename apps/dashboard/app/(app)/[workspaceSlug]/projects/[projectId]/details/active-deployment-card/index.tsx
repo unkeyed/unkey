@@ -167,7 +167,11 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
               </InfoChip>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <button
+            className="flex items-center gap-1.5"
+            onClick={() => setExpanded(!isExpanded)}
+            type="button"
+          >
             <div className="text-grayA-9 text-xs">
               {showBuildSteps ? "Build logs" : "Gateway logs"}
             </div>
@@ -179,7 +183,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
                 )}
               />
             </Button>
-          </div>
+          </button>
         </div>
 
         {/* Expandable Logs Section */}
@@ -204,14 +208,14 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
               count={formatNumber(logCounts.errors)}
               onClick={() => handleFilterChange("errors")}
               icon={CircleXMark}
-              label="Errors"
+              label="5XX"
             />
             <FilterButton
               isActive={logFilter === "warnings"}
               count={formatNumber(logCounts.warnings)}
               onClick={() => handleFilterChange("warnings")}
               icon={TriangleWarning2}
-              label="Warnings"
+              label="4XX"
             />
 
             <Input
