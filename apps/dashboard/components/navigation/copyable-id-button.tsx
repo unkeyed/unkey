@@ -65,9 +65,8 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
   };
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-mono font-medium ph-no-capture h-7 bg-grayA-2 hover:bg-grayA-3 w-[190px] border border-grayA-6 cursor-pointer transition-colors ${className}`}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
@@ -88,6 +87,6 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           className="pointer-events-none flex-shrink-0"
         />
       </div>
-    </div>
+    </button>
   );
 };
