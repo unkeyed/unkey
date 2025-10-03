@@ -30,8 +30,7 @@ const memoizedFormat = (date: Date, formatString: string): string => {
 };
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
-  const isNumericString =
-    typeof timestamp === "string" && /^\d+$/.test(timestamp);
+  const isNumericString = typeof timestamp === "string" && /^\d+$/.test(timestamp);
   const input = isNumericString ? Number(timestamp) : timestamp;
   const date = input instanceof Date ? input : new Date(input);
   return memoizedFormat(date, "MMM dd, h:mm a").toUpperCase();
@@ -39,7 +38,7 @@ export const formatTimestampLabel = (timestamp: string | number | Date) => {
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: TimeseriesGranularity
+  granularity: TimeseriesGranularity,
 ) => {
   const localDate = new Date(value);
 

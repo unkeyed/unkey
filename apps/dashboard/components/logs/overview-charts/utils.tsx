@@ -1,6 +1,6 @@
 import {
-  type CompoundTimeseriesGranularity,
   TIMESERIES_GRANULARITIES,
+  type TimeseriesGranularity,
 } from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
 import { parseTimestamp } from "../parse-timestamp";
@@ -26,10 +26,7 @@ type TooltipPayloadItem = {
 /**
  * Get appropriate formatted time based on granularity (12-hour format without timezone)
  */
-export function formatTimeForGranularity(
-  date: Date,
-  granularity?: CompoundTimeseriesGranularity,
-): string {
+export function formatTimeForGranularity(date: Date, granularity?: TimeseriesGranularity): string {
   if (!granularity) {
     return format(date, "h:mma");
   }
@@ -38,7 +35,7 @@ export function formatTimeForGranularity(
   return format(date, config.format);
 }
 
-export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
+export const getTimeBufferForGranularity = (granularity: TimeseriesGranularity): number => {
   return TIMESERIES_GRANULARITIES[granularity].ms;
 };
 
@@ -64,7 +61,7 @@ function getTimezoneAbbreviation(date?: Date): string {
 export function createTimeIntervalFormatter(
   data?: TimeseriesData[],
   timeFormat = "h:mm a",
-  granularity?: CompoundTimeseriesGranularity,
+  granularity?: TimeseriesGranularity,
 ) {
   return (tooltipPayload: TooltipPayloadItem[]) => {
     // Basic validation checks

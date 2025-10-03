@@ -2,9 +2,9 @@ import {
   DAY_IN_MS,
   HOUR_IN_MS,
   MINUTE_IN_MS,
-  WEEK_IN_MS,
   MONTH_IN_MS,
   QUARTER_IN_MS,
+  WEEK_IN_MS,
 } from "./constants";
 
 export type TimeseriesGranularity =
@@ -64,15 +64,14 @@ export const TIMESERIES_GRANULARITIES = {
 export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   context: TContext,
   startTime?: number | null,
-  endTime?: number | null
+  endTime?: number | null,
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
 
   // If both are missing, fallback to an appropriate default for the context
   if (!startTime && !endTime) {
     const defaultGranularity = DEFAULT_GRANULARITY[context];
-    const defaultDuration =
-      context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+    const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
     return {
       granularity: defaultGranularity as TimeseriesGranularity,
       startTime: now - defaultDuration,
@@ -84,8 +83,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // Set default end time if missing
   const effectiveEndTime = endTime ?? now;
   // Set default start time if missing (defaults vary by context)
-  const defaultDuration =
-    context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+  const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
   const effectiveStartTime = startTime ?? effectiveEndTime - defaultDuration;
   const timeRange = effectiveEndTime - effectiveStartTime;
   let granularity: TimeseriesGranularity;
@@ -126,9 +124,7 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
  * @param granularity The current timeseries granularity
  * @returns Buffer time in milliseconds
  */
-export const getTimeBufferForGranularity = (
-  granularity: TimeseriesGranularity
-): number => {
+export const getTimeBufferForGranularity = (granularity: TimeseriesGranularity): number => {
   // Constants for commonly used durations
 
   // Return appropriate buffer based on granularity

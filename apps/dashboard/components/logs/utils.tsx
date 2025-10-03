@@ -1,4 +1,4 @@
-import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
 import type { TimeseriesData } from "./overview-charts/types";
@@ -12,8 +12,8 @@ const TZ_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
-// Helper function to safely convert local Granularity to CompoundTimeseriesGranularity
-const getGranularityBuffer = (granularity?: CompoundTimeseriesGranularity): number => {
+// Helper function to safely convert local Granularity to TimeseriesGranularity
+const getGranularityBuffer = (granularity?: TimeseriesGranularity): number => {
   if (!granularity) {
     return DEFAULT_TIME_BUFFER_MS; // 1 minute fallback
   }
@@ -29,7 +29,7 @@ const getGranularityBuffer = (granularity?: CompoundTimeseriesGranularity): numb
  */
 export const formatTooltipTimestamp = (
   timestamp: number | string,
-  granularity?: CompoundTimeseriesGranularity,
+  granularity?: TimeseriesGranularity,
   data?: TimeseriesData[],
 ): string => {
   // Handle null/undefined early
@@ -100,7 +100,7 @@ export const formatTooltipTimestamp = (
 export const formatTooltipInterval = (
   payloadTimestamp: number | string | undefined,
   data: TimeseriesData[],
-  granularity?: CompoundTimeseriesGranularity,
+  granularity?: TimeseriesGranularity,
   timestampToIndexMap?: Map<number, number>,
 ) => {
   if (payloadTimestamp == null) {

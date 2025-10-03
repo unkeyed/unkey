@@ -11,7 +11,7 @@ export const getLogsClickhousePayload = z.object({
       z.object({
         operator: z.enum(["is", "startsWith", "endsWith", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
@@ -71,8 +71,7 @@ export function getLogs(ch: Querier) {
         .filter(Boolean)
         .join(" OR ") || "TRUE";
 
-    const extendedParamsSchema =
-      getLogsClickhousePayload.extend(paramSchemaExtension);
+    const extendedParamsSchema = getLogsClickhousePayload.extend(paramSchemaExtension);
 
     const filterConditions = `
       workspace_id = {workspaceId: String}
@@ -190,7 +189,7 @@ export const logsTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "startsWith", "endsWith", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   hosts: z.array(z.string()).nullable(),
@@ -338,7 +337,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 
 function getLogsTimeseriesWhereClause(
   params: LogsTimeseriesParams,
-  additionalConditions: string[] = []
+  additionalConditions: string[] = [],
 ): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -407,8 +406,7 @@ function getLogsTimeseriesWhereClause(
   }
 
   return {
-    whereClause:
-      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: logsTimeseriesParams.extend(paramSchemaExtension),
   };
 }
@@ -428,7 +426,7 @@ function createTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`pathValue_${index}`]: p.value,
         }),
-        {}
+        {},
       ) ?? {}),
     };
 
@@ -442,39 +440,17 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getMinutelyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.minute
-);
-export const getFiveMinuteLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.fiveMinutes
-);
-export const getFifteenMinuteLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.fifteenMinutes
-);
-export const getThirtyMinuteLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.thirtyMinutes
-);
+export const getMinutelyLogsTimeseries = createTimeseriesQuerier(INTERVALS.minute);
+export const getFiveMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.fiveMinutes);
+export const getFifteenMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.fifteenMinutes);
+export const getThirtyMinuteLogsTimeseries = createTimeseriesQuerier(INTERVALS.thirtyMinutes);
 export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
-export const getTwoHourlyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.twoHours
-);
-export const getFourHourlyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.fourHours
-);
-export const getSixHourlyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.sixHours
-);
-export const getTwelveHourlyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.twelveHours
-);
+export const getTwoHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
+export const getTwelveHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.twelveHours);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);
-export const getThreeDayLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.threeDays
-);
+export const getThreeDayLogsTimeseries = createTimeseriesQuerier(INTERVALS.threeDays);
 export const getWeeklyLogsTimeseries = createTimeseriesQuerier(INTERVALS.week);
-export const getMonthlyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.month
-);
-export const getQuarterlyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.quarter
-);
+export const getMonthlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.month);
+export const getQuarterlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.quarter);

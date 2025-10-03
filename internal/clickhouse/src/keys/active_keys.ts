@@ -13,7 +13,7 @@ export const activeKeysTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   identities: z
@@ -21,7 +21,7 @@ export const activeKeysTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   keyIds: z
@@ -29,7 +29,7 @@ export const activeKeysTimeseriesParams = z.object({
       z.object({
         operator: z.enum(["is", "contains"]),
         value: z.string(),
-      })
+      }),
     )
     .nullable(),
   outcomes: z
@@ -37,7 +37,7 @@ export const activeKeysTimeseriesParams = z.object({
       z.object({
         value: z.enum(KEY_VERIFICATION_OUTCOMES),
         operator: z.literal("is"),
-      })
+      }),
     )
     .nullable(),
 });
@@ -50,12 +50,8 @@ export const activeKeysTimeseriesDataPoint = z.object({
   key_ids: z.array(z.string()).optional(),
 });
 
-export type ActiveKeysTimeseriesDataPoint = z.infer<
-  typeof activeKeysTimeseriesDataPoint
->;
-export type ActiveKeysTimeseriesParams = z.infer<
-  typeof activeKeysTimeseriesParams
->;
+export type ActiveKeysTimeseriesDataPoint = z.infer<typeof activeKeysTimeseriesDataPoint>;
+export type ActiveKeysTimeseriesParams = z.infer<typeof activeKeysTimeseriesParams>;
 
 type TimeInterval = {
   table: string;
@@ -145,10 +141,7 @@ const ACTIVE_KEYS_INTERVALS: Record<string, TimeInterval> = {
   },
 } as const;
 
-function createActiveKeysTimeseriesQuery(
-  interval: TimeInterval,
-  whereClause: string
-) {
+function createActiveKeysTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
     MINUTE: "minute",
     HOUR: "hour",
@@ -190,7 +183,7 @@ function createActiveKeysTimeseriesQuery(
 
 function getActiveKeysTimeseriesWhereClause(
   params: ActiveKeysTimeseriesParams,
-  additionalConditions: string[] = []
+  additionalConditions: string[] = [],
 ): { whereClause: string; paramSchema: z.ZodType<unknown> } {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -247,8 +240,7 @@ function getActiveKeysTimeseriesWhereClause(
   }
 
   return {
-    whereClause:
-      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     paramSchema: activeKeysTimeseriesParams.extend(paramSchemaExtension),
   };
 }
@@ -256,13 +248,10 @@ function getActiveKeysTimeseriesWhereClause(
 // Create timeseries querier function for active keys
 function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: ActiveKeysTimeseriesParams) => {
-    const { whereClause, paramSchema } = getActiveKeysTimeseriesWhereClause(
-      args,
-      [
-        "time >= fromUnixTimestamp64Milli({startTime: Int64})",
-        "time <= fromUnixTimestamp64Milli({endTime: Int64})",
-      ]
-    );
+    const { whereClause, paramSchema } = getActiveKeysTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
 
     // Create parameters object with filter values
     const parameters = {
@@ -273,7 +262,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`keyIdValue_${index}`]: filter.value,
         }),
-        {}
+        {},
       ) ?? {}),
       ...(args.names?.reduce(
         (acc, filter, index) => ({
@@ -281,7 +270,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`nameValue_${index}`]: filter.value,
         }),
-        {}
+        {},
       ) ?? {}),
       ...(args.outcomes?.reduce(
         (acc, filter, index) => ({
@@ -289,7 +278,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
           ...acc,
           [`outcomeValue_${index}`]: filter.value,
         }),
-        {}
+        {},
       ) ?? {}),
     };
 
@@ -301,43 +290,54 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 // Minute-based timeseries
-export const getMinutelyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.minute);
-export const getFiveMinutelyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.fiveMinutes);
-export const getFifteenMinutelyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.fifteenMinutes);
-export const getThirtyMinutelyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.thirtyMinutes);
+export const getMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.minute,
+);
+export const getFiveMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.fiveMinutes,
+);
+export const getFifteenMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinutelyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.thirtyMinutes,
+);
 
 // Hour-based timeseries
 export const getHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
-  ACTIVE_KEYS_INTERVALS.hour
+  ACTIVE_KEYS_INTERVALS.hour,
 );
-export const getTwoHourlyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.twoHours);
-export const getFourHourlyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.fourHours);
-export const getSixHourlyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.sixHours);
-export const getTwelveHourlyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.twelveHours);
+export const getTwoHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.twoHours,
+);
+export const getFourHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.fourHours,
+);
+export const getSixHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.sixHours,
+);
+export const getTwelveHourlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.twelveHours,
+);
 
 // Day-based timeseries
 export const getDailyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
-  ACTIVE_KEYS_INTERVALS.day
+  ACTIVE_KEYS_INTERVALS.day,
 );
-export const getThreeDayActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.threeDays);
+export const getThreeDayActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.threeDays,
+);
 export const getWeeklyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
-  ACTIVE_KEYS_INTERVALS.week
+  ACTIVE_KEYS_INTERVALS.week,
 );
-export const getTwoWeeklyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.twoWeeks);
+export const getTwoWeeklyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.twoWeeks,
+);
 
 // Month-based timeseries
 export const getMonthlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
-  ACTIVE_KEYS_INTERVALS.month
+  ACTIVE_KEYS_INTERVALS.month,
 );
-export const getQuarterlyActiveKeysTimeseries =
-  createActiveKeysTimeseriesQuerier(ACTIVE_KEYS_INTERVALS.quarter);
+export const getQuarterlyActiveKeysTimeseries = createActiveKeysTimeseriesQuerier(
+  ACTIVE_KEYS_INTERVALS.quarter,
+);

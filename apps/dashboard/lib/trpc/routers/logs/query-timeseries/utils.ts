@@ -2,8 +2,8 @@ import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import {
-  type TimeseriesGranularity,
   type TimeseriesConfig,
+  type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 
@@ -17,11 +17,7 @@ export function transformFilters(params: TimeseriesRequestSchema): {
     const endTime = Date.now();
     timeConfig = getTimeseriesGranularity("forRegular", startTime, endTime);
   } else {
-    timeConfig = getTimeseriesGranularity(
-      "forRegular",
-      params.startTime,
-      params.endTime
-    );
+    timeConfig = getTimeseriesGranularity("forRegular", params.startTime, params.endTime);
   }
 
   return {

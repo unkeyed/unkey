@@ -11,7 +11,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import {
@@ -43,7 +43,7 @@ export type TimeseriesChartLabels = {
   reverse?: boolean;
 };
 
-export type Granularity = CompoundTimeseriesGranularity | undefined;
+export type Granularity = TimeseriesGranularity | undefined;
 
 export interface TimeseriesAreaChartProps {
   data?: TimeseriesData[];

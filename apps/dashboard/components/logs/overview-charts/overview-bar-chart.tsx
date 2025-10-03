@@ -11,7 +11,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
@@ -44,7 +44,7 @@ type OverviewBarChartProps = {
   labels: ChartLabels;
   tooltipItems?: ChartTooltipItem[];
   onMount?: (distanceToTop: number) => void;
-  granularity?: CompoundTimeseriesGranularity;
+  granularity?: TimeseriesGranularity;
 };
 
 export function OverviewBarChart({

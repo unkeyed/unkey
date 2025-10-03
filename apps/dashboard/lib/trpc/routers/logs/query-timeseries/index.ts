@@ -1,11 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 
 import { timeseriesRequestSchema } from "@/lib/schemas/logs.schema";
 import { TRPCError } from "@trpc/server";
