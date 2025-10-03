@@ -2,14 +2,16 @@ import type { RatelimitQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { RatelimitLogsTimeseriesParams } from "@unkey/clickhouse/src/ratelimits";
 import {
-  type RegularTimeseriesGranularity,
+  type TimeseriesGranularity,
   type TimeseriesConfig,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 
-export function transformRatelimitFilters(params: RatelimitQueryTimeseriesPayload): {
+export function transformRatelimitFilters(
+  params: RatelimitQueryTimeseriesPayload
+): {
   params: Omit<RatelimitLogsTimeseriesParams, "workspaceId" | "namespaceId">;
-  granularity: RegularTimeseriesGranularity;
+  granularity: TimeseriesGranularity;
 } {
   let timeConfig: TimeseriesConfig<"forRegular">;
 
@@ -18,7 +20,11 @@ export function transformRatelimitFilters(params: RatelimitQueryTimeseriesPayloa
     const endTime = Date.now();
     timeConfig = getTimeseriesGranularity("forRegular", startTime, endTime);
   } else {
-    timeConfig = getTimeseriesGranularity("forRegular", params.startTime, params.endTime);
+    timeConfig = getTimeseriesGranularity(
+      "forRegular",
+      params.startTime,
+      params.endTime
+    );
   }
 
   return {

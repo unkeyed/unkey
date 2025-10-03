@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DAY_IN_MS, HOUR_IN_MS } from "./constants";
 import {
   type TimeseriesConfig,
-  type VerificationTimeseriesGranularity,
+  type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "./granularity";
 
@@ -56,7 +56,11 @@ describe("getTimeseriesGranularity", () => {
 
     it("should set startTime based on context for forVerifications", () => {
       const endTime = FIXED_NOW;
-      const result = getTimeseriesGranularity("forVerifications", null, endTime);
+      const result = getTimeseriesGranularity(
+        "forVerifications",
+        null,
+        endTime
+      );
 
       expect(result.startTime).toBe(endTime - DAY_IN_MS);
       expect(result.endTime).toBe(endTime);
@@ -74,7 +78,11 @@ describe("getTimeseriesGranularity", () => {
 
     it("should use current time as endTime for forVerifications", () => {
       const startTime = FIXED_NOW - DAY_IN_MS * 2;
-      const result = getTimeseriesGranularity("forVerifications", startTime, null);
+      const result = getTimeseriesGranularity(
+        "forVerifications",
+        startTime,
+        null
+      );
 
       expect(result.startTime).toBe(startTime);
       expect(result.endTime).toBe(FIXED_NOW);
@@ -127,18 +135,30 @@ describe("getTimeseriesGranularity", () => {
 
     testCases.forEach((testCase) => {
       it(testCase.name, () => {
-        const result = getTimeseriesGranularity("forRegular", testCase.startTime, FIXED_NOW);
+        const result = getTimeseriesGranularity(
+          "forRegular",
+          testCase.startTime,
+          FIXED_NOW
+        );
         expect(result.granularity).toBe(testCase.expectedGranularity);
       });
     });
 
     it("should handle edge case at exactly 4 hours boundary", () => {
-      const result = getTimeseriesGranularity("forRegular", FIXED_NOW - HOUR_IN_MS * 4, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forRegular",
+        FIXED_NOW - HOUR_IN_MS * 4,
+        FIXED_NOW
+      );
       expect(result.granularity).toBe("per5Minutes");
     });
 
     it("should handle edge case at exactly 7 days boundary", () => {
-      const result = getTimeseriesGranularity("forRegular", FIXED_NOW - DAY_IN_MS * 7, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forRegular",
+        FIXED_NOW - DAY_IN_MS * 7,
+        FIXED_NOW
+      );
       expect(result.granularity).toBe("perDay");
     });
   });
@@ -199,7 +219,11 @@ describe("getTimeseriesGranularity", () => {
 
     testCases.forEach((testCase) => {
       it(testCase.name, () => {
-        const result = getTimeseriesGranularity("forVerifications", testCase.startTime, FIXED_NOW);
+        const result = getTimeseriesGranularity(
+          "forVerifications",
+          testCase.startTime,
+          FIXED_NOW
+        );
         expect(result.granularity).toBe(testCase.expectedGranularity);
       });
     });
@@ -208,7 +232,7 @@ describe("getTimeseriesGranularity", () => {
       const result = getTimeseriesGranularity(
         "forVerifications",
         FIXED_NOW - DAY_IN_MS * 7,
-        FIXED_NOW,
+        FIXED_NOW
       );
       expect(result.granularity).toBe("perDay");
     });
@@ -217,7 +241,7 @@ describe("getTimeseriesGranularity", () => {
       const result = getTimeseriesGranularity(
         "forVerifications",
         FIXED_NOW - DAY_IN_MS * 30,
-        FIXED_NOW,
+        FIXED_NOW
       );
       expect(result.granularity).toBe("per3Days");
     });
@@ -228,7 +252,7 @@ describe("getTimeseriesGranularity", () => {
       const result: TimeseriesConfig<"forRegular"> = getTimeseriesGranularity(
         "forRegular",
         null,
-        null,
+        null
       );
       expect(result.context).toBe("forRegular");
 
@@ -247,14 +271,11 @@ describe("getTimeseriesGranularity", () => {
     });
 
     it("should properly type the return for forVerifications context", () => {
-      const result: TimeseriesConfig<"forVerifications"> = getTimeseriesGranularity(
-        "forVerifications",
-        null,
-        null,
-      );
+      const result: TimeseriesConfig<"forVerifications"> =
+        getTimeseriesGranularity("forVerifications", null, null);
       expect(result.context).toBe("forVerifications");
 
-      const validGranularities: VerificationTimeseriesGranularity[] = [
+      const validGranularities: TimeseriesGranularity[] = [
         "perDay",
         "per12Hours",
         "per3Days",
@@ -270,7 +291,11 @@ describe("getTimeseriesGranularity", () => {
   describe("Use cases", () => {
     it("should handle a 1-hour dashboard view correctly", () => {
       const oneHourAgo = FIXED_NOW - HOUR_IN_MS;
-      const result = getTimeseriesGranularity("forRegular", oneHourAgo, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forRegular",
+        oneHourAgo,
+        FIXED_NOW
+      );
 
       expect(result.granularity).toBe("perMinute");
       expect(result.startTime).toBe(oneHourAgo);
@@ -279,7 +304,11 @@ describe("getTimeseriesGranularity", () => {
 
     it("should handle a 24-hour dashboard view correctly", () => {
       const oneDayAgo = FIXED_NOW - DAY_IN_MS;
-      const result = getTimeseriesGranularity("forRegular", oneDayAgo, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forRegular",
+        oneDayAgo,
+        FIXED_NOW
+      );
 
       expect(result.granularity).toBe("perHour");
       expect(result.startTime).toBe(oneDayAgo);
@@ -288,7 +317,11 @@ describe("getTimeseriesGranularity", () => {
 
     it("should handle a 1-week dashboard view correctly", () => {
       const oneWeekAgo = FIXED_NOW - DAY_IN_MS * 7;
-      const result = getTimeseriesGranularity("forRegular", oneWeekAgo, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forRegular",
+        oneWeekAgo,
+        FIXED_NOW
+      );
 
       expect(result.granularity).toBe("perDay");
       expect(result.startTime).toBe(oneWeekAgo);
@@ -297,7 +330,11 @@ describe("getTimeseriesGranularity", () => {
 
     it("should handle a 30-day verification dashboard view correctly", () => {
       const thirtyDaysAgo = FIXED_NOW - DAY_IN_MS * 30;
-      const result = getTimeseriesGranularity("forVerifications", thirtyDaysAgo, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forVerifications",
+        thirtyDaysAgo,
+        FIXED_NOW
+      );
 
       expect(result.granularity).toBe("per3Days");
       expect(result.startTime).toBe(thirtyDaysAgo);
@@ -306,7 +343,11 @@ describe("getTimeseriesGranularity", () => {
 
     it("should handle a quarterly verification dashboard view correctly", () => {
       const threeMonthsAgo = FIXED_NOW - DAY_IN_MS * 90;
-      const result = getTimeseriesGranularity("forVerifications", threeMonthsAgo, FIXED_NOW);
+      const result = getTimeseriesGranularity(
+        "forVerifications",
+        threeMonthsAgo,
+        FIXED_NOW
+      );
 
       expect(result.granularity).toBe("perMonth");
       expect(result.startTime).toBe(threeMonthsAgo);

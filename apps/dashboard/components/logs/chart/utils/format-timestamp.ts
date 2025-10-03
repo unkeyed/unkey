@@ -1,4 +1,4 @@
-import type { CompoundTimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format, fromUnixTime } from "date-fns";
 
 // Memoization cache with bounded size
@@ -30,7 +30,8 @@ const memoizedFormat = (date: Date, formatString: string): string => {
 };
 
 export const formatTimestampLabel = (timestamp: string | number | Date) => {
-  const isNumericString = typeof timestamp === "string" && /^\d+$/.test(timestamp);
+  const isNumericString =
+    typeof timestamp === "string" && /^\d+$/.test(timestamp);
   const input = isNumericString ? Number(timestamp) : timestamp;
   const date = input instanceof Date ? input : new Date(input);
   return memoizedFormat(date, "MMM dd, h:mm a").toUpperCase();
@@ -38,7 +39,7 @@ export const formatTimestampLabel = (timestamp: string | number | Date) => {
 
 export const formatTimestampForChart = (
   value: string | number,
-  granularity: CompoundTimeseriesGranularity,
+  granularity: TimeseriesGranularity
 ) => {
   const localDate = new Date(value);
 
@@ -64,6 +65,8 @@ export const formatTimestampForChart = (
     case "perWeek":
       return memoizedFormat(localDate, "MMM d");
     case "perMonth":
+      return memoizedFormat(localDate, "MMM yyyy");
+    case "perQuarter":
       return memoizedFormat(localDate, "MMM yyyy");
     default:
       return memoizedFormat(localDate, "Pp");

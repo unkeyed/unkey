@@ -3,10 +3,12 @@ import { Client, type Inserter, Noop, type Querier } from "./client";
 import {
   getDailyActiveKeysTimeseries,
   getFiveMinutelyActiveKeysTimeseries,
+  getFifteenMinutelyActiveKeysTimeseries,
   getFourHourlyActiveKeysTimeseries,
   getHourlyActiveKeysTimeseries,
   getMinutelyActiveKeysTimeseries,
   getMonthlyActiveKeysTimeseries,
+  getQuarterlyActiveKeysTimeseries,
   getSixHourlyActiveKeysTimeseries,
   getThirtyMinutelyActiveKeysTimeseries,
   getThreeDayActiveKeysTimeseries,
@@ -18,8 +20,13 @@ import { getKeysOverviewLogs } from "./keys/keys";
 import { getLatestVerifications } from "./latest_verifications";
 import {
   getDailyLogsTimeseries,
-  getFifteenMinuteLogsTimeseries,
+  getQuarterlyLogsTimeseries,
+  getMonthlyLogsTimeseries,
+  getWeeklyLogsTimeseries,
+  getTwelveHourlyLogsTimeseries,
+  getThreeDayLogsTimeseries,
   getFiveMinuteLogsTimeseries,
+  getFifteenMinuteLogsTimeseries,
   getFourHourlyLogsTimeseries,
   getHourlyLogsTimeseries,
   getLogs,
@@ -29,28 +36,37 @@ import {
   getTwoHourlyLogsTimeseries,
 } from "./logs";
 import {
+  getQuarterlyLatencyTimeseries,
+  getQuarterlyRatelimitTimeseries,
+  getMonthlyRatelimitTimeseries,
+  getMonthlyLatencyTimeseries,
+  getWeeklyLatencyTimeseries,
+  getWeeklyRatelimitTimeseries,
+  getThreeDayLatencyTimeseries,
+  getThreeDayRatelimitTimeseries,
   getDailyLatencyTimeseries,
   getDailyRatelimitTimeseries,
+  getTwelveHourlyRatelimitTimeseries,
+  getTwelveHourlyLatencyTimeseries,
+  getSixHourlyLatencyTimeseries,
+  getSixHourlyRatelimitTimeseries,
+  getFourHourlyLatencyTimeseries,
+  getFourHourlyRatelimitTimeseries,
+  getTwoHourlyLatencyTimeseries,
+  getTwoHourlyRatelimitTimeseries,
+  getHourlyLatencyTimeseries,
+  getHourlyRatelimitTimeseries,
+  getThirtyMinuteLatencyTimeseries,
+  getThirtyMinuteRatelimitTimeseries,
   getFifteenMinuteLatencyTimeseries,
   getFifteenMinuteRatelimitTimeseries,
   getFiveMinuteLatencyTimeseries,
   getFiveMinuteRatelimitTimeseries,
-  getFourHourlyLatencyTimeseries,
-  getFourHourlyRatelimitTimeseries,
-  getHourlyLatencyTimeseries,
-  getHourlyRatelimitTimeseries,
   getMinutelyLatencyTimeseries,
   getMinutelyRatelimitTimeseries,
-  getMonthlyRatelimitTimeseries,
   getRatelimitLastUsed,
   getRatelimitLogs,
   getRatelimitOverviewLogs,
-  getSixHourlyLatencyTimeseries,
-  getSixHourlyRatelimitTimeseries,
-  getThirtyMinuteLatencyTimeseries,
-  getThirtyMinuteRatelimitTimeseries,
-  getTwoHourlyLatencyTimeseries,
-  getTwoHourlyRatelimitTimeseries,
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
@@ -59,10 +75,12 @@ import { insertSDKTelemetry } from "./telemetry";
 import {
   getDailyVerificationTimeseries,
   getFiveMinutelyVerificationTimeseries,
+  getFifteenMinutelyVerificationTimeseries,
   getFourHourlyVerificationTimeseries,
   getHourlyVerificationTimeseries,
   getKeyDetailsLogs,
   getMinutelyVerificationTimeseries,
+  getQuarterlyVerificationTimeseries,
   getMonthlyVerificationTimeseries,
   getSixHourlyVerificationTimeseries,
   getThirtyMinutelyVerificationTimeseries,
@@ -115,6 +133,7 @@ export class ClickHouse {
         // Minute-based granularity
         perMinute: getMinutelyVerificationTimeseries(this.querier),
         per5Minutes: getFiveMinutelyVerificationTimeseries(this.querier),
+        per15Minutes: getFifteenMinutelyVerificationTimeseries(this.querier),
         per30Minutes: getThirtyMinutelyVerificationTimeseries(this.querier),
         // Hour-based granularity
         perHour: getHourlyVerificationTimeseries(this.querier),
@@ -128,11 +147,13 @@ export class ClickHouse {
         perWeek: getWeeklyVerificationTimeseries(this.querier),
         // Month-based granularity
         perMonth: getMonthlyVerificationTimeseries(this.querier),
+        perQuarter: getQuarterlyVerificationTimeseries(this.querier),
       },
       activeKeysTimeseries: {
         // Minute-based granularity
         perMinute: getMinutelyActiveKeysTimeseries(this.querier),
         per5Minutes: getFiveMinutelyActiveKeysTimeseries(this.querier),
+        per15Minutes: getFifteenMinutelyActiveKeysTimeseries(this.querier),
         per30Minutes: getThirtyMinutelyActiveKeysTimeseries(this.querier),
         // Hour-based granularity
         perHour: getHourlyActiveKeysTimeseries(this.querier),
@@ -146,6 +167,7 @@ export class ClickHouse {
         perWeek: getWeeklyActiveKeysTimeseries(this.querier),
         // Month-based granularity
         perMonth: getMonthlyActiveKeysTimeseries(this.querier),
+        perQuarter: getQuarterlyActiveKeysTimeseries(this.querier),
       },
     };
   }
@@ -163,8 +185,12 @@ export class ClickHouse {
         per2Hours: getTwoHourlyRatelimitTimeseries(this.querier),
         per4Hours: getFourHourlyRatelimitTimeseries(this.querier),
         per6Hours: getSixHourlyRatelimitTimeseries(this.querier),
+        per12Hours: getTwelveHourlyRatelimitTimeseries(this.querier),
         perDay: getDailyRatelimitTimeseries(this.querier),
+        per3Days: getThreeDayRatelimitTimeseries(this.querier),
+        perWeek: getWeeklyRatelimitTimeseries(this.querier),
         perMonth: getMonthlyRatelimitTimeseries(this.querier),
+        perQuarter: getQuarterlyRatelimitTimeseries(this.querier),
         latency: {
           perMinute: getMinutelyLatencyTimeseries(this.querier),
           per5Minutes: getFiveMinuteLatencyTimeseries(this.querier),
@@ -174,7 +200,12 @@ export class ClickHouse {
           per2Hours: getTwoHourlyLatencyTimeseries(this.querier),
           per4Hours: getFourHourlyLatencyTimeseries(this.querier),
           per6Hours: getSixHourlyLatencyTimeseries(this.querier),
+          per12Hours: getTwelveHourlyLatencyTimeseries(this.querier),
           perDay: getDailyLatencyTimeseries(this.querier),
+          per3Days: getThreeDayLatencyTimeseries(this.querier),
+          perWeek: getWeeklyLatencyTimeseries(this.querier),
+          perMonth: getMonthlyLatencyTimeseries(this.querier),
+          perQuarter: getQuarterlyLatencyTimeseries(this.querier),
         },
       },
       overview: {
@@ -207,7 +238,12 @@ export class ClickHouse {
         per2Hours: getTwoHourlyLogsTimeseries(this.querier),
         per4Hours: getFourHourlyLogsTimeseries(this.querier),
         per6Hours: getSixHourlyLogsTimeseries(this.querier),
+        per12Hours: getTwelveHourlyLogsTimeseries(this.querier),
         perDay: getDailyLogsTimeseries(this.querier),
+        per3Days: getThreeDayLogsTimeseries(this.querier),
+        perWeek: getWeeklyLogsTimeseries(this.querier),
+        perMonth: getMonthlyLogsTimeseries(this.querier),
+        perQuarter: getQuarterlyLogsTimeseries(this.querier),
       },
     };
   }

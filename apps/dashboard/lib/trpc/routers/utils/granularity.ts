@@ -1,17 +1,13 @@
-import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS } from "./constants";
+import {
+  DAY_IN_MS,
+  HOUR_IN_MS,
+  MINUTE_IN_MS,
+  WEEK_IN_MS,
+  MONTH_IN_MS,
+  QUARTER_IN_MS,
+} from "./constants";
 
-export type VerificationTimeseriesGranularity =
-  | "per30Minutes"
-  | "per5Minutes"
-  | "perMinute"
-  | "perHour"
-  | "perDay"
-  | "per12Hours"
-  | "per3Days"
-  | "perWeek"
-  | "perMonth";
-
-export type RegularTimeseriesGranularity =
+export type TimeseriesGranularity =
   | "perMinute"
   | "per5Minutes"
   | "per15Minutes"
@@ -19,26 +15,23 @@ export type RegularTimeseriesGranularity =
   | "perHour"
   | "per2Hours"
   | "per4Hours"
-  | "per6Hours";
+  | "per6Hours"
+  | "per12Hours"
+  | "perDay"
+  | "per3Days"
+  | "perWeek"
+  | "perMonth"
+  | "perQuarter";
 
 export type TimeseriesContext = "forVerifications" | "forRegular";
 
-export type TimeseriesGranularityMap = {
-  forVerifications: VerificationTimeseriesGranularity;
-  forRegular: RegularTimeseriesGranularity;
-};
-
-export type CompoundTimeseriesGranularity =
-  | VerificationTimeseriesGranularity
-  | RegularTimeseriesGranularity;
-
-const DEFAULT_GRANULARITY: Record<TimeseriesContext, CompoundTimeseriesGranularity> = {
+const DEFAULT_GRANULARITY: Record<TimeseriesContext, TimeseriesGranularity> = {
   forVerifications: "perHour",
   forRegular: "perMinute",
 };
 
 export type TimeseriesConfig<TContext extends TimeseriesContext> = {
-  granularity: TimeseriesGranularityMap[TContext];
+  granularity: TimeseriesGranularity;
   startTime: number;
   endTime: number;
   context: TContext;
@@ -56,8 +49,9 @@ export const TIMESERIES_GRANULARITIES = {
   per12Hours: { ms: 12 * HOUR_IN_MS, format: "MMM d h:mma" },
   perDay: { ms: DAY_IN_MS, format: "MMM d" },
   per3Days: { ms: 3 * DAY_IN_MS, format: "MMM d" },
-  perWeek: { ms: 7 * DAY_IN_MS, format: "MMM d" },
-  perMonth: { ms: 30 * DAY_IN_MS, format: "MMM yy" },
+  perWeek: { ms: WEEK_IN_MS, format: "MMM d" },
+  perMonth: { ms: MONTH_IN_MS, format: "MMM yy" },
+  perQuarter: { ms: QUARTER_IN_MS, format: "MMM yy" },
 } as const;
 
 /**
@@ -70,19 +64,17 @@ export const TIMESERIES_GRANULARITIES = {
 export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   context: TContext,
   startTime?: number | null,
-  endTime?: number | null,
+  endTime?: number | null
 ): TimeseriesConfig<TContext> => {
   const now = Date.now();
-  const WEEK_IN_MS = DAY_IN_MS * 7;
-  const MONTH_IN_MS = DAY_IN_MS * 30;
-  const QUARTER_IN_MS = MONTH_IN_MS * 3;
 
   // If both are missing, fallback to an appropriate default for the context
   if (!startTime && !endTime) {
     const defaultGranularity = DEFAULT_GRANULARITY[context];
-    const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+    const defaultDuration =
+      context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
     return {
-      granularity: defaultGranularity as TimeseriesGranularityMap[TContext],
+      granularity: defaultGranularity as TimeseriesGranularity,
       startTime: now - defaultDuration,
       endTime: now,
       context,
@@ -92,55 +84,36 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // Set default end time if missing
   const effectiveEndTime = endTime ?? now;
   // Set default start time if missing (defaults vary by context)
-  const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
+  const defaultDuration =
+    context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
   const effectiveStartTime = startTime ?? effectiveEndTime - defaultDuration;
   const timeRange = effectiveEndTime - effectiveStartTime;
-  let granularity: CompoundTimeseriesGranularity;
+  let granularity: TimeseriesGranularity;
 
-  if (context === "forVerifications") {
-    if (timeRange >= QUARTER_IN_MS) {
-      granularity = "perMonth";
-    } else if (timeRange >= MONTH_IN_MS * 2) {
-      granularity = "perWeek";
-    } else if (timeRange >= MONTH_IN_MS) {
-      granularity = "per3Days";
-    } else if (timeRange >= WEEK_IN_MS) {
-      granularity = "perDay";
-    } else if (timeRange >= DAY_IN_MS * 3) {
-      granularity = "perHour";
-    } else if (timeRange >= DAY_IN_MS) {
-      granularity = "perHour";
-    } else if (timeRange >= HOUR_IN_MS * 16) {
-      granularity = "perHour";
-    } else if (timeRange >= HOUR_IN_MS * 8) {
-      granularity = "per30Minutes";
-    } else if (timeRange >= HOUR_IN_MS * 4) {
-      granularity = "per5Minutes";
-    } else {
-      granularity = "perMinute";
-    }
+  if (timeRange >= QUARTER_IN_MS) {
+    granularity = "perMonth";
+  } else if (timeRange >= MONTH_IN_MS * 2) {
+    granularity = "perWeek";
+  } else if (timeRange >= MONTH_IN_MS) {
+    granularity = "per3Days";
+  } else if (timeRange >= WEEK_IN_MS) {
+    granularity = "perDay";
+  } else if (timeRange >= DAY_IN_MS * 3) {
+    granularity = "perHour";
+  } else if (timeRange >= DAY_IN_MS) {
+    granularity = "perHour";
+  } else if (timeRange >= HOUR_IN_MS * 16) {
+    granularity = "perHour";
+  } else if (timeRange >= HOUR_IN_MS * 8) {
+    granularity = "per30Minutes";
+  } else if (timeRange >= HOUR_IN_MS * 4) {
+    granularity = "per5Minutes";
   } else {
-    if (timeRange >= QUARTER_IN_MS) {
-      granularity = "perMonth";
-    } else if (timeRange >= MONTH_IN_MS * 2) {
-      granularity = "perWeek";
-    } else if (timeRange >= MONTH_IN_MS) {
-      granularity = "per3Days";
-    } else if (timeRange >= WEEK_IN_MS) {
-      granularity = "perDay";
-    } else if (timeRange >= HOUR_IN_MS * 16) {
-      granularity = "perHour";
-    } else if (timeRange >= HOUR_IN_MS * 8) {
-      granularity = "per30Minutes";
-    } else if (timeRange >= HOUR_IN_MS * 4) {
-      granularity = "per5Minutes";
-    } else {
-      granularity = "perMinute";
-    }
+    granularity = "perMinute";
   }
 
   return {
-    granularity: granularity as TimeseriesGranularityMap[TContext],
+    granularity: granularity as TimeseriesGranularity,
     startTime: effectiveStartTime,
     endTime: effectiveEndTime,
     context,
@@ -153,9 +126,10 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
  * @param granularity The current timeseries granularity
  * @returns Buffer time in milliseconds
  */
-export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranularity): number => {
+export const getTimeBufferForGranularity = (
+  granularity: TimeseriesGranularity
+): number => {
   // Constants for commonly used durations
-  const MINUTE_IN_MS = 60 * 1000;
 
   // Return appropriate buffer based on granularity
   switch (granularity) {
@@ -182,9 +156,11 @@ export const getTimeBufferForGranularity = (granularity: CompoundTimeseriesGranu
     case "per3Days":
       return 3 * DAY_IN_MS;
     case "perWeek":
-      return 7 * DAY_IN_MS;
+      return WEEK_IN_MS;
     case "perMonth":
-      return 30 * DAY_IN_MS;
+      return MONTH_IN_MS;
+    case "perQuarter":
+      return QUARTER_IN_MS;
     default:
       // Default to 5 minutes if granularity is unknown
       return 5 * MINUTE_IN_MS;

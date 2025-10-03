@@ -1,6 +1,9 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
+import type {
+  TimeseriesRequestSchema,
+  LogsResponseSchema,
+} from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
@@ -70,7 +73,9 @@ export const useFetchTimeseries = () => {
         case "startTime":
         case "endTime": {
           if (typeof filter.value !== "number") {
-            console.error(`${filter.field} filter value type has to be 'number'`);
+            console.error(
+              `${filter.field} filter value type has to be 'number'`
+            );
             return;
           }
           params[filter.field] = filter.value;
@@ -90,9 +95,12 @@ export const useFetchTimeseries = () => {
     return params;
   }, [filters, timestamp]);
 
-  const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
-    refetchInterval: queryParams.endTime ? false : 10_000,
-  });
+  const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(
+    queryParams,
+    {
+      refetchInterval: queryParams.endTime ? false : 10_000,
+    }
+  );
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),
