@@ -29,6 +29,22 @@ type AcmeConfig struct {
 	Cloudflare CloudflareConfig
 }
 
+type RestateConfig struct {
+
+	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
+	IngressURL string
+
+	// AdminURL is the URL of the Restate admin endpoint for service registration (e.g., "http://restate:9070")
+	AdminURL string
+
+	// RestateHttpPort is the port where the control plane listens for Restate HTTP requests
+	HttpPort int
+
+	// RegisterAs is the url of this service, used for self-registration with the Restate platform
+	// ie: http://ctrl:9080
+	RegisterAs string
+}
+
 type Config struct {
 	// InstanceID is the unique identifier for this instance of the control plane server
 	InstanceID string
@@ -50,7 +66,6 @@ type Config struct {
 	// DatabasePrimary is the primary database connection string for read and write operations
 	DatabasePrimary   string
 	DatabasePartition string
-	DatabaseHydra     string
 
 	// --- OpenTelemetry configuration ---
 
@@ -84,6 +99,8 @@ type Config struct {
 	Acme AcmeConfig
 
 	DefaultDomain string
+
+	Restate RestateConfig
 }
 
 func (c Config) Validate() error {

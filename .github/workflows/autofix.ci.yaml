@@ -10,19 +10,19 @@ jobs:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           run_install: false
       - name: Setup Node with pnpm cache
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
           cache: "pnpm"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Go (for formatting)
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
           go-version-file: ./go/go.mod
           cache-dependency-path: ./go/go.sum
@@ -33,13 +33,13 @@ jobs:
       - run: pnpm biome format . --write && pnpm biome check . --write
         env:
           CI: 1
-      - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c
+      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27 # v1.3.2
   lint_docs:
     name: Docs
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Lint main docs
         run: npx mintlify@latest broken-links
         working-directory: apps/docs

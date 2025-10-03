@@ -422,7 +422,8 @@ const file_ctrl_v1_openapi_proto_rawDesc = "" +
 	"\x14has_breaking_changes\x18\x02 \x01(\bR\x12hasBreakingChanges\x121\n" +
 	"\achanges\x18\x03 \x03(\v2\x17.ctrl.v1.ChangelogEntryR\achanges2e\n" +
 	"\x0eOpenApiService\x12S\n" +
-	"\x0eGetOpenApiDiff\x12\x1e.ctrl.v1.GetOpenApiDiffRequest\x1a\x1f.ctrl.v1.GetOpenApiDiffResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\x0eGetOpenApiDiff\x12\x1e.ctrl.v1.GetOpenApiDiffRequest\x1a\x1f.ctrl.v1.GetOpenApiDiffResponse\"\x00B\x8e\x01\n" +
+	"\vcom.ctrl.v1B\fOpenapiProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
 	file_ctrl_v1_openapi_proto_rawDescOnce sync.Once

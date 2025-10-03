@@ -6,23 +6,25 @@ This document outlines the documentation standards for our Go codebase.
 
 1. **Everything public MUST be documented** - No exceptions
 2. **Internal code should explain "why", not "how"** - Focus on reasoning and trade-offs
-3. **Be comprehensive and verbose** - Prefer thorough explanations over terse summaries
+3. **Document what matters** - Focus on non-obvious behavior, constraints, and context that helps users succeed
 4. **Add substantial value** - Documentation should teach, not just restate the obvious
 5. **Follow Go conventions** - Start with the item name, use present tense
 
 ## Documentation Philosophy
 
-**Serve both beginners and experts.** Documentation should provide clear, accessible entry points for newcomers AND comprehensive details for experts who need to understand the full picture, including architectural decisions and edge cases.
+**Match documentation depth to complexity.** Simple functions need simple documentation. Complex functions with edge cases, performance implications, or subtle behavior need detailed documentation. Don't force every function into the same verbose template.
 
-**Clarity is better than terse.** We prefer comprehensive documentation that fully explains what the code does in detail, why it exists and its role in the system, how it relates to other components, what callers need to know about behavior and performance characteristics, when to use it versus alternatives, and what can go wrong and why.
+**Focus on what users need to know.** Document the "what" (what does it do), the "when" (when should I use it), the "watch out" (what can go wrong), and the "why" (why this design). Skip sections that don't apply. Most simple functions only need "what" and maybe "watch out."
 
-**Every piece of documentation should add substantial value.** If the documentation doesn't teach something beyond what's obvious from the function signature, it needs to be expanded.
+**Every piece of documentation should add substantial value.** If the documentation doesn't teach something beyond what's obvious from the function signature, it's sufficient to just explain the purpose clearly. Not every function needs parameter explanations, error details, performance notes, and concurrency information.
 
-**Prioritize practical examples over theory.** Every non-trivial function should include working code examples that developers can copy and adapt. Examples should demonstrate real usage patterns, not artificial toy cases.
+**Don't document irrelevant details.** If a function has no special concurrency considerations, don't document that "it's safe for concurrent use" unless the type is designed for concurrent access. If performance is O(1) and unremarkable, don't document it. If context handling is standard, don't explain it.
 
-**Make functionality discoverable.** Use extensive cross-references to help developers find related functions and understand how pieces fit together. If a function works with or is an alternative to another function, mention that explicitly.
+**Prioritize practical examples for non-trivial usage.** Simple getters, setters, and straightforward functions don't need examples. Focus examples on complex workflows, non-obvious usage patterns, and common integration scenarios.
 
-**Write in full sentences, not bullet points.** Code documentation should read like well-written prose that flows naturally. Avoid bullet points for general explanations, behavior descriptions, or conceptual information. Only use bullet points when they genuinely improve readability for specific lists such as error codes, configuration options, or step-by-step procedures. Most documentation should be written as coherent paragraphs that explain concepts thoroughly.
+**Make functionality discoverable.** Use cross-references to help developers find related functions and understand how pieces fit together. If a function works with or is an alternative to another function, mention that explicitly.
+
+**Write naturally.** Use prose for explanations. Use lists (bullet points, parameter lists, error lists) only when they genuinely improve readability for enumerable items. Don't force structured sections into every docstring.
 
 ## Package-Level Documentation
 
@@ -75,6 +77,7 @@ package ratelimit
 ```
 
 ### Requirements for doc.go Files
+
 - **File name**: Must be exactly `doc.go` in the package root
 - **Content**: Only package documentation and package declaration - no other code
 - **Format**: Start with "Package [name] [verb]..."
@@ -87,16 +90,34 @@ package ratelimit
 
 ## Function and Method Documentation
 
-Every exported function and method must be documented. Focus on:
-- What it does
-- What parameters mean (especially if not obvious)
-- What it returns
-- Important behavior or side effects
-- When it might fail
+Every exported function and method must be documented. Start with what it does. Then add details only if they're non-obvious or important:
 
-### Public Functions - Comprehensive Documentation
+- Parameter meanings (only if not clear from name/type)
+- Return value specifics (only if behavior is subtle)
+- Important side effects or behavioral quirks
+- Error conditions (only if non-standard or important to handle)
+- Performance or concurrency notes (only if they significantly impact usage)
 
-Every public function must be thoroughly documented. Here's what comprehensive documentation looks like:
+### Simple Functions - Minimal Documentation
+
+Most functions are straightforward and need only a clear explanation:
+
+```go
+// GetUserID extracts the user ID from the request context.
+// Returns an empty string if no user ID is present in the context.
+func GetUserID(ctx context.Context) string
+
+// Close releases all resources held by the client, including network connections
+// and background goroutines. After calling Close, the client must not be used.
+func (c *Client) Close() error
+
+// SetTimeout updates the request timeout duration for all future requests.
+func (c *Client) SetTimeout(d time.Duration)
+```
+
+### Complex Functions - Detailed Documentation
+
+Complex functions with edge cases, distributed behavior, or subtle semantics need thorough documentation:
 
 ```go
 // Allow determines whether the specified identifier can perform the requested number
@@ -106,63 +127,53 @@ Every public function must be thoroughly documented. Here's what comprehensive d
 // across all nodes in the cluster. It uses a lease-based algorithm to coordinate
 // between nodes and ensure accurate rate limiting even under high concurrency.
 //
-// Parameters:
-//   - identifier: A unique string identifying the entity being rate limited. This is
-//     typically a user ID, API key, IP address, or other business identifier. The
-//     identifier is used as the key for rate limit bucketing and should be stable
-//     across requests from the same entity.
-//   - cost: The number of operations being requested. For most use cases this is 1,
-//     but can be higher for batch operations or when implementing weighted rate limiting.
-//     Must be positive; zero or negative values will return an error.
+// The identifier should be a stable business identifier (user ID, API key, IP address).
+// The cost is typically 1 for single operations, but can be higher for batch requests.
+// Cost must be positive or an error is returned.
 //
-// Behavior:
-//   - Checks the current rate limit status for the identifier
-//   - Coordinates with other cluster nodes if necessary to maintain consistency
-//   - Updates the rate limit counters atomically if the request is allowed
-//   - Implements fair queuing to prevent starvation under high load
+// Returns (true, nil) if allowed, (false, nil) if rate limited, or (false, error)
+// if a system error occurs. Possible errors include ErrInvalidCost for invalid cost
+// values, ErrClusterUnavailable when <50% of cluster nodes are reachable,
+// context.DeadlineExceeded on timeout (default 5s), and network errors on storage failures.
 //
-// Returns:
-//   - (true, nil): Request is allowed and counters have been updated
-//   - (false, nil): Request is rate limited, no error condition
-//   - (false, error): System error occurred, decision may be unreliable
-//
-// Error conditions (be specific about when each occurs):
-//   - ErrInvalidCost: cost <= 0 or cost > MaxCost
-//   - ErrClusterUnavailable: <50% of cluster nodes reachable
-//   - context.DeadlineExceeded: operation timeout (default 5s)
-//   - Network errors: underlying storage failures, retries exhausted
-//
-// Concurrency:
-//   This method is safe for concurrent use from multiple goroutines. Internal
-//   coordination ensures that concurrent requests for the same identifier are
-//   handled correctly without race conditions.
-//
-// Context handling:
-//   The context is used for request timeout and cancellation. If the context
-//   is cancelled before the rate limit check completes, the method returns
-//   the context error and no rate limit counters are modified.
-//
-// Context Guidelines:
-//   - Always document timeout behavior and defaults
-//   - Explain what happens on cancellation
-//   - Mention if context values are used
+// This method is safe for concurrent use. Context is used for timeout and cancellation;
+// if cancelled, no rate limit counters are modified.
 func (r *RateLimiter) Allow(ctx context.Context, identifier string, cost int) (bool, error)
 ```
 
-Compare this to insufficient documentation:
+The documentation is detailed because this function has distributed behavior, multiple error conditions,
+and important concurrency guarantees. Compare to a simpler alternative that would be insufficient:
+
 ```go
 // Allow checks if a request is allowed.
-// Returns true if allowed, false if rate limited.
 func (r *RateLimiter) Allow(ctx context.Context, identifier string, cost int) (bool, error)
 ```
 
-The second example adds almost no value beyond the function signature and would be rejected.
+This doesn't explain the distributed coordination, error conditions, or the meaning of the bool return
+vs error return, so it would be insufficient.
 
-### Function Documentation Approach
+### When to Include Specific Details
 
-Write function documentation as natural, flowing prose that explains what actually matters for each specific function. Start with what the function does, then include whatever information is genuinely relevant and useful for callers. Some functions might need detailed parameter explanations, others might need performance notes, and simple functions might just need a clear explanation of their purpose. Don't force every function into the same template - let the function's complexity and use case guide what information to include.
+**Parameters**: Document them when the purpose isn't obvious from the name and type, or when there
+are constraints (e.g., "must be positive", "should be stable across calls").
+
+**Return values**: Explain if the return pattern is subtle (e.g., bool success + separate error),
+or if there are multiple success states.
+
+**Error conditions**: List specific errors only when callers need to handle them differently, or
+when they're not obvious from context. Generic "returns error on failure" is usually sufficient.
+
+**Concurrency**: Only document if the function/type is designed for concurrent use OR if it
+explicitly must not be used concurrently. Don't document for simple stateless functions.
+
+**Performance**: Only mention if there are non-obvious performance characteristics that affect
+usage decisions (e.g., "O(n²) - use [AlternativeFunc] for large inputs" or "blocks until response").
+
+**Context**: Only document context behavior if it's non-standard (e.g., uses context values,
+has specific timeout behavior, or has special cancellation semantics).
 
 ### Internal Functions (Focus on "Why")
+
 ```go
 // retryWithBackoff handles retries for failed lease acquisitions.
 //
@@ -177,45 +188,53 @@ func (r *RateLimiter) retryWithBackoff(ctx context.Context, fn func() error) err
 
 ## Type Documentation
 
-Document all exported types, focusing on:
-- What the type represents
-- Its role in the system
-- Important invariants or constraints
-- Lifecycle considerations
+Document what the type represents and any non-obvious aspects like invariants, constraints,
+or lifecycle requirements. Document struct fields only when their purpose isn't clear from
+the name and type.
 
 ### Structs
+
+Simple config structs with self-explanatory fields need minimal documentation:
+
+```go
+// Config holds rate limiter configuration.
+type Config struct {
+    // Window is the time period over which the rate limit applies.
+    Window time.Duration
+
+    // Limit is the maximum number of operations allowed within Window.
+    Limit  int64
+}
+```
+
+Add more context when there are constraints, relationships, or non-obvious semantics:
+
 ```go
 // Config holds the configuration for a rate limiter instance.
 //
-// Window and Limit work together to define the rate limiting behavior.
+// Window and Limit work together to define rate limiting behavior.
 // For example, Window=1m and Limit=100 means "100 operations per minute".
-//
-// ClusterNodes is required for distributed operation. For single-node
-// deployments, use a slice with only the local node.
 type Config struct {
-    // Window is the time period over which operations are counted
     Window time.Duration
+    Limit  int64
 
-    // Limit is the maximum number of operations allowed within Window
-    Limit int64
-
-    // ClusterNodes lists all nodes participating in distributed rate limiting.
-    // Must include at least the local node.
+    // ClusterNodes lists all nodes in the cluster. Required for distributed
+    // operation; for single-node deployments, include only the local node.
     ClusterNodes []string
 }
 ```
 
 ### Interfaces
+
+Document the interface's purpose and any important implementation requirements like
+concurrency safety, guarantees, or trade-offs:
+
 ```go
 // Cache provides a generic caching interface with support for distributed invalidation.
 //
 // Implementations must be safe for concurrent use. The cache may return stale data
 // during network partitions to maintain availability, but will eventually converge
 // when connectivity is restored.
-//
-// We chose this interface design over more specific cache types because our
-// use cases vary widely (small config objects vs large binary data), and
-// the generic approach allows for better testing and modularity.
 type Cache[T any] interface {
     // Get retrieves a value by key. Returns the value and whether it was found.
     // A cache miss (found=false) is not an error.
@@ -229,46 +248,43 @@ type Cache[T any] interface {
 
 ## Error Documentation
 
-Document error conditions and types:
+Document sentinel errors with what they mean and when they occur:
 
 ```go
 var (
     // ErrRateLimited is returned when an operation exceeds the configured rate limit.
-    // This is expected behavior, not a system error.
     ErrRateLimited = errors.New("rate limit exceeded")
 
-    // ErrClusterUnavailable indicates that the required number of cluster nodes
-    // are not reachable. Operations may still succeed if configured to fail-open.
+    // ErrClusterUnavailable indicates that insufficient cluster nodes are reachable.
     ErrClusterUnavailable = errors.New("insufficient cluster nodes available")
 )
+```
 
+Only list specific error conditions in function docs when callers need to handle them differently:
+
+```go
 // ProcessRequest handles incoming rate limit requests.
 //
-// Returns ErrRateLimited if the request exceeds the configured limits.
-// Returns ErrClusterUnavailable if distributed consensus cannot be achieved.
-// Other errors indicate system problems (network, storage, etc.).
+// Returns ErrRateLimited if the request exceeds configured limits, ErrClusterUnavailable
+// if distributed consensus cannot be achieved, or other errors for system problems.
 func ProcessRequest(ctx context.Context, req *Request) (*Response, error)
 ```
 
 ## Constants and Variables
 
-Document the purpose and valid values:
+Document the purpose. Add reasoning only for non-obvious design choices:
 
 ```go
 const (
-    // DefaultWindow is the standard rate limiting window for new limiters.
-    // Chosen as a balance between memory usage and granularity for most use cases.
+    // DefaultWindow is the standard rate limiting window.
     DefaultWindow = time.Minute
 
     // MaxBurstRatio determines how much bursting is allowed above the base rate.
-    // Set to 1.5 based on analysis of traffic patterns in production.
     MaxBurstRatio = 1.5
 )
 
 var (
     // GlobalRegistry tracks all active rate limiters for monitoring and cleanup.
-    // We use a global registry instead of dependency injection here because
-    // rate limiters need to be accessible from signal handlers for graceful shutdown.
     GlobalRegistry = &Registry{limiters: make(map[string]*RateLimiter)}
 )
 ```
@@ -366,11 +382,13 @@ func TestConcurrentAccess(t *testing.T) {
 ## Consistency and Style
 
 **Terminology must be consistent** across the entire codebase:
+
 - Use the same terms for the same concepts (e.g., always "identifier", never mix with "key" or "ID")
 - Define domain-specific terms in package documentation
 - Create a glossary for complex domains
 
 **Parameter naming should be predictable:**
+
 - `ctx context.Context` (always first parameter)
 - `id string` or `identifier string` for rate limit keys
 - `cost int` or `count int` for operation quantities
@@ -420,15 +438,16 @@ Follow these formatting and style conventions:
 
 Before submitting code, verify:
 
-- [ ] **Every package has a dedicated `doc.go` file** with comprehensive package documentation
+- [ ] **Every package has a dedicated `doc.go` file** with package documentation
 - [ ] Every exported function, method, type, constant, and variable is documented
-- [ ] Package documentation in `doc.go` explains purpose, key concepts but not details
+- [ ] Documentation depth matches code complexity (simple code = simple docs)
+- [ ] Only relevant details are included (skip irrelevant concurrency, performance, context notes)
 - [ ] Internal code explains "why" decisions were made, not just "what" it does
-- [ ] Error conditions and return values are clearly explained
+- [ ] Error conditions are mentioned when callers need to handle them differently
 - [ ] Complex algorithms include reasoning for the chosen approach
 - [ ] Examples are provided for non-trivial usage patterns
 - [ ] Documentation starts with the item name and uses present tense
-- [ ] All documentation follows Go formatting conventions (proper line breaks, etc.)
+- [ ] All documentation follows Go formatting conventions
 - [ ] Cross-references use proper `[Reference]` format
 - [ ] Edge cases and non-obvious behaviors are documented
 - [ ] Concurrency guarantees are documented if and only if the code is designed to be concurrently safe

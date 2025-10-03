@@ -9,9 +9,9 @@ jobs:
     timeout-minutes: 90
     runs-on: blacksmith-8vcpu-ubuntu-2404
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Set up Docker Buildx
-        uses: useblacksmith/setup-docker-builder@v1
+        uses: useblacksmith/setup-docker-builder@1796035cb0632d35796ffec6b4b3bddafbc85c6e # v1
       - name: Create dashboard env file for Docker Compose
         run: |
           mkdir -p ./apps/dashboard
@@ -55,7 +55,7 @@ jobs:
         if: always()
         run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
       - name: Upload logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: ${{github.run_id}}-${{github.run_number}}-api.logs

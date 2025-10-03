@@ -799,7 +799,7 @@ paths:
           required: true
           schema:
             type: string
-            minLength: 1
+            minLength: 3
       responses:
         '200':
           description: Successful response

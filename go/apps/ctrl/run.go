@@ -1,29 +1,33 @@
 package ctrl
 
 import (
+	"bytes"
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
+	restateIngress "github.com/restatedev/sdk-go/ingress"
+	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/certificate"
+	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
+	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/routing"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/retry"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
-	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
@@ -94,6 +98,8 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create vault service: %w", err)
 		}
 	}
+	// make go happy
+	_ = vaultSvc
 
 	// Initialize database
 	database, err := db.New(db.Config{
@@ -116,31 +122,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(partitionDB.Close)
 	shutdowns.Register(database.Close)
-
-	// Initialize Hydra workflow engine with DSN
-	hydraEngine, err := hydra.New(hydra.Config{
-		DSN:        cfg.DatabaseHydra,
-		Namespace:  "ctrl",
-		Clock:      cfg.Clock,
-		Logger:     logger,
-		Marshaller: hydra.NewJSONMarshaller(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize hydra engine: %w", err)
-	}
-
-	// Create Hydra worker
-	hydraWorker, err := hydra.NewWorker(hydraEngine, hydra.WorkerConfig{
-		WorkerID:          cfg.InstanceID,
-		Concurrency:       10,
-		PollInterval:      2 * time.Second, // Less aggressive polling
-		HeartbeatInterval: 30 * time.Second,
-		ClaimTimeout:      30 * time.Minute, // Handle long builds
-		CronInterval:      1 * time.Minute,  // Standard cron interval
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create hydra worker: %w", err)
-	}
 
 	// Create krane client for VM operations
 	var httpClient *http.Client
@@ -186,17 +167,87 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
-	// Register deployment workflow with Hydra worker
-	deployWorkflow := deployment.NewDeployWorkflow(deployment.DeployWorkflowConfig{
+	// Restate Client and Server
+
+	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
+
+	restateSrv := restateServer.NewRestate()
+
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
 		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
 		DefaultDomain: cfg.DefaultDomain,
-	})
-	err = hydra.RegisterWorkflow(hydraWorker, deployWorkflow)
-	if err != nil {
-		return fmt.Errorf("unable to register deployment workflow: %w", err)
+	})))
+
+	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
+		Logger:        logger,
+		DB:            database,
+		PartitionDB:   partitionDB,
+		DefaultDomain: cfg.DefaultDomain,
+	})))
+
+	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
+		Logger:      logger,
+		DB:          database,
+		PartitionDB: partitionDB,
+		Vault:       vaultSvc,
+	})))
+
+	go func() {
+		addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
+		logger.Info("Starting Restate server", "addr", addr)
+		if startErr := restateSrv.Start(ctx, addr); startErr != nil {
+			logger.Error("failed to start restate server", "error", startErr.Error())
+		}
+	}()
+
+	// Register with Restate admin API if RegisterAs is configured
+	if cfg.Restate.RegisterAs != "" {
+		go func() {
+			// Wait a moment for the restate server to be ready
+			time.Sleep(2 * time.Second)
+
+			registerURL := fmt.Sprintf("%s/deployments", cfg.Restate.AdminURL)
+			payload := fmt.Sprintf(`{"uri": "%s"}`, cfg.Restate.RegisterAs)
+
+			logger.Info("Registering with Restate", "admin_url", registerURL, "service_uri", cfg.Restate.RegisterAs)
+
+			retrier := retry.New(
+				retry.Attempts(10),
+				retry.Backoff(func(n int) time.Duration {
+					return 5 * time.Second
+				}),
+			)
+
+			err := retrier.Do(func() error {
+				req, err := http.NewRequestWithContext(ctx, "POST", registerURL, bytes.NewBufferString(payload))
+				if err != nil {
+					return fmt.Errorf("failed to create registration request: %w", err)
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return fmt.Errorf("failed to register with Restate: %w", err)
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+					return nil
+				}
+
+				return fmt.Errorf("registration returned status %d", resp.StatusCode)
+			})
+
+			if err != nil {
+				logger.Error("failed to register with Restate after retries", "error", err.Error())
+			} else {
+				logger.Info("Successfully registered with Restate")
+			}
+		}()
 	}
 
 	// Create the connect handler
@@ -220,12 +271,16 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
-	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(database, partitionDB, hydraEngine, logger), connectOptions...))
+	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
+		Database:    database,
+		PartitionDB: partitionDB,
+		Restate:     restateClient,
+		Logger:      logger,
+	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		PartitionDB: partitionDB,
 		DB:          database,
-		HydraEngine: hydraEngine,
 		Logger:      logger,
 	}), connectOptions...))
 
@@ -279,168 +334,6 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("Server failed", "error", err)
 		}
 	}()
-
-	if cfg.Acme.Enabled {
-		acmeClient, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
-			DB:          database,
-			Logger:      logger,
-			Vault:       vaultSvc,
-			WorkspaceID: "unkey",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create ACME user: %w", err)
-		}
-
-		// Set up our custom HTTP-01 challenge provider on the ACME client
-		httpProvider := providers.NewHTTPProvider(providers.HTTPProviderConfig{
-			DB:     database,
-			Logger: logger,
-		})
-		err = acmeClient.Challenge.SetHTTP01Provider(httpProvider)
-		if err != nil {
-			return fmt.Errorf("failed to set HTTP-01 provider: %w", err)
-		}
-
-		// Set up Cloudflare DNS-01 challenge provider if enabled
-		if cfg.Acme.Cloudflare.Enabled {
-			cloudflareProvider, err := providers.NewCloudflareProvider(providers.CloudflareProviderConfig{
-				DB:            database,
-				Logger:        logger,
-				APIToken:      cfg.Acme.Cloudflare.ApiToken,
-				DefaultDomain: cfg.DefaultDomain,
-			})
-			if err != nil {
-				logger.Error("failed to create Cloudflare DNS provider", "error", err)
-				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", err)
-			}
-
-			err = acmeClient.Challenge.SetDNS01Provider(cloudflareProvider)
-			if err != nil {
-				logger.Error("failed to set DNS-01 provider", "error", err)
-				return fmt.Errorf("failed to set DNS-01 provider: %w", err)
-			}
-
-			logger.Info("Cloudflare DNS-01 challenge provider configured")
-
-			if cfg.DefaultDomain != "" {
-				wildcardDomain := "*." + cfg.DefaultDomain
-
-				// Check if we already have a challenge or certificate for the wildcard domain
-				_, err := db.Query.FindDomainByDomain(ctx, database.RO(), wildcardDomain)
-				if err != nil && !db.IsNotFound(err) {
-					logger.Error("Failed to check existing wildcard domain", "error", err, "domain", wildcardDomain)
-				} else if db.IsNotFound(err) {
-					now := time.Now().UnixMilli()
-					domainID := uid.New("domain")
-
-					// Insert domain record
-					err = db.Query.InsertDomain(ctx, database.RW(), db.InsertDomainParams{
-						ID:          domainID,
-						WorkspaceID: "unkey", // Default workspace for wildcard cert
-						Domain:      wildcardDomain,
-						CreatedAt:   now,
-						Type:        db.DomainsTypeCustom,
-					})
-					if err != nil {
-						logger.Error("Failed to create wildcard domain", "error", err, "domain", wildcardDomain)
-					} else {
-						// Insert challenge record
-						expiresAt := time.Now().Add(90 * 24 * time.Hour).UnixMilli() // 90 days
-
-						err = db.Query.InsertAcmeChallenge(ctx, database.RW(), db.InsertAcmeChallengeParams{
-							WorkspaceID:   "unkey",
-							DomainID:      domainID,
-							Token:         "",
-							Authorization: "",
-							Status:        db.AcmeChallengesStatusWaiting,
-							Type:          db.AcmeChallengesTypeDNS01, // Use DNS-01 for wildcard
-							CreatedAt:     now,
-							UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-							ExpiresAt:     expiresAt,
-						})
-						if err != nil {
-							logger.Error("Failed to create wildcard challenge", "error", err, "domain", wildcardDomain)
-						} else {
-							logger.Info("Created wildcard domain and challenge", "domain", wildcardDomain)
-						}
-					}
-				}
-			}
-		}
-
-		// Register deployment workflow with Hydra worker
-		acmeWorkflows := acme.NewCertificateChallenge(acme.CertificateChallengeConfig{
-			DB:          database,
-			PartitionDB: partitionDB,
-			Logger:      logger,
-			AcmeClient:  acmeClient,
-			Vault:       vaultSvc,
-		})
-		err = hydra.RegisterWorkflow(hydraWorker, acmeWorkflows)
-		if err != nil {
-			logger.Error("unable to register ACME certificate workflow", "error", err)
-			return fmt.Errorf("unable to register deployment workflow: %w", err)
-		}
-
-		go func() {
-			logger.Info("Starting cert worker")
-
-			// HTTP-01 challenges are always available (we always set up HTTP provider)
-			supportedTypes := []db.AcmeChallengesType{db.AcmeChallengesTypeHTTP01}
-
-			// DNS-01 challenges require Cloudflare to be enabled
-			if cfg.Acme.Cloudflare.Enabled {
-				supportedTypes = append(supportedTypes, db.AcmeChallengesTypeDNS01)
-			}
-
-			registerErr := hydraEngine.RegisterCron("*/5 * * * *", "start-certificate-challenges", func(ctx context.Context, payload hydra.CronPayload) error {
-				executableChallenges, err := db.Query.ListExecutableChallenges(ctx, database.RO(), supportedTypes)
-				if err != nil {
-					logger.Error("Failed to start workflow", "error", err)
-					return err
-				}
-
-				logger.Info("Starting certificate challenges",
-					"executable_challenges", len(executableChallenges),
-					"supported_types", supportedTypes)
-
-				for _, challenge := range executableChallenges {
-					executionID, err := hydraEngine.StartWorkflow(ctx, "certificate_challenge",
-						acme.CertificateChallengeRequest{
-							WorkspaceID: challenge.WorkspaceID,
-							Domain:      challenge.Domain,
-						},
-						hydra.WithMaxAttempts(24),
-						hydra.WithTimeout(25*time.Hour),
-						hydra.WithRetryBackoff(1*time.Hour),
-					)
-					if err != nil {
-						logger.Error("Failed to start workflow", "error", err)
-						continue
-					}
-
-					logger.Info("Workflow started", "executionID", executionID)
-				}
-
-				return nil
-			})
-
-			if registerErr != nil {
-				logger.Error("Failed to register daily report cron job", "error", err)
-				return
-			}
-		}()
-	}
-
-	// Start Hydra worker
-	go func() {
-		logger.Info("Starting Hydra workflow worker")
-		if err := hydraWorker.Start(ctx); err != nil {
-			logger.Error("Failed to start Hydra worker", "error", err)
-		}
-	}()
-
-	shutdowns.RegisterCtx(hydraWorker.Shutdown)
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
