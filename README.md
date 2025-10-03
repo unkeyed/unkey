@@ -20,7 +20,7 @@ This helps us align efforts and prevents duplicated or conflicting work.
 
 ## Let's talk
 
-<a href="https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss"><img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" /></a>
+<a href="https://unkey.cal.com/unkey/user-interview?utm_source=banner&utm_campaign=oss"><img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" /></a>
 
 ## Authors
 
