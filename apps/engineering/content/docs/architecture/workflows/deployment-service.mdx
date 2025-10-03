@@ -1,0 +1,93 @@
+---
+title: Deployment Service
+description: Durable deployment workflow orchestration
+---
+
+# Deployment Service
+
+The `DeploymentService` orchestrates the complete deployment lifecycle, from building containers to assigning domains.
+
+**Location:** `go/apps/ctrl/workflows/deploy/`
+**Proto:** `go/proto/hydra/v1/deployment.proto`
+**Key:** `project_id`
+
+## Operations
+
+### Deploy
+
+<Mermaid chart={`flowchart TD
+    Start([Deploy Request]) --> FetchMeta[Fetch Metadata]
+    FetchMeta --> StatusBuilding[Status: Building]
+    StatusBuilding --> CreateKrane[Create in Krane]
+    CreateKrane --> PollStatus{Poll Until Ready}
+    PollStatus --> UpsertVMs[Upsert VM Records]
+    UpsertVMs --> PollStatus
+    PollStatus --> ScrapeAPI[Scrape OpenAPI Spec]
+    ScrapeAPI --> BuildDomains[Build Domain List]
+    BuildDomains --> AssignDomains[Call RoutingService]
+    AssignDomains --> StatusReady[Status: Ready]
+    StatusReady --> UpdateLive[Update Live Deployment]
+    UpdateLive --> End([Complete])
+
+    style AssignDomains fill:#e1f5fe
+    style StatusReady fill:#c8e6c9
+`} />
+
+Creates a new deployment:
+1. Fetch deployment, workspace, project, environment metadata
+2. Create deployment in Krane
+3. Poll until instances are running
+4. Scrape OpenAPI spec
+5. Call RoutingService to assign domains atomically
+6. Update project's live deployment ID
+
+Implementation: `go/apps/ctrl/workflows/deploy/deploy_handler.go`
+
+### Rollback
+
+<Mermaid chart={`flowchart TD
+    Start([Rollback Request]) --> Validate[Validate Deployments]
+    Validate --> CheckVMs[Check Target VMs]
+    CheckVMs --> FindDomains[Find Sticky Domains]
+    FindDomains --> SwitchDomains[Call RoutingService]
+    SwitchDomains --> UpdateProject[Update Live Deployment]
+    UpdateProject --> End([Success])
+
+    style SwitchDomains fill:#e1f5fe
+    style UpdateProject fill:#c8e6c9
+`} />
+
+Rolls back to a previous deployment:
+1. Validate source/target deployments
+2. Find sticky domains (live + environment level)
+3. Call RoutingService to switch domains atomically
+4. Update project metadata
+
+Implementation: `go/apps/ctrl/workflows/deploy/rollback_handler.go`
+
+### Promote
+
+<Mermaid chart={`flowchart TD
+    Start([Promote Request]) --> Validate[Validate Deployment]
+    Validate --> FindDomains[Find All Domains]
+    FindDomains --> SwitchDomains[Call RoutingService]
+    SwitchDomains --> ClearFlag[Clear Rolled Back Flag]
+    ClearFlag --> End([Success])
+
+    style SwitchDomains fill:#e1f5fe
+`} />
+
+Promotes a deployment to live, removing rolled-back state:
+1. Validate deployment is ready
+2. Find all project domains
+3. Call RoutingService to reassign domains
+4. Clear rolled_back flag
+
+Implementation: `go/apps/ctrl/workflows/deploy/promote_handler.go`
+
+## Why RoutingService?
+
+All domain/gateway operations are delegated to `RoutingService` to:
+- Ensure atomic updates (gateway configs → domains)
+- Serialize domain operations per project
+- Provide rollback capabilities for failed routing changes

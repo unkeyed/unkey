@@ -24,6 +24,7 @@ start_clickhouse = 'all' in services or 'clickhouse' in services
 start_s3 = 'all' in services or 's3' in services
 start_observability = 'all' in services or 'observability' in services
 start_planetscale = 'all' in services or 'planetscale' in services
+start_restate = 'all' in services or 'restate' in services
 start_api = 'all' in services or 'api' in services
 start_gw = 'all' in services or 'gateway' in services or 'gw' in services
 start_ctrl = 'all' in services or 'ctrl' in services
@@ -106,6 +107,18 @@ if start_planetscale:
     deps = ['mysql'] if start_mysql else []
     k8s_resource(
         'planetscale',
+        resource_deps=deps,
+        labels=['database']
+    )
+
+# Restate service
+if start_restate:
+    print("Setting up Restate...")
+    k8s_yaml('k8s/manifests/restate.yaml')
+    deps = ['otel-collector'] if start_observability else []
+    k8s_resource(
+        'restate',
+        port_forwards=['8081:8080', '9070:9070'],
         resource_deps=deps,
         labels=['database']
     )
@@ -229,6 +242,7 @@ if start_ctrl:
     ctrl_deps = []
     if start_mysql: ctrl_deps.append('mysql')
     if start_s3: ctrl_deps.append('s3')
+    if start_restate: ctrl_deps.append('restate')
     # Add compilation dependency for Unkey services
     ctrl_deps.append('unkey-compile')
 
@@ -310,6 +324,7 @@ if start_clickhouse: active_services.append('clickhouse')
 if start_s3: active_services.append('s3')
 if start_planetscale: active_services.append('planetscale')
 if start_observability: active_services.extend(['prometheus', 'otel-collector'])
+if start_restate: active_services.append('restate')
 if start_api: active_services.append('api')
 if start_gw: active_services.append('gw')
 if start_ctrl: active_services.append('ctrl')
@@ -328,6 +343,8 @@ API: http://localhost:7070
 Gateway: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
+Restate Ingress: http://localhost:8081
+Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
 S3 Console: http://localhost:9000
 ClickHouse: http://localhost:8123

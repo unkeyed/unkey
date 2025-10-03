@@ -1,0 +1,91 @@
+---
+title: Durable Workflows with Restate
+description: How we use Restate for durable execution of deployment operations
+---
+
+# Durable Workflows with Restate
+
+Unkey uses [Restate](https://restate.dev) for durable workflow execution in critical deployment operations. Restate provides:
+
+- **Durable Execution**: Operations resume from the last successful step after failures
+- **Automatic Retries**: Transient failures are retried automatically
+- **State Management**: Workflow state is managed by Restate, not in our database
+- **Observability**: Built-in UI to inspect running workflows
+
+## Core Concepts
+
+### Virtual Objects
+
+Virtual Objects provide key-based concurrency control - only one handler can execute at a time per object key. Example: `DeploymentService` is keyed by `project_id`, ensuring only one deployment per project runs at a time.
+
+### Durable Steps
+
+Each `restate.Run()` step executes once and stores its result. After failures, workflows resume from stored results without re-executing completed steps.
+
+### Service Communication
+
+Workflows call each other using blocking (`Object.Request`) or fire-and-forget (`WorkflowSend.Send`) patterns. See the Go implementation files for examples.
+
+## Workflow Services
+
+### DeploymentService
+
+**Location:** `go/apps/ctrl/workflows/deploy/`
+**Proto:** `go/proto/hydra/v1/deployment.proto`
+**Key:** `project_id`
+**Operations:** Deploy, Rollback, Promote
+
+Handles deployment lifecycle: building containers via Krane, polling status, scraping OpenAPI specs, and assigning domains.
+
+See: [Deployment Service](./deployment-service)
+
+### RoutingService
+
+**Location:** `go/apps/ctrl/workflows/routing/`
+**Proto:** `go/proto/hydra/v1/routing.proto`
+**Key:** `project_id`
+**Operations:** AssignDomains, SwitchDomains
+
+Manages atomic domain and gateway configuration changes across control plane (domains DB) and data plane (gateway configs).
+
+See: [Routing Service](./routing-service)
+
+### CertificateService
+
+**Location:** `go/apps/ctrl/workflows/certificate/`
+**Proto:** `go/proto/hydra/v1/certificate.proto`
+**Key:** `domain`
+**Operations:** ProcessChallenge
+
+Handles ACME certificate challenges and issuance for custom domains.
+
+## Configuration
+
+Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config fields (see `go/apps/ctrl/config.go`):
+
+- `Restate.IngressURL`: Restate ingress endpoint for invoking workflows
+- `Restate.AdminURL`: Restate admin endpoint for service registration
+- `Restate.HttpPort`: Port where ctrl listens for Restate HTTP requests
+- `Restate.RegisterAs`: Public URL of this service for self-registration
+
+## Error Handling
+
+- **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for business logic failures that shouldn't retry
+- **Transient Errors**: Return regular errors for automatic retry
+
+## Best Practices
+
+1. **Idempotent Steps**: Use UPSERT instead of INSERT for database operations
+2. **Named Steps**: Always use `restate.WithName("step name")` for observability
+3. **Small Steps**: Break operations into focused, single-purpose steps
+4. **Virtual Objects**: Use for automatic serialization instead of manual locking
+
+## Observability
+
+Restate UI (port 9070) shows running/completed invocations, step execution history, failures, and retries.
+
+## References
+
+- [Restate Official Docs](https://docs.restate.dev)
+- [Restate Go SDK](https://github.com/restatedev/sdk-go)
+- [Creating Workflow Services](./creating-services)

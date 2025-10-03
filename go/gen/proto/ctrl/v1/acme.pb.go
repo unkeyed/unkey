@@ -129,7 +129,8 @@ const file_ctrl_v1_acme_proto_rawDesc = "" +
 	"%HandleCertificateVerificationResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token2\x90\x01\n" +
 	"\vAcmeService\x12\x80\x01\n" +
-	"\x1dHandleCertificateVerification\x12-.ctrl.v1.HandleCertificateVerificationRequest\x1a..ctrl.v1.HandleCertificateVerificationResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\x1dHandleCertificateVerification\x12-.ctrl.v1.HandleCertificateVerificationRequest\x1a..ctrl.v1.HandleCertificateVerificationResponse\"\x00B\x8b\x01\n" +
+	"\vcom.ctrl.v1B\tAcmeProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
 	file_ctrl_v1_acme_proto_rawDescOnce sync.Once
