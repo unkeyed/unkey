@@ -8,10 +8,7 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  createApiFormConfig,
-  createMutationHandlers,
-} from "./key-settings-form-helper";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
 
 type Props = {
@@ -30,17 +27,11 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const intent =
-    keys > 0
-      ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}`
-      : "delete this api";
+    keys > 0 ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}` : "delete this api";
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine((v) => v === api.name, "Please confirm the API name"),
-    intent: z
-      .string()
-      .refine((v) => v === intent, "Please confirm your intent"),
+    name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
+    intent: z.string().refine((v) => v === intent, "Please confirm your intent"),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -80,28 +71,20 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <div className="inline-flex gap-2">
             <span>Delete API </span>
             {api.deleteProtection && (
-              <StatusBadge
-                variant={"locked"}
-                text={"Locked"}
-                icon={<Lock iconsize="sm-thin" />}
-              />
+              <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock iconsize="sm-thin" />} />
             )}
           </div>
         }
         description={
           api.deleteProtection ? (
             <div className="font-normal text-[13px]">
-              Permanently deletes this API, including all keys and data. This
-              action is locked by the{" "}
-              <span className="font-medium text-accent-12">
-                Delete Protection
-              </span>{" "}
-              feature.
+              Permanently deletes this API, including all keys and data. This action is locked by
+              the <span className="font-medium text-accent-12">Delete Protection</span> feature.
             </div>
           ) : (
             <div className="font-normal text-[13px] max-w-[380px]">
-              Permanently deletes this API, including all keys and data. This
-              action cannot be undone.
+              Permanently deletes this API, including all keys and data. This action cannot be
+              undone.
             </div>
           )
         }
@@ -147,31 +130,22 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       >
         <p className="text-gray-11 text-[13px]">
           <span className="font-medium">Warning: </span>
-          Deleting this API will delete all keys and data associated with it.
-          This action cannot be undone. Any tracking, enforcement, and
-          historical insights tied to this API will be permanently lost.
+          Deleting this API will delete all keys and data associated with it. This action cannot be
+          undone. Any tracking, enforcement, and historical insights tied to this API will be
+          permanently lost.
         </p>
         <form id="delete-api-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-1">
             <p className="text-gray-11 text-[13px]">
-              Type <span className="text-gray-12 font-medium">{api.name}</span>{" "}
-              to confirm
+              Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
             </p>
-            <Input
-              {...register("name")}
-              placeholder={`Enter "${api.name}" to confirm`}
-            />
+            <Input {...register("name")} placeholder={`Enter "${api.name}" to confirm`} />
           </div>
           <div className="space-y-1 mt-6">
             <p className="text-gray-11 text-[13px]">
-              To verify, type{" "}
-              <span className="text-gray-12 font-medium">{intent}</span> to
-              confirm
+              To verify, type <span className="text-gray-12 font-medium">{intent}</span> to confirm
             </p>
-            <Input
-              {...register("intent")}
-              placeholder={`Enter "${intent}" to confirm`}
-            />
+            <Input {...register("intent")} placeholder={`Enter "${intent}" to confirm`} />
           </div>
         </form>
       </DialogContainer>

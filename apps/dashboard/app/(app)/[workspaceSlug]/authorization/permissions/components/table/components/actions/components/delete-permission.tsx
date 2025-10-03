@@ -12,8 +12,7 @@ import { PermissionInfo } from "./permission-info";
 
 const deletePermissionFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message:
-      "Please confirm that you want to permanently delete this permission",
+    message: "Please confirm that you want to permanently delete this permission",
   }),
 });
 
@@ -23,11 +22,7 @@ type DeletePermissionProps = {
   permissionDetails: Permission;
 } & ActionComponentProps;
 
-export const DeletePermission = ({
-  permissionDetails,
-  isOpen,
-  onClose,
-}: DeletePermissionProps) => {
+export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeletePermissionProps) => {
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -115,18 +110,13 @@ export const DeletePermission = ({
             </div>
             <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
               <div className="bg-error-9 size-8 rounded-full flex items-center justify-center flex-shrink-0">
-                <TriangleWarning2
-                  iconsize="sm-regular"
-                  className="text-white"
-                />
+                <TriangleWarning2 iconsize="sm-regular" className="text-white" />
               </div>
               <div className="text-error-12 text-[13px] leading-6">
-                <span className="font-medium">Warning:</span> deleting this
-                permission will detach it from all assigned keys and roles and
-                remove its configuration. This action cannot be undone. The keys
-                and roles themselves will remain available, but any usage
-                history or references to this permission will be permanently
-                lost.
+                <span className="font-medium">Warning:</span> deleting this permission will detach
+                it from all assigned keys and roles and remove its configuration. This action cannot
+                be undone. The keys and roles themselves will remain available, but any usage
+                history or references to this permission will be permanently lost.
               </div>
             </div>
             <Controller

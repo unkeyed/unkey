@@ -1,9 +1,5 @@
 import { SelectedItemsList } from "@/components/selected-item-list";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { CaretRight, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
@@ -38,21 +34,19 @@ const PermissionBadgeList = ({
   // Flatten allPermissions into an array of {permission, action} objects
   const allPermissionsArray = useMemo(() => {
     const allPermissions =
-      apiId === ROOT_KEY_CONSTANTS.WORKSPACE
-        ? workspacePermissions
-        : apiPermissions(apiId);
+      apiId === ROOT_KEY_CONSTANTS.WORKSPACE ? workspacePermissions : apiPermissions(apiId);
     return Object.entries(allPermissions).flatMap(([category, permissions]) =>
       Object.entries(permissions).map(([action, permissionData]) => ({
         permission: permissionData.permission,
         category,
         action,
-      }))
+      })),
     );
   }, [apiId]);
 
   const info = useMemo(
     () => findPermission(allPermissionsArray, selectedPermissions),
-    [allPermissionsArray, selectedPermissions]
+    [allPermissionsArray, selectedPermissions],
   );
   if (info.length === 0) {
     return null;
@@ -100,13 +94,7 @@ const ListBadges = ({
       }))}
       gridCols={2}
       onRemoveItem={handleRemovePermissionClick}
-      renderIcon={() => (
-        <Key2
-          iconsize="sm-regular"
-          className="text-grayA-11"
-          aria-hidden="true"
-        />
-      )}
+      renderIcon={() => <Key2 iconsize="sm-regular" className="text-grayA-11" aria-hidden="true" />}
       enableTransitions
       renderPrimaryText={(permission) => permission.name}
       renderSecondaryText={(permission) => permission.id}
@@ -137,7 +125,7 @@ const CollapsibleList = ({
         {...props}
         className={cn(
           "flex flex-row gap-3 transition-all [&[data-state=open]>svg]:rotate-90 w-full",
-          className
+          className,
         )}
       >
         <ListTitle title={title} count={info.length} category={name} />
@@ -162,9 +150,7 @@ const ListTitle = ({
   return (
     <span className="text-[13px] flex-1 text-grayA-10 text-left flex items-center">
       {title}
-      <span className="font-normal text-grayA-12 ml-1 font-mono">
-        {category}
-      </span>
+      <span className="font-normal text-grayA-12 ml-1 font-mono">{category}</span>
       <Badge
         variant="primary"
         size="sm"
@@ -178,7 +164,7 @@ const ListTitle = ({
 
 const findPermission = (
   allPermissions: PermissionInfo,
-  selectedPermissions: UnkeyPermission[]
+  selectedPermissions: UnkeyPermission[],
 ): PermissionInfo => {
   if (!selectedPermissions || !Array.isArray(selectedPermissions)) {
     return [];
@@ -189,12 +175,12 @@ const findPermission = (
     })
     .filter(
       (
-        item
+        item,
       ): item is {
         permission: UnkeyPermission;
         category: string;
         action: string;
-      } => Boolean(item)
+      } => Boolean(item),
     );
 };
 

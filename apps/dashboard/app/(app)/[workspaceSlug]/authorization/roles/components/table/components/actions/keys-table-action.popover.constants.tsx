@@ -18,10 +18,7 @@ import { EditRole } from "./components/edit-role";
 const LoadingTrigger = () => <TableActionPopoverDefaultTrigger />;
 
 const KeysTableActionPopover = dynamic(
-  () =>
-    import("@/components/logs/table-action.popover").then(
-      (mod) => mod.TableActionPopover
-    ),
+  () => import("@/components/logs/table-action.popover").then((mod) => mod.TableActionPopover),
   {
     loading: LoadingTrigger,
   },
@@ -40,7 +37,7 @@ export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
 
 const getRolesTableActionItems = (
   role: RoleBasic,
-  trpcUtils: ReturnType<typeof trpc.useUtils>
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
 ): MenuItem[] => {
   return [
     {

@@ -32,7 +32,7 @@ const ANIMATION_STYLES = {
 } as const;
 
 export const statusIndicator = (
-  status: "pending" | "building" | "deploying" | "network" | "ready" | "failed"
+  status: "pending" | "building" | "deploying" | "network" | "ready" | "failed",
 ) => {
   switch (status) {
     case "pending":
@@ -119,19 +119,12 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
         <div className="flex gap-5 items-center">
           <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
-            <div className="text-accent-12 font-medium text-xs">
-              {deployment.id}
-            </div>
-            <div className="text-gray-9 text-xs">
-              {deployment.gitCommitMessage}
-            </div>
+            <div className="text-accent-12 font-medium text-xs">{deployment.id}</div>
+            <div className="text-gray-9 text-xs">{deployment.gitCommitMessage}</div>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Badge
-            variant={statusConfig.variant}
-            className="text-successA-11 font-medium"
-          >
+          <Badge variant={statusConfig.variant} className="text-successA-11 font-medium">
             <div className="flex items-center gap-2">
               <statusConfig.icon />
               {statusConfig.text}
@@ -182,7 +175,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
               <ChevronDown
                 className={cn(
                   "text-grayA-9 !size-3 transition-transform duration-200",
-                  isExpanded && "rotate-180"
+                  isExpanded && "rotate-180",
                 )}
               />
             </Button>
@@ -194,7 +187,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
           className={cn(
             "bg-gray-1 relative overflow-hidden",
             ANIMATION_STYLES.expand,
-            isExpanded ? "h-96 opacity-100 py-3" : "h-0 opacity-0 py-0"
+            isExpanded ? "h-96 opacity-100 py-3" : "h-0 opacity-0 py-0",
           )}
         >
           <div className="flex items-center gap-1.5 px-3 mb-3">
@@ -225,12 +218,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
               variant="ghost"
               wrapperClassName="ml-4"
               className="min-h-[26px] text-xs rounded-lg placeholder:text-grayA-8"
-              leftIcon={
-                <Magnifier
-                  iconsize="sm-medium"
-                  className="text-accent-9 !size-[14px]"
-                />
-              }
+              leftIcon={<Magnifier iconsize="sm-medium" className="text-accent-9 !size-[14px]" />}
               placeholder="Find in logs..."
               value={searchTerm}
               onChange={handleSearchChange}
@@ -247,19 +235,13 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
             className={cn(
               ANIMATION_STYLES.slideIn,
               "h-full",
-              isExpanded
-                ? "translate-y-0 opacity-100"
-                : "translate-y-4 opacity-0"
+              isExpanded ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
             )}
             style={{
               transitionDelay: isExpanded ? "150ms" : "0ms",
             }}
           >
-            <div
-              className="h-full overflow-y-auto"
-              onScroll={handleScroll}
-              ref={scrollRef}
-            >
+            <div className="h-full overflow-y-auto" onScroll={handleScroll} ref={scrollRef}>
               {filteredLogs.length === 0 ? (
                 <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
                   {searchTerm
@@ -276,19 +258,15 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
                       className={cn(
                         "font-mono text-xs flex gap-6 items-center text-[11px] leading-7 font-medium",
                         "transition-all duration-300 ease-out text-grayA-12 ",
-                        isExpanded
-                          ? "translate-x-0 opacity-100"
-                          : "translate-x-2 opacity-0",
+                        isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
                         log.level === "warning"
                           ? "bg-gradient-to-r from-warningA-3 to-warningA-1 text-warningA-12"
                           : log.level === "error"
-                          ? "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12"
-                          : ""
+                            ? "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12"
+                            : "",
                       )}
                       style={{
-                        transitionDelay: isExpanded
-                          ? `${200 + index * 20}ms`
-                          : "0ms",
+                        transitionDelay: isExpanded ? `${200 + index * 20}ms` : "0ms",
                       }}
                     >
                       <span className="text-grayA-9 pl-3">

@@ -229,48 +229,23 @@ export function FormValidation() {
     >
       <div className="space-y-6 max-w-md">
         <div className="flex items-center gap-3">
-          <CircleProgress
-            value={0}
-            total={4}
-            variant="secondary"
-            iconsize="sm-regular"
-          />
+          <CircleProgress value={0} total={4} variant="secondary" iconsize="sm-regular" />
           <span className="text-sm">Profile Setup</span>
         </div>
         <div className="flex items-center gap-3">
-          <CircleProgress
-            value={2}
-            total={4}
-            variant="primary"
-            iconsize="sm-regular"
-          />
+          <CircleProgress value={2} total={4} variant="primary" iconsize="sm-regular" />
           <span className="text-sm">Contact Information</span>
         </div>
         <div className="flex items-center gap-3">
-          <CircleProgress
-            value={3}
-            total={4}
-            variant="warning"
-            iconsize="sm-regular"
-          />
+          <CircleProgress value={3} total={4} variant="warning" iconsize="sm-regular" />
           <span className="text-sm">Security Settings</span>
         </div>
         <div className="flex items-center gap-3">
-          <CircleProgress
-            value={4}
-            total={4}
-            variant="success"
-            iconsize="sm-regular"
-          />
+          <CircleProgress value={4} total={4} variant="success" iconsize="sm-regular" />
           <span className="text-sm">Account Verification</span>
         </div>
         <div className="flex items-center gap-3">
-          <CircleProgress
-            value={1}
-            total={4}
-            variant="error"
-            iconsize="sm-regular"
-          />
+          <CircleProgress value={1} total={4} variant="error" iconsize="sm-regular" />
           <span className="text-sm">Payment Details</span>
         </div>
       </div>
@@ -301,32 +276,17 @@ export function TaskProgress() {
     >
       <div className="flex flex-wrap gap-6 justify-center items-center">
         <div className="flex flex-col gap-2 items-center">
-          <CircleProgress
-            value={8}
-            total={10}
-            variant="primary"
-            iconsize="lg-medium"
-          />
+          <CircleProgress value={8} total={10} variant="primary" iconsize="lg-medium" />
           <span className="text-xs text-gray-500">Daily Tasks</span>
           <span className="text-xs text-gray-400">8/10 done</span>
         </div>
         <div className="flex flex-col gap-2 items-center">
-          <CircleProgress
-            value={12}
-            total={12}
-            variant="success"
-            iconsize="lg-medium"
-          />
+          <CircleProgress value={12} total={12} variant="success" iconsize="lg-medium" />
           <span className="text-xs text-gray-500">Sprint Goals</span>
           <span className="text-xs text-gray-400">All complete</span>
         </div>
         <div className="flex flex-col gap-2 items-center">
-          <CircleProgress
-            value={3}
-            total={7}
-            variant="warning"
-            iconsize="lg-medium"
-          />
+          <CircleProgress value={3} total={7} variant="warning" iconsize="lg-medium" />
           <span className="text-xs text-gray-500">Code Reviews</span>
           <span className="text-xs text-gray-400">3/7 done</span>
         </div>

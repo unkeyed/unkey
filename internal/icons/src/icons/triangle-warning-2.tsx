@@ -10,13 +10,10 @@
  * https://nucleoapp.com/license
  */
 
-import React from "react";
+import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
-export const TriangleWarning2: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
-  ...props
-}) => {
+export const TriangleWarning2: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
@@ -41,13 +38,7 @@ export const TriangleWarning2: React.FC<IconProps> = ({
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <circle
-          cx="10"
-          cy="15.75"
-          fill="currentColor"
-          r="1.25"
-          strokeWidth={strokeWidth}
-        />
+        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth={strokeWidth} />
       </g>
     </svg>
   );

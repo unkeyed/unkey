@@ -1,8 +1,5 @@
 "use client";
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
@@ -13,20 +10,14 @@ type PermissionsTableActionsProps = {
   permission: Permission;
 };
 
-export const PermissionsTableActions = ({
-  permission,
-}: PermissionsTableActionsProps) => {
-  const getPermissionsTableActionItems = (
-    permission: Permission
-  ): MenuItem[] => {
+export const PermissionsTableActions = ({ permission }: PermissionsTableActionsProps) => {
+  const getPermissionsTableActionItems = (permission: Permission): MenuItem[] => {
     return [
       {
         id: "edit-permission",
         label: "Edit permission...",
         icon: <PenWriting3 iconsize="md-medium" />,
-        ActionComponent: (props) => (
-          <EditPermission permission={permission} {...props} />
-        ),
+        ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
       },
       {
         id: "copy",
@@ -50,9 +41,7 @@ export const PermissionsTableActions = ({
         id: "delete-permision",
         label: "Delete permission",
         icon: <Trash iconsize="md-medium" />,
-        ActionComponent: (props) => (
-          <DeletePermission {...props} permissionDetails={permission} />
-        ),
+        ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
       },
     ];
   };

@@ -22,10 +22,7 @@ export function OnboardingContent() {
       name: "API key",
       icon: <Key2 iconsize="sm-regular" className="text-gray-11" />,
       body: (
-        <OnboardingSuccessStep
-          isConfirmOpen={isConfirmOpen}
-          setIsConfirmOpen={setIsConfirmOpen}
-        />
+        <OnboardingSuccessStep isConfirmOpen={isConfirmOpen} setIsConfirmOpen={setIsConfirmOpen} />
       ),
       kind: "non-required" as const,
       description: "You're all set! Your workspace and API key are ready",

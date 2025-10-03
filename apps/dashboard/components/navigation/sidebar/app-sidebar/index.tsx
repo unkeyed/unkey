@@ -58,13 +58,11 @@ export function AppSidebar({
   const currentSoloModeType = useMemo(() => {
     const firstSegment = segments.at(1) ?? "";
     return Object.entries(SOLO_MODE_CONFIG).find(
-      ([_, config]) => config.routeSegment === firstSegment
+      ([_, config]) => config.routeSegment === firstSegment,
     )?.[0] as SoloModeType | undefined;
   }, [segments]);
 
-  const [soloModeOverride, setSoloModeOverride] = useState(() =>
-    Boolean(currentSoloModeType)
-  );
+  const [soloModeOverride, setSoloModeOverride] = useState(() => Boolean(currentSoloModeType));
 
   // Refresh the router when workspace changes to update sidebar
   useEffect(() => {
@@ -87,17 +85,14 @@ export function AppSidebar({
 
   const { enhancedNavItems: apiAddedNavItems } = useApiNavigation(baseNavItems);
 
-  const { enhancedNavItems: ratelimitAddedNavItems } =
-    useRatelimitNavigation(apiAddedNavItems);
+  const { enhancedNavItems: ratelimitAddedNavItems } = useRatelimitNavigation(apiAddedNavItems);
 
-  const { enhancedNavItems: projectAddedNavItems } = useProjectNavigation(
-    ratelimitAddedNavItems
-  );
+  const { enhancedNavItems: projectAddedNavItems } = useProjectNavigation(ratelimitAddedNavItems);
 
   const handleToggleCollapse = useCallback((item: NavItem, isOpen: boolean) => {
     // Check if this item corresponds to any solo mode route
-    const matchingSoloMode = Object.entries(SOLO_MODE_CONFIG).find(
-      ([_, config]) => item.href.includes(`/${config.routeSegment}`)
+    const matchingSoloMode = Object.entries(SOLO_MODE_CONFIG).find(([_, config]) =>
+      item.href.includes(`/${config.routeSegment}`),
     );
 
     if (matchingSoloMode) {
@@ -113,7 +108,7 @@ export function AppSidebar({
       active: false,
       tooltip: "Toggle Sidebar",
     }),
-    []
+    [],
   );
 
   const { state, isMobile, toggleSidebar, openMobile } = useSidebar();
@@ -124,7 +119,7 @@ export function AppSidebar({
       <div
         className={cn(
           "flex w-full",
-          isCollapsed ? "justify-center" : "items-center justify-between gap-4"
+          isCollapsed ? "justify-center" : "items-center justify-between gap-4",
         )}
       >
         <WorkspaceSwitcher />
@@ -138,9 +133,7 @@ export function AppSidebar({
     [isCollapsed, state, isMobile, toggleSidebar],
   );
 
-  const currentSoloConfig = currentSoloModeType
-    ? SOLO_MODE_CONFIG[currentSoloModeType]
-    : null;
+  const currentSoloConfig = currentSoloModeType ? SOLO_MODE_CONFIG[currentSoloModeType] : null;
 
   const hasSoloActive = Boolean(currentSoloConfig && soloModeOverride);
 
@@ -151,7 +144,7 @@ export function AppSidebar({
     }
 
     return projectAddedNavItems.find((item) =>
-      item.href.includes(`/${currentSoloConfig.routeSegment}`)
+      item.href.includes(`/${currentSoloConfig.routeSegment}`),
     );
   }, [currentSoloConfig, projectAddedNavItems]);
 
@@ -162,12 +155,10 @@ export function AppSidebar({
       }
 
       // Force collapse if this item corresponds to the current solo mode and soloModeOverride is false
-      const itemMatchesSoloMode = item.href.includes(
-        `/${currentSoloConfig.routeSegment}`
-      );
+      const itemMatchesSoloMode = item.href.includes(`/${currentSoloConfig.routeSegment}`);
       return itemMatchesSoloMode && !soloModeOverride;
     },
-    [currentSoloConfig, soloModeOverride]
+    [currentSoloConfig, soloModeOverride],
   );
 
   const handleBackToMainMenu = useCallback(() => {
@@ -178,17 +169,12 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="px-4 items-center pt-4">
-        {headerContent}
-      </SidebarHeader>
+      <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
       <SidebarContent className="px-2 flex flex-col justify-between">
         <SidebarGroup>
           <SidebarMenu className="gap-2">
             {state === "collapsed" && (
-              <ToggleSidebarButton
-                toggleNavItem={toggleNavItem}
-                toggleSidebar={toggleSidebar}
-              />
+              <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
             )}
 
             {hasSoloActive && currentSoloConfig && (
@@ -198,10 +184,7 @@ export function AppSidebar({
               >
                 <div className="flex items-center gap-2 justify-start w-full">
                   <div className="size-5 flex items-center">
-                    <ChevronLeft
-                      className="shrink-0 !size-3 text-gray-10"
-                      iconsize="sm-medium"
-                    />
+                    <ChevronLeft className="shrink-0 !size-3 text-gray-10" iconsize="sm-medium" />
                   </div>
                   <div className="text-accent-9 text-xs leading-6">
                     {currentSoloConfig.backButtonText}
@@ -234,9 +217,7 @@ export function AppSidebar({
           })}
         >
           <UserButton
-            isCollapsed={
-              (state === "collapsed" || isMobile) && !(isMobile && openMobile)
-            }
+            isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
             isMobile={isMobile}
             isMobileSidebarOpen={openMobile}
           />

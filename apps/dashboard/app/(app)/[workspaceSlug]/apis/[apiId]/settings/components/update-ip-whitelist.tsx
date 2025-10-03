@@ -5,10 +5,7 @@ import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
 import { Button, FormTextarea, InlineLink, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  createApiFormConfig,
-  createMutationHandlers,
-} from "./key-settings-form-helper";
+import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
 
 const formSchema = z.object({
@@ -57,17 +54,9 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
 
   const Badge = () =>
     isEnabled ? (
-      <StatusBadge
-        variant="enabled"
-        text="Enabled"
-        icon={<Shield iconsize="sm-thin" />}
-      />
+      <StatusBadge variant="enabled" text="Enabled" icon={<Shield iconsize="sm-thin" />} />
     ) : (
-      <StatusBadge
-        variant="locked"
-        text="Locked"
-        icon={<Lock iconsize="sm-thin" />}
-      />
+      <StatusBadge variant="locked" text="Locked" icon={<Lock iconsize="sm-thin" />} />
     );
 
   return (
@@ -75,17 +64,15 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
       <SettingCard
         title={
           <div className="flex items-center justify-start gap-2.5">
-            <span className="text-sm font-medium text-accent-12">
-              IP Whitelist
-            </span>
+            <span className="text-sm font-medium text-accent-12">IP Whitelist</span>
             <Badge />
           </div>
         }
         description={
           <div className="font-normal text-[13px]">
             Want to protect your API from unauthorized access? Upgrade to our{" "}
-            <span className="font-bold">Enterprise plan</span> to enable IP
-            whitelisting and restrict access to trusted sources.{" "}
+            <span className="font-bold">Enterprise plan</span> to enable IP whitelisting and
+            restrict access to trusted sources.{" "}
             <InlineLink
               label="Learn more"
               target="_blank"
@@ -130,11 +117,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           </div>
         ) : (
           <div className="flex flex-col justify-center items-end w-full h-full">
-            <a
-              target="_blank"
-              rel="noreferrer"
-              href="https://cal.com/james-r-perkins/sales"
-            >
+            <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
               <Button
                 type="button"
                 size="lg"

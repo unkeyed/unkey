@@ -57,8 +57,7 @@ export function SelectedItemsList<T extends BaseItem>({
       <div className={cn("grid gap-2", getGridColsClass(gridCols))}>
         <AnimatePresence mode="popLayout">
           {items.map((item) => {
-            const canRemove =
-              !disabled && (!isItemRemovable || isItemRemovable(item));
+            const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
             const itemProps = enableTransitions
               ? {
                   layout: true,
@@ -79,7 +78,7 @@ export function SelectedItemsList<T extends BaseItem>({
                 key={item.id}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs w-full",
-                  itemHeight
+                  itemHeight,
                 )}
                 {...itemProps}
               >
@@ -94,9 +93,7 @@ export function SelectedItemsList<T extends BaseItem>({
                     >
                       {renderPrimaryText(item)}
                     </span>
-                    <span className="truncate z-auto">
-                      {renderBadge?.(item)}
-                    </span>
+                    <span className="truncate z-auto">{renderBadge?.(item)}</span>
                   </div>
                   <span className="text-accent-9 text-[11px] font-mono truncate">
                     {renderSecondaryText(item)}

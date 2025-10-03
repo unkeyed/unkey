@@ -76,11 +76,7 @@ export const ExpirationSetup = ({
   const minValidDate = addMinutes(new Date(), 10);
 
   // Handle date and time selection from DatetimePopover
-  const handleDateTimeChange = (
-    startTime?: number,
-    _?: number,
-    since?: string
-  ) => {
+  const handleDateTimeChange = (startTime?: number, _?: number, since?: string) => {
     if (since) {
       // Handle predefined time ranges
       let newDate = new Date();
@@ -120,14 +116,10 @@ export const ExpirationSetup = ({
 
   const getInitialTimeValues = () => {
     // Safely convert currentExpiryDate to Date object, fallback to minValidDate
-    const initialDate = currentExpiryDate
-      ? new Date(currentExpiryDate)
-      : minValidDate;
+    const initialDate = currentExpiryDate ? new Date(currentExpiryDate) : minValidDate;
 
     // If conversion failed, use minValidDate
-    const safeInitialDate = Number.isNaN(initialDate.getTime())
-      ? minValidDate
-      : initialDate;
+    const safeInitialDate = Number.isNaN(initialDate.getTime()) ? minValidDate : initialDate;
 
     return {
       startTime: safeInitialDate.getTime(),
@@ -138,8 +130,7 @@ export const ExpirationSetup = ({
 
   // Calculate date for showing warning about close expiry (less than 1 hour)
   const isExpiringVerySoon =
-    currentExpiryDate &&
-    new Date(currentExpiryDate).getTime() - Date.now() < 60 * 60 * 1000;
+    currentExpiryDate && new Date(currentExpiryDate).getTime() - Date.now() < 60 * 60 * 1000;
 
   const getExpiryDescription = () => {
     if (isExpiringVerySoon) {
@@ -182,9 +173,7 @@ export const ExpirationSetup = ({
               disabled={!expirationEnabled}
               value={formatExpiryDate(field.value)}
               className="cursor-pointer w-full"
-              variant={
-                expirationEnabled && isExpiringVerySoon ? "warning" : undefined
-              }
+              variant={expirationEnabled && isExpiringVerySoon ? "warning" : undefined}
               error={errors.expiration?.data?.message}
             />
           </DatetimePopover>
@@ -197,9 +186,7 @@ export const ExpirationSetup = ({
 const ExpirationHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 px-2">
-      <span className="text-gray-9 text-[13px] w-full">
-        Choose expiration date
-      </span>
+      <span className="text-gray-9 text-[13px] w-full">Choose expiration date</span>
     </div>
   );
 };

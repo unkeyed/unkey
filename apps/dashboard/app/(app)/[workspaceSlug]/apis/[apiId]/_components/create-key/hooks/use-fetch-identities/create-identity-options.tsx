@@ -44,10 +44,7 @@ export function createIdentityOptions({
                 </div>
                 <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
                   {identity.externalId.length > 15
-                    ? `${identity.externalId.slice(
-                        0,
-                        4
-                      )}...${identity.externalId.slice(-4)}`
+                    ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
                     : identity.externalId}
                 </span>
               </div>
@@ -98,9 +95,7 @@ export function createIdentityOptions({
                           className="bg-white dark:bg-grayA-3 hover:bg-grayA-3 dark:hover:bg-grayA-4 shadow-sm"
                         >
                           <div className="flex items-center justify-center">
-                            <CopyButton
-                              value={JSON.stringify(identity.meta, null, 4)}
-                            />
+                            <CopyButton value={JSON.stringify(identity.meta, null, 4)} />
                           </div>
                         </Button>
                       </div>
@@ -123,9 +118,7 @@ export function createIdentityOptions({
             {identity.id}
           </span>
         </div>
-        <span className="w-[200px] truncate text-accent-8 text-left">
-          {identity.externalId}
-        </span>
+        <span className="w-[200px] truncate text-accent-8 text-left">{identity.externalId}</span>
       </div>
     ),
     value: identity.id,

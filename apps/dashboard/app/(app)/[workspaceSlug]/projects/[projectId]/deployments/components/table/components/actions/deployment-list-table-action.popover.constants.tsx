@@ -1,17 +1,10 @@
 "use client";
 import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/layout-provider";
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ChevronUp,
-  Layers3,
-} from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { PromotionDialog } from "../../../promotion-dialog";
@@ -34,7 +27,7 @@ export const DeploymentListTableActions = ({
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
-      .select(({ domain }) => ({ host: domain.domain }))
+      .select(({ domain }) => ({ host: domain.domain })),
   );
 
   const router = useRouter();
@@ -87,11 +80,9 @@ export const DeploymentListTableActions = ({
         onClick: () => {
           //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
           router.push(
-            `${workspace.slug}/projects/${
-              selectedDeployment.projectId
-            }/gateway-logs?host=${data
+            `${workspace.slug}/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
               .map((item) => `is:${item.host}`)
-              .join(",")}`
+              .join(",")}`,
           );
         },
       },

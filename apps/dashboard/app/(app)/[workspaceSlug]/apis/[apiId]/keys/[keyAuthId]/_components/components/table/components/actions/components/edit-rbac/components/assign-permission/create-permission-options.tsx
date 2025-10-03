@@ -1,11 +1,5 @@
 import { Page2 } from "@unkey/icons";
-import {
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Permission = {
   id: string;
@@ -71,35 +65,21 @@ export function createPermissionOptions({
               {/* Content */}
               <div className="px-4 py-3 space-y-3">
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">
-                    Permission ID
-                  </div>
-                  <div className="text-xs text-gray-12 font-mono break-all">
-                    {permission.id}
-                  </div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
+                  <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>
                 </div>
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">
-                    Name
-                  </div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
                   <div className="text-xs text-gray-12">{permission.name}</div>
                 </div>
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">
-                    Slug
-                  </div>
-                  <div className="text-xs text-gray-12 font-mono">
-                    {permission.slug}
-                  </div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Slug</div>
+                  <div className="text-xs text-gray-12 font-mono">{permission.slug}</div>
                 </div>
                 {permission.description && (
                   <div>
-                    <div className="text-xs font-medium text-gray-11 mb-1">
-                      Description
-                    </div>
-                    <div className="text-xs text-gray-12">
-                      {permission.description}
-                    </div>
+                    <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
+                    <div className="text-xs text-gray-12">{permission.description}</div>
                   </div>
                 )}
               </div>
@@ -120,9 +100,7 @@ export function createPermissionOptions({
               : permission.id}
           </span>
         </div>
-        <span className="w-[200px] truncate text-accent-8 text-left">
-          {permission.name}
-        </span>
+        <span className="w-[200px] truncate text-accent-8 text-left">{permission.name}</span>
       </div>
     ),
     value: permission.id,

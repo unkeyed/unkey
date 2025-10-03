@@ -10,13 +10,10 @@
  * https://nucleoapp.com/license
  */
 
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const BookBookmark: React.FC<IconProps> = ({
-  iconsize = "xl-medium",
-  ...props
-}) => {
+export const BookBookmark: React.FC<IconProps> = ({ iconsize = "xl-medium", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (

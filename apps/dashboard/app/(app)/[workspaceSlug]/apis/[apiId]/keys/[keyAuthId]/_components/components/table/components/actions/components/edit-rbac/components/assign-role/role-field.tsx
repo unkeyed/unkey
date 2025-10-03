@@ -26,8 +26,7 @@ export const RoleField = ({
 }: RoleFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const trimmedSearchVal = searchValue.trim();
-  const { roles, isFetchingNextPage, hasNextPage, loadMore, isLoading } =
-    useFetchKeysRoles();
+  const { roles, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeysRoles();
   const { searchResults, isSearching } = useSearchKeysRoles(searchValue);
 
   // Combine loaded roles with search results, prioritizing search when available
@@ -41,7 +40,7 @@ export const RoleField = ({
         (role) =>
           role.id.toLowerCase().includes(searchTerm) ||
           role.name?.toLowerCase().includes(searchTerm) ||
-          role.description?.toLowerCase().includes(searchTerm)
+          role.description?.toLowerCase().includes(searchTerm),
       );
     }
     return roles;
@@ -117,8 +116,7 @@ export const RoleField = ({
     setSearchValue("");
   };
 
-  const isComboboxLoading =
-    isLoading || (isSearching && trimmedSearchVal.length > 0);
+  const isComboboxLoading = isLoading || (isSearching && trimmedSearchVal.length > 0);
   return (
     <div className="space-y-3">
       <FormCombobox
@@ -141,9 +139,7 @@ export const RoleField = ({
               {isSearching ? "Searching..." : "Loading roles..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">
-              No roles found
-            </div>
+            <div className="px-3 py-3 text-gray-10 text-[13px]">No roles found</div>
           )
         }
         variant="default"
@@ -167,14 +163,10 @@ export const RoleField = ({
         }))}
         disabled={disabled}
         onRemoveItem={handleRemoveRole}
-        renderIcon={() => (
-          <Tag iconsize="sm-regular" className="text-grayA-11" />
-        )}
+        renderIcon={() => <Tag iconsize="sm-regular" className="text-grayA-11" />}
         enableTransitions
         renderPrimaryText={(role) => role.name || "Unnamed Role"}
-        renderSecondaryText={(role) =>
-          ("description" in role && role.description) || role.id
-        }
+        renderSecondaryText={(role) => ("description" in role && role.description) || role.id}
       />
     </div>
   );

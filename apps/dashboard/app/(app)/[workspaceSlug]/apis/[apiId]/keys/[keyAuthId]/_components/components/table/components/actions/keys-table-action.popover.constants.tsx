@@ -30,7 +30,7 @@ import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
-  trpcUtils: ReturnType<typeof trpc.useUtils>
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
 ): MenuItem[] => {
   return [
     {
@@ -61,22 +61,14 @@ export const getKeysTableActionItems = (
       id: "edit-external-id",
       label: "Edit External ID...",
       icon: <ArrowOppositeDirectionY iconsize="md-medium" />,
-      ActionComponent: (props) => (
-        <EditExternalId {...props} keyDetails={key} />
-      ),
+      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
       divider: true,
     },
     {
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? (
-        <Ban iconsize="md-medium" />
-      ) : (
-        <Check iconsize="md-medium" />
-      ),
-      ActionComponent: (props) => (
-        <UpdateKeyStatus {...props} keyDetails={key} />
-      ),
+      icon: key.enabled ? <Ban iconsize="md-medium" /> : <Check iconsize="md-medium" />,
+      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
       divider: true,
     },
     {
@@ -89,17 +81,13 @@ export const getKeysTableActionItems = (
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
       icon: <Gauge iconsize="md-medium" />,
-      ActionComponent: (props) => (
-        <EditRatelimits {...props} keyDetails={key} />
-      ),
+      ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
       icon: <CalendarClock iconsize="md-medium" />,
-      ActionComponent: (props) => (
-        <EditExpiration {...props} keyDetails={key} />
-      ),
+      ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
     },
     {
       id: "edit-metadata",
@@ -126,37 +114,27 @@ export const getKeysTableActionItems = (
       prefetch: async () => {
         try {
           // Primary data - always needed when dialog opens
-          const connectedData =
-            await trpcUtils.key.connectedRolesAndPerms.fetch({
-              keyId: key.id,
-            });
+          const connectedData = await trpcUtils.key.connectedRolesAndPerms.fetch({
+            keyId: key.id,
+          });
 
           const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
           const directPermissionIds =
-            connectedData?.permissions
-              ?.filter((p) => p.source === "direct")
-              ?.map((p) => p.id) ?? [];
+            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.id) ??
+            [];
           const rolePermissionIds =
-            connectedData?.permissions
-              ?.filter((p) => p.source === "role")
-              ?.map((p) => p.id) ?? [];
-          const allEffectivePermissionIds = [
-            ...rolePermissionIds,
-            ...directPermissionIds,
-          ];
+            connectedData?.permissions?.filter((p) => p.source === "role")?.map((p) => p.id) ?? [];
+          const allEffectivePermissionIds = [...rolePermissionIds, ...directPermissionIds];
 
           // Prefetch dependent data that requires connectedData
           const dependentPrefetches = [];
 
-          if (
-            allEffectivePermissionIds.length > 0 ||
-            currentRoleIds.length > 0
-          ) {
+          if (allEffectivePermissionIds.length > 0 || currentRoleIds.length > 0) {
             dependentPrefetches.push(
               trpcUtils.key.queryPermissionSlugs.prefetch({
                 roleIds: currentRoleIds,
                 permissionIds: allEffectivePermissionIds,
-              })
+              }),
             );
           }
 

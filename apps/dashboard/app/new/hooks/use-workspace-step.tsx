@@ -22,7 +22,7 @@ const workspaceSchema = z.object({
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens)."
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
     ),
 });
 

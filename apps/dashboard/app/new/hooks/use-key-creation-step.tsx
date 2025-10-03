@@ -16,14 +16,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CalendarClock,
-  ChartPie,
-  Code,
-  Gauge,
-  Key2,
-  StackPerspective2,
-} from "@unkey/icons";
+import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
 import { FormInput, toast } from "@unkey/ui";
 import { addDays } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -41,7 +34,7 @@ const extendedFormSchema = formSchema.and(
       .trim()
       .min(3, "API name must be at least 3 characters long")
       .max(50, "API name must not exceed 50 characters"),
-  })
+  }),
 );
 
 export const useKeyCreationStep = (): OnboardingStep => {
@@ -66,9 +59,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
 
       if (error.data?.code === "NOT_FOUND") {
         // In case users try to feed tRPC with weird workspaceId or non existing one
-        toast.error(
-          "Invalid workspace. Please go back and create a new workspace."
-        );
+        toast.error("Invalid workspace. Please go back and create a new workspace.");
       } else {
         toast.error(`Failed to create API and key: ${error.message}`);
       }
@@ -115,8 +106,8 @@ export const useKeyCreationStep = (): OnboardingStep => {
   const tooltipContent = apiCreated
     ? "API already created - settings cannot be modified"
     : isFormReady
-    ? "Settings are currently disabled"
-    : "You need to have a valid API name";
+      ? "Settings are currently disabled"
+      : "You need to have a valid API name";
 
   return {
     name: "API key",
@@ -124,11 +115,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
     body: (
       <div className="relative">
         <FormProvider {...methods}>
-          <form
-            id="new-key-form"
-            onSubmit={handleSubmit(onSubmit)}
-            ref={formRef}
-          >
+          <form id="new-key-form" onSubmit={handleSubmit(onSubmit)} ref={formRef}>
             <div className="flex flex-col px-1">
               <FormInput
                 {...register("apiName")}
@@ -152,12 +139,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={
-                    <Key2
-                      className="text-gray-9 flex-shrink-0"
-                      iconsize="sm-regular"
-                    />
-                  }
+                  icon={<Key2 className="text-gray-9 flex-shrink-0" iconsize="sm-regular" />}
                   title="General Setup"
                   description="Configure basic API key settings like prefix, byte length, and External ID"
                 >
@@ -167,12 +149,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={
-                    <Gauge
-                      className="text-gray-9 flex-shrink-0"
-                      iconsize="sm-regular"
-                    />
-                  }
+                  icon={<Gauge className="text-gray-9 flex-shrink-0" iconsize="sm-regular" />}
                   title="Ratelimit"
                   description="Set request limits per time window to control API usage frequency"
                   defaultChecked={methods.watch("ratelimit.enabled")}
@@ -187,12 +164,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={
-                    <ChartPie
-                      className="text-gray-9 flex-shrink-0"
-                      iconsize="sm-regular"
-                    />
-                  }
+                  icon={<ChartPie className="text-gray-9 flex-shrink-0" iconsize="sm-regular" />}
                   title="Credits"
                   description="Set usage limits based on credits or quota to control consumption"
                   defaultChecked={methods.watch("limit.enabled")}
@@ -208,23 +180,16 @@ export const useKeyCreationStep = (): OnboardingStep => {
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
                   icon={
-                    <CalendarClock
-                      className="text-gray-9 flex-shrink-0"
-                      iconsize="sm-regular"
-                    />
+                    <CalendarClock className="text-gray-9 flex-shrink-0" iconsize="sm-regular" />
                   }
                   title="Expiration"
                   description="Set when this API key should automatically expire and become invalid"
                   defaultChecked={methods.watch("expiration.enabled")}
                   onCheckedChange={(checked) => {
                     methods.setValue("expiration.enabled", checked);
-                    const currentExpiryDate =
-                      methods.getValues("expiration.data");
+                    const currentExpiryDate = methods.getValues("expiration.data");
                     if (checked && !currentExpiryDate) {
-                      methods.setValue(
-                        "expiration.data",
-                        addDays(new Date(), 1)
-                      );
+                      methods.setValue("expiration.data", addDays(new Date(), 1));
                     }
                     methods.trigger("expiration");
                   }}
@@ -235,12 +200,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={
-                    <Code
-                      className="text-gray-9 flex-shrink-0"
-                      iconsize="sm-regular"
-                    />
-                  }
+                  icon={<Code className="text-gray-9 flex-shrink-0" iconsize="sm-regular" />}
                   title="Metadata"
                   description="Add custom key-value pairs to store additional information with your API key"
                   defaultChecked={methods.watch("metadata.enabled")}
@@ -248,10 +208,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                     methods.setValue("metadata.enabled", checked);
                     const currentMetadata = methods.getValues("metadata.data");
                     if (checked && !currentMetadata) {
-                      methods.setValue(
-                        "metadata.data",
-                        JSON.stringify(EXAMPLE_JSON, null, 2)
-                      );
+                      methods.setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
                     }
                     methods.trigger("metadata");
                   }}
@@ -265,11 +222,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
       </div>
     ),
     kind: "non-required" as const,
-    buttonText: apiCreated
-      ? "Continue"
-      : isLoading
-      ? "Creating API & Key..."
-      : "Create API & Key",
+    buttonText: apiCreated ? "Continue" : isLoading ? "Creating API & Key..." : "Create API & Key",
     description: apiCreated
       ? "API and key created successfully, continue to next step"
       : "Setup your API with an initial key and advanced configurations",

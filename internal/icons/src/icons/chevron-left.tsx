@@ -14,10 +14,7 @@
 import React from "react";
 import { sizeMap, type IconProps } from "../props";
 
-export const ChevronLeft: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
-  ...props
-}) => {
+export const ChevronLeft: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
   return (
     <svg

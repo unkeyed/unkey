@@ -67,10 +67,7 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
  * ```
  */
 export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
-  (
-    { value, total, iconsize = "md-regular", className, variant, ...props },
-    ref
-  ) => {
+  ({ value, total, iconsize = "md-regular", className, variant, ...props }, ref) => {
     // Early error validation
     if (total <= 0) {
       throw new Error("CircleProgress: total must be greater than 0");
@@ -92,16 +89,8 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
     const isComplete = value >= total;
 
     return (
-      <div
-        ref={ref}
-        className={cn(circleProgressVariants({ variant }), className)}
-        {...props}
-      >
-        <svg
-          width={actualSize}
-          height={actualSize}
-          className="transform -rotate-90"
-        >
+      <div ref={ref} className={cn(circleProgressVariants({ variant }), className)} {...props}>
+        <svg width={actualSize} height={actualSize} className="transform -rotate-90">
           {/* Background circle */}
           <circle
             cx={actualSize / 2}
@@ -125,8 +114,7 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             style={{
-              transition:
-                "stroke-dashoffset 0.3s ease-in-out, opacity 0.2s ease-in-out",
+              transition: "stroke-dashoffset 0.3s ease-in-out, opacity 0.2s ease-in-out",
               opacity: isComplete ? 0 : 1,
             }}
           />
@@ -152,9 +140,7 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
             <path
               d={`M${actualSize * 0.292} ${actualSize * 0.542} l${
                 actualSize * 0.125
-              } ${actualSize * 0.125} l${actualSize * 0.292} -${
-                actualSize * 0.333
-              }`}
+              } ${actualSize * 0.125} l${actualSize * 0.292} -${actualSize * 0.333}`}
               fill="none"
               stroke="currentColor"
               strokeWidth={strokeWidth}
@@ -166,7 +152,7 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 CircleProgress.displayName = "CircleProgress";

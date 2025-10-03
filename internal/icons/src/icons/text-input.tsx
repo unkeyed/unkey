@@ -9,13 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const TextInput: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
-  ...props
-}) => {
+export const TextInput: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
   return (
     <svg
@@ -41,20 +38,8 @@ export const TextInput: React.FC<IconProps> = ({
           fill="currentColor"
           strokeWidth={strokeWidth}
         />
-        <circle
-          cx="1.75"
-          cy="9"
-          fill="currentColor"
-          r=".75"
-          strokeWidth={strokeWidth}
-        />
-        <circle
-          cx="16.25"
-          cy="9"
-          fill="currentColor"
-          r=".75"
-          strokeWidth={strokeWidth}
-        />
+        <circle cx="1.75" cy="9" fill="currentColor" r=".75" strokeWidth={strokeWidth} />
+        <circle cx="16.25" cy="9" fill="currentColor" r=".75" strokeWidth={strokeWidth} />
       </g>
     </svg>
   );

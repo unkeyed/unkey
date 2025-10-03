@@ -63,11 +63,7 @@ export const ProjectCard = ({
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
           {/*Top Section > Project Name*/}
-          <InfoTooltip
-            content={name}
-            asChild
-            position={{ align: "start", side: "top" }}
-          >
+          <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
               href={projectPath}
               className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
@@ -109,24 +105,15 @@ export const ProjectCard = ({
 
         <div className="flex gap-2 items-center min-w-0">
           {commitTimestamp ? (
-            <TimestampInfo
-              value={commitTimestamp}
-              className="hover:underline whitespace-pre"
-            />
+            <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
           ) : (
             <span className="text-xs text-gray-12 truncate max-w-[70px] opacity-70">
               No deployments
             </span>
           )}
           <CodeBranch className="text-gray-12 shrink-0" iconsize="sm-regular" />
-          <InfoTooltip
-            content={branch}
-            asChild
-            position={{ align: "start", side: "top" }}
-          >
-            <span className="text-xs text-gray-12 truncate max-w-[70px]">
-              {branch}
-            </span>
+          <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
+            <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
           </InfoTooltip>
           {authorAvatar && (
             <>

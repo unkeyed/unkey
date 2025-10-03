@@ -1,13 +1,6 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
 import { Key2, Lock } from "@unkey/icons";
-import {
-  Badge,
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Key = {
   id: string;
@@ -56,9 +49,7 @@ export function createKeyOptions({
                   )}
                 </div>
                 <span className="text-accent-9 text-xs">
-                  {key.id.length > 15
-                    ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}`
-                    : key.id}
+                  {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
                 </span>
               </div>
             </div>
@@ -77,33 +68,19 @@ export function createKeyOptions({
               {/* Content */}
               <div className="px-4 py-3 space-y-3">
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">
-                    Key ID
-                  </div>
-                  <div className="text-xs text-gray-12 font-mono break-all">
-                    {key.id}
-                  </div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Key ID</div>
+                  <div className="text-xs text-gray-12 font-mono break-all">{key.id}</div>
                 </div>
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">
-                    Name
-                  </div>
-                  <div className="text-xs text-gray-12">
-                    {key.name || "No name set"}
-                  </div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
+                  <div className="text-xs text-gray-12">{key.name || "No name set"}</div>
                 </div>
                 {key.roles.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-11 mb-2">
-                      Roles
-                    </div>
+                    <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
                     <div className="flex flex-wrap gap-1">
                       {key.roles.map((role) => (
-                        <Badge
-                          key={role.id}
-                          variant="secondary"
-                          className="text-xs"
-                        >
+                        <Badge key={role.id} variant="secondary" className="text-xs">
                           {role.name}
                         </Badge>
                       ))}
@@ -123,9 +100,7 @@ export function createKeyOptions({
             <Key2 iconsize="sm-regular" className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
-            {key.id.length > 15
-              ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}`
-              : key.id}
+            {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
           </span>
         </div>
         <span className="w-[200px] truncate text-accent-8 text-left">

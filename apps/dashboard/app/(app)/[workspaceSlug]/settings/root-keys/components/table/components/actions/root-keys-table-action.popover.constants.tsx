@@ -1,8 +1,5 @@
 "use client";
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { PenWriting3, Trash } from "@unkey/icons";
 import { DeleteRootKey } from "./components/delete-root-key";
@@ -12,17 +9,14 @@ type RootKeysTableActionsProps = {
   onEditKey?: (rootKey: RootKey) => void;
 };
 
-export const RootKeysTableActions = ({
-  rootKey,
-  onEditKey,
-}: RootKeysTableActionsProps) => {
+export const RootKeysTableActions = ({ rootKey, onEditKey }: RootKeysTableActionsProps) => {
   const menuItems = getRootKeyTableActionItems(rootKey, onEditKey);
   return <TableActionPopover items={menuItems} />;
 };
 
 const getRootKeyTableActionItems = (
   rootKey: RootKey,
-  onEditKey?: (rootKey: RootKey) => void
+  onEditKey?: (rootKey: RootKey) => void,
 ): MenuItem[] => {
   return [
     {
@@ -38,9 +32,7 @@ const getRootKeyTableActionItems = (
       id: "delete-root-key",
       label: "Delete root key",
       icon: <Trash iconsize="md-medium" />,
-      ActionComponent: (props) => (
-        <DeleteRootKey {...props} rootKeyDetails={rootKey} />
-      ),
+      ActionComponent: (props) => <DeleteRootKey {...props} rootKeyDetails={rootKey} />,
     },
   ];
 };

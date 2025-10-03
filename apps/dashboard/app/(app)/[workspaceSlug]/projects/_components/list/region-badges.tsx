@@ -28,10 +28,7 @@ export const RegionBadges = ({ regions, repository }: RegionBadgesProps) => {
           content={
             <div className="space-y-1">
               {remainingRegions.map((region) => (
-                <div
-                  key={region}
-                  className="text-xs font-medium flex items-center gap-1.5"
-                >
+                <div key={region} className="text-xs font-medium flex items-center gap-1.5">
                   <div className="w-1 h-1 bg-gray-8 rounded-full" />
                   {region}
                 </div>

@@ -7,10 +7,7 @@ interface RoleWarningCalloutProps {
   type: "keys" | "permissions";
 }
 
-export const RoleWarningCallout = ({
-  count,
-  type,
-}: RoleWarningCalloutProps) => {
+export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => {
   const itemText = type === "keys" ? "keys" : "permissions";
   const settingsText = type === "keys" ? "key settings" : "permission settings";
 
@@ -20,8 +17,8 @@ export const RoleWarningCallout = ({
         <TriangleWarning className="text-warning-9" iconsize="xl-medium" />
       </div>
       <div className="text-gray-12 text-[13px] leading-6">
-        <span className="font-medium">Warning:</span> This role has{" "}
-        {formatNumber(count)} {itemText} assigned. Use the{" "}
+        <span className="font-medium">Warning:</span> This role has {formatNumber(count)} {itemText}{" "}
+        assigned. Use the{" "}
         <InlineLink
           className="underline"
           target="_blank"

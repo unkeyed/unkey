@@ -28,10 +28,7 @@ export const useFeedback = () => {
 const feedbackSchema = z.object({
   severity: z.enum(["p0", "p1", "p2", "p3"]),
   issueType: z.enum(["bug", "feature", "security", "payment", "question"]),
-  message: z
-    .string()
-    .trim()
-    .min(20, "Feedback must contain at least 20 characters"),
+  message: z.string().trim().min(20, "Feedback must contain at least 20 characters"),
 });
 
 type FormValues = z.infer<typeof feedbackSchema>;
@@ -55,9 +52,7 @@ export const Feedback: React.FC = () => {
   const create = trpc.plain.createIssue.useMutation({
     onSuccess: () => {
       setOpen(false);
-      toast.success(
-        "Your issue has been created, we'll get back to you as soon as possible"
-      );
+      toast.success("Your issue has been created, we'll get back to you as soon as possible");
     },
     onError(err) {
       console.error(err);
@@ -109,9 +104,7 @@ export const Feedback: React.FC = () => {
             name="issueType"
             render={({ field }) => (
               <div className="space-y-1.5">
-                <div className="text-gray-11 text-[13px] flex items-center">
-                  Area
-                </div>
+                <div className="text-gray-11 text-[13px] flex items-center">Area</div>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="What area is this" />
@@ -125,9 +118,7 @@ export const Feedback: React.FC = () => {
                   </SelectContent>
                 </Select>
                 {errors.issueType && (
-                  <div className="text-error-11 text-xs">
-                    {errors.issueType.message}
-                  </div>
+                  <div className="text-error-11 text-xs">{errors.issueType.message}</div>
                 )}
                 <output className="text-gray-9 flex gap-2 items-center text-[13px]">
                   <CircleInfo iconsize="md-medium" aria-hidden="true" />
@@ -142,9 +133,7 @@ export const Feedback: React.FC = () => {
             name="severity"
             render={({ field }) => (
               <div className="space-y-1.5">
-                <div className="text-gray-11 text-[13px] flex items-center">
-                  Severity
-                </div>
+                <div className="text-gray-11 text-[13px] flex items-center">Severity</div>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select a severity" />
@@ -157,9 +146,7 @@ export const Feedback: React.FC = () => {
                   </SelectContent>
                 </Select>
                 {errors.severity && (
-                  <div className="text-error-11 text-xs">
-                    {errors.severity.message}
-                  </div>
+                  <div className="text-error-11 text-xs">{errors.severity.message}</div>
                 )}
                 <output className="text-gray-9 flex gap-2 items-center text-[13px]">
                   <CircleInfo iconsize="md-medium" aria-hidden="true" />

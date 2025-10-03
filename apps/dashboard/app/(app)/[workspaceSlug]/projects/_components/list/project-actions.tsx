@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
@@ -15,20 +12,14 @@ type ProjectActionsProps = {
   projectId: string;
 };
 
-export const ProjectActions = ({
-  projectId,
-  children,
-}: PropsWithChildren<ProjectActionsProps>) => {
+export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
   const menuItems = getProjectActionItems(projectId, router);
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
 
-const getProjectActionItems = (
-  projectId: string,
-  router: AppRouterInstance
-): MenuItem[] => {
+const getProjectActionItems = (projectId: string, router: AppRouterInstance): MenuItem[] => {
   return [
     {
       id: "favorite-project",
@@ -62,9 +53,7 @@ const getProjectActionItems = (
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
-        router.push(
-          `/projects/${projectId}/deployments/${fakeDeploymentId}/logs`
-        );
+        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/logs`);
       },
     },
     {
@@ -74,9 +63,7 @@ const getProjectActionItems = (
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
-        router.push(
-          `/projects/${projectId}/deployments/${fakeDeploymentId}/settings`
-        );
+        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/settings`);
       },
       divider: true,
     },

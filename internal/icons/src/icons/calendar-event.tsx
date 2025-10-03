@@ -9,7 +9,7 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const CalendarEvent: React.FC<IconProps> = ({

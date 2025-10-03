@@ -49,7 +49,7 @@ export const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded m-0 items-center flex justify-center animate-pulse",
-      "border border-gray-6"
+      "border border-gray-6",
     )}
   >
     <Dots className="text-gray-11" iconsize="sm-regular" />

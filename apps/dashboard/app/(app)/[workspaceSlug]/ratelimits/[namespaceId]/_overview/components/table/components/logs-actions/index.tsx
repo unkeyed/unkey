@@ -25,9 +25,7 @@ export const LogsTableAction = ({
   const workspace = useWorkspaceNavigation();
 
   const getTimeParams = () => {
-    const timeFilters = filters.filter((f) =>
-      ["startTime", "endTime", "since"].includes(f.field)
-    );
+    const timeFilters = filters.filter((f) => ["startTime", "endTime", "since"].includes(f.field));
     const params = new URLSearchParams({
       identifiers: `contains:${identifier}`,
     });

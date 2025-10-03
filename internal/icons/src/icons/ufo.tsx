@@ -10,12 +10,11 @@
  * https://nucleoapp.com/license
  */
 
-import React from "react";
+import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 export const Ufo: React.FC<IconProps> = ({ iconsize, filled, ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } =
-    sizeMap[iconsize || "md-regular"];
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize || "md-regular"];
   return (
     <svg
       height={pixelSize}
@@ -25,13 +24,7 @@ export const Ufo: React.FC<IconProps> = ({ iconsize, filled, ...props }) => {
       {...props}
     >
       <g fill="currentColor">
-        <circle
-          cx="14.75"
-          cy="1.75"
-          fill="currentColor"
-          r=".75"
-          stroke="none"
-        />
+        <circle cx="14.75" cy="1.75" fill="currentColor" r=".75" stroke="none" />
         <path
           d="M3.869,1.894l-.947-.315-.315-.947c-.103-.306-.609-.306-.712,0l-.315,.947-.947,.315c-.153,.051-.256,.194-.256,.356s.104,.305,.256,.356l.947,.315,.315,.947c.051,.153,.194,.256,.356,.256s.305-.104,.356-.256l.315-.947,.947-.315c.153-.051,.256-.194,.256-.356s-.104-.305-.256-.356Z"
           fill="currentColor"

@@ -9,13 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleCaretRight: React.FC<IconProps> = ({
-  iconsize = "lg-medium",
-  ...props
-}) => {
+export const CircleCaretRight: React.FC<IconProps> = ({ iconsize = "lg-medium", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (

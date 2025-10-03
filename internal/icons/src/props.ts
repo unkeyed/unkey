@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 
 // Clean external types that map to detailed internal types
 export type Size = "sm" | "md" | "lg" | "xl" | "2xl";

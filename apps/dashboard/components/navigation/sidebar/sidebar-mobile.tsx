@@ -15,20 +15,14 @@ export const SidebarMobile = () => {
 
   return (
     <div className="flex w-full gap-4 py-4 pr-4 px-2 border-b border-grayA-4 items-center bg-gray-1 justify-between">
-      <Button
-        variant="ghost"
-        onClick={() => setOpenMobile(true)}
-        className="[&_svg]:size-[20px]"
-      >
+      <Button variant="ghost" onClick={() => setOpenMobile(true)} className="[&_svg]:size-[20px]">
         <SidebarLeftShow iconsize="xl-medium" className="text-gray-9" />
       </Button>
       <WorkspaceSwitcher />
       <div className="flex gap-4 items-center">
         <HelpButton />
         <UserButton
-          isCollapsed={
-            (state === "collapsed" || isMobile) && !(isMobile && openMobile)
-          }
+          isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
           isMobile={isMobile}
           isMobileSidebarOpen={openMobile}
         />

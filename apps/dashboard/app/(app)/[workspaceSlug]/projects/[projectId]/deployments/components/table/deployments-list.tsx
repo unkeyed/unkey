@@ -30,13 +30,13 @@ import { getRowClassName } from "./utils/get-row-class";
 
 const DeploymentListTableActions = dynamic(
   () =>
-    import(
-      "./components/actions/deployment-list-table-action.popover.constants"
-    ).then((mod) => mod.DeploymentListTableActions),
+    import("./components/actions/deployment-list-table-action.popover.constants").then(
+      (mod) => mod.DeploymentListTableActions,
+    ),
   {
     loading: () => <ActionColumnSkeleton />,
     ssr: false,
-  }
+  },
 );
 
 const COMPACT_BREAKPOINT = 1200;
@@ -75,7 +75,7 @@ export const DeploymentsList = () => {
                     <div
                       className={cn(
                         "font-normal font-mono truncate leading-5 text-[13px]",
-                        "text-accent-12"
+                        "text-accent-12",
                       )}
                     >
                       {shortenId(deployment.id)}
@@ -91,7 +91,7 @@ export const DeploymentsList = () => {
                   <div
                     className={cn(
                       "font-normal font-mono truncate text-xs mt-1 capitalize",
-                      "text-gray-9"
+                      "text-gray-9",
                     )}
                   >
                     {environment?.slug}
@@ -137,7 +137,7 @@ export const DeploymentsList = () => {
                       <span className="font-semibold text-grayA-12 tabular-nums">
                         {deployment.runtimeConfig.regions.reduce(
                           (acc, region) => acc + region.vmCount,
-                          0
+                          0,
                         )}
                       </span>
                       <span>VMs</span>
@@ -180,14 +180,13 @@ export const DeploymentsList = () => {
         width: "15%",
         headerClassName: "pl-[18px]",
         render: ({ deployment }) => {
-          const isSelected =
-            deployment.id === selectedDeployment?.deployment.id;
+          const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
               className={cn(
                 "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5"
+                isSelected && "bg-grayA-5",
               )}
             >
               <CodeBranch iconsize="sm-regular" className="text-gray-12" />
@@ -202,18 +201,13 @@ export const DeploymentsList = () => {
                     <div
                       className={cn(
                         "font-normal font-mono truncate leading-5 text-[13px]",
-                        "text-accent-12"
+                        "text-accent-12",
                       )}
                     >
                       {deployment.gitBranch}
                     </div>
                   </div>
-                  <div
-                    className={cn(
-                      "font-normal font-mono truncate text-xs mt-1",
-                      "text-gray-9"
-                    )}
-                  >
+                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
                     {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
@@ -243,12 +237,7 @@ export const DeploymentsList = () => {
                             {deployment.gitCommitAuthorHandle || "—"}
                           </span>
                         </div>
-                        <div
-                          className={cn(
-                            "font-mono text-xs mt-1",
-                            "text-gray-9"
-                          )}
-                        >
+                        <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
                           <TimestampInfo
                             value={deployment.createdAt}
                             className="font-mono text-xs text-gray-9"
@@ -342,8 +331,8 @@ export const DeploymentsList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or
-              trigger a manual deployment to get started.
+              There are no deployments yet. Push to your connected repository or trigger a manual
+              deployment to get started.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

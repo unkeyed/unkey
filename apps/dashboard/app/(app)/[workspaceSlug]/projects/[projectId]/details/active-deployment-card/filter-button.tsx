@@ -21,7 +21,7 @@ export const FilterButton = ({
     variant="primary"
     className={cn(
       "text-xs h-[26px] border-none hover:bg-grayA-4",
-      isActive ? "bg-gray-12 hover:bg-grayA-12" : "bg-grayA-3 text-grayA-9"
+      isActive ? "bg-gray-12 hover:bg-grayA-12" : "bg-grayA-3 text-grayA-9",
     )}
     onClick={onClick}
   >

@@ -1,9 +1,8 @@
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const Clock: React.FC<IconProps> = ({ iconsize, filled, ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } =
-    sizeMap[iconsize || "md-regular"];
+  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize || "md-regular"];
   return (
     <svg
       height={pixelSize}

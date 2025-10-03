@@ -68,12 +68,7 @@ export const ConfirmPopover = ({
     onOpenChange(false);
   };
 
-  const {
-    iconBg,
-    iconColor,
-    buttonColor,
-    icon: Icon,
-  } = VARIANT_STYLES[variant];
+  const { iconBg, iconColor, buttonColor, icon: Icon } = VARIANT_STYLES[variant];
 
   // Merge default props with user-provided props, with user props taking precedence
   const mergedPopoverProps = {
@@ -93,22 +88,18 @@ export const ConfirmPopover = ({
               className={cn(
                 "flex items-center justify-center rounded size-[22px]",
                 iconBg,
-                iconColor
+                iconColor,
               )}
             >
               <Icon iconsize="sm-regular" />
             </div>
-            <div className="font-medium text-[13px] leading-7 text-gray-12">
-              {title}
-            </div>
+            <div className="font-medium text-[13px] leading-7 text-gray-12">{title}</div>
           </div>
         </div>
         <div className="w-full">
           <div className="h-[1px] bg-grayA-3 w-full" />
         </div>
-        <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">
-          {description}
-        </div>
+        <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">{description}</div>
         <div className="space-x-3 w-full px-4 pb-4">
           <Button color={buttonColor} onClick={handleConfirm} className="px-4">
             {confirmButtonText}

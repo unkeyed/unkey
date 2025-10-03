@@ -188,15 +188,12 @@ const checkboxVariants = cva(
         ],
       },
     ],
-  }
+  },
 );
 
 const checkmarkVariants = cva("flex items-center justify-center");
 
-const VARIANT_MAP: Record<
-  string,
-  { variant: CheckboxVariant; color?: CheckboxColor }
-> = {
+const VARIANT_MAP: Record<string, { variant: CheckboxVariant; color?: CheckboxColor }> = {
   default: { variant: "primary" },
   destructive: { variant: "primary", color: "danger" },
 };
@@ -271,12 +268,8 @@ export type DocumentedCheckboxProps = VariantProps<typeof checkboxVariants> & {
   onCheckedChange?: (checked: boolean) => void;
 };
 
-type CheckboxVariant = NonNullable<
-  VariantProps<typeof checkboxVariants>["variant"]
->;
-type CheckboxColor = NonNullable<
-  VariantProps<typeof checkboxVariants>["color"]
->;
+type CheckboxVariant = NonNullable<VariantProps<typeof checkboxVariants>["variant"]>;
+type CheckboxColor = NonNullable<VariantProps<typeof checkboxVariants>["color"]>;
 type CheckboxSize = NonNullable<VariantProps<typeof checkboxVariants>["size"]>;
 
 export type CheckboxProps = VariantProps<typeof checkboxVariants> &
@@ -286,60 +279,51 @@ export type CheckboxProps = VariantProps<typeof checkboxVariants> &
     size?: CheckboxSize;
   };
 
-const Checkbox = React.forwardRef<
-  React.ElementRef<typeof CheckboxPrimitive.Root>,
-  CheckboxProps
->(({ className, variant, color = "default", size, ...props }, ref) => {
-  let mappedVariant: CheckboxVariant = "primary";
-  let mappedColor: CheckboxColor = color;
+const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root>, CheckboxProps>(
+  ({ className, variant, color = "default", size, ...props }, ref) => {
+    let mappedVariant: CheckboxVariant = "primary";
+    let mappedColor: CheckboxColor = color;
 
-  if (variant === null || variant === undefined) {
-    mappedVariant = "primary";
-  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-    mappedVariant = mapping.variant;
-    if (mapping.color) {
-      mappedColor = mapping.color;
+    if (variant === null || variant === undefined) {
+      mappedVariant = "primary";
+    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+      mappedVariant = mapping.variant;
+      if (mapping.color) {
+        mappedColor = mapping.color;
+      }
+    } else {
+      mappedVariant = variant as CheckboxVariant;
     }
-  } else {
-    mappedVariant = variant as CheckboxVariant;
-  }
 
-  const iconSize = getIconSize(size);
+    const iconSize = getIconSize(size);
 
-  const checkmarkColor =
-    mappedColor === "default" && mappedVariant === "primary"
-      ? "text-white dark:text-black"
-      : "text-white";
+    const checkmarkColor =
+      mappedColor === "default" && mappedVariant === "primary"
+        ? "text-white dark:text-black"
+        : "text-white";
 
-  return (
-    <CheckboxPrimitive.Root
-      ref={ref}
-      className={cn(
-        checkboxVariants({
-          variant: mappedVariant,
-          color: mappedColor,
-          size,
-          className,
-        })
-      )}
-      {...props}
-    >
-      <CheckboxPrimitive.Indicator
-        className={cn(checkmarkVariants(), checkmarkColor)}
+    return (
+      <CheckboxPrimitive.Root
+        ref={ref}
+        className={cn(
+          checkboxVariants({
+            variant: mappedVariant,
+            color: mappedColor,
+            size,
+            className,
+          }),
+        )}
+        {...props}
       >
-        <Check
-          iconsize={iconSize}
-          className="hidden group-data-[state=checked]:block"
-        />
-        <Minus
-          iconsize={iconSize}
-          className="hidden group-data-[state=indeterminate]:block"
-        />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
-  );
-});
+        <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
+          <Check iconsize={iconSize} className="hidden group-data-[state=checked]:block" />
+          <Minus iconsize={iconSize} className="hidden group-data-[state=indeterminate]:block" />
+        </CheckboxPrimitive.Indicator>
+      </CheckboxPrimitive.Root>
+    );
+  },
+);
 
 Checkbox.displayName = CheckboxPrimitive.Root.displayName;
 

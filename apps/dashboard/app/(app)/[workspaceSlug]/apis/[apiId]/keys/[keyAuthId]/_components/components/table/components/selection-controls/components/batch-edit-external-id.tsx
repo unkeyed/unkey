@@ -18,12 +18,8 @@ export const BatchEditExternalId = ({
   isOpen,
   onClose,
 }: BatchEditExternalIdProps): JSX.Element => {
-  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(
-    null
-  );
-  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(
-    null
-  );
+  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
+  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(null);
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -120,9 +116,7 @@ export const BatchEditExternalId = ({
                 {keysWithExternalIds === 1 ? "has" : "have"} an External ID
               </div>
             )}
-            <div className="text-gray-9 text-xs">
-              Changes will be applied immediately
-            </div>
+            <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
           </div>
         }
       >
@@ -135,13 +129,13 @@ export const BatchEditExternalId = ({
               <span className="font-medium">Warning:</span>{" "}
               {keysWithExternalIds === totalKeys ? (
                 <>
-                  All selected keys already have External IDs. Setting a new ID
-                  will override the existing ones.
+                  All selected keys already have External IDs. Setting a new ID will override the
+                  existing ones.
                 </>
               ) : (
                 <>
-                  Some selected keys already have External IDs. Setting a new ID
-                  will override the existing ones.
+                  Some selected keys already have External IDs. Setting a new ID will override the
+                  existing ones.
                 </>
               )}
             </div>
@@ -150,10 +144,7 @@ export const BatchEditExternalId = ({
         <div className="my-2">
           <ExternalIdField
             value={selectedIdentityId}
-            onChange={(
-              identityId: string | null,
-              externalId: string | null
-            ) => {
+            onChange={(identityId: string | null, externalId: string | null) => {
               setSelectedIdentityId(identityId);
               setSelectedExternalId(externalId);
             }}
@@ -166,9 +157,7 @@ export const BatchEditExternalId = ({
         onOpenChange={setIsConfirmPopoverOpen}
         onConfirm={clearSelection}
         triggerRef={clearButtonRef}
-        title={`Confirm removing External ${
-          keysWithExternalIds > 1 ? "IDs" : "ID"
-        }`}
+        title={`Confirm removing External ${keysWithExternalIds > 1 ? "IDs" : "ID"}`}
         description={`This will remove the External ID association from ${keysWithExternalIds} ${
           keysWithExternalIds === 1 ? "key" : "keys"
         }. Any tracking or analytics related to ${
@@ -176,9 +165,7 @@ export const BatchEditExternalId = ({
         } will no longer be associated with ${
           keysWithExternalIds === 1 ? "this key" : "these keys"
         }.`}
-        confirmButtonText={`Remove External ${
-          keysWithExternalIds > 1 ? "IDs" : "ID"
-        }`}
+        confirmButtonText={`Remove External ${keysWithExternalIds > 1 ? "IDs" : "ID"}`}
         cancelButtonText="Cancel"
         variant="danger"
       />

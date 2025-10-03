@@ -13,15 +13,10 @@ type RootKeySuccessProps = {
 };
 
 export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
-  const {
-    isConfirmOpen,
-    setIsConfirmOpen,
-    dividerRef,
-    handleCloseAttempt,
-    handleConfirmClose,
-  } = useRootKeySuccess({
-    onClose,
-  });
+  const { isConfirmOpen, setIsConfirmOpen, dividerRef, handleCloseAttempt, handleConfirmClose } =
+    useRootKeySuccess({
+      onClose,
+    });
 
   if (!keyValue) {
     return null;
@@ -57,17 +52,9 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2
-                    iconsize="2xl-thin"
-                    aria-hidden="true"
-                    focusable={false}
-                  />
+                  <Key2 iconsize="2xl-thin" aria-hidden="true" focusable={false} />
                   <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
-                    <Check
-                      iconsize="sm-bold"
-                      aria-hidden="true"
-                      focusable={false}
-                    />
+                    <Check iconsize="sm-bold" aria-hidden="true" focusable={false} />
                   </div>
                 </div>
                 <div className="border border-grayA-4 rounded-[10px] size-14" />

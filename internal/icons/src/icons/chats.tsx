@@ -9,12 +9,9 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
-export const Chats: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
-  ...props
-}) => {
+export const Chats: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (

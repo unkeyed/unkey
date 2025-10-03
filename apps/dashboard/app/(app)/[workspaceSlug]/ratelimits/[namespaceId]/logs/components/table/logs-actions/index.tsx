@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, InputSearch } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useFilters } from "../../../hooks/use-filters";
@@ -45,7 +42,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
             value: identifier,
           };
           const existingFilters = filters.filter(
-            (f) => !(f.field === "identifiers" && f.value === identifier)
+            (f) => !(f.field === "identifiers" && f.value === identifier),
           );
           updateFilters([...existingFilters, newFilter]);
         },

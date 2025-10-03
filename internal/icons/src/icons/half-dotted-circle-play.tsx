@@ -9,13 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const HalfDottedCirclePlay: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
-  ...props
-}) => {
+export const HalfDottedCirclePlay: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
@@ -43,14 +40,7 @@ export const HalfDottedCirclePlay: React.FC<IconProps> = ({
           data-stroke="none"
           stroke="none"
         />
-        <circle
-          cx="1.75"
-          cy="9"
-          r=".75"
-          fill="currentColor"
-          data-stroke="none"
-          stroke="none"
-        />
+        <circle cx="1.75" cy="9" r=".75" fill="currentColor" data-stroke="none" stroke="none" />
         <circle
           cx="3.873"
           cy="3.873"

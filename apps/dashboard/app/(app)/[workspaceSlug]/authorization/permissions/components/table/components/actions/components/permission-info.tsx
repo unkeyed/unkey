@@ -13,9 +13,7 @@ export const PermissionInfo = ({
         <Page2 iconsize="sm-regular" />
       </div>
       <div className="flex flex-col gap-1">
-        <div className="text-accent-12 text-[13px] font-medium">
-          {permissionDetails.name}
-        </div>
+        <div className="text-accent-12 text-[13px] font-medium">{permissionDetails.name}</div>
         <InfoTooltip
           variant="inverted"
           content={permissionDetails.name}
