@@ -85,22 +85,7 @@ export const TableActionPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {children ? (
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.stopPropagation();
-              }
-            }}
-            className="contents"
-          >
-            {children}
-          </button>
-        ) : (
-          <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />
-        )}
+        {children ?? <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />}
       </PopoverTrigger>
       <PopoverContent
         className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl border-gray-6 rounded-lg p-0"
