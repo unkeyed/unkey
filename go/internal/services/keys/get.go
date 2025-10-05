@@ -170,15 +170,13 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
-	// Parse IP whitelist once during key loading for performance
-	var parsedIPWhitelist []string
-	if key.IpWhitelist.Valid && key.IpWhitelist.String != "" {
-		ips := strings.Split(key.IpWhitelist.String, ",")
-		parsedIPWhitelist = make([]string, len(ips))
-		for i, ip := range ips {
-			parsedIPWhitelist[i] = strings.TrimSpace(ip)
-		}
-	}
+ import (
+ 	"context"
+ 	"encoding/json"
+ 	"fmt"
+	"strings"
+ 	"time"
+ )
 
 	kv = &KeyVerifier{
 		Key:                   key,
