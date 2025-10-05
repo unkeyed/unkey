@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/caches"
@@ -170,13 +171,15 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
- import (
- 	"context"
- 	"encoding/json"
- 	"fmt"
-	"strings"
- 	"time"
- )
+ 	// Parse IP whitelist once during key loading for performance
+	var parsedIPWhitelist []string
+	if key.IpWhitelist.Valid && key.IpWhitelist.String != "" {
+		ips := strings.Split(key.IpWhitelist.String, ",")
+		parsedIPWhitelist = make([]string, len(ips))
+		for i, ip := range ips {
+			parsedIPWhitelist[i] = strings.TrimSpace(ip)
+		}
+	}
 
 	kv = &KeyVerifier{
 		Key:                   key,
