@@ -170,6 +170,16 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
+	// Parse IP whitelist once during key loading for performance
+	var parsedIPWhitelist []string
+	if key.IpWhitelist.Valid && key.IpWhitelist.String != "" {
+		ips := strings.Split(key.IpWhitelist.String, ",")
+		parsedIPWhitelist = make([]string, len(ips))
+		for i, ip := range ips {
+			parsedIPWhitelist[i] = strings.TrimSpace(ip)
+		}
+	}
+
 	kv = &KeyVerifier{
 		Key:                   key,
 		clickhouse:            s.clickhouse,
@@ -184,11 +194,12 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		isRootKey:             key.ForWorkspaceID.Valid,
 
 		// By default we assume the key is valid unless proven otherwise
-		Status:           StatusValid,
-		ratelimitConfigs: ratelimitConfigs,
-		Roles:            roles,
-		Permissions:      permissions,
-		RatelimitResults: nil,
+		Status:            StatusValid,
+		ratelimitConfigs:  ratelimitConfigs,
+		parsedIPWhitelist: parsedIPWhitelist,
+		Roles:             roles,
+		Permissions:       permissions,
+		RatelimitResults:  nil,
 	}
 
 	if key.DeletedAtM.Valid {

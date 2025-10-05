@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"slices"
@@ -58,7 +57,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 		return nil
 	}
 
-	if !k.Key.IpWhitelist.Valid {
+	if len(k.parsedIPWhitelist) == 0 {
 		return nil
 	}
 
@@ -69,12 +68,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 		return nil
 	}
 
-	allowedIPs := strings.Split(k.Key.IpWhitelist.String, ",")
-	for i, ip := range allowedIPs {
-		allowedIPs[i] = strings.TrimSpace(ip)
-	}
-
-	if !slices.Contains(allowedIPs, clientIP) {
+	if !slices.Contains(k.parsedIPWhitelist, clientIP) {
 		k.setInvalid(StatusForbidden, fmt.Sprintf("client IP %s is not in the whitelist", clientIP))
 	}
 

@@ -39,7 +39,8 @@ type KeyVerifier struct {
 	ratelimitConfigs map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
 	RatelimitResults map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
 
-	isRootKey bool // Whether this is a root key (special handling)
+	parsedIPWhitelist []string // Pre-parsed IP whitelist for performance
+	isRootKey         bool     // Whether this is a root key (special handling)
 
 	message string   // Internal message for validation failures
 	tags    []string // Tags associated with this verification
