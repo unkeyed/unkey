@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { User } from "@unkey/icons";
 import { useState } from "react";
 
@@ -7,12 +8,17 @@ type AvatarProps = {
   className?: string;
 };
 
-export function Avatar({ src, alt, className = "size-5" }: AvatarProps) {
+export function Avatar({ src, alt, className }: AvatarProps) {
   const [hasError, setHasError] = useState(false);
 
   if (!src || hasError) {
     return (
-      <div className="size-5  border rounded-full border-grayA-5 items-center flex justify-center">
+      <div
+        className={cn(
+          "size-5 border rounded-full border-grayA-5 items-center flex justify-center",
+          className,
+        )}
+      >
         <User size="md-medium" />
       </div>
     );
@@ -22,7 +28,7 @@ export function Avatar({ src, alt, className = "size-5" }: AvatarProps) {
     <img
       src={src}
       alt={alt}
-      className={`rounded-full ${className}`}
+      className={cn("size-5 rounded-full object-cover", className)}
       onError={() => setHasError(true)}
     />
   );

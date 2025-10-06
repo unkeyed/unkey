@@ -6,24 +6,26 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ArrowRight, Check, Key2, Plus } from "@unkey/icons";
 import { Button, InfoTooltip, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { type FC, useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
 import { KeySecretSection } from "./key-secret-section";
 
-export const KeyCreatedSuccessDialog = ({
+interface KeyCreatedSuccessDialogProps {
+  isOpen: boolean;
+  onClose: (() => void) | (() => Promise<void>);
+  keyData: { key: string; id: string; name?: string } | null;
+  apiId: string;
+  keyspaceId?: string | null;
+  onCreateAnother?: (() => void) | (() => Promise<void>);
+}
+
+export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   isOpen,
   onClose,
   keyData,
   apiId,
   keyspaceId,
   onCreateAnother,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  keyData: { key: string; id: string; name?: string } | null;
-  apiId: string;
-  keyspaceId?: string | null;
-  onCreateAnother?: () => void;
 }) => {
   const workspace = useWorkspaceNavigation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -58,7 +60,7 @@ export const KeyCreatedSuccessDialog = ({
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmClose = () => {
+  const handleConfirmClose = async () => {
     if (!pendingAction) {
       console.error("No pending action when confirming close");
       return;
@@ -68,13 +70,13 @@ export const KeyCreatedSuccessDialog = ({
 
     try {
       // Always close the dialog first
-      onClose();
+      await Promise.resolve(onClose());
 
       // Then execute the specific action
       switch (pendingAction) {
         case "create-another":
           if (onCreateAnother) {
-            onCreateAnother();
+            await Promise.resolve(onCreateAnother());
           } else {
             console.warn("onCreateAnother callback not provided");
           }
@@ -117,12 +119,12 @@ export const KeyCreatedSuccessDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="drop-shadow-2xl border-gray-4 overflow-hidden !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-y-auto"
+        className="drop-shadow-2xl border-gray-4 !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto"
         showCloseWarning
         onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px] overflow-auto">
             <div className="py-4 mt-[30px]">
               <div className="flex gap-4">
                 <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
@@ -188,7 +190,8 @@ export const KeyCreatedSuccessDialog = ({
               keyValue={keyData.key}
               apiId={apiId}
               className="mt-6 w-full"
-              secretKeyClassName="bg-white dark:bg-black"
+              secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
+              codeClassName="p-0"
             />
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">

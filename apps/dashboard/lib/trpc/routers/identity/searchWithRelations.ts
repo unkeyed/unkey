@@ -46,10 +46,13 @@ export const searchIdentitiesWithRelations = t.procedure
           and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
         with: {
           identities: {
-            where: (table, { or, like }) =>
-              search
+            where: (table, { or, like, and, eq }) => {
+              const deletedFilter = eq(table.deleted, false);
+              const searchFilter = search
                 ? or(like(table.externalId, `%${search}%`), like(table.id, `%${search}%`))
-                : undefined,
+                : undefined;
+              return searchFilter ? and(deletedFilter, searchFilter) : deletedFilter;
+            },
             limit,
             orderBy: (table, { asc }) => asc(table.id),
             with: {

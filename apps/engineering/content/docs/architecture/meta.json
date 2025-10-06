@@ -3,5 +3,5 @@
   "description": "How does Unkey work",
   "icon": "Pencil",
   "root": false,
-  "pages": ["index", "services"]
+  "pages": ["index", "services", "workflows"]
 }

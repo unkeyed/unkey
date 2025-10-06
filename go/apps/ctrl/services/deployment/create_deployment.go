@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hydra"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -105,8 +106,7 @@ func (s *Service) CreateDeployment(
 	// Sanitize input values before persisting
 	gitCommitSha := req.Msg.GetGitCommitSha()
 	gitCommitMessage := trimLength(req.Msg.GetGitCommitMessage(), 10240)
-	gitCommitAuthorName := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorName()), 256)
-	gitCommitAuthorUsername := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorUsername()), 256)
+	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
 	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
 
 	// Insert deployment into database
@@ -120,16 +120,14 @@ func (s *Service) CreateDeployment(
 		"cpus": 2,
 		"memory": 2048
 		}`),
-		OpenapiSpec:         sql.NullString{String: "", Valid: false},
-		Status:              db.DeploymentsStatusPending,
-		CreatedAt:           now,
-		UpdatedAt:           sql.NullInt64{Int64: now, Valid: true},
-		GitCommitSha:        sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
-		GitBranch:           sql.NullString{String: gitBranch, Valid: true},
-		GitCommitMessage:    sql.NullString{String: gitCommitMessage, Valid: req.Msg.GetGitCommitMessage() != ""},
-		GitCommitAuthorName: sql.NullString{String: gitCommitAuthorName, Valid: req.Msg.GetGitCommitAuthorName() != ""},
-		// TODO: Use email to lookup GitHub username/avatar via GitHub API instead of persisting PII
-		GitCommitAuthorUsername:  sql.NullString{String: gitCommitAuthorUsername, Valid: req.Msg.GetGitCommitAuthorUsername() != ""},
+		OpenapiSpec:              sql.NullString{String: "", Valid: false},
+		Status:                   db.DeploymentsStatusPending,
+		CreatedAt:                now,
+		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
+		GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
+		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: req.Msg.GetGitCommitMessage() != ""},
+		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: req.Msg.GetGitCommitAuthorHandle() != ""},
 		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
 	})
@@ -146,31 +144,27 @@ func (s *Service) CreateDeployment(
 	)
 
 	// Start the deployment workflow directly
-	deployReq := &DeployRequest{
-		WorkspaceID:   req.Msg.GetWorkspaceId(),
-		ProjectID:     req.Msg.GetProjectId(),
-		EnvironmentID: env.ID,
-		DeploymentID:  deploymentID,
-		DockerImage:   req.Msg.GetDockerImage(),
-		KeyspaceID:    req.Msg.GetKeyspaceId(),
+	deployReq := &hydrav1.DeployRequest{
+		DeploymentId: deploymentID,
+		DockerImage:  req.Msg.GetDockerImage(),
+		KeyAuthId:    req.Msg.KeyspaceId,
 	}
-
-	executionID, err := s.hydraEngine.StartWorkflow(ctx, "deployment", deployReq,
-		hydra.WithMaxAttempts(3),
-		hydra.WithTimeout(25*time.Minute),
-		hydra.WithRetryBackoff(1*time.Minute),
+	// this is ugly, but we're waiting for
+	// https://github.com/restatedev/sdk-go/issues/103
+	invocation := restateingress.WorkflowSend[*hydrav1.DeployRequest](
+		s.restate,
+		"hydra.v1.DeploymentService",
+		project.ID,
+		"Deploy",
+	).Send(ctx, deployReq)
+	if invocation.Error != nil {
+		s.logger.Error("failed to start deployment workflow", "error", invocation.Error.Error())
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", invocation.Error))
+	}
+	s.logger.Info("deployment workflow started",
+		"deployment_id", deploymentID,
+		"invocation_id", invocation.Id,
 	)
-
-	if err != nil {
-		s.logger.Error("failed to start deployment workflow",
-			"deployment_id", deploymentID,
-			"error", err)
-		// Don't fail deployment creation - workflow can be retried
-	} else {
-		s.logger.Info("deployment workflow started",
-			"deployment_id", deploymentID,
-			"execution_id", executionID)
-	}
 
 	res := connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
 		DeploymentId: deploymentID,

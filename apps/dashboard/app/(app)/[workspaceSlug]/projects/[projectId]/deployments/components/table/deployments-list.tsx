@@ -4,12 +4,13 @@ import type { Column } from "@/components/virtual-table/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { BookBookmark, Cloud, CodeBranch, Cube } from "@unkey/icons";
+import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Avatar } from "../../../details/active-deployment-card/git-avatar";
+import { StatusIndicator } from "../../../details/active-deployment-card/status-indicator";
 import { useDeployments } from "../../hooks/use-deployments";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
@@ -64,18 +65,7 @@ export const DeploymentsList = () => {
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeployment?.id === deployment.id;
-          const isSelected = deployment.id === selectedDeployment?.deployment.id;
-          const iconContainer = (
-            <div
-              className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
-                "bg-grayA-3",
-                isSelected && "bg-grayA-5",
-              )}
-            >
-              <Cloud size="sm-regular" className="text-gray-12" />
-            </div>
-          );
+          const iconContainer = <StatusIndicator withSignal={isLive} />;
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
@@ -124,11 +114,12 @@ export const DeploymentsList = () => {
         header: "Domains",
         width: "25%",
         render: ({ deployment }) => (
-          <DomainList
-            key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
-            deploymentId={deployment.id}
-            hackyRevalidateDependency={project?.liveDeploymentId}
-          />
+          <div className="flex items-center min-h-[52px]">
+            <DomainList
+              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
+              deploymentId={deployment.id}
+            />
+          </div>
         ),
       },
       ...(isCompactView
@@ -237,13 +228,13 @@ export const DeploymentsList = () => {
                     <div className="flex gap-3 items-center w-full">
                       <Avatar
                         src={deployment.gitCommitAuthorAvatarUrl}
-                        alt={deployment.gitCommitAuthorUsername ?? "Author"}
+                        alt={deployment.gitCommitAuthorHandle ?? "Author"}
                       />
 
                       <div className="w-[200px]">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-grayA-12 text-xs">
-                            {deployment.gitCommitAuthorUsername}
+                            {deployment.gitCommitAuthorHandle || "—"}
                           </span>
                         </div>
                         <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
@@ -283,10 +274,10 @@ export const DeploymentsList = () => {
                   <div className="flex items-center gap-2">
                     <Avatar
                       src={deployment.gitCommitAuthorAvatarUrl}
-                      alt={deployment.gitCommitAuthorUsername ?? "Author"}
+                      alt={deployment.gitCommitAuthorHandle ?? "Author"}
                     />
                     <span className="font-medium text-grayA-12 text-xs">
-                      {deployment.gitCommitAuthorName}
+                      {deployment.gitCommitAuthorHandle || "—"}
                     </span>
                   </div>
                 );
@@ -376,6 +367,11 @@ export const DeploymentsList = () => {
             {column.key === "status" && <StatusColumnSkeleton />}
             {column.key === "instances" && <InstancesColumnSkeleton />}
             {column.key === "size" && <SizeColumnSkeleton />}
+            {column.key === "domains" && (
+              <div className="flex items-center min-h-[52px]">
+                <div className="h-4 bg-grayA-3 rounded w-32 animate-pulse" />
+              </div>
+            )}
             {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
             {column.key === "author" && <AuthorColumnSkeleton />}

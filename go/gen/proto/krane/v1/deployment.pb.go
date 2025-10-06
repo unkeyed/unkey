@@ -622,7 +622,8 @@ const file_krane_v1_deployment_proto_rawDesc = "" +
 	"\x11DeploymentService\x12Y\n" +
 	"\x10CreateDeployment\x12!.krane.v1.CreateDeploymentRequest\x1a\".krane.v1.CreateDeploymentResponse\x12P\n" +
 	"\rGetDeployment\x12\x1e.krane.v1.GetDeploymentRequest\x1a\x1f.krane.v1.GetDeploymentResponse\x12Y\n" +
-	"\x10DeleteDeployment\x12!.krane.v1.DeleteDeploymentRequest\x1a\".krane.v1.DeleteDeploymentResponseB8Z6github.com/unkeyed/unkey/go/gen/proto/krane/v1;kranev1b\x06proto3"
+	"\x10DeleteDeployment\x12!.krane.v1.DeleteDeploymentRequest\x1a\".krane.v1.DeleteDeploymentResponseB\x98\x01\n" +
+	"\fcom.krane.v1B\x0fDeploymentProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/krane/v1;kranev1\xa2\x02\x03KXX\xaa\x02\bKrane.V1\xca\x02\bKrane\\V1\xe2\x02\x14Krane\\V1\\GPBMetadata\xea\x02\tKrane::V1b\x06proto3"
 
 var (
 	file_krane_v1_deployment_proto_rawDescOnce sync.Once
