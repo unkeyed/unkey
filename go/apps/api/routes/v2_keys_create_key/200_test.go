@@ -189,3 +189,180 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.KeyID, res.Body.Data.KeyId)
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
+
+func TestCreateKeyWithDuplicateExternalId(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	// Create API using testutil helper
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+	})
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	// Create first key with an externalId
+	externalID := "user_duplicate_test"
+	req1 := handler.Request{
+		ApiId:      api.ID,
+		ExternalId: &externalID,
+	}
+
+	res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req1)
+	require.Equal(t, 200, res1.Status)
+	require.NotNil(t, res1.Body)
+	require.NotEmpty(t, res1.Body.Data.KeyId)
+
+	// Verify first key was created in database
+	key1, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res1.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.True(t, key1.IdentityID.Valid)
+	identityID1 := key1.IdentityID.String
+
+	// Create second key with the same externalId
+	// This should trigger the duplicate identity handling
+	req2 := handler.Request{
+		ApiId:      api.ID,
+		ExternalId: &externalID,
+	}
+
+	res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req2)
+	require.Equal(t, 200, res2.Status, "Second key creation should succeed despite duplicate externalId")
+	require.NotNil(t, res2.Body)
+	require.NotEmpty(t, res2.Body.Data.KeyId)
+
+	// Verify second key was created in database
+	key2, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res2.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.True(t, key2.IdentityID.Valid)
+
+	// Both keys should reference the same identity
+	require.Equal(t, identityID1, key2.IdentityID.String, "Both keys should share the same identity ID")
+
+	// Verify the identity exists
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		Identity:    externalID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, identityID1, identity.ID)
+	require.Equal(t, externalID, identity.ExternalID)
+}
+
+func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	// Create API using testutil helper
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+	})
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	// Use same externalId for concurrent requests
+	externalID := "user_concurrent_test"
+
+	// Create multiple keys concurrently with the same externalId
+	// This simulates the race condition where:
+	// 1. Request A checks if identity exists - doesn't find it
+	// 2. Request B checks if identity exists - doesn't find it
+	// 3. Request A tries to insert identity - succeeds
+	// 4. Request B tries to insert identity - gets duplicate key error
+	// 5. Request B handles the error by finding the existing identity
+	numConcurrent := 5
+	results := make(chan testutil.TestResponse[handler.Response], numConcurrent)
+	errors := make(chan error, numConcurrent)
+
+	for i := 0; i < numConcurrent; i++ {
+		go func() {
+			req := handler.Request{
+				ApiId:      api.ID,
+				ExternalId: &externalID,
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			if res.Status != 200 {
+				errors <- fmt.Errorf("unexpected status code: %d", res.Status)
+				return
+			}
+			results <- res
+		}()
+	}
+
+	// Collect all results
+	keyIDs := make([]string, 0, numConcurrent)
+	for i := 0; i < numConcurrent; i++ {
+		select {
+		case res := <-results:
+			require.Equal(t, 200, res.Status)
+			require.NotNil(t, res.Body)
+			require.NotEmpty(t, res.Body.Data.KeyId)
+			keyIDs = append(keyIDs, res.Body.Data.KeyId)
+		case err := <-errors:
+			t.Fatal(err)
+		}
+	}
+
+	// Verify all keys were created
+	require.Len(t, keyIDs, numConcurrent)
+
+	// Verify all keys reference the same identity
+	var sharedIdentityID string
+	for i, keyID := range keyIDs {
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, err)
+		require.True(t, key.IdentityID.Valid)
+
+		if i == 0 {
+			sharedIdentityID = key.IdentityID.String
+		} else {
+			require.Equal(t, sharedIdentityID, key.IdentityID.String,
+				"All concurrent keys should reference the same identity")
+		}
+	}
+
+	// Verify only one identity was created
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		Identity:    externalID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, sharedIdentityID, identity.ID)
+	require.Equal(t, externalID, identity.ExternalID)
+}

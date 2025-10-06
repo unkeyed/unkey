@@ -233,12 +233,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Meta:        []byte("{}"),
 				})
 				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to create identity"),
-						fault.Public("Failed to create identity."),
-					)
+					// Incase of duplicate key error just find existing identity
+					if !db.IsDuplicateKeyError(err) {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to create identity"),
+							fault.Public("Failed to create identity."),
+						)
+					}
+
+					identity, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Identity:    externalID,
+						Deleted:     false,
+					})
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to find identity"),
+							fault.Public("Failed to find identity."),
+						)
+					}
+
+					identityID = identity.ID
 				}
+
 				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identityID}
 			} else {
 				// Use existing identity
