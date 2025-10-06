@@ -31,7 +31,7 @@ func (s *Service) CreateDeployment(
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, 
+			return nil, connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)

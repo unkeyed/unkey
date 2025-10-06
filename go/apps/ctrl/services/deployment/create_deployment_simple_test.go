@@ -411,7 +411,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			// This tests the actual field wiring that happens in the service
 			params := db.InsertDeploymentParams{
 				ID:            "test_deployment_id",
-				WorkspaceID:   "ws_test123",  // In production, this is inferred from ProjectID via DB lookup, just hardcoded for the test
+				WorkspaceID:   "ws_test123", // In production, this is inferred from ProjectID via DB lookup, just hardcoded for the test
 				ProjectID:     tt.request.GetProjectId(),
 				EnvironmentID: "todo",
 				// Git field mappings - this is what we're testing
