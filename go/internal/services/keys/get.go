@@ -175,9 +175,11 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	var parsedIPWhitelist []string
 	if key.IpWhitelist.Valid && key.IpWhitelist.String != "" {
 		ips := strings.Split(key.IpWhitelist.String, ",")
-		parsedIPWhitelist = make([]string, len(ips))
-		for i, ip := range ips {
-			parsedIPWhitelist[i] = strings.TrimSpace(ip)
+		for _, ip := range ips {
+			trimmed := strings.TrimSpace(ip)
+			if trimmed != "" {
+				parsedIPWhitelist = append(parsedIPWhitelist, trimmed)
+			}
 		}
 	}
 
