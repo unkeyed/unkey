@@ -129,10 +129,15 @@ func (s *Service) CreateDeployment(
 	)
 
 	// Start the deployment workflow directly
+	keyspaceID := req.Msg.GetKeyspaceId()
+	var keyAuthID *string
+	if keyspaceID != "" {
+		keyAuthID = &keyspaceID
+	}
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
 		DockerImage:  req.Msg.GetDockerImage(),
-		KeyAuthId:    req.Msg.GetKeyspaceId(),
+		KeyAuthId:    keyAuthID,
 	}
 	// this is ugly, but we're waiting for
 	// https://github.com/restatedev/sdk-go/issues/103

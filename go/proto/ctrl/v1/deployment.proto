@@ -23,25 +23,26 @@ enum SourceType {
 }
 
 message CreateDeploymentRequest {
-  string project_id = 1;
-  string branch = 2;
+  reserved 1; // was workspace_id, now inferred from project_id
+  string project_id = 2;
+  string branch = 3;
   // Source information
-  string environment_slug = 3;
+  string environment_slug = 4;
 
-  SourceType source_type = 4;
+  SourceType source_type = 5;
 
-  string docker_image = 5;
+  string docker_image = 6;
 
   // Extended git information
-  string git_commit_sha = 6; // For git sources
-  string git_commit_message = 7;
+  string git_commit_sha = 7; // For git sources
+  string git_commit_message = 8;
   // TODO: Add GitHub API integration to lookup username/avatar from email
-  string git_commit_author_handle = 8;
-  string git_commit_author_avatar_url = 9;
-  int64 git_commit_timestamp = 10; // Unix epoch milliseconds
+  string git_commit_author_handle = 9;
+  string git_commit_author_avatar_url = 10;
+  int64 git_commit_timestamp = 11; // Unix epoch milliseconds
 
-  // API ID for authentication
-  optional string api_id = 11;
+  // Keyspace ID for authentication
+  optional string keyspace_id = 12;
 }
 
 message CreateDeploymentResponse {

@@ -19,9 +19,9 @@ var (
 )
 
 type Config struct {
-	ApiID     string `json:"api_id"`
-	ProjectID string `json:"project_id"`
-	Context   string `json:"context"`
+	KeyspaceID string `json:"keyspace_id"`
+	ProjectID  string `json:"project_id"`
+	Context    string `json:"context"`
 }
 
 // loadConfig loads configuration from unkey.json in the specified directory.
@@ -112,18 +112,18 @@ func writeConfig(configPath string, config *Config) error {
 }
 
 // mergeWithFlags merges config values with command flags, with flags taking precedence
-func (c *Config) mergeWithFlags(projectID, apiID, context string) *Config {
+func (c *Config) mergeWithFlags(projectID, keyspaceID, context string) *Config {
 	merged := &Config{
-		ApiID:     c.ApiID,
-		ProjectID: c.ProjectID,
-		Context:   c.Context,
+		KeyspaceID: c.KeyspaceID,
+		ProjectID:  c.ProjectID,
+		Context:    c.Context,
 	}
 	// Flags override config values
 	if projectID != "" {
 		merged.ProjectID = projectID
 	}
-	if apiID != "" {
-		merged.ApiID = apiID
+	if keyspaceID != "" {
+		merged.KeyspaceID = keyspaceID
 	}
 	if context != "" {
 		merged.Context = context

@@ -55,7 +55,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 	commitInfo := git.GetInfo()
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:                c.opts.ProjectID,
-		ApiId:                    &c.opts.ApiID,
+		KeyspaceId:               &c.opts.KeyspaceID,
 		Branch:                   c.opts.Branch,
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,

@@ -21,8 +21,8 @@ const (
 	DefaultEnvironment     = "preview"
 
 	// Environment variables
-	EnvApiID    = "UNKEY_API_ID"
-	EnvRegistry = "UNKEY_REGISTRY"
+	EnvKeyspaceID = "UNKEY_KEYSPACE_ID"
+	EnvRegistry   = "UNKEY_REGISTRY"
 
 	// URL prefixes
 	HTTPSPrefix     = "https://"
@@ -81,7 +81,7 @@ var stepSequence = map[string]string{
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
 	ProjectID       string
-	ApiID           string
+	KeyspaceID      string
 	Context         string
 	Branch          string
 	DockerImage     string
@@ -105,7 +105,7 @@ var DeployFlags = []cli.Flag{
 	cli.Bool("force", "Force overwrite existing configuration file when using --init"),
 	// Required flags (can be provided via config file)
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
-	cli.String("api-id", "API ID for API key authentication", cli.EnvVar(EnvApiID)),
+	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar(EnvKeyspaceID)),
 	// Optional flags with defaults
 	cli.String("context", "Build context path", cli.Default(".")),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
@@ -179,7 +179,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	// Merge config with command flags (flags take precedence)
 	finalConfig := cfg.mergeWithFlags(
 		cmd.String("project-id"),
-		cmd.String("api-id"),
+		cmd.String("keyspace-id"),
 		cmd.String("context"),
 	)
 
@@ -189,7 +189,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	opts := DeployOptions{
-		ApiID:           finalConfig.ApiID,
+		KeyspaceID:      finalConfig.KeyspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
