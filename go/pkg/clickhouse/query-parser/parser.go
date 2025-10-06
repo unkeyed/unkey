@@ -51,6 +51,11 @@ func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
 	// Build alias lookup map
 	p.buildAliasMap()
 
+	// Inject security filters BEFORE virtual column rewriting so they get resolved too
+	if err := p.injectSecurityFilters(); err != nil {
+		return ParseResult{}, err
+	}
+
 	// Rewrite SELECT clause for virtual columns
 	if err := p.rewriteSelectColumns(); err != nil {
 		return ParseResult{}, err

@@ -17,13 +17,20 @@ type VirtualColumn struct {
 	Resolver     VirtualColumnResolver
 }
 
+// SecurityFilter represents a row-level security constraint
+type SecurityFilter struct {
+	VirtualColumn string   // Virtual column name (e.g., "api_id", "namespace_id")
+	AllowedValues []string // Values user is allowed to access
+}
+
 // Config for the parser
 type Config struct {
-	WorkspaceID    string
-	TableAliases   map[string]string
-	AllowedTables  []string
-	VirtualColumns map[string]VirtualColumn
-	Limit          int
+	WorkspaceID     string
+	TableAliases    map[string]string
+	AllowedTables   []string
+	VirtualColumns  map[string]VirtualColumn
+	SecurityFilters []SecurityFilter // Row-level security filters (auto-injected)
+	Limit           int
 }
 
 // ParseResult contains the rewritten query and column mappings for transformation

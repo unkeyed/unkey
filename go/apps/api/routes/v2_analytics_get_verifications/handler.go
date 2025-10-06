@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -78,9 +80,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Capture apiIds extracted from the query for permission checking
 	var extractedAPIIds []string
 
+	// Build security filters for row-level access control
+	securityFilters := []chquery.SecurityFilter{}
+
+	// Add API filter if user doesn't have wildcard access
+	if allowedAPIIds := extractAllowedAPIIds(auth.Permissions); len(allowedAPIIds) > 0 {
+		securityFilters = append(securityFilters, chquery.SecurityFilter{
+			VirtualColumn: "api_id",
+			AllowedValues: allowedAPIIds,
+		})
+	}
+
 	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Limit:       int(settings.MaxQueryResultRows),
+		WorkspaceID:     auth.AuthorizedWorkspaceID,
+		Limit:           int(settings.MaxQueryResultRows),
+		SecurityFilters: securityFilters,
 		TableAliases: map[string]string{
 			"key_verifications":            "default.key_verifications_raw_v2",
 			"key_verifications_per_minute": "default.key_verifications_per_minute_v2",
@@ -415,4 +429,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Verifications: transformedVerifications,
 		},
 	})
+}
+
+// extractAllowedAPIIds extracts API IDs from permissions
+// Returns empty slice if user has wildcard access (api.*.read_analytics)
+// Returns specific API IDs if user has limited access (api.api_123.read_analytics, etc.)
+func extractAllowedAPIIds(permissions []string) []string {
+	if slices.Contains(permissions, "api.*.read_analytics") {
+		return nil
+	}
+
+	// Extract specific API IDs from permissions like "api.api_123.read_analytics"
+	apiIDs := make([]string, 0)
+	for _, perm := range permissions {
+		pattern := strings.Split(perm, ".")
+		if len(pattern) != 3 {
+			continue
+		}
+
+		if pattern[0] != "api" || pattern[2] != "read_analytics" {
+			continue
+		}
+
+		apiIDs = append(apiIDs, pattern[1])
+	}
+
+	return apiIDs
 }
