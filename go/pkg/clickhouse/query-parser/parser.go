@@ -2,33 +2,48 @@ package queryparser
 
 import (
 	"context"
+	"fmt"
 
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
+	resulttransformer "github.com/unkeyed/unkey/go/pkg/clickhouse/result-transformer"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
-	return &Parser{config: config}
+	return &Parser{
+		config:         config,
+		columnMappings: make(map[string]string),
+	}
 }
 
 // Parse parses and rewrites a query
-func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
+func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
 	// Parse SQL
 	parser := clickhouse.NewParser(query)
 	stmts, err := parser.ParseStmts()
 	if err != nil {
-		return "", fault.Wrap(err, fault.Public("Invalid SQL syntax"))
+		return ParseResult{}, fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public(fmt.Sprintf("Invalid SQL syntax: %v", err)),
+		)
 	}
 
 	if len(stmts) == 0 {
-		return "", fault.New("no statements found", fault.Public("No SQL statements found"))
+		return ParseResult{}, fault.New("no statements found",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("No SQL statements found"),
+		)
 	}
 
 	// Only allow SELECT
 	stmt, ok := stmts[0].(*clickhouse.SelectQuery)
 	if !ok {
-		return "", fault.New("only SELECT queries allowed", fault.Public("Only SELECT queries are allowed"))
+		return ParseResult{}, fault.New("only SELECT queries allowed",
+			fault.Code(codes.User.BadRequest.QueryNotSupported.URN()),
+			fault.Public("Only SELECT queries are allowed"),
+		)
 	}
 
 	p.stmt = stmt
@@ -36,26 +51,43 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	// Build alias lookup map
 	p.buildAliasMap()
 
+	// Rewrite SELECT clause for virtual columns
+	if err := p.rewriteSelectColumns(); err != nil {
+		return ParseResult{}, err
+	}
+
 	// Do all the rewriting
 	if err := p.rewriteVirtualColumns(ctx); err != nil {
-		return "", err
+		return ParseResult{}, err
 	}
 
 	if err := p.rewriteTables(); err != nil {
-		return "", err
+		return ParseResult{}, err
 	}
 
 	if err := p.injectWorkspaceFilter(); err != nil {
-		return "", err
+		return ParseResult{}, err
 	}
 
 	if err := p.enforceLimit(); err != nil {
-		return "", err
+		return ParseResult{}, err
 	}
 
 	if err := p.validateFunctions(); err != nil {
-		return "", err
+		return ParseResult{}, err
 	}
 
-	return p.stmt.String(), nil
+	// Collect column mappings
+	mappings := make([]resulttransformer.ColumnMapping, 0, len(p.columnMappings))
+	for resultCol, actualCol := range p.columnMappings {
+		mappings = append(mappings, resulttransformer.ColumnMapping{
+			ResultColumn: resultCol,
+			ActualColumn: actualCol,
+		})
+	}
+
+	return ParseResult{
+		Query:          p.stmt.String(),
+		ColumnMappings: mappings,
+	}, nil
 }

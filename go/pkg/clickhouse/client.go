@@ -8,7 +8,6 @@ import (
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/go/pkg/batch"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
@@ -293,24 +292,12 @@ func (c *clickhouse) Conn() ch.Conn {
 
 // QueryToMaps executes a query and scans all rows into a slice of maps.
 // Each map represents a row with column names as keys and values as ch.Dynamic.
-// Returns fault-wrapped errors with appropriate codes:
-// - 400 (InvalidInput) for user query errors (unknown columns, syntax errors, etc.)
-// - 500 (ServiceUnavailable) for system errors (connection issues, timeouts, etc.)
+// Returns fault-wrapped errors with appropriate codes for resource limits,
+// user query errors, and system errors.
 func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
 	rows, err := c.conn.Query(ctx, query, args...)
 	if err != nil {
-		// Check if this is a user error (bad query) or system error
-		if IsUserQueryError(err) {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Public(ExtractUserFriendlyError(err)),
-			)
-		}
-
-		return nil, fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Public("Query execution failed"),
-		)
+		return nil, WrapClickHouseError(err)
 	}
 	defer rows.Close()
 
@@ -327,7 +314,6 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 
 		if err := rows.Scan(valuePtrs...); err != nil {
 			return nil, fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Public("Failed to read query results"),
 			)
 		}
@@ -342,10 +328,7 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Public("Query execution failed"),
-		)
+		return nil, WrapClickHouseError(err)
 	}
 
 	return results, nil
@@ -355,4 +338,13 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 // Used for CREATE, ALTER, DROP, GRANT, REVOKE, etc.
 func (c *clickhouse) Exec(ctx context.Context, sql string, args ...any) error {
 	return c.conn.Exec(ctx, sql, args...)
+}
+
+func (c *clickhouse) Ping(ctx context.Context) error {
+	return c.conn.Ping(ctx)
+}
+
+// Close closes the underlying ClickHouse connection.
+func (c *clickhouse) Close() error {
+	return c.conn.Close()
 }

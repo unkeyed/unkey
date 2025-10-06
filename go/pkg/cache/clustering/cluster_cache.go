@@ -103,6 +103,11 @@ func (c *ClusterCache[K, V]) Get(ctx context.Context, key K) (value V, hit cache
 	return c.localCache.Get(ctx, key)
 }
 
+// GetMany retrieves multiple values from the local cache
+func (c *ClusterCache[K, V]) GetMany(ctx context.Context, keys []K) (values map[K]V, hits map[K]cache.CacheHit) {
+	return c.localCache.GetMany(ctx, keys)
+}
+
 // Set stores a value in the local cache and broadcasts an invalidation event
 // to other nodes in the cluster
 func (c *ClusterCache[K, V]) Set(ctx context.Context, key K, value V) {
@@ -113,10 +118,29 @@ func (c *ClusterCache[K, V]) Set(ctx context.Context, key K, value V) {
 	c.broadcastInvalidation(ctx, key)
 }
 
+// SetMany stores multiple values in the local cache and broadcasts invalidation events
+func (c *ClusterCache[K, V]) SetMany(ctx context.Context, values map[K]V) {
+	// Update local cache first
+	c.localCache.SetMany(ctx, values)
+
+	// Broadcast invalidation for all keys
+	keys := make([]K, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	c.broadcastInvalidation(ctx, keys...)
+}
+
 // SetNull stores a null value in the local cache and broadcasts invalidation
 func (c *ClusterCache[K, V]) SetNull(ctx context.Context, key K) {
 	c.localCache.SetNull(ctx, key)
 	c.broadcastInvalidation(ctx, key)
+}
+
+// SetNullMany stores multiple null values in the local cache and broadcasts invalidation
+func (c *ClusterCache[K, V]) SetNullMany(ctx context.Context, keys []K) {
+	c.localCache.SetNullMany(ctx, keys)
+	c.broadcastInvalidation(ctx, keys...)
 }
 
 // Remove removes one or more values from the local cache and broadcasts invalidation
@@ -135,6 +159,16 @@ func (c *ClusterCache[K, V]) SWR(
 	op func(error) cache.Op,
 ) (V, cache.CacheHit, error) {
 	return c.localCache.SWR(ctx, key, refreshFromOrigin, op)
+}
+
+// SWRMany performs stale-while-revalidate lookup for multiple keys
+func (c *ClusterCache[K, V]) SWRMany(
+	ctx context.Context,
+	keys []K,
+	refreshFromOrigin func(context.Context, []K) (map[K]V, error),
+	op func(error) cache.Op,
+) (map[K]V, map[K]cache.CacheHit, error) {
+	return c.localCache.SWRMany(ctx, keys, refreshFromOrigin, op)
 }
 
 // Dump returns a serialized representation of the cache

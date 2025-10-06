@@ -14,10 +14,16 @@ const findKeyAuthsByIds = `-- name: FindKeyAuthsByIds :many
 SELECT ka.id as key_auth_id, a.id as api_id
 FROM apis a
 JOIN key_auth as ka ON ka.id = a.key_auth_id
-WHERE a.id IN (/*SLICE:api_ids*/?)
+WHERE a.workspace_id = ?
+    AND a.id IN (/*SLICE:api_ids*/?)
     AND ka.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
 `
+
+type FindKeyAuthsByIdsParams struct {
+	WorkspaceID string   `db:"workspace_id"`
+	ApiIds      []string `db:"api_ids"`
+}
 
 type FindKeyAuthsByIdsRow struct {
 	KeyAuthID string `db:"key_auth_id"`
@@ -29,17 +35,19 @@ type FindKeyAuthsByIdsRow struct {
 //	SELECT ka.id as key_auth_id, a.id as api_id
 //	FROM apis a
 //	JOIN key_auth as ka ON ka.id = a.key_auth_id
-//	WHERE a.id IN (/*SLICE:api_ids*/?)
+//	WHERE a.workspace_id = ?
+//	    AND a.id IN (/*SLICE:api_ids*/?)
 //	    AND ka.deleted_at_m IS NULL
 //	    AND a.deleted_at_m IS NULL
-func (q *Queries) FindKeyAuthsByIds(ctx context.Context, db DBTX, apiIds []string) ([]FindKeyAuthsByIdsRow, error) {
+func (q *Queries) FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error) {
 	query := findKeyAuthsByIds
 	var queryParams []interface{}
-	if len(apiIds) > 0 {
-		for _, v := range apiIds {
+	queryParams = append(queryParams, arg.WorkspaceID)
+	if len(arg.ApiIds) > 0 {
+		for _, v := range arg.ApiIds {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:api_ids*/?", strings.Repeat(",?", len(apiIds))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:api_ids*/?", strings.Repeat(",?", len(arg.ApiIds))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:api_ids*/?", "NULL", 1)
 	}

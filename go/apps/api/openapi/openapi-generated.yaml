@@ -2,25 +2,27 @@
 # Source: openapi-split.yaml
 
 components:
-    securitySchemes:
-        rootKey:
-            bearerFormat: root key
-            description: |-
-                Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
-                To authenticate, include your root key in the Authorization header of each request:
-                ```
-                Authorization: Bearer unkey_123
-                ```
-                Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
-                Security best practices:
-                - Keep root keys secure and never expose them in client-side code
-                - Use different root keys for different environments
-                - Rotate keys periodically, especially after team member departures
-                - Create keys with minimal necessary permissions following least privilege principle
-                - Monitor key usage with audit logs.
-            scheme: bearer
-            type: http
     schemas:
+        ServiceUnavailableErrorResponse:
+            $ref: '#/components/schemas/ServiceUnavailableErrorResponse__error'
+        ServiceUnavailableErrorResponse__error:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
+
+                When you encounter this error:
+                - The service is likely experiencing temporary issues
+                - Retrying the request after a short delay may succeed
+                - If the error persists, the service may be undergoing maintenance
+                - Contact Unkey support if the issue continues
         ChproxyMetricsRequestBody:
             type: array
             description: Array of API request metric events to be processed
@@ -1996,19 +1998,6 @@ components:
                     type: string
             additionalProperties: false
             description: Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-        BadRequestErrorDetails:
-            allOf:
-                - $ref: "#/components/schemas/BaseError"
-                - type: object
-                  properties:
-                    errors:
-                        description: List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.
-                        items:
-                            $ref: "#/components/schemas/ValidationError"
-                        type: array
-                  required:
-                    - errors
-            description: Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors, making it easy to identify and fix multiple issues at once.
         BaseError:
             properties:
                 detail:
@@ -2036,6 +2025,19 @@ components:
             type: object
             additionalProperties: false
             description: Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+        BadRequestErrorDetails:
+            allOf:
+                - $ref: "#/components/schemas/BaseError"
+                - type: object
+                  properties:
+                    errors:
+                        description: List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.
+                        items:
+                            $ref: "#/components/schemas/ValidationError"
+                        type: array
+                  required:
+                    - errors
+            description: Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors, making it easy to identify and fix multiple issues at once.
         ValidationError:
             additionalProperties: false
             properties:
@@ -3106,6 +3108,24 @@ components:
                     type: string
             required:
                 - overrideId
+    securitySchemes:
+        rootKey:
+            bearerFormat: root key
+            description: |-
+                Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
+                To authenticate, include your root key in the Authorization header of each request:
+                ```
+                Authorization: Bearer unkey_123
+                ```
+                Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
+                Security best practices:
+                - Keep root keys secure and never expose them in client-side code
+                - Use different root keys for different environments
+                - Rotate keys periodically, especially after team member departures
+                - Create keys with minimal necessary permissions following least privilege principle
+                - Monitor key usage with audit logs.
+            scheme: bearer
+            type: http
 info:
     description: |-
         Unkey's API provides programmatic access for all resources within our platform.

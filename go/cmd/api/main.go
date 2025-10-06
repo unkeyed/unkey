@@ -44,6 +44,8 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_REDIS_URL")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+		cli.String("clickhouse-analytics-dsn", "ClickHouse HTTP DSN template for workspace analytics connections. Placeholders: %s for username, %s for password. Example: http://%s:%s@clickhouse:8123/default",
+			cli.EnvVar("UNKEY_CLICKHOUSE_ANALYTICS_DSN")),
 
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
@@ -129,7 +131,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		DatabaseReadonlyReplica: cmd.String("database-replica"),
 
 		// ClickHouse
-		ClickhouseURL: cmd.String("clickhouse-url"),
+		ClickhouseURL:          cmd.String("clickhouse-url"),
+		ClickhouseAnalyticsDSN: cmd.String("clickhouse-analytics-dsn"),
 
 		// OpenTelemetry configuration
 		OtelEnabled:           cmd.Bool("otel"),

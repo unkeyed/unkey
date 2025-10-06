@@ -4,6 +4,7 @@ import (
 	"context"
 
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
+	resulttransformer "github.com/unkeyed/unkey/go/pkg/clickhouse/result-transformer"
 )
 
 // VirtualColumnResolver resolves virtual IDs to actual IDs
@@ -25,9 +26,16 @@ type Config struct {
 	Limit          int
 }
 
+// ParseResult contains the rewritten query and column mappings for transformation
+type ParseResult struct {
+	Query          string                            // The rewritten SQL query
+	ColumnMappings []resulttransformer.ColumnMapping // Maps result columns to actual columns for transformation
+}
+
 // Parser rewrites ClickHouse queries
 type Parser struct {
-	config   Config
-	stmt     *clickhouse.SelectQuery
-	aliasMap map[string]string // Maps aliases to canonical virtual column names
+	config         Config
+	stmt           *clickhouse.SelectQuery
+	aliasMap       map[string]string // Maps aliases to canonical virtual column names
+	columnMappings map[string]string // Maps result column names to actual ClickHouse columns
 }

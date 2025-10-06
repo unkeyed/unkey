@@ -5,7 +5,38 @@ import (
 	"strings"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
 )
+
+// Common user error patterns in ClickHouse error messages
+var userErrorPatterns = map[string]bool{
+	"unknown identifier":        true,
+	"unknown column":            true,
+	"unknown table":             true,
+	"missing columns":           true,
+	"there is no column":        true,
+	"type mismatch":             true,
+	"cannot convert":            true,
+	"syntax error":              true,
+	"expected":                  true,
+	"illegal type":              true,
+	"ambiguous column":          true,
+	"not an aggregate function": true,
+	"division by zero":          true,
+	"aggregate function":        true,
+	"window function":           true,
+}
+
+// ClickHouse exception codes that indicate user query errors
+var userErrorCodes = map[int32]bool{
+	47:  true, // UNKNOWN_IDENTIFIER
+	60:  true, // UNKNOWN_TABLE
+	62:  true, // SYNTAX_ERROR
+	386: true, // ILLEGAL_TYPE_OF_ARGUMENT
+	43:  true, // ILLEGAL_COLUMN
+	352: true, // AMBIGUOUS_COLUMN_NAME
+}
 
 // IsUserQueryError checks if the ClickHouse error is due to a bad query (user error)
 // vs a system/infrastructure error.
@@ -27,49 +58,17 @@ func IsUserQueryError(err error) bool {
 
 	errMsg := strings.ToLower(err.Error())
 
-	// Common user error patterns in ClickHouse
-	userErrorPatterns := []string{
-		"unknown identifier",
-		"unknown column",
-		"unknown table",
-		"missing columns",
-		"there is no column",
-		"type mismatch",
-		"cannot convert",
-		"syntax error",
-		"expected",
-		"illegal type",
-		"ambiguous column",
-		"not an aggregate function",
-		"division by zero",
-		"aggregate function",
-		"window function",
-	}
-
-	for _, pattern := range userErrorPatterns {
+	// Check error message patterns
+	for pattern := range userErrorPatterns {
 		if strings.Contains(errMsg, pattern) {
 			return true
 		}
 	}
 
-	// Check ClickHouse exception codes for user errors
+	// Check ClickHouse exception codes
 	var chErr *ch.Exception
 	if errors.As(err, &chErr) {
-		// Common user error codes in ClickHouse
-		userErrorCodes := []int32{
-			47,  // UNKNOWN_IDENTIFIER
-			60,  // UNKNOWN_TABLE
-			62,  // SYNTAX_ERROR
-			386, // ILLEGAL_TYPE_OF_ARGUMENT
-			43,  // ILLEGAL_COLUMN
-			352, // AMBIGUOUS_COLUMN_NAME
-		}
-
-		for _, code := range userErrorCodes {
-			if chErr.Code == code {
-				return true
-			}
-		}
+		return userErrorCodes[chErr.Code]
 	}
 
 	return false
@@ -104,4 +103,114 @@ func ExtractUserFriendlyError(err error) string {
 	}
 
 	return errMsg
+}
+
+// errorResponse defines a structured error response with code and message
+type errorResponse struct {
+	code    codes.URN
+	message string
+}
+
+// resourceLimitPatterns maps error message patterns to error responses
+var resourceLimitPatterns = map[string]errorResponse{
+	"timeout": {
+		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
+	},
+	"execution time": {
+		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
+	},
+	"memory": {
+		code:    codes.User.BadRequest.QueryMemoryLimitExceeded.URN(),
+		message: "Query memory limit exceeded. Try simplifying your query or reducing the result set size.",
+	},
+	"too many rows": {
+		code:    codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
+	},
+	"limit for rows_to_read": {
+		code:    codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
+	},
+	"result rows": {
+		code:    codes.User.BadRequest.QueryResultRowsLimitExceeded.URN(),
+		message: "Query result set too large. Try adding LIMIT clause or aggregating the data.",
+	},
+	"max_result_rows": {
+		code:    codes.User.BadRequest.QueryResultRowsLimitExceeded.URN(),
+		message: "Query result set too large. Try adding LIMIT clause or aggregating the data.",
+	},
+	"quota": {
+		code:    codes.User.BadRequest.QueryQuotaExceeded.URN(),
+		message: "Query quota exceeded for the current time window. Please try again later.",
+	},
+}
+
+// resourceLimitCodes maps ClickHouse exception codes to error responses
+var resourceLimitCodes = map[int32]errorResponse{
+	159: { // TIMEOUT_EXCEEDED
+		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
+	},
+	241: { // MEMORY_LIMIT_EXCEEDED
+		code:    codes.User.BadRequest.QueryMemoryLimitExceeded.URN(),
+		message: "Query memory limit exceeded. Try simplifying your query or reducing the result set size.",
+	},
+	396: { // QUERY_WAS_CANCELLED
+		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		message: "Query was cancelled due to resource limits.",
+	},
+	198: { // TOO_MANY_ROWS
+		code:    codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
+	},
+	202: { // TOO_MANY_SIMULTANEOUS_QUERIES / QUOTA_EXCEEDED
+		code:    codes.User.BadRequest.QueryQuotaExceeded.URN(),
+		message: "Query quota exceeded for the current time window. Please try again later.",
+	},
+}
+
+// WrapClickHouseError wraps a ClickHouse error with appropriate error codes and user-friendly messages.
+// It detects resource limit violations and other user errors and tags them with specific error codes.
+func WrapClickHouseError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	errMsg := strings.ToLower(err.Error())
+
+	// Check for resource limit violations via message patterns
+	for pattern, response := range resourceLimitPatterns {
+		if strings.Contains(errMsg, pattern) {
+			return fault.Wrap(err,
+				fault.Code(response.code),
+				fault.Public(response.message),
+			)
+		}
+	}
+
+	// Check ClickHouse exception codes for resource errors
+	var chErr *ch.Exception
+	if errors.As(err, &chErr) {
+		if response, ok := resourceLimitCodes[chErr.Code]; ok {
+			return fault.Wrap(err,
+				fault.Code(response.code),
+				fault.Public(response.message),
+			)
+		}
+	}
+
+	// For other errors, check if it's a user error or system error
+	if IsUserQueryError(err) {
+		return fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public(ExtractUserFriendlyError(err)),
+		)
+	}
+
+	// System/infrastructure error - don't expose details
+	return fault.Wrap(err,
+		fault.Public("Query execution failed. Please try again."),
+	)
 }

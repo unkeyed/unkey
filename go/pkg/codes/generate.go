@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -11,9 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/codes"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // commentMap stores comments for types and fields
@@ -45,16 +49,39 @@ func main() {
 	f.WriteString("// Error code constants for use in switch statements for exhaustive checking\n")
 	f.WriteString("const (\n")
 
+	// Track all error codes for MDX generation
+	allErrorCodes := []ErrorCodeInfo{}
+
 	// Process each top-level error domain using reflection
-	processErrorDomain(f, "User", reflect.ValueOf(codes.User))
-	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Auth))
-	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Data))
-	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.App))
-	processErrorDomain(f, "Unkey", reflect.ValueOf(codes.Gateway))
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "User", "User", reflect.ValueOf(codes.User))...)
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Auth", reflect.ValueOf(codes.Auth))...)
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Data", reflect.ValueOf(codes.Data))...)
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "App", reflect.ValueOf(codes.App))...)
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Gateway", reflect.ValueOf(codes.Gateway))...)
 
 	f.WriteString(")\n")
 
 	fmt.Println("Generated error constants with documentation")
+
+	// Generate missing MDX documentation files
+	if err := generateMissingMDXFiles(allErrorCodes); err != nil {
+		fmt.Fprintf(os.Stderr, "Error generating MDX files: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Update docs.json with all error files
+	if err := updateDocsJSON(allErrorCodes); err != nil {
+		fmt.Fprintf(os.Stderr, "Error updating docs.json: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// ErrorCodeInfo stores information about an error code for MDX generation
+type ErrorCodeInfo struct {
+	URN         string
+	Name        string
+	Description string
+	Domain      string // "User", "Auth", "Data", "App", "Gateway"
 }
 
 // extractComments parses source files to get documentation comments
@@ -120,7 +147,7 @@ func extractComments() error {
 }
 
 // processErrorDomain extracts error codes from a domain using reflection
-func processErrorDomain(f *os.File, systemName string, domainValue reflect.Value) {
+func processErrorDomain(f *os.File, systemName string, domain string, domainValue reflect.Value) []ErrorCodeInfo {
 	// Section header
 	domainType := domainValue.Type()
 	domainName := domainType.Name()
@@ -128,6 +155,8 @@ func processErrorDomain(f *os.File, systemName string, domainValue reflect.Value
 	fmt.Fprintf(f, "// %s\n", domainName)
 	f.WriteString("// ----------------\n")
 	f.WriteString("\n")
+
+	errorCodes := []ErrorCodeInfo{}
 
 	// Iterate through categories (fields of the domain struct)
 	for i := 0; i < domainValue.NumField(); i++ {
@@ -137,16 +166,20 @@ func processErrorDomain(f *os.File, systemName string, domainValue reflect.Value
 		fmt.Fprintf(f, "// %s\n\n", categoryName)
 
 		// Iterate through error codes in this category
-		processCategory(f, systemName, domainName, categoryName, categoryField)
+		codes := processCategory(f, systemName, domainName, categoryName, domain, categoryField)
+		errorCodes = append(errorCodes, codes...)
 
 		f.WriteString("\n")
 	}
+
+	return errorCodes
 }
 
 // processCategory extracts error codes from a category using reflection
-func processCategory(f *os.File, systemName, domainName, categoryName string, categoryValue reflect.Value) {
+func processCategory(f *os.File, systemName, domainName, categoryName, domain string, categoryValue reflect.Value) []ErrorCodeInfo {
 	// Iterate through error codes in this category
 	categoryType := categoryValue.Type()
+	errorCodes := []ErrorCodeInfo{}
 
 	for j := 0; j < categoryValue.NumField(); j++ {
 		codeField := categoryValue.Field(j)
@@ -161,7 +194,8 @@ func processCategory(f *os.File, systemName, domainName, categoryName string, ca
 		// Get the string representation
 		codeStr := codeObj.URN()
 
-		// Look up and write comments if available
+		// Extract description from comments
+		description := ""
 		if comments, ok := commentMap[categoryType.Name()]; ok {
 			if comment, ok := comments[codeName]; ok {
 				// Clean up the comment and add it to the output
@@ -170,6 +204,10 @@ func processCategory(f *os.File, systemName, domainName, categoryName string, ca
 					line = strings.TrimSpace(line)
 					if line != "" {
 						f.WriteString(fmt.Sprintf("\t// %s\n", line))
+						// Use first line as description
+						if description == "" {
+							description = line
+						}
 					}
 				}
 			}
@@ -177,5 +215,289 @@ func processCategory(f *os.File, systemName, domainName, categoryName string, ca
 
 		// Write the constant
 		f.WriteString(fmt.Sprintf("\t%s URN = \"%s\"\n", constName, codeStr))
+
+		// Store error code info for MDX generation
+		errorCodes = append(errorCodes, ErrorCodeInfo{
+			URN:         string(codeObj.URN()),
+			Name:        codeObj.Specific,
+			Description: description,
+			Domain:      domain,
+		})
 	}
+
+	return errorCodes
+}
+
+// generateMissingMDXFiles creates MDX documentation files for error codes that don't have them
+func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
+	// Get the base docs directory path (relative to this file)
+	baseDocsPath := filepath.Join("..", "..", "..", "apps", "docs", "errors")
+
+	created := 0
+	skipped := 0
+
+	for _, errCode := range errorCodes {
+		// Skip gateway errors (these are internal to the gateway, not API errors)
+		if errCode.Domain == "Gateway" {
+			skipped++
+			continue
+		}
+
+		// Parse URN to get file path
+		// Example: err:user:bad_request:client_closed_request -> user/bad_request/client_closed_request.mdx
+		parts := strings.Split(errCode.URN, ":")
+		if len(parts) < 4 || parts[0] != "err" {
+			continue
+		}
+
+		// Build file path from URN parts (skip "err:" prefix)
+		pathParts := parts[1 : len(parts)-1]
+		fileName := parts[len(parts)-1] + ".mdx"
+		filePath := filepath.Join(append([]string{baseDocsPath}, append(pathParts, fileName)...)...)
+
+		// Check if file already exists
+		if _, err := os.Stat(filePath); err == nil {
+			skipped++
+			continue
+		}
+
+		// Create directory if it doesn't exist
+		dir := filepath.Dir(filePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %w", dir, err)
+		}
+
+		// Generate description
+		description := errCode.Description
+		if description == "" {
+			description = "Error occurred"
+		}
+
+		// Create MDX file with basic template
+		content := fmt.Sprintf(`---
+title: "%s"
+description: "%s"
+---
+
+<Danger>`+"`%s`"+`</Danger>
+
+`, errCode.Name, description, errCode.URN)
+
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write file %s: %w", filePath, err)
+		}
+
+		created++
+		fmt.Printf("Created: %s\n", filePath)
+	}
+
+	fmt.Printf("\nMDX files: %d created, %d already existed\n", created, skipped)
+	return nil
+}
+
+// updateDocsJSON updates the docs.json navigation to include all error pages
+func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
+	docsJSONPath := filepath.Join("..", "..", "..", "apps", "docs", "docs.json")
+
+	// Read existing docs.json
+	data, err := os.ReadFile(docsJSONPath)
+	if err != nil {
+		return fmt.Errorf("failed to read docs.json: %w", err)
+	}
+
+	// Parse JSON into a map to preserve structure
+	var docsConfig map[string]interface{}
+	if err := json.Unmarshal(data, &docsConfig); err != nil {
+		return fmt.Errorf("failed to parse docs.json: %w", err)
+	}
+
+	// Navigate to the errors section in navigation
+	navigation, ok := docsConfig["navigation"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("navigation not found in docs.json")
+	}
+
+	dropdowns, ok := navigation["dropdowns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("dropdowns not found in navigation")
+	}
+
+	// Find the Documentation dropdown
+	var docsDropdown map[string]interface{}
+	for _, dropdown := range dropdowns {
+		dd := dropdown.(map[string]interface{})
+		if dd["dropdown"] == "Documentation" {
+			docsDropdown = dd
+			break
+		}
+	}
+
+	if docsDropdown == nil {
+		return fmt.Errorf("Documentation dropdown not found")
+	}
+
+	groups := docsDropdown["groups"].([]interface{})
+
+	// Find the Errors group (should be one of the top-level groups)
+	var errorsGroup map[string]interface{}
+	var errorsGroupIndex int
+	for i, group := range groups {
+		g := group.(map[string]interface{})
+		if g["group"] == "Errors" {
+			errorsGroup = g
+			errorsGroupIndex = i
+			break
+		}
+	}
+
+	if errorsGroup == nil {
+		return fmt.Errorf("Errors group not found in groups")
+	}
+
+	// Organize error codes by category
+	type ErrorCategory struct {
+		Name  string
+		Path  string
+		Files []string
+	}
+
+	unkeyCategories := make(map[string]*ErrorCategory)
+	userCategories := make(map[string]*ErrorCategory)
+
+	for _, errCode := range errorCodes {
+		// Skip gateway errors (these are internal to the gateway, not API errors)
+		if errCode.Domain == "Gateway" {
+			continue
+		}
+
+		parts := strings.Split(errCode.URN, ":")
+		if len(parts) < 4 {
+			continue
+		}
+
+		system := parts[1]   // "user" or "unkey"
+		category := parts[2] // "bad_request", "application", etc.
+		errorName := parts[len(parts)-1]
+
+		// Build the path for this error
+		pathParts := parts[1 : len(parts)-1]
+		errorPath := "errors/" + strings.Join(append(pathParts, errorName), "/")
+
+		if system == "unkey" {
+			if _, exists := unkeyCategories[category]; !exists {
+				// Convert category name to title case
+				titleName := strings.ReplaceAll(category, "_", " ")
+				caser := cases.Title(language.English)
+				titleName = caser.String(titleName)
+				unkeyCategories[category] = &ErrorCategory{
+					Name:  titleName,
+					Path:  category,
+					Files: []string{},
+				}
+			}
+			unkeyCategories[category].Files = append(unkeyCategories[category].Files, errorPath)
+		} else if system == "user" {
+			if _, exists := userCategories[category]; !exists {
+				titleName := strings.ReplaceAll(category, "_", " ")
+				caser := cases.Title(language.English)
+				titleName = caser.String(titleName)
+				userCategories[category] = &ErrorCategory{
+					Name:  titleName,
+					Path:  category,
+					Files: []string{},
+				}
+			}
+			userCategories[category].Files = append(userCategories[category].Files, errorPath)
+		}
+	}
+
+	// Sort files within each category
+	for _, cat := range unkeyCategories {
+		sort.Strings(cat.Files)
+	}
+	for _, cat := range userCategories {
+		sort.Strings(cat.Files)
+	}
+
+	// Build the new errors pages structure
+	errorPages := []interface{}{
+		"errors/overview",
+	}
+
+	// Add Unkey Errors section
+	unkeyErrorsPages := []interface{}{}
+
+	// Sort category keys for consistent output
+	unkeyCategoryKeys := make([]string, 0, len(unkeyCategories))
+	for k := range unkeyCategories {
+		unkeyCategoryKeys = append(unkeyCategoryKeys, k)
+	}
+	sort.Strings(unkeyCategoryKeys)
+
+	for _, catKey := range unkeyCategoryKeys {
+		cat := unkeyCategories[catKey]
+		catPages := make([]interface{}, len(cat.Files))
+		for i, file := range cat.Files {
+			catPages[i] = file
+		}
+		unkeyErrorsPages = append(unkeyErrorsPages, map[string]interface{}{
+			"group": cat.Name,
+			"pages": catPages,
+		})
+	}
+
+	errorPages = append(errorPages, map[string]interface{}{
+		"group": "Unkey Errors",
+		"pages": unkeyErrorsPages,
+	})
+
+	// Add User Errors section
+	userErrorsPages := []interface{}{}
+
+	userCategoryKeys := make([]string, 0, len(userCategories))
+	for k := range userCategories {
+		userCategoryKeys = append(userCategoryKeys, k)
+	}
+	sort.Strings(userCategoryKeys)
+
+	for _, catKey := range userCategoryKeys {
+		cat := userCategories[catKey]
+		catPages := make([]interface{}, len(cat.Files))
+		for i, file := range cat.Files {
+			catPages[i] = file
+		}
+
+		// If only one category, don't create a subgroup
+		if len(userCategories) == 1 {
+			userErrorsPages = catPages
+		} else {
+			userErrorsPages = append(userErrorsPages, map[string]interface{}{
+				"group": cat.Name,
+				"pages": catPages,
+			})
+		}
+	}
+
+	errorPages = append(errorPages, map[string]interface{}{
+		"group": "User Errors",
+		"pages": userErrorsPages,
+	})
+
+	// Update the errors group
+	errorsGroup["pages"] = errorPages
+	groups[errorsGroupIndex] = errorsGroup
+	docsDropdown["groups"] = groups
+
+	// Write back to docs.json with nice formatting
+	updatedJSON, err := json.MarshalIndent(docsConfig, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal docs.json: %w", err)
+	}
+
+	if err := os.WriteFile(docsJSONPath, updatedJSON, 0644); err != nil {
+		return fmt.Errorf("failed to write docs.json: %w", err)
+	}
+
+	fmt.Println("Updated docs.json with all error pages")
+	return nil
 }

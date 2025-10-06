@@ -43,7 +43,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound:
+				codes.UnkeyDataErrorsAuditLogNotFound,
+				codes.UnkeyDataErrorsAnalyticsNotConfigured:
 				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -245,6 +246,20 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Type:   code.DocsURL(),
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusForbidden,
+					},
+				})
+
+			// Service Unavailable errors
+			case codes.UnkeyDataErrorsAnalyticsConnectionFailed:
+				return s.JSON(http.StatusServiceUnavailable, openapi.InternalServerErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Service Unavailable",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusServiceUnavailable,
 					},
 				})
 

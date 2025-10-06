@@ -6,6 +6,7 @@ import (
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 )
 
+// EnforceLimit enforces the limit configuration on the query statement.
 func (p *Parser) enforceLimit() error {
 	if p.config.Limit == 0 {
 		return nil
@@ -23,16 +24,25 @@ func (p *Parser) enforceLimit() error {
 
 	numLit, ok := p.stmt.Limit.Limit.(*clickhouse.NumberLiteral)
 	if !ok {
+		// Not a number literal (e.g., LIMIT ALL), enforce max limit
+		p.stmt.Limit.Limit = &clickhouse.NumberLiteral{
+			Literal: fmt.Sprintf("%d", p.config.Limit),
+		}
 		return nil
 	}
 
 	var existingLimit int
 	_, err := fmt.Sscanf(numLit.Literal, "%d", &existingLimit)
 	if err != nil {
+		// Can't parse the number, enforce max limit for safety
+		p.stmt.Limit.Limit = &clickhouse.NumberLiteral{
+			Literal: fmt.Sprintf("%d", p.config.Limit),
+		}
 		return nil
 	}
 
-	if existingLimit > p.config.Limit {
+	// Enforce max limit if existing is greater OR if it's negative/invalid
+	if existingLimit > p.config.Limit || existingLimit <= 0 {
 		p.stmt.Limit.Limit = &clickhouse.NumberLiteral{
 			Literal: fmt.Sprintf("%d", p.config.Limit),
 		}

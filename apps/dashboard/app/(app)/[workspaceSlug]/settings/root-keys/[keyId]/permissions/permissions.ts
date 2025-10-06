@@ -202,5 +202,11 @@ export function apiPermissions(apiId: string): {
         permission: `api.${apiId}.decrypt_key`,
       },
     },
+    Analytics: {
+      read_analytics: {
+        description: "Query analytics data for this API using SQL.",
+        permission: `api.${apiId}.read_analytics`,
+      },
+    },
   };
 }

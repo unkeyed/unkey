@@ -1,0 +1,164 @@
+---
+title: Getting Started
+description: "Request access and run your first analytics query"
+---
+
+<Warning>
+  **Analytics is currently in private beta and opt-in only.**
+
+To request access, please email us at [support@unkey.dev](mailto:support@unkey.dev) with your workspace ID and use case.
+
+</Warning>
+
+## Request Access
+
+Analytics is currently available by request only. To get started:
+
+1. **Find your workspace ID** in the Unkey dashboard settings
+2. **Email us** at [support@unkey.dev](mailto:support@unkey.dev) with:
+   - Your workspace ID
+   - Your use case (billing, dashboards, reporting, etc.)
+   - Expected query volume
+
+We'll enable analytics for your workspace within 24 hours and send you confirmation.
+
+## Authentication
+
+Analytics queries require a root key with analytics permissions. Create one in your dashboard:
+
+1. Go to **Settings** → **Root Keys**
+2. Click **Create New Root Key**
+3. Select permissions: `api.*.read_analytics`
+4. Copy and securely store your root key
+
+<Warning>
+  Root keys have powerful permissions. Store them securely and never commit them
+  to version control.
+</Warning>
+
+## Your First Query
+
+Once you have access, execute your first analytics query. Here are some common examples to get started:
+
+### Count Total Verifications
+
+```sql
+SELECT COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+### Break Down by Outcome
+
+```sql
+SELECT
+  outcome,
+  COUNT(*) as count
+FROM key_verifications
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY outcome
+ORDER BY count DESC
+```
+
+### Top Users by Usage
+
+```sql
+SELECT
+  external_id,
+  COUNT(*) as verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY external_id
+ORDER BY verifications DESC
+LIMIT 10
+```
+
+<Tip>
+  Check out the [Query Examples](/analytics/query-examples) page for 30+ ready-to-use queries covering billing, monitoring, and analytics use cases.
+</Tip>
+
+## Understanding the Response
+
+Analytics queries return data as an array of objects:
+
+```json
+{
+  "meta": {
+    "requestId": "req_xxx"
+  },
+  "data": {
+    "verifications": [
+      { "outcome": "VALID", "count": 1234 },
+      { "outcome": "RATE_LIMITED", "count": 56 }
+    ]
+  }
+}
+```
+
+Each object in `verifications` contains fields from your SELECT clause.
+
+## Working with Time
+
+All timestamps in Unkey Analytics are stored as **Unix milliseconds** (Int64). Use ClickHouse date functions to work with time ranges in your queries.
+
+**Time filtering examples:**
+
+```sql
+-- Last 7 days
+WHERE time >= now() - INTERVAL 7 DAY
+
+-- Last 24 hours
+WHERE time >= now() - INTERVAL 24 HOUR
+
+-- Last 30 days
+WHERE time >= now() - INTERVAL 30 DAY
+
+-- Last month
+WHERE time >= now() - INTERVAL 1 MONTH
+```
+
+## Filtering by API or User
+
+You can filter queries using your API IDs and user identifiers directly. Use fields like `api_id` and `external_id` with standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
+
+## Resource Limits
+
+To protect our infrastructure and ensure fair usage, queries are subject to resource limits:
+
+| Limit              | Value             | Error Code                         |
+| ------------------ | ----------------- | ---------------------------------- |
+| Max execution time | 30 seconds        | `query_execution_timeout`          |
+| Max memory         | 1 GB              | `query_memory_limit_exceeded`      |
+| Max rows to read   | 10 million        | `query_rows_limit_exceeded`        |
+| Max result rows    | 10 million        | `query_result_rows_limit_exceeded` |
+| Query quota        | 1000 queries/hour | `query_quota_exceeded`             |
+
+If you hit these limits, try:
+
+- Adding more filters to reduce data scanned
+- Using aggregated tables (hourly/daily) instead of raw events
+- Reducing the time range
+- Adding a LIMIT clause
+- Using SAMPLE to process a subset of data
+
+## Error Handling
+
+Analytics queries return structured error codes including `query_execution_timeout`, `query_memory_limit_exceeded`, and `invalid_analytics_query`. See the [Error Codes](/errors/overview) documentation for a complete list of error codes.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
+    Explore common SQL patterns for analytics and billing
+  </Card>
+  <Card
+    title="Schema Reference"
+    icon="table"
+    href="/analytics/schema-reference"
+  >
+    Browse available tables, columns, and data types
+  </Card>
+  <Card title="Security" icon="shield" href="/analytics/security">
+    Understand workspace isolation and query security
+  </Card>
+</CardGroup>

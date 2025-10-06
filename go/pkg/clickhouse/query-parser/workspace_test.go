@@ -18,7 +18,7 @@ func TestParser_WorkspaceFilter(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2")
 	require.NoError(t, err)
 
-	require.Contains(t, output, "workspace_id = 'ws_123'")
+	require.Contains(t, output.Query, "workspace_id = 'ws_123'")
 }
 
 func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
@@ -32,7 +32,7 @@ func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE active = 1")
 	require.NoError(t, err)
 
-	require.Contains(t, output, "workspace_id = 'ws_456'")
-	require.Contains(t, output, "active = 1")
-	require.Contains(t, output, "AND")
+	require.Contains(t, output.Query, "workspace_id = 'ws_456'")
+	require.Contains(t, output.Query, "active = 1")
+	require.Contains(t, output.Query, "AND")
 }

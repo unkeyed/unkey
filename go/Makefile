@@ -1,4 +1,4 @@
-.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev install-tools download-tools
+.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
 
 # Detect OS and set GOMAXPROCS accordingly
 UNAME_S := $(shell uname -s)

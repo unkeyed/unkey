@@ -59,6 +59,15 @@ func (n *noop) Exec(ctx context.Context, sql string, args ...any) error {
 	return nil
 }
 
+func (n *noop) Ping(ctx context.Context) error {
+	return nil
+}
+
+// Close closes the underlying ClickHouse connection.
+func (n *noop) Close() error {
+	return nil
+}
+
 // NewNoop creates a new no-op implementation of the Bufferer interface.
 // This implementation simply discards all events without processing them.
 //

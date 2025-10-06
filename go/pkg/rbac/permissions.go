@@ -65,6 +65,9 @@ const (
 
 	// VerifyKey permits verifying API keys
 	VerifyKey ActionType = "verify_key"
+
+	// ReadAnalytics permits querying analytics data
+	ReadAnalytics ActionType = "read_analytics"
 )
 
 // Predefined rate limiting actions. These constants define operations
@@ -160,6 +163,13 @@ const (
 	DeleteIdentity ActionType = "delete_identity"
 )
 
+// Predefined analytics actions. These constants define operations that can be
+// performed on analytics resources.
+const (
+	// Read permits querying analytics data
+	Read ActionType = "read"
+)
+
 // Tuple represents a specific permission as a combination of resource type,
 // resource ID, and action. It forms the basic unit of permission definition
 // in the RBAC system.
@@ -185,14 +195,18 @@ type Tuple struct {
 
 // String converts a Tuple to its string representation in the format
 // "resourceType.resourceID.action" (e.g., "api.api1.read_api").
+// If ResourceID is empty, returns "resourceType.action" format.
 //
 // This string format is used when storing and comparing permissions.
 func (t Tuple) String() string {
+	if t.ResourceID == "" {
+		return fmt.Sprintf("%s.%s", t.ResourceType, t.Action)
+	}
 	return fmt.Sprintf("%s.%s.%s", t.ResourceType, t.ResourceID, t.Action)
 }
 
 // TupleFromString parses a string in the format "resourceType.resourceID.action"
-// into a Tuple. Returns an error if the string format is invalid.
+// or "resourceType.action" into a Tuple. Returns an error if the string format is invalid.
 //
 // Example:
 //
@@ -200,16 +214,26 @@ func (t Tuple) String() string {
 //	if err != nil {
 //	    log.Fatalf("Invalid permission format: %v", err)
 //	}
+//
+//	// Also supports 2-part format without resource ID:
+//	tuple, err := rbac.TupleFromString("analytics.read")
 func TupleFromString(s string) (Tuple, error) {
 	parts := strings.Split(s, ".")
-	if len(parts) != 3 {
-		return Tuple{}, errors.New("invalid tuple format")
-
+	if len(parts) == 2 {
+		// Format: "resourceType.action" (no resource ID)
+		return Tuple{
+			ResourceType: ResourceType(parts[0]),
+			ResourceID:   "",
+			Action:       ActionType(parts[1]),
+		}, nil
 	}
-	tuple := Tuple{
-		ResourceType: ResourceType(parts[0]),
-		ResourceID:   parts[1],
-		Action:       ActionType(parts[2]),
+	if len(parts) == 3 {
+		// Format: "resourceType.resourceID.action"
+		return Tuple{
+			ResourceType: ResourceType(parts[0]),
+			ResourceID:   parts[1],
+			Action:       ActionType(parts[2]),
+		}, nil
 	}
-	return tuple, nil
+	return Tuple{}, errors.New("invalid tuple format: expected 2 or 3 parts separated by dots")
 }

@@ -4,13 +4,13 @@ Secure SQL query parsing and rewriting for ClickHouse with workspace isolation, 
 
 ## Features
 
-- ✅ **Workspace Isolation**: Automatically injects `workspace_id` filter into all queries
-- ✅ **Table Aliases**: Map user-friendly table names to actual ClickHouse tables
-- ✅ **Virtual Columns**: Resolve user-friendly IDs (e.g., `apiId`, `externalId`) to internal IDs via custom resolvers
-- ✅ **Virtual Column Aliases**: Support multiple names for the same virtual column (e.g., `apiId` and `api_id`)
-- ✅ **All Operators Supported**: Works with `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, and more
-- ✅ **Security**: Only allows SELECT queries, blocks system tables, whitelists safe functions
-- ✅ **Limit Enforcement**: Caps or adds LIMIT clauses to prevent resource exhaustion
+- **Workspace Isolation**: Automatically injects `workspace_id` filter into all queries
+- **Table Aliases**: Map user-friendly table names to actual ClickHouse tables
+- **Virtual Columns**: Resolve user-friendly IDs (e.g., `apiId`, `externalId`) to internal IDs via custom resolvers
+- **Virtual Column Aliases**: Support multiple names for the same virtual column (e.g., `apiId` and `api_id`)
+- **All Operators Supported**: Works with `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, and more
+- **Security**: Only allows SELECT queries, blocks system tables, whitelists safe functions
+- **Limit Enforcement**: Caps or adds LIMIT clauses to prevent resource exhaustion
 
 ## Usage
 
@@ -220,6 +220,90 @@ func HandleAnalyticsQuery(c *gin.Context) {
 }
 ```
 
+## Error Codes
+
+The parser returns structured error codes for better error handling and user feedback:
+
+### Parser Validation Errors
+
+- **`err:user:bad_request:invalid_analytics_query`** - Invalid SQL syntax or query structure
+- **`err:user:bad_request:invalid_table`** - Table is not allowed or does not exist
+- **`err:user:bad_request:invalid_function`** - Function is not in the whitelist
+- **`err:user:bad_request:query_not_supported`** - Query type not allowed (only SELECT is supported)
+
+### Resource Limit Errors (from ClickHouse)
+
+These errors are returned when ClickHouse resource limits are exceeded. Use `clickhouse.WrapClickHouseError()` to parse ClickHouse errors:
+
+- **`err:user:bad_request:query_execution_timeout`** - Query exceeded max execution time (default: 30s per query, 1800s per window)
+- **`err:user:bad_request:query_memory_limit_exceeded`** - Query exceeded max memory usage (default: 1GB)
+- **`err:user:bad_request:query_rows_limit_exceeded`** - Query attempted to read too many rows (default: 10M rows)
+- **`err:user:bad_request:query_result_rows_limit_exceeded`** - Query result set too large (default: 10M rows)
+- **`err:user:bad_request:query_quota_exceeded`** - Workspace exceeded query quota (default: 1000 queries per hour)
+
+### Example Error Handling
+
+```go
+// Parse and rewrite query
+safeQuery, err := parser.Parse(ctx, userQuery)
+if err != nil {
+    code, hasCode := fault.GetCode(err)
+    if hasCode {
+        switch code {
+        case codes.User.BadRequest.InvalidTable.URN():
+            return c.JSON(400, gin.H{
+                "error": fault.UserFacingMessage(err),
+                "code": code,
+                "docs": codes.User.BadRequest.InvalidTable.DocsURL(),
+            })
+        case codes.User.BadRequest.InvalidFunction.URN():
+            return c.JSON(400, gin.H{
+                "error": fault.UserFacingMessage(err),
+                "code": code,
+            })
+        }
+    }
+
+    return c.JSON(400, gin.H{
+        "error": fault.UserFacingMessage(err),
+    })
+}
+
+// Execute query
+rows, err := clickhouse.Query(ctx, safeQuery)
+if err != nil {
+    // Wrap ClickHouse errors with proper error codes
+    wrappedErr := clickhouse.WrapClickHouseError(err)
+
+    code, hasCode := fault.GetCode(wrappedErr)
+    if hasCode {
+        switch code {
+        case codes.User.BadRequest.QueryExecutionTimeout.URN():
+            return c.JSON(408, gin.H{
+                "error": fault.UserFacingMessage(wrappedErr),
+                "code": code,
+            })
+        case codes.User.BadRequest.QueryQuotaExceeded.URN():
+            return c.JSON(429, gin.H{
+                "error": fault.UserFacingMessage(wrappedErr),
+                "code": code,
+            })
+        case codes.User.BadRequest.QueryMemoryLimitExceeded.URN(),
+             codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+             codes.User.BadRequest.QueryResultRowsLimitExceeded.URN():
+            return c.JSON(400, gin.H{
+                "error": fault.UserFacingMessage(wrappedErr),
+                "code": code,
+            })
+        }
+    }
+
+    return c.JSON(500, gin.H{
+        "error": fault.UserFacingMessage(wrappedErr),
+    })
+}
+```
+
 ## Security Features
 
 ### Workspace Isolation
@@ -247,7 +331,7 @@ SELECT * FROM verifications WHERE workspace_id = 'ws_attacker'
 SELECT * FROM default.key_verifications_v1
 WHERE workspace_id = 'ws_victim' AND workspace_id = 'ws_attacker'
 
--- Returns empty (impossible condition) ✅
+-- Returns empty (impossible condition)
 ```
 
 ### Blocked Operations
@@ -306,6 +390,7 @@ go test ./pkg/clickhouse/query-parser/... -v
 ```
 
 Tests cover:
+
 - Basic query rewriting
 - Virtual column resolution with all operators (=, !=, <, >, <=, >=, IN)
 - Virtual column aliases
@@ -315,6 +400,7 @@ Tests cover:
 - Function validation (whitelist)
 - System table blocking
 - Only SELECT queries allowed
+- Error codes and user-facing messages
 
 ## Architecture
 

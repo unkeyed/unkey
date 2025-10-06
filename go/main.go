@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
+	seedanalytics "github.com/unkeyed/unkey/go/cmd/seed-analytics"
 	"github.com/unkeyed/unkey/go/cmd/version"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	versioncmd "github.com/unkeyed/unkey/go/pkg/version"
@@ -30,6 +31,7 @@ func main() {
 			quotacheck.Cmd,
 			gateway.Cmd,
 			clickhouseUser.Cmd,
+			seedanalytics.Cmd,
 		},
 	}
 

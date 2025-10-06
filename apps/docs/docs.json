@@ -1,18 +1,48 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "maple",
-  "name": "Unkey Docs",
+  "background": {
+    "color": {
+      "dark": "#0c0a09",
+      "light": "#fafaf9"
+    }
+  },
   "colors": {
-    "primary": "#09090b",
+    "dark": "#18181b",
     "light": "#EAE6E0",
-    "dark": "#18181b"
+    "primary": "#09090b"
   },
   "favicon": "/unkey.png",
+  "footer": {
+    "socials": {
+      "github": "https://github.com/unkeyed/unkey",
+      "x": "https://x.com/unkeydev"
+    }
+  },
+  "name": "Unkey Docs",
+  "navbar": {
+    "links": [
+      {
+        "href": "https://unkey.com/blog",
+        "label": "Blog \u0026 Tutorials"
+      },
+      {
+        "href": "https://unkey.com/discord",
+        "label": "Discord"
+      },
+      {
+        "href": "https://app.unkey.com",
+        "label": "Dashboard"
+      }
+    ],
+    "primary": {
+      "href": "https://github.com/unkeyed/unkey",
+      "type": "github"
+    }
+  },
   "navigation": {
     "dropdowns": [
       {
         "dropdown": "Documentation",
-        "icon": "book-open",
         "groups": [
           {
             "group": "Unkey",
@@ -49,7 +79,9 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": ["quickstart/identities/shared-ratelimits"]
+                    "pages": [
+                      "quickstart/identities/shared-ratelimits"
+                    ]
                   }
                 ]
               },
@@ -103,7 +135,9 @@
                     "pages": [
                       {
                         "group": "Ratelimiting",
-                        "pages": ["apis/features/ratelimiting/overview"]
+                        "pages": [
+                          "apis/features/ratelimiting/overview"
+                        ]
                       },
                       "apis/features/temp-keys",
                       "apis/features/remaining",
@@ -138,12 +172,21 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": ["audit-log/introduction", "audit-log/types"]
+                "pages": [
+                  "audit-log/introduction",
+                  "audit-log/types"
+                ]
               },
               {
                 "group": "Analytics",
                 "icon": "chart-bar",
-                "pages": ["analytics/overview", "analytics/quickstarts"]
+                "pages": [
+                  "analytics/overview",
+                  "analytics/getting-started",
+                  "analytics/query-examples",
+                  "analytics/schema-reference",
+                  "analytics/security"
+                ]
               }
             ]
           },
@@ -151,9 +194,12 @@
             "group": "Migrations",
             "pages": [
               {
-                "icon": "plane",
                 "group": "Migrating API Keys",
-                "pages": ["migrations/introduction", "migrations/keys"]
+                "icon": "plane",
+                "pages": [
+                  "migrations/introduction",
+                  "migrations/keys"
+                ]
               }
             ]
           },
@@ -170,6 +216,7 @@
                     "pages": [
                       "errors/unkey/application/assertion_failed",
                       "errors/unkey/application/invalid_input",
+                      "errors/unkey/application/precondition_failed",
                       "errors/unkey/application/protected_resource",
                       "errors/unkey/application/service_unavailable",
                       "errors/unkey/application/unexpected_error"
@@ -195,15 +242,20 @@
                   {
                     "group": "Data",
                     "pages": [
+                      "errors/unkey/data/analytics_connection_failed",
+                      "errors/unkey/data/analytics_not_configured",
                       "errors/unkey/data/api_not_found",
                       "errors/unkey/data/audit_log_not_found",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",
                       "errors/unkey/data/key_auth_not_found",
                       "errors/unkey/data/key_not_found",
+                      "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/ratelimit_namespace_gone",
                       "errors/unkey/data/ratelimit_namespace_not_found",
                       "errors/unkey/data/ratelimit_override_not_found",
+                      "errors/unkey/data/role_already_exists",
                       "errors/unkey/data/role_not_found",
                       "errors/unkey/data/workspace_not_found"
                     ]
@@ -213,19 +265,28 @@
               {
                 "group": "User Errors",
                 "pages": [
-                  "errors/user/bad_request/permissions_query_syntax_error",
-                  "errors/user/bad_request/request_body_too_large",
                   "errors/user/bad_request/client_closed_request",
+                  "errors/user/bad_request/invalid_analytics_query",
+                  "errors/user/bad_request/invalid_function",
+                  "errors/user/bad_request/invalid_table",
+                  "errors/user/bad_request/permissions_query_syntax_error",
+                  "errors/user/bad_request/query_execution_timeout",
+                  "errors/user/bad_request/query_memory_limit_exceeded",
+                  "errors/user/bad_request/query_not_supported",
+                  "errors/user/bad_request/query_quota_exceeded",
+                  "errors/user/bad_request/query_result_rows_limit_exceeded",
+                  "errors/user/bad_request/query_rows_limit_exceeded",
+                  "errors/user/bad_request/request_body_too_large",
                   "errors/user/bad_request/request_timeout"
                 ]
               }
             ]
           }
-        ]
+        ],
+        "icon": "book-open"
       },
       {
         "dropdown": "api.unkey.dev/v1 (deprecated)",
-        "icon": "terminal",
         "groups": [
           {
             "group": "Introduction",
@@ -250,15 +311,15 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "https://api.unkey.dev/openapi.json",
-              "directory": "api-reference/v1"
+              "directory": "api-reference/v1",
+              "source": "https://api.unkey.dev/openapi.json"
             }
           }
-        ]
+        ],
+        "icon": "terminal"
       },
       {
         "dropdown": "api.unkey.com/v2",
-        "icon": "terminal",
         "groups": [
           {
             "group": "Introduction",
@@ -272,15 +333,15 @@
           {
             "group": "Endpoints",
             "openapi": {
-              "source": "http://127.0.0.1:7070/openapi.yaml",
-              "directory": "api-reference/v2"
+              "directory": "api-reference/v2",
+              "source": "http://127.0.0.1:7070/openapi.yaml"
             }
           }
-        ]
+        ],
+        "icon": "terminal"
       },
       {
         "dropdown": "SDKs",
-        "icon": "code",
         "groups": [
           {
             "group": "Official Libraries",
@@ -313,11 +374,15 @@
               },
               {
                 "group": "Go",
-                "pages": ["libraries/go/api"]
+                "pages": [
+                  "libraries/go/api"
+                ]
               },
               {
                 "group": "Python",
-                "pages": ["libraries/py/api"]
+                "pages": [
+                  "libraries/py/api"
+                ]
               }
             ]
           },
@@ -342,11 +407,15 @@
               },
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               },
               {
                 "group": "Rust",
-                "pages": ["libraries/rs/overview"]
+                "pages": [
+                  "libraries/rs/overview"
+                ]
               },
               {
                 "group": "Springboot",
@@ -362,61 +431,31 @@
               }
             ]
           }
-        ]
+        ],
+        "icon": "code"
       }
     ]
   },
+  "redirects": [
+    {
+      "destination": "/onboarding/onboarding-api",
+      "source": "/onboarding"
+    },
+    {
+      "destination": "/quickstart/onboarding/onboarding-api",
+      "source": "/onboarding/onboarding-api"
+    },
+    {
+      "destination": "/quickstart/onboarding/onboarding-ratelimiting",
+      "source": "/onboarding/onboarding-ratelimiting"
+    },
+    {
+      "destination": "api-reference/v2",
+      "source": "/api-reference"
+    }
+  ],
   "styling": {
     "codeblocks": "system"
   },
-  "background": {
-    "color": {
-      "light": "#fafaf9",
-      "dark": "#0c0a09"
-    }
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Blog & Tutorials",
-        "href": "https://unkey.com/blog"
-      },
-      {
-        "label": "Discord",
-        "href": "https://unkey.com/discord"
-      },
-      {
-        "label": "Dashboard",
-        "href": "https://app.unkey.com"
-      }
-    ],
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/unkeyed/unkey"
-    }
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/unkeydev",
-      "github": "https://github.com/unkeyed/unkey"
-    }
-  },
-  "redirects": [
-    {
-      "source": "/onboarding",
-      "destination": "/onboarding/onboarding-api"
-    },
-    {
-      "source": "/onboarding/onboarding-api",
-      "destination": "/quickstart/onboarding/onboarding-api"
-    },
-    {
-      "source": "/onboarding/onboarding-ratelimiting",
-      "destination": "/quickstart/onboarding/onboarding-ratelimiting"
-    },
-    {
-      "source": "/api-reference",
-      "destination": "api-reference/v2"
-    }
-  ]
+  "theme": "maple"
 }

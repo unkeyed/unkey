@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
@@ -55,6 +56,7 @@ func (p *Parser) rewriteValues(expr clickhouse.Expr, resolvedMap map[string]stri
 		if resolved, ok := resolvedMap[strLit.Literal]; ok {
 			strLit.Literal = resolved
 		}
+
 		return
 	}
 
@@ -126,12 +128,18 @@ func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
 	for virtualCol, ids := range virtualCols {
 		vcConfig := p.config.VirtualColumns[virtualCol]
 		if vcConfig.Resolver == nil {
-			return fault.New(fmt.Sprintf("no resolver for %s", virtualCol))
+			return fault.New(fmt.Sprintf("no resolver for %s", virtualCol),
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+				fault.Public(fmt.Sprintf("Virtual column '%s' cannot be resolved", virtualCol)),
+			)
 		}
 
 		resolved, err := vcConfig.Resolver(ctx, ids)
 		if err != nil {
-			return fault.Wrap(err, fault.Public(fmt.Sprintf("Failed to resolve %s", virtualCol)))
+			return fault.Wrap(err,
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+				fault.Public(fmt.Sprintf("Failed to resolve %s", virtualCol)),
+			)
 		}
 
 		resolvedMaps[virtualCol] = resolved
@@ -139,48 +147,75 @@ func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
 
 	// Rewrite the AST by walking and modifying in place
 	rewriteFunc := func(node clickhouse.Expr) bool {
-		binOp, ok := node.(*clickhouse.BinaryOperation)
-		if !ok {
+		// Handle BinaryOperation (WHERE/HAVING clauses)
+		if binOp, ok := node.(*clickhouse.BinaryOperation); ok {
+			colName := ""
+			var identToModify *clickhouse.Ident
+
+			if ident, ok := binOp.LeftExpr.(*clickhouse.Ident); ok {
+				colName = ident.Name
+				identToModify = ident
+			} else if nestedIdent, ok := binOp.LeftExpr.(*clickhouse.NestedIdentifier); ok {
+				if nestedIdent.Ident != nil {
+					colName = nestedIdent.Ident.Name
+					identToModify = nestedIdent.Ident
+				}
+			}
+
+			if colName != "" && identToModify != nil {
+				// Resolve alias to canonical name
+				canonicalName, isVirtual := p.resolveVirtualColumnName(colName)
+				if isVirtual {
+					vcConfig := p.config.VirtualColumns[canonicalName]
+					// Replace column name with actual column
+					identToModify.Name = vcConfig.ActualColumn
+					// Replace values in right expression
+					p.rewriteValues(binOp.RightExpr, resolvedMaps[canonicalName])
+				}
+			}
 			return true
 		}
 
-		colName := ""
+		// Handle plain Ident (GROUP BY/SELECT clauses)
 		var identToModify *clickhouse.Ident
-
-		if ident, ok := binOp.LeftExpr.(*clickhouse.Ident); ok {
-			colName = ident.Name
+		if ident, ok := node.(*clickhouse.Ident); ok {
 			identToModify = ident
-		} else if nestedIdent, ok := binOp.LeftExpr.(*clickhouse.NestedIdentifier); ok {
+		} else if nestedIdent, ok := node.(*clickhouse.NestedIdentifier); ok {
 			if nestedIdent.Ident != nil {
-				colName = nestedIdent.Ident.Name
 				identToModify = nestedIdent.Ident
 			}
 		}
 
-		if colName == "" || identToModify == nil {
-			return true
+		if identToModify != nil {
+			canonicalName, isVirtual := p.resolveVirtualColumnName(identToModify.Name)
+			if isVirtual {
+				vcConfig := p.config.VirtualColumns[canonicalName]
+				identToModify.Name = vcConfig.ActualColumn
+			}
 		}
 
-		// Resolve alias to canonical name
-		canonicalName, isVirtual := p.resolveVirtualColumnName(colName)
-		if !isVirtual {
-			return true
-		}
-
-		vcConfig := p.config.VirtualColumns[canonicalName]
-		// Replace column name with actual column
-		identToModify.Name = vcConfig.ActualColumn
-
-		// Replace values in right expression
-		p.rewriteValues(binOp.RightExpr, resolvedMaps[canonicalName])
 		return true
 	}
 
+	// Apply the unified rewrite function to all clauses
 	if p.stmt.Where != nil {
 		clickhouse.Walk(p.stmt.Where.Expr, rewriteFunc)
 	}
+
 	if p.stmt.Having != nil {
 		clickhouse.Walk(p.stmt.Having.Expr, rewriteFunc)
+	}
+
+	if p.stmt.GroupBy != nil && p.stmt.GroupBy.Expr != nil {
+		clickhouse.Walk(p.stmt.GroupBy.Expr, rewriteFunc)
+	}
+
+	if p.stmt.SelectItems != nil {
+		for _, selectItem := range p.stmt.SelectItems {
+			if selectItem.Expr != nil {
+				clickhouse.Walk(selectItem.Expr, rewriteFunc)
+			}
+		}
 	}
 
 	return nil

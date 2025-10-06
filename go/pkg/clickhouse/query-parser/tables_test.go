@@ -21,7 +21,7 @@ func TestParser_TableAliases(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM keys")
 	require.NoError(t, err)
 
-	require.Contains(t, output, "keys_v2")
+	require.Contains(t, output.Query, "keys_v2")
 }
 
 func TestParser_BlockSystemTables(t *testing.T) {

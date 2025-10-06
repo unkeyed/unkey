@@ -291,7 +291,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			max_memory_usage = %d,
 			max_result_rows = %d,
 			max_rows_to_read = %d,
-			readonly = 1
+			readonly = 2
 		TO %s
 	`,
 		profileName,

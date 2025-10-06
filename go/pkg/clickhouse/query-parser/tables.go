@@ -6,16 +6,22 @@ import (
 	"strings"
 
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 func (p *Parser) rewriteTables() error {
 	if p.stmt.From == nil || p.stmt.From.Expr == nil {
-		return fault.New("query must have FROM clause", fault.Public("Query must have a FROM clause"))
+		return fault.New("query must have FROM clause",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("Query must have a FROM clause"),
+		)
 	}
 
 	var rewriteErr error
-	clickhouse.Walk(p.stmt.From.Expr, func(node clickhouse.Expr) bool {
+
+	// Walk the ENTIRE statement to find all tables, including those in UNION queries
+	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
 		tableIdent, ok := node.(*clickhouse.TableIdentifier)
 		if !ok {
 			return true
@@ -34,7 +40,11 @@ func (p *Parser) rewriteTables() error {
 
 		// Validate access
 		if !p.isTableAllowed(tableName) {
-			rewriteErr = fault.New(fmt.Sprintf("table '%s' not allowed", tableName), fault.Public(fmt.Sprintf("Access to table '%s' is not allowed", tableName)))
+			rewriteErr = fault.New(fmt.Sprintf("table '%s' not allowed", tableName),
+				fault.Code(codes.User.BadRequest.InvalidTable.URN()),
+				fault.Public(fmt.Sprintf("Access to table '%s' is not allowed", tableName)),
+			)
+
 			return false
 		}
 
@@ -55,10 +65,9 @@ func (p *Parser) rewriteTables() error {
 }
 
 func (p *Parser) isTableAllowed(tableName string) bool {
-	// Block system tables
-	if strings.HasPrefix(tableName, "system.") ||
-		strings.HasPrefix(tableName, "information_schema.") ||
-		strings.HasPrefix(tableName, "INFORMATION_SCHEMA.") {
+	// Always block system and information_schema tables
+	lowerTableName := strings.ToLower(tableName)
+	if strings.HasPrefix(lowerTableName, "system.") || strings.HasPrefix(lowerTableName, "information_schema.") {
 		return false
 	}
 

@@ -1,137 +1,79 @@
-package queryparser
+package queryparser_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	chquery "github.com/unkeyed/unkey/go/pkg/clickhouse/query-parser"
 )
 
-func TestParser_VirtualColumns(t *testing.T) {
-	mockResolver := func(ctx context.Context, virtualIDs []string) (map[string]string, error) {
-		result := make(map[string]string)
-		for _, id := range virtualIDs {
-			result[id] = "actual_" + id
-		}
-		return result, nil
-	}
-
-	p := NewParser(Config{
-		WorkspaceID: "ws_123",
-		AllowedTables: []string{
-			"default.keys_v2",
-		},
-		VirtualColumns: map[string]VirtualColumn{
-			"apiId": {
-				ActualColumn: "key_space_id",
-				Resolver:     mockResolver,
+func TestVirtualColumnInGroupBy(t *testing.T) {
+	parser := chquery.NewParser(chquery.Config{
+		WorkspaceID: "ws_test",
+		Limit:       100,
+		VirtualColumns: map[string]chquery.VirtualColumn{
+			"externalId": {
+				ActualColumn: "identity_id",
+				Aliases:      []string{"external_id"},
+				Resolver: func(ctx context.Context, externalIDs []string) (map[string]string, error) {
+					return map[string]string{"ext1": "id1"}, nil
+				},
 			},
 		},
 	})
 
-	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE apiId = 'api_123'")
+	query := "SELECT COUNT(*) FROM table GROUP BY externalId"
+	result, err := parser.Parse(context.Background(), query)
 	require.NoError(t, err)
 
-	require.Contains(t, output, "key_space_id")
-	require.Contains(t, output, "actual_api_123")
+	// Should rewrite externalId to identity_id in GROUP BY
+	require.Contains(t, result.Query, "GROUP BY identity_id")
+	require.NotContains(t, result.Query, "externalId")
 }
 
-func TestParser_VirtualColumnsWithAliases(t *testing.T) {
-	mockResolver := func(ctx context.Context, virtualIDs []string) (map[string]string, error) {
-		result := make(map[string]string)
-		for _, id := range virtualIDs {
-			result[id] = "actual_" + id
-		}
-		return result, nil
-	}
-
-	p := NewParser(Config{
-		WorkspaceID: "ws_123",
-		AllowedTables: []string{
-			"default.keys_v2",
-		},
-		VirtualColumns: map[string]VirtualColumn{
-			"apiId": {
-				ActualColumn: "key_space_id",
-				Aliases:      []string{"api_id"},
-				Resolver:     mockResolver,
+func TestVirtualColumnInSelect(t *testing.T) {
+	parser := chquery.NewParser(chquery.Config{
+		WorkspaceID: "ws_test",
+		Limit:       100,
+		VirtualColumns: map[string]chquery.VirtualColumn{
+			"externalId": {
+				ActualColumn: "identity_id",
+				Aliases:      []string{"external_id"},
+				Resolver: func(ctx context.Context, externalIDs []string) (map[string]string, error) {
+					return map[string]string{"ext1": "id1"}, nil
+				},
 			},
 		},
 	})
 
-	// Test with canonical name
-	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE apiId = 'api_123'")
-	require.NoError(t, err)
-	require.Contains(t, output, "key_space_id")
-	require.Contains(t, output, "actual_api_123")
+	t.Run("canonical name preserves column name", func(t *testing.T) {
+		query := "SELECT externalId, COUNT(*) FROM table GROUP BY externalId"
+		result, err := parser.Parse(context.Background(), query)
+		require.NoError(t, err)
 
-	// Test with alias
-	output, err = p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE api_id = 'api_456'")
-	require.NoError(t, err)
-	require.Contains(t, output, "key_space_id")
-	require.Contains(t, output, "actual_api_456")
-}
-
-func TestParser_VirtualColumnsWithIN(t *testing.T) {
-	mockResolver := func(ctx context.Context, virtualIDs []string) (map[string]string, error) {
-		result := make(map[string]string)
-		for _, id := range virtualIDs {
-			result[id] = "actual_" + id
-		}
-		return result, nil
-	}
-
-	p := NewParser(Config{
-		WorkspaceID: "ws_123",
-		AllowedTables: []string{
-			"default.keys_v2",
-		},
-		VirtualColumns: map[string]VirtualColumn{
-			"apiId": {
-				ActualColumn: "key_space_id",
-				Resolver:     mockResolver,
-			},
-		},
+		// Should rewrite externalId to identity_id but add AS externalId to preserve column name
+		require.Contains(t, result.Query, "identity_id AS externalId")
+		require.Contains(t, result.Query, "GROUP BY identity_id")
 	})
 
-	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE apiId IN ('api_1', 'api_2', 'api_3')")
-	require.NoError(t, err)
+	t.Run("alias preserves original alias name", func(t *testing.T) {
+		query := "SELECT external_id, COUNT(*) FROM table GROUP BY external_id"
+		result, err := parser.Parse(context.Background(), query)
+		require.NoError(t, err)
 
-	require.Contains(t, output, "key_space_id")
-	require.Contains(t, output, "actual_api_1")
-	require.Contains(t, output, "actual_api_2")
-	require.Contains(t, output, "actual_api_3")
-}
-
-func TestParser_VirtualColumnsWithDifferentOperators(t *testing.T) {
-	mockResolver := func(ctx context.Context, virtualIDs []string) (map[string]string, error) {
-		result := make(map[string]string)
-		for _, id := range virtualIDs {
-			result[id] = "actual_" + id
-		}
-		return result, nil
-	}
-
-	p := NewParser(Config{
-		WorkspaceID: "ws_123",
-		AllowedTables: []string{
-			"default.keys_v2",
-		},
-		VirtualColumns: map[string]VirtualColumn{
-			"apiId": {
-				ActualColumn: "key_space_id",
-				Resolver:     mockResolver,
-			},
-		},
+		// Should rewrite external_id to identity_id but add AS external_id to preserve column name
+		require.Contains(t, result.Query, "identity_id AS external_id")
+		require.Contains(t, result.Query, "GROUP BY identity_id")
 	})
 
-	operators := []string{"=", "!=", "<", ">", "<=", ">="}
-	for _, op := range operators {
-		query := fmt.Sprintf("SELECT * FROM default.keys_v2 WHERE apiId %s 'api_123'", op)
-		output, err := p.Parse(context.Background(), query)
-		require.NoError(t, err, "Failed with operator: %s", op)
-		require.Contains(t, output, "key_space_id", "Column name not rewritten for operator: %s", op)
-		require.Contains(t, output, "actual_api_123", "Value not resolved for operator: %s", op)
-	}
+	t.Run("user-defined alias is preserved", func(t *testing.T) {
+		query := "SELECT externalId AS my_alias FROM table"
+		result, err := parser.Parse(context.Background(), query)
+		require.NoError(t, err)
+
+		// User already provided alias, should not add another
+		require.Contains(t, result.Query, "identity_id AS my_alias")
+		require.NotContains(t, result.Query, "AS externalId")
+	})
 }

@@ -51,4 +51,10 @@ type Querier interface {
 type ClickHouse interface {
 	Bufferer
 	Querier
+
+	// Closes the underlying ClickHouse connection.
+	Close() error
+
+	// Ping verifies the connection to the ClickHouse database.
+	Ping(ctx context.Context) error
 }

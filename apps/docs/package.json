@@ -9,8 +9,7 @@
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "@mintlify/scraping": "^4.0.410",
-    "mintlify": "^4.2.140"
+    "mintlify": "^4.2.144"
   },
   "dependencies": {
     "sharp": "^0.34.3"

@@ -266,10 +266,21 @@ type Querier interface {
 	//  SELECT ka.id as key_auth_id, a.id as api_id
 	//  FROM apis a
 	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
-	//  WHERE a.id IN (/*SLICE:api_ids*/?)
+	//  WHERE a.workspace_id = ?
+	//      AND a.id IN (/*SLICE:api_ids*/?)
 	//      AND ka.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
-	FindKeyAuthsByIds(ctx context.Context, db DBTX, apiIds []string) ([]FindKeyAuthsByIdsRow, error)
+	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
+	//FindKeyAuthsByKeyAuthIds
+	//
+	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  FROM key_auth as ka
+	//  JOIN apis a ON a.key_auth_id = ka.id
+	//  WHERE a.workspace_id = ?
+	//      AND ka.id IN (/*SLICE:key_auth_ids*/?)
+	//      AND ka.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	FindKeyAuthsByKeyAuthIds(ctx context.Context, db DBTX, arg FindKeyAuthsByKeyAuthIdsParams) ([]FindKeyAuthsByKeyAuthIdsRow, error)
 	//FindKeyByID
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k
@@ -777,6 +788,19 @@ type Querier interface {
 	//  SELECT id, org_id, name, slug, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	//GetKeyAuthByID
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      created_at_m,
+	//      default_prefix,
+	//      default_bytes,
+	//      store_encrypted_keys
+	//  FROM key_auth
+	//  WHERE id = ?
+	//    AND deleted_at_m IS NULL
+	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
@@ -1095,6 +1119,24 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
+	//InsertKeyAuth
+	//
+	//  INSERT INTO key_auth (
+	//      id,
+	//      workspace_id,
+	//      created_at_m,
+	//      default_prefix,
+	//      default_bytes,
+	//      store_encrypted_keys
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      false
+	//  )
+	InsertKeyAuth(ctx context.Context, db DBTX, arg InsertKeyAuthParams) error
 	//InsertKeyEncryption
 	//
 	//  INSERT INTO encrypted_keys

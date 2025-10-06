@@ -548,10 +548,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2AnalyticsGetVerifications.Handler{
-			Logger:     svc.Logger,
-			DB:         svc.Database,
-			Keys:       svc.Keys,
-			ClickHouse: svc.ClickHouse,
+			Logger:                     svc.Logger,
+			DB:                         svc.Database,
+			Keys:                       svc.Keys,
+			ClickHouse:                 svc.ClickHouse,
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
+			Caches:                     svc.Caches,
 		},
 	)
 

@@ -31,6 +31,22 @@ type Caches struct {
 	// Clickhouse Configuration caches clickhouse configuration lookups by ID.
 	// Keys are string (ID) and values are db.ClickhouseWorkspaceSetting.
 	ClickhouseSetting cache.Cache[string, db.ClickhouseWorkspaceSetting]
+
+	// KeyAuthToApiRow caches key_auth_id to api row mappings.
+	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
+	KeyAuthToApiRow cache.Cache[string, db.FindKeyAuthsByIdsRow]
+
+	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
+	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
+	ApiToKeyAuthRow cache.Cache[string, db.FindKeyAuthsByIdsRow]
+
+	// ExternalIdToIdentity caches external_id to identity mappings.
+	// Keys are string (external_id) scoped to the workspace ID and values are db.Identity (full object).
+	ExternalIdToIdentity cache.Cache[cache.ScopedKey, db.Identity]
+
+	// Identity caches identity_id to identity mappings.
+	// Keys are string (identity_id) and values are db.Identity.
+	Identity cache.Cache[string, db.Identity]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -201,7 +217,78 @@ func New(config Config) (Caches, error) {
 			Stale:    24 * time.Hour,
 			Logger:   config.Logger,
 			MaxSize:  1_000_000,
-			Resource: "live_api_by_id",
+			Resource: "clickhouse_setting",
+			Clock:    config.Clock,
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create key_auth_id -> api row cache
+	keyAuthToApiRow, err := createCache(
+		config,
+		cache.Config[string, db.FindKeyAuthsByIdsRow]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "key_auth_to_api_row",
+			Clock:    config.Clock,
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create api_id -> key_auth row cache
+	apiToKeyAuthRow, err := createCache(
+		config,
+		cache.Config[string, db.FindKeyAuthsByIdsRow]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "api_to_key_auth_row",
+			Clock:    config.Clock,
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create external_id -> identity mapping cache (scoped to workspace)
+	externalIdToIdentity, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.Identity]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "external_id_to_identity",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	identity, err := createCache(
+		config,
+		cache.Config[string, db.Identity]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "identity_id_to_external_id",
 			Clock:    config.Clock,
 		},
 		nil,
@@ -212,9 +299,13 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
-		LiveApiByID:           middleware.WithTracing(liveApiByID),
+		RatelimitNamespace:   middleware.WithTracing(ratelimitNamespace),
+		LiveApiByID:          middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
-		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
+		ClickhouseSetting:    middleware.WithTracing(clickhouseSetting),
+		KeyAuthToApiRow:      middleware.WithTracing(keyAuthToApiRow),
+		ApiToKeyAuthRow:      middleware.WithTracing(apiToKeyAuthRow),
+		ExternalIdToIdentity: middleware.WithTracing(externalIdToIdentity),
+		Identity:             middleware.WithTracing(identity),
 	}, nil
 }

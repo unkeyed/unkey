@@ -1,0 +1,834 @@
+---
+title: Query Examples
+description: "Common SQL patterns for analytics and billing"
+---
+
+This guide provides SQL query examples for common analytics scenarios covering all the use cases from the legacy API and more. All examples use ClickHouse SQL syntax and work with the `/v2/analytics.getVerifications` endpoint.
+
+<Info>
+  These queries automatically include workspace isolation and resource limits. You can use your own IDs like `api_id` and `external_id` directly - no need for complex conversion functions.
+</Info>
+
+## Using Queries in API Requests
+
+When making API requests, you need to format the SQL query as a JSON string on a single line. Here's how:
+
+**Readable format (for documentation):**
+```sql
+SELECT COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+**JSON format (for API requests):**
+```json
+{
+  "query": "SELECT COUNT(*) as total FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY"
+}
+```
+
+<Tip>
+  Each example below shows both the readable multi-line SQL and the single-line JSON format you can copy directly into your API requests.
+</Tip>
+
+## Usage Analytics
+
+<AccordionGroup>
+
+<Accordion title="Total verifications in the last 7 days">
+
+```sql
+SELECT COUNT(*) as total_verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total_verifications FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Verifications by outcome">
+
+```sql
+SELECT
+  outcome,
+  COUNT(*) as count
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY outcome
+ORDER BY count DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT outcome, COUNT(*) as count FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY GROUP BY outcome ORDER BY count DESC"}
+```
+
+</Accordion>
+
+<Accordion title="Daily verification trend">
+
+```sql
+SELECT
+  time as date,
+  SUM(count) as verifications
+FROM key_verifications_per_day
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY date
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day WHERE time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+```
+
+</Accordion>
+
+<Accordion title="Hourly breakdown for today">
+
+```sql
+SELECT
+  time as hour,
+  outcome,
+  SUM(count) as verifications
+FROM key_verifications_per_hour
+WHERE time >= toStartOfDay(now())
+GROUP BY hour, outcome
+ORDER BY hour, outcome
+```
+
+**JSON format:**
+```json
+{"query": "SELECT time as hour, outcome, SUM(count) as verifications FROM key_verifications_per_hour WHERE time >= toStartOfDay(now()) GROUP BY hour, outcome ORDER BY hour, outcome"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## User & Identity Analytics
+
+<AccordionGroup>
+
+<Accordion title="Usage per user (identity)">
+
+```sql
+SELECT
+  identity_id,
+  COUNT(*) as total_verifications,
+  countIf(outcome = 'VALID') as successful,
+  countIf(outcome = 'RATE_LIMITED') as rate_limited
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+  AND identity_id != ''
+GROUP BY identity_id
+ORDER BY total_verifications DESC
+LIMIT 100
+```
+
+**JSON format:**
+```json
+{"query": "SELECT identity_id, COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY AND identity_id != '' GROUP BY identity_id ORDER BY total_verifications DESC LIMIT 100"}
+```
+
+</Accordion>
+
+<Accordion title="Usage for a specific user (by external_id)">
+
+```sql
+SELECT
+  COUNT(*) as total_verifications,
+  countIf(outcome = 'VALID') as successful,
+  countIf(outcome = 'RATE_LIMITED') as rate_limited
+FROM key_verifications
+WHERE external_id = 'user_123'
+  AND time >= now() - INTERVAL 30 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Top 10 users by API usage">
+
+```sql
+SELECT
+  identity_id,
+  COUNT(*) as total_verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+  AND identity_id != ''
+GROUP BY identity_id
+ORDER BY total_verifications DESC
+LIMIT 10
+```
+
+**JSON format:**
+```json
+{"query": "SELECT identity_id, COUNT(*) as total_verifications FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY AND identity_id != '' GROUP BY identity_id ORDER BY total_verifications DESC LIMIT 10"}
+```
+
+</Accordion>
+
+<Accordion title="Daily usage per user">
+
+```sql
+SELECT
+  external_id,
+  toDate(fromUnixTimestamp64Milli(time)) as date,
+  COUNT(*) as verifications
+FROM key_verifications
+WHERE external_id = 'user_123'
+  AND time >= now() - INTERVAL 30 DAY
+GROUP BY external_id, date
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "SELECT external_id, toDate(fromUnixTimestamp64Milli(time)) as date, COUNT(*) as verifications FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY date"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## API Analytics
+
+<AccordionGroup>
+
+<Accordion title="Usage per API">
+
+```sql
+SELECT
+  key_space_id,
+  COUNT(*) as total_verifications,
+  countIf(outcome = 'VALID') as successful
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY key_space_id
+ORDER BY total_verifications DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT key_space_id, COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_space_id ORDER BY total_verifications DESC"}
+```
+
+</Accordion>
+
+<Accordion title="Usage for a specific API">
+
+```sql
+SELECT
+  COUNT(*) as total_verifications,
+  countIf(outcome = 'VALID') as successful,
+  countIf(outcome = 'RATE_LIMITED') as rate_limited,
+  countIf(outcome = 'INVALID') as invalid
+FROM key_verifications
+WHERE api_id = 'api_1234'
+  AND time >= now() - INTERVAL 30 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited, countIf(outcome = 'INVALID') as invalid FROM key_verifications WHERE api_id = 'api_1234' AND time >= now() - INTERVAL 30 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Compare multiple APIs">
+
+```sql
+SELECT
+  key_space_id,
+  COUNT(*) as verifications,
+  round(countIf(outcome = 'VALID') / COUNT(*) * 100, 2) as success_rate
+FROM key_verifications
+WHERE api_id IN ('api_1234', 'api_5678')
+  AND time >= now() - INTERVAL 7 DAY
+GROUP BY key_space_id
+```
+
+**JSON format:**
+```json
+{"query": "SELECT key_space_id, COUNT(*) as verifications, round(countIf(outcome = 'VALID') / COUNT(*) * 100, 2) as success_rate FROM key_verifications WHERE api_id IN ('api_1234', 'api_5678') AND time >= now() - INTERVAL 7 DAY GROUP BY key_space_id"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Key Analytics
+
+<AccordionGroup>
+
+<Accordion title="Usage per key">
+
+```sql
+SELECT
+  key_id,
+  COUNT(*) as total_verifications,
+  countIf(outcome = 'VALID') as successful
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY key_id
+ORDER BY total_verifications DESC
+LIMIT 100
+```
+
+**JSON format:**
+```json
+{"query": "SELECT key_id, COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_id ORDER BY total_verifications DESC LIMIT 100"}
+```
+
+</Accordion>
+
+<Accordion title="Usage for a specific key">
+
+```sql
+SELECT
+  COUNT(*) as total_verifications,
+  countIf(outcome = 'VALID') as successful,
+  countIf(outcome = 'RATE_LIMITED') as rate_limited
+FROM key_verifications
+WHERE key_id = 'key_1234'
+  AND time >= now() - INTERVAL 30 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited FROM key_verifications WHERE key_id = 'key_1234' AND time >= now() - INTERVAL 30 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Keys with most errors">
+
+```sql
+SELECT
+  key_id,
+  COUNT(*) as total_errors,
+  groupArray(DISTINCT outcome) as error_types
+FROM key_verifications
+WHERE outcome != 'VALID'
+  AND time >= now() - INTERVAL 7 DAY
+GROUP BY key_id
+ORDER BY total_errors DESC
+LIMIT 20
+```
+
+**JSON format:**
+```json
+{"query": "SELECT key_id, COUNT(*) as total_errors, groupArray(DISTINCT outcome) as error_types FROM key_verifications WHERE outcome != 'VALID' AND time >= now() - INTERVAL 7 DAY GROUP BY key_id ORDER BY total_errors DESC LIMIT 20"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Tag-Based Analytics
+
+Tags allow you to add custom metadata to verification requests for filtering and aggregation.
+
+<AccordionGroup>
+
+<Accordion title="Filter by single tag">
+
+```sql
+SELECT COUNT(*) as total
+FROM key_verifications
+WHERE has(tags, 'path=/api/v1/users')
+  AND time >= now() - INTERVAL 7 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total FROM key_verifications WHERE has(tags, 'path=/api/v1/users') AND time >= now() - INTERVAL 7 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Filter by multiple tags (OR)">
+
+```sql
+SELECT COUNT(*) as total
+FROM key_verifications
+WHERE hasAny(tags, ['path=/api/v1/users', 'path=/api/v1/posts'])
+  AND time >= now() - INTERVAL 7 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total FROM key_verifications WHERE hasAny(tags, ['path=/api/v1/users', 'path=/api/v1/posts']) AND time >= now() - INTERVAL 7 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Filter by multiple tags (AND)">
+
+```sql
+SELECT COUNT(*) as total
+FROM key_verifications
+WHERE hasAll(tags, ['environment=production', 'region=us-east-1'])
+  AND time >= now() - INTERVAL 7 DAY
+```
+
+**JSON format:**
+```json
+{"query": "SELECT COUNT(*) as total FROM key_verifications WHERE hasAll(tags, ['environment=production', 'region=us-east-1']) AND time >= now() - INTERVAL 7 DAY"}
+```
+
+</Accordion>
+
+<Accordion title="Group by tag">
+
+```sql
+SELECT
+  arrayJoin(tags) as tag,
+  COUNT(*) as verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY tag
+ORDER BY verifications DESC
+LIMIT 20
+```
+
+**JSON format:**
+```json
+{"query": "SELECT arrayJoin(tags) as tag, COUNT(*) as verifications FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY GROUP BY tag ORDER BY verifications DESC LIMIT 20"}
+```
+
+</Accordion>
+
+<Accordion title="Breakdown by endpoint (using path tag)">
+
+```sql
+SELECT
+  arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as endpoint,
+  COUNT(*) as requests
+FROM key_verifications
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY endpoint
+ORDER BY requests DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as endpoint, COUNT(*) as requests FROM key_verifications WHERE time >= now() - INTERVAL 24 HOUR GROUP BY endpoint ORDER BY requests DESC"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Geographic Analytics
+
+<AccordionGroup>
+
+<Accordion title="Verifications by region">
+
+```sql
+SELECT
+  region,
+  COUNT(*) as verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+  AND region != ''
+GROUP BY region
+ORDER BY verifications DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT region, COUNT(*) as verifications FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY AND region != '' GROUP BY region ORDER BY verifications DESC"}
+```
+
+</Accordion>
+
+<Accordion title="Usage per user per region">
+
+```sql
+SELECT
+  external_id,
+  region,
+  COUNT(*) as verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 30 DAY
+  AND external_id = 'user_123'
+  AND region != ''
+GROUP BY external_id, region
+ORDER BY verifications DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT external_id, region, COUNT(*) as verifications FROM key_verifications WHERE time >= now() - INTERVAL 30 DAY AND external_id = 'user_123' AND region != '' GROUP BY external_id, region ORDER BY verifications DESC"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Billing & Usage-Based Pricing
+
+<AccordionGroup>
+
+<Accordion title="Monthly usage per user">
+
+```sql
+SELECT
+  identity_id,
+  toStartOfMonth(fromUnixTimestamp64Milli(time)) as month,
+  countIf(outcome = 'VALID') as billable_requests
+FROM key_verifications
+WHERE identity_id != ''
+  AND time >= toUnixTimestamp64Milli(toStartOfMonth(now()))
+GROUP BY identity_id, month
+ORDER BY billable_requests DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT identity_id, toStartOfMonth(fromUnixTimestamp64Milli(time)) as month, countIf(outcome = 'VALID') as billable_requests FROM key_verifications WHERE identity_id != '' AND time >= toUnixTimestamp64Milli(toStartOfMonth(now())) GROUP BY identity_id, month ORDER BY billable_requests DESC"}
+```
+
+</Accordion>
+
+<Accordion title="Current billing period usage">
+
+```sql
+SELECT
+  external_id,
+  countIf(outcome = 'VALID') as requests_this_period
+FROM key_verifications
+WHERE external_id = 'user_123'
+  AND time >= 1704067200000  -- Start of billing period (Unix millis)
+  AND time < 1706745600000   -- End of billing period (Unix millis)
+GROUP BY external_id
+```
+
+**JSON format:**
+```json
+{"query": "SELECT external_id, countIf(outcome = 'VALID') as requests_this_period FROM key_verifications WHERE external_id = 'user_123' AND time >= 1704067200000  -- Start of billing period (Unix millis) AND time < 1706745600000   -- End of billing period (Unix millis) GROUP BY external_id"}
+```
+
+</Accordion>
+
+<Accordion title="Usage tiers calculation">
+
+```sql
+SELECT
+  external_id,
+  countIf(outcome = 'VALID') as total_requests,
+  CASE
+    WHEN total_requests <= 1000 THEN 'free'
+    WHEN total_requests <= 10000 THEN 'starter'
+    WHEN total_requests <= 100000 THEN 'pro'
+    ELSE 'enterprise'
+  END as tier
+FROM key_verifications
+WHERE time >= toUnixTimestamp64Milli(toStartOfMonth(now()))
+  AND external_id = 'user_123'
+  GROUP BY external_id
+```
+
+**JSON format:**
+```json
+{"query": "SELECT external_id, countIf(outcome = 'VALID') as total_requests, CASE WHEN total_requests <= 1000 THEN 'free' WHEN total_requests <= 10000 THEN 'starter' WHEN total_requests <= 100000 THEN 'pro' ELSE 'enterprise' END as tier FROM key_verifications WHERE time >= toUnixTimestamp64Milli(toStartOfMonth(now())) AND external_id = 'user_123' GROUP BY external_id"}
+```
+
+</Accordion>
+
+<Accordion title="Daily billing breakdown">
+
+```sql
+SELECT
+  toDate(fromUnixTimestamp64Milli(time)) as date,
+  countIf(outcome = 'VALID') as billable_requests,
+  billable_requests * 0.001 as estimated_cost  -- $0.001 per request
+FROM key_verifications
+WHERE external_id = 'user_123'
+  AND time >= now() - INTERVAL 30 DAY
+GROUP BY date
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "SELECT toDate(fromUnixTimestamp64Milli(time)) as date, countIf(outcome = 'VALID') as billable_requests, billable_requests * 0.001 as estimated_cost  -- $0.001 per request FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Performance & Monitoring
+
+<AccordionGroup>
+
+<Accordion title="Average response time trend (requires latency data)">
+
+```sql
+SELECT
+  toStartOfHour(fromUnixTimestamp64Milli(time)) as hour,
+  COUNT(*) as requests,
+  avg(latency_ms) as avg_latency
+FROM key_verifications
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY hour
+ORDER BY hour
+```
+
+**JSON format:**
+```json
+{"query": "SELECT toStartOfHour(fromUnixTimestamp64Milli(time)) as hour, COUNT(*) as requests, avg(latency_ms) as avg_latency FROM key_verifications WHERE time >= now() - INTERVAL 24 HOUR GROUP BY hour ORDER BY hour"}
+```
+
+</Accordion>
+
+<Accordion title="Success rate over time">
+
+```sql
+SELECT
+  time as date,
+  SUM(count) as total_requests,
+  SUM(if(outcome = 'VALID', count, 0)) as successful_requests,
+  round(successful_requests / total_requests * 100, 2) as success_rate
+FROM key_verifications_per_day
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY date
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "SELECT time as date, SUM(count) as total_requests, SUM(if(outcome = 'VALID', count, 0)) as successful_requests, round(successful_requests / total_requests * 100, 2) as success_rate FROM key_verifications_per_day WHERE time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+```
+
+</Accordion>
+
+<Accordion title="Error rate by API">
+
+```sql
+SELECT
+  key_space_id,
+  COUNT(*) as total_requests,
+  countIf(outcome != 'VALID') as errors,
+  round(errors / total_requests * 100, 2) as error_rate
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY key_space_id
+HAVING error_rate > 5  -- Only show APIs with >5% error rate
+ORDER BY error_rate DESC
+```
+
+**JSON format:**
+```json
+{"query": "SELECT key_space_id, COUNT(*) as total_requests, countIf(outcome != 'VALID') as errors, round(errors / total_requests * 100, 2) as error_rate FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY GROUP BY key_space_id HAVING error_rate > 5  -- Only show APIs with >5% error rate ORDER BY error_rate DESC"}
+```
+
+</Accordion>
+
+<Accordion title="Rate limit violations">
+
+```sql
+SELECT
+  time as date,
+  SUM(count) as rate_limit_hits
+FROM key_verifications_per_day
+WHERE outcome = 'RATE_LIMITED'
+  AND time >= now() - INTERVAL 30 DAY
+GROUP BY date
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "SELECT time as date, SUM(count) as rate_limit_hits FROM key_verifications_per_day WHERE outcome = 'RATE_LIMITED' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Advanced Queries
+
+<AccordionGroup>
+
+<Accordion title="Cohort analysis: New vs returning users">
+
+```sql
+WITH first_seen AS (
+  SELECT
+    identity_id,
+    min(time) as first_verification
+  FROM key_verifications
+  WHERE identity_id != ''
+  GROUP BY identity_id
+)
+SELECT
+  toDate(fromUnixTimestamp64Milli(kv.time)) as date,
+  countIf(kv.time = fs.first_verification) as new_users,
+  countIf(kv.time > fs.first_verification) as returning_users
+FROM key_verifications kv
+JOIN first_seen fs ON kv.identity_id = fs.identity_id
+WHERE kv.time >= now() - INTERVAL 30 DAY
+GROUP BY date
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "WITH first_seen AS ( SELECT identity_id, min(time) as first_verification FROM key_verifications WHERE identity_id != '' GROUP BY identity_id ) SELECT toDate(fromUnixTimestamp64Milli(kv.time)) as date, countIf(kv.time = fs.first_verification) as new_users, countIf(kv.time > fs.first_verification) as returning_users FROM key_verifications kv JOIN first_seen fs ON kv.identity_id = fs.identity_id WHERE kv.time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+```
+
+</Accordion>
+
+<Accordion title="Moving average (7-day)">
+
+```sql
+SELECT
+  date,
+  verifications,
+  avg(verifications) OVER (
+    ORDER BY date
+    ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+  ) as moving_avg_7d
+FROM (
+  SELECT
+    time as date,
+    SUM(count) as verifications
+  FROM key_verifications_per_day
+  WHERE time >= now() - INTERVAL 60 DAY
+  GROUP BY date
+)
+ORDER BY date
+```
+
+**JSON format:**
+```json
+{"query": "SELECT date, verifications, avg(verifications) OVER ( ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW ) as moving_avg_7d FROM ( SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day WHERE time >= now() - INTERVAL 60 DAY GROUP BY date ) ORDER BY date"}
+```
+
+</Accordion>
+
+<Accordion title="Percentile latencies (requires latency data)">
+
+```sql
+SELECT
+  quantile(0.50)(latency_ms) as p50_latency,
+  quantile(0.90)(latency_ms) as p90_latency,
+  quantile(0.95)(latency_ms) as p95_latency,
+  quantile(0.99)(latency_ms) as p99_latency
+FROM key_verifications
+WHERE time >= now() - INTERVAL 24 HOUR
+```
+
+**JSON format:**
+```json
+{"query": "SELECT quantile(0.50)(latency_ms) as p50_latency, quantile(0.90)(latency_ms) as p90_latency, quantile(0.95)(latency_ms) as p95_latency, quantile(0.99)(latency_ms) as p99_latency FROM key_verifications WHERE time >= now() - INTERVAL 24 HOUR"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Using Aggregated Tables
+
+For better performance on large time ranges, use pre-aggregated tables:
+
+<AccordionGroup>
+
+<Accordion title="Hourly aggregates">
+
+```sql
+SELECT
+  hour,
+  SUM(total_verifications) as total,
+  SUM(valid_count) as valid,
+  SUM(rate_limited_count) as rate_limited
+FROM key_verifications_per_hour
+WHERE hour >= toStartOfHour(now() - INTERVAL 7 DAY)
+GROUP BY hour
+ORDER BY hour
+```
+
+**JSON format:**
+```json
+{"query": "SELECT hour, SUM(total_verifications) as total, SUM(valid_count) as valid, SUM(rate_limited_count) as rate_limited FROM key_verifications_per_hour WHERE hour >= toStartOfHour(now() - INTERVAL 7 DAY) GROUP BY hour ORDER BY hour"}
+```
+
+</Accordion>
+
+<Accordion title="Daily aggregates">
+
+```sql
+SELECT
+  day,
+  SUM(total_verifications) as total,
+  SUM(valid_count) as valid
+FROM key_verifications_per_day
+WHERE day >= toStartOfDay(now() - INTERVAL 30 DAY)
+GROUP BY day
+ORDER BY day
+```
+
+**JSON format:**
+```json
+{"query": "SELECT day, SUM(total_verifications) as total, SUM(valid_count) as valid FROM key_verifications_per_day WHERE day >= toStartOfDay(now() - INTERVAL 30 DAY) GROUP BY day ORDER BY day"}
+```
+
+</Accordion>
+
+<Accordion title="Monthly aggregates">
+
+```sql
+SELECT
+  month,
+  SUM(total_verifications) as total,
+  SUM(valid_count) as valid
+FROM key_verifications_per_month
+WHERE month >= toStartOfMonth(now() - INTERVAL 12 MONTH)
+GROUP BY month
+ORDER BY month
+```
+
+**JSON format:**
+```json
+{"query": "SELECT month, SUM(total_verifications) as total, SUM(valid_count) as valid FROM key_verifications_per_month WHERE month >= toStartOfMonth(now() - INTERVAL 12 MONTH) GROUP BY month ORDER BY month"}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Tips for Efficient Queries
+
+1. **Always filter by time** - Use indexes by including time filters
+2. **Use aggregated tables** - Hourly/daily/monthly tables for longer ranges
+3. **Add LIMIT clauses** - Prevent returning too much data
+4. **Filter before grouping** - Use WHERE instead of HAVING when possible
+5. **Use your own IDs** - Filter with api_id and external_id directly
+6. **Test with LIMIT 10** - Verify query logic before running on full dataset
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Schema Reference" icon="table" href="/analytics/schema-reference">
+    Browse available tables, columns, and data types
+  </Card>
+  <Card title="Security" icon="shield" href="/analytics/security">
+    Understand workspace isolation and query security
+  </Card>
+  <Card title="ClickHouse Functions" icon="function" href="https://clickhouse.com/docs/en/sql-reference/functions">
+    Explore ClickHouse SQL functions (external link)
+  </Card>
+</CardGroup>
