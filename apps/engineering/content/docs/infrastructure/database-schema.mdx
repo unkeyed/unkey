@@ -3,13 +3,11 @@ title: "Database Schema Management"
 description: "How database schemas are managed and applied in the Unkey platform"
 ---
 
-
 ## Overview
 
 Unkey uses multiple MySQL databases that are automatically created and initialized during development:
 
 - **unkey**: Main application database containing APIs, keys, workspaces, and related data
-- **hydra**: Workflow orchestration engine database for managing deployment workflows
 - **partition_00X**: Dataplane partition database
 
 ## Schema Files
@@ -17,14 +15,14 @@ Unkey uses multiple MySQL databases that are automatically created and initializ
 Schema definitions are maintained in separate files:
 
 - `go/pkg/db/schema.sql` - Main Unkey application schema
-- `go/pkg/hydra/store/schema.sql` - Hydra workflow engine schema
-- `go/pkg/partition/schema.sq.` - Dataplane schema
+- `go/pkg/partition/schema.sql` - Dataplane schema
 
 ## Docker Development Setup
 
 During local development, schemas are automatically applied via Docker:
 
 ### File Structure
+
 ```
 deployment/
 ├── Dockerfile.mysql          # MySQL container definition
@@ -32,8 +30,7 @@ deployment/
 └── docker-compose.yaml       # Service orchestration
 
 go/pkg/
-├── db/schema.sql             # Main application schema  
-└── hydra/store/schema.sql    # Hydra workflow schema
+├── db/schema.sql             # Main application schema
 ```
 
 ### Initialization Order
@@ -42,8 +39,7 @@ The MySQL container applies files from `/docker-entrypoint-initdb.d/` in alphabe
 
 1. **00-init-databases.sql** - Creates databases and grants permissions
 2. **01-main-schema.sql** - Creates all main application tables in `unkey` database
-3. **02-partition_schema.sql - Creates the partition tables in the `partition_001` database
-4. **03-hydra-schema.sql** - Creates workflow tables in `hydra` database
+3. \*\*02-partition_schema.sql - Creates the partition tables in the `partition_001` database
 
 ### Database-Qualified Table Names
 
@@ -56,11 +52,6 @@ CREATE TABLE `unkey`.`apis` (
   -- ...
 );
 
--- Hydra schema (go/pkg/hydra/store/schema.sql)  
-CREATE TABLE `hydra`.`workflow_executions` (
-  id VARCHAR(255) PRIMARY KEY,
-  -- ...
-);
 ```
 
 ## Schema Management Strategy
@@ -77,13 +68,10 @@ The `go/pkg/db/schema.sql` file is **manually maintained** and must be kept in s
 ### Future State (SQL-First)
 
 In the future, we plan to reverse this workflow:
+
 - `go/pkg/db/schema.sql` will become the primary source of truth
 - Drizzle schema will be generated from the SQL schema
 - This will enable better tooling and consistency
-
-### Hydra Database
-
-The `hydra` database uses `go/pkg/hydra/store/schema.sql` as its source of truth since it's Go-native and doesn't use Drizzle.
 
 ## SQLC Integration
 
@@ -101,6 +89,7 @@ After schema changes, regenerate the SQLC code:
 cd go
 go generate ./...
 ```
+
 Do not use `sqlc generate` directly as we have some custom logic during the generation step.
 
 ## Making Schema Changes
@@ -117,13 +106,3 @@ Do not use `sqlc generate` directly as we have some custom logic during the gene
    docker-compose down
    docker-compose up --build
    ```
-
-### For Hydra Database
-
-1. **Update the schema file** `go/pkg/hydra/store/schema.sql`
-2. **Rebuild Docker containers** to apply changes:
-   ```bash
-   docker stop $(docker ps -aq); docker system prune -f; docker volume prune --all -f
-   docker compose up --build
-   ```
-

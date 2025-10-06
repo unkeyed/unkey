@@ -1,0 +1,7 @@
+{
+  "title": "Durable Workflows",
+  "description": "Restate-based workflow orchestration",
+  "icon": "Workflow",
+  "root": false,
+  "pages": ["index", "deployment-service", "routing-service", "creating-services"]
+}

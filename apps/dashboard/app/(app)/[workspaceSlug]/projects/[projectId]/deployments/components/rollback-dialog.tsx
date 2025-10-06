@@ -7,7 +7,7 @@ import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
-import { useProjectLayout } from "../../layout-provider";
+import { useProject } from "../../layout-provider";
 
 type DeploymentSectionProps = {
   title: string;
@@ -43,7 +43,7 @@ export const RollbackDialog = ({
 
   const {
     collections: { domains: domainCollection },
-  } = useProjectLayout();
+  } = useProject();
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })

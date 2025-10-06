@@ -24,8 +24,7 @@ pull:
 	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up: pull
-	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka
-
+	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate
 
 clean:
 	@docker compose -f ../deployment/docker-compose.yaml down --volumes
@@ -34,8 +33,11 @@ build:
 	go build -o unkey ./main.go
 
 generate:
-	buf generate
+	go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
+	buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
+	buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
+	go fmt ./...
 
 
 test: test-unit
@@ -84,6 +86,7 @@ k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
 	@kubectl wait --for=condition=ready pod -l app=mysql -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=clickhouse -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=s3 -n unkey --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=restate -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=api -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=gw -n unkey --timeout=180s
 	@kubectl wait --for=condition=ready pod -l app=ctrl -n unkey --timeout=180s
@@ -138,6 +141,9 @@ start-planetscale: k8s-check ## Deploy only PlanetScale HTTP driver
 start-observability: k8s-check ## Deploy only Observability stack
 	$(call deploy-service,observability,Observability stack,,,otel-collector)
 
+start-restate: k8s-check ## Deploy only Restate
+	$(call deploy-service,restate,Restate)
+
 start-api: k8s-check ## Deploy only API service (3 replicas)
 	$(call deploy-service,api,API,unkey:latest,.)
 
@@ -152,7 +158,7 @@ start-dashboard: k8s-check ## Deploy only dashboard service
 
 start-unkey-services: start-api start-gw start-ctrl start-dashboard ## Deploy all Unkey services
 
-start-dependencies: start-mysql start-clickhouse start-redis start-s3 start-planetscale start-observability ## Deploy all dependency services
+start-dependencies: start-mysql start-clickhouse start-redis start-s3 start-planetscale start-observability start-restate ## Deploy all dependency services
 
 start-all: start-dependencies start-unkey-services ## Deploy all services individually
 

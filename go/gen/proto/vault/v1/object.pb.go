@@ -357,7 +357,8 @@ const file_vault_v1_object_proto_rawDesc = "" +
 	"\x11encryption_key_id\x18\x04 \x01(\tR\x0fencryptionKeyId\x12\x12\n" +
 	"\x04time\x18\x05 \x01(\x03R\x04time*\x1c\n" +
 	"\tAlgorithm\x12\x0f\n" +
-	"\vAES_256_GCM\x10\x00B8Z6github.com/unkeyed/unkey/go/gen/proto/vault/v1;vaultv1b\x06proto3"
+	"\vAES_256_GCM\x10\x00B\x94\x01\n" +
+	"\fcom.vault.v1B\vObjectProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 
 var (
 	file_vault_v1_object_proto_rawDescOnce sync.Once

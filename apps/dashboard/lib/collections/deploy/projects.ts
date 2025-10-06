@@ -13,13 +13,14 @@ const schema = z.object({
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
   // Flattened deployment fields for UI
-  commitTitle: z.string(),
+  commitTitle: z.string().nullable(),
   branch: z.string(),
-  author: z.string(),
+  author: z.string().nullable(),
+  authorAvatar: z.string().nullable(),
   commitTimestamp: z.number().int().nullable(),
   regions: z.array(z.string()),
   // Domain field
-  domain: z.string(),
+  domain: z.string().nullable(),
 });
 
 export const createProjectRequestSchema = z.object({

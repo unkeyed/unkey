@@ -23,6 +23,7 @@ spec:
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
+            - containerPort: 9080
           env:
             # Server Configuration
             - name: UNKEY_HTTP_PORT
@@ -72,6 +73,18 @@ spec:
 
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
+
+            # Restate Configuration
+            - name: UNKEY_RESTATE_INGRESS_URL
+              value: "http://restate:8080"
+            - name: UNKEY_RESTATE_ADMIN_URL
+              value: "http://restate:9070"
+            - name: UNKEY_RESTATE_HTTP_PORT
+              value: "9080"
+            - name: UNKEY_RESTATE_REGISTER_AS
+              value: "http://ctrl:9080"
+
+            # Additional Configuration
             - name: UNKEY_API_KEY
               value: "your-local-dev-key"
 
@@ -83,7 +96,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z s3 3902; do echo waiting for dependencies; sleep 2; done;",
+              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080; do echo waiting for dependencies; sleep 2; done;",
             ]
 
 ---
@@ -101,5 +114,9 @@ spec:
     - name: http
       port: 7091
       targetPort: 7091
+      protocol: TCP
+    - name: restate
+      port: 9080
+      targetPort: 9080
       protocol: TCP
   type: LoadBalancer

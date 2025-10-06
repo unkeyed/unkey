@@ -149,8 +149,7 @@ type Querier interface {
 	//      git_branch,
 	//      runtime_config,
 	//      git_commit_message,
-	//      git_commit_author_name,
-	//      git_commit_author_username,
+	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
 	//      git_commit_timestamp,
 	//      openapi_spec,
@@ -190,6 +189,22 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
+	//FindDomainsByIds
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      domain,
+	//      deployment_id,
+	//      sticky,
+	//      type,
+	//      created_at,
+	//      updated_at
+	//  FROM domains
+	//  WHERE id IN (/*SLICE:ids*/?)
+	FindDomainsByIds(ctx context.Context, db DBTX, ids []string) ([]FindDomainsByIdsRow, error)
 	//FindDomainsForPromotion
 	//
 	//  SELECT
@@ -884,8 +899,7 @@ type Querier interface {
 	//      git_branch,
 	//      runtime_config,
 	//      git_commit_message,
-	//      git_commit_author_name,
-	//      git_commit_author_username,
+	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
 	//      git_commit_timestamp, -- Unix epoch milliseconds
 	//      openapi_spec,
@@ -894,7 +908,6 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
