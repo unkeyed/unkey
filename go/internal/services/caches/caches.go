@@ -299,13 +299,13 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		RatelimitNamespace:   middleware.WithTracing(ratelimitNamespace),
-		LiveApiByID:          middleware.WithTracing(liveApiByID),
+		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
+		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
-		ClickhouseSetting:    middleware.WithTracing(clickhouseSetting),
-		KeyAuthToApiRow:      middleware.WithTracing(keyAuthToApiRow),
-		ApiToKeyAuthRow:      middleware.WithTracing(apiToKeyAuthRow),
-		ExternalIdToIdentity: middleware.WithTracing(externalIdToIdentity),
-		Identity:             middleware.WithTracing(identity),
+		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
+		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
+		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
+		ExternalIdToIdentity:  middleware.WithTracing(externalIdToIdentity),
+		Identity:              middleware.WithTracing(identity),
 	}, nil
 }

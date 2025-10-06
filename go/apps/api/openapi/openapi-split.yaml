@@ -215,9 +215,6 @@ paths:
     $ref: "./spec/paths/chproxy/ratelimits/index.yaml"
 
 components:
-  schemas:
-    ServiceUnavailableErrorResponse:
-      $ref: "./spec/error/ServiceUnavailableErrorResponse.yaml"
   securitySchemes:
     rootKey:
       type: http

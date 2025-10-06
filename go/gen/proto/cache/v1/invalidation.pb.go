@@ -104,7 +104,8 @@ const file_cache_v1_invalidation_proto_rawDesc = "" +
 	"cache_name\x18\x01 \x01(\tR\tcacheName\x12\x1b\n" +
 	"\tcache_key\x18\x02 \x01(\tR\bcacheKey\x12\x1c\n" +
 	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\x12'\n" +
-	"\x0fsource_instance\x18\x04 \x01(\tR\x0esourceInstanceB8Z6github.com/unkeyed/unkey/go/gen/proto/cache/v1;cachev1b\x06proto3"
+	"\x0fsource_instance\x18\x04 \x01(\tR\x0esourceInstanceB\x9a\x01\n" +
+	"\fcom.cache.v1B\x11InvalidationProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/cache/v1;cachev1\xa2\x02\x03CXX\xaa\x02\bCache.V1\xca\x02\bCache\\V1\xe2\x02\x14Cache\\V1\\GPBMetadata\xea\x02\tCache::V1b\x06proto3"
 
 var (
 	file_cache_v1_invalidation_proto_rawDescOnce sync.Once

@@ -3,8 +3,7 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "dev": "mintlify dev --local-schema",
-    "update-api-docs": "./update-api-docs.sh"
+    "dev": "mintlify dev"
   },
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",

@@ -6,11 +6,11 @@ type URN string
 
 // Error code constants for use in switch statements for exhaustive checking
 const (
-// ----------------
-// UserErrors
-// ----------------
+	// ----------------
+	// UserErrors
+	// ----------------
 
-// BadRequest
+	// BadRequest
 
 	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
 	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
@@ -39,11 +39,11 @@ const (
 	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
 	UserErrorsBadRequestQueryQuotaExceeded URN = "err:user:bad_request:query_quota_exceeded"
 
-// ----------------
-// UnkeyAuthErrors
-// ----------------
+	// ----------------
+	// UnkeyAuthErrors
+	// ----------------
 
-// Authentication
+	// Authentication
 
 	// Missing indicates authentication credentials were not provided.
 	UnkeyAuthErrorsAuthenticationMissing URN = "err:unkey:authentication:missing"
@@ -52,7 +52,7 @@ const (
 	// KeyNotFound indicates the authentication key was not found.
 	UnkeyAuthErrorsAuthenticationKeyNotFound URN = "err:unkey:authentication:key_not_found"
 
-// Authorization
+	// Authorization
 
 	// InsufficientPermissions indicates the authenticated entity lacks
 	// sufficient permissions for the requested operation.
@@ -64,108 +64,108 @@ const (
 	// WorkspaceDisabled indicates the associated workspace is disabled.
 	UnkeyAuthErrorsAuthorizationWorkspaceDisabled URN = "err:unkey:authorization:workspace_disabled"
 
-// ----------------
-// UnkeyDataErrors
-// ----------------
+	// ----------------
+	// UnkeyDataErrors
+	// ----------------
 
-// Key
+	// Key
 
 	// NotFound indicates the requested key was not found.
 	UnkeyDataErrorsKeyNotFound URN = "err:unkey:data:key_not_found"
 
-// Workspace
+	// Workspace
 
 	// NotFound indicates the requested workspace was not found.
 	UnkeyDataErrorsWorkspaceNotFound URN = "err:unkey:data:workspace_not_found"
 
-// Api
+	// Api
 
 	// NotFound indicates the requested API was not found.
 	UnkeyDataErrorsApiNotFound URN = "err:unkey:data:api_not_found"
 
-// Permission
+	// Permission
 
 	// Duplicate indicates the requested permission already exists.
 	UnkeyDataErrorsPermissionDuplicate URN = "err:unkey:data:permission_already_exists"
 	// NotFound indicates the requested permission was not found.
 	UnkeyDataErrorsPermissionNotFound URN = "err:unkey:data:permission_not_found"
 
-// Role
+	// Role
 
 	// Duplicate indicates the requested role already exists.
 	UnkeyDataErrorsRoleDuplicate URN = "err:unkey:data:role_already_exists"
 	// NotFound indicates the requested role was not found.
 	UnkeyDataErrorsRoleNotFound URN = "err:unkey:data:role_not_found"
 
-// KeyAuth
+	// KeyAuth
 
 	// NotFound indicates the requested key authentication was not found.
 	UnkeyDataErrorsKeyAuthNotFound URN = "err:unkey:data:key_auth_not_found"
 
-// RatelimitNamespace
+	// RatelimitNamespace
 
 	// NotFound indicates the requested rate limit namespace was not found.
 	UnkeyDataErrorsRatelimitNamespaceNotFound URN = "err:unkey:data:ratelimit_namespace_not_found"
 	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
 	UnkeyDataErrorsRatelimitNamespaceGone URN = "err:unkey:data:ratelimit_namespace_gone"
 
-// RatelimitOverride
+	// RatelimitOverride
 
 	// NotFound indicates the requested rate limit override was not found.
 	UnkeyDataErrorsRatelimitOverrideNotFound URN = "err:unkey:data:ratelimit_override_not_found"
 
-// Identity
+	// Identity
 
 	// NotFound indicates the requested identity was not found.
 	UnkeyDataErrorsIdentityNotFound URN = "err:unkey:data:identity_not_found"
 	// Duplicate indicates the requested identity already exists.
 	UnkeyDataErrorsIdentityDuplicate URN = "err:unkey:data:identity_already_exists"
 
-// AuditLog
+	// AuditLog
 
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-// Analytics
+	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.
 	UnkeyDataErrorsAnalyticsNotConfigured URN = "err:unkey:data:analytics_not_configured"
 	// ConnectionFailed indicates the connection to the analytics database failed.
 	UnkeyDataErrorsAnalyticsConnectionFailed URN = "err:unkey:data:analytics_connection_failed"
 
-// ----------------
-// UnkeyAppErrors
-// ----------------
+	// ----------------
+	// UnkeyAppErrors
+	// ----------------
 
-// Internal
+	// Internal
 
 	// UnexpectedError represents an unhandled or unexpected error condition.
 	UnkeyAppErrorsInternalUnexpectedError URN = "err:unkey:application:unexpected_error"
 	// ServiceUnavailable indicates a service is temporarily unavailable.
 	UnkeyAppErrorsInternalServiceUnavailable URN = "err:unkey:application:service_unavailable"
 
-// Validation
+	// Validation
 
 	// InvalidInput indicates a client provided input that failed validation.
 	UnkeyAppErrorsValidationInvalidInput URN = "err:unkey:application:invalid_input"
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	UnkeyAppErrorsValidationAssertionFailed URN = "err:unkey:application:assertion_failed"
 
-// Protection
+	// Protection
 
 	// ProtectedResource indicates an attempt to modify a protected resource.
 	UnkeyAppErrorsProtectionProtectedResource URN = "err:unkey:application:protected_resource"
 
-// Precondition
+	// Precondition
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 
-// ----------------
-// UnkeyGatewayErrors
-// ----------------
+	// ----------------
+	// UnkeyGatewayErrors
+	// ----------------
 
-// Proxy
+	// Proxy
 
 	// BadGateway represents a 502 error - invalid response from upstream server
 	UnkeyGatewayErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
@@ -176,32 +176,31 @@ const (
 	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
 	UnkeyGatewayErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
 
-// Routing
+	// Routing
 
 	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
 	UnkeyGatewayErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
 	// VMSelectionFailed represents a 500 error - failed to select an available VM
 	UnkeyGatewayErrorsRoutingVMSelectionFailed URN = "err:unkey:internal_server_error:vm_selection_failed"
 
-// Auth
+	// Auth
 
 	// Unauthorized represents a 401 error - authentication required or failed
 	UnkeyGatewayErrorsAuthUnauthorized URN = "err:unkey:unauthorized:unauthorized"
 	// RateLimited represents a 429 error - rate limit exceeded
 	UnkeyGatewayErrorsAuthRateLimited URN = "err:unkey:rate_limited:rate_limited"
 
-// Validation
+	// Validation
 
 	// RequestInvalid represents a 400 error - request validation failed
 	UnkeyGatewayErrorsValidationRequestInvalid URN = "err:unkey:bad_request:request_invalid"
 	// ResponseInvalid represents a 502 error - response validation failed
 	UnkeyGatewayErrorsValidationResponseInvalid URN = "err:unkey:bad_request:response_invalid"
 
-// Internal
+	// Internal
 
 	// InternalServerError represents a 500 error - internal server error
 	UnkeyGatewayErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
 	// KeyVerificationFailed represents a 500 error - key verification service failure
 	UnkeyGatewayErrorsInternalKeyVerificationFailed URN = "err:unkey:internal_server_error:key_verification_failed"
-
 )

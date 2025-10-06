@@ -334,7 +334,7 @@
             "group": "Endpoints",
             "openapi": {
               "directory": "api-reference/v2",
-              "source": "http://127.0.0.1:7070/openapi.yaml"
+              "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples"
             }
           }
         ],
