@@ -68,11 +68,31 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	h := hash.Sha256(rawKey)
-	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
+	cachedKey, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		return db.WithRetry(func() (db.FindKeyForVerificationRow, error) {
+		row, err := db.WithRetry(func() (db.FindKeyForVerificationRow, error) {
 			return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 		})
+		if err != nil {
+			return db.CachedKeyData{}, err
+		}
+
+		// Parse IP whitelist once during cache population for performance
+		var parsedIPWhitelist []string
+		if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
+			ips := strings.Split(row.IpWhitelist.String, ",")
+			for _, ip := range ips {
+				trimmed := strings.TrimSpace(ip)
+				if trimmed != "" {
+					parsedIPWhitelist = append(parsedIPWhitelist, trimmed)
+				}
+			}
+		}
+
+		return db.CachedKeyData{
+			Row:               row,
+			ParsedIPWhitelist: parsedIPWhitelist,
+		}, nil
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
@@ -98,6 +118,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			message: "key does not exist",
 		}, emptyLog, nil
 	}
+
+	key := cachedKey.Row // Extract the row data for easier access
 
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
@@ -171,18 +193,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
-	// Parse IP whitelist once during key loading for performance
-	var parsedIPWhitelist []string
-	if key.IpWhitelist.Valid && key.IpWhitelist.String != "" {
-		ips := strings.Split(key.IpWhitelist.String, ",")
-		for _, ip := range ips {
-			trimmed := strings.TrimSpace(ip)
-			if trimmed != "" {
-				parsedIPWhitelist = append(parsedIPWhitelist, trimmed)
-			}
-		}
-	}
-
 	kv = &KeyVerifier{
 		Key:                   key,
 		clickhouse:            s.clickhouse,
@@ -199,7 +209,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,
 		ratelimitConfigs:  ratelimitConfigs,
-		parsedIPWhitelist: parsedIPWhitelist,
+		parsedIPWhitelist: cachedKey.ParsedIPWhitelist, // Use pre-parsed IPs from cache
 		Roles:             roles,
 		Permissions:       permissions,
 		RatelimitResults:  nil,
