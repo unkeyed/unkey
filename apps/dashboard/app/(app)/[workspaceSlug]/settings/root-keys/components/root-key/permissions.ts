@@ -175,6 +175,10 @@ export function apiPermissions(apiId: string): {
         description: "Update this API.",
         permission: `api.${apiId}.update_api`,
       },
+      read_analytics: {
+        description: "Query analytics data for this API using SQL.",
+        permission: `api.${apiId}.read_analytics`,
+      },
     },
     Keys: {
       verify_key: {
@@ -206,12 +210,6 @@ export function apiPermissions(apiId: string): {
         description: "Decrypt keys belonging to this API",
         permission: `api.${apiId}.decrypt_key`,
       },
-    },
-    Analytics: {
-      read_analytics: {
-        description: "Query analytics data for this API using SQL.",
-        permission: `api.${apiId}.read_analytics`,
-      },
-    },
+    }
   };
 }

@@ -19,7 +19,7 @@ type VirtualColumn struct {
 
 // SecurityFilter represents a row-level security constraint
 type SecurityFilter struct {
-	VirtualColumn string   // Virtual column name (e.g., "api_id", "namespace_id")
+	Column        string   // Column name - can be virtual (e.g., "api_id") or actual (e.g., "status")
 	AllowedValues []string // Values user is allowed to access
 }
 

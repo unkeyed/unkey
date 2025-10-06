@@ -47,9 +47,9 @@ func (p *Parser) injectSecurityFilters() error {
 			}
 		}
 
-		// Create filter using virtual column name
+		// Create filter using column name (virtual or actual)
 		filter := &clickhouse.BinaryOperation{
-			LeftExpr:  &clickhouse.Ident{Name: securityFilter.VirtualColumn},
+			LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
 			Operation: "IN",
 			RightExpr: &clickhouse.ParamExprList{
 				Items: &clickhouse.ColumnExprList{Items: items},

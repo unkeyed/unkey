@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/analytics"
@@ -86,7 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Add API filter if user doesn't have wildcard access
 	if allowedAPIIds := extractAllowedAPIIds(auth.Permissions); len(allowedAPIIds) > 0 {
 		securityFilters = append(securityFilters, chquery.SecurityFilter{
-			VirtualColumn: "api_id",
+			Column:        "api_id",
 			AllowedValues: allowedAPIIds,
 		})
 	}
@@ -114,18 +113,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActualColumn: "key_space_id",
 				Aliases:      []string{"api_id"},
 				Resolver: func(ctx context.Context, apiIDs []string) (map[string]string, error) {
-					start := time.Now()
-					defer func() {
-						h.Logger.Info("virtual column resolver: apiId",
-							"duration_ms", time.Since(start).Milliseconds(),
-							"key_count", len(apiIDs),
-						)
-					}()
-
-					// Capture the apiIds for permission checking later
 					extractedAPIIds = apiIDs
 
-					// Use cache with SWR - cache full row objects
 					rowLookup, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(ctx, apiIDs, func(ctx context.Context, missingAPIIds []string) (map[string]db.FindKeyAuthsByIdsRow, error) {
 						results, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
 							WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -188,15 +177,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActualColumn: "identity_id",
 				Aliases:      []string{"external_id"},
 				Resolver: func(ctx context.Context, externalIDs []string) (map[string]string, error) {
-					start := time.Now()
-					defer func() {
-						h.Logger.Info("virtual column resolver: externalId",
-							"duration_ms", time.Since(start).Milliseconds(),
-							"key_count", len(externalIDs),
-						)
-					}()
-
-					// Build scoped keys for cache lookups
 					scopedKeys := make([]cache.ScopedKey, len(externalIDs))
 					for i, externalID := range externalIDs {
 						scopedKeys[i] = cache.ScopedKey{
@@ -205,7 +185,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						}
 					}
 
-					// Use cache with SWR - cache full Identity objects
 					identityLookup, _, err := h.Caches.ExternalIdToIdentity.SWRMany(ctx, scopedKeys, func(ctx context.Context, missingScopedKeys []cache.ScopedKey) (map[cache.ScopedKey]db.Identity, error) {
 						// Extract external IDs from scoped keys
 						missingExternalIDs := make([]string, len(missingScopedKeys))
@@ -278,13 +257,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 	})
 
-	parseResult, err := parser.Parse(ctx, req.Query)
+	parsedQuery, err := parser.Parse(ctx, req.Query)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Public("Invalid SQL query"),
 		)
 	}
+
+	h.Logger.Info("executing query", "original", req.Query, "parsed", parsedQuery.Query, "mappings", parsedQuery.ColumnMappings)
 
 	// api.*.read_analytics OR (any specific API permissions api.api_123.read_analytics)
 	permissionChecks := []rbac.PermissionQuery{
@@ -317,7 +298,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Execute query using workspace connection
-	verifications, err := conn.QueryToMaps(ctx, parseResult.Query)
+	verifications, err := conn.QueryToMaps(ctx, parsedQuery.Query)
 	if err != nil {
 		return err
 	}
@@ -413,7 +394,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 
 	// Transform results to user-facing format
-	transformedVerifications, err := transformer.TransformWithMappings(ctx, verifications, parseResult.ColumnMappings)
+	transformedVerifications, err := transformer.TransformWithMappings(ctx, verifications, parsedQuery.ColumnMappings)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

@@ -66,7 +66,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					VirtualColumn: "api_id",
+					Column:        "api_id",
 					AllowedValues: []string{"api_123"},
 				},
 			},
@@ -103,7 +103,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					VirtualColumn: "api_id",
+					Column:        "api_id",
 					AllowedValues: []string{"api_123", "api_456", "api_789"},
 				},
 			},
@@ -147,7 +147,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					VirtualColumn: "api_id",
+					Column:        "api_id",
 					AllowedValues: []string{"api_123"},
 				},
 			},
@@ -185,7 +185,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					VirtualColumn: "api_id",
+					Column:        "api_id",
 					AllowedValues: []string{"api_123"}, // User only has access to api_123
 				},
 			},
@@ -231,11 +231,11 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					VirtualColumn: "api_id",
+					Column:        "api_id",
 					AllowedValues: []string{"api_123", "api_456"},
 				},
 				{
-					VirtualColumn: "namespace",
+					Column:        "namespace",
 					AllowedValues: []string{"ns_prod", "ns_staging"},
 				},
 			},

@@ -38,6 +38,7 @@ var verificationsCmd = &cli.Command{
 		cli.Float("keys-with-identity-percent", "Percentage of keys that have an identity attached (0.0-100.0)", cli.Default(30.0)),
 		cli.Float("identity-usage-percent", "Percentage chance to use identity in verification if key has one (0.0-100.0)", cli.Default(90.0)),
 		cli.Int("days-back", "Number of days back to generate data", cli.Default(30)),
+		cli.Int("days-forward", "Number of days forward to generate data", cli.Default(30)),
 		cli.String("clickhouse-url", "ClickHouse URL", cli.Default("clickhouse://default:password@127.0.0.1:9000")),
 		cli.String("mysql-dsn", "MySQL DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true")),
 	},
@@ -99,6 +100,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		keysWithIdentityPercent: keysWithIdentityPercent,
 		identityUsagePercent:    identityUsagePercent,
 		daysBack:                cmd.Int("days-back"),
+		daysForward:             cmd.Int("days-forward"),
 		db:                      database,
 		clickhouse:              ch,
 		keyService:              keyService,
@@ -115,6 +117,7 @@ type Seeder struct {
 	keysWithIdentityPercent float64
 	identityUsagePercent    float64
 	daysBack                int
+	daysForward             int
 	db                      db.Database
 	clickhouse              clickhouse.ClickHouse
 	keyService              keys.KeyService
@@ -352,7 +355,7 @@ func (s *Seeder) createIdentities(ctx context.Context, workspaceID string) ([]Id
 
 func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, keys []Key, keyAuthID string) error {
 	startTime := time.Now().AddDate(0, 0, -s.daysBack)
-	endTime := time.Now()
+	endTime := time.Now().AddDate(0, 0, s.daysForward)
 
 	outcomes := []struct {
 		name   string
