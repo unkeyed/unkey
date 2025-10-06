@@ -218,5 +218,13 @@ func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
 		}
 	}
 
+	if p.stmt.OrderBy != nil && p.stmt.OrderBy.Items != nil {
+		for _, orderExpr := range p.stmt.OrderBy.Items {
+			if orderExpr != nil {
+				clickhouse.Walk(orderExpr, rewriteFunc)
+			}
+		}
+	}
+
 	return nil
 }

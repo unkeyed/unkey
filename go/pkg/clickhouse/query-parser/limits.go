@@ -42,7 +42,7 @@ func (p *Parser) enforceLimit() error {
 	}
 
 	// Enforce max limit if existing is greater OR if it's negative/invalid
-	if existingLimit > p.config.Limit || existingLimit <= 0 {
+	if existingLimit > p.config.Limit || existingLimit < 0 {
 		p.stmt.Limit.Limit = &clickhouse.NumberLiteral{
 			Literal: fmt.Sprintf("%d", p.config.Limit),
 		}

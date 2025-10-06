@@ -302,15 +302,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Logger.Info("executing analytics query",
-		"requestId", s.RequestID(),
-		"workspaceId", auth.AuthorizedWorkspaceID,
-		"originalQuery", req.Query,
-		"rewrittenQuery", parseResult.Query,
-		"columnMappings", parseResult.ColumnMappings,
-		"maxQueryResultRows", settings.MaxQueryResultRows,
-	)
-
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parseResult.Query)
 	if err != nil {
@@ -323,19 +314,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActualColumn:  "key_space_id",
 			VirtualColumn: "apiId",
 			Resolver: func(ctx context.Context, keySpaceIDs []string) (map[string]string, error) {
-				start := time.Now()
-				defer func() {
-					h.Logger.Info("result transformer resolver: key_space_id -> apiId",
-						"duration_ms", time.Since(start).Milliseconds(),
-						"key_count", len(keySpaceIDs),
-					)
-				}()
-
-				h.Logger.Info("resolving key_space_ids to api_ids",
-					"keySpaceIDs", keySpaceIDs,
-				)
-
-				// Use cache with SWR - cache full row objects
 				rowMapping, _, err := h.Caches.KeyAuthToApiRow.SWRMany(ctx, keySpaceIDs, func(ctx context.Context, missingKeyAuthIDs []string) (map[string]db.FindKeyAuthsByIdsRow, error) {
 					results, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
 						WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -351,7 +329,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					keyAuthToRow := make(map[string]db.FindKeyAuthsByIdsRow, len(results))
 					apiToRow := make(map[string]db.FindKeyAuthsByIdsRow, len(results))
 					for _, result := range results {
-						// Convert to FindKeyAuthsByIdsRow for consistent caching
 						row := db.FindKeyAuthsByIdsRow{
 							KeyAuthID: result.KeyAuthID,
 							ApiID:     result.ApiID,
@@ -360,7 +337,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						apiToRow[result.ApiID] = row
 					}
 
-					// Double-write: cache the reverse mapping too
 					h.Caches.ApiToKeyAuthRow.SetMany(ctx, apiToRow)
 
 					return keyAuthToRow, nil
@@ -369,7 +345,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					return nil, err
 				}
 
-				// Convert to simple string map for the resolver
 				mapping := make(map[string]string, len(rowMapping))
 				for keyAuthID, row := range rowMapping {
 					mapping[keyAuthID] = row.ApiID
@@ -382,15 +357,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActualColumn:  "identity_id",
 			VirtualColumn: "externalId",
 			Resolver: func(ctx context.Context, identityIDs []string) (map[string]string, error) {
-				start := time.Now()
-				defer func() {
-					h.Logger.Info("result transformer resolver: identity_id -> externalId",
-						"duration_ms", time.Since(start).Milliseconds(),
-						"key_count", len(identityIDs),
-					)
-				}()
-
-				// Use cache with SWR
 				identityMapping, _, err := h.Caches.Identity.SWRMany(ctx, identityIDs, func(ctx context.Context, missingIdentityIDs []string) (map[string]db.Identity, error) {
 					identities, err := db.Query.FindIdentities(ctx, h.DB.RO(), db.FindIdentitiesParams{
 						WorkspaceID: auth.AuthorizedWorkspaceID,

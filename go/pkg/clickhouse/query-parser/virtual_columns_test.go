@@ -77,3 +77,31 @@ func TestVirtualColumnInSelect(t *testing.T) {
 		require.NotContains(t, result.Query, "AS externalId")
 	})
 }
+
+func TestColumnMappingsOnlyForVirtualColumns(t *testing.T) {
+	parser := chquery.NewParser(chquery.Config{
+		WorkspaceID: "ws_test",
+		Limit:       100,
+		VirtualColumns: map[string]chquery.VirtualColumn{
+			"apiId": {
+				ActualColumn: "key_space_id",
+				Aliases:      []string{"api_id"},
+				Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
+					return map[string]string{}, nil
+				},
+			},
+		},
+	})
+
+	query := "SELECT outcome, api_id, key_id, sum(count) as total FROM table GROUP BY outcome, api_id, key_id"
+	result, err := parser.Parse(context.Background(), query)
+	require.NoError(t, err)
+
+	// Only api_id should have a mapping (virtual column)
+	// outcome, key_id, and total should NOT have mappings (regular columns)
+	require.Len(t, result.ColumnMappings, 1, "should only have mapping for virtual column")
+
+	// Verify the one mapping is for api_id -> key_space_id
+	require.Equal(t, "api_id", result.ColumnMappings[0].ResultColumn)
+	require.Equal(t, "key_space_id", result.ColumnMappings[0].ActualColumn)
+}

@@ -443,8 +443,7 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 
 	log.Printf("  Buffered all %d verifications, waiting for flush...", s.numVerifications)
 
-	// Give the buffer time to flush
-	time.Sleep(5 * time.Second)
+	s.clickhouse.Close()
 
 	log.Printf("  All verifications sent to ClickHouse")
 	return nil

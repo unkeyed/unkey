@@ -52,8 +52,8 @@ func (p *Parser) rewriteSelectItem(item *clickhouse.SelectItem) {
 		resultColumn = actualColumn
 	}
 
-	// If this is a virtual column that was rewritten, track the mapping
-	if actualColumn != "" {
+	// Only track mappings when the column was actually rewritten (virtual column -> actual column)
+	if actualColumn != "" && actualColumn != originalColumn {
 		p.columnMappings[resultColumn] = actualColumn
 	}
 }
