@@ -232,7 +232,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	results := make(chan testutil.TestResponse[handler.Response], numConcurrent)
 	errors := make(chan error, numConcurrent)
 
-	for i := 0; i < numConcurrent; i++ {
+	for range numConcurrent {
 		go func() {
 			req := handler.Request{
 				ApiId:      api.ID,
