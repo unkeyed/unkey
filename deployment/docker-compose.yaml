@@ -336,7 +336,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-      UNKEY_DATABASE_HYDRA: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true&interpolateParams=true"
       UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
 
       # Control plane configuration
