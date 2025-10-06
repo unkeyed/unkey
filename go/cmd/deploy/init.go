@@ -74,7 +74,7 @@ func printInitNextSteps() {
 	fmt.Printf("  unkey deploy\n")
 	fmt.Printf("\n")
 	fmt.Printf("Or override specific values:\n")
-	fmt.Printf("  unkey deploy --project_id=proj_different\n")
+	fmt.Printf("  unkey deploy --project-id=proj_different\n")
 	fmt.Printf("  unkey deploy --context=./other-app\n")
 }
 
