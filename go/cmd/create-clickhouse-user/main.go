@@ -42,8 +42,7 @@ By default, grants SELECT on all v2 analytics tables:
 
 EXAMPLES:
 unkey create-clickhouse-user --workspace-id ws_123
-unkey create-clickhouse-user --workspace-id ws_123 --username custom_user --max-queries-per-window 5000
-unkey create-clickhouse-user --workspace-id ws_123 --tables "default.custom_table"`,
+unkey create-clickhouse-user --workspace-id ws_123 --username custom_user --max-queries-per-window 5000`,
 	Flags: []cli.Flag{
 		cli.String("workspace-id", "Workspace ID", cli.Required()),
 		cli.String("username", "ClickHouse username (default: workspace_id)"),
@@ -67,6 +66,28 @@ unkey create-clickhouse-user --workspace-id ws_123 --tables "default.custom_tabl
 	Action: run,
 }
 
+var allowedTables = []string{
+	// Key verifications
+	"default.key_verifications_raw_v2",
+	"default.key_verifications_per_minute_v2",
+	"default.key_verifications_per_hour_v2",
+	"default.key_verifications_per_day_v2",
+	"default.key_verifications_per_month_v2",
+	// Ratelimits
+	"default.ratelimits_raw_v2",
+	"default.ratelimits_per_minute_v2",
+	"default.ratelimits_per_hour_v2",
+	"default.ratelimits_per_day_v2",
+	"default.ratelimits_per_month_v2",
+	"default.ratelimits_last_used_v2",
+	// API requests
+	"default.api_requests_raw_v2",
+	"default.api_requests_per_minute_v2",
+	"default.api_requests_per_hour_v2",
+	"default.api_requests_per_day_v2",
+	"default.api_requests_per_month_v2",
+}
+
 func run(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
@@ -74,28 +95,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	username := cmd.String("username")
 	if username == "" {
 		username = workspaceID
-	}
-
-	tables := []string{
-		// Key verifications
-		"default.key_verifications_raw_v2",
-		"default.key_verifications_per_minute_v2",
-		"default.key_verifications_per_hour_v2",
-		"default.key_verifications_per_day_v2",
-		"default.key_verifications_per_month_v2",
-		// Ratelimits
-		"default.ratelimits_raw_v2",
-		"default.ratelimits_per_minute_v2",
-		"default.ratelimits_per_hour_v2",
-		"default.ratelimits_per_day_v2",
-		"default.ratelimits_per_month_v2",
-		"default.ratelimits_last_used_v2",
-		// API requests
-		"default.api_requests_raw_v2",
-		"default.api_requests_per_minute_v2",
-		"default.api_requests_per_hour_v2",
-		"default.api_requests_per_day_v2",
-		"default.api_requests_per_month_v2",
 	}
 
 	// Connect to MySQL
@@ -187,12 +186,19 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to insert settings: %w", err)
 		}
 
-		logger.Info("stored credentials in database", "password", password)
+		logger.Info("stored credentials in database")
 	} else {
 		// User exists - update quotas only (preserve password)
 		logger.Info("updating existing user quotas", "workspace_id", workspaceID, "username", existing.Username)
 		username = existing.Username
-		password = "wont update"
+		decrypted, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+			Keyring:   workspaceID,
+			Encrypted: existing.PasswordEncrypted,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to decrypt password: %w", err)
+		}
+		passwordEncrypted = decrypted.GetPlaintext()
 
 		// Update limits
 		err = db.Query.UpdateClickhouseWorkspaceSettingsLimits(ctx, database.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
@@ -230,7 +236,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Grant SELECT on specified tables
-	for _, table := range tables {
+	for _, table := range allowedTables {
 		logger.Info("granting SELECT permission", "table", table)
 		grantSQL := fmt.Sprintf("GRANT SELECT ON %s TO %s", table, username)
 		err = ch.Exec(ctx, grantSQL)
@@ -242,7 +248,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	policyName := fmt.Sprintf("workspace_%s_rls", workspaceID)
 
 	// Create row-level security (RLS) policies
-	for _, table := range tables {
+	for _, table := range allowedTables {
 		logger.Info("creating row policy", "table", table, "policy", policyName)
 
 		createPolicySQL := fmt.Sprintf(
@@ -309,7 +315,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	logger.Info("successfully configured clickhouse user",
 		"workspace_id", workspaceID,
 		"username", username,
-		"tables", tables,
+		"tables", allowedTables,
 		"password_length", len(password),
 		"max_queries_per_window", cmd.Int("max-queries-per-window"),
 		"quota_duration_seconds", cmd.Int("quota-duration-seconds"),

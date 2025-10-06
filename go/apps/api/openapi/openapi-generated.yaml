@@ -6149,7 +6149,6 @@ security:
     - rootKey: []
 servers:
     - url: https://api.unkey.com
-    - url: http://127.0.0.1:7070
 tags:
     - description: Analytics query operations
       name: analytics

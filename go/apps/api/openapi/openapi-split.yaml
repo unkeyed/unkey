@@ -82,7 +82,6 @@ info:
 
 servers:
   - url: https://api.unkey.com
-  - url: http://127.0.0.1:7070
 
 x-speakeasy-retries:
   strategy: backoff
