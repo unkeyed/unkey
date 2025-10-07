@@ -36,16 +36,19 @@ const (
 	// BuildServiceCreateBuildProcedure is the fully-qualified name of the BuildService's CreateBuild
 	// RPC.
 	BuildServiceCreateBuildProcedure = "/ctrl.v1.BuildService/CreateBuild"
-	// BuildServiceGetBuildProcedure is the fully-qualified name of the BuildService's GetBuild RPC.
-	BuildServiceGetBuildProcedure = "/ctrl.v1.BuildService/GetBuild"
+	// BuildServiceCancelBuildProcedure is the fully-qualified name of the BuildService's CancelBuild
+	// RPC.
+	BuildServiceCancelBuildProcedure = "/ctrl.v1.BuildService/CancelBuild"
+	// BuildServiceGetBuildStatusProcedure is the fully-qualified name of the BuildService's
+	// GetBuildStatus RPC.
+	BuildServiceGetBuildStatusProcedure = "/ctrl.v1.BuildService/GetBuildStatus"
 )
 
 // BuildServiceClient is a client for the ctrl.v1.BuildService service.
 type BuildServiceClient interface {
-	// Create a new build
 	CreateBuild(context.Context, *connect.Request[v1.CreateBuildRequest]) (*connect.Response[v1.CreateBuildResponse], error)
-	// Get build details
-	GetBuild(context.Context, *connect.Request[v1.GetBuildRequest]) (*connect.Response[v1.GetBuildResponse], error)
+	CancelBuild(context.Context, *connect.Request[v1.CancelBuildRequest]) (*connect.Response[v1.CancelBuildResponse], error)
+	GetBuildStatus(context.Context, *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error)
 }
 
 // NewBuildServiceClient constructs a client for the ctrl.v1.BuildService service. By default, it
@@ -65,10 +68,16 @@ func NewBuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(buildServiceMethods.ByName("CreateBuild")),
 			connect.WithClientOptions(opts...),
 		),
-		getBuild: connect.NewClient[v1.GetBuildRequest, v1.GetBuildResponse](
+		cancelBuild: connect.NewClient[v1.CancelBuildRequest, v1.CancelBuildResponse](
 			httpClient,
-			baseURL+BuildServiceGetBuildProcedure,
-			connect.WithSchema(buildServiceMethods.ByName("GetBuild")),
+			baseURL+BuildServiceCancelBuildProcedure,
+			connect.WithSchema(buildServiceMethods.ByName("CancelBuild")),
+			connect.WithClientOptions(opts...),
+		),
+		getBuildStatus: connect.NewClient[v1.GetBuildStatusRequest, v1.GetBuildStatusResponse](
+			httpClient,
+			baseURL+BuildServiceGetBuildStatusProcedure,
+			connect.WithSchema(buildServiceMethods.ByName("GetBuildStatus")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -76,8 +85,9 @@ func NewBuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // buildServiceClient implements BuildServiceClient.
 type buildServiceClient struct {
-	createBuild *connect.Client[v1.CreateBuildRequest, v1.CreateBuildResponse]
-	getBuild    *connect.Client[v1.GetBuildRequest, v1.GetBuildResponse]
+	createBuild    *connect.Client[v1.CreateBuildRequest, v1.CreateBuildResponse]
+	cancelBuild    *connect.Client[v1.CancelBuildRequest, v1.CancelBuildResponse]
+	getBuildStatus *connect.Client[v1.GetBuildStatusRequest, v1.GetBuildStatusResponse]
 }
 
 // CreateBuild calls ctrl.v1.BuildService.CreateBuild.
@@ -85,17 +95,21 @@ func (c *buildServiceClient) CreateBuild(ctx context.Context, req *connect.Reque
 	return c.createBuild.CallUnary(ctx, req)
 }
 
-// GetBuild calls ctrl.v1.BuildService.GetBuild.
-func (c *buildServiceClient) GetBuild(ctx context.Context, req *connect.Request[v1.GetBuildRequest]) (*connect.Response[v1.GetBuildResponse], error) {
-	return c.getBuild.CallUnary(ctx, req)
+// CancelBuild calls ctrl.v1.BuildService.CancelBuild.
+func (c *buildServiceClient) CancelBuild(ctx context.Context, req *connect.Request[v1.CancelBuildRequest]) (*connect.Response[v1.CancelBuildResponse], error) {
+	return c.cancelBuild.CallUnary(ctx, req)
+}
+
+// GetBuildStatus calls ctrl.v1.BuildService.GetBuildStatus.
+func (c *buildServiceClient) GetBuildStatus(ctx context.Context, req *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error) {
+	return c.getBuildStatus.CallUnary(ctx, req)
 }
 
 // BuildServiceHandler is an implementation of the ctrl.v1.BuildService service.
 type BuildServiceHandler interface {
-	// Create a new build
 	CreateBuild(context.Context, *connect.Request[v1.CreateBuildRequest]) (*connect.Response[v1.CreateBuildResponse], error)
-	// Get build details
-	GetBuild(context.Context, *connect.Request[v1.GetBuildRequest]) (*connect.Response[v1.GetBuildResponse], error)
+	CancelBuild(context.Context, *connect.Request[v1.CancelBuildRequest]) (*connect.Response[v1.CancelBuildResponse], error)
+	GetBuildStatus(context.Context, *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error)
 }
 
 // NewBuildServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -111,18 +125,26 @@ func NewBuildServiceHandler(svc BuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(buildServiceMethods.ByName("CreateBuild")),
 		connect.WithHandlerOptions(opts...),
 	)
-	buildServiceGetBuildHandler := connect.NewUnaryHandler(
-		BuildServiceGetBuildProcedure,
-		svc.GetBuild,
-		connect.WithSchema(buildServiceMethods.ByName("GetBuild")),
+	buildServiceCancelBuildHandler := connect.NewUnaryHandler(
+		BuildServiceCancelBuildProcedure,
+		svc.CancelBuild,
+		connect.WithSchema(buildServiceMethods.ByName("CancelBuild")),
+		connect.WithHandlerOptions(opts...),
+	)
+	buildServiceGetBuildStatusHandler := connect.NewUnaryHandler(
+		BuildServiceGetBuildStatusProcedure,
+		svc.GetBuildStatus,
+		connect.WithSchema(buildServiceMethods.ByName("GetBuildStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.BuildService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BuildServiceCreateBuildProcedure:
 			buildServiceCreateBuildHandler.ServeHTTP(w, r)
-		case BuildServiceGetBuildProcedure:
-			buildServiceGetBuildHandler.ServeHTTP(w, r)
+		case BuildServiceCancelBuildProcedure:
+			buildServiceCancelBuildHandler.ServeHTTP(w, r)
+		case BuildServiceGetBuildStatusProcedure:
+			buildServiceGetBuildStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -136,6 +158,10 @@ func (UnimplementedBuildServiceHandler) CreateBuild(context.Context, *connect.Re
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.BuildService.CreateBuild is not implemented"))
 }
 
-func (UnimplementedBuildServiceHandler) GetBuild(context.Context, *connect.Request[v1.GetBuildRequest]) (*connect.Response[v1.GetBuildResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.BuildService.GetBuild is not implemented"))
+func (UnimplementedBuildServiceHandler) CancelBuild(context.Context, *connect.Request[v1.CancelBuildRequest]) (*connect.Response[v1.CancelBuildResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.BuildService.CancelBuild is not implemented"))
+}
+
+func (UnimplementedBuildServiceHandler) GetBuildStatus(context.Context, *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.BuildService.GetBuildStatus is not implemented"))
 }

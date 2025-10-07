@@ -334,6 +334,7 @@ services:
         required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
       UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
@@ -357,6 +358,7 @@ services:
 
       # API key for simple authentication (temporary, will be replaced with JWT)
       UNKEY_API_KEY: "your-local-dev-key"
+      DEPOT_TOKEN: "depot_org_249508a7f1ff42a62eb2f57b98cf9795459dc63d012a5b15823e374f5c806cad"
 
   otel:
     networks:

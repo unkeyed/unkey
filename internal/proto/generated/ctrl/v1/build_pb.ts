@@ -2,53 +2,47 @@
 // @generated from file ctrl/v1/build.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/build.proto.
  */
-export const file_ctrl_v1_build: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxImgKEkNyZWF0ZUJ1aWxkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRISCgp2ZXJzaW9uX2lkGAMgASgJEhQKDGRvY2tlcl9pbWFnZRgEIAEoCSInChNDcmVhdGVCdWlsZFJlc3BvbnNlEhAKCGJ1aWxkX2lkGAEgASgJIiMKD0dldEJ1aWxkUmVxdWVzdBIQCghidWlsZF9pZBgBIAEoCSIxChBHZXRCdWlsZFJlc3BvbnNlEh0KBWJ1aWxkGAEgASgLMg4uY3RybC52MS5CdWlsZCLpAgoFQnVpbGQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSEgoKdmVyc2lvbl9pZBgEIAEoCRIkCgZzdGF0dXMYBSABKA4yFC5jdHJsLnYxLkJ1aWxkU3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYBiABKAkSLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIXCg9yb290ZnNfaW1hZ2VfaWQYCyABKAkqsAEKC0J1aWxkU3RhdHVzEhwKGEJVSUxEX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFEJVSUxEX1NUQVRVU19QRU5ESU5HEAESGAoUQlVJTERfU1RBVFVTX1JVTk5JTkcQAhIaChZCVUlMRF9TVEFUVVNfU1VDQ0VFREVEEAMSFwoTQlVJTERfU1RBVFVTX0ZBSUxFRBAEEhoKFkJVSUxEX1NUQVRVU19DQU5DRUxMRUQQBTKdAQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJBCghHZXRCdWlsZBIYLmN0cmwudjEuR2V0QnVpbGRSZXF1ZXN0GhkuY3RybC52MS5HZXRCdWlsZFJlc3BvbnNlIgBCNlo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MWIGcHJvdG8z",
-    [file_google_protobuf_timestamp],
-  );
+export const file_ctrl_v1_build: GenFile = /*@__PURE__*/
+  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIlQKEkNyZWF0ZUJ1aWxkUmVxdWVzdBIRCglpbWFnZVBhdGgYASABKAkSEwoLY29udGV4dFBhdGgYAiABKAkSFgoOdW5rZXlQcm9qZWN0SUQYAyABKAkiUQoTQ3JlYXRlQnVpbGRSZXNwb25zZRIRCglpbWFnZU5hbWUYASABKAkSDwoHYnVpbGRJZBgCIAEoCRIWCg5kZXBvdFByb2plY3RJZBgDIAEoCSIlChJDYW5jZWxCdWlsZFJlcXVlc3QSDwoHYnVpbGRJZBgBIAEoCSImChNDYW5jZWxCdWlsZFJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiKAoVR2V0QnVpbGRTdGF0dXNSZXF1ZXN0Eg8KB2J1aWxkSWQYASABKAkiqwEKFkdldEJ1aWxkU3RhdHVzUmVzcG9uc2USNgoGc3RhdHVzGAEgASgOMiYuY3RybC52MS5HZXRCdWlsZFN0YXR1c1Jlc3BvbnNlLlN0YXR1cxINCgVlcnJvchgCIAEoCSJKCgZTdGF0dXMSCwoHVU5LTk9XThAAEgsKB1JVTk5JTkcQARILCgdTVUNDRVNTEAISCgoGRkFJTEVEEAMSDQoJQ0FOQ0VMTEVEEAQy+wEKDEJ1aWxkU2VydmljZRJKCgtDcmVhdGVCdWlsZBIbLmN0cmwudjEuQ3JlYXRlQnVpbGRSZXF1ZXN0GhwuY3RybC52MS5DcmVhdGVCdWlsZFJlc3BvbnNlIgASSgoLQ2FuY2VsQnVpbGQSGy5jdHJsLnYxLkNhbmNlbEJ1aWxkUmVxdWVzdBocLmN0cmwudjEuQ2FuY2VsQnVpbGRSZXNwb25zZSIAElMKDkdldEJ1aWxkU3RhdHVzEh4uY3RybC52MS5HZXRCdWlsZFN0YXR1c1JlcXVlc3QaHy5jdHJsLnYxLkdldEJ1aWxkU3RhdHVzUmVzcG9uc2UiAEKMAQoLY29tLmN0cmwudjFCCkJ1aWxkUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.CreateBuildRequest
  */
 export type CreateBuildRequest = Message<"ctrl.v1.CreateBuildRequest"> & {
   /**
-   * @generated from field: string workspace_id = 1;
+   * Path to Dockerfile
+   *
+   * @generated from field: string imagePath = 1;
    */
-  workspaceId: string;
+  imagePath: string;
 
   /**
-   * @generated from field: string project_id = 2;
+   * Build context directory
+   *
+   * @generated from field: string contextPath = 2;
    */
-  projectId: string;
+  contextPath: string;
 
   /**
-   * @generated from field: string version_id = 3;
+   * Your internal user/project ID
+   *
+   * @generated from field: string unkeyProjectID = 3;
    */
-  versionId: string;
-
-  /**
-   * @generated from field: string docker_image = 4;
-   */
-  dockerImage: string;
+  unkeyProjectID: string;
 };
 
 /**
  * Describes the message ctrl.v1.CreateBuildRequest.
  * Use `create(CreateBuildRequestSchema)` to create a new message.
  */
-export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> =
-  /*@__PURE__*/
+export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 0);
 
 /**
@@ -56,197 +50,175 @@ export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> =
  */
 export type CreateBuildResponse = Message<"ctrl.v1.CreateBuildResponse"> & {
   /**
-   * @generated from field: string build_id = 1;
+   * Full image tag (registry.depot.dev/project:tag)
+   *
+   * @generated from field: string imageName = 1;
+   */
+  imageName: string;
+
+  /**
+   * Depot build ID for tracking
+   *
+   * @generated from field: string buildId = 2;
    */
   buildId: string;
+
+  /**
+   * Depot project ID
+   *
+   * @generated from field: string depotProjectId = 3;
+   */
+  depotProjectId: string;
 };
 
 /**
  * Describes the message ctrl.v1.CreateBuildResponse.
  * Use `create(CreateBuildResponseSchema)` to create a new message.
  */
-export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> =
-  /*@__PURE__*/
+export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 1);
 
 /**
- * @generated from message ctrl.v1.GetBuildRequest
+ * @generated from message ctrl.v1.CancelBuildRequest
  */
-export type GetBuildRequest = Message<"ctrl.v1.GetBuildRequest"> & {
+export type CancelBuildRequest = Message<"ctrl.v1.CancelBuildRequest"> & {
   /**
-   * @generated from field: string build_id = 1;
+   * Depot build ID to cancel
+   *
+   * @generated from field: string buildId = 1;
    */
   buildId: string;
 };
 
 /**
- * Describes the message ctrl.v1.GetBuildRequest.
- * Use `create(GetBuildRequestSchema)` to create a new message.
+ * Describes the message ctrl.v1.CancelBuildRequest.
+ * Use `create(CancelBuildRequestSchema)` to create a new message.
  */
-export const GetBuildRequestSchema: GenMessage<GetBuildRequest> =
-  /*@__PURE__*/
+export const CancelBuildRequestSchema: GenMessage<CancelBuildRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 2);
 
 /**
- * @generated from message ctrl.v1.GetBuildResponse
+ * @generated from message ctrl.v1.CancelBuildResponse
  */
-export type GetBuildResponse = Message<"ctrl.v1.GetBuildResponse"> & {
+export type CancelBuildResponse = Message<"ctrl.v1.CancelBuildResponse"> & {
   /**
-   * @generated from field: ctrl.v1.Build build = 1;
+   * @generated from field: bool success = 1;
    */
-  build?: Build;
+  success: boolean;
 };
 
 /**
- * Describes the message ctrl.v1.GetBuildResponse.
- * Use `create(GetBuildResponseSchema)` to create a new message.
+ * Describes the message ctrl.v1.CancelBuildResponse.
+ * Use `create(CancelBuildResponseSchema)` to create a new message.
  */
-export const GetBuildResponseSchema: GenMessage<GetBuildResponse> =
-  /*@__PURE__*/
+export const CancelBuildResponseSchema: GenMessage<CancelBuildResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 3);
 
 /**
- * @generated from message ctrl.v1.Build
+ * @generated from message ctrl.v1.GetBuildStatusRequest
  */
-export type Build = Message<"ctrl.v1.Build"> & {
+export type GetBuildStatusRequest = Message<"ctrl.v1.GetBuildStatusRequest"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: string buildId = 1;
    */
-  id: string;
-
-  /**
-   * @generated from field: string workspace_id = 2;
-   */
-  workspaceId: string;
-
-  /**
-   * @generated from field: string project_id = 3;
-   */
-  projectId: string;
-
-  /**
-   * @generated from field: string version_id = 4;
-   */
-  versionId: string;
-
-  /**
-   * Build details
-   *
-   * @generated from field: ctrl.v1.BuildStatus status = 5;
-   */
-  status: BuildStatus;
-
-  /**
-   * For failed builds
-   *
-   * @generated from field: string error_message = 6;
-   */
-  errorMessage: string;
-
-  /**
-   * Timestamps
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 7;
-   */
-  createdAt?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp started_at = 8;
-   */
-  startedAt?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp completed_at = 9;
-   */
-  completedAt?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp updated_at = 10;
-   */
-  updatedAt?: Timestamp;
-
-  /**
-   * Build metadata
-   *
-   * Output rootfs image
-   *
-   * @generated from field: string rootfs_image_id = 11;
-   */
-  rootfsImageId: string;
+  buildId: string;
 };
 
 /**
- * Describes the message ctrl.v1.Build.
- * Use `create(BuildSchema)` to create a new message.
+ * Describes the message ctrl.v1.GetBuildStatusRequest.
+ * Use `create(GetBuildStatusRequestSchema)` to create a new message.
  */
-export const BuildSchema: GenMessage<Build> = /*@__PURE__*/ messageDesc(file_ctrl_v1_build, 4);
+export const GetBuildStatusRequestSchema: GenMessage<GetBuildStatusRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_build, 4);
 
 /**
- * Build status enum
- *
- * @generated from enum ctrl.v1.BuildStatus
+ * @generated from message ctrl.v1.GetBuildStatusResponse
  */
-export enum BuildStatus {
+export type GetBuildStatusResponse = Message<"ctrl.v1.GetBuildStatusResponse"> & {
   /**
-   * @generated from enum value: BUILD_STATUS_UNSPECIFIED = 0;
+   * @generated from field: ctrl.v1.GetBuildStatusResponse.Status status = 1;
    */
-  UNSPECIFIED = 0,
+  status: GetBuildStatusResponse_Status;
 
   /**
-   * @generated from enum value: BUILD_STATUS_PENDING = 1;
+   * Error message if failed
+   *
+   * @generated from field: string error = 2;
    */
-  PENDING = 1,
+  error: string;
+};
+
+/**
+ * Describes the message ctrl.v1.GetBuildStatusResponse.
+ * Use `create(GetBuildStatusResponseSchema)` to create a new message.
+ */
+export const GetBuildStatusResponseSchema: GenMessage<GetBuildStatusResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_build, 5);
+
+/**
+ * @generated from enum ctrl.v1.GetBuildStatusResponse.Status
+ */
+export enum GetBuildStatusResponse_Status {
+  /**
+   * @generated from enum value: UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
 
   /**
-   * @generated from enum value: BUILD_STATUS_RUNNING = 2;
+   * @generated from enum value: RUNNING = 1;
    */
-  RUNNING = 2,
+  RUNNING = 1,
 
   /**
-   * @generated from enum value: BUILD_STATUS_SUCCEEDED = 3;
+   * @generated from enum value: SUCCESS = 2;
    */
-  SUCCEEDED = 3,
+  SUCCESS = 2,
 
   /**
-   * @generated from enum value: BUILD_STATUS_FAILED = 4;
+   * @generated from enum value: FAILED = 3;
    */
-  FAILED = 4,
+  FAILED = 3,
 
   /**
-   * @generated from enum value: BUILD_STATUS_CANCELLED = 5;
+   * @generated from enum value: CANCELLED = 4;
    */
-  CANCELLED = 5,
+  CANCELLED = 4,
 }
 
 /**
- * Describes the enum ctrl.v1.BuildStatus.
+ * Describes the enum ctrl.v1.GetBuildStatusResponse.Status.
  */
-export const BuildStatusSchema: GenEnum<BuildStatus> =
-  /*@__PURE__*/
-  enumDesc(file_ctrl_v1_build, 0);
+export const GetBuildStatusResponse_StatusSchema: GenEnum<GetBuildStatusResponse_Status> = /*@__PURE__*/
+  enumDesc(file_ctrl_v1_build, 5, 0);
 
 /**
  * @generated from service ctrl.v1.BuildService
  */
 export const BuildService: GenService<{
   /**
-   * Create a new build
-   *
    * @generated from rpc ctrl.v1.BuildService.CreateBuild
    */
   createBuild: {
     methodKind: "unary";
     input: typeof CreateBuildRequestSchema;
     output: typeof CreateBuildResponseSchema;
-  };
+  },
   /**
-   * Get build details
-   *
-   * @generated from rpc ctrl.v1.BuildService.GetBuild
+   * @generated from rpc ctrl.v1.BuildService.CancelBuild
    */
-  getBuild: {
+  cancelBuild: {
     methodKind: "unary";
-    input: typeof GetBuildRequestSchema;
-    output: typeof GetBuildResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_build, 0);
+    input: typeof CancelBuildRequestSchema;
+    output: typeof CancelBuildResponseSchema;
+  },
+  /**
+   * @generated from rpc ctrl.v1.BuildService.GetBuildStatus
+   */
+  getBuildStatus: {
+    methodKind: "unary";
+    input: typeof GetBuildStatusRequestSchema;
+    output: typeof GetBuildStatusResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ctrl_v1_build, 0);
+

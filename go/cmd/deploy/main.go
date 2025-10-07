@@ -239,42 +239,22 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	// Build or use pre-built Docker image
 	if opts.DockerImage == "" {
-		// Check Docker availability using updated function
-		if err := isDockerAvailable(); err != nil {
-			ui.PrintError(MsgDockerNotFound)
+		ui.Print("Building Docker image via control plane")
+
+		controlPlane := NewControlPlaneClient(opts)
+		imageName, buildID, err := controlPlane.CreateBuild(ctx)
+		if err != nil {
+			ui.PrintError("Failed to build image")
+			ui.PrintErrorDetails(err.Error())
 			return err
 		}
 
-		// Generate image tag and full image name
-		imageTag := generateImageTag(opts, gitInfo)
-		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
-
-		ui.Print(fmt.Sprintf("Building image: %s", dockerImage))
-
-		if err := buildImage(ctx, opts, dockerImage, ui); err != nil {
-			// Don't print additional error, buildImage already reported it with proper hierarchy
-			return err
-		}
-		ui.PrintSuccess(MsgImageBuiltSuccessfully)
+		dockerImage = imageName
+		ui.PrintSuccess(fmt.Sprintf("Image built successfully (Build ID: %s)", buildID))
+		ui.PrintSuccess(fmt.Sprintf("Image: %s", imageName))
 	} else {
 		dockerImage = opts.DockerImage
 		ui.Print(MsgUsingPreBuiltImage)
-	}
-
-	// Push to registry, unless skipped or using pre-built image
-	if !opts.SkipPush && opts.DockerImage == "" {
-		ui.Print(MsgPushingToRegistry)
-		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
-			ui.PrintError(MsgPushFailedContinuing)
-			ui.PrintErrorDetails(err.Error())
-			// NOTE: Currently ignoring push failures for local development
-			// For production deployment, uncomment the line below:
-			// return err
-		} else {
-			ui.PrintSuccess(MsgImagePushedSuccessfully)
-		}
-	} else if opts.SkipPush {
-		ui.Print(MsgSkippingRegistryPush)
 	}
 
 	// Create deployment
@@ -297,7 +277,6 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
 			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
-			// Store deployment but don't print success, wait for polling to complete
 			finalDeployment = event.Deployment
 		}
 		return nil

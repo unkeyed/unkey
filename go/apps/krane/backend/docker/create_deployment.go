@@ -3,10 +3,13 @@ package docker
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/go-connections/nat"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 )
@@ -23,6 +26,37 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 		"deployment_id", deployment.GetDeploymentId(),
 		"image", deployment.GetImage(),
 	)
+
+	// Pull the image with authentication
+	d.logger.Info("pulling image", "image", deployment.GetImage())
+
+	if d.depotToken == "" {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("depot token not configured"))
+	}
+
+	authConfig := registry.AuthConfig{
+		Username: "x-token",
+		Password: d.depotToken,
+	}
+	encodedAuth, err := registry.EncodeAuthConfig(authConfig)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to encode auth: %w", err))
+	}
+
+	pullResp, err := d.client.ImagePull(ctx, deployment.GetImage(), image.PullOptions{
+		RegistryAuth: encodedAuth,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to pull image: %w", err))
+	}
+	defer pullResp.Close()
+
+	// Wait for pull to complete
+	_, err = io.Copy(io.Discard, pullResp)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to complete image pull: %w", err))
+	}
+	d.logger.Info("image pulled successfully", "image", deployment.GetImage())
 
 	// Configure port mapping
 	exposedPorts := nat.PortSet{
@@ -44,7 +78,6 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Container configuration
 	containerConfig := &container.Config{
-
 		Image: deployment.GetImage(),
 		Labels: map[string]string{
 			"unkey.deployment.id": deployment.GetDeploymentId(),
@@ -58,7 +91,6 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Host configuration
 	hostConfig := &container.HostConfig{
-
 		PortBindings: portBindings,
 		RestartPolicy: container.RestartPolicy{
 			Name: "unless-stopped",

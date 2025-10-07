@@ -29,10 +29,11 @@ Note: Use the same API key value in both files for authentication to work proper
 3. Start all necessary services using Docker Compose:
 
 ```bash
-docker compose -f ./deployment/docker-compose.yaml up mysql planetscale clickhouse redis s3 dashboard gw metald ctrl -d --build
+docker compose -f ./deployment/docker-compose.yaml up mysql planetscale clickhouse redis s3 dashboard gw krane ctrl -d --build
 ```
 
 This will start:
+
 - **mysql**: Database for storing workspace, project, and deployment data
 - **planetscale**: PlanetScale HTTP simulator for database access
 - **clickhouse**: Analytics database for metrics and logs
@@ -40,7 +41,7 @@ This will start:
 - **s3**: MinIO S3-compatible storage for assets and vault data
 - **dashboard**: Web UI for managing deployments (port 3000)
 - **gw**: Gateway service for routing traffic (ports 80/443)
-- **metald**: VM/container management service (port 8090)
+- **krane**: VM/container management service (port 8090)
 - **ctrl**: Control plane service for managing deployments (port 7091)
 
 4. Set up wildcard DNS for `unkey.local`:
@@ -70,7 +71,7 @@ http://localhost:3000
 
 3. Create a new project by filling out the form:
 
-Go to http://localhost:3000/projects
+Go to <http://localhost:3000/projects>
 
 - **Name**: Choose any name (e.g., "My Test App")
 - **Slug**: This will auto-generate based on the name
@@ -89,6 +90,7 @@ cd go
 2. Set up API key authentication for the CLI (choose one option):
 
 **Option A: Environment variable (recommended)**
+
 ```bash
 export API_KEY="your-local-dev-key"
 ```
@@ -109,6 +111,7 @@ go run . deploy \
 ```
 
 Replace the placeholder values:
+
 - `REPLACE_ME` with your actual workspace ID, project ID, and keyspace ID
 - `your-local-dev-key` with the same API key value you set in steps 1 and 2
 - Keep `--context=./demo_api` as shown (there's a demo API in that folder)
@@ -130,6 +133,7 @@ curl --cacert ./deployment/certs/unkey.local.crt https://REPLACE_ME/v1/liveness
 ```
 
 Replace:
+
 - `REPLACE_ME` (URL) with your deployment domain
 
 **Note:** The liveness endpoint is public and doesn't require authentication. For protected endpoints, include an Authorization header:

@@ -13,6 +13,7 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -270,6 +271,7 @@ func Run(ctx context.Context, cfg Config) error {
 		connect.WithInterceptors(authInterceptor),
 	}
 
+	mux.Handle(ctrlv1connect.NewBuildServiceHandler(build.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
 		Database:    database,

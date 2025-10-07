@@ -11,15 +11,16 @@ import (
 
 // docker implements kranev1connect.DeploymentServiceHandler using Docker Engine API.
 type docker struct {
-	logger logging.Logger
-	client *client.Client
+	logger     logging.Logger
+	client     *client.Client
+	depotToken string
 	kranev1connect.UnimplementedDeploymentServiceHandler
 }
 
 var _ kranev1connect.DeploymentServiceHandler = (*docker)(nil)
 
 // New creates a Docker backend instance and validates daemon connectivity.
-func New(logger logging.Logger, socketPath string) (*docker, error) {
+func New(logger logging.Logger, socketPath string, depotToken string) (*docker, error) {
 	// Create Docker client with configurable socket path
 	// socketPath must not include protocol (e.g., "var/run/docker.sock")
 	dockerClient, err := client.NewClientWithOpts(
@@ -41,7 +42,8 @@ func New(logger logging.Logger, socketPath string) (*docker, error) {
 	logger.Info("Docker client initialized successfully", "socket", socketPath)
 
 	return &docker{
-		logger: logger,
-		client: dockerClient,
+		logger:     logger,
+		client:     dockerClient,
+		depotToken: depotToken,
 	}, nil
 }
