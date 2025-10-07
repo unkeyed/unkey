@@ -2,6 +2,7 @@ package build
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ import (
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
 const (
@@ -162,9 +164,14 @@ func (s *Service) CreateBuild(
 //	Create new Depot project if not found
 //	Store project mapping in database (TODO)
 func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
-	// TODO: Check database first for existing mapping
-	// SELECT depot_project_id FROM unkey_to_depot_projects WHERE project_id = ?
-	// If found, return immediately
+	project, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
+	if err != nil {
+		return "", fmt.Errorf("failed to query project: %w", err)
+	}
+
+	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
+		return project.DepotProjectID.String, nil
+	}
 
 	httpClient := &http.Client{
 		Transport: &authTransport{
@@ -174,22 +181,7 @@ func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID st
 	}
 
 	projectClient := corev1connect.NewProjectServiceClient(httpClient, depotAPIURL)
-
-	listResp, err := projectClient.ListProjects(ctx, connect.NewRequest(&corev1.ListProjectsRequest{}))
-	if err != nil {
-		return "", fmt.Errorf("failed to list projects: %w", err)
-	}
-
 	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
-
-	for _, project := range listResp.Msg.Projects {
-		if project.Name == projectName {
-			// TODO: Store mapping in database
-			// INSERT INTO unkey_to_depot_projects (project_id, depot_project_id) VALUES (?, ?)
-			// ON CONFLICT DO NOTHING
-			return project.ProjectId, nil
-		}
-	}
 
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
@@ -203,8 +195,18 @@ func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID st
 		return "", fmt.Errorf("failed to create project: %w", err)
 	}
 
-	// TODO: Store mapping in database
-	// INSERT INTO unkey_to_depot_projects (project_id, depot_project_id) VALUES (?, ?)
+	now := time.Now().UnixMilli()
+	err = db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
+		DepotProjectID: sql.NullString{
+			String: createResp.Msg.Project.ProjectId,
+			Valid:  true,
+		},
+		UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
+		ID:        unkeyProjectID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
+	}
 
 	return createResp.Msg.Project.ProjectId, nil
 	// return "vb429sz55h", nil

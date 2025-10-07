@@ -649,7 +649,8 @@ type Querier interface {
 	//      live_deployment_id,
 	//      is_rolled_back,
 	//      created_at,
-	//      updated_at
+	//      updated_at,
+	//      depot_project_id
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
@@ -1753,6 +1754,14 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDeployments(ctx context.Context, db DBTX, arg UpdateProjectDeploymentsParams) error
+	//UpdateProjectDepotID
+	//
+	//  UPDATE projects
+	//  SET
+	//      depot_project_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateProjectDepotID(ctx context.Context, db DBTX, arg UpdateProjectDepotIDParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`

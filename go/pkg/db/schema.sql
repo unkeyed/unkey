@@ -316,6 +316,7 @@ CREATE TABLE `projects` (
 	`live_deployment_id` varchar(256),
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
+	`depot_project_id` varchar(256),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
