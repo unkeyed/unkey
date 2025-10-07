@@ -65,6 +65,11 @@ func (p *Parser) rewriteTables() error {
 }
 
 func (p *Parser) isTableAllowed(tableName string) bool {
+	// Check if it's a CTE first - CTEs are always allowed
+	if p.isCTE(tableName) {
+		return true
+	}
+
 	// Always block system and information_schema tables
 	lowerTableName := strings.ToLower(tableName)
 	if strings.HasPrefix(lowerTableName, "system.") || strings.HasPrefix(lowerTableName, "information_schema.") {

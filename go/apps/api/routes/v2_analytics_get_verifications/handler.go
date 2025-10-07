@@ -33,7 +33,7 @@ type Handler struct {
 	DB                         db.Database
 	Keys                       keys.KeyService
 	ClickHouse                 clickhouse.ClickHouse
-	AnalyticsConnectionManager *analytics.ConnectionManager
+	AnalyticsConnectionManager analytics.ConnectionManager
 	Caches                     caches.Caches
 }
 
@@ -50,14 +50,6 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/analytics.getVerifications")
-
-	// Check if analytics is configured
-	if h.AnalyticsConnectionManager == nil {
-		return fault.New("workspace analytics connection manager not initialized",
-			fault.Code(codes.Data.Analytics.NotConfigured.URN()),
-			fault.Public("Analytics are not configured for this instance"),
-		)
-	}
 
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()

@@ -19,8 +19,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
-// ConnectionManager manages per-workspace ClickHouse connections for analytics
-type ConnectionManager struct {
+// ConnectionManager is the interface for managing per-workspace ClickHouse connections for analytics
+type ConnectionManager interface {
+	GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error)
+}
+
+// connectionManager is the default implementation that manages per-workspace ClickHouse connections
+type connectionManager struct {
 	settingsCache   cache.Cache[string, db.ClickhouseWorkspaceSetting]
 	connectionCache cache.Cache[string, clickhouse.ClickHouse]
 	database        db.Database
@@ -40,7 +45,7 @@ type ConnectionManagerConfig struct {
 }
 
 // NewConnectionManager creates a new connection manager
-func NewConnectionManager(config ConnectionManagerConfig) (*ConnectionManager, error) {
+func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, error) {
 	err := assert.All(
 		assert.NotNilAndNotZero(config.Vault, "vault is required"),
 		assert.NotNilAndNotZero(config.SettingsCache, "settings cache is required"),
@@ -70,7 +75,7 @@ func NewConnectionManager(config ConnectionManagerConfig) (*ConnectionManager, e
 		return nil, fault.Wrap(err, fault.Public("Failed to create connection cache"))
 	}
 
-	return &ConnectionManager{
+	return &connectionManager{
 		settingsCache:   config.SettingsCache,
 		connectionCache: connectionCache,
 		database:        config.Database,
@@ -81,7 +86,7 @@ func NewConnectionManager(config ConnectionManagerConfig) (*ConnectionManager, e
 }
 
 // GetConnection returns a cached connection and settings for the workspace or creates a new one
-func (m *ConnectionManager) GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
+func (m *connectionManager) GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
 	// Try to get cached connection
 	conn, hit := m.connectionCache.Get(ctx, workspaceID)
 	if hit == cache.Hit {
@@ -124,7 +129,7 @@ func (m *ConnectionManager) GetConnection(ctx context.Context, workspaceID strin
 }
 
 // getSettings retrieves the workspace settings from cache
-func (m *ConnectionManager) getSettings(ctx context.Context, workspaceID string) (db.ClickhouseWorkspaceSetting, error) {
+func (m *connectionManager) getSettings(ctx context.Context, workspaceID string) (db.ClickhouseWorkspaceSetting, error) {
 	settings, hit, err := m.settingsCache.SWR(ctx, workspaceID, func(ctx context.Context) (db.ClickhouseWorkspaceSetting, error) {
 		return db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(ctx, m.database.RO(), workspaceID)
 	}, caches.DefaultFindFirstOp)
@@ -155,7 +160,7 @@ func (m *ConnectionManager) getSettings(ctx context.Context, workspaceID string)
 }
 
 // createConnection creates a new ClickHouse connection for a workspace
-func (m *ConnectionManager) createConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
+func (m *connectionManager) createConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
 	settings, err := m.getSettings(ctx, workspaceID)
 	if err != nil {
 		return nil, db.ClickhouseWorkspaceSetting{}, err
@@ -185,4 +190,21 @@ func (m *ConnectionManager) createConnection(ctx context.Context, workspaceID st
 	}
 
 	return conn, settings, nil
+}
+
+// noopConnectionManager is a no-op implementation that returns errors indicating analytics is not configured
+type noopConnectionManager struct{}
+
+// NewNoopConnectionManager creates a new no-op connection manager for when analytics is not configured
+func NewNoopConnectionManager() ConnectionManager {
+	return &noopConnectionManager{}
+}
+
+// GetConnection always returns an error indicating analytics is not configured
+func (m *noopConnectionManager) GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
+	return nil, db.ClickhouseWorkspaceSetting{}, fault.New(
+		"analytics not configured",
+		fault.Code(codes.Data.Analytics.NotConfigured.URN()),
+		fault.Public("Analytics are not configured for this instance"),
+	)
 }

@@ -15,6 +15,7 @@ func NewParser(config Config) *Parser {
 	return &Parser{
 		config:         config,
 		columnMappings: make(map[string]string),
+		cteNames:       make(map[string]bool),
 	}
 }
 
@@ -47,6 +48,9 @@ func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
 	}
 
 	p.stmt = stmt
+
+	// Build CTE registry FIRST so we know which table references are CTEs
+	p.buildCTERegistry()
 
 	// Build alias lookup map
 	p.buildAliasMap()

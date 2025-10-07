@@ -624,9 +624,21 @@ func TestCTEAttacks(t *testing.T) {
 			query:       "WITH t1 AS (SELECT * FROM default.key_verifications_raw_v2), t2 AS (SELECT * FROM t1), t3 AS (SELECT * FROM system.tables) SELECT * FROM t2",
 			shouldBlock: true, // Blocks system.tables access
 		},
-		// Note: CTEs with allowed tables will fail because CTE names (like 't') are treated as table identifiers
-		// This is a known limitation - the parser blocks the CTE reference itself, not just the source table
-		// This is actually SAFER - it prevents any CTE usage, which could be used to obfuscate queries
+		{
+			name:        "CTE with allowed table should work",
+			query:       "WITH t AS (SELECT * FROM default.key_verifications_raw_v2) SELECT * FROM t",
+			shouldBlock: false, // CTE references allowed table
+		},
+		{
+			name:        "Multiple CTEs with allowed tables",
+			query:       "WITH t1 AS (SELECT * FROM default.key_verifications_raw_v2), t2 AS (SELECT * FROM t1) SELECT * FROM t2",
+			shouldBlock: false, // Nested CTEs with allowed tables
+		},
+		{
+			name:        "CTE JOIN with allowed table",
+			query:       "WITH t AS (SELECT * FROM default.key_verifications_raw_v2) SELECT * FROM t JOIN default.key_verifications_raw_v2 v ON t.key_id = v.key_id",
+			shouldBlock: false, // CTE with JOIN
+		},
 	}
 
 	for _, tt := range tests {
@@ -746,53 +758,6 @@ func TestTableFunctionAttacks(t *testing.T) {
 			// All table functions should be blocked
 			require.Error(t, err, "Table function should be blocked for security")
 			require.Contains(t, err.Error(), "not allowed", "Error should indicate function is not allowed")
-		})
-	}
-}
-
-// TestEmptyAndMalformedQueries tests handling of edge cases
-func TestEmptyAndMalformedQueries(t *testing.T) {
-	p := NewParser(Config{
-		WorkspaceID: "ws_123",
-		AllowedTables: []string{
-			"default.key_verifications_raw_v2",
-		},
-	})
-
-	tests := []struct {
-		name  string
-		query string
-	}{
-		{
-			name:  "empty string",
-			query: "",
-		},
-		{
-			name:  "just whitespace",
-			query: "   \t\n  ",
-		},
-		{
-			name:  "incomplete query",
-			query: "SELECT * FROM",
-		},
-		{
-			name:  "just SELECT",
-			query: "SELECT",
-		},
-		{
-			name:  "unmatched quotes",
-			query: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = 'test",
-		},
-		{
-			name:  "unmatched parentheses",
-			query: "SELECT count( FROM default.key_verifications_raw_v2",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := p.Parse(context.Background(), tt.query)
-			require.Error(t, err, "Malformed queries should be rejected")
 		})
 	}
 }

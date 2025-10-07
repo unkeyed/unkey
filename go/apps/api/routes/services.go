@@ -26,5 +26,5 @@ type Services struct {
 	Vault                      *vault.Service
 	ChproxyToken               string
 	UsageLimiter               usagelimiter.Service
-	AnalyticsConnectionManager *analytics.ConnectionManager
+	AnalyticsConnectionManager analytics.ConnectionManager
 }

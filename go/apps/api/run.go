@@ -263,7 +263,7 @@ func Run(ctx context.Context, cfg Config) error {
 	shutdowns.Register(ctr.Close)
 
 	// Initialize analytics connection manager
-	var analyticsConnMgr *analytics.ConnectionManager
+	analyticsConnMgr := analytics.NewNoopConnectionManager()
 	if cfg.ClickhouseAnalyticsDSN != "" && vaultSvc != nil {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
