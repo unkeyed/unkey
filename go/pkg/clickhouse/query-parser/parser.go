@@ -41,7 +41,7 @@ func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
 	stmt, ok := stmts[0].(*clickhouse.SelectQuery)
 	if !ok {
 		return ParseResult{}, fault.New("only SELECT queries allowed",
-			fault.Code(codes.User.BadRequest.QueryNotSupported.URN()),
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQueryType.URN()),
 			fault.Public("Only SELECT queries are allowed"),
 		)
 	}

@@ -49,6 +49,18 @@ post:
           schema:
             $ref: "../../../../error/NotFoundErrorResponse.yaml"
       description: Referenced API or identity not found
+    "422":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnprocessableEntityErrorResponse.yaml"
+      description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
+    "429":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+      description: Query quota exceeded
     "500":
       content:
         application/json:

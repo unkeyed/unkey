@@ -37,15 +37,23 @@ func (p *Parser) extractValues(expr clickhouse.Expr, canonicalName string, virtu
 
 	// Handle IN operator: IN ('val1', 'val2', 'val3')
 	if paramList, ok := expr.(*clickhouse.ParamExprList); ok {
-		if paramList.Items != nil {
-			for _, item := range paramList.Items.Items {
-				// Each item is wrapped in a ColumnExpr
-				if colExpr, ok := item.(*clickhouse.ColumnExpr); ok {
-					if strLit, ok := colExpr.Expr.(*clickhouse.StringLiteral); ok {
-						virtualCols[canonicalName] = append(virtualCols[canonicalName], strLit.Literal)
-					}
-				}
+		if paramList.Items == nil {
+			return
+		}
+
+		for _, item := range paramList.Items.Items {
+			// Each item is wrapped in a ColumnExpr
+			colExpr, ok := item.(*clickhouse.ColumnExpr)
+			if !ok {
+				continue
 			}
+
+			strLit, ok := colExpr.Expr.(*clickhouse.StringLiteral)
+			if !ok {
+				continue
+			}
+
+			virtualCols[canonicalName] = append(virtualCols[canonicalName], strLit.Literal)
 		}
 	}
 }
@@ -62,19 +70,31 @@ func (p *Parser) rewriteValues(expr clickhouse.Expr, resolvedMap map[string]stri
 
 	// Handle IN operator: IN ('val1', 'val2', 'val3')
 	if paramList, ok := expr.(*clickhouse.ParamExprList); ok {
-		if paramList.Items != nil {
-			for _, item := range paramList.Items.Items {
-				// Each item is wrapped in a ColumnExpr
-				if colExpr, ok := item.(*clickhouse.ColumnExpr); ok {
-					if strLit, ok := colExpr.Expr.(*clickhouse.StringLiteral); ok {
-						if resolved, ok := resolvedMap[strLit.Literal]; ok {
-							strLit.Literal = resolved
-						}
-					}
-				}
+		if paramList.Items == nil {
+			return
+		}
+
+		for _, item := range paramList.Items.Items {
+			// Each item is wrapped in a ColumnExpr
+			colExpr, ok := item.(*clickhouse.ColumnExpr)
+			if !ok {
+				continue
 			}
+
+			strLit, ok := colExpr.Expr.(*clickhouse.StringLiteral)
+			if !ok {
+				continue
+			}
+
+			resolved, ok := resolvedMap[strLit.Literal]
+			if !ok {
+				continue
+			}
+
+			strLit.Literal = resolved
 		}
 	}
+
 }
 
 func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
@@ -84,6 +104,7 @@ func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
 
 	// Extract virtual columns from WHERE and HAVING
 	virtualCols := make(map[string][]string) // virtualCol -> list of IDs
+
 	extractFunc := func(node clickhouse.Expr) bool {
 		binOp, ok := node.(*clickhouse.BinaryOperation)
 		if !ok {
@@ -112,6 +133,7 @@ func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
 
 		// Extract values from right side (handles =, !=, <, >, IN, etc.)
 		p.extractValues(binOp.RightExpr, canonicalName, virtualCols)
+
 		return true
 	}
 
@@ -173,6 +195,7 @@ func (p *Parser) rewriteVirtualColumns(ctx context.Context) error {
 					p.rewriteValues(binOp.RightExpr, resolvedMaps[canonicalName])
 				}
 			}
+
 			return true
 		}
 

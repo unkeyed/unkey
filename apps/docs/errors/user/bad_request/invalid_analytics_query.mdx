@@ -1,7 +1,103 @@
 ---
 title: "invalid_analytics_query"
-description: "InvalidAnalyticsQuery indicates the analytics SQL query is invalid or has syntax errors."
+description: "Your SQL query has a syntax error."
 ---
 
 <Danger>`err:user:bad_request:invalid_analytics_query`</Danger>
 
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Syntax error: Expected identifier, got 'FROM' at position 15",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_query"
+  }
+}
+```
+
+## What Happened?
+
+Your SQL query has a syntax error! The query parser found invalid SQL syntax that prevents it from being executed.
+
+Common causes include:
+- Missing or extra commas
+- Unclosed quotes or parentheses
+- Typos in SQL keywords
+- Invalid column or table names
+
+## How to Fix It
+
+### 1. Check for Missing Commas
+
+<CodeGroup>
+
+```sql Wrong - Missing comma
+SELECT
+  api_id
+  COUNT(*) as total
+FROM key_verifications
+```
+
+```sql Correct
+SELECT
+  api_id,
+  COUNT(*) as total
+FROM key_verifications
+```
+
+</CodeGroup>
+
+### 2. Match Quotes and Parentheses
+
+<CodeGroup>
+
+```sql Wrong - Unclosed quote
+SELECT * FROM key_verifications WHERE api_id = 'api_123
+```
+
+```sql Correct
+SELECT * FROM key_verifications WHERE api_id = 'api_123'
+```
+
+</CodeGroup>
+
+### 3. Use Correct SQL Keywords
+
+<CodeGroup>
+
+```sql Wrong - Typo in SELECT
+SELCT * FROM key_verifications
+```
+
+```sql Correct
+SELECT * FROM key_verifications
+```
+
+</CodeGroup>
+
+### 4. Verify Column Names
+
+Make sure you're using valid column names from your analytics tables:
+
+```sql
+-- ✓ Valid columns
+SELECT time, api_id, outcome, key_id
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+## Need Help?
+
+If you're stuck with a syntax error:
+
+1. **Check the error message** - It usually tells you exactly where the problem is
+2. **Test incrementally** - Start with a simple `SELECT *` and add complexity step by step
+3. **Use a SQL validator** - Many online tools can help spot syntax errors
+
+<Note>
+For more examples and available columns, check out our [Analytics Schema Documentation](https://unkey.com/docs/analytics/schema).
+</Note>

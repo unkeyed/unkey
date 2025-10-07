@@ -1,0 +1,172 @@
+---
+title: "query_result_rows_limit_exceeded"
+description: "Your query tried to return more rows than allowed."
+---
+
+<Danger>`err:user:unprocessable_entity:query_result_rows_limit_exceeded`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Query result exceeded the maximum rows limit of 10,000",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_result_rows_limit_exceeded"
+  }
+}
+```
+
+## What Happened?
+
+Your query tried to return more than 10,000 rows! We limit the result size to keep responses fast and prevent clients from being overwhelmed with data.
+
+This happens when you select raw data without aggregation or try to return too many groups from a GROUP BY query.
+
+## How to Fix It
+
+### 1. Add a LIMIT Clause
+
+Explicitly limit the number of rows returned:
+
+<CodeGroup>
+
+```sql Returns Too Many Rows
+SELECT *
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+ORDER BY time DESC
+```
+
+```sql Limited Results
+SELECT *
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+ORDER BY time DESC
+LIMIT 1000
+```
+
+</CodeGroup>
+
+### 2. Use Aggregation Instead
+
+Instead of fetching individual rows, aggregate the data:
+
+<CodeGroup>
+
+```sql Too Many Individual Rows
+SELECT key_id, time, outcome
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+```sql Aggregated Summary
+SELECT
+  toStartOfHour(time) as hour,
+  api_id,
+  outcome,
+  COUNT(*) as count
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY hour, api_id, outcome
+```
+
+</CodeGroup>
+
+### 3. Filter Before Selecting
+
+Add filters to reduce the result set:
+
+<CodeGroup>
+
+```sql Too Many Results
+SELECT key_id, outcome, time
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+```sql Filtered Results
+SELECT key_id, outcome, time
+FROM key_verifications
+WHERE time >= now() - INTERVAL 1 DAY
+  AND api_id = 'api_123'
+  AND outcome = 'DENIED'
+ORDER BY time DESC
+LIMIT 100
+```
+
+</CodeGroup>
+
+### 4. Paginate Your Results
+
+For large result sets, query in pages:
+
+```javascript
+async function fetchAllPages(apiId) {
+  let offset = 0;
+  const limit = 1000;
+  const allResults = [];
+
+  while (true) {
+    const results = await query(`
+      SELECT key_id, outcome, time
+      FROM key_verifications
+      WHERE api_id = '${apiId}'
+        AND time >= now() - INTERVAL 7 DAY
+      ORDER BY time DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `);
+
+    allResults.push(...results);
+
+    if (results.length < limit) {
+      break; // No more results
+    }
+
+    offset += limit;
+  }
+
+  return allResults;
+}
+```
+
+### 5. Use TOP N Instead of All
+
+If you only need the top results, filter early:
+
+<CodeGroup>
+
+```sql Returns Everything
+SELECT api_id, COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY api_id
+ORDER BY total DESC
+```
+
+```sql Top 100 Only
+SELECT api_id, COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY api_id
+ORDER BY total DESC
+LIMIT 100
+```
+
+</CodeGroup>
+
+## Need Larger Result Sets?
+
+<Note>
+**Have a legitimate need for more than 10,000 rows?** Contact our support team!
+
+[Reach out to support](mailto:support@unkey.dev) and tell us:
+- What you're trying to analyze
+- Why you need more than 10,000 result rows
+- An example of the query you're running
+
+We'll review your use case and help optimize your query or discuss pagination strategies.
+</Note>

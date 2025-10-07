@@ -114,35 +114,35 @@ type errorResponse struct {
 // resourceLimitPatterns maps error message patterns to error responses
 var resourceLimitPatterns = map[string]errorResponse{
 	"timeout": {
-		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
 	},
 	"execution time": {
-		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
 	},
 	"memory": {
-		code:    codes.User.BadRequest.QueryMemoryLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
 		message: "Query memory limit exceeded. Try simplifying your query or reducing the result set size.",
 	},
 	"too many rows": {
-		code:    codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
 		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
 	},
 	"limit for rows_to_read": {
-		code:    codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
 		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
 	},
 	"result rows": {
-		code:    codes.User.BadRequest.QueryResultRowsLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryResultRowsLimitExceeded.URN(),
 		message: "Query result set too large. Try adding LIMIT clause or aggregating the data.",
 	},
 	"max_result_rows": {
-		code:    codes.User.BadRequest.QueryResultRowsLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryResultRowsLimitExceeded.URN(),
 		message: "Query result set too large. Try adding LIMIT clause or aggregating the data.",
 	},
 	"quota": {
-		code:    codes.User.BadRequest.QueryQuotaExceeded.URN(),
+		code:    codes.User.TooManyRequests.QueryQuotaExceeded.URN(),
 		message: "Query quota exceeded for the current time window. Please try again later.",
 	},
 }
@@ -150,23 +150,23 @@ var resourceLimitPatterns = map[string]errorResponse{
 // resourceLimitCodes maps ClickHouse exception codes to error responses
 var resourceLimitCodes = map[int32]errorResponse{
 	159: { // TIMEOUT_EXCEEDED
-		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
 	},
 	241: { // MEMORY_LIMIT_EXCEEDED
-		code:    codes.User.BadRequest.QueryMemoryLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
 		message: "Query memory limit exceeded. Try simplifying your query or reducing the result set size.",
 	},
 	396: { // QUERY_WAS_CANCELLED
-		code:    codes.User.BadRequest.QueryExecutionTimeout.URN(),
+		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query was cancelled due to resource limits.",
 	},
 	198: { // TOO_MANY_ROWS
-		code:    codes.User.BadRequest.QueryRowsLimitExceeded.URN(),
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
 		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
 	},
 	202: { // TOO_MANY_SIMULTANEOUS_QUERIES / QUOTA_EXCEEDED
-		code:    codes.User.BadRequest.QueryQuotaExceeded.URN(),
+		code:    codes.User.TooManyRequests.QueryQuotaExceeded.URN(),
 		message: "Query quota exceeded for the current time window. Please try again later.",
 	},
 }

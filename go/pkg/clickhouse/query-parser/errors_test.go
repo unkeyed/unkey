@@ -38,7 +38,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 				},
 			},
 			query:         "SELECT * FROM system.tables",
-			expectedCode:  codes.User.BadRequest.InvalidTable.URN(),
+			expectedCode:  codes.User.BadRequest.InvalidAnalyticsTable.URN(),
 			expectedError: "Access to table 'system.tables' is not allowed",
 		},
 		{
@@ -50,7 +50,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 				},
 			},
 			query:         "SELECT file('test') FROM default.keys_v2",
-			expectedCode:  codes.User.BadRequest.InvalidFunction.URN(),
+			expectedCode:  codes.User.BadRequest.InvalidAnalyticsFunction.URN(),
 			expectedError: "Function 'file' is not allowed",
 		},
 		{
@@ -62,7 +62,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 				},
 			},
 			query:         "INSERT INTO default.keys_v2 VALUES (1)",
-			expectedCode:  codes.User.BadRequest.QueryNotSupported.URN(),
+			expectedCode:  codes.User.BadRequest.InvalidAnalyticsQueryType.URN(),
 			expectedError: "Only SELECT queries are allowed",
 		},
 	}

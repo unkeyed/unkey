@@ -115,7 +115,7 @@ func (p *Parser) validateFunctions() error {
 			}
 
 			validateErr = fault.New(fmt.Sprintf("function '%s' not allowed", funcName),
-				fault.Code(codes.User.BadRequest.InvalidFunction.URN()),
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsFunction.URN()),
 				fault.Public(fmt.Sprintf("Function '%s' is not allowed", funcName)),
 			)
 			return false
@@ -141,7 +141,7 @@ func (p *Parser) validateFunctions() error {
 		}
 
 		validateErr = fault.New(fmt.Sprintf("table function '%s' not allowed", funcName),
-			fault.Code(codes.User.BadRequest.InvalidFunction.URN()),
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsFunction.URN()),
 			fault.Public(fmt.Sprintf("Table function '%s' is not allowed for security reasons", funcName)),
 		)
 		return false

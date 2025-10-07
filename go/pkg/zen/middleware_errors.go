@@ -57,7 +57,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
-			// Bad Request errors
+			// Bad Request errors - General validation
 			case codes.UnkeyAppErrorsValidationInvalidInput,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
@@ -72,6 +72,55 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
 						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Bad Request errors - Query validation (malformed queries)
+			case codes.UserErrorsBadRequestInvalidAnalyticsQuery,
+				codes.UserErrorsBadRequestInvalidAnalyticsTable,
+				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
+				codes.UserErrorsBadRequestInvalidAnalyticsQueryType:
+				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Bad Request",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusBadRequest,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Unprocessable Entity - Query resource limits
+			case codes.UserErrorsUnprocessableEntityQueryExecutionTimeout,
+				codes.UserErrorsUnprocessableEntityQueryMemoryLimitExceeded,
+				codes.UserErrorsUnprocessableEntityQueryRowsLimitExceeded,
+				codes.UserErrorsUnprocessableEntityQueryResultRowsLimitExceeded:
+				return s.JSON(http.StatusUnprocessableEntity, openapi.UnprocessableEntityErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  http.StatusText(http.StatusUnprocessableEntity),
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusUnprocessableEntity,
+					},
+				})
+
+			// Too Many Requests - Query rate limiting
+			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded:
+				return s.JSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  http.StatusText(http.StatusTooManyRequests),
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusTooManyRequests,
 					},
 				})
 

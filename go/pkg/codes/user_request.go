@@ -12,12 +12,16 @@ type userBadRequest struct {
 	ClientClosedRequest Code
 	// InvalidAnalyticsQuery indicates the analytics SQL query is invalid or has syntax errors.
 	InvalidAnalyticsQuery Code
-	// InvalidTable indicates the table referenced in the query is not allowed or does not exist.
-	InvalidTable Code
-	// InvalidFunction indicates a disallowed function was used in the query.
-	InvalidFunction Code
-	// QueryNotSupported indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
-	QueryNotSupported Code
+	// InvalidAnalyticsTable indicates the table referenced in the analytics query is not allowed or does not exist.
+	InvalidAnalyticsTable Code
+	// InvalidAnalyticsFunction indicates a disallowed function was used in the analytics query.
+	InvalidAnalyticsFunction Code
+	// InvalidAnalyticsQueryType indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
+	InvalidAnalyticsQueryType Code
+}
+
+// userUnprocessableEntity defines errors for requests that are syntactically correct but cannot be processed.
+type userUnprocessableEntity struct {
 	// QueryExecutionTimeout indicates the query exceeded the maximum execution time limit.
 	QueryExecutionTimeout Code
 	// QueryMemoryLimitExceeded indicates the query exceeded the maximum memory usage limit.
@@ -26,6 +30,10 @@ type userBadRequest struct {
 	QueryRowsLimitExceeded Code
 	// QueryResultRowsLimitExceeded indicates the query exceeded the maximum result rows limit.
 	QueryResultRowsLimitExceeded Code
+}
+
+// userTooManyRequests defines errors related to rate limiting and quota exceeded.
+type userTooManyRequests struct {
 	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
 	QueryQuotaExceeded Code
 }
@@ -35,6 +43,10 @@ type userBadRequest struct {
 type UserErrors struct {
 	// BadRequest contains errors related to invalid user input.
 	BadRequest userBadRequest
+	// UnprocessableEntity contains errors for syntactically valid requests that cannot be processed.
+	UnprocessableEntity userUnprocessableEntity
+	// TooManyRequests contains errors related to rate limiting.
+	TooManyRequests userTooManyRequests
 }
 
 // User contains all predefined user error codes.
@@ -42,18 +54,22 @@ type UserErrors struct {
 // for consistent error handling throughout the application.
 var User = UserErrors{
 	BadRequest: userBadRequest{
-		PermissionsQuerySyntaxError:  Code{SystemUser, CategoryUserBadRequest, "permissions_query_syntax_error"},
-		RequestBodyTooLarge:          Code{SystemUser, CategoryUserBadRequest, "request_body_too_large"},
-		RequestTimeout:               Code{SystemUser, CategoryUserBadRequest, "request_timeout"},
-		ClientClosedRequest:          Code{SystemUser, CategoryUserBadRequest, "client_closed_request"},
-		InvalidAnalyticsQuery:        Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query"},
-		InvalidTable:                 Code{SystemUser, CategoryUserBadRequest, "invalid_table"},
-		InvalidFunction:              Code{SystemUser, CategoryUserBadRequest, "invalid_function"},
-		QueryNotSupported:            Code{SystemUser, CategoryUserBadRequest, "query_not_supported"},
-		QueryExecutionTimeout:        Code{SystemUser, CategoryUserBadRequest, "query_execution_timeout"},
-		QueryMemoryLimitExceeded:     Code{SystemUser, CategoryUserBadRequest, "query_memory_limit_exceeded"},
-		QueryRowsLimitExceeded:       Code{SystemUser, CategoryUserBadRequest, "query_rows_limit_exceeded"},
-		QueryResultRowsLimitExceeded: Code{SystemUser, CategoryUserBadRequest, "query_result_rows_limit_exceeded"},
-		QueryQuotaExceeded:           Code{SystemUser, CategoryUserBadRequest, "query_quota_exceeded"},
+		PermissionsQuerySyntaxError: Code{SystemUser, CategoryUserBadRequest, "permissions_query_syntax_error"},
+		RequestBodyTooLarge:         Code{SystemUser, CategoryUserBadRequest, "request_body_too_large"},
+		RequestTimeout:              Code{SystemUser, CategoryUserBadRequest, "request_timeout"},
+		ClientClosedRequest:         Code{SystemUser, CategoryUserBadRequest, "client_closed_request"},
+		InvalidAnalyticsQuery:       Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query"},
+		InvalidAnalyticsTable:       Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_table"},
+		InvalidAnalyticsFunction:    Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_function"},
+		InvalidAnalyticsQueryType:   Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query_type"},
+	},
+	UnprocessableEntity: userUnprocessableEntity{
+		QueryExecutionTimeout:        Code{SystemUser, CategoryUserUnprocessableEntity, "query_execution_timeout"},
+		QueryMemoryLimitExceeded:     Code{SystemUser, CategoryUserUnprocessableEntity, "query_memory_limit_exceeded"},
+		QueryRowsLimitExceeded:       Code{SystemUser, CategoryUserUnprocessableEntity, "query_rows_limit_exceeded"},
+		QueryResultRowsLimitExceeded: Code{SystemUser, CategoryUserUnprocessableEntity, "query_result_rows_limit_exceeded"},
+	},
+	TooManyRequests: userTooManyRequests{
+		QueryQuotaExceeded: Code{SystemUser, CategoryUserTooManyRequests, "query_quota_exceeded"},
 	},
 }

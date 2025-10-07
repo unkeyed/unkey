@@ -265,19 +265,34 @@
               {
                 "group": "User Errors",
                 "pages": [
-                  "errors/user/bad_request/client_closed_request",
-                  "errors/user/bad_request/invalid_analytics_query",
-                  "errors/user/bad_request/invalid_function",
-                  "errors/user/bad_request/invalid_table",
-                  "errors/user/bad_request/permissions_query_syntax_error",
-                  "errors/user/bad_request/query_execution_timeout",
-                  "errors/user/bad_request/query_memory_limit_exceeded",
-                  "errors/user/bad_request/query_not_supported",
-                  "errors/user/bad_request/query_quota_exceeded",
-                  "errors/user/bad_request/query_result_rows_limit_exceeded",
-                  "errors/user/bad_request/query_rows_limit_exceeded",
-                  "errors/user/bad_request/request_body_too_large",
-                  "errors/user/bad_request/request_timeout"
+                  {
+                    "group": "Bad Request",
+                    "pages": [
+                      "errors/user/bad_request/client_closed_request",
+                      "errors/user/bad_request/invalid_analytics_function",
+                      "errors/user/bad_request/invalid_analytics_query",
+                      "errors/user/bad_request/invalid_analytics_query_type",
+                      "errors/user/bad_request/invalid_analytics_table",
+                      "errors/user/bad_request/permissions_query_syntax_error",
+                      "errors/user/bad_request/request_body_too_large",
+                      "errors/user/bad_request/request_timeout"
+                    ]
+                  },
+                  {
+                    "group": "Too Many Requests",
+                    "pages": [
+                      "errors/user/too_many_requests/query_quota_exceeded"
+                    ]
+                  },
+                  {
+                    "group": "Unprocessable Entity",
+                    "pages": [
+                      "errors/user/unprocessable_entity/query_execution_timeout",
+                      "errors/user/unprocessable_entity/query_memory_limit_exceeded",
+                      "errors/user/unprocessable_entity/query_result_rows_limit_exceeded",
+                      "errors/user/unprocessable_entity/query_rows_limit_exceeded"
+                    ]
+                  }
                 ]
               }
             ]

@@ -41,7 +41,7 @@ func (p *Parser) rewriteTables() error {
 		// Validate access
 		if !p.isTableAllowed(tableName) {
 			rewriteErr = fault.New(fmt.Sprintf("table '%s' not allowed", tableName),
-				fault.Code(codes.User.BadRequest.InvalidTable.URN()),
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsTable.URN()),
 				fault.Public(fmt.Sprintf("Access to table '%s' is not allowed", tableName)),
 			)
 

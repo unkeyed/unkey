@@ -22,22 +22,28 @@ const (
 	UserErrorsBadRequestClientClosedRequest URN = "err:user:bad_request:client_closed_request"
 	// InvalidAnalyticsQuery indicates the analytics SQL query is invalid or has syntax errors.
 	UserErrorsBadRequestInvalidAnalyticsQuery URN = "err:user:bad_request:invalid_analytics_query"
-	// InvalidTable indicates the table referenced in the query is not allowed or does not exist.
-	UserErrorsBadRequestInvalidTable URN = "err:user:bad_request:invalid_table"
-	// InvalidFunction indicates a disallowed function was used in the query.
-	UserErrorsBadRequestInvalidFunction URN = "err:user:bad_request:invalid_function"
-	// QueryNotSupported indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
-	UserErrorsBadRequestQueryNotSupported URN = "err:user:bad_request:query_not_supported"
+	// InvalidAnalyticsTable indicates the table referenced in the analytics query is not allowed or does not exist.
+	UserErrorsBadRequestInvalidAnalyticsTable URN = "err:user:bad_request:invalid_analytics_table"
+	// InvalidAnalyticsFunction indicates a disallowed function was used in the analytics query.
+	UserErrorsBadRequestInvalidAnalyticsFunction URN = "err:user:bad_request:invalid_analytics_function"
+	// InvalidAnalyticsQueryType indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
+	UserErrorsBadRequestInvalidAnalyticsQueryType URN = "err:user:bad_request:invalid_analytics_query_type"
+
+	// UnprocessableEntity
+
 	// QueryExecutionTimeout indicates the query exceeded the maximum execution time limit.
-	UserErrorsBadRequestQueryExecutionTimeout URN = "err:user:bad_request:query_execution_timeout"
+	UserErrorsUnprocessableEntityQueryExecutionTimeout URN = "err:user:unprocessable_entity:query_execution_timeout"
 	// QueryMemoryLimitExceeded indicates the query exceeded the maximum memory usage limit.
-	UserErrorsBadRequestQueryMemoryLimitExceeded URN = "err:user:bad_request:query_memory_limit_exceeded"
+	UserErrorsUnprocessableEntityQueryMemoryLimitExceeded URN = "err:user:unprocessable_entity:query_memory_limit_exceeded"
 	// QueryRowsLimitExceeded indicates the query exceeded the maximum rows to read limit.
-	UserErrorsBadRequestQueryRowsLimitExceeded URN = "err:user:bad_request:query_rows_limit_exceeded"
+	UserErrorsUnprocessableEntityQueryRowsLimitExceeded URN = "err:user:unprocessable_entity:query_rows_limit_exceeded"
 	// QueryResultRowsLimitExceeded indicates the query exceeded the maximum result rows limit.
-	UserErrorsBadRequestQueryResultRowsLimitExceeded URN = "err:user:bad_request:query_result_rows_limit_exceeded"
+	UserErrorsUnprocessableEntityQueryResultRowsLimitExceeded URN = "err:user:unprocessable_entity:query_result_rows_limit_exceeded"
+
+	// TooManyRequests
+
 	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
-	UserErrorsBadRequestQueryQuotaExceeded URN = "err:user:bad_request:query_quota_exceeded"
+	UserErrorsTooManyRequestsQueryQuotaExceeded URN = "err:user:too_many_requests:query_quota_exceeded"
 
 	// ----------------
 	// UnkeyAuthErrors

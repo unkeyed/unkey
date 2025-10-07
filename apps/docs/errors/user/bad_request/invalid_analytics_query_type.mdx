@@ -1,0 +1,120 @@
+---
+title: "invalid_analytics_query_type"
+description: "Only SELECT queries are allowed for analytics - you tried to use INSERT, UPDATE, DELETE, or another unsupported operation."
+---
+
+<Danger>`err:user:bad_request:invalid_analytics_query_type`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Only SELECT queries are allowed",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_query_type"
+  }
+}
+```
+
+## What Happened?
+
+You tried to run a query that modifies data or isn't a SELECT! Analytics queries are read-only - you can only SELECT data, not modify it.
+
+Blocked query types:
+- `INSERT` - Adding new data
+- `UPDATE` - Modifying existing data
+- `DELETE` - Removing data
+- `DROP` - Deleting tables
+- `CREATE` - Creating tables
+- `ALTER` - Modifying table structure
+- `TRUNCATE` - Clearing tables
+
+## How to Fix It
+
+### 1. Use SELECT Instead
+
+Analytics is for querying data, not modifying it:
+
+<CodeGroup>
+
+```sql Wrong - INSERT not allowed
+INSERT INTO key_verifications VALUES (...)
+```
+
+```sql Wrong - UPDATE not allowed
+UPDATE key_verifications SET outcome = 'VALID'
+```
+
+```sql Wrong - DELETE not allowed
+DELETE FROM key_verifications WHERE time < now() - INTERVAL 30 DAY
+```
+
+```sql Correct - SELECT queries only
+SELECT
+  api_id,
+  outcome,
+  COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY api_id, outcome
+```
+
+</CodeGroup>
+
+### 2. Query Your Data
+
+The analytics endpoint is for analyzing your verification data:
+
+```sql
+-- ✓ Count verifications by outcome
+SELECT outcome, COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 1 DAY
+GROUP BY outcome
+
+-- ✓ Get hourly verification rates
+SELECT
+  toStartOfHour(time) as hour,
+  COUNT(*) as verifications
+FROM key_verifications
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY hour
+ORDER BY hour
+
+-- ✓ Find most active APIs
+SELECT
+  api_id,
+  COUNT(*) as requests
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY api_id
+ORDER BY requests DESC
+LIMIT 10
+```
+
+### 3. Use the Correct API for Data Modification
+
+If you need to modify data, use the appropriate Unkey API endpoints:
+
+| What You Want | Use This API |
+|---------------|--------------|
+| Create a key | `POST /v2/keys.createKey` |
+| Update a key | `PATCH /v2/keys.updateKey` |
+| Delete a key | `POST /v2/keys.deleteKey` |
+| Modify permissions | `POST /v2/keys.addPermissions` |
+
+## Why Read-Only?
+
+Analytics queries are read-only for several reasons:
+
+1. **Data integrity** - Verification history should never be modified
+2. **Performance** - Read-only queries can be heavily optimized
+3. **Security** - Prevents accidental or malicious data corruption
+4. **Audit trail** - Preserves accurate historical records
+
+<Note>
+Analytics is for understanding your data, not changing it. Use the main Unkey API for creating, updating, or deleting resources.
+</Note>
