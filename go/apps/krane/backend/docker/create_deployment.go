@@ -36,6 +36,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	authConfig := registry.AuthConfig{
 		Username: "x-token",
+		// TODO: token should be generic
 		Password: d.depotToken,
 	}
 	encodedAuth, err := registry.EncodeAuthConfig(authConfig)

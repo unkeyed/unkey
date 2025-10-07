@@ -56,14 +56,12 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 }
 
 // CreateBuild builds and pushes a Docker image via the control plane
-// CreateBuild builds and pushes a Docker image via the control plane
 func (c *ControlPlaneClient) CreateBuild(ctx context.Context) (string, string, error) {
 	// Create tar from context path
 	tarPath, err := createContextTar(c.opts.Context)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create context tar: %w", err)
 	}
-	// defer os.Remove(tarPath) // Clean up tar after build
 
 	buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
 		ImagePath:      c.opts.Dockerfile,
@@ -74,6 +72,7 @@ func (c *ControlPlaneClient) CreateBuild(ctx context.Context) (string, string, e
 	if authHeader == "" {
 		authHeader = c.opts.AuthToken
 	}
+
 	buildReq.Header().Set("Authorization", "Bearer "+authHeader)
 	buildResp, err := c.buildClient.CreateBuild(ctx, buildReq)
 	if err != nil {

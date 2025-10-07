@@ -85,6 +85,7 @@ func (s *Service) CreateBuild(
 
 	// INFO: Locally this receives something like `/tmp/context.tar.gz`. In the future, we'll likely download tar archives from S3
 	// that contain a Dockerfile at the root, and call this the same way.
+	// Check their cli implementation to see how they push s3 to their registry
 	dockerfileReader, buildErr := os.Open(req.Msg.ContextPath)
 	if buildErr != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
@@ -158,11 +159,11 @@ func (s *Service) CreateBuild(
 //
 // Steps:
 //
-//	Check database for existing project mapping (TODO)
+//	Check database for existing project mapping
 //	List all Depot projects and search by name
 //	Return existing project ID if found
 //	Create new Depot project if not found
-//	Store project mapping in database (TODO)
+//	Store project mapping in database
 func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
 	if err != nil {

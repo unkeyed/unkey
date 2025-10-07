@@ -92,7 +92,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Create the service handlers with interceptors
-	//
 	mux.Handle(kranev1connect.NewDeploymentServiceHandler(svc))
 
 	// Configure server
