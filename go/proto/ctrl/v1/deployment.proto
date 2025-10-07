@@ -23,7 +23,7 @@ enum SourceType {
 }
 
 message CreateDeploymentRequest {
-  string workspace_id = 1;
+  reserved 1; // was workspace_id, now inferred from project_id
   string project_id = 2;
   string branch = 3;
   // Source information
