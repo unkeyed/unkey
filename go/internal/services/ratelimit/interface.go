@@ -33,13 +33,21 @@ type Service interface {
 	// Performance: O(1) time complexity for local decisions
 	//
 	// Example Usage:
-	//   resp, err := svc.Ratelimit(ctx, RatelimitRequest{
-	//     Identifier: "user-123",
-	//     Limit:      100,
-	//     Duration:   time.Minute,
-	//     Cost:       1,
+	//   responses, err := svc.Ratelimit(ctx, []RatelimitRequest{
+	//     {
+	//       Identifier: "user-123",
+	//       Limit:      100,
+	//       Duration:   time.Minute,
+	//       Cost:       1,
+	//     },
+	//     {
+	//       Identifier: "user-456",
+	//       Limit:      50,
+	//       Duration:   time.Minute,
+	//       Cost:       2,
+	//     },
 	//   })
-	Ratelimit(context.Context, RatelimitRequest) (RatelimitResponse, error)
+	Ratelimit(context.Context, []RatelimitRequest) ([]RatelimitResponse, error)
 }
 
 // RatelimitRequest represents a request to check or consume rate limit tokens.
