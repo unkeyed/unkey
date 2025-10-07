@@ -254,7 +254,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// Note: owner_id is set to null in the SQL query, so we skip setting it here
 			if req.Meta != nil {
 				metaBytes, marshalErr := json.Marshal(*req.Meta)
 				if marshalErr != nil {
@@ -356,7 +355,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// 11. Handle permissions if provided - with auto-creation
 			var auditLogs []auditlog.AuditLog
 			if req.Permissions != nil {
 				existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
@@ -469,7 +467,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// 12. Handle roles if provided - with auto-creation
 			if req.Roles != nil {
 				existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -556,7 +553,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			// 13. Create main audit log for key creation
 			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.KeyCreateEvent,
@@ -585,7 +581,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				},
 			})
 
-			// 14. Insert audit logs
 			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 			if err != nil {
 				return err
@@ -612,14 +607,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsDuplicateKeyError(txErr) || db.IsDeadlockError(txErr) {
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("failed to create identity after retries"),
-				fault.Public("Failed to create identity."),
+				fault.Internal("failed to create key after retries"),
+				fault.Public("Failed to create key."),
 			)
 		}
 		return txErr
 	}
 
-	// 16. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
