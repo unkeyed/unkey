@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"slices"
-
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
