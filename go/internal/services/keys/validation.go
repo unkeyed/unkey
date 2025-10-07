@@ -68,7 +68,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 		return nil
 	}
 
-	if !slices.Contains(k.parsedIPWhitelist, clientIP) {
+	if _, ok := k.parsedIPWhitelist[clientIP]; !ok {
 		k.setInvalid(StatusForbidden, fmt.Sprintf("client IP %s is not in the whitelist", clientIP))
 	}
 

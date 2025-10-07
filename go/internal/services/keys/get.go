@@ -78,20 +78,20 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 
 		// Parse IP whitelist once during cache population for performance
-		var parsedIPWhitelist []string
+		parsedIPWhitelist := make(map[string]struct{})
 		if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
 			ips := strings.Split(row.IpWhitelist.String, ",")
 			for _, ip := range ips {
 				trimmed := strings.TrimSpace(ip)
 				if trimmed != "" {
-					parsedIPWhitelist = append(parsedIPWhitelist, trimmed)
+					parsedIPWhitelist[trimmed] = struct{}{}
 				}
 			}
 		}
 
 		return db.CachedKeyData{
-			Row:               row,
-			ParsedIPWhitelist: parsedIPWhitelist,
+			FindKeyForVerificationRow: row,
+			ParsedIPWhitelist:         parsedIPWhitelist,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 
@@ -119,10 +119,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}, emptyLog, nil
 	}
 
-	key := cachedKey.Row // Extract the row data for easier access
-
 	// ForWorkspace set but that doesn't exist
-	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
+	if cachedKey.ForWorkspaceID.Valid && !cachedKey.ForWorkspaceEnabled.Valid {
 		// nolint:exhaustruct
 		return &KeyVerifier{
 			Status:  StatusWorkspaceNotFound,
@@ -136,7 +134,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		region:  s.region,
 	}
 
-	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
+	if !cachedKey.WorkspaceEnabled || (cachedKey.ForWorkspaceEnabled.Valid && !cachedKey.ForWorkspaceEnabled.Bool) {
 		// nolint:exhaustruct
 		return kv, kv.log, nil
 	}
@@ -146,7 +144,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	var ratelimitArr []db.KeyFindForVerificationRatelimit
 
 	// Safely handle roles field
-	rolesBytes, ok := key.Roles.([]byte)
+	rolesBytes, ok := cachedKey.Roles.([]byte)
 	if !ok || rolesBytes == nil {
 		roles = []string{} // Default to empty array if nil or wrong type
 	} else {
@@ -157,7 +155,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	// Safely handle permissions field
-	permissionsBytes, ok := key.Permissions.([]byte)
+	permissionsBytes, ok := cachedKey.Permissions.([]byte)
 	if !ok || permissionsBytes == nil {
 		permissions = []string{} // Default to empty array if nil or wrong type
 	} else {
@@ -168,7 +166,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	// Safely handle ratelimits field
-	ratelimitsBytes, ok := key.Ratelimits.([]byte)
+	ratelimitsBytes, ok := cachedKey.Ratelimits.([]byte)
 	if !ok || ratelimitsBytes == nil {
 		ratelimitArr = []db.KeyFindForVerificationRatelimit{} // Default to empty array if nil or wrong type
 	} else {
@@ -194,17 +192,17 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	kv = &KeyVerifier{
-		Key:                   key,
+		Key:                   cachedKey.FindKeyForVerificationRow,
 		clickhouse:            s.clickhouse,
 		rateLimiter:           s.raterLimiter,
 		usageLimiter:          s.usageLimiter,
-		AuthorizedWorkspaceID: key.WorkspaceID,
+		AuthorizedWorkspaceID: cachedKey.WorkspaceID,
 		rBAC:                  s.rbac,
 		session:               sess,
 		logger:                s.logger,
 		region:                s.region,
 		message:               "",
-		isRootKey:             key.ForWorkspaceID.Valid,
+		isRootKey:             cachedKey.ForWorkspaceID.Valid,
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,
@@ -215,23 +213,23 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		RatelimitResults:  nil,
 	}
 
-	if key.DeletedAtM.Valid {
+	if cachedKey.DeletedAtM.Valid {
 		kv.setInvalid(StatusNotFound, "key is deleted")
 		return kv, kv.log, nil
 	}
 
-	if key.ApiDeletedAtM.Valid {
+	if cachedKey.ApiDeletedAtM.Valid {
 		kv.setInvalid(StatusNotFound, "key is deleted")
 		return kv, kv.log, nil
 	}
 
-	if !key.Enabled {
+	if !cachedKey.Enabled {
 		kv.setInvalid(StatusDisabled, "key is disabled")
 		return kv, kv.log, nil
 	}
 
-	if key.Expires.Valid && time.Now().After(key.Expires.Time) {
-		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
+	if cachedKey.Expires.Valid && time.Now().After(cachedKey.Expires.Time) {
+		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", cachedKey.Expires.Time.Format(time.RFC3339)))
 		return kv, kv.log, nil
 	}
 
