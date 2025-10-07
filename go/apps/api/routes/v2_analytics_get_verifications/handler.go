@@ -329,8 +329,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						apiToRow := make(map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, len(results))
 						for _, result := range results {
 							row := db.FindKeyAuthsByIdsRow{KeyAuthID: result.KeyAuthID, ApiID: result.ApiID}
-							keyAuthToRow[cache.ScopedKey{WorkspaceID: auth.Key.ApiWorkspaceID, Key: result.KeyAuthID}] = row
-							apiToRow[cache.ScopedKey{WorkspaceID: auth.Key.ApiWorkspaceID, Key: result.ApiID}] = row
+							keyAuthToRow[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.KeyAuthID}] = row
+							apiToRow[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.ApiID}] = row
 						}
 
 						h.Caches.ApiToKeyAuthRow.SetMany(ctx, apiToRow)
