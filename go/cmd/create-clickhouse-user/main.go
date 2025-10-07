@@ -221,7 +221,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	// Create or alter ClickHouse user
 	logger.Info("creating/updating clickhouse user", "username", username)
-	createUserSQL := fmt.Sprintf("CREATE USER IF NOT EXISTS %s IDENTIFIED WITH plaintext_password BY {password:String}", username)
+	createUserSQL := fmt.Sprintf("CREATE USER IF NOT EXISTS %s IDENTIFIED WITH sha256_password BY {password:String}", username)
 	err = ch.Exec(ctx, createUserSQL, driver.Named("password", password))
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
