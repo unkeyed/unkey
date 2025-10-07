@@ -107,15 +107,13 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}, emptyLog, nil
 	}
 
-	kv := &KeyVerifier{
-		Status:  StatusWorkspaceDisabled,
-		message: "workspace is disabled",
-		region:  s.region,
-	}
-
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
 		// nolint:exhaustruct
-		return kv, kv.log, nil
+		return &KeyVerifier{
+			Status:  StatusWorkspaceDisabled,
+			message: "workspace is disabled",
+			region:  s.region,
+		}, emptyLog, nil
 	}
 
 	// The DB returns this in array format and an empty array if not found
@@ -170,7 +168,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
-	kv = &KeyVerifier{
+	kv := &KeyVerifier{
 		Key:                   key,
 		clickhouse:            s.clickhouse,
 		rateLimiter:           s.raterLimiter,

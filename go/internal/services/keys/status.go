@@ -84,6 +84,7 @@ func (k *KeyVerifier) ToFault() error {
 		if message == "" {
 			message = "Insufficient permissions to access this resource."
 		}
+
 		return fault.New("insufficient permissions",
 			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
 			fault.Internal(message),
