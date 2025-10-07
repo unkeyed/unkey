@@ -28,17 +28,17 @@ type Caches struct {
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 
-	// Clickhouse Configuration caches clickhouse configuration lookups by ID.
-	// Keys are string (ID) and values are db.ClickhouseWorkspaceSetting.
+	// Clickhouse Configuration caches clickhouse configuration lookups by workspace ID.
+	// Keys are string (workspace ID) and values are db.ClickhouseWorkspaceSetting.
 	ClickhouseSetting cache.Cache[string, db.ClickhouseWorkspaceSetting]
 
 	// KeyAuthToApiRow caches key_auth_id to api row mappings.
 	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
-	KeyAuthToApiRow cache.Cache[string, db.FindKeyAuthsByIdsRow]
+	KeyAuthToApiRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
 	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
 	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
-	ApiToKeyAuthRow cache.Cache[string, db.FindKeyAuthsByIdsRow]
+	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
 	// ExternalIdToIdentity caches external_id to identity mappings.
 	// Keys are string (external_id) scoped to the workspace ID and values are db.Identity (full object).
@@ -46,7 +46,7 @@ type Caches struct {
 
 	// Identity caches identity_id to identity mappings.
 	// Keys are string (identity_id) and values are db.Identity.
-	Identity cache.Cache[string, db.Identity]
+	Identity cache.Cache[cache.ScopedKey, db.Identity]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -230,7 +230,7 @@ func New(config Config) (Caches, error) {
 	// Create key_auth_id -> api row cache
 	keyAuthToApiRow, err := createCache(
 		config,
-		cache.Config[string, db.FindKeyAuthsByIdsRow]{
+		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
 			Logger:   config.Logger,
@@ -238,8 +238,8 @@ func New(config Config) (Caches, error) {
 			Resource: "key_auth_to_api_row",
 			Clock:    config.Clock,
 		},
-		nil,
-		nil,
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
 	)
 	if err != nil {
 		return Caches{}, err
@@ -248,7 +248,7 @@ func New(config Config) (Caches, error) {
 	// Create api_id -> key_auth row cache
 	apiToKeyAuthRow, err := createCache(
 		config,
-		cache.Config[string, db.FindKeyAuthsByIdsRow]{
+		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
 			Logger:   config.Logger,
@@ -256,8 +256,8 @@ func New(config Config) (Caches, error) {
 			Resource: "api_to_key_auth_row",
 			Clock:    config.Clock,
 		},
-		nil,
-		nil,
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
 	)
 	if err != nil {
 		return Caches{}, err
@@ -283,7 +283,7 @@ func New(config Config) (Caches, error) {
 
 	identity, err := createCache(
 		config,
-		cache.Config[string, db.Identity]{
+		cache.Config[cache.ScopedKey, db.Identity]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
 			Logger:   config.Logger,
@@ -291,8 +291,8 @@ func New(config Config) (Caches, error) {
 			Resource: "identity_id_to_external_id",
 			Clock:    config.Clock,
 		},
-		nil,
-		nil,
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
 	)
 	if err != nil {
 		return Caches{}, err

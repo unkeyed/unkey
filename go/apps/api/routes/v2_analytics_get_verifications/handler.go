@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/array"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/go/pkg/clickhouse/query-parser"
@@ -107,40 +108,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Resolver: func(ctx context.Context, apiIDs []string) (map[string]string, error) {
 					extractedAPIIds = apiIDs
 
-					rowLookup, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(ctx, apiIDs, func(ctx context.Context, missingAPIIds []string) (map[string]db.FindKeyAuthsByIdsRow, error) {
-						results, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
-							WorkspaceID: auth.AuthorizedWorkspaceID,
-							ApiIds:      missingAPIIds,
+					rowLookup, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(
+						ctx,
+						array.Map(apiIDs, func(apiID string) cache.ScopedKey {
+							return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: apiID}
+						}),
+						func(ctx context.Context, missingAPIIds []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
+							results, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
+								WorkspaceID: auth.AuthorizedWorkspaceID,
+								ApiIds: array.Map(missingAPIIds, func(key cache.ScopedKey) string {
+									return key.Key
+								}),
+							})
+							if err != nil {
+								return nil, fault.Wrap(err,
+									fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+									fault.Public("Failed to lookup APIs"),
+								)
+							}
+
+							apiToRow := make(map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, len(results))
+							keyAuthToRow := make(map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, len(results))
+							for _, result := range results {
+								apiToRow[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.ApiID}] = result
+								keyAuthToRow[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.KeyAuthID}] = result
+							}
+
+							// Double-write: cache the reverse mapping too
+							h.Caches.KeyAuthToApiRow.SetMany(ctx, keyAuthToRow)
+
+							return apiToRow, nil
+						}, func(err error) cache.Op {
+							if db.IsNotFound(err) {
+								return cache.WriteNull
+							}
+
+							if err != nil {
+								return cache.Noop
+							}
+
+							return cache.WriteValue
 						})
-						if err != nil {
-							return nil, fault.Wrap(err,
-								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-								fault.Public("Failed to lookup APIs"),
-							)
-						}
-
-						apiToRow := make(map[string]db.FindKeyAuthsByIdsRow, len(results))
-						keyAuthToRow := make(map[string]db.FindKeyAuthsByIdsRow, len(results))
-						for _, result := range results {
-							apiToRow[result.ApiID] = result
-							keyAuthToRow[result.KeyAuthID] = result
-						}
-
-						// Double-write: cache the reverse mapping too
-						h.Caches.KeyAuthToApiRow.SetMany(ctx, keyAuthToRow)
-
-						return apiToRow, nil
-					}, func(err error) cache.Op {
-						if db.IsNotFound(err) {
-							return cache.WriteNull
-						}
-
-						if err != nil {
-							return cache.Noop
-						}
-
-						return cache.WriteValue
-					})
 
 					if err != nil {
 						return nil, err
@@ -149,17 +157,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					// Convert to simple string map for the resolver
 					lookup := make(map[string]string, len(rowLookup))
 					for apiID, row := range rowLookup {
-						lookup[apiID] = row.KeyAuthID
+						lookup[apiID.Key] = row.KeyAuthID
 					}
 
 					// Verify all requested API IDs were found
 					for _, apiID := range apiIDs {
-						if _, found := lookup[apiID]; !found {
-							return nil, fault.New("api not found",
-								fault.Code(codes.Data.Api.NotFound.URN()),
-								fault.Public("One or more API IDs do not exist"),
-							)
+						_, found := lookup[apiID]
+
+						if found {
+							continue
 						}
+
+						return nil, fault.New("api not found",
+							fault.Code(codes.Data.Api.NotFound.URN()),
+							fault.Public("One or more API IDs do not exist"),
+						)
 					}
 
 					return lookup, nil
@@ -169,59 +181,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActualColumn: "identity_id",
 				Aliases:      []string{"external_id"},
 				Resolver: func(ctx context.Context, externalIDs []string) (map[string]string, error) {
-					scopedKeys := make([]cache.ScopedKey, len(externalIDs))
-					for i, externalID := range externalIDs {
-						scopedKeys[i] = cache.ScopedKey{
-							WorkspaceID: auth.AuthorizedWorkspaceID,
-							Key:         externalID,
-						}
-					}
-
-					identityLookup, _, err := h.Caches.ExternalIdToIdentity.SWRMany(ctx, scopedKeys, func(ctx context.Context, missingScopedKeys []cache.ScopedKey) (map[cache.ScopedKey]db.Identity, error) {
-						// Extract external IDs from scoped keys
-						missingExternalIDs := make([]string, len(missingScopedKeys))
-						for i, sk := range missingScopedKeys {
-							missingExternalIDs[i] = sk.Key
-						}
-
-						identities, err := db.Query.FindIdentities(ctx, h.DB.RO(), db.FindIdentitiesParams{
-							WorkspaceID: auth.AuthorizedWorkspaceID,
-							Deleted:     false,
-							Identities:  missingExternalIDs,
-						})
-						if err != nil {
-							return nil, fault.Wrap(err,
-								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-								fault.Public("Failed to lookup identities"),
-							)
-						}
-
-						externalToIdentity := make(map[cache.ScopedKey]db.Identity, len(identities))
-						identityByIDCache := make(map[string]db.Identity, len(identities))
-						for _, identity := range identities {
-							scopedKey := cache.ScopedKey{
-								WorkspaceID: auth.AuthorizedWorkspaceID,
-								Key:         identity.ExternalID,
+					identityLookup, _, err := h.Caches.ExternalIdToIdentity.SWRMany(
+						ctx,
+						array.Map(externalIDs, func(externalID string) cache.ScopedKey {
+							return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: externalID}
+						}),
+						func(ctx context.Context, missingScopedKeys []cache.ScopedKey) (map[cache.ScopedKey]db.Identity, error) {
+							// Extract external IDs from scoped keys
+							missingExternalIDs := make([]string, len(missingScopedKeys))
+							for i, sk := range missingScopedKeys {
+								missingExternalIDs[i] = sk.Key
 							}
-							externalToIdentity[scopedKey] = identity
-							identityByIDCache[identity.ID] = identity
-						}
 
-						// Double-write: cache the identities by ID too
-						h.Caches.Identity.SetMany(ctx, identityByIDCache)
+							identities, err := db.Query.FindIdentities(ctx, h.DB.RO(), db.FindIdentitiesParams{
+								WorkspaceID: auth.AuthorizedWorkspaceID,
+								Deleted:     false,
+								Identities:  missingExternalIDs,
+							})
+							if err != nil {
+								return nil, fault.Wrap(err,
+									fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+									fault.Public("Failed to lookup identities"),
+								)
+							}
 
-						return externalToIdentity, nil
-					}, func(err error) cache.Op {
-						if db.IsNotFound(err) {
-							return cache.WriteNull
-						}
+							externalToIdentity := make(map[cache.ScopedKey]db.Identity, len(identities))
+							identityByIDCache := make(map[cache.ScopedKey]db.Identity, len(identities))
+							for _, identity := range identities {
+								externalToIdentity[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: identity.ExternalID}] = identity
+								identityByIDCache[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: identity.ID}] = identity
+							}
 
-						if err != nil {
-							return cache.Noop
-						}
+							// Double-write: cache the identities by ID too
+							h.Caches.Identity.SetMany(ctx, identityByIDCache)
 
-						return cache.WriteValue
-					})
+							return externalToIdentity, nil
+						}, func(err error) cache.Op {
+							if db.IsNotFound(err) {
+								return cache.WriteNull
+							}
+
+							if err != nil {
+								return cache.Noop
+							}
+
+							return cache.WriteValue
+						})
 
 					if err != nil {
 						return nil, err
@@ -301,40 +306,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActualColumn:  "key_space_id",
 			VirtualColumn: "apiId",
 			Resolver: func(ctx context.Context, keySpaceIDs []string) (map[string]string, error) {
-				rowMapping, _, err := h.Caches.KeyAuthToApiRow.SWRMany(ctx, keySpaceIDs, func(ctx context.Context, missingKeyAuthIDs []string) (map[string]db.FindKeyAuthsByIdsRow, error) {
-					results, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						KeyAuthIds:  missingKeyAuthIDs,
-					})
-					if err != nil {
-						return nil, fault.Wrap(err,
-							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-							fault.Public("Failed to resolve API IDs"),
-						)
-					}
-
-					keyAuthToRow := make(map[string]db.FindKeyAuthsByIdsRow, len(results))
-					apiToRow := make(map[string]db.FindKeyAuthsByIdsRow, len(results))
-					for _, result := range results {
-						row := db.FindKeyAuthsByIdsRow{
-							KeyAuthID: result.KeyAuthID,
-							ApiID:     result.ApiID,
+				rowMapping, _, err := h.Caches.KeyAuthToApiRow.SWRMany(
+					ctx,
+					array.Map(keySpaceIDs, func(keySpaceID string) cache.ScopedKey {
+						return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: keySpaceID}
+					}),
+					func(ctx context.Context, missingKeyAuthIDs []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
+						results, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
+							WorkspaceID: auth.AuthorizedWorkspaceID,
+							KeyAuthIds: array.Map(missingKeyAuthIDs, func(keyAuthID cache.ScopedKey) string {
+								return keyAuthID.Key
+							}),
+						})
+						if err != nil {
+							return nil, fault.Wrap(err,
+								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+								fault.Public("Failed to resolve API IDs"),
+							)
 						}
-						keyAuthToRow[result.KeyAuthID] = row
-						apiToRow[result.ApiID] = row
-					}
 
-					h.Caches.ApiToKeyAuthRow.SetMany(ctx, apiToRow)
+						keyAuthToRow := make(map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, len(results))
+						apiToRow := make(map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, len(results))
+						for _, result := range results {
+							row := db.FindKeyAuthsByIdsRow{KeyAuthID: result.KeyAuthID, ApiID: result.ApiID}
+							keyAuthToRow[cache.ScopedKey{WorkspaceID: auth.Key.ApiWorkspaceID, Key: result.KeyAuthID}] = row
+							apiToRow[cache.ScopedKey{WorkspaceID: auth.Key.ApiWorkspaceID, Key: result.ApiID}] = row
+						}
 
-					return keyAuthToRow, nil
-				}, caches.DefaultFindFirstOp)
+						h.Caches.ApiToKeyAuthRow.SetMany(ctx, apiToRow)
+
+						return keyAuthToRow, nil
+					}, caches.DefaultFindFirstOp)
 				if err != nil {
 					return nil, err
 				}
 
 				mapping := make(map[string]string, len(rowMapping))
 				for keyAuthID, row := range rowMapping {
-					mapping[keyAuthID] = row.ApiID
+					mapping[keyAuthID.Key] = row.ApiID
 				}
 
 				return mapping, nil
@@ -344,31 +353,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActualColumn:  "identity_id",
 			VirtualColumn: "externalId",
 			Resolver: func(ctx context.Context, identityIDs []string) (map[string]string, error) {
-				identityMapping, _, err := h.Caches.Identity.SWRMany(ctx, identityIDs, func(ctx context.Context, missingIdentityIDs []string) (map[string]db.Identity, error) {
-					identities, err := db.Query.FindIdentities(ctx, h.DB.RO(), db.FindIdentitiesParams{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Deleted:     false,
-						Identities:  missingIdentityIDs,
-					})
-					if err != nil {
-						return nil, fault.Wrap(err,
-							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-							fault.Public("Failed to resolve identity IDs"),
-						)
-					}
+				identityMapping, _, err := h.Caches.Identity.SWRMany(ctx,
+					array.Map(identityIDs, func(identityID string) cache.ScopedKey {
+						return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: identityID}
+					}),
+					func(ctx context.Context, missingIdentityIDs []cache.ScopedKey) (map[cache.ScopedKey]db.Identity, error) {
+						identities, err := db.Query.FindIdentities(ctx, h.DB.RO(), db.FindIdentitiesParams{
+							WorkspaceID: auth.AuthorizedWorkspaceID,
+							Deleted:     false,
+							Identities: array.Map(missingIdentityIDs, func(missingIdentityID cache.ScopedKey) string {
+								return missingIdentityID.Key
+							}),
+						})
+						if err != nil {
+							return nil, fault.Wrap(err,
+								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+								fault.Public("Failed to resolve identity IDs"),
+							)
+						}
 
-					identityByIDCache := make(map[string]db.Identity, len(identities))
-					externalToIdentity := make(map[cache.ScopedKey]db.Identity, len(identities))
-					for _, identity := range identities {
-						identityByIDCache[identity.ID] = identity
-						externalToIdentity[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: identity.ExternalID}] = identity
-					}
+						identityByIDCache := make(map[cache.ScopedKey]db.Identity, len(identities))
+						externalToIdentity := make(map[cache.ScopedKey]db.Identity, len(identities))
+						for _, identity := range identities {
+							identityByIDCache[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: identity.ID}] = identity
+							externalToIdentity[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: identity.ExternalID}] = identity
+						}
 
-					// Double-write: cache the externalId -> identity mapping too
-					h.Caches.ExternalIdToIdentity.SetMany(ctx, externalToIdentity)
+						// Double-write: cache the externalId -> identity mapping too
+						h.Caches.ExternalIdToIdentity.SetMany(ctx, externalToIdentity)
 
-					return identityByIDCache, nil
-				}, caches.DefaultFindFirstOp)
+						return identityByIDCache, nil
+					}, caches.DefaultFindFirstOp)
 
 				if err != nil {
 					return nil, err
@@ -377,7 +392,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				// Convert Identity objects to simple map
 				mapping := make(map[string]string, len(identityMapping))
 				for identityID, identity := range identityMapping {
-					mapping[identityID] = identity.ExternalID
+					mapping[identityID.Key] = identity.ExternalID
 				}
 
 				return mapping, nil
