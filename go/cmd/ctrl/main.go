@@ -36,8 +36,6 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 		cli.String("database-partition", "MySQL connection string for partition database. Required for all deployments. Example: user:pass@host:3306/partition_002?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PARTITION")),
-		cli.String("database-hydra", "MySQL connection string for hydra database. Required for all deployments. Example: user:pass@host:3306/hydra?parseTime=true",
-			cli.Required(), cli.EnvVar("UNKEY_DATABASE_HYDRA")),
 
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
