@@ -619,8 +619,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsDuplicateKeyError(txErr) || db.IsDeadlockError(txErr) {
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("failed to create key after retries"),
-				fault.Public("Failed to create key."),
+				fault.Internal("failed to update key after retries"),
+				fault.Public("Failed to update key."),
 			)
 		}
 		return txErr
