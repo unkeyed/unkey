@@ -107,14 +107,23 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}, emptyLog, nil
 	}
 
-	kv := &KeyVerifier{
-		Status:  StatusWorkspaceDisabled,
-		message: "workspace is disabled",
-		region:  s.region,
-	}
-
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
 		// nolint:exhaustruct
+		kv := &KeyVerifier{
+			Status:                StatusWorkspaceDisabled,
+			message:               "workspace is disabled",
+			session:               sess,
+			rBAC:                  s.rbac,
+			region:                s.region,
+			logger:                s.logger,
+			clickhouse:            s.clickhouse,
+			rateLimiter:           s.raterLimiter,
+			usageLimiter:          s.usageLimiter,
+			AuthorizedWorkspaceID: key.WorkspaceID,
+			isRootKey:             key.ForWorkspaceID.Valid,
+			Key:                   key,
+		}
+
 		return kv, kv.log, nil
 	}
 
@@ -170,7 +179,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
-	kv = &KeyVerifier{
+	kv := &KeyVerifier{
 		Key:                   key,
 		clickhouse:            s.clickhouse,
 		rateLimiter:           s.raterLimiter,

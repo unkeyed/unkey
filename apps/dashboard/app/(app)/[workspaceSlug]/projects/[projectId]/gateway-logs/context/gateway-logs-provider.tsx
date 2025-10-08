@@ -1,7 +1,7 @@
 "use client";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { type PropsWithChildren, createContext, useContext, useState } from "react";
-import { useProjectLayout } from "../../layout-provider";
+import { useProject } from "../../layout-provider";
 
 type GatewayLogsContextType = {
   isLive: boolean;
@@ -13,7 +13,7 @@ type GatewayLogsContextType = {
 const GatewayLogsContext = createContext<GatewayLogsContextType | null>(null);
 
 export const GatewayLogsProvider = ({ children }: PropsWithChildren) => {
-  const { setIsDetailsOpen } = useProjectLayout();
+  const { setIsDetailsOpen } = useProject();
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [isLive, setIsLive] = useState(false);
 

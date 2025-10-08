@@ -715,7 +715,8 @@ const file_vault_v1_service_proto_rawDesc = "" +
 	"\vEncryptBulk\x12\x1c.vault.v1.EncryptBulkRequest\x1a\x1d.vault.v1.EncryptBulkResponse\"\x00\x12@\n" +
 	"\aDecrypt\x12\x18.vault.v1.DecryptRequest\x1a\x19.vault.v1.DecryptResponse\"\x00\x12F\n" +
 	"\tReEncrypt\x12\x1a.vault.v1.ReEncryptRequest\x1a\x1b.vault.v1.ReEncryptResponse\"\x00\x12R\n" +
-	"\rReEncryptDEKs\x12\x1e.vault.v1.ReEncryptDEKsRequest\x1a\x1f.vault.v1.ReEncryptDEKsResponse\"\x00B8Z6github.com/unkeyed/unkey/go/gen/proto/vault/v1;vaultv1b\x06proto3"
+	"\rReEncryptDEKs\x12\x1e.vault.v1.ReEncryptDEKsRequest\x1a\x1f.vault.v1.ReEncryptDEKsResponse\"\x00B\x95\x01\n" +
+	"\fcom.vault.v1B\fServiceProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 
 var (
 	file_vault_v1_service_proto_rawDescOnce sync.Once

@@ -134,10 +134,9 @@ func (SourceType) EnumDescriptor() ([]byte, []int) {
 }
 
 type CreateDeploymentRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Branch      string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Branch    string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Source information
 	EnvironmentSlug string     `protobuf:"bytes,4,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
 	SourceType      SourceType `protobuf:"varint,5,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
@@ -183,13 +182,6 @@ func (x *CreateDeploymentRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*CreateDeploymentRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *CreateDeploymentRequest) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
 }
 
 func (x *CreateDeploymentRequest) GetProjectId() string {
@@ -1001,9 +993,8 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xac\x04\n" +
-	"\x17CreateDeploymentRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\x8f\x04\n" +
+	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
 	"\x06branch\x18\x03 \x01(\tR\x06branch\x12)\n" +
@@ -1019,7 +1010,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x14git_commit_timestamp\x18\v \x01(\x03R\x12gitCommitTimestamp\x12$\n" +
 	"\vkeyspace_id\x18\f \x01(\tH\x00R\n" +
 	"keyspaceId\x88\x01\x01B\x0e\n" +
-	"\f_keyspace_id\"r\n" +
+	"\f_keyspace_idJ\x04\b\x01\x10\x02\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
@@ -1100,7 +1091,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
 	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00\x12>\n" +
-	"\aPromote\x12\x17.ctrl.v1.PromoteRequest\x1a\x18.ctrl.v1.PromoteResponse\"\x00B6Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1b\x06proto3"
+	"\aPromote\x12\x17.ctrl.v1.PromoteRequest\x1a\x18.ctrl.v1.PromoteResponse\"\x00B\x91\x01\n" +
+	"\vcom.ctrl.v1B\x0fDeploymentProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
 	file_ctrl_v1_deployment_proto_rawDescOnce sync.Once

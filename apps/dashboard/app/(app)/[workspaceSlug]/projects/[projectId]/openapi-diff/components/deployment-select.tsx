@@ -11,7 +11,7 @@ import {
 } from "@unkey/ui";
 import { format } from "date-fns";
 import { PulseIndicator } from "../../details/active-deployment-card/status-indicator";
-import { useProjectLayout } from "../../layout-provider";
+import { useProject } from "../../layout-provider";
 
 type DeploymentSelectProps = {
   value: string;
@@ -36,7 +36,7 @@ export function DeploymentSelect({
   id,
   disabledDeploymentId,
 }: DeploymentSelectProps) {
-  const { liveDeploymentId } = useProjectLayout();
+  const { liveDeploymentId } = useProject();
   const renderOptions = () => {
     if (isLoading) {
       return (
