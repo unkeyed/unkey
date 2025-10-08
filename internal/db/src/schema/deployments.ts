@@ -4,6 +4,7 @@ import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
 
 export const deployments = mysqlTable(
@@ -38,7 +39,7 @@ export const deployments = mysqlTable(
       .notNull(),
 
     // OpenAPI specification
-    openapiSpec: text("openapi_spec"),
+    openapiSpec: longblob("openapi_spec"),
 
     // Deployment status
     status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])

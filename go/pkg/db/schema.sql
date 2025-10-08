@@ -336,7 +336,7 @@ CREATE TABLE `deployments` (
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
 	`runtime_config` json NOT NULL,
-	`openapi_spec` text,
+	`openapi_spec` longblob,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -419,3 +419,4 @@ CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
+

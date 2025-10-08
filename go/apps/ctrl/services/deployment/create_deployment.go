@@ -27,17 +27,7 @@ func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
 ) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
-	// Validate workspace exists
-	_, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("workspace not found: %s", req.Msg.GetWorkspaceId()))
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	// Validate project exists and belongs to workspace
+	// Lookup project and infer workspace from it
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -47,15 +37,10 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	// Verify project belongs to the specified workspace
-	if project.WorkspaceID != req.Msg.GetWorkspaceId() {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("project %s does not belong to workspace %s",
-				req.Msg.GetProjectId(), req.Msg.GetWorkspaceId()))
-	}
+	workspaceID := project.WorkspaceID
 
 	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
-		WorkspaceID: req.Msg.GetWorkspaceId(),
+		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		Slug:        req.Msg.GetEnvironmentSlug(),
 	})
@@ -63,7 +48,7 @@ func (s *Service) CreateDeployment(
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("environment '%s' not found in workspace '%s'",
-					req.Msg.GetEnvironmentSlug(), req.Msg.GetWorkspaceId()))
+					req.Msg.GetEnvironmentSlug(), workspaceID))
 		}
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
@@ -112,7 +97,7 @@ func (s *Service) CreateDeployment(
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:            deploymentID,
-		WorkspaceID:   req.Msg.GetWorkspaceId(),
+		WorkspaceID:   workspaceID,
 		ProjectID:     req.Msg.GetProjectId(),
 		EnvironmentID: env.ID,
 		RuntimeConfig: json.RawMessage(`{
@@ -138,16 +123,21 @@ func (s *Service) CreateDeployment(
 
 	s.logger.Info("starting deployment workflow for deployment",
 		"deployment_id", deploymentID,
-		"workspace_id", req.Msg.GetWorkspaceId(),
+		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
 		"environment", env.ID,
 	)
 
 	// Start the deployment workflow directly
+	keyspaceID := req.Msg.GetKeyspaceId()
+	var keyAuthID *string
+	if keyspaceID != "" {
+		keyAuthID = &keyspaceID
+	}
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
 		DockerImage:  req.Msg.GetDockerImage(),
-		KeyAuthId:    req.Msg.KeyspaceId,
+		KeyAuthId:    keyAuthID,
 	}
 	// this is ugly, but we're waiting for
 	// https://github.com/restatedev/sdk-go/issues/103
