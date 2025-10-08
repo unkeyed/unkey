@@ -59,7 +59,7 @@ export default function DiffPage() {
     if (liveDeploymentId) {
       const exists = sortedDeployments.some((d) => d.deployment.id === liveDeploymentId);
       if (exists) {
-        setSelectedToDeployment(liveDeploymentId);
+        setSelectedFromDeployment(liveDeploymentId);
       }
     }
   }, [liveDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);

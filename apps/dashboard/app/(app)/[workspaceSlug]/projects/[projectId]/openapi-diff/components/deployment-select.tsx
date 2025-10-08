@@ -37,6 +37,40 @@ export function DeploymentSelect({
   disabledDeploymentId,
 }: DeploymentSelectProps) {
   const { liveDeploymentId } = useProject();
+  const latestDeploymentId = deployments.find(
+    ({ deployment }) => deployment.id !== liveDeploymentId,
+  )?.deployment.id;
+
+  const getTooltipContent = (
+    deploymentId: string,
+    isDisabled: boolean,
+    isLive: boolean,
+    isLatest: boolean,
+  ): string | undefined => {
+    if (isDisabled) {
+      return deploymentId === disabledDeploymentId
+        ? "Already selected for comparison"
+        : "No OpenAPI spec available";
+    }
+    if (isLive) {
+      return "Live deployment";
+    }
+    if (isLatest) {
+      return "Latest preview deployment";
+    }
+    return undefined;
+  };
+
+  const getTriggerTitle = (): string => {
+    if (value === liveDeploymentId) {
+      return "Live deployment";
+    }
+    if (value === latestDeploymentId) {
+      return "Latest preview deployment";
+    }
+    return "";
+  };
+
   const renderOptions = () => {
     if (isLoading) {
       return (
@@ -52,24 +86,18 @@ export function DeploymentSelect({
         </SelectItem>
       );
     }
-
     return deployments.map(({ deployment }) => {
       const isDisabled = deployment.id === disabledDeploymentId || !deployment.hasOpenApiSpec;
       const deployedAt = format(deployment.createdAt, "MMM d, h:mm a");
+      const isLatest = deployment.id === latestDeploymentId;
+      const isLive = deployment.id === liveDeploymentId;
+      const tooltipContent = getTooltipContent(deployment.id, isDisabled, isLive, isLatest);
 
       return (
         <SelectItem key={deployment.id} value={deployment.id} disabled={isDisabled}>
           <InfoTooltip
-            disabled={!isDisabled && deployment.id !== liveDeploymentId}
-            content={
-              isDisabled
-                ? deployment.id === disabledDeploymentId
-                  ? "Already selected for comparison"
-                  : "No OpenAPI spec available"
-                : deployment.id === liveDeploymentId
-                  ? "Live deployment"
-                  : undefined
-            }
+            disabled={!tooltipContent}
+            content={tooltipContent}
             position={{
               side: "right",
               align: "end",
@@ -80,7 +108,13 @@ export function DeploymentSelect({
               <span className="text-grayA-12 font-medium truncate">{shortenId(deployment.id)}</span>
               <span className="text-grayA-9">•</span>
               <span className="text-grayA-9">{deployedAt}</span>
-              {deployment.id === liveDeploymentId && <PulseIndicator />}
+              {isLive && <PulseIndicator />}
+              {isLatest && !isLive && (
+                <PulseIndicator
+                  colors={["bg-gray-9", "bg-gray-7", "bg-gray-8", "bg-gray-9"]}
+                  coreColor="bg-gray-9"
+                />
+              )}
             </div>
           </InfoTooltip>
         </SelectItem>
@@ -94,11 +128,7 @@ export function DeploymentSelect({
       onValueChange={onValueChange}
       disabled={disabled || isLoading || deployments.length === 0}
     >
-      <SelectTrigger
-        id={id}
-        className="rounded-md"
-        title={value === liveDeploymentId ? "Live deployment" : ""}
-      >
+      <SelectTrigger id={id} className="rounded-md" title={getTriggerTitle()}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>{renderOptions()}</SelectContent>
