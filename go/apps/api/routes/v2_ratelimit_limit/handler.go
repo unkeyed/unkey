@@ -272,14 +272,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	results, err := h.Ratelimit.Ratelimit(ctx, []ratelimit.RatelimitRequest{limitReq})
+	result, err := h.Ratelimit.Ratelimit(ctx, limitReq)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Internal("rate limit failed"),
 			fault.Public("We're unable to process the rate limit request."),
 		)
 	}
-	result := results[0]
 
 	if s.ShouldLogRequestToClickHouse() {
 		h.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
