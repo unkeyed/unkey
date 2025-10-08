@@ -253,7 +253,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				s.returnSession(sess)
 			}()
 
-			err := sess.init(w, r, s.config.MaxRequestBodySize)
+			err := sess.Init(w, r, s.config.MaxRequestBodySize)
 			if err != nil {
 				s.logger.Error("failed to init session", "error", err)
 
@@ -277,7 +277,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				handle = middlewares[i](handle)
 			}
 
-			err = handle(r.Context(), sess)
+			err = handle(WithSession(r.Context(), sess), sess)
 
 			if err != nil {
 				panic(err)
