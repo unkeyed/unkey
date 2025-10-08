@@ -2,7 +2,7 @@
 import { HelpButton } from "@/components/navigation/sidebar/help-button";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
 import { Key2 } from "@unkey/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { stepInfos } from "../constants";
 import { useKeyCreationStep } from "../hooks/use-key-creation-step";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
@@ -12,8 +12,23 @@ import { type OnboardingStep, OnboardingWizard } from "./onboarding-wizard";
 export function OnboardingContent() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const workspaceStep = useWorkspaceStep();
-  const keyCreationStep = useKeyCreationStep();
+
+  const [stepCount, setStepCount] = useState(0);
+
+  const handleStepChange = (newStepIndex: number) => {
+    setCurrentStepIndex(newStepIndex);
+  };
+  const clamp = (i: number) => {
+    return Math.max(0, Math.min(stepCount - 1, i));
+  };
+  const workspaceStep = useWorkspaceStep({
+    advance: () => {
+      handleStepChange(clamp(currentStepIndex + 1));
+    },
+  });
+  const keyCreationStep = useKeyCreationStep({
+    advance: () => handleStepChange(clamp(currentStepIndex + 1)),
+  });
 
   const steps: OnboardingStep[] = [
     workspaceStep,
@@ -29,6 +44,7 @@ export function OnboardingContent() {
       buttonText: "Continue to dashboard",
       onStepNext: () => {
         setIsConfirmOpen(true);
+        return true;
       },
       onStepSkip: () => {
         setIsConfirmOpen(true);
@@ -36,9 +52,11 @@ export function OnboardingContent() {
     },
   ];
 
-  const handleStepChange = (newStepIndex: number) => {
-    setCurrentStepIndex(newStepIndex);
-  };
+  // stupid hack to get around the circular dependency
+  // we need the length of steps to determine the number of steps for boundary checking
+  useEffect(() => {
+    setStepCount(steps.length);
+  }, [steps.length]);
 
   const currentStepInfo = stepInfos[currentStepIndex];
 
@@ -69,7 +87,11 @@ export function OnboardingContent() {
         <div className="mt-10" />
         {/* Form part */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
+          <OnboardingWizard
+            steps={steps}
+            currentStepIndex={currentStepIndex}
+            setCurrentStepIndex={handleStepChange}
+          />
         </div>
       </div>
       <div className="absolute bottom-4 left-4">
