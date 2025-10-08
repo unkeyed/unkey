@@ -1,50 +1,4 @@
 import { CopyButton } from "@unkey/ui";
-import React from "react";
-
-// Helper function to extract text from React elements
-const extractTextFromReactElement = (element: React.ReactNode): string => {
-  if (typeof element === "string" || typeof element === "number") {
-    return String(element);
-  }
-
-  if (element === null || element === undefined) {
-    return "";
-  }
-
-  if (React.isValidElement(element)) {
-    const reactElement = element as React.ReactElement<{
-      value?: string | Date | number;
-      children?: React.ReactNode;
-      href?: string;
-      title?: string;
-    }>;
-
-    if (reactElement.props.value) {
-      if (reactElement.props.value instanceof Date) {
-        return reactElement.props.value.toISOString();
-      }
-      return String(reactElement.props.value);
-    }
-
-    if (reactElement.props.children) {
-      if (typeof reactElement.props.children === "string") {
-        return reactElement.props.children;
-      }
-      if (Array.isArray(reactElement.props.children)) {
-        return reactElement.props.children
-          .map((child: React.ReactNode) => extractTextFromReactElement(child))
-          .join("");
-      }
-      return extractTextFromReactElement(reactElement.props.children);
-    }
-
-    if (reactElement.props.href || reactElement.props.title) {
-      return reactElement.props.title || reactElement.props.href || "";
-    }
-  }
-
-  return String(element);
-};
 
 export const LogSection = ({
   details,
@@ -64,7 +18,7 @@ export const LogSection = ({
           return key;
         }
         if (typeof value === "object" && value !== null && "props" in value) {
-          return `${key}: ${extractTextFromReactElement(value)}`;
+          return `${key}: ${value}`;
         }
         return `${key}: ${value}`;
       })
