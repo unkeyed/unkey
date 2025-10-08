@@ -18,14 +18,13 @@ const (
 	DefaultBranch          = "main"
 	DefaultDockerfile      = "Dockerfile"
 	DefaultRegistry        = "ghcr.io/unkeyed/deploy"
-	DefaultControlPlaneURL = "http://localhost:7091"
+	DefaultControlPlaneURL = "https://ctrl.unkey.cloud"
 	DefaultAuthToken       = "ctrl-secret-token"
-	DefaultEnvironment     = "Production"
+	DefaultEnvironment     = "preview"
 
 	// Environment variables
-	EnvWorkspaceID = "UNKEY_WORKSPACE_ID"
-	EnvKeyspaceID  = "UNKEY_KEYSPACE_ID"
-	EnvRegistry    = "UNKEY_REGISTRY"
+	EnvKeyspaceID = "UNKEY_KEYSPACE_ID"
+	EnvRegistry   = "UNKEY_REGISTRY"
 
 	// URL prefixes
 	HTTPSPrefix     = "https://"
@@ -83,7 +82,6 @@ var stepSequence = map[string]string{
 
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
-	WorkspaceID     string
 	ProjectID       string
 	KeyspaceID      string
 	Context         string
@@ -108,11 +106,10 @@ var DeployFlags = []cli.Flag{
 	cli.Bool("init", "Initialize configuration file in the specified directory"),
 	cli.Bool("force", "Force overwrite existing configuration file when using --init"),
 	// Required flags (can be provided via config file)
-	cli.String("workspace-id", "Workspace ID", cli.EnvVar(EnvWorkspaceID)),
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
 	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar(EnvKeyspaceID)),
 	// Optional flags with defaults
-	cli.String("context", "Build context path"),
+	cli.String("context", "Build context path", cli.Default(".")),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
 	cli.String("docker-image", "Pre-built docker image"),
 	cli.String("dockerfile", "Path to Dockerfile", cli.Default(DefaultDockerfile)),
@@ -120,10 +117,10 @@ var DeployFlags = []cli.Flag{
 	cli.String("registry", "Container registry",
 		cli.Default(DefaultRegistry),
 		cli.EnvVar(EnvRegistry)),
-	cli.String("env", "Environment slug to deploy to", cli.Default("preview")),
+	cli.String("env", "Environment slug to deploy to", cli.Default(DefaultEnvironment)),
 	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
-	cli.Bool("linux", "Build Docker image for linux/amd64 platform (for deployment to cloud clusters)"),
+	cli.Bool("linux", "Build Docker image for linux/amd64 platform (for deployment to cloud clusters)", cli.Default(true)),
 	// Control plane flags (internal)
 	cli.String("control-plane-url", "Control plane URL", cli.Default(DefaultControlPlaneURL)),
 	cli.String("auth-token", "Control plane auth token", cli.Default(DefaultAuthToken)),
@@ -155,7 +152,6 @@ unkey deploy --init --config=./my-project    # Initialize with custom location
 unkey deploy --init --force                  # Force overwrite existing configuration
 unkey deploy                                 # Standard deployment (uses ./unkey.json)
 unkey deploy --config=./production           # Deploy from specific config directory
-unkey deploy --workspace-id=ws_production_123 # Override workspace from config file
 unkey deploy --context=./api                 # Deploy with custom build context
 unkey deploy --skip-push                     # Local development (build only, no push)
 unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image
@@ -184,7 +180,6 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 	// Merge config with command flags (flags take precedence)
 	finalConfig := cfg.mergeWithFlags(
-		cmd.String("workspace-id"),
 		cmd.String("project-id"),
 		cmd.String("keyspace-id"),
 		cmd.String("context"),
@@ -196,7 +191,6 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	opts := DeployOptions{
-		WorkspaceID:     finalConfig.WorkspaceID,
 		KeyspaceID:      finalConfig.KeyspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
