@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
@@ -31,7 +30,10 @@ message CreateDeploymentRequest {
 
   SourceType source_type = 5;
 
-  string docker_image = 6;
+  // Either docker_image OR context_key must be provided
+  optional string docker_image = 6; // Pre-built image to use
+  optional string context_key = 13; // S3 key for uploaded build context
+  optional string docker_file_path = 14; // Path to Dockerfile within context (default: "Dockerfile")
 
   // Extended git information
   string git_commit_sha = 7; // For git sources

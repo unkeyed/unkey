@@ -30,7 +30,6 @@ type AcmeConfig struct {
 }
 
 type RestateConfig struct {
-
 	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
 	IngressURL string
 
@@ -43,6 +42,17 @@ type RestateConfig struct {
 	// RegisterAs is the url of this service, used for self-registration with the Restate platform
 	// ie: http://ctrl:9080
 	RegisterAs string
+}
+
+type DepotConfig struct {
+	// APIUrl is the URL of the Depot API endpoint (e.g., "https://api.depot.dev")
+	APIUrl string
+	// RegistryUrl is the URL of the Depot container registry (e.g., "registry.depot.dev")
+	RegistryUrl string
+	// Username is the registry username for authentication (typically "x-token" for token-based auth)
+	Username string
+	// AccessToken is the Depot API access token for authentication
+	AccessToken string
 }
 
 type Config struct {
@@ -101,12 +111,32 @@ type Config struct {
 	DefaultDomain string
 
 	Restate RestateConfig
+
+	// --- Build Storage Configuration ---
+	BuildS3 S3Config
+	Depot   DepotConfig
 }
 
 func (c Config) Validate() error {
 	// Validate Cloudflare configuration if enabled
 	if c.Acme.Enabled && c.Acme.Cloudflare.Enabled {
 		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {
+			return err
+		}
+	}
+
+	// Validate Build S3 configuration if Depot is enabled
+	if c.Depot.AccessToken != "" {
+		if err := assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when Depot is enabled"); err != nil {
+			return err
+		}
+		if err := assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when Depot is enabled"); err != nil {
+			return err
+		}
+		if err := assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when Depot is enabled"); err != nil {
+			return err
+		}
+		if err := assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when Depot is enabled"); err != nil {
 			return err
 		}
 	}

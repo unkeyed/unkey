@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -41,7 +42,6 @@ func (s *memory) Latest(workspaceId string) string {
 }
 
 func (s *memory) PutObject(ctx context.Context, key string, b []byte) error {
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -59,8 +59,8 @@ func (s *memory) GetObject(ctx context.Context, key string) ([]byte, bool, error
 	}
 
 	return b, true, nil
-
 }
+
 func (s *memory) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -74,5 +74,12 @@ func (s *memory) ListObjectKeys(ctx context.Context, prefix string) ([]string, e
 
 	}
 	return keys, nil
+}
 
+func (s *memory) GetPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+	return "", fmt.Errorf("presigned URLs not supported in memory storage")
+}
+
+func (s *memory) PutPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+	return "", fmt.Errorf("presigned URLs not supported in memory storage")
 }

@@ -1,11 +1,10 @@
-package build
+package depot
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -27,12 +26,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-const (
-	depotAPIURL      = "https://api.depot.dev"
-	depotRegistryURL = "registry.depot.dev"
-	registryUsername = "x-token"
-)
-
 type authTransport struct {
 	token string
 	base  http.RoundTripper
@@ -49,10 +42,53 @@ type authTransport struct {
 //	Prepare build context and configuration
 //	Execute the build with status logging
 //	Return build metadata
-func (s *Service) CreateBuild(
+func (s *Depot) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
+	// Validate input
+	if req.Msg.ContextKey == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("contextKey is required"))
+	}
+	if req.Msg.UnkeyProjectID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("unkeyProjectID is required"))
+	}
+
+	// Download build context from S3
+	s.logger.Info("Downloading build context from S3", "context_key", req.Msg.ContextKey)
+	tarData, exists, err := s.storage.GetObject(ctx, req.Msg.ContextKey)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to download build context: %w", err))
+	}
+	if !exists {
+		return nil, connect.NewError(connect.CodeNotFound,
+			fmt.Errorf("build context not found: %s", req.Msg.ContextKey))
+	}
+
+	// Create temp file for the tar
+	tmpFile, err := os.CreateTemp("", "build-context-*.tar.gz")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to create temp file: %w", err))
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	// Write tar data to temp file
+	if _, err := tmpFile.Write(tarData); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to write build context: %w", err))
+	}
+	if err := tmpFile.Close(); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to close temp file: %w", err))
+	}
+
+	s.logger.Info("Build context downloaded", "size_bytes", len(tarData), "temp_file", tmpFile.Name())
+
 	depotProjectID, err := s.getOrCreateDepotProject(ctx, req.Msg.UnkeyProjectID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
@@ -61,7 +97,7 @@ func (s *Service) CreateBuild(
 
 	buildResp, err := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
 		ProjectId: depotProjectID,
-	}, s.depotToken)
+	}, s.accessToken)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create build: %w", err))
@@ -83,13 +119,11 @@ func (s *Service) CreateBuild(
 			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
 	}
 
-	// INFO: Locally this receives something like `/tmp/context.tar.gz`. In the future, we'll likely download tar archives from S3
-	// that contain a Dockerfile at the root, and call this the same way.
-	// Check their cli implementation to see how they push s3 to their registry
-	dockerfileReader, buildErr := os.Open(req.Msg.ContextPath)
+	// Open the downloaded tar file
+	dockerfileReader, buildErr := os.Open(tmpFile.Name())
 	if buildErr != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("failed to open dockerfile at %s: %w", req.Msg.ContextPath, buildErr))
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to open build context: %w", buildErr))
 	}
 	defer dockerfileReader.Close()
 
@@ -97,23 +131,29 @@ func (s *Service) CreateBuild(
 	contextURL := uploader.Add(dockerfileReader)
 
 	timestamp := time.Now().UnixMilli()
-	imageTag := fmt.Sprintf("%s/%s:%s-%d", depotRegistryURL, depotProjectID, req.Msg.UnkeyProjectID, timestamp)
+	imageTag := fmt.Sprintf("%s/%s:%s-%d", s.registryUrl, depotProjectID, req.Msg.UnkeyProjectID, timestamp)
+
+	// Use ImagePath from request, default to "Dockerfile"
+	dockerfilePath := req.Msg.GetDockerfilePath()
+	if dockerfilePath == "" {
+		dockerfilePath = "Dockerfile"
+	}
 
 	solverOptions := client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
 			"platform": "linux/arm64",
 			"context":  contextURL,
-			"filename": "Dockerfile",
+			"filename": dockerfilePath,
 		},
 		Session: []session.Attachable{
 			uploader,
 			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 				ConfigFile: &configfile.ConfigFile{
 					AuthConfigs: map[string]types.AuthConfig{
-						depotRegistryURL: {
-							Username: registryUsername,
-							Password: s.depotToken,
+						s.registryUrl: {
+							Username: s.username,
+							Password: s.accessToken,
 						},
 					},
 				},
@@ -143,10 +183,12 @@ func (s *Service) CreateBuild(
 
 	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
 	if buildErr != nil {
-		log.Printf("Build error details: %v", buildErr)
+		s.logger.Error("Build failed", "error", buildErr, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("build failed: %w", buildErr))
 	}
+
+	s.logger.Info("Build completed successfully", "image_tag", imageTag, "build_id", buildResp.ID, "depot_project_id", depotProjectID)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
 		ImageName:      imageTag,
@@ -164,7 +206,7 @@ func (s *Service) CreateBuild(
 //	Return existing project ID if found
 //	Create new Depot project if not found
 //	Store project mapping in database
-func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
+func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
 	if err != nil {
 		return "", fmt.Errorf("failed to query project: %w", err)
@@ -176,12 +218,12 @@ func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID st
 
 	httpClient := &http.Client{
 		Transport: &authTransport{
-			token: s.depotToken,
+			token: s.accessToken,
 			base:  http.DefaultTransport,
 		},
 	}
 
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, depotAPIURL)
+	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.apiUrl)
 	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
 
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
@@ -209,8 +251,9 @@ func (s *Service) getOrCreateDepotProject(ctx context.Context, unkeyProjectID st
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
 	}
 
+	s.logger.Info("Created new Depot project", "depot_project_id", createResp.Msg.Project.ProjectId, "unkey_project_id", unkeyProjectID, "project_name", projectName)
+
 	return createResp.Msg.Project.ProjectId, nil
-	// return "vb429sz55h", nil
 }
 
 func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {

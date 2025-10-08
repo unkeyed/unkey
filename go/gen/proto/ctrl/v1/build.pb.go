@@ -78,8 +78,8 @@ func (GetBuildStatusResponse_Status) EnumDescriptor() ([]byte, []int) {
 
 type CreateBuildRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ImagePath      string                 `protobuf:"bytes,1,opt,name=imagePath,proto3" json:"imagePath,omitempty"`           // Path to Dockerfile
-	ContextPath    string                 `protobuf:"bytes,2,opt,name=contextPath,proto3" json:"contextPath,omitempty"`       // Build context directory
+	ContextKey     string                 `protobuf:"bytes,1,opt,name=contextKey,proto3" json:"contextKey,omitempty"`         // S3 key of the uploaded tar file
+	DockerfilePath string                 `protobuf:"bytes,2,opt,name=dockerfilePath,proto3" json:"dockerfilePath,omitempty"` // Path to Dockerfile within the tar
 	UnkeyProjectID string                 `protobuf:"bytes,3,opt,name=unkeyProjectID,proto3" json:"unkeyProjectID,omitempty"` // Your internal user/project ID
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -115,16 +115,16 @@ func (*CreateBuildRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateBuildRequest) GetImagePath() string {
+func (x *CreateBuildRequest) GetContextKey() string {
 	if x != nil {
-		return x.ImagePath
+		return x.ContextKey
 	}
 	return ""
 }
 
-func (x *CreateBuildRequest) GetContextPath() string {
+func (x *CreateBuildRequest) GetDockerfilePath() string {
 	if x != nil {
-		return x.ContextPath
+		return x.DockerfilePath
 	}
 	return ""
 }
@@ -380,14 +380,120 @@ func (x *GetBuildStatusResponse) GetError() string {
 	return ""
 }
 
+type GenerateUploadURLRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UnkeyProjectID string                 `protobuf:"bytes,1,opt,name=unkeyProjectID,proto3" json:"unkeyProjectID,omitempty"` // Your internal user/project ID
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GenerateUploadURLRequest) Reset() {
+	*x = GenerateUploadURLRequest{}
+	mi := &file_ctrl_v1_build_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateUploadURLRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateUploadURLRequest) ProtoMessage() {}
+
+func (x *GenerateUploadURLRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_build_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateUploadURLRequest.ProtoReflect.Descriptor instead.
+func (*GenerateUploadURLRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GenerateUploadURLRequest) GetUnkeyProjectID() string {
+	if x != nil {
+		return x.UnkeyProjectID
+	}
+	return ""
+}
+
+type GenerateUploadURLResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UploadURL     string                 `protobuf:"bytes,1,opt,name=uploadURL,proto3" json:"uploadURL,omitempty"`   // Presigned PUT URL
+	ContextKey    string                 `protobuf:"bytes,2,opt,name=contextKey,proto3" json:"contextKey,omitempty"` // S3 key to use in CreateBuild
+	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expiresIn,proto3" json:"expiresIn,omitempty"`  // Seconds until URL expires
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateUploadURLResponse) Reset() {
+	*x = GenerateUploadURLResponse{}
+	mi := &file_ctrl_v1_build_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateUploadURLResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateUploadURLResponse) ProtoMessage() {}
+
+func (x *GenerateUploadURLResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_build_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateUploadURLResponse.ProtoReflect.Descriptor instead.
+func (*GenerateUploadURLResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GenerateUploadURLResponse) GetUploadURL() string {
+	if x != nil {
+		return x.UploadURL
+	}
+	return ""
+}
+
+func (x *GenerateUploadURLResponse) GetContextKey() string {
+	if x != nil {
+		return x.ContextKey
+	}
+	return ""
+}
+
+func (x *GenerateUploadURLResponse) GetExpiresIn() int64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
 var File_ctrl_v1_build_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\n" +
-	"\x13ctrl/v1/build.proto\x12\actrl.v1\"|\n" +
-	"\x12CreateBuildRequest\x12\x1c\n" +
-	"\timagePath\x18\x01 \x01(\tR\timagePath\x12 \n" +
-	"\vcontextPath\x18\x02 \x01(\tR\vcontextPath\x12&\n" +
+	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\x84\x01\n" +
+	"\x12CreateBuildRequest\x12\x1e\n" +
+	"\n" +
+	"contextKey\x18\x01 \x01(\tR\n" +
+	"contextKey\x12&\n" +
+	"\x0edockerfilePath\x18\x02 \x01(\tR\x0edockerfilePath\x12&\n" +
 	"\x0eunkeyProjectID\x18\x03 \x01(\tR\x0eunkeyProjectID\"u\n" +
 	"\x13CreateBuildResponse\x12\x1c\n" +
 	"\timageName\x18\x01 \x01(\tR\timageName\x12\x18\n" +
@@ -408,11 +514,20 @@ const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\aSUCCESS\x10\x02\x12\n" +
 	"\n" +
 	"\x06FAILED\x10\x03\x12\r\n" +
-	"\tCANCELLED\x10\x042\xfb\x01\n" +
+	"\tCANCELLED\x10\x04\"B\n" +
+	"\x18GenerateUploadURLRequest\x12&\n" +
+	"\x0eunkeyProjectID\x18\x01 \x01(\tR\x0eunkeyProjectID\"w\n" +
+	"\x19GenerateUploadURLResponse\x12\x1c\n" +
+	"\tuploadURL\x18\x01 \x01(\tR\tuploadURL\x12\x1e\n" +
+	"\n" +
+	"contextKey\x18\x02 \x01(\tR\n" +
+	"contextKey\x12\x1c\n" +
+	"\texpiresIn\x18\x03 \x01(\x03R\texpiresIn2\xd9\x02\n" +
 	"\fBuildService\x12J\n" +
 	"\vCreateBuild\x12\x1b.ctrl.v1.CreateBuildRequest\x1a\x1c.ctrl.v1.CreateBuildResponse\"\x00\x12J\n" +
 	"\vCancelBuild\x12\x1b.ctrl.v1.CancelBuildRequest\x1a\x1c.ctrl.v1.CancelBuildResponse\"\x00\x12S\n" +
-	"\x0eGetBuildStatus\x12\x1e.ctrl.v1.GetBuildStatusRequest\x1a\x1f.ctrl.v1.GetBuildStatusResponse\"\x00B\x8c\x01\n" +
+	"\x0eGetBuildStatus\x12\x1e.ctrl.v1.GetBuildStatusRequest\x1a\x1f.ctrl.v1.GetBuildStatusResponse\"\x00\x12\\\n" +
+	"\x11GenerateUploadURL\x12!.ctrl.v1.GenerateUploadURLRequest\x1a\".ctrl.v1.GenerateUploadURLResponse\"\x00B\x8c\x01\n" +
 	"\vcom.ctrl.v1B\n" +
 	"BuildProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
@@ -429,7 +544,7 @@ func file_ctrl_v1_build_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_build_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ctrl_v1_build_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ctrl_v1_build_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ctrl_v1_build_proto_goTypes = []any{
 	(GetBuildStatusResponse_Status)(0), // 0: ctrl.v1.GetBuildStatusResponse.Status
 	(*CreateBuildRequest)(nil),         // 1: ctrl.v1.CreateBuildRequest
@@ -438,17 +553,21 @@ var file_ctrl_v1_build_proto_goTypes = []any{
 	(*CancelBuildResponse)(nil),        // 4: ctrl.v1.CancelBuildResponse
 	(*GetBuildStatusRequest)(nil),      // 5: ctrl.v1.GetBuildStatusRequest
 	(*GetBuildStatusResponse)(nil),     // 6: ctrl.v1.GetBuildStatusResponse
+	(*GenerateUploadURLRequest)(nil),   // 7: ctrl.v1.GenerateUploadURLRequest
+	(*GenerateUploadURLResponse)(nil),  // 8: ctrl.v1.GenerateUploadURLResponse
 }
 var file_ctrl_v1_build_proto_depIdxs = []int32{
 	0, // 0: ctrl.v1.GetBuildStatusResponse.status:type_name -> ctrl.v1.GetBuildStatusResponse.Status
 	1, // 1: ctrl.v1.BuildService.CreateBuild:input_type -> ctrl.v1.CreateBuildRequest
 	3, // 2: ctrl.v1.BuildService.CancelBuild:input_type -> ctrl.v1.CancelBuildRequest
 	5, // 3: ctrl.v1.BuildService.GetBuildStatus:input_type -> ctrl.v1.GetBuildStatusRequest
-	2, // 4: ctrl.v1.BuildService.CreateBuild:output_type -> ctrl.v1.CreateBuildResponse
-	4, // 5: ctrl.v1.BuildService.CancelBuild:output_type -> ctrl.v1.CancelBuildResponse
-	6, // 6: ctrl.v1.BuildService.GetBuildStatus:output_type -> ctrl.v1.GetBuildStatusResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	7, // 4: ctrl.v1.BuildService.GenerateUploadURL:input_type -> ctrl.v1.GenerateUploadURLRequest
+	2, // 5: ctrl.v1.BuildService.CreateBuild:output_type -> ctrl.v1.CreateBuildResponse
+	4, // 6: ctrl.v1.BuildService.CancelBuild:output_type -> ctrl.v1.CancelBuildResponse
+	6, // 7: ctrl.v1.BuildService.GetBuildStatus:output_type -> ctrl.v1.GetBuildStatusResponse
+	8, // 8: ctrl.v1.BuildService.GenerateUploadURL:output_type -> ctrl.v1.GenerateUploadURLResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -465,7 +584,7 @@ func file_ctrl_v1_build_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_build_proto_rawDesc), len(file_ctrl_v1_build_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

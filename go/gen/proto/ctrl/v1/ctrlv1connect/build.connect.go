@@ -42,6 +42,9 @@ const (
 	// BuildServiceGetBuildStatusProcedure is the fully-qualified name of the BuildService's
 	// GetBuildStatus RPC.
 	BuildServiceGetBuildStatusProcedure = "/ctrl.v1.BuildService/GetBuildStatus"
+	// BuildServiceGenerateUploadURLProcedure is the fully-qualified name of the BuildService's
+	// GenerateUploadURL RPC.
+	BuildServiceGenerateUploadURLProcedure = "/ctrl.v1.BuildService/GenerateUploadURL"
 )
 
 // BuildServiceClient is a client for the ctrl.v1.BuildService service.
@@ -49,6 +52,7 @@ type BuildServiceClient interface {
 	CreateBuild(context.Context, *connect.Request[v1.CreateBuildRequest]) (*connect.Response[v1.CreateBuildResponse], error)
 	CancelBuild(context.Context, *connect.Request[v1.CancelBuildRequest]) (*connect.Response[v1.CancelBuildResponse], error)
 	GetBuildStatus(context.Context, *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error)
+	GenerateUploadURL(context.Context, *connect.Request[v1.GenerateUploadURLRequest]) (*connect.Response[v1.GenerateUploadURLResponse], error)
 }
 
 // NewBuildServiceClient constructs a client for the ctrl.v1.BuildService service. By default, it
@@ -80,14 +84,21 @@ func NewBuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(buildServiceMethods.ByName("GetBuildStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		generateUploadURL: connect.NewClient[v1.GenerateUploadURLRequest, v1.GenerateUploadURLResponse](
+			httpClient,
+			baseURL+BuildServiceGenerateUploadURLProcedure,
+			connect.WithSchema(buildServiceMethods.ByName("GenerateUploadURL")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // buildServiceClient implements BuildServiceClient.
 type buildServiceClient struct {
-	createBuild    *connect.Client[v1.CreateBuildRequest, v1.CreateBuildResponse]
-	cancelBuild    *connect.Client[v1.CancelBuildRequest, v1.CancelBuildResponse]
-	getBuildStatus *connect.Client[v1.GetBuildStatusRequest, v1.GetBuildStatusResponse]
+	createBuild       *connect.Client[v1.CreateBuildRequest, v1.CreateBuildResponse]
+	cancelBuild       *connect.Client[v1.CancelBuildRequest, v1.CancelBuildResponse]
+	getBuildStatus    *connect.Client[v1.GetBuildStatusRequest, v1.GetBuildStatusResponse]
+	generateUploadURL *connect.Client[v1.GenerateUploadURLRequest, v1.GenerateUploadURLResponse]
 }
 
 // CreateBuild calls ctrl.v1.BuildService.CreateBuild.
@@ -105,11 +116,17 @@ func (c *buildServiceClient) GetBuildStatus(ctx context.Context, req *connect.Re
 	return c.getBuildStatus.CallUnary(ctx, req)
 }
 
+// GenerateUploadURL calls ctrl.v1.BuildService.GenerateUploadURL.
+func (c *buildServiceClient) GenerateUploadURL(ctx context.Context, req *connect.Request[v1.GenerateUploadURLRequest]) (*connect.Response[v1.GenerateUploadURLResponse], error) {
+	return c.generateUploadURL.CallUnary(ctx, req)
+}
+
 // BuildServiceHandler is an implementation of the ctrl.v1.BuildService service.
 type BuildServiceHandler interface {
 	CreateBuild(context.Context, *connect.Request[v1.CreateBuildRequest]) (*connect.Response[v1.CreateBuildResponse], error)
 	CancelBuild(context.Context, *connect.Request[v1.CancelBuildRequest]) (*connect.Response[v1.CancelBuildResponse], error)
 	GetBuildStatus(context.Context, *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error)
+	GenerateUploadURL(context.Context, *connect.Request[v1.GenerateUploadURLRequest]) (*connect.Response[v1.GenerateUploadURLResponse], error)
 }
 
 // NewBuildServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -137,6 +154,12 @@ func NewBuildServiceHandler(svc BuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(buildServiceMethods.ByName("GetBuildStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	buildServiceGenerateUploadURLHandler := connect.NewUnaryHandler(
+		BuildServiceGenerateUploadURLProcedure,
+		svc.GenerateUploadURL,
+		connect.WithSchema(buildServiceMethods.ByName("GenerateUploadURL")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.BuildService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BuildServiceCreateBuildProcedure:
@@ -145,6 +168,8 @@ func NewBuildServiceHandler(svc BuildServiceHandler, opts ...connect.HandlerOpti
 			buildServiceCancelBuildHandler.ServeHTTP(w, r)
 		case BuildServiceGetBuildStatusProcedure:
 			buildServiceGetBuildStatusHandler.ServeHTTP(w, r)
+		case BuildServiceGenerateUploadURLProcedure:
+			buildServiceGenerateUploadURLHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -164,4 +189,8 @@ func (UnimplementedBuildServiceHandler) CancelBuild(context.Context, *connect.Re
 
 func (UnimplementedBuildServiceHandler) GetBuildStatus(context.Context, *connect.Request[v1.GetBuildStatusRequest]) (*connect.Response[v1.GetBuildStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.BuildService.GetBuildStatus is not implemented"))
+}
+
+func (UnimplementedBuildServiceHandler) GenerateUploadURL(context.Context, *connect.Request[v1.GenerateUploadURLRequest]) (*connect.Response[v1.GenerateUploadURLResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.BuildService.GenerateUploadURL is not implemented"))
 }

@@ -71,6 +71,26 @@ var Cmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
+		// Build S3 Configuration
+		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
+		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
+		cli.String("build-s3-access-key-id", "S3 access key ID for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_ID")),
+		cli.String("build-s3-access-key-secret", "S3 secret access key for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
+
+		// Depot Configuration
+		cli.String("depot-api-url", "Depot API endpoint URL",
+			cli.EnvVar("UNKEY_DEPOT_API_URL")),
+		cli.String("depot-registry-url", "Depot container registry URL",
+			cli.EnvVar("UNKEY_DEPOT_REGISTRY_URL")),
+		cli.String("depot-username", "Depot registry username",
+			cli.EnvVar("UNKEY_DEPOT_USERNAME")),
+		cli.String("depot-access-token", "Depot API access token",
+			cli.EnvVar("UNKEY_DEPOT_ACCESS_TOKEN")),
+
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
 		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
@@ -140,6 +160,22 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+		},
+
+		// Build S3 configuration
+		BuildS3: ctrl.S3Config{
+			URL:             cmd.String("build-s3-url"),
+			Bucket:          cmd.String("build-s3-bucket"),
+			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
+			AccessKeyID:     cmd.String("build-s3-access-key-id"),
+		},
+
+		// Depot configuration
+		Depot: ctrl.DepotConfig{
+			APIUrl:      cmd.String("depot-api-url"),
+			RegistryUrl: cmd.String("depot-registry-url"),
+			Username:    cmd.String("depot-username"),
+			AccessToken: cmd.String("depot-access-token"),
 		},
 
 		// Acme configuration

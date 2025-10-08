@@ -94,6 +94,46 @@ func (s *Service) CreateDeployment(
 	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
 	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
 
+	// Determine docker image - either pre-built or build from context
+	var dockerImage string
+	if req.Msg.GetDockerImage() != "" {
+		// Use pre-built image
+		dockerImage = req.Msg.GetDockerImage()
+		s.logger.Info("using pre-built docker image",
+			"deployment_id", deploymentID,
+			"docker_image", dockerImage,
+		)
+	} else if req.Msg.GetContextKey() != "" {
+		// Build from uploaded context
+		s.logger.Info("starting build for deployment",
+			"deployment_id", deploymentID,
+			"project_id", req.Msg.GetProjectId(),
+			"context_key", req.Msg.GetContextKey(),
+		)
+
+		buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
+			UnkeyProjectID: req.Msg.GetProjectId(),
+			ContextKey:     req.Msg.GetContextKey(),
+			DockerfilePath: req.Msg.GetDockerFilePath(),
+		})
+
+		buildResp, err := s.buildService.CreateBuild(ctx, buildReq)
+		if err != nil {
+			s.logger.Error("failed to create build", "error", err.Error(), "deployment_id", deploymentID)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build failed: %w", err))
+		}
+
+		dockerImage = buildResp.Msg.GetImageName()
+		s.logger.Info("build completed successfully",
+			"deployment_id", deploymentID,
+			"image_name", dockerImage,
+			"build_id", buildResp.Msg.GetBuildId(),
+		)
+	} else {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("either docker_image or context_key must be provided"))
+	}
+
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:            deploymentID,
@@ -126,6 +166,7 @@ func (s *Service) CreateDeployment(
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
 		"environment", env.ID,
+		"docker_image", dockerImage,
 	)
 
 	// Start the deployment workflow directly
@@ -136,7 +177,7 @@ func (s *Service) CreateDeployment(
 	}
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
-		DockerImage:  req.Msg.GetDockerImage(),
+		DockerImage:  dockerImage,
 		KeyAuthId:    keyAuthID,
 	}
 	// this is ugly, but we're waiting for

@@ -167,7 +167,7 @@ services:
     image: bitnamilegacy/minio:2025.4.3
     ports:
       - 3902:3902
-      - 2903:2903
+      - 3903:3903
     environment:
       MINIO_ROOT_USER: minio_root_user
       MINIO_ROOT_PASSWORD: minio_root_password
@@ -334,7 +334,7 @@ services:
         required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp:/tmp
+      - /tmp/ctrl:/tmp/ctrl
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
       UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
@@ -356,9 +356,18 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
+      UNKEY_BUILD_S3_URL: "http://s3:3902"
+      UNKEY_BUILD_S3_BUCKET: "build-contexts"
+      UNKEY_BUILD_S3_ACCESS_KEY_ID: "minio_root_user"
+      UNKEY_BUILD_S3_ACCESS_KEY_SECRET: "minio_root_password"
+
       # API key for simple authentication (temporary, will be replaced with JWT)
       UNKEY_API_KEY: "your-local-dev-key"
-      DEPOT_TOKEN: "depot_org_249508a7f1ff42a62eb2f57b98cf9795459dc63d012a5b15823e374f5c806cad"
+      # Depot configuration
+      UNKEY_DEPOT_API_URL: "https://api.depot.dev"
+      UNKEY_DEPOT_REGISTRY_URL: "registry.depot.dev"
+      UNKEY_DEPOT_USERNAME: "x-token"
+      UNKEY_DEPOT_ACCESS_TOKEN: "depot_org_249508a7f1ff42a62eb2f57b98cf9795459dc63d012a5b15823e374f5c806cad"
 
   otel:
     networks:

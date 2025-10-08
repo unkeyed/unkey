@@ -229,32 +229,31 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	ui.Print(MsgPreparingDeployment)
 
+	controlPlane := NewControlPlaneClient(opts)
+
+	var contextKey string
 	var dockerImage string
 
 	// Build or use pre-built Docker image
 	if opts.DockerImage == "" {
-		ui.Print("Building Docker image via control plane")
-
-		controlPlane := NewControlPlaneClient(opts)
-		imageName, buildID, err := controlPlane.CreateBuild(ctx)
+		// Upload build context to S3
+		ui.Print("Uploading build context...")
+		uploadedKey, err := controlPlane.UploadBuildContext(ctx, opts.Context, logger)
 		if err != nil {
-			ui.PrintError("Failed to build image")
+			ui.PrintError("Failed to upload build context")
 			ui.PrintErrorDetails(err.Error())
 			return err
 		}
-
-		dockerImage = imageName
-		ui.PrintSuccess(fmt.Sprintf("Image built successfully (Build ID: %s)", buildID))
-		ui.PrintSuccess(fmt.Sprintf("Image: %s", imageName))
+		contextKey = uploadedKey
+		ui.PrintSuccess(fmt.Sprintf("Build context uploaded: %s", contextKey))
 	} else {
 		dockerImage = opts.DockerImage
 		ui.Print(MsgUsingPreBuiltImage)
 	}
 
-	// Create deployment
+	// Create deployment (build happens inside if contextKey is provided)
 	ui.Print(MsgCreatingDeployment)
-	controlPlane := NewControlPlaneClient(opts)
-	deploymentId, err := controlPlane.CreateDeployment(ctx, dockerImage)
+	deploymentId, err := controlPlane.CreateDeployment(ctx, contextKey, dockerImage)
 	if err != nil {
 		ui.PrintError(MsgFailedToCreateDeployment)
 		ui.PrintErrorDetails(err.Error())
@@ -271,6 +270,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
 			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
+			// Store deployment but don't print success, wait for polling to complete
 			finalDeployment = event.Deployment
 		}
 		return nil

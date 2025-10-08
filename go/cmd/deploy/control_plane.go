@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -55,44 +56,93 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	}
 }
 
-// CreateBuild builds and pushes a Docker image via the control plane
-func (c *ControlPlaneClient) CreateBuild(ctx context.Context) (string, string, error) {
-	// Create tar from context path
-	tarPath, err := createContextTar(c.opts.Context)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create context tar: %w", err)
-	}
-
-	buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
-		ImagePath:      c.opts.Dockerfile,
-		ContextPath:    tarPath,
+// UploadBuildContext uploads the build context to S3 and returns the context key
+func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string, logger logging.Logger) (string, error) {
+	// Generate presigned upload URL
+	uploadReq := connect.NewRequest(&ctrlv1.GenerateUploadURLRequest{
 		UnkeyProjectID: c.opts.ProjectID,
 	})
+
 	authHeader := c.opts.APIKey
 	if authHeader == "" {
 		authHeader = c.opts.AuthToken
 	}
+	uploadReq.Header().Set("Authorization", "Bearer "+authHeader)
 
-	buildReq.Header().Set("Authorization", "Bearer "+authHeader)
-	buildResp, err := c.buildClient.CreateBuild(ctx, buildReq)
+	uploadResp, err := c.buildClient.GenerateUploadURL(ctx, uploadReq)
 	if err != nil {
-		return "", "", c.handleBuildError(err)
+		return "", fmt.Errorf("failed to generate upload URL: %w", err)
 	}
-	imageName := buildResp.Msg.GetImageName()
-	buildID := buildResp.Msg.GetBuildId()
-	if imageName == "" {
-		return "", "", fmt.Errorf("empty image name returned from control plane")
+
+	uploadURL := uploadResp.Msg.GetUploadURL()
+	contextKey := uploadResp.Msg.GetContextKey()
+
+	if uploadURL == "" || contextKey == "" {
+		return "", fmt.Errorf("empty upload URL or context key returned")
 	}
-	if buildID == "" {
-		return "", "", fmt.Errorf("empty build ID returned from control plane")
+
+	logger.Info("Generated upload URL", "context_key", contextKey)
+
+	// Create tar.gz from context path
+	logger.Info("Creating tar archive from context", "path", contextPath)
+	tarPath, err := createContextTar(contextPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create tar archive: %w", err)
 	}
-	return imageName, buildID, nil
+	defer os.Remove(tarPath)
+
+	// Upload tar to S3 using presigned URL
+	logger.Info("Uploading build context to S3")
+	if err := uploadToPresignedURL(ctx, uploadURL, tarPath); err != nil {
+		return "", fmt.Errorf("failed to upload build context: %w", err)
+	}
+
+	logger.Info("Successfully uploaded build context", "context_key", contextKey)
+	return contextKey, nil
+}
+
+// uploadToPresignedURL uploads a file to a presigned S3 URL
+func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PUT", presignedURL, file)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.ContentLength = stat.Size()
+	req.Header.Set("Content-Type", "application/gzip")
+
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("upload request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 // createContextTar creates a tar.gz from the given directory path
 // and returns the absolute path to the created tar file
 func createContextTar(contextPath string) (string, error) {
-	// Validate context path exists
 	info, err := os.Stat(contextPath)
 	if err != nil {
 		return "", fmt.Errorf("context path does not exist: %w", err)
@@ -106,13 +156,24 @@ func createContextTar(contextPath string) (string, error) {
 		return "", fmt.Errorf("failed to get absolute context path: %w", err)
 	}
 
-	// Create temp file in /tmp (mounted volume)
-	tmpFile, err := os.CreateTemp("/tmp", "build-context-*.tar.gz")
+	// Ensure /tmp/ctrl exists with proper permissions
+	sharedDir := "/tmp/ctrl"
+	if err := os.MkdirAll(sharedDir, 0777); err != nil {
+		return "", fmt.Errorf("failed to create shared dir: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp(sharedDir, "build-context-*.tar.gz")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpFile.Close()
 	tarPath := tmpFile.Name()
+
+	// Set permissive permissions so other containers can read
+	if err := os.Chmod(tarPath, 0666); err != nil {
+		os.Remove(tarPath)
+		return "", fmt.Errorf("failed to set file permissions: %w", err)
+	}
 
 	cmd := exec.Command("tar", "-czf", tarPath, "-C", absContextPath, ".")
 	output, err := cmd.CombinedOutput()
@@ -125,15 +186,19 @@ func createContextTar(contextPath string) (string, error) {
 }
 
 // CreateDeployment creates a new deployment in the control plane
-func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
+// CreateDeployment creates a new deployment in the control plane
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, dockerImage string) (string, error) {
 	commitInfo := git.GetInfo()
+
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:                c.opts.ProjectID,
 		KeyspaceId:               &c.opts.KeyspaceID,
 		Branch:                   c.opts.Branch,
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,
-		DockerImage:              dockerImage,
+		ContextKey:               &contextKey,
+		DockerImage:              &dockerImage,
+		DockerFilePath:           stringPtr("Dockerfile"),
 		GitCommitSha:             commitInfo.CommitSHA,
 		GitCommitMessage:         commitInfo.Message,
 		GitCommitAuthorHandle:    commitInfo.AuthorHandle,
@@ -158,6 +223,13 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 	}
 
 	return deploymentID, nil
+}
+
+func stringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // GetDeployment retrieves deployment information from the control plane
@@ -285,50 +357,6 @@ func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) st
 	}
 
 	return "Unknown deployment error"
-}
-
-// handleBuildError provides specific error handling for build failures
-func (c *ControlPlaneClient) handleBuildError(err error) error {
-	if strings.Contains(err.Error(), "connection refused") {
-		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAppErrorsInternalServiceUnavailable),
-			fault.Internal(fmt.Sprintf("Failed to connect to control plane at %s", c.opts.ControlPlaneURL)),
-			fault.Public("Unable to connect to control plane. Is it running?"),
-		)
-	}
-
-	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
-		switch connectErr.Code() {
-		case connect.CodeUnauthenticated:
-			authMethod := "API key"
-			if c.opts.APIKey == "" {
-				authMethod = "auth token"
-			}
-			return fault.Wrap(err,
-				fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-				fault.Internal(fmt.Sprintf("Authentication failed with %s", authMethod)),
-				fault.Public(fmt.Sprintf("Authentication failed. Check your %s.", authMethod)),
-			)
-		case connect.CodeInvalidArgument:
-			return fault.Wrap(err,
-				fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-				fault.Internal(fmt.Sprintf("Invalid build configuration: %v", connectErr.Message())),
-				fault.Public(fmt.Sprintf("Build configuration error: %v", connectErr.Message())),
-			)
-		case connect.CodeInternal:
-			return fault.Wrap(err,
-				fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-				fault.Internal(fmt.Sprintf("Build service error: %v", connectErr.Message())),
-				fault.Public("Build failed on server. Please try again."),
-			)
-		}
-	}
-
-	return fault.Wrap(err,
-		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-		fault.Internal(fmt.Sprintf("CreateBuild API call failed: %v", err)),
-		fault.Public("Failed to create build. Please try again."),
-	)
 }
 
 // handleCreateDeploymentError provides specific error handling for deployment creation

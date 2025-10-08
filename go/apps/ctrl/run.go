@@ -13,7 +13,7 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/build"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -271,13 +271,36 @@ func Run(ctx context.Context, cfg Config) error {
 		connect.WithInterceptors(authInterceptor),
 	}
 
-	mux.Handle(ctrlv1connect.NewBuildServiceHandler(build.New(cfg.InstanceID, database), connectOptions...))
+	buildStorage, err := storage.NewS3(storage.S3Config{
+		Logger:            logger,
+		S3URL:             cfg.BuildS3.URL,
+		S3Bucket:          cfg.BuildS3.Bucket,
+		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
+		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create build storage: %w", err)
+	}
+
+	buildService := depot.New(depot.Config{
+		InstanceID:  cfg.InstanceID,
+		DB:          database,
+		APIUrl:      cfg.Depot.APIUrl,
+		RegistryUrl: cfg.Depot.RegistryUrl,
+		Username:    cfg.Depot.Username,
+		AccessToken: cfg.Depot.AccessToken,
+		Logger:      logger,
+		Storage:     buildStorage,
+	})
+
+	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService, connectOptions...))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
-		Database:    database,
-		PartitionDB: partitionDB,
-		Restate:     restateClient,
-		Logger:      logger,
+		Database:     database,
+		PartitionDB:  partitionDB,
+		Restate:      restateClient,
+		BuildService: buildService,
+		Logger:       logger,
 	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{

@@ -10,25 +10,25 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/build.proto.
  */
 export const file_ctrl_v1_build: GenFile = /*@__PURE__*/
-  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIlQKEkNyZWF0ZUJ1aWxkUmVxdWVzdBIRCglpbWFnZVBhdGgYASABKAkSEwoLY29udGV4dFBhdGgYAiABKAkSFgoOdW5rZXlQcm9qZWN0SUQYAyABKAkiUQoTQ3JlYXRlQnVpbGRSZXNwb25zZRIRCglpbWFnZU5hbWUYASABKAkSDwoHYnVpbGRJZBgCIAEoCRIWCg5kZXBvdFByb2plY3RJZBgDIAEoCSIlChJDYW5jZWxCdWlsZFJlcXVlc3QSDwoHYnVpbGRJZBgBIAEoCSImChNDYW5jZWxCdWlsZFJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiKAoVR2V0QnVpbGRTdGF0dXNSZXF1ZXN0Eg8KB2J1aWxkSWQYASABKAkiqwEKFkdldEJ1aWxkU3RhdHVzUmVzcG9uc2USNgoGc3RhdHVzGAEgASgOMiYuY3RybC52MS5HZXRCdWlsZFN0YXR1c1Jlc3BvbnNlLlN0YXR1cxINCgVlcnJvchgCIAEoCSJKCgZTdGF0dXMSCwoHVU5LTk9XThAAEgsKB1JVTk5JTkcQARILCgdTVUNDRVNTEAISCgoGRkFJTEVEEAMSDQoJQ0FOQ0VMTEVEEAQy+wEKDEJ1aWxkU2VydmljZRJKCgtDcmVhdGVCdWlsZBIbLmN0cmwudjEuQ3JlYXRlQnVpbGRSZXF1ZXN0GhwuY3RybC52MS5DcmVhdGVCdWlsZFJlc3BvbnNlIgASSgoLQ2FuY2VsQnVpbGQSGy5jdHJsLnYxLkNhbmNlbEJ1aWxkUmVxdWVzdBocLmN0cmwudjEuQ2FuY2VsQnVpbGRSZXNwb25zZSIAElMKDkdldEJ1aWxkU3RhdHVzEh4uY3RybC52MS5HZXRCdWlsZFN0YXR1c1JlcXVlc3QaHy5jdHJsLnYxLkdldEJ1aWxkU3RhdHVzUmVzcG9uc2UiAEKMAQoLY29tLmN0cmwudjFCCkJ1aWxkUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIlgKEkNyZWF0ZUJ1aWxkUmVxdWVzdBISCgpjb250ZXh0S2V5GAEgASgJEhYKDmRvY2tlcmZpbGVQYXRoGAIgASgJEhYKDnVua2V5UHJvamVjdElEGAMgASgJIlEKE0NyZWF0ZUJ1aWxkUmVzcG9uc2USEQoJaW1hZ2VOYW1lGAEgASgJEg8KB2J1aWxkSWQYAiABKAkSFgoOZGVwb3RQcm9qZWN0SWQYAyABKAkiJQoSQ2FuY2VsQnVpbGRSZXF1ZXN0Eg8KB2J1aWxkSWQYASABKAkiJgoTQ2FuY2VsQnVpbGRSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIigKFUdldEJ1aWxkU3RhdHVzUmVxdWVzdBIPCgdidWlsZElkGAEgASgJIqsBChZHZXRCdWlsZFN0YXR1c1Jlc3BvbnNlEjYKBnN0YXR1cxgBIAEoDjImLmN0cmwudjEuR2V0QnVpbGRTdGF0dXNSZXNwb25zZS5TdGF0dXMSDQoFZXJyb3IYAiABKAkiSgoGU3RhdHVzEgsKB1VOS05PV04QABILCgdSVU5OSU5HEAESCwoHU1VDQ0VTUxACEgoKBkZBSUxFRBADEg0KCUNBTkNFTExFRBAEIjIKGEdlbmVyYXRlVXBsb2FkVVJMUmVxdWVzdBIWCg51bmtleVByb2plY3RJRBgBIAEoCSJVChlHZW5lcmF0ZVVwbG9hZFVSTFJlc3BvbnNlEhEKCXVwbG9hZFVSTBgBIAEoCRISCgpjb250ZXh0S2V5GAIgASgJEhEKCWV4cGlyZXNJbhgDIAEoAzLZAgoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJKCgtDYW5jZWxCdWlsZBIbLmN0cmwudjEuQ2FuY2VsQnVpbGRSZXF1ZXN0GhwuY3RybC52MS5DYW5jZWxCdWlsZFJlc3BvbnNlIgASUwoOR2V0QnVpbGRTdGF0dXMSHi5jdHJsLnYxLkdldEJ1aWxkU3RhdHVzUmVxdWVzdBofLmN0cmwudjEuR2V0QnVpbGRTdGF0dXNSZXNwb25zZSIAElwKEUdlbmVyYXRlVXBsb2FkVVJMEiEuY3RybC52MS5HZW5lcmF0ZVVwbG9hZFVSTFJlcXVlc3QaIi5jdHJsLnYxLkdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2UiAEKMAQoLY29tLmN0cmwudjFCCkJ1aWxkUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.CreateBuildRequest
  */
 export type CreateBuildRequest = Message<"ctrl.v1.CreateBuildRequest"> & {
   /**
-   * Path to Dockerfile
+   * S3 key of the uploaded tar file
    *
-   * @generated from field: string imagePath = 1;
+   * @generated from field: string contextKey = 1;
    */
-  imagePath: string;
+  contextKey: string;
 
   /**
-   * Build context directory
+   * Path to Dockerfile within the tar
    *
-   * @generated from field: string contextPath = 2;
+   * @generated from field: string dockerfilePath = 2;
    */
-  contextPath: string;
+  dockerfilePath: string;
 
   /**
    * Your internal user/project ID
@@ -192,6 +192,58 @@ export const GetBuildStatusResponse_StatusSchema: GenEnum<GetBuildStatusResponse
   enumDesc(file_ctrl_v1_build, 5, 0);
 
 /**
+ * @generated from message ctrl.v1.GenerateUploadURLRequest
+ */
+export type GenerateUploadURLRequest = Message<"ctrl.v1.GenerateUploadURLRequest"> & {
+  /**
+   * Your internal user/project ID
+   *
+   * @generated from field: string unkeyProjectID = 1;
+   */
+  unkeyProjectID: string;
+};
+
+/**
+ * Describes the message ctrl.v1.GenerateUploadURLRequest.
+ * Use `create(GenerateUploadURLRequestSchema)` to create a new message.
+ */
+export const GenerateUploadURLRequestSchema: GenMessage<GenerateUploadURLRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_build, 6);
+
+/**
+ * @generated from message ctrl.v1.GenerateUploadURLResponse
+ */
+export type GenerateUploadURLResponse = Message<"ctrl.v1.GenerateUploadURLResponse"> & {
+  /**
+   * Presigned PUT URL
+   *
+   * @generated from field: string uploadURL = 1;
+   */
+  uploadURL: string;
+
+  /**
+   * S3 key to use in CreateBuild
+   *
+   * @generated from field: string contextKey = 2;
+   */
+  contextKey: string;
+
+  /**
+   * Seconds until URL expires
+   *
+   * @generated from field: int64 expiresIn = 3;
+   */
+  expiresIn: bigint;
+};
+
+/**
+ * Describes the message ctrl.v1.GenerateUploadURLResponse.
+ * Use `create(GenerateUploadURLResponseSchema)` to create a new message.
+ */
+export const GenerateUploadURLResponseSchema: GenMessage<GenerateUploadURLResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_build, 7);
+
+/**
  * @generated from service ctrl.v1.BuildService
  */
 export const BuildService: GenService<{
@@ -218,6 +270,14 @@ export const BuildService: GenService<{
     methodKind: "unary";
     input: typeof GetBuildStatusRequestSchema;
     output: typeof GetBuildStatusResponseSchema;
+  },
+  /**
+   * @generated from rpc ctrl.v1.BuildService.GenerateUploadURL
+   */
+  generateUploadURL: {
+    methodKind: "unary";
+    input: typeof GenerateUploadURLRequestSchema;
+    output: typeof GenerateUploadURLResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ctrl_v1_build, 0);

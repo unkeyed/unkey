@@ -140,7 +140,10 @@ type CreateDeploymentRequest struct {
 	// Source information
 	EnvironmentSlug string     `protobuf:"bytes,4,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
 	SourceType      SourceType `protobuf:"varint,5,opt,name=source_type,json=sourceType,proto3,enum=ctrl.v1.SourceType" json:"source_type,omitempty"`
-	DockerImage     string     `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
+	// Either docker_image OR context_key must be provided
+	DockerImage    *string `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3,oneof" json:"docker_image,omitempty"`             // Pre-built image to use
+	ContextKey     *string `protobuf:"bytes,13,opt,name=context_key,json=contextKey,proto3,oneof" json:"context_key,omitempty"`               // S3 key for uploaded build context
+	DockerFilePath *string `protobuf:"bytes,14,opt,name=docker_file_path,json=dockerFilePath,proto3,oneof" json:"docker_file_path,omitempty"` // Path to Dockerfile within context (default: "Dockerfile")
 	// Extended git information
 	GitCommitSha     string `protobuf:"bytes,7,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"` // For git sources
 	GitCommitMessage string `protobuf:"bytes,8,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
@@ -213,8 +216,22 @@ func (x *CreateDeploymentRequest) GetSourceType() SourceType {
 }
 
 func (x *CreateDeploymentRequest) GetDockerImage() string {
-	if x != nil {
-		return x.DockerImage
+	if x != nil && x.DockerImage != nil {
+		return *x.DockerImage
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetContextKey() string {
+	if x != nil && x.ContextKey != nil {
+		return *x.ContextKey
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetDockerFilePath() string {
+	if x != nil && x.DockerFilePath != nil {
+		return *x.DockerFilePath
 	}
 	return ""
 }
@@ -993,23 +1010,29 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\x8f\x04\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\x9f\x05\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
 	"\x06branch\x18\x03 \x01(\tR\x06branch\x12)\n" +
 	"\x10environment_slug\x18\x04 \x01(\tR\x0fenvironmentSlug\x124\n" +
 	"\vsource_type\x18\x05 \x01(\x0e2\x13.ctrl.v1.SourceTypeR\n" +
-	"sourceType\x12!\n" +
-	"\fdocker_image\x18\x06 \x01(\tR\vdockerImage\x12$\n" +
+	"sourceType\x12&\n" +
+	"\fdocker_image\x18\x06 \x01(\tH\x00R\vdockerImage\x88\x01\x01\x12$\n" +
+	"\vcontext_key\x18\r \x01(\tH\x01R\n" +
+	"contextKey\x88\x01\x01\x12-\n" +
+	"\x10docker_file_path\x18\x0e \x01(\tH\x02R\x0edockerFilePath\x88\x01\x01\x12$\n" +
 	"\x0egit_commit_sha\x18\a \x01(\tR\fgitCommitSha\x12,\n" +
 	"\x12git_commit_message\x18\b \x01(\tR\x10gitCommitMessage\x127\n" +
 	"\x18git_commit_author_handle\x18\t \x01(\tR\x15gitCommitAuthorHandle\x12>\n" +
 	"\x1cgit_commit_author_avatar_url\x18\n" +
 	" \x01(\tR\x18gitCommitAuthorAvatarUrl\x120\n" +
 	"\x14git_commit_timestamp\x18\v \x01(\x03R\x12gitCommitTimestamp\x12$\n" +
-	"\vkeyspace_id\x18\f \x01(\tH\x00R\n" +
-	"keyspaceId\x88\x01\x01B\x0e\n" +
+	"\vkeyspace_id\x18\f \x01(\tH\x03R\n" +
+	"keyspaceId\x88\x01\x01B\x0f\n" +
+	"\r_docker_imageB\x0e\n" +
+	"\f_context_keyB\x13\n" +
+	"\x11_docker_file_pathB\x0e\n" +
 	"\f_keyspace_idJ\x04\b\x01\x10\x02\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +

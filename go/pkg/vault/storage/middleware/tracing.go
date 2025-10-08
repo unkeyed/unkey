@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -31,8 +32,8 @@ func (tm *tracingMiddleware) PutObject(ctx context.Context, key string, object [
 		span.SetStatus(codes.Error, err.Error())
 	}
 	return err
-
 }
+
 func (tm *tracingMiddleware) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.GetObject", tm.name))
 	defer span.End()
@@ -43,8 +44,8 @@ func (tm *tracingMiddleware) GetObject(ctx context.Context, key string) ([]byte,
 		span.SetStatus(codes.Error, err.Error())
 	}
 	return object, found, err
-
 }
+
 func (tm *tracingMiddleware) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
 	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.ListObjectKeys", tm.name))
 	defer span.End()
@@ -54,11 +55,40 @@ func (tm *tracingMiddleware) ListObjectKeys(ctx context.Context, prefix string) 
 		span.SetStatus(codes.Error, err.Error())
 	}
 	return keys, err
-
 }
+
+func (tm *tracingMiddleware) GetPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.GetPresignedURL", tm.name))
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("key", key),
+		attribute.String("expires_in", expiresIn.String()),
+	)
+	url, err := tm.next.GetPresignedURL(ctx, key, expiresIn)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return url, err
+}
+
+func (tm *tracingMiddleware) PutPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.PutPresignedURL", tm.name))
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("key", key),
+		attribute.String("expires_in", expiresIn.String()),
+	)
+	url, err := tm.next.PutPresignedURL(ctx, key, expiresIn)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return url, err
+}
+
 func (tm *tracingMiddleware) Key(shard string, dekID string) string {
 	return tm.next.Key(shard, dekID)
 }
+
 func (tm *tracingMiddleware) Latest(shard string) string {
 	return tm.next.Latest(shard)
 }

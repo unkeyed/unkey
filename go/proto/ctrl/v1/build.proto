@@ -7,11 +7,12 @@ service BuildService {
   rpc CreateBuild(CreateBuildRequest) returns (CreateBuildResponse) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildResponse) {}
   rpc GetBuildStatus(GetBuildStatusRequest) returns (GetBuildStatusResponse) {}
+  rpc GenerateUploadURL(GenerateUploadURLRequest) returns (GenerateUploadURLResponse) {}
 }
 
 message CreateBuildRequest {
-  string imagePath = 1; // Path to Dockerfile
-  string contextPath = 2; // Build context directory
+  string contextKey = 1; // S3 key of the uploaded tar file
+  string dockerfilePath = 2; // Path to Dockerfile within the tar
   string unkeyProjectID = 3; // Your internal user/project ID
 }
 
@@ -43,4 +44,14 @@ message GetBuildStatusResponse {
   }
   Status status = 1;
   string error = 2; // Error message if failed
+}
+
+message GenerateUploadURLRequest {
+  string unkeyProjectID = 1; // Your internal user/project ID
+}
+
+message GenerateUploadURLResponse {
+  string uploadURL = 1; // Presigned PUT URL
+  string contextKey = 2; // S3 key to use in CreateBuild
+  int64 expiresIn = 3; // Seconds until URL expires
 }
