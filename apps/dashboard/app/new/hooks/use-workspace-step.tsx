@@ -183,13 +183,11 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
       : "Set up your workspace to get started",
     onStepNext: () => {
       if (workspaceCreated) {
-        return true;
+        return;
       }
       if (!isLoading) {
         formRef.current?.requestSubmit();
       }
-
-      return false;
     },
     onStepBack: () => {
       console.info("Going back from workspace step");
