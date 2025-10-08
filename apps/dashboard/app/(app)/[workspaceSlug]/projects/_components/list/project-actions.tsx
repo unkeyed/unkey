@@ -1,6 +1,7 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
@@ -14,12 +15,18 @@ type ProjectActionsProps = {
 
 export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
-  const menuItems = getProjectActionItems(projectId, router);
+  const { workspace } = useWorkspace();
+  // biome-ignore lint/style/noNonNullAssertion: This cannot be null
+  const menuItems = getProjectActionItems(projectId, workspace?.slug!, router);
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
 
-const getProjectActionItems = (projectId: string, router: AppRouterInstance): MenuItem[] => {
+const getProjectActionItems = (
+  projectId: string,
+  workspaceSlug: string,
+  router: AppRouterInstance,
+): MenuItem[] => {
   return [
     {
       id: "favorite-project",
@@ -48,12 +55,10 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     },
     {
       id: "view-log",
-      label: "View logs",
+      label: "View gateway logs",
       icon: <Layers3 size="md-regular" />,
       onClick: () => {
-        //INFO: This will change soon
-        const fakeDeploymentId = "idk";
-        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/logs`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/gateway-logs`);
       },
     },
     {
