@@ -9,16 +9,15 @@ type LiveSwitchProps = {
 };
 
 export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
-  useKeyboardShortcut("option+shift+l", onToggle);
-
+  useKeyboardShortcut("option+shift+q", onToggle);
   return (
     <Button
       onClick={onToggle}
       variant="ghost"
       size="md"
-      title="Toggle live updates (Shortcut: ⌥+⇧+L)"
+      title="Toggle live updates (Shortcut: ⌥+⇧+Q)"
       className={cn(
-        "px-2 relative rounded-lg",
+        "px-2 relative rounded-lg group overflow-hidden",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11 border border-solid border-info-7"
           : "text-accent-12 [&_svg]:text-accent-9",
@@ -31,7 +30,9 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
       )}
       <CircleCaretRight className="size-4 relative z-10" />
       <span className="font-medium text-[13px]">Live</span>
-      <KeyboardButton shortcut="⌥+⇧+L" />
+      <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+        <KeyboardButton shortcut="⌥+⇧+Q" className="ml-1" />
+      </div>
     </Button>
   );
 };

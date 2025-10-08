@@ -9,7 +9,7 @@ const schema = z.object({
   name: z.string(),
   slug: z.string(),
   gitRepositoryUrl: z.string().nullable(),
-  updatedAt: z.number().int().nullable(),
+  latestDeploymentId: z.string().nullable(),
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
   // Flattened deployment fields for UI

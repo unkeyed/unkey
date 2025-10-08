@@ -113,7 +113,6 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	logger logging.Logger,
 	deploymentID string,
 	onStatusChange func(DeploymentStatusEvent) error,
-	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
@@ -121,7 +120,6 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	defer timeout.Stop()
 
 	// Track processed steps by creation time to avoid duplicates
-	processedSteps := make(map[int64]bool)
 	lastStatus := ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 
 	for {
@@ -154,62 +152,12 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 				lastStatus = currentStatus
 			}
 
-			// Process new step updates
-			if err := c.processNewSteps(deploymentID, deployment.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
-				return err
-			}
-
 			// Check for completion
 			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY {
 				return nil
 			}
 		}
 	}
-}
-
-// processNewSteps processes new deployment steps and calls the event handler
-func (c *ControlPlaneClient) processNewSteps(
-	deploymentID string,
-	steps []*ctrlv1.DeploymentStep,
-	processedSteps map[int64]bool,
-	currentStatus ctrlv1.DeploymentStatus,
-	onStepUpdate func(DeploymentStepEvent) error,
-) error {
-	for _, step := range steps {
-		// Creation timestamp as unique identifier
-		stepTimestamp := step.GetCreatedAt()
-
-		if processedSteps[stepTimestamp] {
-			continue // Already processed this step
-		}
-
-		// Handle step errors first
-		if step.GetErrorMessage() != "" {
-			return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
-		}
-
-		// Call step update handler
-		if step.GetMessage() != "" {
-			event := DeploymentStepEvent{
-				DeploymentID: deploymentID,
-				Step:         step,
-				Status:       currentStatus,
-			}
-			if err := onStepUpdate(event); err != nil {
-				return err
-			}
-
-			// INFO: This is for demo purposes only.
-			// Adding a small delay between deployment steps to make the progression
-			// visually observable during demos. This allows viewers to see each
-			// individual step (VM boot, rootfs loading, etc.) rather than having
-			// everything complete too quickly to follow.
-			time.Sleep(800 * time.Millisecond)
-		}
-		// Mark this step as processed
-		processedSteps[stepTimestamp] = true
-	}
-	return nil
 }
 
 // getFailureMessage extracts failure message from version
