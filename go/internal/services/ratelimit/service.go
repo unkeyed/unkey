@@ -271,8 +271,10 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		span.SetAttributes(attribute.Bool("denied", true))
 
 		// At least one failed - adjust remaining values
-		for i := range responses {
-			responses[i].Remaining += reqs[i].Cost
+		for i, res := range responses {
+			if res.Success {
+				responses[i].Remaining += reqs[i].Cost
+			}
 		}
 	}
 
