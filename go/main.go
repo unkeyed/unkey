@@ -7,11 +7,11 @@ import (
 
 	clickhouseUser "github.com/unkeyed/unkey/go/cmd/create-clickhouse-user"
 	"github.com/unkeyed/unkey/go/cmd/deploy"
+	dev "github.com/unkeyed/unkey/go/cmd/dev"
 	gateway "github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
-	seedanalytics "github.com/unkeyed/unkey/go/cmd/seed-analytics"
 	"github.com/unkeyed/unkey/go/cmd/version"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	versioncmd "github.com/unkeyed/unkey/go/pkg/version"
@@ -31,7 +31,7 @@ func main() {
 			quotacheck.Cmd,
 			gateway.Cmd,
 			clickhouseUser.Cmd,
-			seedanalytics.Cmd,
+			dev.Cmd,
 		},
 	}
 

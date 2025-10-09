@@ -1,4 +1,4 @@
-package seedanalytics
+package seed
 
 import (
 	"context"
@@ -18,15 +18,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
-
-var Cmd = &cli.Command{
-	Name:  "seed-analytics",
-	Usage: "Seed realistic analytics data for testing",
-	Commands: []*cli.Command{
-		verificationsCmd,
-		// Future: apiRequestsCmd, ratelimitsCmd, etc.
-	},
-}
 
 var verificationsCmd = &cli.Command{
 	Name:  "verifications",
