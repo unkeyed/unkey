@@ -100,7 +100,6 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
           ),
         });
       } else if (error.data?.code === "CONFLICT") {
-        toast.error(error.message);
         form.setError("slug", { message: error.message }, { shouldFocus: true });
       } else {
         toast.error(`Failed to create workspace: ${error.message}`);
@@ -183,6 +182,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
       : "Set up your workspace to get started",
     onStepNext: () => {
       if (workspaceCreated) {
+        props.advance();
         return;
       }
       if (!isLoading) {
