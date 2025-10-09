@@ -183,33 +183,51 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	if len(ratelimitsToCheck) == 0 {
 		return nil
 	}
-
+	names := []string{}
+	ratelimitRequests := []ratelimit.RatelimitRequest{}
 	for name, config := range ratelimitsToCheck {
-		response, err := k.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
+		names = append(names, name)
+		ratelimitRequests = append(ratelimitRequests, ratelimit.RatelimitRequest{
 			Identifier: config.Identifier, // Use the pre-determined identifier
 			Limit:      config.Limit,
 			Duration:   config.Duration,
 			Cost:       config.Cost,
-			Time:       time.Now(),
+			Time:       time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
 		})
-		if err != nil {
-			k.logger.Error("Failed to ratelimit",
-				"key_id", k.Key.ID,
-				"Identifier", config.Identifier,
-				"error", err.Error(),
-			)
+	}
 
-			// We will just allow the request to proceed, but log the error
-			return nil
-		}
+	// Use different rate limiting paths based on number of limits
+	var resp []ratelimit.RatelimitResponse
+	var err error
 
-		config.Response = &response
-		ratelimitsToCheck[name] = config
+	if len(ratelimitRequests) == 1 {
+		// Single rate limit - use fast path
+		singleResp, singleErr := k.rateLimiter.Ratelimit(ctx, ratelimitRequests[0])
+		resp = []ratelimit.RatelimitResponse{singleResp}
+		err = singleErr
+	} else {
+		// Multiple rate limits - use atomic all-or-nothing path
+		resp, err = k.rateLimiter.RatelimitMany(ctx, ratelimitRequests)
+	}
 
-		// If rate limit exceeded, stop processing
-		if !response.Success {
-			k.setInvalid(StatusRateLimited, fmt.Sprintf("key exceeded rate limit %s", name))
-			break
+	if err != nil {
+		k.logger.Error("Failed to ratelimit",
+			"key_id", k.Key.ID,
+			"error", err.Error(),
+		)
+
+		// We will just allow the request to proceed, but log the error
+		return nil
+	}
+
+	for i := range resp {
+		// Write response back to config to be passed to the client
+		config := ratelimitsToCheck[names[i]]
+		config.Response = &resp[i]
+		ratelimitsToCheck[names[i]] = config
+
+		if !resp[i].Success {
+			k.setInvalid(StatusRateLimited, fmt.Sprintf("key exceeded rate limit %s", names[i]))
 		}
 	}
 
