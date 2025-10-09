@@ -4,10 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
-
-	"slices"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
@@ -58,7 +55,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 		return nil
 	}
 
-	if !k.Key.IpWhitelist.Valid {
+	if len(k.parsedIPWhitelist) == 0 {
 		return nil
 	}
 
@@ -69,12 +66,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 		return nil
 	}
 
-	allowedIPs := strings.Split(k.Key.IpWhitelist.String, ",")
-	for i, ip := range allowedIPs {
-		allowedIPs[i] = strings.TrimSpace(ip)
-	}
-
-	if !slices.Contains(allowedIPs, clientIP) {
+	if _, ok := k.parsedIPWhitelist[clientIP]; !ok {
 		k.setInvalid(StatusForbidden, fmt.Sprintf("client IP %s is not in the whitelist", clientIP))
 	}
 
