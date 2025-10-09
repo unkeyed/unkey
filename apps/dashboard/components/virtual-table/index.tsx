@@ -390,13 +390,16 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          <LoadMoreFooter
-            {...loadMoreFooterProps}
-            onLoadMore={onLoadMore}
-            isFetchingNextPage={isFetchingNextPage}
-            totalVisible={virtualizer.getVirtualItems().length}
-            totalCount={tableData.getTotalLength()}
-          />
+          {/* Without this check bottom status section blinks in the UI and disappears */}
+          {loadMoreFooterProps && (
+            <LoadMoreFooter
+              {...loadMoreFooterProps}
+              onLoadMore={onLoadMore}
+              isFetchingNextPage={isFetchingNextPage}
+              totalVisible={virtualizer.getVirtualItems().length}
+              totalCount={tableData.getTotalLength()}
+            />
+          )}
         </div>
       </div>
     );

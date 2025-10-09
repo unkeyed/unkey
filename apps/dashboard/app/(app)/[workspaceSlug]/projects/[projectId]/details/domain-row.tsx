@@ -1,15 +1,22 @@
 import { CircleCheck, Link4, ShareUpRight } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import { Card } from "./card";
 
 type DomainRowProps = {
   domain: string;
+  className?: string;
 };
 
-export function DomainRow({ domain }: DomainRowProps) {
+export function DomainRow({ domain, className }: DomainRowProps) {
   return (
-    <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center">
+    <div
+      className={cn(
+        "border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center",
+        className,
+      )}
+    >
       <div className="flex items-center">
         <Link4 className="text-gray-9" iconsize="sm-medium" />
         <Link

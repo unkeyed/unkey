@@ -17,9 +17,9 @@ type Caches struct {
 	// Keys are cache.ScopedKey and values are db.FindRatelimitNamespace.
 	RatelimitNamespace cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 
-	// VerificationKeyByHash caches verification key lookups by their hash.
-	// Keys are string (hash) and values are db.VerificationKey.
-	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
+	// VerificationKeyByHash caches verification key lookups by their hash with pre-parsed data.
+	// Keys are string (hash) and values are db.CachedKeyData (includes pre-parsed IP whitelist).
+	VerificationKeyByHash cache.Cache[string, db.CachedKeyData]
 
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
@@ -77,7 +77,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
+	verificationKeyByHash, err := cache.New(cache.Config[string, db.CachedKeyData]{
 		Fresh:    10 * time.Second,
 		Stale:    10 * time.Minute,
 		Logger:   config.Logger,

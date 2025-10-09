@@ -116,7 +116,7 @@ export const DeploymentsList = () => {
         render: ({ deployment }) => (
           <div className="flex items-center min-h-[52px]">
             <DomainList
-              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
+              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}-${project?.latestDeploymentId}`}
               deploymentId={deployment.id}
             />
           </div>
