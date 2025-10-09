@@ -43,8 +43,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound,
-				codes.UnkeyDataErrorsAnalyticsNotConfigured:
+				codes.UnkeyDataErrorsAuditLogNotFound:
 				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -169,7 +168,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
-			// Request Entity Too Large errors
+			// Gone errors
 			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
 				return s.JSON(http.StatusGone, openapi.GoneErrorResponse{
 					Meta: openapi.Meta{
@@ -257,7 +256,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Precondition Failed
-			case codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+			case codes.UnkeyDataErrorsAnalyticsNotConfigured,
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
 				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
