@@ -3,7 +3,7 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { InputSearch } from "@unkey/icons";
 import { Input } from "@unkey/ui";
-import { EyeIcon, EyeOff } from "lucide-react";
+import { Eye, EyeSlash } from "@unkey/icons";
 import { useState } from "react";
 
 export const InputDefaultVariant = () => {
@@ -17,7 +17,10 @@ export const InputDefaultVariant = () => {
 export const InputSuccessVariant = () => {
   return (
     <RenderComponentWithSnippet>
-      <Input variant="success" placeholder="Not all those who wander are lost" />
+      <Input
+        variant="success"
+        placeholder="Not all those who wander are lost"
+      />
     </RenderComponentWithSnippet>
   );
 };
@@ -25,7 +28,10 @@ export const InputSuccessVariant = () => {
 export const InputWarningVariant = () => {
   return (
     <RenderComponentWithSnippet>
-      <Input variant="warning" placeholder="It's a dangerous business, going out your door" />
+      <Input
+        variant="warning"
+        placeholder="It's a dangerous business, going out your door"
+      />
     </RenderComponentWithSnippet>
   );
 };
@@ -33,7 +39,10 @@ export const InputWarningVariant = () => {
 export const InputErrorVariant = () => {
   return (
     <RenderComponentWithSnippet>
-      <Input variant="error" placeholder="One Ring to rule them all, One Ring to find them" />
+      <Input
+        variant="error"
+        placeholder="One Ring to rule them all, One Ring to find them"
+      />
     </RenderComponentWithSnippet>
   );
 };
@@ -41,7 +50,10 @@ export const InputErrorVariant = () => {
 export const InputDisabledVariant = () => {
   return (
     <RenderComponentWithSnippet>
-      <Input disabled placeholder="Even the smallest person can change the course of the future" />
+      <Input
+        disabled
+        placeholder="Even the smallest person can change the course of the future"
+      />
     </RenderComponentWithSnippet>
   );
 };
@@ -49,7 +61,10 @@ export const InputDisabledVariant = () => {
 export const InputWithDefaultValue = () => {
   return (
     <RenderComponentWithSnippet>
-      <Input defaultValue="Speak friend and enter" placeholder="The password is mellon" />
+      <Input
+        defaultValue="Speak friend and enter"
+        placeholder="The password is mellon"
+      />
     </RenderComponentWithSnippet>
   );
 };
@@ -68,7 +83,11 @@ export const InputWithPasswordToggle = () => {
             onClick={() => setShowPassword(!showPassword)}
             className="focus:outline-none"
           >
-            {showPassword ? <EyeIcon className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            {showPassword ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeSlash className="h-4 w-4" />
+            )}
           </button>
         }
       />

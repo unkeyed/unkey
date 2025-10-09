@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronExpandY } from "@unkey/icons";
 import type React from "react";
 import { useState } from "react";
 
@@ -29,7 +29,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       user?.id as string, // make typescript happy
       {
         enabled: !!user,
-      },
+      }
     );
   const utils = trpc.useUtils();
   // const { switchOrganization } = useUser();
@@ -42,7 +42,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
   const userMemberships = memberships.data;
   const currentOrg = userMemberships.find(
-    (membership) => membership.organization.id === user?.orgId,
+    (membership) => membership.organization.id === user?.orgId
   );
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
@@ -66,7 +66,9 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error);
-      toast.error("Failed to switch workspace. Contact support if error persists.");
+      toast.error(
+        "Failed to switch workspace. Contact support if error persists."
+      );
     },
   });
 
@@ -87,7 +89,10 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
         <div className="flex items-center gap-2">
           <Avatar className="w-6 h-6">
             {user?.avatarUrl ? (
-              <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
+              <AvatarImage
+                src={user.avatarUrl}
+                alt={user?.fullName ?? "Profile picture"}
+              />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
               {(user?.fullName ?? "").slice(0, 1).toUpperCase() ?? "P"}
@@ -101,7 +106,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             </span>
           )}
         </div>
-        <ChevronsUpDown className="hidden w-3 h-3 md:block" />
+        <ChevronExpandY className="hidden w-3 h-3 md:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" className="w-96">
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>

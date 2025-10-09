@@ -1,6 +1,6 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Button } from "@unkey/ui";
-import { PlusIcon, SearchIcon, TrashIcon } from "lucide-react";
+import { Plus, Magnifier, Trash } from "@unkey/icons";
 
 // Basic Variants
 
@@ -111,7 +111,10 @@ export const OutlineExample = () => (
           <Button variant="outline" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button variant="outline" className="!ring-4 !ring-gray-7 !border-grayA-12">
+          <Button
+            variant="outline"
+            className="!ring-4 !ring-gray-7 !border-grayA-12"
+          >
             Focus
           </Button>
           <Button variant="outline" loading>
@@ -129,7 +132,10 @@ export const OutlineExample = () => (
           <Button variant="outline" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button variant="outline" className="!ring-4 !ring-gray-7 !border-grayA-12">
+          <Button
+            variant="outline"
+            className="!ring-4 !ring-gray-7 !border-grayA-12"
+          >
             Focus
           </Button>
           <Button variant="outline" loading>
@@ -199,7 +205,10 @@ export const GhostExample = () => (
           <Button variant="ghost" className="!bg-grayA-4">
             Hover
           </Button>
-          <Button variant="ghost" className="!ring-4 !ring-gray-7 !border-grayA-12">
+          <Button
+            variant="ghost"
+            className="!ring-4 !ring-gray-7 !border-grayA-12"
+          >
             Focus
           </Button>
           <Button variant="ghost" loading>
@@ -218,7 +227,10 @@ export const GhostExample = () => (
           <Button variant="ghost" className="!bg-grayA-4">
             Hover
           </Button>
-          <Button variant="ghost" className="!ring-4 !ring-gray-7 !border-grayA-12">
+          <Button
+            variant="ghost"
+            className="!ring-4 !ring-gray-7 !border-grayA-12"
+          >
             Focus
           </Button>
           <Button variant="ghost" loading>
@@ -510,7 +522,11 @@ export const DangerGhostExample = () => (
           <Button variant="ghost" color="danger" className="!bg-error-3">
             Hover
           </Button>
-          <Button variant="ghost" color="danger" className="!ring-4 !ring-error-7 !border-error-11">
+          <Button
+            variant="ghost"
+            color="danger"
+            className="!ring-4 !ring-error-7 !border-error-11"
+          >
             Focus
           </Button>
           <Button variant="ghost" color="danger" loading>
@@ -530,7 +546,11 @@ export const DangerGhostExample = () => (
           <Button variant="ghost" color="danger" className="!bg-error-3">
             Hover
           </Button>
-          <Button variant="ghost" color="danger" className="!ring-4 !ring-error-7 !border-error-11">
+          <Button
+            variant="ghost"
+            color="danger"
+            className="!ring-4 !ring-error-7 !border-error-11"
+          >
             Focus
           </Button>
           <Button variant="ghost" color="danger" loading>
@@ -605,7 +625,11 @@ export const WarningPrimaryExample = () => (
           <Button variant="primary" color="warning">
             Default
           </Button>
-          <Button variant="primary" color="warning" className="!bg-warning-8/90">
+          <Button
+            variant="primary"
+            color="warning"
+            className="!bg-warning-8/90"
+          >
             Hover
           </Button>
           <Button
@@ -629,7 +653,11 @@ export const WarningPrimaryExample = () => (
           <Button variant="primary" color="warning">
             Default
           </Button>
-          <Button variant="primary" color="warning" className="!bg-warning-8/90">
+          <Button
+            variant="primary"
+            color="warning"
+            className="!bg-warning-8/90"
+          >
             Hover
           </Button>
           <Button
@@ -923,7 +951,11 @@ export const SuccessPrimaryExample = () => (
           <Button variant="primary" color="success">
             Default
           </Button>
-          <Button variant="primary" color="success" className="!bg-success-9/90">
+          <Button
+            variant="primary"
+            color="success"
+            className="!bg-success-9/90"
+          >
             Hover
           </Button>
           <Button
@@ -947,7 +979,11 @@ export const SuccessPrimaryExample = () => (
           <Button variant="primary" color="success">
             Default
           </Button>
-          <Button variant="primary" color="success" className="!bg-success-9/90">
+          <Button
+            variant="primary"
+            color="success"
+            className="!bg-success-9/90"
+          >
             Hover
           </Button>
           <Button
@@ -1244,7 +1280,11 @@ export const InfoPrimaryExample = () => (
           <Button variant="primary" color="info" className="!bg-info-9/90">
             Hover
           </Button>
-          <Button variant="primary" color="info" className="!ring-4 !ring-info-6 !border-info-11">
+          <Button
+            variant="primary"
+            color="info"
+            className="!ring-4 !ring-info-6 !border-info-11"
+          >
             Focus
           </Button>
           <Button variant="primary" color="info" loading>
@@ -1264,7 +1304,11 @@ export const InfoPrimaryExample = () => (
           <Button variant="primary" color="info" className="!bg-info-9/90">
             Hover
           </Button>
-          <Button variant="primary" color="info" className="!ring-4 !ring-info-6 !border-info-11">
+          <Button
+            variant="primary"
+            color="info"
+            className="!ring-4 !ring-info-6 !border-info-11"
+          >
             Focus
           </Button>
           <Button variant="primary" color="info" loading>
@@ -1342,7 +1386,11 @@ export const InfoOutlineExample = () => (
           <Button variant="outline" color="info" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button variant="outline" color="info" className="!ring-4 !ring-info-6 !border-info-11">
+          <Button
+            variant="outline"
+            color="info"
+            className="!ring-4 !ring-info-6 !border-info-11"
+          >
             Focus
           </Button>
           <Button variant="outline" color="info" loading>
@@ -1362,7 +1410,11 @@ export const InfoOutlineExample = () => (
           <Button variant="outline" color="info" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button variant="outline" color="info" className="!ring-4 !ring-info-6 !border-info-11">
+          <Button
+            variant="outline"
+            color="info"
+            className="!ring-4 !ring-info-6 !border-info-11"
+          >
             Focus
           </Button>
           <Button variant="outline" color="info" loading>
@@ -1440,7 +1492,11 @@ export const InfoGhostExample = () => (
           <Button variant="ghost" color="info" className="!bg-info-3">
             Hover
           </Button>
-          <Button variant="ghost" color="info" className="!ring-4 !ring-info-6 !border-info-11">
+          <Button
+            variant="ghost"
+            color="info"
+            className="!ring-4 !ring-info-6 !border-info-11"
+          >
             Focus
           </Button>
           <Button variant="ghost" color="info" loading>
@@ -1460,7 +1516,11 @@ export const InfoGhostExample = () => (
           <Button variant="ghost" color="info" className="!bg-info-3">
             Hover
           </Button>
-          <Button variant="ghost" color="info" className="!ring-4 !ring-info-6 !border-info-11">
+          <Button
+            variant="ghost"
+            color="info"
+            className="!ring-4 !ring-info-6 !border-info-11"
+          >
             Focus
           </Button>
           <Button variant="ghost" color="info" loading>
@@ -1537,14 +1597,14 @@ export const WithIconsExample = () => (
     <div className="flex flex-wrap items-center gap-4">
         <Button>
             <span>Create</span>
-            <PlusIcon />
+            <Plus />
         </Button>
         <Button variant="outline">
-            <SearchIcon />
+            <Magnifier />
             <span>Search</span>
         </Button>
         <Button variant="ghost" color="danger">
-            <TrashIcon />
+            <Trash />
             <span>Delete</span>
         </Button>
     </div>
@@ -1554,14 +1614,14 @@ export const WithIconsExample = () => (
     <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
         <Button>
             <span>Create</span>
-            <PlusIcon />
+            <Plus />
         </Button>
         <Button variant="outline">
-            <SearchIcon />
+            <Magnifier />
             <span>Search</span>
         </Button>
         <Button variant="ghost" color="danger">
-            <TrashIcon />
+            <Trash />
             <span>Delete</span>
         </Button>
     </div>
@@ -1574,14 +1634,14 @@ export const WithIconsExample = () => (
         <div className="flex flex-wrap items-center gap-4">
           <Button>
             <span>Create</span>
-            <PlusIcon />
+            <Plus />
           </Button>
           <Button variant="outline">
-            <SearchIcon />
+            <Magnifier />
             <span>Search</span>
           </Button>
           <Button variant="ghost" color="danger">
-            <TrashIcon />
+            <Trash />
             <span>Delete</span>
           </Button>
         </div>
@@ -1591,14 +1651,14 @@ export const WithIconsExample = () => (
         <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
           <Button>
             <span>Create</span>
-            <PlusIcon />
+            <Plus />
           </Button>
           <Button variant="outline">
-            <SearchIcon />
+            <Magnifier />
             <span>Search</span>
           </Button>
           <Button variant="ghost" color="danger">
-            <TrashIcon />
+            <Trash />
             <span>Delete</span>
           </Button>
         </div>
@@ -1614,13 +1674,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Light</h4>
         <div className="flex items-center gap-4">
             <Button shape="square">
-                <PlusIcon />
+                <Plus />
             </Button>
             <Button shape="square" variant="outline">
-                <SearchIcon />
+                <Magnifier />
             </Button>
             <Button shape="square" variant="ghost" color="danger">
-                <TrashIcon />
+                <Trash />
             </Button>
         </div>
     </div>
@@ -1628,13 +1688,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Dark</h4>
         <div className="bg-black p-4 rounded-md flex items-center gap-4 dark">
             <Button shape="square">
-                <PlusIcon />
+                <Plus />
             </Button>
             <Button shape="square" variant="outline">
-                <SearchIcon />
+                <Magnifier />
             </Button>
             <Button shape="square" variant="ghost" color="danger">
-                <TrashIcon />
+                <Trash />
             </Button>
         </div>
     </div>
@@ -1645,13 +1705,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Light</h4>
         <div className="flex items-center gap-4">
           <Button shape="square">
-            <PlusIcon />
+            <Plus />
           </Button>
           <Button shape="square" variant="outline">
-            <SearchIcon />
+            <Magnifier />
           </Button>
           <Button shape="square" variant="ghost" color="danger">
-            <TrashIcon />
+            <Trash />
           </Button>
         </div>
       </div>
@@ -1659,13 +1719,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Dark</h4>
         <div className="bg-black p-4 rounded-md flex items-center gap-4 dark">
           <Button shape="square">
-            <PlusIcon />
+            <Plus />
           </Button>
           <Button shape="square" variant="outline">
-            <SearchIcon />
+            <Magnifier />
           </Button>
           <Button shape="square" variant="ghost" color="danger">
-            <TrashIcon />
+            <Trash />
           </Button>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { FadeIn } from "@/components/landing/fade-in";
 import { Loading } from "@unkey/ui";
-import { MoveRight } from "lucide-react";
+import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -94,15 +94,19 @@ function SignInContent() {
 
   return (
     <div className="flex flex-col gap-10">
-      {hasPendingAuth && <OrgSelector organizations={orgs} onError={setError} />}
+      {hasPendingAuth && (
+        <OrgSelector organizations={orgs} onError={setError} />
+      )}
 
       {accountNotFound && (
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
-            <p className="text-xs">Account not found, did you mean to sign up?</p>
+            <p className="text-xs">
+              Account not found, did you mean to sign up?
+            </p>
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}`}>
               <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
-                <MoveRight className="w-4 h-4" />
+                <ArrowRight iconsize="md-regular" />
               </div>
             </Link>
           </div>
@@ -124,7 +128,10 @@ function SignInContent() {
             <h1 className="text-4xl text-white">Sign In</h1>
             <p className="mt-4 text-sm text-md text-white/50">
               New to Unkey?{" "}
-              <Link href="/auth/sign-up" className="ml-2 text-white hover:underline">
+              <Link
+                href="/auth/sign-up"
+                className="ml-2 text-white hover:underline"
+              >
                 Create new account
               </Link>
             </p>
@@ -136,7 +143,9 @@ function SignInContent() {
                 <span className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-black text-white/40">or continue using email</span>
+                <span className="px-2 bg-black text-white/40">
+                  or continue using email
+                </span>
               </div>
             </div>
             <EmailSignIn />

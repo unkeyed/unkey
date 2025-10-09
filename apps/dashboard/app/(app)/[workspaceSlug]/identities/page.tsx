@@ -2,8 +2,7 @@
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Empty } from "@unkey/ui";
-import { Loader2 } from "lucide-react";
+import { Empty, Loading } from "@unkey/ui";
 import { Suspense } from "react";
 import { z } from "zod";
 import { Results } from "./components/results";
@@ -28,12 +27,20 @@ const searchParamsSchema = z.object({
 export default function Page(props: Props) {
   const validatedParams = searchParamsSchema.parse(props.searchParams);
   const search = validatedParams.search ?? "";
-  const limit = validatedParams.limit ? Number.parseInt(validatedParams.limit, 10) : DEFAULT_LIMIT;
+  const limit = validatedParams.limit
+    ? Number.parseInt(validatedParams.limit, 10)
+    : DEFAULT_LIMIT;
 
   const workspace = useWorkspaceNavigation();
 
   if (!workspace.betaFeatures.identities) {
-    return <OptIn title="Identities" description="Identities are in beta" feature="identities" />;
+    return (
+      <OptIn
+        title="Identities"
+        description="Identities are in beta"
+        feature="identities"
+      />
+    );
   }
 
   return (
@@ -46,7 +53,7 @@ export default function Page(props: Props) {
             fallback={
               <Empty>
                 <Empty.Title>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loading />
                 </Empty.Title>
               </Empty>
             }

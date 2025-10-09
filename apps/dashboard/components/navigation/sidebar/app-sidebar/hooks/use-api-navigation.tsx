@@ -2,8 +2,7 @@
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { ArrowOppositeDirectionY, Gear } from "@unkey/icons";
-import { Key } from "lucide-react";
+import { ArrowOppositeDirectionY, Gear, Key2 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -20,7 +19,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
+      }
     );
 
   // Convert API data to navigation items with sub-items for settings and keys
@@ -32,7 +31,8 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
         const aIndex = segments.findIndex((s) => s === "apis");
-        const currentApiActive = aIndex !== -1 && segments.at(aIndex + 1) === api.id;
+        const currentApiActive =
+          aIndex !== -1 && segments.at(aIndex + 1) === api.id;
 
         const settingsItem: NavItem = {
           icon: Gear,
@@ -52,7 +52,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
         if (api.keyspaceId) {
           const keysItem: NavItem = {
-            icon: Key,
+            icon: Key2,
             href: `/${workspace.slug}/apis/${api.id}/keys/${api.keyspaceId}`,
             label: "Keys",
             active: currentApiActive && segments.at(3) === "keys",
@@ -77,13 +77,15 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return apiNavItem;
-      }),
+      })
     );
   }, [data?.pages, segments, workspace.slug]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex((item) => item.href === `/${workspace.slug}/apis`);
+    const apisItemIndex = items.findIndex(
+      (item) => item.href === `/${workspace.slug}/apis`
+    );
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };
@@ -95,7 +97,9 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         apisItem.items?.push({
           icon: () => null,
           href: "#load-more-apis",
-          label: <div className="font-normal decoration-dotted underline ">More</div>,
+          label: (
+            <div className="font-normal decoration-dotted underline ">More</div>
+          ),
           active: false,
           loadMoreAction: true,
         });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Magnifier } from "@unkey/icons";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 
@@ -11,7 +11,7 @@ export function SearchField(): JSX.Element {
       history: "replace",
       shallow: true,
       clearOnDefault: true,
-    }),
+    })
   );
 
   // Local draft state for immediate UI updates
@@ -35,7 +35,7 @@ export function SearchField(): JSX.Element {
 
   return (
     <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
-      <Search className="h-4 w-4" aria-hidden="true" />
+      <Magnifier iconsize="md-medium" aria-hidden="true" />
       <input
         type="search"
         className="placeholder:text-content-subtle flex-grow bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
