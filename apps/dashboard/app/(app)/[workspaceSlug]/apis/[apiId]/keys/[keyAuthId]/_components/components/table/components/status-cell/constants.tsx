@@ -30,8 +30,7 @@ export const STATUS_DEFINITIONS: Record<StatusType, StatusInfo> = {
     label: "Low Credits",
     color: "bg-errorA-3 text-errorA-11",
     icon: <CircleCaretRight iconSize="sm-regular" />,
-    tooltip:
-      "This key has a low credit balance. Top it off to prevent disruptions.",
+    tooltip: "This key has a low credit balance. Top it off to prevent disruptions.",
     priority: 1,
   },
   "rate-limited": {
@@ -47,9 +46,7 @@ export const STATUS_DEFINITIONS: Record<StatusType, StatusInfo> = {
     type: "expires-soon",
     label: "Expires soon",
     color: "bg-orangeA-3 text-orangeA-11",
-    icon: (
-      <CircleHalfDottedClock iconSize="sm-regular" className="text-orange-11" />
-    ),
+    icon: <CircleHalfDottedClock iconSize="sm-regular" className="text-orange-11" />,
     tooltip:
       "This key will expire in less than 24 hours. Rotate the key or extend its deadline to prevent disruptions.",
     priority: 2,
@@ -59,8 +56,7 @@ export const STATUS_DEFINITIONS: Record<StatusType, StatusInfo> = {
     label: "Potential issues",
     color: "bg-warningA-3 text-warningA-11",
     icon: <ShieldKey iconSize="sm-regular" className="text-warning-11" />,
-    tooltip:
-      "This key has a high error rate. Please check its logs to debug potential issues.",
+    tooltip: "This key has a high error rate. Please check its logs to debug potential issues.",
     priority: 3,
   },
   //TODO: Add a way to enable this through tooltip
@@ -69,8 +65,7 @@ export const STATUS_DEFINITIONS: Record<StatusType, StatusInfo> = {
     label: "Disabled",
     color: "bg-grayA-3 text-grayA-11",
     icon: <Ban iconSize="sm-regular" />,
-    tooltip:
-      "This key is currently disabled and cannot be used for verification.",
+    tooltip: "This key is currently disabled and cannot be used for verification.",
     priority: 0,
   },
   operational: {

@@ -19,7 +19,7 @@ export const ProjectsList = () => {
       q
         .from({ project: collection.projects })
         .where(({ project }) => ilike(project.name, `%${projectName}%`)),
-    [projectName]
+    [projectName],
   );
 
   if (projects.isLoading) {

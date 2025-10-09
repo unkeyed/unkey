@@ -32,8 +32,7 @@ export const ExternalIdField = ({
 
   const trimmedSearchValue = searchValue.trim();
 
-  const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } =
-    useFetchIdentities();
+  const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchIdentities();
   const { searchResults, isSearching } = useSearchIdentities(searchValue);
 
   const createIdentity = useCreateIdentity((data) => {
@@ -50,7 +49,7 @@ export const ExternalIdField = ({
       // No search results found, filter from loaded identities as fallback
       const searchTerm = trimmedSearchValue.toLowerCase();
       return identities.filter((identity) =>
-        identity.externalId.toLowerCase().includes(searchTerm)
+        identity.externalId.toLowerCase().includes(searchTerm),
       );
     }
     // No search query, use all loaded identities
@@ -64,9 +63,7 @@ export const ExternalIdField = ({
     }
 
     // Check if current identity is already in the list
-    const currentExists = allIdentities.some(
-      (identity) => identity.id === currentIdentity.id
-    );
+    const currentExists = allIdentities.some((identity) => identity.id === currentIdentity.id);
 
     if (currentExists) {
       return allIdentities;
@@ -96,7 +93,7 @@ export const ExternalIdField = ({
   };
 
   const exactMatch = allIdentitiesWithCurrent.some(
-    (id) => id.externalId.toLowerCase() === trimmedSearchValue.toLowerCase()
+    (id) => id.externalId.toLowerCase() === trimmedSearchValue.toLowerCase(),
   );
 
   const hasPartialMatches = allIdentitiesWithCurrent.length > 0;
@@ -120,14 +117,13 @@ export const ExternalIdField = ({
                 className={cn(
                   "flex items-center rounded size-5 justify-center flex-shrink-0",
                   "bg-warningA-4",
-                  "text-warning-11"
+                  "text-warning-11",
                 )}
               >
                 <TriangleWarning2 iconSize="sm-regular" />
               </div>
               <span className="text-[13px] text-gray-12 ">
-                <span className="text-accent-10 font-normal">Create</span> "
-                {trimmedSearchValue}"
+                <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>
           ),
@@ -139,8 +135,7 @@ export const ExternalIdField = ({
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
-  const isComboboxLoading =
-    isLoading || (isSearching && trimmedSearchValue.length > 0);
+  const isComboboxLoading = isLoading || (isSearching && trimmedSearchValue.length > 0);
 
   return (
     <FormCombobox
@@ -162,9 +157,7 @@ export const ExternalIdField = ({
         onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
-        <div className="flex w-full text-grayA-8 text-xs items-center py-2">
-          Select External ID
-        </div>
+        <div className="flex w-full text-grayA-8 text-xs items-center py-2">Select External ID</div>
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
@@ -172,7 +165,7 @@ export const ExternalIdField = ({
           <div
             className={cn(
               "p-0 w-full transition-all duration-300 ease-in-out",
-              "animate-in fade-in-0 slide-in-from-top-2"
+              "animate-in fade-in-0 slide-in-from-top-2",
             )}
           >
             <div className="px-3 py-3 w-full">
@@ -182,7 +175,7 @@ export const ExternalIdField = ({
                     "flex items-center rounded size-5 justify-center",
                     "bg-warningA-4",
                     "text-warning-11",
-                    "transition-colors duration-200"
+                    "transition-colors duration-200",
                   )}
                 >
                   <TriangleWarning2 iconSize="sm-regular" />
@@ -208,13 +201,11 @@ export const ExternalIdField = ({
                 className={cn(
                   "rounded-lg w-full",
                   "transition-all duration-200 ease-in-out",
-                  "hover:scale-[1.02] active:scale-[0.98]"
+                  "hover:scale-[1.02] active:scale-[0.98]",
                 )}
                 onClick={handleCreateIdentity}
                 loading={createIdentity.isLoading}
-                disabled={
-                  !trimmedSearchValue || createIdentity.isLoading || disabled
-                }
+                disabled={!trimmedSearchValue || createIdentity.isLoading || disabled}
               >
                 Create
               </Button>
@@ -230,7 +221,7 @@ export const ExternalIdField = ({
             className={cn(
               "px-3 mt-2 text-gray-10 text-[13px]",
               "transition-all duration-200 ease-in-out",
-              "animate-in fade-in-0"
+              "animate-in fade-in-0",
             )}
           >
             No results found

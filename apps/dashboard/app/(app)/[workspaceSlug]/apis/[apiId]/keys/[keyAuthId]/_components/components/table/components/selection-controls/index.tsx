@@ -1,12 +1,6 @@
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import {
-  ArrowOppositeDirectionY,
-  Ban,
-  CircleCheck,
-  Trash,
-  XMark,
-} from "@unkey/icons";
+import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useRef, useState } from "react";
@@ -27,8 +21,7 @@ export const SelectionControls = ({
   setSelectedKeys,
   getSelectedKeysState,
 }: SelectionControlsProps) => {
-  const [isBatchEditExternalIdOpen, setIsBatchEditExternalIdOpen] =
-    useState(false);
+  const [isBatchEditExternalIdOpen, setIsBatchEditExternalIdOpen] = useState(false);
   const [isDisableConfirmOpen, setIsDisableConfirmOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -62,7 +55,7 @@ export const SelectionControls = ({
   };
 
   const keysWithExternalIds = keys.filter(
-    (key) => selectedKeys.has(key.id) && key.identity_id
+    (key) => selectedKeys.has(key.id) && key.identity_id,
   ).length;
 
   if (selectedKeys.size === 0) {
@@ -75,7 +68,7 @@ export const SelectionControls = ({
         className={cn(
           "border-b border-grayA-3",
           "animate-slideInFromTop opacity-0 translate-y-2",
-          "animation-fill-mode-forwards"
+          "animation-fill-mode-forwards",
         )}
       >
         <div className="flex justify-between items-center w-full p-[18px]">
@@ -90,17 +83,13 @@ export const SelectionControls = ({
               className="text-gray-12 font-medium text-[13px]"
               onClick={() => setIsBatchEditExternalIdOpen(true)}
             >
-              <ArrowOppositeDirectionY iconSize="sm-regular" /> Change External
-              ID
+              <ArrowOppositeDirectionY iconSize="sm-regular" /> Change External ID
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="text-gray-12 font-medium text-[13px]"
-              disabled={
-                getSelectedKeysState() !== "all-disabled" ||
-                updateKeyStatus.isLoading
-              }
+              disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
               loading={updateKeyStatus.isLoading}
               onClick={() =>
                 updateKeyStatus.mutate({
@@ -116,10 +105,7 @@ export const SelectionControls = ({
               variant="outline"
               size="sm"
               className="text-gray-12 font-medium text-[13px]"
-              disabled={
-                getSelectedKeysState() !== "all-enabled" ||
-                updateKeyStatus.isLoading
-              }
+              disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
               loading={updateKeyStatus.isLoading}
               onClick={handleDisableButtonClick}
               ref={disableButtonRef}
@@ -236,7 +222,7 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
       key={`counter-${value}`}
       className={cn(
         "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4",
-        "animate-bounceIn"
+        "animate-bounceIn",
       )}
     >
       <span className="flex items-center justify-center">{value}</span>

@@ -90,9 +90,7 @@ export const MetadataSetup = ({
               size="sm"
               variant="outline"
               onClick={formatJSON}
-              disabled={
-                !metadataEnabled || Boolean(errors.metadata?.data?.message)
-              }
+              disabled={!metadataEnabled || Boolean(errors.metadata?.data?.message)}
               type="button"
             >
               <div className="text-[13px]">Format</div>

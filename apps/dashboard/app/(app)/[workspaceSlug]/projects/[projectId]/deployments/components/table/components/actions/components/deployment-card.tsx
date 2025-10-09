@@ -10,11 +10,7 @@ type DeploymentCardProps = {
   showSignal?: boolean;
 };
 
-export const DeploymentCard = ({
-  deployment,
-  isLive,
-  showSignal,
-}: DeploymentCardProps) => (
+export const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
   <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -26,16 +22,13 @@ export const DeploymentCard = ({
             </span>
             <Badge
               variant={isLive ? "success" : "primary"}
-              className={`px-1.5 capitalize ${
-                isLive ? "text-successA-11" : "text-grayA-11"
-              }`}
+              className={`px-1.5 capitalize ${isLive ? "text-successA-11" : "text-grayA-11"}`}
             >
               {isLive ? "Live" : deployment.status}
             </Badge>
           </div>
           <div className="text-xs text-grayA-9">
-            {deployment.gitCommitMessage ||
-              `${isLive ? "Current active" : "Target"} deployment`}
+            {deployment.gitCommitMessage || `${isLive ? "Current active" : "Target"} deployment`}
           </div>
         </div>
       </div>

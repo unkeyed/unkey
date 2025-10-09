@@ -1,31 +1,14 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import {
-  CaretDown,
-  CaretExpandY,
-  CaretUp,
-  CircleCaretRight,
-} from "@unkey/icons";
-import {
-  Fragment,
-  type Ref,
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-} from "react";
+import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
+import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
-import type {
-  Column,
-  SeparatorItem,
-  SortDirection,
-  VirtualTableProps,
-} from "./types";
+import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const MOBILE_TABLE_HEIGHT = 400;
 const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
@@ -55,7 +38,7 @@ export type VirtualTableRef = {
 export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
   function VirtualTable<TTableData>(
     props: VirtualTableProps<TTableData>,
-    ref: Ref<unknown> | undefined
+    ref: Ref<unknown> | undefined,
   ) {
     const {
       data: historicData,
@@ -100,12 +83,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
     const tableClassName = cn(
       "w-full",
-      isGridLayout ? "border-collapse" : "border-separate border-spacing-0"
+      isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
     );
 
     const containerClassName = cn(
       "overflow-auto relative pb-4 bg-white dark:bg-black ",
-      config.containerPadding || "px-2" // Default to px-2 if containerPadding is not specified
+      config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
     );
 
     // Expose refs and methods to parent components. Primarily used for anchoring log details.
@@ -115,7 +98,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         parentRef: parentRef.current,
         containerRef: containerRef.current,
       }),
-      []
+      [],
     );
 
     const colWidths = useMemo(() => calculateTableLayout(columns), [columns]);
@@ -135,12 +118,10 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     key={column.key}
                     className={cn(
                       "text-sm font-medium text-accent-12 py-1 text-left",
-                      column.headerClassName
+                      column.headerClassName,
                     )}
                   >
-                    <div className="truncate text-accent-12">
-                      {column.header}
-                    </div>
+                    <div className="truncate text-accent-12">{column.header}</div>
                   </th>
                 ))}
               </tr>
@@ -152,9 +133,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             </thead>
           </table>
           {emptyState ? (
-            <div className="flex-1 flex items-center justify-center">
-              {emptyState}
-            </div>
+            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
           ) : (
             <EmptyState />
           )}
@@ -167,11 +146,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         <div
           ref={parentRef}
           className={containerClassName}
-          style={
-            isMobile
-              ? { height: MOBILE_TABLE_HEIGHT }
-              : { height: `${fixedHeight}px` }
-          }
+          style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
         >
           <table className={tableClassName}>
             <colgroup>
@@ -187,7 +162,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     key={column.key}
                     className={cn(
                       "text-sm font-medium text-accent-12 py-1 text-left relative",
-                      column.headerClassName
+                      column.headerClassName,
                     )}
                   >
                     <HeaderCell column={column} />
@@ -200,7 +175,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <div
                       className={cn(
                         "absolute border-t border-gray-4",
-                        hasPadding ? "inset-x-[-8px]" : "inset-x-0"
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
                       )}
                     />
                   </div>
@@ -221,9 +196,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     return (
                       <tr
                         key={`skeleton-${virtualRow.key}`}
-                        className={cn(
-                          config.rowBorders && "border-b border-gray-4"
-                        )}
+                        className={cn(config.rowBorders && "border-b border-gray-4")}
                         style={{ height: `${config.rowHeight}px` }}
                       >
                         {renderSkeletonRow({
@@ -236,9 +209,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
-                      className={cn(
-                        config.rowBorders && "border-b border-gray-4"
-                      )}
+                      className={cn(config.rowBorders && "border-b border-gray-4")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
@@ -259,10 +230,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 if (separator.isSeparator) {
                   return (
                     <Fragment key={`row-group-${virtualRow.key}`}>
-                      <tr
-                        key={`spacer-${virtualRow.key}`}
-                        style={{ height: "4px" }}
-                      />
+                      <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
                       <tr key={`content-${virtualRow.key}`}>
                         <td colSpan={columns.length} className="p-0">
                           <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
@@ -295,14 +263,13 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         if (event.key === "Escape") {
                           event.preventDefault();
                           onRowClick?.(null);
-                          const activeElement =
-                            document.activeElement as HTMLElement;
+                          const activeElement = document.activeElement as HTMLElement;
                           activeElement?.blur();
                         }
                         if (event.key === "ArrowDown" || event.key === "j") {
                           event.preventDefault();
                           const nextElement = document.querySelector(
-                            `[data-index="${virtualRow.index + 1}"]`
+                            `[data-index="${virtualRow.index + 1}"]`,
                           ) as HTMLElement;
                           if (nextElement) {
                             nextElement.focus();
@@ -312,7 +279,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         if (event.key === "ArrowUp" || event.key === "k") {
                           event.preventDefault();
                           const prevElement = document.querySelector(
-                            `[data-index="${virtualRow.index - 1}"]`
+                            `[data-index="${virtualRow.index - 1}"]`,
                           ) as HTMLElement;
                           if (prevElement) {
                             prevElement.focus();
@@ -324,7 +291,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
                         config.rowBorders && "border-b border-gray-4",
                         rowClassName?.(typedItem),
-                        selectedClassName?.(typedItem, isSelected)
+                        selectedClassName?.(typedItem, isSelected),
                       )}
                       style={{ height: `${config.rowHeight}px` }}
                     >
@@ -334,7 +301,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           className={cn(
                             "text-xs align-middle whitespace-nowrap pr-4",
                             idx === 0 ? "rounded-l-md" : "",
-                            idx === columns.length - 1 ? "rounded-r-md" : ""
+                            idx === columns.length - 1 ? "rounded-r-md" : "",
                           )}
                         >
                           {column.render(typedItem)}
@@ -364,14 +331,13 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         if (event.key === "Escape") {
                           event.preventDefault();
                           onRowClick?.(null);
-                          const activeElement =
-                            document.activeElement as HTMLElement;
+                          const activeElement = document.activeElement as HTMLElement;
                           activeElement?.blur();
                         }
                         if (event.key === "ArrowDown" || event.key === "j") {
                           event.preventDefault();
                           const nextElement = document.querySelector(
-                            `[data-index="${virtualRow.index + 1}"]`
+                            `[data-index="${virtualRow.index + 1}"]`,
                           ) as HTMLElement;
                           if (nextElement) {
                             nextElement.focus();
@@ -381,7 +347,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         if (event.key === "ArrowUp" || event.key === "k") {
                           event.preventDefault();
                           const prevElement = document.querySelector(
-                            `[data-index="${virtualRow.index - 1}"]`
+                            `[data-index="${virtualRow.index - 1}"]`,
                           ) as HTMLElement;
                           if (prevElement) {
                             prevElement.focus();
@@ -393,7 +359,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
                         config.rowBorders && "border-b border-gray-4", // Still allow borders in classic mode
                         rowClassName?.(typedItem),
-                        selectedClassName?.(typedItem, isSelected)
+                        selectedClassName?.(typedItem, isSelected),
                       )}
                       style={{ height: `${config.rowHeight}px` }}
                     >
@@ -403,7 +369,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           className={cn(
                             "text-xs align-middle whitespace-nowrap pr-4",
                             idx === 0 ? "rounded-l-md" : "",
-                            idx === columns.length - 1 ? "rounded-r-md" : ""
+                            idx === columns.length - 1 ? "rounded-r-md" : "",
                           )}
                         >
                           {column.render(typedItem)}
@@ -417,9 +383,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 style={{
                   height: `${
                     virtualizer.getTotalSize() -
-                    (virtualizer.getVirtualItems()[
-                      virtualizer.getVirtualItems().length - 1
-                    ]?.end || 0)
+                    (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
+                      0)
                   }px`,
                 }}
               />
@@ -438,7 +403,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
@@ -459,11 +424,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
       return;
     }
 
-    const nextDirection = direction
-      ? direction === "asc"
-        ? "desc"
-        : null
-      : "asc";
+    const nextDirection = direction ? (direction === "asc" ? "desc" : null) : "asc";
 
     onSort(nextDirection);
   };
@@ -473,7 +434,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
     <div
       className={cn(
         "flex items-center gap-1 truncate text-accent-12",
-        sortable && "cursor-pointer"
+        sortable && "cursor-pointer",
       )}
       onClick={sortable ? handleSort : undefined}
     >

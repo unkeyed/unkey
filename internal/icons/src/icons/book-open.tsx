@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const BookOpen: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...props
-}) => {
+export const BookOpen: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -25,12 +22,7 @@ export const BookOpen: React.FC<IconProps> = ({
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        transform="translate(0.25 0.25)"
-      >
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round" transform="translate(0.25 0.25)">
         <path
           d="M12 20.25V20.5V4.75V5"
           fill="none"

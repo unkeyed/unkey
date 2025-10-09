@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Grid: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...props
-}) => {
+export const Grid: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
   const { iconSize: pixelSize } = sizeMap[iconSize];
 
   return (
@@ -27,42 +24,10 @@ export const Grid: React.FC<IconProps> = ({
       {...props}
     >
       <g fill="currentColor">
-        <rect
-          height="6"
-          width="6"
-          fill="currentColor"
-          rx="1.75"
-          ry="1.75"
-          x="2"
-          y="2"
-        />
-        <rect
-          height="6"
-          width="6"
-          fill="currentColor"
-          rx="1.75"
-          ry="1.75"
-          x="10"
-          y="2"
-        />
-        <rect
-          height="6"
-          width="6"
-          fill="currentColor"
-          rx="1.75"
-          ry="1.75"
-          x="2"
-          y="10"
-        />
-        <rect
-          height="6"
-          width="6"
-          fill="currentColor"
-          rx="1.75"
-          ry="1.75"
-          x="10"
-          y="10"
-        />
+        <rect height="6" width="6" fill="currentColor" rx="1.75" ry="1.75" x="2" y="2" />
+        <rect height="6" width="6" fill="currentColor" rx="1.75" ry="1.75" x="10" y="2" />
+        <rect height="6" width="6" fill="currentColor" rx="1.75" ry="1.75" x="2" y="10" />
+        <rect height="6" width="6" fill="currentColor" rx="1.75" ry="1.75" x="10" y="10" />
       </g>
     </svg>
   );

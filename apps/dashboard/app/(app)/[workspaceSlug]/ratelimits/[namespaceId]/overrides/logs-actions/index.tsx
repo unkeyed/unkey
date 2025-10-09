@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
 import { Suspense } from "react";

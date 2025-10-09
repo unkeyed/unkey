@@ -47,7 +47,7 @@ export const PermissionField = ({
           permission.id.toLowerCase().includes(searchTerm) ||
           permission.name.toLowerCase().includes(searchTerm) ||
           permission.slug.toLowerCase().includes(searchTerm) ||
-          permission.description?.toLowerCase().includes(searchTerm)
+          permission.description?.toLowerCase().includes(searchTerm),
       );
     }
     // No search query, use all loaded permissions
@@ -128,8 +128,7 @@ export const PermissionField = ({
     setSearchValue("");
   };
 
-  const isComboboxLoading =
-    isLoading || (isSearching && searchValue.trim().length > 0);
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
 
   return (
     <div className="space-y-3">
@@ -159,9 +158,7 @@ export const PermissionField = ({
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">
-              No permissions found
-            </div>
+            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
           )
         }
         variant="default"
@@ -187,15 +184,11 @@ export const PermissionField = ({
             }))}
             disabled={disabled}
             onRemoveItem={handleRemovePermission}
-            renderIcon={() => (
-              <Page2 iconSize="sm-regular" className="text-grayA-11" />
-            )}
+            renderIcon={() => <Page2 iconSize="sm-regular" className="text-grayA-11" />}
             renderPrimaryText={(permission) => permission.name}
             enableTransitions
             // This can't cannot happen but we need it to make TS happy
-            renderSecondaryText={(permission) =>
-              permission.slug ?? "Unnamed Slug"
-            }
+            renderSecondaryText={(permission) => permission.slug ?? "Unnamed Slug"}
           />
         )
       )}

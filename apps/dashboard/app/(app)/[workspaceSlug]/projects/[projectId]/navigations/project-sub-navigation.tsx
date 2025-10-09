@@ -47,13 +47,7 @@ export const ProjectSubNavigation = ({
     const tabIndex = segments.findIndex((segment) => segment === projectId) + 1;
     const currentTab = segments[tabIndex];
 
-    const validTabs = [
-      "overview",
-      "deployments",
-      "gateway-logs",
-      "settings",
-      "openapi-diff",
-    ];
+    const validTabs = ["overview", "deployments", "gateway-logs", "settings", "openapi-diff"];
     return validTabs.includes(currentTab) ? currentTab : "overview";
   };
 
@@ -96,10 +90,7 @@ export const ProjectSubNavigation = ({
   }
 
   return (
-    <div
-      className="w-full border-b border-gray-4 bg-transparent relative h-10"
-      ref={anchorRef}
-    >
+    <div className="w-full border-b border-gray-4 bg-transparent relative h-10" ref={anchorRef}>
       <div className="flex items-center h-full">
         {tabs.map((tab) => {
           const IconComponent = tab.icon || GridCircle;
@@ -114,7 +105,7 @@ export const ProjectSubNavigation = ({
                 "flex gap-2.5 items-center px-5 py-2 h-full relative text-[13px] leading-4 font-medium transition-colors duration-150 rounded-none",
                 "text-gray-12 bg-transparent hover:bg-grayA-4 focus:outline-none",
                 "after:absolute after:-bottom-[1px] after:left-0 after:right-0 after:h-px after:bg-accent-12 after:scale-x-0 after:transition-transform after:duration-300 after:ease-out",
-                isActive && "text-accent-12 after:scale-x-100"
+                isActive && "text-accent-12 after:scale-x-100",
               )}
             >
               <IconComponent iconSize="sm-medium" />

@@ -39,12 +39,7 @@ export const ExternalLink: React.FC<IconProps> = ({
           stroke="currentColor"
           strokeWidth={strokeWidth}
         />
-        <path
-          d="M9 11L15 11L15 17"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-        />
+        <path d="M9 11L15 11L15 17" fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
         <path
           d="M11 22L18 22C19.1046 22 20 21.1046 20 20L20 4C20 2.89543 19.1046 2 18 2L6 2C4.89543 2 4 2.89543 4 4L4 15"
           fill="none"

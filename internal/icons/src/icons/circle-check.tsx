@@ -12,13 +12,8 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleCheck: React.FC<IconProps> = ({
-  iconSize,
-  filled,
-  ...props
-}) => {
-  const { iconSize: pixelSize, strokeWidth } =
-    sizeMap[iconSize || "md-regular"];
+export const CircleCheck: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize || "md-regular"];
   return (
     <svg
       height={pixelSize}

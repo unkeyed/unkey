@@ -3,10 +3,7 @@
 import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
 import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
 import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
@@ -28,9 +25,7 @@ export const LogsTableAction = ({
   const workspace = useWorkspaceNavigation();
 
   const getTimeParams = () => {
-    const timeFilters = filters.filter((f) =>
-      ["startTime", "endTime", "since"].includes(f.field)
-    );
+    const timeFilters = filters.filter((f) => ["startTime", "endTime", "since"].includes(f.field));
     const params = new URLSearchParams({
       identifiers: `contains:${identifier}`,
     });
@@ -58,11 +53,7 @@ export const LogsTableAction = ({
         icon: <Layers3 iconSize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
-          router.push(
-            `/${
-              workspace.slug
-            }/ratelimits/${namespaceId}/logs?${getTimeParams()}`
-          );
+          router.push(`/${workspace.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
         },
       },
       {

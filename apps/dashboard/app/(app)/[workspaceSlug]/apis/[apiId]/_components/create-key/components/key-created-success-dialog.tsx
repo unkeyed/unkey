@@ -55,9 +55,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
     return null;
   }
 
-  const handleCloseAttempt = (
-    action: "close" | "create-another" | "go-to-details" = "close"
-  ) => {
+  const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
     setPendingAction(action);
     setIsConfirmOpen(true);
   };
@@ -90,15 +88,12 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               description: "Keyspace ID is required to view key details.",
               action: {
                 label: "Contact Support",
-                onClick: () =>
-                  window.open("mailto:support@unkey.dev", "_blank"),
+                onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
               },
             });
             return;
           }
-          router.push(
-            `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`
-          );
+          router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
           break;
 
         default:
@@ -152,31 +147,23 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
                 Key Created
               </div>
-              <div
-                className="text-gray-10 text-[13px] leading-[24px] text-center"
-                ref={dividerRef}
-              >
+              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
                 You've successfully generated a new API key.
-                <br /> Use this key to authenticate requests from your
-                application.
+                <br /> Use this key to authenticate requests from your application.
               </div>
             </div>
             <div className="p-1 w-full my-8">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
             <div className="flex flex-col gap-2 items-start w-full">
-              <div className="text-gray-12 text-sm font-semibold">
-                Key Details
-              </div>
+              <div className="text-gray-12 text-sm font-semibold">Key Details</div>
               <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
                 <div className="flex gap-6 items-center">
                   <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
                     <Key2 iconSize="sm-regular" />
                   </div>
                   <div className="flex flex-col gap-1 py-6">
-                    <div className="text-accent-12 text-xs font-mono">
-                      {keyData.id}
-                    </div>
+                    <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
                     <InfoTooltip
                       content={keyData.name}
                       position={{ side: "bottom", align: "center" }}
@@ -208,8 +195,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             />
             <div className="mt-6">
               <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                All set! You can now create another key or explore the docs to
-                learn more
+                All set! You can now create another key or explore the docs to learn more
               </div>
               <div className="flex gap-3 mt-4 items-center justify-center w-full">
                 <Button

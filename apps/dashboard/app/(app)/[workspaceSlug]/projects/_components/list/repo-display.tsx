@@ -32,7 +32,7 @@ export const RepoDisplay = ({
         rel="noopener noreferrer"
         className={cn(
           "flex items-center gap-1.5 transition-all hover:underline decoration-dashed underline-offset-2",
-          className
+          className,
         )}
       >
         {showIcon && <Github iconSize="lg-medium" className="shrink-0" />}

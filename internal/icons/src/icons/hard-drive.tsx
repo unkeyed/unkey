@@ -12,11 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Harddrive: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  filled,
-  ...props
-}) => {
+export const Harddrive: React.FC<IconProps> = ({ iconSize = "xl-thin", filled, ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

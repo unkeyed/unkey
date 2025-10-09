@@ -26,7 +26,7 @@ export const SecretKey = ({
     <div
       className={cn(
         "w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5",
-        className
+        className,
       )}
     >
       <div className="flex items-center justify-between w-full gap-3 pointer-events-auto">

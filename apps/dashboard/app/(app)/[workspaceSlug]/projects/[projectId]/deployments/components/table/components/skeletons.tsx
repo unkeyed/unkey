@@ -80,7 +80,7 @@ export const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded m-0 items-center flex justify-center",
-      "border border-gray-6"
+      "border border-gray-6",
     )}
     disabled
   >

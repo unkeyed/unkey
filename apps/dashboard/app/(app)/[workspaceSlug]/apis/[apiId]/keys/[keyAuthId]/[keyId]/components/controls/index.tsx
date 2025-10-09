@@ -32,10 +32,7 @@ export function KeysDetailsLogsControls({
 
   // Safe access to remaining credit with fallback
   const hasRemainingCredit =
-    data?.remainingCredit !== null &&
-    data?.remainingCredit !== undefined &&
-    !isLoading &&
-    !error;
+    data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
 
   return (
     <ControlsContainer>

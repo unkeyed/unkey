@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  type MenuItem,
-  TableActionPopover,
-} from "@/components/logs/table-action.popover";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
 
@@ -16,10 +13,7 @@ type ProjectActionsProps = {
   projectId: string;
 };
 
-export const ProjectActions = ({
-  projectId,
-  children,
-}: PropsWithChildren<ProjectActionsProps>) => {
+export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
   const { workspace } = useWorkspace();
   // biome-ignore lint/style/noNonNullAssertion: This cannot be null
@@ -31,7 +25,7 @@ export const ProjectActions = ({
 const getProjectActionItems = (
   projectId: string,
   workspaceSlug: string,
-  router: AppRouterInstance
+  router: AppRouterInstance,
 ): MenuItem[] => {
   return [
     {
@@ -74,9 +68,7 @@ const getProjectActionItems = (
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
-        router.push(
-          `/projects/${projectId}/deployments/${fakeDeploymentId}/settings`
-        );
+        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/settings`);
       },
       divider: true,
     },

@@ -14,10 +14,7 @@
 import React from "react";
 import { sizeMap, type IconProps } from "../props";
 
-export const ChevronRight: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...props
-}) => {
+export const ChevronRight: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

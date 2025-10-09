@@ -33,12 +33,7 @@ export function OnboardingFallback() {
             steps={[
               {
                 name: "Workspace",
-                icon: (
-                  <StackPerspective2
-                    iconSize="sm-regular"
-                    className="text-gray-11"
-                  />
-                ),
+                icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
                 body: (
                   <form>
                     <div className="flex flex-col">

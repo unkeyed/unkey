@@ -20,18 +20,12 @@ type Props = {
   onMount: (distanceToTop: number) => void;
 };
 
-export const AuditLogsTable = ({
-  selectedLog,
-  setSelectedLog,
-  onMount,
-}: Props) => {
+export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) => {
   const tableRef = useRef<VirtualTableRef>(null);
-  const { historicalLogs, loadMore, isLoadingMore, isLoading } =
-    useAuditLogsQuery({});
+  const { historicalLogs, loadMore, isLoadingMore, isLoading } = useAuditLogsQuery({});
 
   useEffect(() => {
-    const distanceToTop =
-      tableRef.current?.containerRef?.getBoundingClientRect().top ?? 0;
+    const distanceToTop = tableRef.current?.containerRef?.getBoundingClientRect().top ?? 0;
     onMount(distanceToTop);
   }, [onMount]);
 
@@ -47,7 +41,7 @@ export const AuditLogsTable = ({
         getAuditRowClassName(
           log,
           selectedLog?.auditLog.id === log.auditLog.id,
-          Boolean(selectedLog)
+          Boolean(selectedLog),
         )
       }
       selectedItem={selectedLog}
@@ -73,9 +67,7 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
           value={log.auditLog.time}
           className={cn(
             "font-mono group-hover:underline decoration-dotted pl-2",
-            selectedLog &&
-              selectedLog.auditLog.id !== log.auditLog.id &&
-              "pointer-events-none"
+            selectedLog && selectedLog.auditLog.id !== log.auditLog.id && "pointer-events-none",
           )}
         />
       );
@@ -96,16 +88,12 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
         ) : log.auditLog.actor.type === "key" ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <Key iconSize="sm-thin" />
-            <span className="font-mono text-xs truncate">
-              {log.auditLog.actor.id}
-            </span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         ) : (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <MathFunction iconSize="sm-thin" />
-            <span className="font-mono text-xs truncate">
-              {log.auditLog.actor.id}
-            </span>
+            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         )}
       </div>
@@ -125,7 +113,7 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
           <Badge
             className={cn(
               "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              isSelected ? style.badge.selected : style.badge.default
+              isSelected ? style.badge.selected : style.badge.default,
             )}
           >
             {eventType}
@@ -149,9 +137,7 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
     header: "Description",
     width: "auto",
     render: (log) => (
-      <div className="font-mono text-xs truncate w-[200px]">
-        {log.auditLog.description}
-      </div>
+      <div className="font-mono text-xs truncate w-[200px]">{log.auditLog.description}</div>
     ),
   },
 ];

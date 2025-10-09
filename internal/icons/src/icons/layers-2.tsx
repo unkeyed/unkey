@@ -13,10 +13,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Layers2: React.FC<IconProps> = ({
-  iconSize = "xl-regular",
-  ...props
-}) => {
+export const Layers2: React.FC<IconProps> = ({ iconSize = "xl-regular", ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg

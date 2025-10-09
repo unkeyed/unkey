@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const XMark: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...rest
-}) => {
+export const XMark: React.FC<IconProps> = ({ iconSize = "xl-thin", ...rest }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg

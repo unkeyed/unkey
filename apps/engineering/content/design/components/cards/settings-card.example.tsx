@@ -75,12 +75,7 @@ export const SettingsCardsWithSharedEdge = () => {
           contentWidth="w-full lg:w-1/2"
         >
           <div className="flex gap-2 items-center justify-center w-full">
-            <Input
-              placeholder="size"
-              value="16"
-              type="number"
-              className="w-full"
-            />
+            <Input placeholder="size" value="16" type="number" className="w-full" />
             <Button size="lg">Save</Button>
           </div>
         </SettingCard>
@@ -150,12 +145,7 @@ export const SettingsCardsWithDivider = () => {
           className="border-b"
         >
           <div className="flex gap-2 items-center justify-center w-full">
-            <Input
-              placeholder="size"
-              value="16"
-              type="number"
-              className="w-full"
-            />
+            <Input placeholder="size" value="16" type="number" className="w-full" />
             <Button size="lg">Save</Button>
           </div>
         </SettingCard>
@@ -204,12 +194,7 @@ export const SettingsCardsWithSquareEdge = () => {
           contentWidth="w-full lg:w-1/2"
         >
           <div className="flex gap-2 items-center justify-center w-full">
-            <Input
-              placeholder="size"
-              value="44"
-              type="number"
-              className="w-full"
-            />
+            <Input placeholder="size" value="44" type="number" className="w-full" />
             <Button size="lg">Save</Button>
           </div>
         </SettingCard>

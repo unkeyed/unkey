@@ -16,10 +16,7 @@ type PermissionToggleProps = React.HTMLAttributes<HTMLDivElement> & {
 };
 
 const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
-  (
-    { category, checked, setChecked, label, description, className, ...props },
-    ref
-  ) => {
+  ({ category, checked, setChecked, label, description, className, ...props }, ref) => {
     const id = useId();
 
     return (
@@ -27,7 +24,7 @@ const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
         ref={ref}
         className={cn(
           "hover:cursor-pointer flex flex-row items-center justify-start gap-4 transition-all pl-3 h-full mb-1 ml-2 w-full hover:bg-grayA-3 rounded-lg",
-          className
+          className,
         )}
         {...props}
       >
@@ -49,17 +46,14 @@ const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
             {<span className="text-sm w-full">{label}</span>}
           </div>
           <InfoTooltip content={description} className="w-full text-left">
-            <p
-              id={`${id}-description`}
-              className="text-xs text-gray-10 text-left w-full truncate"
-            >
+            <p id={`${id}-description`} className="text-xs text-gray-10 text-left w-full truncate">
               {description}
             </p>
           </InfoTooltip>
         </div>
       </div>
     );
-  }
+  },
 );
 
 PermissionToggle.displayName = "PermissionToggle";

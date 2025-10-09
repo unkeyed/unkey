@@ -16,7 +16,7 @@ const Command = React.forwardRef<
     ref={ref}
     className={cn(
       "flex h-full w-full flex-col overflow-hidden rounded-lg bg-gray-2 dark:bg-black text-grayA-12",
-      className
+      className,
     )}
     {...props}
   />
@@ -41,19 +41,13 @@ const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div
-    className="flex items-center px-3 border-b border-grayA-4"
-    cmdk-input-wrapper=""
-  >
-    <Magnifier
-      className="mr-2 shrink-0 text-accent-9 !size-[14px]"
-      iconSize="sm-regular"
-    />
+  <div className="flex items-center px-3 border-b border-grayA-4" cmdk-input-wrapper="">
+    <Magnifier className="mr-2 shrink-0 text-accent-9 !size-[14px]" iconSize="sm-regular" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
         "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-grayA-8 disabled:cursor-not-allowed disabled:opacity-50 text-grayA-12",
-        className
+        className,
       )}
       {...props}
     />
@@ -79,11 +73,7 @@ const CommandEmpty = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-  <CommandPrimitive.Empty
-    ref={ref}
-    className="text-sm text-center text-grayA-9"
-    {...props}
-  />
+  <CommandPrimitive.Empty ref={ref} className="text-sm text-center text-grayA-9" {...props} />
 ));
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
@@ -96,7 +86,7 @@ const CommandGroup = React.forwardRef<
     ref={ref}
     className={cn(
       "overflow-hidden p-1 text-grayA-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-grayA-9",
-      className
+      className,
     )}
     {...props}
   />
@@ -127,7 +117,7 @@ const CommandItem = React.forwardRef<
         "relative flex cursor-pointer select-none items-center rounded px-2 py-1.5 text-sm outline-none mt-3 first-of-type:mt-0",
         "text-grayA-11 aria-selected:bg-grayA-3 aria-selected:text-grayA-12",
         disabled ? "pointer-events-none opacity-50" : "cursor-pointer",
-        className
+        className,
       )}
       {...props}
     />
@@ -136,15 +126,9 @@ const CommandItem = React.forwardRef<
 
 CommandItem.displayName = CommandPrimitive.Item.displayName;
 
-const CommandShortcut = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>) => {
+const CommandShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) => {
   return (
-    <span
-      className={cn("ml-auto text-xs tracking-widest text-grayA-8", className)}
-      {...props}
-    />
+    <span className={cn("ml-auto text-xs tracking-widest text-grayA-8", className)} {...props} />
   );
 };
 CommandShortcut.displayName = "CommandShortcut";

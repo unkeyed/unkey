@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleDotted: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...props
-}) => {
+export const CircleDotted: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -40,14 +37,7 @@ export const CircleDotted: React.FC<IconProps> = ({
           data-stroke="none"
           stroke="none"
         />
-        <circle
-          cx="1.75"
-          cy="9"
-          r="0.75"
-          fill="currentColor"
-          data-stroke="none"
-          stroke="none"
-        />
+        <circle cx="1.75" cy="9" r="0.75" fill="currentColor" data-stroke="none" stroke="none" />
         <circle
           cx="3.873"
           cy="3.873"
@@ -88,22 +78,8 @@ export const CircleDotted: React.FC<IconProps> = ({
           data-stroke="none"
           stroke="none"
         />
-        <circle
-          cx="9"
-          cy="1.75"
-          r="0.75"
-          fill="currentColor"
-          data-stroke="none"
-          stroke="none"
-        />
-        <circle
-          cx="9"
-          cy="16.25"
-          r="0.75"
-          fill="currentColor"
-          data-stroke="none"
-          stroke="none"
-        />
+        <circle cx="9" cy="1.75" r="0.75" fill="currentColor" data-stroke="none" stroke="none" />
+        <circle cx="9" cy="16.25" r="0.75" fill="currentColor" data-stroke="none" stroke="none" />
         <circle
           cx="14.127"
           cy="14.127"
@@ -112,14 +88,7 @@ export const CircleDotted: React.FC<IconProps> = ({
           data-stroke="none"
           stroke="none"
         />
-        <circle
-          cx="16.25"
-          cy="9"
-          r="0.75"
-          fill="currentColor"
-          data-stroke="none"
-          stroke="none"
-        />
+        <circle cx="16.25" cy="9" r="0.75" fill="currentColor" data-stroke="none" stroke="none" />
         <circle
           cx="14.127"
           cy="3.873"

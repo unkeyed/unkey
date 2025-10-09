@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Tag: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...props
-}) => {
+export const Tag: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -35,13 +32,7 @@ export const Tag: React.FC<IconProps> = ({
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <circle
-          cx="6.25"
-          cy="6.25"
-          fill="currentColor"
-          r="1.25"
-          stroke="none"
-        />
+        <circle cx="6.25" cy="6.25" fill="currentColor" r="1.25" stroke="none" />
       </g>
     </svg>
   );

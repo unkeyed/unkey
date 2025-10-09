@@ -19,7 +19,7 @@ export const LastUpdated = ({
       ref={badgeRef}
       className={cn(
         "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
-        isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default
+        isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
       )}
       onMouseOver={() => {
         setShowTooltip(true);

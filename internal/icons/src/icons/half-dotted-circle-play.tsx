@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const HalfDottedCirclePlay: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  ...props
-}) => {
+export const HalfDottedCirclePlay: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -43,14 +40,7 @@ export const HalfDottedCirclePlay: React.FC<IconProps> = ({
           data-stroke="none"
           stroke="none"
         />
-        <circle
-          cx="1.75"
-          cy="9"
-          r=".75"
-          fill="currentColor"
-          data-stroke="none"
-          stroke="none"
-        />
+        <circle cx="1.75" cy="9" r=".75" fill="currentColor" data-stroke="none" stroke="none" />
         <circle
           cx="3.873"
           cy="3.873"

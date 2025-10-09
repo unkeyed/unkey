@@ -9,7 +9,7 @@ function Empty({ className, children, ...props }: EmptyRootProps) {
     <div
       className={cn(
         "flex flex-col p-8 text-center h-full w-full items-center justify-center",
-        className
+        className,
       )}
       {...props}
     >
@@ -25,9 +25,7 @@ type EmptyIconProps = React.HTMLAttributes<HTMLDivElement> & {
 
 Empty.Icon = function EmptyIcon({ className, children }: EmptyIconProps) {
   return (
-    <div
-      className={cn("flex h-28 w-28 justify-center items-center", className)}
-    >
+    <div className={cn("flex h-28 w-28 justify-center items-center", className)}>
       <div className="relative z-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[hsla(240,100%,17%,0.01)] via-[hsla(240,100%,10%,0.06)] to-[hsla(240,100%,17%,0.01)] dark:from-[hsla(0,0%,0%,0)] dark:via-[hsla(211,66%,92%,0.3)] dark:to-[hsla(0,0%,0%,0)] w-32 h-[1px] " />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[hsla(240,100%,17%,0.01)] via-[hsla(240,100%,10%,0.06)] to-[hsla(240,100%,17%,0.01)] dark:from-[hsla(0,0%,0%,0)] dark:via-[hsla(211,66%,92%,0.3)] dark:to-[hsla(0,0%,0%,0)] w-32 h-[1px]  " />
@@ -46,10 +44,7 @@ type EmptyTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 Empty.Title = function EmptyTitle({ className, ...props }: EmptyTitleProps) {
   return (
     <h2
-      className={cn(
-        "text-accent-12 mt-3 font-semibold text-[15px] leading-6",
-        className
-      )}
+      className={cn("text-accent-12 mt-3 font-semibold text-[15px] leading-6", className)}
       {...props}
     />
   );
@@ -57,16 +52,10 @@ Empty.Title = function EmptyTitle({ className, ...props }: EmptyTitleProps) {
 
 type EmptyDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
 
-Empty.Description = function EmptyDescription({
-  className,
-  ...props
-}: EmptyDescriptionProps) {
+Empty.Description = function EmptyDescription({ className, ...props }: EmptyDescriptionProps) {
   return (
     <p
-      className={cn(
-        "text-accent-11 text-center text-xs font-normal leading-6 mt-1",
-        className
-      )}
+      className={cn("text-accent-11 text-center text-xs font-normal leading-6 mt-1", className)}
       {...props}
     />
   );
@@ -74,19 +63,9 @@ Empty.Description = function EmptyDescription({
 
 type EmptyActionsProps = React.HTMLAttributes<HTMLDivElement>;
 
-Empty.Actions = function EmptyActions({
-  className,
-  children,
-  ...props
-}: EmptyActionsProps) {
+Empty.Actions = function EmptyActions({ className, children, ...props }: EmptyActionsProps) {
   return (
-    <div
-      className={cn(
-        "w-full flex items-center justify-center gap-4 mt-2",
-        className
-      )}
-      {...props}
-    >
+    <div className={cn("w-full flex items-center justify-center gap-4 mt-2", className)} {...props}>
       {children}
     </div>
   );

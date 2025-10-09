@@ -20,10 +20,6 @@ export const DeploymentSection = ({
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo iconSize="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard
-      deployment={deployment}
-      isLive={isLive}
-      showSignal={showSignal}
-    />
+    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
   </div>
 );

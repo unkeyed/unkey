@@ -58,15 +58,10 @@ export const ExpandableSettings = ({
         >
           <div className="flex items-center">
             {icon}
-            <div className="ml-3 mr-2 text-gray-12 font-medium text-[13px] leading-6">
-              {title}
-            </div>
+            <div className="ml-3 mr-2 text-gray-12 font-medium text-[13px] leading-6">{title}</div>
             {description && (
               <InfoTooltip content={description}>
-                <CircleInfo
-                  className="text-gray-8 flex-shrink-0"
-                  iconSize="sm-regular"
-                />
+                <CircleInfo className="text-gray-8 flex-shrink-0" iconSize="sm-regular" />
               </InfoTooltip>
             )}
           </div>

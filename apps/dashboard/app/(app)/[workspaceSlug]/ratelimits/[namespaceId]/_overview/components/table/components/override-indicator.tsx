@@ -19,9 +19,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const hasMoreBlocked = calculateBlockedPercentage(log);
   const totalRequests = log.blocked_count + log.passed_count;
   const blockRate =
-    totalRequests > 0
-      ? (log.blocked_count / totalRequests) * PERCENTAGE_MULTIPLIER
-      : 0;
+    totalRequests > 0 ? (log.blocked_count / totalRequests) * PERCENTAGE_MULTIPLIER : 0;
   const isFullyBlocked = blockRate === FULLY_BLOCKED_PERCENTAGE;
 
   return (
@@ -42,11 +40,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           </div>
         }
       >
-        <div
-          className={cn(
-            hasMoreBlocked ? "flex items-center flex-shrink-0" : "invisible"
-          )}
-        >
+        <div className={cn(hasMoreBlocked ? "flex items-center flex-shrink-0" : "invisible")}>
           <TriangleWarning2 iconSize="md-medium" />
         </div>
       </InfoTooltip>
@@ -55,7 +49,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           className={cn(
             style.badge.default,
             "rounded p-1",
-            hasMoreBlocked ? "" : "group-hover:bg-accent-6"
+            hasMoreBlocked ? "" : "group-hover:bg-accent-6",
           )}
         >
           {log.override ? (
@@ -68,10 +62,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           )}
         </div>
         <div
-          className={cn(
-            "font-mono font-medium",
-            hasMoreBlocked ? style.base : "text-accent-12"
-          )}
+          className={cn("font-mono font-medium", hasMoreBlocked ? style.base : "text-accent-12")}
         >
           {log.identifier}
         </div>
@@ -95,26 +86,20 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
           className={cn(
             style.badge.default,
             "rounded p-1",
-            "bg-accent-4 text-accent-12 group-hover:bg-accent-5"
+            "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
           )}
         >
           <ArrowDotAntiClockwise iconSize="md-medium" />
         </div>
         <div className="flex flex-col gap-1">
           <div className="text-sm flex gap-[10px] items-center">
-            <span className="font-medium text-sm">
-              Custom override in effect
-            </span>
+            <span className="font-medium text-sm">Custom override in effect</span>
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
             <div className="text-accent-9 text-xs">
-              Limit set to{" "}
-              <span className="text-gray-12">
-                {formatNumber(log.override.limit)}{" "}
-              </span>
-              requests per{" "}
-              <span className="text-gray-12">{ms(log.override.duration)}</span>
+              Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
+              requests per <span className="text-gray-12">{ms(log.override.duration)}</span>
             </div>
           )}
         </div>
@@ -127,9 +112,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
       <div
         className={cn(
           "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-          calculateBlockedPercentage(log)
-            ? "bg-orange-10 hover:bg-orange-11"
-            : "bg-warning-10"
+          calculateBlockedPercentage(log) ? "bg-orange-10 hover:bg-orange-11" : "bg-warning-10",
         )}
       />
     </div>

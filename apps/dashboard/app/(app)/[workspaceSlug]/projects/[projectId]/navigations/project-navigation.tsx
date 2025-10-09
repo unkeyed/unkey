@@ -26,7 +26,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
     q.from({ project: collection.projects }).select(({ project }) => ({
       id: project.id,
       name: project.name,
-    }))
+    })),
   );
 
   const activeProject = useLiveQuery((q) =>
@@ -37,7 +37,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
         id: project.id,
         name: project.name,
         gitRepositoryUrl: project.gitRepositoryUrl,
-      }))
+      })),
   ).data.at(0);
 
   const basePath = `/${workspace.slug}/projects`;
@@ -45,15 +45,8 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link href={basePath}>
-            Projects
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href="#"
-            isIdentifier
-            className="group max-md:hidden"
-            noop
-          >
+          <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
             <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -62,18 +55,12 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   }
 
   if (!activeProject) {
-    return (
-      <div className="h-full w-full flex items-center justify-center">
-        Project not found
-      </div>
-    );
+    return <div className="h-full w-full flex items-center justify-center">Project not found</div>;
   }
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube />}>
-        <Navbar.Breadcrumbs.Link href={basePath}>
-          Projects
-        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
           href={`${basePath}/${activeProject.id}`}
           isIdentifier
@@ -112,9 +99,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
           </>
         )}
         <div className="gap-2.5 items-center flex">
-          <NavbarActionButton title="Visit Project URL">
-            Visit Project URL
-          </NavbarActionButton>
+          <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
           <Button className="size-7" variant="outline">
             <ListRadio iconSize="sm-regular" />
           </Button>

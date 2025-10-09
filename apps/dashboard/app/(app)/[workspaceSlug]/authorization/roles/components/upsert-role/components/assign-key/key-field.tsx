@@ -31,8 +31,7 @@ export const KeyField = ({
   const { calculateLimits } = useRoleLimits(roleId);
   const { hasKeyWarning, totalKeys } = calculateLimits(value);
 
-  const { keys, isFetchingNextPage, hasNextPage, loadMore, isLoading } =
-    useFetchKeys();
+  const { keys, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchKeys();
   const { searchResults, isSearching } = useSearchKeys(searchValue);
 
   const allKeys = useMemo(() => {
@@ -44,8 +43,7 @@ export const KeyField = ({
       const searchTerm = searchValue.toLowerCase().trim();
       return keys.filter(
         (key) =>
-          key.id.toLowerCase().includes(searchTerm) ||
-          key.name?.toLowerCase().includes(searchTerm)
+          key.id.toLowerCase().includes(searchTerm) || key.name?.toLowerCase().includes(searchTerm),
       );
     }
 
@@ -123,8 +121,7 @@ export const KeyField = ({
     setSearchValue("");
   };
 
-  const isComboboxLoading =
-    isLoading || (isSearching && searchValue.trim().length > 0);
+  const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
 
   return (
     <div className="space-y-3">
@@ -154,9 +151,7 @@ export const KeyField = ({
               {isSearching ? "Searching..." : "Loading keys..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">
-              No keys found
-            </div>
+            <div className="px-3 py-3 text-gray-10 text-[13px]">No keys found</div>
           )
         }
         variant="default"
@@ -181,14 +176,10 @@ export const KeyField = ({
           }))}
           disabled={disabled}
           onRemoveItem={handleRemoveKey}
-          renderIcon={() => (
-            <Key2 iconSize="sm-regular" className="text-grayA-11" />
-          )}
+          renderIcon={() => <Key2 iconSize="sm-regular" className="text-grayA-11" />}
           enableTransitions
           renderPrimaryText={(key) =>
-            key.id.length > 15
-              ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}`
-              : key.id
+            key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
           }
           renderSecondaryText={(key) => key.name || "Unnamed Key"}
           itemHeight="h-12"

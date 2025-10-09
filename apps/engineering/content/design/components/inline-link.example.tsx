@@ -11,8 +11,7 @@ export const InlineLinkBasic = () => {
 </p>`}
     >
       <p>
-        This is a basic{" "}
-        <InlineLink href="https://example.com" label="inline link" /> in a
+        This is a basic <InlineLink href="https://example.com" label="inline link" /> in a
         paragraph.
       </p>
     </RenderComponentWithSnippet>
