@@ -147,11 +147,6 @@ type reqWithKey struct {
 	index int
 }
 
-type bucketInfo struct {
-	bucket *bucket
-	key    bucketKey
-}
-
 // RatelimitMany checks multiple rate limits atomically.
 //
 // All rate limit checks must pass for the request to be allowed. If any limit fails,
@@ -198,43 +193,26 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 
 	// Sort by key to ensure consistent ordering (prevents deadlock)
 	sort.Slice(reqsWithKeys, func(i, j int) bool {
-		ki := reqsWithKeys[i].key
-		kj := reqsWithKeys[j].key
-		// Compare: identifier, then limit, then duration
-		if ki.identifier != kj.identifier {
-			return ki.identifier < kj.identifier
-		}
-		if ki.limit != kj.limit {
-			return ki.limit < kj.limit
-		}
-		return ki.duration < kj.duration
+		return reqsWithKeys[i].key.toString() < reqsWithKeys[j].key.toString()
 	})
 
 	// Get unique buckets in sorted order and deduplicate
-	uniqueBuckets := make([]bucketInfo, 0, len(reqs))
+	uniqueBuckets := make([]*bucket, 0, len(reqs))
 	bucketMap := make(map[bucketKey]*bucket)
 
 	for _, rwk := range reqsWithKeys {
 		if _, exists := bucketMap[rwk.key]; !exists {
 			b, _ := s.getOrCreateBucket(rwk.key)
 			bucketMap[rwk.key] = b
-			uniqueBuckets = append(uniqueBuckets, bucketInfo{
-				bucket: b,
-				key:    rwk.key,
-			})
+			uniqueBuckets = append(uniqueBuckets, b)
 		}
 	}
 
 	// Acquire locks on unique buckets only (already sorted)
-	for _, bi := range uniqueBuckets {
-		bi.bucket.mu.Lock()
+	for _, b := range uniqueBuckets {
+		b.mu.Lock()
+		defer b.mu.Unlock()
 	}
-	// Ensure locks are released on function exit
-	defer func() {
-		for i := len(uniqueBuckets) - 1; i >= 0; i-- {
-			uniqueBuckets[i].bucket.mu.Unlock()
-		}
-	}()
 
 	// Check all limits while holding locks
 	responses := make([]RatelimitResponse, len(reqs))
@@ -244,7 +222,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		bucket := bucketMap[rwk.key]
 
 		// Check limit with lock already held
-		res, err := s.checkBucketWithLockHeld(ctx, rwk.req, bucket, rwk.key)
+		res, err := s.checkBucketWithLockHeld(ctx, rwk.req, bucket)
 		if err != nil {
 			return nil, err
 		}
@@ -256,9 +234,10 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 	}
 
+	span.SetAttributes(attribute.Bool("passed", allPassed))
+
 	// If all passed, increment all counters (still holding locks!)
 	if allPassed {
-		span.SetAttributes(attribute.Bool("passed", true))
 		for _, rwk := range reqsWithKeys {
 			bucket := bucketMap[rwk.key]
 			currentWindow, _ := bucket.getCurrentWindow(rwk.req.Time)
@@ -268,7 +247,6 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			s.replayBuffer.Buffer(rwk.req)
 		}
 	} else {
-		span.SetAttributes(attribute.Bool("denied", true))
 
 		// At least one failed - adjust remaining values
 		for i, res := range responses {
@@ -307,112 +285,31 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
 	span.SetAttributes(attribute.String("key", key.toString()))
-
 	b, _ := s.getOrCreateBucket(key)
-
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Get current and previous windows
-	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
-	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
+	// Use the shared method
+	res, err := s.checkBucketWithLockHeld(ctx, req, b)
+	if err != nil {
+		return RatelimitResponse{}, err
+	}
+	span.SetAttributes(attribute.Bool("passed", res.Success))
 
-	// track whether we were able to handle the request locally or if we had to call redis
-	decisionSource := "local"
+	// If successful, increment counter and buffer
+	if res.Success {
+		currentWindow, _ := b.getCurrentWindow(req.Time)
+		currentWindow.counter += req.Cost
+		s.replayBuffer.Buffer(req)
 
-	// First, try to make a decision based only on local data
-	if currentWindowExisted && previousWindowExisted {
-		// Check if we can reject based on local data alone
-		exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
-		if exceeded {
-			b.strictUntil = req.Time.Add(req.Duration)
-
-			// Record the denied request
-			span.SetAttributes(attribute.Bool("passed", false))
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
-
-			return RatelimitResponse{
-				Success:   false,
-				Remaining: max(0, remaining),
-				Reset:     currentWindow.start.Add(currentWindow.duration),
-				Limit:     req.Limit,
-				Current:   effectiveCount,
-			}, nil
-		}
 	}
 
-	// If we couldn't make a local rejection decision, proceed with Redis checks if needed
-	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
-	if goToOrigin || !currentWindowExisted {
-		decisionSource = "origin"
-		currentKey := counterKey(key, currentWindow.sequence)
-		res, err := s.counter.Get(ctx, currentKey)
-		if err != nil {
-			s.logger.Error("unable to get counter value",
-				"key", currentKey,
-				"error", err.Error(),
-			)
-		} else {
-			currentWindow.counter = max(currentWindow.counter, res)
-		}
-	}
-
-	if goToOrigin || !previousWindowExisted {
-		decisionSource = "origin"
-		previousKey := counterKey(key, previousWindow.sequence)
-		res, err := s.counter.Get(ctx, previousKey)
-		if err != nil {
-			s.logger.Error("unable to get counter value",
-				"key", previousKey,
-				"error", err.Error(),
-			)
-		} else {
-			previousWindow.counter = max(previousWindow.counter, res)
-		}
-	}
-
-	// Now check again with potentially updated data from Redis
-	exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
-
-	if exceeded {
-		// Set strictUntil to prevent further requests
-		b.strictUntil = req.Time.Add(req.Duration)
-
-		span.SetAttributes(attribute.Bool("passed", false))
-		metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
-
-		return RatelimitResponse{
-			Success:   false,
-			Remaining: max(0, remaining),
-			Reset:     currentWindow.start.Add(currentWindow.duration),
-			Limit:     req.Limit,
-			Current:   effectiveCount,
-		}, nil
-	}
-
-	// If we get here, the request is allowed
-	// Increment current window counter
-	currentWindow.counter += req.Cost
-
-	// Buffer the request for async propagation
-	s.replayBuffer.Buffer(req)
-
-	span.SetAttributes(attribute.Bool("passed", true))
-	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
-
-	return RatelimitResponse{
-		Success:   true,
-		Remaining: remaining,
-		Reset:     currentWindow.start.Add(currentWindow.duration),
-		Limit:     req.Limit,
-		Current:   currentWindow.counter,
-	}, nil
+	return res, nil
 }
 
 // checkBucketWithLockHeld evaluates a rate limit request with the bucket lock already held.
-// This is used by RatelimitMany to check limits while holding all locks.
 // The caller MUST hold bucket.mu.Lock() before calling this.
-func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequest, b *bucket, key bucketKey) (RatelimitResponse, error) {
+func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequest, b *bucket) (RatelimitResponse, error) {
 	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
 	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 
@@ -442,7 +339,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
 	if goToOrigin || !currentWindowExisted {
 		decisionSource = "origin"
-		currentKey := counterKey(key, currentWindow.sequence)
+		currentKey := counterKey(b.key(), currentWindow.sequence)
 		res, err := s.counter.Get(ctx, currentKey)
 		if err != nil {
 			s.logger.Error("unable to get counter value",
@@ -456,7 +353,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 	if goToOrigin || !previousWindowExisted {
 		decisionSource = "origin"
-		previousKey := counterKey(key, previousWindow.sequence)
+		previousKey := counterKey(b.key(), previousWindow.sequence)
 		res, err := s.counter.Get(ctx, previousKey)
 		if err != nil {
 			s.logger.Error("unable to get counter value",
@@ -491,6 +388,6 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		Remaining: remaining,
 		Reset:     currentWindow.start.Add(currentWindow.duration),
 		Limit:     req.Limit,
-		Current:   currentWindow.counter,
+		Current:   effectiveCount,
 	}, nil
 }
