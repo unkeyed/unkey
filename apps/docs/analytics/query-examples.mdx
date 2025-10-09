@@ -182,7 +182,7 @@ LIMIT 10
 ```sql
 SELECT
   external_id,
-  toDate(fromUnixTimestamp64Milli(time)) as date,
+  toDate(time) as date,
   COUNT(*) as verifications
 FROM key_verifications
 WHERE external_id = 'user_123'
@@ -193,7 +193,7 @@ ORDER BY date
 
 **JSON format:**
 ```json
-{"query": "SELECT external_id, toDate(fromUnixTimestamp64Milli(time)) as date, COUNT(*) as verifications FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY date"}
+{"query": "SELECT external_id, toDate(time) as date, COUNT(*) as verifications FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY date"}
 ```
 
 </Accordion>
@@ -486,18 +486,18 @@ ORDER BY verifications DESC
 ```sql
 SELECT
   identity_id,
-  toStartOfMonth(fromUnixTimestamp64Milli(time)) as month,
+  toStartOfMonth(time) as month,
   countIf(outcome = 'VALID') as billable_requests
 FROM key_verifications
 WHERE identity_id != ''
-  AND time >= toUnixTimestamp64Milli(toStartOfMonth(now()))
+  AND time >= toStartOfMonth(now())
 GROUP BY identity_id, month
 ORDER BY billable_requests DESC
 ```
 
 **JSON format:**
 ```json
-{"query": "SELECT identity_id, toStartOfMonth(fromUnixTimestamp64Milli(time)) as month, countIf(outcome = 'VALID') as billable_requests FROM key_verifications WHERE identity_id != '' AND time >= toUnixTimestamp64Milli(toStartOfMonth(now())) GROUP BY identity_id, month ORDER BY billable_requests DESC"}
+{"query": "SELECT identity_id, toStartOfMonth(time) as month, countIf(outcome = 'VALID') as billable_requests FROM key_verifications WHERE identity_id != '' AND time >= toStartOfMonth(now()) GROUP BY identity_id, month ORDER BY billable_requests DESC"}
 ```
 
 </Accordion>
@@ -535,14 +535,14 @@ SELECT
     ELSE 'enterprise'
   END as tier
 FROM key_verifications
-WHERE time >= toUnixTimestamp64Milli(toStartOfMonth(now()))
+WHERE time >= toStartOfMonth(now())
   AND external_id = 'user_123'
   GROUP BY external_id
 ```
 
 **JSON format:**
 ```json
-{"query": "SELECT external_id, countIf(outcome = 'VALID') as total_requests, CASE WHEN total_requests <= 1000 THEN 'free' WHEN total_requests <= 10000 THEN 'starter' WHEN total_requests <= 100000 THEN 'pro' ELSE 'enterprise' END as tier FROM key_verifications WHERE time >= toUnixTimestamp64Milli(toStartOfMonth(now())) AND external_id = 'user_123' GROUP BY external_id"}
+{"query": "SELECT external_id, countIf(outcome = 'VALID') as total_requests, CASE WHEN total_requests <= 1000 THEN 'free' WHEN total_requests <= 10000 THEN 'starter' WHEN total_requests <= 100000 THEN 'pro' ELSE 'enterprise' END as tier FROM key_verifications WHERE time >= toStartOfMonth(now()) AND external_id = 'user_123' GROUP BY external_id"}
 ```
 
 </Accordion>
@@ -551,7 +551,7 @@ WHERE time >= toUnixTimestamp64Milli(toStartOfMonth(now()))
 
 ```sql
 SELECT
-  toDate(fromUnixTimestamp64Milli(time)) as date,
+  toDate(time) as date,
   countIf(outcome = 'VALID') as billable_requests,
   billable_requests * 0.001 as estimated_cost  -- $0.001 per request
 FROM key_verifications
@@ -563,7 +563,7 @@ ORDER BY date
 
 **JSON format:**
 ```json
-{"query": "SELECT toDate(fromUnixTimestamp64Milli(time)) as date, countIf(outcome = 'VALID') as billable_requests, billable_requests * 0.001 as estimated_cost  -- $0.001 per request FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+{"query": "SELECT toDate(time) as date, countIf(outcome = 'VALID') as billable_requests, billable_requests * 0.001 as estimated_cost  -- $0.001 per request FROM key_verifications WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
 ```
 
 </Accordion>
@@ -578,7 +578,7 @@ ORDER BY date
 
 ```sql
 SELECT
-  toStartOfHour(fromUnixTimestamp64Milli(time)) as hour,
+  toStartOfHour(time) as hour,
   COUNT(*) as requests,
   avg(latency_ms) as avg_latency
 FROM key_verifications
@@ -589,7 +589,7 @@ ORDER BY hour
 
 **JSON format:**
 ```json
-{"query": "SELECT toStartOfHour(fromUnixTimestamp64Milli(time)) as hour, COUNT(*) as requests, avg(latency_ms) as avg_latency FROM key_verifications WHERE time >= now() - INTERVAL 24 HOUR GROUP BY hour ORDER BY hour"}
+{"query": "SELECT toStartOfHour(time) as hour, COUNT(*) as requests, avg(latency_ms) as avg_latency FROM key_verifications WHERE time >= now() - INTERVAL 24 HOUR GROUP BY hour ORDER BY hour"}
 ```
 
 </Accordion>
@@ -675,7 +675,7 @@ WITH first_seen AS (
   GROUP BY identity_id
 )
 SELECT
-  toDate(fromUnixTimestamp64Milli(kv.time)) as date,
+  toDate(kv.time) as date,
   countIf(kv.time = fs.first_verification) as new_users,
   countIf(kv.time > fs.first_verification) as returning_users
 FROM key_verifications kv
@@ -687,7 +687,7 @@ ORDER BY date
 
 **JSON format:**
 ```json
-{"query": "WITH first_seen AS ( SELECT identity_id, min(time) as first_verification FROM key_verifications WHERE identity_id != '' GROUP BY identity_id ) SELECT toDate(fromUnixTimestamp64Milli(kv.time)) as date, countIf(kv.time = fs.first_verification) as new_users, countIf(kv.time > fs.first_verification) as returning_users FROM key_verifications kv JOIN first_seen fs ON kv.identity_id = fs.identity_id WHERE kv.time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
+{"query": "WITH first_seen AS ( SELECT identity_id, min(time) as first_verification FROM key_verifications WHERE identity_id != '' GROUP BY identity_id ) SELECT toDate(kv.time) as date, countIf(kv.time = fs.first_verification) as new_users, countIf(kv.time > fs.first_verification) as returning_users FROM key_verifications kv JOIN first_seen fs ON kv.identity_id = fs.identity_id WHERE kv.time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"}
 ```
 
 </Accordion>

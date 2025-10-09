@@ -42,12 +42,12 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		ClickHouse: h.ClickHouse,
+		Logger:                     h.Logger,
+		DB:                         h.DB,
+		Keys:                       h.Keys,
+		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:     h.Caches,
+		Caches:                     h.Caches,
 	}
 	h.Register(route)
 
@@ -97,12 +97,12 @@ func Test403_WrongApiPermission(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		ClickHouse: h.ClickHouse,
+		Logger:                     h.Logger,
+		DB:                         h.DB,
+		Keys:                       h.Keys,
+		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:     h.Caches,
+		Caches:                     h.Caches,
 	}
 	h.Register(route)
 

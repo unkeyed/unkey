@@ -59,12 +59,12 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 	}
 
 	route := &Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		ClickHouse: h.ClickHouse,
+		Logger:                     h.Logger,
+		DB:                         h.DB,
+		Keys:                       h.Keys,
+		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:     h.Caches,
+		Caches:                     h.Caches,
 	}
 	h.Register(route)
 
@@ -131,12 +131,12 @@ func Test429_ExecutionTimeQuotaExceeded(t *testing.T) {
 	}
 
 	route := &Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		ClickHouse: h.ClickHouse,
+		Logger:                     h.Logger,
+		DB:                         h.DB,
+		Keys:                       h.Keys,
+		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:     h.Caches,
+		Caches:                     h.Caches,
 	}
 	h.Register(route)
 

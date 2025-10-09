@@ -111,7 +111,7 @@ components:
                         - Block dangerous operations
 
                         Only SELECT queries are allowed.
-                    example: "SELECT COUNT(*) as total FROM key_verifications WHERE outcome = 'VALID' AND time >= toUnixTimestamp64Milli(now() - INTERVAL 7 DAY)"
+                    example: "SELECT COUNT(*) as total FROM key_verifications WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
         V2AnalyticsGetVerificationsResponseBody:
             type: object
             required:

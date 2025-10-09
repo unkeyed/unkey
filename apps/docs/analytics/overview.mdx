@@ -49,7 +49,7 @@ Get the total number of valid verifications in the last 7 days:
 SELECT COUNT(*) as total_verifications
 FROM key_verifications
 WHERE outcome = 'VALID'
-  AND time >= toUnixTimestamp64Milli(now() - INTERVAL 7 DAY)
+  AND time >= now() - INTERVAL 7 DAY
 ```
 
 This query is automatically rewritten to:

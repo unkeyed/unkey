@@ -158,7 +158,7 @@ SELECT
   arrayJoin(tags) as tag,
   COUNT(*) as count
 FROM key_verifications
-WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 24 HOUR)
+WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY tag
 ORDER BY count DESC
 ```
@@ -171,57 +171,76 @@ SELECT
   arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as path,
   COUNT(*) as requests
 FROM key_verifications
-WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 24 HOUR)
+WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY path
 ```
 
 ## Time Functions
 
-All timestamps are stored as Unix milliseconds (Int64). Use ClickHouse date functions for time-based queries.
+Timestamps are stored differently depending on the table:
+- **Raw table (`key_verifications`)**: `time` is `Int64` (Unix milliseconds)
+- **Aggregated tables**: `time` is `DateTime`
 
 ### Current Time
 
 ```sql
 SELECT now() as current_datetime
-SELECT toUnixTimestamp64Milli(now()) as current_millis
+SELECT toUnixTimestamp(now()) * 1000 as current_millis
 ```
 
-### Time Ranges
+### Time Ranges (Raw Table)
+
+For the raw `key_verifications` table, compare `time` with millisecond timestamps:
 
 ```sql
 -- Last hour
-WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 1 HOUR)
+WHERE time >= toUnixTimestamp(now() - INTERVAL 1 HOUR) * 1000
 
 -- Last 24 hours
-WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 24 HOUR)
+WHERE time >= toUnixTimestamp(now() - INTERVAL 24 HOUR) * 1000
 
 -- Last 7 days
-WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 7 DAY)
+WHERE time >= toUnixTimestamp(now() - INTERVAL 7 DAY) * 1000
 
 -- Last 30 days
-WHERE time >= toUnixTimestamp64Milli(now() - INTERVAL 30 DAY)
+WHERE time >= toUnixTimestamp(now() - INTERVAL 30 DAY) * 1000
 
 -- This month
-WHERE time >= toUnixTimestamp64Milli(toStartOfMonth(now()))
+WHERE time >= toUnixTimestamp(toStartOfMonth(now())) * 1000
 
 -- Today
-WHERE time >= toUnixTimestamp64Milli(toStartOfDay(now()))
+WHERE time >= toUnixTimestamp(toStartOfDay(now())) * 1000
 ```
 
-### Time Rounding
+### Time Ranges (Aggregated Tables)
+
+For aggregated tables, use DateTime comparisons directly:
+
+```sql
+-- Last 7 days
+WHERE time >= now() - INTERVAL 7 DAY
+
+-- This month
+WHERE time >= toStartOfMonth(now())
+
+-- Today
+WHERE time >= toStartOfDay(now())
+```
+
+### Time Rounding (Raw Table)
 
 ```sql
 -- Round to start of hour
-SELECT toStartOfHour(fromUnixTimestamp64Milli(time)) as hour
+SELECT toStartOfHour(toDateTime(time / 1000)) as hour
 
 -- Round to start of day
-SELECT toStartOfDay(fromUnixTimestamp64Milli(time)) as day
+SELECT toStartOfDay(toDateTime(time / 1000)) as day
 
 -- Round to start of month
-SELECT toStartOfMonth(fromUnixTimestamp64Milli(time)) as month
+SELECT toStartOfMonth(toDateTime(time / 1000)) as month
 
 -- Convert to date
-SELECT toDate(fromUnixTimestamp64Milli(time)) as date
+SELECT toDate(toDateTime(time / 1000)) as date
 ```
 
 ### Specific Date Ranges
