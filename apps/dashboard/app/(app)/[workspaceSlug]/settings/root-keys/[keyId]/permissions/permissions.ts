@@ -209,6 +209,6 @@ export function apiPermissions(apiId: string): {
         description: "Decrypt keys belonging to this API",
         permission: `api.${apiId}.decrypt_key`,
       },
-    }
+    },
   };
 }

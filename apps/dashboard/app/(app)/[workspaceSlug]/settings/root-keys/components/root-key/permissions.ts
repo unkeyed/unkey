@@ -26,8 +26,7 @@ export const workspacePermissions = {
       permission: "api.*.delete_api",
     },
     read_analytics: {
-      description:
-        "Query analytics data for all API's in this workspace using SQL. Keep in mind that you will still need the seperate analytics permissions to access the data.",
+      description: "Query analytics data for all API's in this workspace using SQL.",
       permission: "api.*.read_analytics",
     },
   },
@@ -210,6 +209,6 @@ export function apiPermissions(apiId: string): {
         description: "Decrypt keys belonging to this API",
         permission: `api.${apiId}.decrypt_key`,
       },
-    }
+    },
   };
 }

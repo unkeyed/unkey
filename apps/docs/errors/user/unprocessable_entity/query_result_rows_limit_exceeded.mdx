@@ -99,41 +99,7 @@ LIMIT 100
 
 </CodeGroup>
 
-### 4. Paginate Your Results
-
-For large result sets, query in pages:
-
-```javascript
-async function fetchAllPages(apiId) {
-  let offset = 0;
-  const limit = 1000;
-  const allResults = [];
-
-  while (true) {
-    const results = await query(`
-      SELECT key_id, outcome, time
-      FROM key_verifications
-      WHERE api_id = '${apiId}'
-        AND time >= now() - INTERVAL 7 DAY
-      ORDER BY time DESC
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `);
-
-    allResults.push(...results);
-
-    if (results.length < limit) {
-      break; // No more results
-    }
-
-    offset += limit;
-  }
-
-  return allResults;
-}
-```
-
-### 5. Use TOP N Instead of All
+### 4. Use TOP N Instead of All
 
 If you only need the top results, filter early:
 
