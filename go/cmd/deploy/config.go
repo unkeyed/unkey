@@ -9,21 +9,19 @@ import (
 )
 
 var (
-	ErrWorkspaceIDRequired = errors.New("workspace ID is required (use --workspace-id flag or edit unkey.json)")
-	ErrProjectIDRequired   = errors.New("project ID is required (use --project-id flag or edit unkey.json)")
-	ErrConfigPathResolve   = errors.New("failed to resolve config path")
-	ErrConfigFileRead      = errors.New("failed to read config file")
-	ErrConfigFileParse     = errors.New("failed to parse config file")
-	ErrConfigFileWrite     = errors.New("failed to write config file")
-	ErrConfigMarshal       = errors.New("failed to marshal config")
-	ErrDirectoryCreate     = errors.New("failed to create directory")
+	ErrProjectIDRequired = errors.New("project ID is required (use --project-id flag or edit unkey.json)")
+	ErrConfigPathResolve = errors.New("failed to resolve config path")
+	ErrConfigFileRead    = errors.New("failed to read config file")
+	ErrConfigFileParse   = errors.New("failed to parse config file")
+	ErrConfigFileWrite   = errors.New("failed to write config file")
+	ErrConfigMarshal     = errors.New("failed to marshal config")
+	ErrDirectoryCreate   = errors.New("failed to create directory")
 )
 
 type Config struct {
-	WorkspaceID string `json:"workspace_id"`
-	KeyspaceID  string `json:"keyspace_id"`
-	ProjectID   string `json:"project_id"`
-	Context     string `json:"context"`
+	KeyspaceID string `json:"keyspace_id"`
+	ProjectID  string `json:"project_id"`
+	Context    string `json:"context"`
 }
 
 // loadConfig loads configuration from unkey.json in the specified directory.
@@ -80,16 +78,15 @@ func getConfigFilePath(configDir string) string {
 }
 
 // createConfigWithValues creates a new unkey.json file with the provided values
-func createConfigWithValues(configDir, workspaceID, projectID, context string) error {
+func createConfigWithValues(configDir, projectID, context string) error {
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("%w %s: %w", ErrDirectoryCreate, configDir, err)
 	}
 
 	config := &Config{
-		WorkspaceID: workspaceID,
-		ProjectID:   projectID,
-		Context:     context,
+		ProjectID: projectID,
+		Context:   context,
 	}
 
 	configPath := filepath.Join(configDir, "unkey.json")
@@ -115,17 +112,13 @@ func writeConfig(configPath string, config *Config) error {
 }
 
 // mergeWithFlags merges config values with command flags, with flags taking precedence
-func (c *Config) mergeWithFlags(workspaceID, projectID, keyspaceID, context string) *Config {
+func (c *Config) mergeWithFlags(projectID, keyspaceID, context string) *Config {
 	merged := &Config{
-		WorkspaceID: c.WorkspaceID,
-		KeyspaceID:  c.KeyspaceID,
-		ProjectID:   c.ProjectID,
-		Context:     c.Context,
+		KeyspaceID: c.KeyspaceID,
+		ProjectID:  c.ProjectID,
+		Context:    c.Context,
 	}
 	// Flags override config values
-	if workspaceID != "" {
-		merged.WorkspaceID = workspaceID
-	}
 	if projectID != "" {
 		merged.ProjectID = projectID
 	}
@@ -144,9 +137,6 @@ func (c *Config) mergeWithFlags(workspaceID, projectID, keyspaceID, context stri
 
 // validate checks if required fields are present and not placeholder values
 func (c *Config) validate() error {
-	if c.WorkspaceID == "" || c.WorkspaceID == "ws_your_workspace_id" {
-		return ErrWorkspaceIDRequired
-	}
 	if c.ProjectID == "" || c.ProjectID == "proj_your_project_id" {
 		return ErrProjectIDRequired
 	}
