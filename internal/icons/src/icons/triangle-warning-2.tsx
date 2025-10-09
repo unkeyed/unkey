@@ -13,8 +13,11 @@
 import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
-export const TriangleWarning2: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const TriangleWarning2: React.FC<IconProps> = ({
+  iconSize = "xl-thin",
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg
@@ -38,7 +41,13 @@ export const TriangleWarning2: React.FC<IconProps> = ({ iconsize = "xl-thin", ..
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth={strokeWidth} />
+        <circle
+          cx="10"
+          cy="15.75"
+          fill="currentColor"
+          r="1.25"
+          strokeWidth={strokeWidth}
+        />
       </g>
     </svg>
   );

@@ -14,7 +14,7 @@ export function Avatar({ src, alt, className }: AvatarProps) {
   if (!src || hasError) {
     return (
       <div className="size-5  border rounded-full border-grayA-5 items-center flex justify-center">
-        <User iconsize="md-medium" />
+        <User iconSize="md-medium" />
       </div>
     );
   }

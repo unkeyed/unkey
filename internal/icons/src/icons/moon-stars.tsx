@@ -12,8 +12,11 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const MoonStars: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const MoonStars: React.FC<IconProps> = ({
+  iconSize = "xl-thin",
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg
@@ -37,7 +40,13 @@ export const MoonStars: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props 
           fill="currentColor"
           stroke="none"
         />
-        <circle cx="14.25" cy="7.75" fill="currentColor" r=".75" stroke="none" />
+        <circle
+          cx="14.25"
+          cy="7.75"
+          fill="currentColor"
+          r=".75"
+          stroke="none"
+        />
       </g>
     </svg>
   );

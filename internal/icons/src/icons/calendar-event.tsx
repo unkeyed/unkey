@@ -13,11 +13,11 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const CalendarEvent: React.FC<IconProps> = ({
-  iconsize = "md-regular",
+  iconSize = "md-regular",
   filled,
   ...props
 }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg

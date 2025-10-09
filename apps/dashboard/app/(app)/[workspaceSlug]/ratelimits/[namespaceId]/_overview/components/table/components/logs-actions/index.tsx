@@ -3,7 +3,10 @@
 import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
 import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
 import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
@@ -25,7 +28,9 @@ export const LogsTableAction = ({
   const workspace = useWorkspaceNavigation();
 
   const getTimeParams = () => {
-    const timeFilters = filters.filter((f) => ["startTime", "endTime", "since"].includes(f.field));
+    const timeFilters = filters.filter((f) =>
+      ["startTime", "endTime", "since"].includes(f.field)
+    );
     const params = new URLSearchParams({
       identifiers: `contains:${identifier}`,
     });
@@ -50,16 +55,20 @@ export const LogsTableAction = ({
       {
         id: "logs",
         label: "Go to logs",
-        icon: <Layers3 iconsize="md-medium" />,
+        icon: <Layers3 iconSize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
-          router.push(`/${workspace.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
+          router.push(
+            `/${
+              workspace.slug
+            }/ratelimits/${namespaceId}/logs?${getTimeParams()}`
+          );
         },
       },
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone iconsize="md-medium" />,
+        icon: <Clone iconSize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -78,7 +87,7 @@ export const LogsTableAction = ({
       {
         id: "override",
         label: overrideDetails ? "Update Override" : "Override Identifier",
-        icon: <PenWriting3 iconsize="md-medium" className="text-orange-11" />,
+        icon: <PenWriting3 iconSize="md-medium" className="text-orange-11" />,
         className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
         ActionComponent: (props) => (
           <IdentifierDialog
@@ -94,7 +103,7 @@ export const LogsTableAction = ({
       {
         id: "delete",
         label: "Delete Override",
-        icon: <Trash iconsize="md-medium" className="text-error-10" />,
+        icon: <Trash iconSize="md-medium" className="text-error-10" />,
         className: overrideDetails?.overrideId
           ? "text-error-10 hover:bg-error-3 focus:bg-error-3"
           : "text-error-10 cursor-not-allowed bg-error-3",

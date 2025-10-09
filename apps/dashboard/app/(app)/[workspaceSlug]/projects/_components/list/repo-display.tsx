@@ -32,10 +32,10 @@ export const RepoDisplay = ({
         rel="noopener noreferrer"
         className={cn(
           "flex items-center gap-1.5 transition-all hover:underline decoration-dashed underline-offset-2",
-          className,
+          className
         )}
       >
-        {showIcon && <Github iconsize="lg-medium" className="shrink-0" />}
+        {showIcon && <Github iconSize="lg-medium" className="shrink-0" />}
         {children || <span className="truncate">{repoName}</span>}
       </a>
     </InfoTooltip>

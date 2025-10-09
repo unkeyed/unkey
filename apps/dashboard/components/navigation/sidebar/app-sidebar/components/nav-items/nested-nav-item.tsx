@@ -43,7 +43,8 @@ export const NestedNavItem = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isChildrenOpen, setIsChildrenOpen] = useState(false);
   const [userManuallyCollapsed, setUserManuallyCollapsed] = useState(false);
-  const [childrenUserManuallyCollapsed, setChildrenUserManuallyCollapsed] = useState(false);
+  const [childrenUserManuallyCollapsed, setChildrenUserManuallyCollapsed] =
+    useState(false);
 
   const Icon = item.icon;
   const hasChildren = item.items && item.items.length > 0;
@@ -63,7 +64,8 @@ export const NestedNavItem = ({
 
     const hasMatchingChild = item.items?.some(
       (subItem) =>
-        subItem.href === pathname || subItem.items?.some((child) => child.href === pathname),
+        subItem.href === pathname ||
+        subItem.items?.some((child) => child.href === pathname)
     );
 
     // Only auto-open children if user hasn't manually collapsed them
@@ -110,7 +112,9 @@ export const NestedNavItem = ({
 
     if (item.href) {
       startParentTransition(() => {
-        item.external ? window.open(item.href, "_blank") : router.push(item.href);
+        item.external
+          ? window.open(item.href, "_blank")
+          : router.push(item.href);
       });
     }
   };
@@ -204,13 +208,16 @@ export const NestedNavItem = ({
         >
           <SidebarMenuButton
             isActive={subItem.active}
-            className={getButtonStyles(subItem.active, subPending[subItem.label as string])}
+            className={getButtonStyles(
+              subItem.active,
+              subPending[subItem.label as string]
+            )}
           >
             {SubIcon ? (
               subPending[subItem.label as string] ? (
                 <AnimatedLoadingSpinner />
               ) : (
-                <SubIcon iconsize="xl-medium" />
+                <SubIcon iconSize="xl-medium" />
               )
             ) : null}
             <span className="truncate">{subItem.label}</span>
@@ -236,7 +243,7 @@ export const NestedNavItem = ({
           className={cn(
             // Only highlight if this item itself is active, not if its children are active
             getButtonStyles(item.active, showParentLoader),
-            "cursor-pointer relative",
+            "cursor-pointer relative"
           )}
           onClick={handleMenuItemClick}
         >
@@ -244,7 +251,7 @@ export const NestedNavItem = ({
             showParentLoader ? (
               <AnimatedLoadingSpinner />
             ) : (
-              <Icon iconsize="xl-medium" />
+              <Icon iconSize="xl-medium" />
             )
           ) : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
@@ -255,9 +262,11 @@ export const NestedNavItem = ({
               <CaretRight
                 className={cn(
                   "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
-                  (isSubItem ? isChildrenOpen : isOpen) ? "rotate-90" : "rotate-0",
+                  (isSubItem ? isChildrenOpen : isOpen)
+                    ? "rotate-90"
+                    : "rotate-0"
                 )}
-                iconsize="sm-bold"
+                iconSize="sm-bold"
               />
             </div>
           )}
@@ -265,7 +274,9 @@ export const NestedNavItem = ({
         {item.items && item.items.length > 0 && (
           <CollapsibleContent>
             <SidebarMenuSub depth={depth} maxDepth={maxDepth}>
-              {item.items.map((subItem, index) => renderSubItem(subItem, index))}
+              {item.items.map((subItem, index) =>
+                renderSubItem(subItem, index)
+              )}
             </SidebarMenuSub>
           </CollapsibleContent>
         )}

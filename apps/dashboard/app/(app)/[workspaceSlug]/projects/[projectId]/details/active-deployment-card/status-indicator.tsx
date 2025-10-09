@@ -35,10 +35,14 @@ export function StatusIndicator({
   const pulseColors = isBreaking
     ? ["bg-error-9", "bg-error-10", "bg-error-11", "bg-error-12"]
     : isWarning
-      ? ["bg-warning-9", "bg-warning-10", "bg-warning-11", "bg-warning-12"]
-      : ["bg-successA-9", "bg-successA-10", "bg-successA-11", "bg-successA-12"];
+    ? ["bg-warning-9", "bg-warning-10", "bg-warning-11", "bg-warning-12"]
+    : ["bg-successA-9", "bg-successA-10", "bg-successA-11", "bg-successA-12"];
 
-  const coreColor = isBreaking ? "bg-error-9" : isWarning ? "bg-warning-9" : "bg-successA-9";
+  const coreColor = isBreaking
+    ? "bg-error-9"
+    : isWarning
+    ? "bg-warning-9"
+    : "bg-successA-9";
 
   return (
     <InfoTooltip
@@ -53,10 +57,10 @@ export function StatusIndicator({
         <div
           className={cn(
             "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3",
-            className,
+            className
           )}
         >
-          <Cloud iconsize="sm-regular" className="text-gray-12" />
+          <Cloud iconSize="sm-regular" className="text-gray-12" />
         </div>
         {withSignal && !isLoading && (
           <div className="absolute -top-0.5 -right-0.5">
@@ -75,7 +79,12 @@ type PulseIndicatorProps = {
 };
 
 export function PulseIndicator({
-  colors = ["bg-successA-9", "bg-successA-10", "bg-successA-11", "bg-successA-12"],
+  colors = [
+    "bg-successA-9",
+    "bg-successA-10",
+    "bg-successA-11",
+    "bg-successA-12",
+  ],
   coreColor = "bg-successA-9",
   className,
 }: PulseIndicatorProps) {
@@ -91,7 +100,7 @@ export function PulseIndicator({
             index === 0 && "opacity-75",
             index === 1 && "opacity-60",
             index === 2 && "opacity-40",
-            index === 3 && "opacity-25",
+            index === 3 && "opacity-25"
           )}
           style={{
             animation: "ping 2s cubic-bezier(0, 0, 0.2, 1) infinite",

@@ -31,7 +31,9 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const collections = collectionManager.getProjectCollections(projectId);
 
   const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
+    q
+      .from({ project: collection.projects })
+      .where(({ project }) => eq(project.id, projectId))
   );
 
   const liveDeploymentId = projects.data.at(0)?.liveDeploymentId;
@@ -51,7 +53,9 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
     if (!liveDeploymentId) {
       return "No deployments available. Deploy your project to view details.";
     }
-    return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
+    return isDetailsOpen
+      ? "Hide deployment details"
+      : "Show deployment details";
   };
 
   return (
@@ -84,7 +88,10 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
                   disabled={!liveDeploymentId}
                   onClick={() => setIsDetailsOpen(!isDetailsOpen)}
                 >
-                  <DoubleChevronLeft iconsize="lg-medium" className="text-gray-13" />
+                  <DoubleChevronLeft
+                    iconSize="lg-medium"
+                    className="text-gray-13"
+                  />
                 </Button>
               </InfoTooltip>
             }

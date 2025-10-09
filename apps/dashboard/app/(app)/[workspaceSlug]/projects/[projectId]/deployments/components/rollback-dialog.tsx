@@ -16,13 +16,22 @@ type DeploymentSectionProps = {
   showSignal?: boolean;
 };
 
-const DeploymentSection = ({ title, deployment, isLive, showSignal }: DeploymentSectionProps) => (
+const DeploymentSection = ({
+  title,
+  deployment,
+  isLive,
+  showSignal,
+}: DeploymentSectionProps) => (
   <div className="space-y-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
-      <CircleInfo iconsize="sm-regular" className="text-gray-9" />
+      <CircleInfo iconSize="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
+    <DeploymentCard
+      deployment={deployment}
+      isLive={isLive}
+      showSignal={showSignal}
+    />
   </div>
 );
 
@@ -47,7 +56,7 @@ export const RollbackDialog = ({
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
+      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
   );
 
   const rollback = trpc.deploy.deployment.rollback.useMutation({
@@ -118,19 +127,25 @@ export const RollbackDialog = ({
             <div className="space-y-2" key={domain.id}>
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] text-grayA-11">Domain</h3>
-                <CircleInfo iconsize="sm-regular" className="text-gray-9" />
+                <CircleInfo iconSize="sm-regular" className="text-gray-9" />
               </div>
               <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
                 <div className="flex items-center">
-                  <Link4 className="text-gray-9" iconsize="sm-medium" />
-                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
+                  <Link4 className="text-gray-9" iconSize="sm-medium" />
+                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+                    {domain.domain}
+                  </div>
                   <div className="ml-3" />
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isLive={false}
+        />
       </div>
     </DialogContainer>
   );
@@ -142,7 +157,11 @@ type DeploymentCardProps = {
   showSignal?: boolean;
 };
 
-const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
+const DeploymentCard = ({
+  deployment,
+  isLive,
+  showSignal,
+}: DeploymentCardProps) => (
   <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -154,23 +173,26 @@ const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps)
             </span>
             <Badge
               variant={isLive ? "success" : "primary"}
-              className={`px-1.5 capitalize ${isLive ? "text-successA-11" : "text-grayA-11"}`}
+              className={`px-1.5 capitalize ${
+                isLive ? "text-successA-11" : "text-grayA-11"
+              }`}
             >
               {isLive ? "Live" : deployment.status}
             </Badge>
           </div>
           <div className="text-xs text-grayA-9">
-            {deployment.gitCommitMessage || `${isLive ? "Current active" : "Target"} deployment`}
+            {deployment.gitCommitMessage ||
+              `${isLive ? "Current active" : "Target"} deployment`}
           </div>
         </div>
       </div>
       <div className="flex gap-1.5">
         <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[100px]">
-          <CodeBranch iconsize="sm-regular" className="shrink-0 text-gray-12" />
+          <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
           <span className="truncate">{deployment.gitBranch}</span>
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11">
-          <CodeCommit iconsize="sm-regular" className="shrink-0 text-gray-12" />
+          <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
           <span>{shortenId(deployment.gitCommitSha ?? "")}</span>
         </div>
       </div>

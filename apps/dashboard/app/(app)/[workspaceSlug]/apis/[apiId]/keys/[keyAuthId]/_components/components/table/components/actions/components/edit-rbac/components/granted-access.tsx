@@ -45,7 +45,7 @@ export const GrantedAccess = ({
         }}
         className="flex gap-2 items-center bg-grayA-3 rounded-md p-1.5"
       >
-        <Page2 iconsize="sm-regular" className="text-grayA-11" />
+        <Page2 iconSize="sm-regular" className="text-grayA-11" />
         <span className="text-gray-11 text-xs font-mono">{slug}</span>
       </motion.div>
     ));

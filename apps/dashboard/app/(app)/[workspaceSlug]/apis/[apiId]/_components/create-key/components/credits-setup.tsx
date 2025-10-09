@@ -56,7 +56,7 @@ export const UsageSetup = ({
             amount: undefined,
             refillDay: undefined,
           },
-          { shouldValidate: true },
+          { shouldValidate: true }
         );
       }
     }
@@ -74,7 +74,7 @@ export const UsageSetup = ({
           amount: undefined,
           refillDay: undefined,
         },
-        { shouldValidate: true },
+        { shouldValidate: true }
       );
     } else if (value === "daily") {
       // For "daily"
@@ -85,7 +85,7 @@ export const UsageSetup = ({
           amount: getValues("limit.data.refill.amount") || 100,
           refillDay: undefined, // Must be undefined for daily
         },
-        { shouldValidate: true },
+        { shouldValidate: true }
       );
     } else if (value === "monthly") {
       // For "monthly"
@@ -96,7 +96,7 @@ export const UsageSetup = ({
           amount: getValues("limit.data.refill.amount") || 100,
           refillDay: getValues("limit.data.refill.refillDay") || 1,
         },
-        { shouldValidate: true },
+        { shouldValidate: true }
       );
     }
   };
@@ -108,7 +108,7 @@ export const UsageSetup = ({
           description="Turn on to limit how many times this key can be used. Once the limit
             is reached, the key will be disabled."
           title="Credits"
-          icon={<ChartPie className="text-gray-12" iconsize="sm-regular" />}
+          icon={<ChartPie className="text-gray-12" iconSize="sm-regular" />}
           checked={limitEnabled}
           onCheckedChange={handleSwitchChange}
           {...register("limit.enabled")}
@@ -133,10 +133,14 @@ export const UsageSetup = ({
         name="limit.data.refill.interval"
         render={({ field }) => (
           <div className="space-y-1.5">
-            <div className="text-gray-11 text-[13px] flex items-center">Refill Rate</div>
+            <div className="text-gray-11 text-[13px] flex items-center">
+              Refill Rate
+            </div>
             <Select
               onValueChange={(value) => {
-                handleRefillIntervalChange(value as "none" | "daily" | "monthly");
+                handleRefillIntervalChange(
+                  value as "none" | "daily" | "monthly"
+                );
               }}
               value={field.value || "none"}
               disabled={!limitEnabled}
@@ -176,7 +180,8 @@ export const UsageSetup = ({
             readOnly={!limitEnabled || currentRefillInterval === "none"}
             value={field.value === undefined ? "" : field.value}
             onChange={(e) => {
-              const value = e.target.value === "" ? undefined : Number(e.target.value);
+              const value =
+                e.target.value === "" ? undefined : Number(e.target.value);
               field.onChange(value);
             }}
           />
@@ -199,7 +204,8 @@ export const UsageSetup = ({
             readOnly={!limitEnabled || currentRefillInterval !== "monthly"}
             value={field.value === undefined ? "" : field.value}
             onChange={(e) => {
-              const value = e.target.value === "" ? undefined : Number(e.target.value);
+              const value =
+                e.target.value === "" ? undefined : Number(e.target.value);
               field.onChange(value);
             }}
           />

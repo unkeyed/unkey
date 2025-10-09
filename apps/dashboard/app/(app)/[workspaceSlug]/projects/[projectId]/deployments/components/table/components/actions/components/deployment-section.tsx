@@ -18,8 +18,12 @@ export const DeploymentSection = ({
   <div className="space-y-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
-      <CircleInfo size="sm-regular" className="text-gray-9" />
+      <CircleInfo iconSize="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
+    <DeploymentCard
+      deployment={deployment}
+      isLive={isLive}
+      showSignal={showSignal}
+    />
   </div>
 );

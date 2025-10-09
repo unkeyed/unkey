@@ -12,8 +12,12 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const ChartActivity: React.FC<IconProps> = ({ iconsize = "xl-thin", filled, ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const ChartActivity: React.FC<IconProps> = ({
+  iconSize = "xl-thin",
+  filled,
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg

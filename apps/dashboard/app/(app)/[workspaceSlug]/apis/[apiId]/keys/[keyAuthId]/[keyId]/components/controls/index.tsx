@@ -32,7 +32,10 @@ export function KeysDetailsLogsControls({
 
   // Safe access to remaining credit with fallback
   const hasRemainingCredit =
-    data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
+    data?.remainingCredit !== null &&
+    data?.remainingCredit !== undefined &&
+    !isLoading &&
+    !error;
 
   return (
     <ControlsContainer>
@@ -83,7 +86,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="enabled"
                       text={formatNumber(data?.remainingCredit ?? 0)}
-                      icon={<Coins iconsize="sm-thin" />}
+                      icon={<Coins iconSize="sm-thin" />}
                     />
                   </motion.div>
                 ) : (
@@ -104,7 +107,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="disabled"
                       text="0"
-                      icon={<Coins iconsize="sm-thin" />}
+                      icon={<Coins iconSize="sm-thin" />}
                     />
                   </motion.div>
                 )}

@@ -3,7 +3,7 @@ import * as React from "react";
 import { type VariantProps, cva } from "class-variance-authority";
 import { forwardRef } from "react";
 import { cn } from "../lib/utils";
-import { type iconsize as IconSize, sizeMap } from "@unkey/icons";
+import { type iconSize as IconSize, sizeMap } from "@unkey/icons";
 
 const circleProgressVariants = cva("inline-flex items-center justify-center", {
   variants: {
@@ -35,7 +35,7 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
    * @default "md-regular"
    * @example "sm-thin", "lg-bold", "xl-medium"
    */
-  iconsize?: IconSize;
+  iconSize?: IconSize;
 } & VariantProps<typeof circleProgressVariants>;
 
 /**
@@ -55,19 +55,22 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
  *   value={validFields}
  *   total={requiredFields}
  *   variant="success"
- *   iconsize="lg-medium"
+ *   iconSize="lg-medium"
  * />
  *
  * // Small thin progress indicator
  * <CircleProgress
  *   value={progress}
  *   total={100}
- *   iconsize="sm-thin"
+ *   iconSize="sm-thin"
  * />
  * ```
  */
 export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
-  ({ value, total, iconsize = "md-regular", className, variant, ...props }, ref) => {
+  (
+    { value, total, iconSize = "md-regular", className, variant, ...props },
+    ref
+  ) => {
     // Early error validation
     if (total <= 0) {
       throw new Error("CircleProgress: total must be greater than 0");
@@ -79,7 +82,7 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
       throw new Error("CircleProgress: value and total must be finite numbers");
     }
 
-    const { iconsize: actualSize, strokeWidth } = sizeMap[iconsize];
+    const { iconSize: actualSize, strokeWidth } = sizeMap[iconSize];
 
     const radius = (actualSize - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
@@ -89,8 +92,16 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
     const isComplete = value >= total;
 
     return (
-      <div ref={ref} className={cn(circleProgressVariants({ variant }), className)} {...props}>
-        <svg width={actualSize} height={actualSize} className="transform -rotate-90">
+      <div
+        ref={ref}
+        className={cn(circleProgressVariants({ variant }), className)}
+        {...props}
+      >
+        <svg
+          width={actualSize}
+          height={actualSize}
+          className="transform -rotate-90"
+        >
           {/* Background circle */}
           <circle
             cx={actualSize / 2}
@@ -114,7 +125,8 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             style={{
-              transition: "stroke-dashoffset 0.3s ease-in-out, opacity 0.2s ease-in-out",
+              transition:
+                "stroke-dashoffset 0.3s ease-in-out, opacity 0.2s ease-in-out",
               opacity: isComplete ? 0 : 1,
             }}
           />
@@ -140,7 +152,9 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
             <path
               d={`M${actualSize * 0.292} ${actualSize * 0.542} l${
                 actualSize * 0.125
-              } ${actualSize * 0.125} l${actualSize * 0.292} -${actualSize * 0.333}`}
+              } ${actualSize * 0.125} l${actualSize * 0.292} -${
+                actualSize * 0.333
+              }`}
               fill="none"
               stroke="currentColor"
               strokeWidth={strokeWidth}
@@ -152,7 +166,7 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
         </svg>
       </div>
     );
-  },
+  }
 );
 
 CircleProgress.displayName = "CircleProgress";

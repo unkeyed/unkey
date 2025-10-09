@@ -5,7 +5,7 @@ export const DeploymentIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[12px]">
     <div className="flex gap-5 items-center w-full">
       <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
-        <Cloud iconsize="sm-regular" className="text-gray-12 opacity-50" />
+        <Cloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
       </div>
       <div className="w-[200px]">
         <div className="h-4 w-32 bg-grayA-3 rounded animate-pulse mb-1" />
@@ -30,7 +30,7 @@ export const StatusColumnSkeleton = () => (
 
 export const InstancesColumnSkeleton = () => (
   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-    <Cube className="text-gray-12 opacity-50" iconsize="sm-regular" />
+    <Cube className="text-gray-12 opacity-50" iconSize="sm-regular" />
     <div className="flex gap-0.5">
       <div className="h-3 w-4 bg-grayA-4 rounded tabular-nums" />
       <div className="h-3 w-6 bg-grayA-4 rounded" />
@@ -40,7 +40,7 @@ export const InstancesColumnSkeleton = () => (
 
 export const SizeColumnSkeleton = () => (
   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-    <Cube className="text-gray-12 opacity-50" iconsize="sm-regular" />
+    <Cube className="text-gray-12 opacity-50" iconSize="sm-regular" />
     <div className="flex gap-1">
       <div className="h-3 w-8 bg-grayA-4 rounded" />
       <div className="h-3 w-8 bg-grayA-4 rounded tabular-nums" />
@@ -52,7 +52,7 @@ export const SourceColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-1.5">
     <div className="flex gap-5 items-center w-full">
       <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
-        <CodeBranch iconsize="sm-regular" className="text-gray-12 opacity-50" />
+        <CodeBranch iconSize="sm-regular" className="text-gray-12 opacity-50" />
       </div>
       <div className="w-[200px]">
         <div className="flex items-center gap-2 mb-1">
@@ -80,11 +80,11 @@ export const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded m-0 items-center flex justify-center",
-      "border border-gray-6",
+      "border border-gray-6"
     )}
     disabled
   >
-    <Dots className="text-gray-11 opacity-50" iconsize="sm-regular" />
+    <Dots className="text-gray-11 opacity-50" iconSize="sm-regular" />
   </button>
 );
 

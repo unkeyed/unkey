@@ -13,8 +13,11 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const MessageWriting: React.FC<IconProps> = ({ iconsize = "md-regular", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const MessageWriting: React.FC<IconProps> = ({
+  iconSize = "md-regular",
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
       height={pixelSize}

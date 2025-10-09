@@ -3,7 +3,12 @@ import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect } from "react";
-import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import {
+  Controller,
+  useFieldArray,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
@@ -65,7 +70,7 @@ export const RatelimitSetup = ({
           description="Turn on to restrict how frequently this key can be used. Requests
             beyond the limit will be blocked."
           title="Ratelimit"
-          icon={<Gauge className="text-gray-12" iconsize="sm-regular" />}
+          icon={<Gauge className="text-gray-12" iconSize="sm-regular" />}
           checked={ratelimitEnabled}
           onCheckedChange={handleSwitchChange}
           {...register("ratelimit.enabled")}
@@ -92,12 +97,15 @@ export const RatelimitSetup = ({
 
       <div>
         {fields.map((field, index) => (
-          <div key={field.id} className="space-y-4 w-full border-t border-grayA-3 py-6">
+          <div
+            key={field.id}
+            className="space-y-4 w-full border-t border-grayA-3 py-6"
+          >
             <div className="flex items-center gap-[14px] w-full">
               <FormInput
                 className={cn(
                   "[&_input:first-of-type]:h-[36px]",
-                  fields.length <= 1 ? "w-full" : "flex-1",
+                  fields.length <= 1 ? "w-full" : "flex-1"
                 )}
                 placeholder="my-ratelimit"
                 type="text"
@@ -117,7 +125,7 @@ export const RatelimitSetup = ({
                   onClick={() => remove(index)}
                   type="button"
                 >
-                  <Trash iconsize="sm-regular" className="text-error-11" />
+                  <Trash iconSize="sm-regular" className="text-error-11" />
                 </Button>
               ) : null}
             </div>
@@ -164,7 +172,7 @@ export const RatelimitSetup = ({
                 <FormCheckbox
                   className={cn(
                     "[&_input:first-of-type]:h-[36px]",
-                    fields.length <= 1 ? "w-full" : "flex-1",
+                    fields.length <= 1 ? "w-full" : "flex-1"
                   )}
                   label="Auto Apply"
                   description={

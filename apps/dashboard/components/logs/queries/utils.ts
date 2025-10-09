@@ -63,7 +63,8 @@ export function parseValue(value: string) {
   if (value === "blocked") {
     return { color: "bg-warning-9", phrase: value };
   }
-  const isNumeric = !Number.isNaN(Number.parseFloat(value)) && Number.isFinite(Number(value));
+  const isNumeric =
+    !Number.isNaN(Number.parseFloat(value)) && Number.isFinite(Number(value));
   if (!isNumeric) {
     return { color: null, phrase: value };
   }
@@ -82,23 +83,35 @@ export function parseValue(value: string) {
 }
 
 export function formatFilterValue(
-  filters: QuerySearchParams,
-): Record<string, { operator: string; values: { value: string; color: string | null }[] }> {
+  filters: QuerySearchParams
+): Record<
+  string,
+  { operator: string; values: { value: string; color: string | null }[] }
+> {
   // Handle special cases for different field types
-  const transform = (field: string, value: string): { color: string | null; value: string } => {
+  const transform = (
+    field: string,
+    value: string
+  ): { color: string | null; value: string } => {
     switch (field) {
       case "status":
         return {
           value:
-            value === "200" ? "2xx" : value === "400" ? "4xx" : value === "500" ? "5xx" : value,
+            value === "200"
+              ? "2xx"
+              : value === "400"
+              ? "4xx"
+              : value === "500"
+              ? "5xx"
+              : value,
           color:
             value === "200"
               ? "bg-success-9"
               : value === "400"
-                ? "bg-warning-9"
-                : value === "500"
-                  ? "bg-error-9"
-                  : null,
+              ? "bg-warning-9"
+              : value === "500"
+              ? "bg-error-9"
+              : null,
         };
       case "methods":
         return { value: value.toUpperCase(), color: null };
@@ -142,7 +155,12 @@ export function formatFilterValue(
   }
 
   Object.entries(filters).forEach(([field, value]) => {
-    if (field === "startTime" || field === "endTime" || field === "since" || field === "time") {
+    if (
+      field === "startTime" ||
+      field === "endTime" ||
+      field === "since" ||
+      field === "time"
+    ) {
       return [];
     }
     if (value === null) {
@@ -167,7 +185,7 @@ export function formatFilterValue(
 export function getFilterFieldIcon(field: string): JSX.Element {
   const Icon = iconsPerField[field] || ChartActivity2;
   return React.createElement(Icon, {
-    iconsize: "md-regular",
+    iconSize: "md-regular",
     className: "justify-center",
   });
 }
@@ -223,7 +241,10 @@ export const getSinceTime = (date: number) => {
   return `${years} year(s) ago`;
 };
 
-export type FullFilterField = LogsFilterField | AuditLogsFilterField | RatelimitFilterField;
+export type FullFilterField =
+  | LogsFilterField
+  | AuditLogsFilterField
+  | RatelimitFilterField;
 
 export const FieldsToTruncate = [
   "paths",

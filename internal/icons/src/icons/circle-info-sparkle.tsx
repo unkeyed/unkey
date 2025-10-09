@@ -12,8 +12,11 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleInfoSparkle: React.FC<IconProps> = ({ iconsize = "lg-thin", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const CircleInfoSparkle: React.FC<IconProps> = ({
+  iconSize = "lg-thin",
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg

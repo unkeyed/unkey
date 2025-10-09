@@ -11,11 +11,14 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 
 const IdentifierDialog = dynamic(
-  () => import("./_components/identifier-dialog").then((mod) => mod.IdentifierDialog),
+  () =>
+    import("./_components/identifier-dialog").then(
+      (mod) => mod.IdentifierDialog
+    ),
   {
     loading: () => null,
     ssr: false,
-  },
+  }
 );
 
 type NamespaceNavbarProps = {
@@ -27,11 +30,16 @@ type NamespaceNavbarProps = {
   };
 };
 
-export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProps) => {
+export const NamespaceNavbar = ({
+  namespaceId,
+  activePage,
+}: NamespaceNavbarProps) => {
   const [open, setOpen] = useState(false);
   const workspace = useWorkspaceNavigation();
 
-  const { data } = useLiveQuery((q) => q.from({ namespace: collection.ratelimitNamespaces }));
+  const { data } = useLiveQuery((q) =>
+    q.from({ namespace: collection.ratelimitNamespaces })
+  );
 
   if (!data) {
     return (
@@ -55,7 +63,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
           <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[260px] transition-all ">
             <div className="h-3 w-[260px] bg-grayA-3 rounded" />
             <div>
-              <TaskUnchecked iconsize="sm-regular" className="!size-4" />
+              <TaskUnchecked iconSize="sm-regular" className="!size-4" />
             </div>
           </div>
         </Navbar.Actions>
@@ -126,14 +134,21 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
+          <NavbarActionButton
+            title="Override Identifier"
+            onClick={() => setOpen(true)}
+          >
             Override Identifier
           </NavbarActionButton>
           <CopyableIDButton value={namespaceId} />
         </Navbar.Actions>
       </Navbar>
       {open && (
-        <IdentifierDialog onOpenChange={setOpen} isModalOpen={open} namespaceId={namespaceId} />
+        <IdentifierDialog
+          onOpenChange={setOpen}
+          isModalOpen={open}
+          namespaceId={namespaceId}
+        />
       )}
     </>
   );

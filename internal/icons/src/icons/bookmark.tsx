@@ -13,8 +13,12 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Bookmark: React.FC<IconProps> = ({ iconsize = "md-regular", filled, ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const Bookmark: React.FC<IconProps> = ({
+  iconSize = "md-regular",
+  filled,
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
       height={pixelSize}

@@ -33,9 +33,12 @@ export type DetailSection = {
 };
 
 export const createDetailSections = (
-  details: Deployment & { repository: string | null },
+  details: Deployment & { repository: string | null }
 ): DetailSection[] => {
-  const vmCount = details.runtimeConfig.regions.reduce((acc, region) => acc + region.vmCount, 0);
+  const vmCount = details.runtimeConfig.regions.reduce(
+    (acc, region) => acc + region.vmCount,
+    0
+  );
 
   return [
     {
@@ -64,14 +67,26 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <CodeBranch className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <CodeBranch
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
+          ),
           label: "Branch",
           content: (
-            <span className="text-gray-12 font-medium truncate max-w-32">{details.gitBranch}</span>
+            <span className="text-gray-12 font-medium truncate max-w-32">
+              {details.gitBranch}
+            </span>
           ),
         },
         {
-          icon: <CodeCommit className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <CodeCommit
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
+          ),
           label: "Commit",
           content: (
             <span className="text-gray-12 font-medium">
@@ -80,16 +95,25 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <MessageWriting className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <MessageWriting
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
+          ),
           label: "Description",
           content: (
             <div className="truncate max-w-[150px] min-w-0">
-              <span className="text-gray-12 font-medium">{details.gitCommitMessage}</span>
+              <span className="text-gray-12 font-medium">
+                {details.gitCommitMessage}
+              </span>
             </div>
           ),
         },
         {
-          icon: <User className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <User className="size-[14px] text-gray-12" iconSize="md-regular" />
+          ),
           label: "Author",
           content: (
             <div className="flex gap-2 items-center">
@@ -97,13 +121,18 @@ export const createDetailSections = (
                 src={details.gitCommitAuthorAvatarUrl}
                 alt={details.gitCommitAuthorHandle ?? ""}
               />
-              <span className="font-medium text-grayA-12">{details.gitCommitAuthorHandle}</span>
+              <span className="font-medium text-grayA-12">
+                {details.gitCommitAuthorHandle}
+              </span>
             </div>
           ),
         },
         {
           icon: (
-            <CircleHalfDottedClock className="size-[14px] text-gray-12" iconsize="md-regular" />
+            <CircleHalfDottedClock
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
           ),
           label: "Created",
           content: (
@@ -119,7 +148,7 @@ export const createDetailSections = (
       title: "Runtime settings",
       items: [
         {
-          icon: <Connections className="text-gray-12" iconsize="md-regular" />,
+          icon: <Connections className="text-gray-12" iconSize="md-regular" />,
           label: "Instances",
           content: (
             <div className="text-grayA-10">
@@ -129,7 +158,12 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Location2 className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <Location2
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
+          ),
           label: "Regions",
           alignment: "start",
           content: (
@@ -146,26 +180,40 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Bolt className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />
+          ),
           label: "CPU",
           content: (
             <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.runtimeConfig.cpus}</span>{" "}
+              <span className="text-gray-12 font-medium">
+                {details.runtimeConfig.cpus}
+              </span>{" "}
               {details.runtimeConfig.cpus === 1 ? "vCPU" : "vCPUs"}
             </div>
           ),
         },
         {
-          icon: <Grid className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <Grid className="size-[14px] text-gray-12" iconSize="md-regular" />
+          ),
           label: "Memory",
           content: (
             <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.runtimeConfig.memory}</span> MB
+              <span className="text-gray-12 font-medium">
+                {details.runtimeConfig.memory}
+              </span>{" "}
+              MB
             </div>
           ),
         },
         {
-          icon: <Harddrive className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <Harddrive
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
+          ),
           label: "Storage",
           content: (
             <div className="text-grayA-10">
@@ -174,7 +222,9 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Heart className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <Heart className="size-[14px] text-gray-12" iconSize="md-regular" />
+          ),
           label: "Healthcheck",
           alignment: "start",
           content: (
@@ -197,7 +247,12 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <ChartActivity className="size-[14px] text-gray-12" iconsize="md-regular" />,
+          icon: (
+            <ChartActivity
+              className="size-[14px] text-gray-12"
+              iconSize="md-regular"
+            />
+          ),
           label: "Scaling",
           alignment: "start",
           content: (
@@ -207,7 +262,8 @@ export const createDetailSections = (
                 <span className="text-gray-12 font-medium">{6}</span> instances
               </div>
               <div className="mt-0.5">
-                at <span className="text-gray-12 font-medium">70%</span> CPU threshold
+                at <span className="text-gray-12 font-medium">70%</span> CPU
+                threshold
               </div>
             </div>
           ),
@@ -219,7 +275,7 @@ export const createDetailSections = (
       title: "Build Info",
       items: [
         {
-          icon: <PaperClip2 className="text-gray-12" size="md-regular" />,
+          icon: <PaperClip2 className="text-gray-12" iconSize="md-regular" />,
           label: "Image size",
           content: (
             <div className="text-grayA-10">
@@ -229,7 +285,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <CircleHalfDottedClock className="text-gray-12" size="md-regular" />,
+          icon: <CircleHalfDottedClock className="text-gray-12" iconSize="md-regular" />,
           label: "Build time",
           content: (
             <div className="text-grayA-10">
@@ -238,7 +294,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Bolt className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Build status",
           content: (
             <Badge
@@ -260,7 +316,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Gear className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <Gear className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Base image",
           content: (
             <div className="text-grayA-10">
@@ -269,7 +325,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" size="md-regular" />,
+          icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Built At",
           content: (
             <TimestampInfo

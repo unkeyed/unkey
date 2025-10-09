@@ -42,9 +42,13 @@ export const KeySecretSection = ({
     <div className={className}>
       <div className="flex flex-col gap-2 items-start w-full">
         <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
-        <SecretKey value={keyValue} title="API Key" className={secretKeyClassName} />
+        <SecretKey
+          value={keyValue}
+          title="API Key"
+          className={secretKeyClassName}
+        />
         <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-          <CircleInfo className="text-accent-9" iconsize="sm-regular" />
+          <CircleInfo className="text-accent-9" iconSize="sm-regular" />
           <span>
             Copy and save this key secret as it won't be shown again.{" "}
             <a
@@ -61,9 +65,14 @@ export const KeySecretSection = ({
       <div className="flex flex-col gap-2 items-start w-full mt-8">
         <div className="text-gray-12 text-sm font-semibold">Try It Out</div>
         <div className="relative w-full">
-          <Code className={codeClassName} preClassName="overflow-x-auto p-0 mb-0">
+          <Code
+            className={codeClassName}
+            preClassName="overflow-x-auto p-0 mb-0"
+          >
             <div className="p-4">
-              {showKeyInSnippet ? snippet : snippet.replace(keyValue, maskedKey)}
+              {showKeyInSnippet
+                ? snippet
+                : snippet.replace(keyValue, maskedKey)}
             </div>
           </Code>
           <VisibleButton
@@ -71,17 +80,29 @@ export const KeySecretSection = ({
             setIsVisible={setShowKeyInSnippet}
             className="absolute right-12 top-3 md:top-4"
           />
-          <CopyButton value={snippet} className="absolute right-3 md:right-4 top-3 md:top-4" />
+          <CopyButton
+            value={snippet}
+            className="absolute right-3 md:right-4 top-3 md:top-4"
+          />
         </div>
         <Alert variant="warn">
           <div className="flex items-start mb-1 gap-2">
-            <CircleInfo iconsize="lg-regular" aria-hidden="true" className="flex-shrink-0" />
+            <CircleInfo
+              iconSize="lg-regular"
+              aria-hidden="true"
+              className="flex-shrink-0"
+            />
             <div>
               <AlertTitle className="mb-1">Root Key Required</AlertTitle>
               <AlertDescription className="text-gray-12">
                 To verify keys, you'll need a root key with{" "}
-                <code className="bg-gray-3 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
-                <code className="bg-gray-3 px-1 rounded text-xs">api.{apiId}.verify_key</code>{" "}
+                <code className="bg-gray-3 px-1 rounded text-xs">
+                  api.*.verify_key
+                </code>{" "}
+                or{" "}
+                <code className="bg-gray-3 px-1 rounded text-xs">
+                  api.{apiId}.verify_key
+                </code>{" "}
                 permission.
                 <br />
                 <a

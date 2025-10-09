@@ -55,7 +55,10 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       if (filters.level !== null && change.level !== filters.level) {
         return false;
       }
-      if (filters.operation !== "all" && change.operation !== filters.operation) {
+      if (
+        filters.operation !== "all" &&
+        change.operation !== filters.operation
+      ) {
         return false;
       }
       if (filters.searchQuery) {
@@ -92,12 +95,16 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
   const getSeverityIcon = (level: number) => {
     if (level === 3) {
-      return <TriangleWarning iconsize="sm-regular" className="text-errorA-11" />;
+      return (
+        <TriangleWarning iconSize="sm-regular" className="text-errorA-11" />
+      );
     }
     if (level === 2) {
-      return <CircleWarning iconsize="sm-regular" className="text-warningA-11" />;
+      return (
+        <CircleWarning iconSize="sm-regular" className="text-warningA-11" />
+      );
     }
-    return <CircleInfo iconsize="sm-regular" className="text-grayA-9" />;
+    return <CircleInfo iconSize="sm-regular" className="text-grayA-9" />;
   };
 
   const getSeverityColor = (level: number) => {
@@ -123,9 +130,12 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <h3 className="text-grayA-12 font-medium text-sm">No noteworthy changes</h3>
+          <h3 className="text-grayA-12 font-medium text-sm">
+            No noteworthy changes
+          </h3>
           <p className="text-grayA-9 text-xs max-w-[280px] leading-relaxed">
-            The specifications for <span className="text-grayA-11">{fromDeployment} </span>
+            The specifications for{" "}
+            <span className="text-grayA-11">{fromDeployment} </span>
             and <span className="text-grayA-11">{toDeployment} </span>
             are functionally identical.
           </p>
@@ -139,7 +149,9 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       <div className="px-3 pb-3">
         <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className="text-accent-12 font-medium text-[13px]">API Changes</div>
+            <div className="text-accent-12 font-medium text-[13px]">
+              API Changes
+            </div>
             <div className="text-grayA-9 text-xs">
               {stats.total} changes • {stats.paths.length} endpoints
             </div>
@@ -147,13 +159,15 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           <div className="flex items-center gap-2">
             {stats.breaking > 0 && (
               <Badge variant="error" className="gap-1.5">
-                <TriangleWarning iconsize="sm-regular" className="shrink-0" />
-                <span className="text-xs font-medium">{stats.breaking} breaking</span>
+                <TriangleWarning iconSize="sm-regular" className="shrink-0" />
+                <span className="text-xs font-medium">
+                  {stats.breaking} breaking
+                </span>
               </Badge>
             )}
             {stats.warning > 0 && (
               <Badge variant="warning" className="gap-1.5">
-                <CircleWarning iconsize="sm-regular" className="shrink-0" />
+                <CircleWarning iconSize="sm-regular" className="shrink-0" />
                 <span className="text-xs">
                   {stats.warning} warning{stats.warning !== 1 ? "s" : ""}
                 </span>
@@ -168,9 +182,13 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
         <Input
           type="text"
           value={filters.searchQuery}
-          onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
+          onChange={(e) =>
+            setFilters((p) => ({ ...p, searchQuery: e.target.value }))
+          }
           placeholder="Search changes..."
-          leftIcon={<InputSearch iconsize="sm-regular" className="text-grayA-9" />}
+          leftIcon={
+            <InputSearch iconSize="sm-regular" className="text-grayA-9" />
+          }
           rightIcon={
             filters.searchQuery ? (
               <button
@@ -178,7 +196,10 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                 onClick={() => setFilters((p) => ({ ...p, searchQuery: "" }))}
                 className="cursor-pointer"
               >
-                <CircleXMark iconsize="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
+                <CircleXMark
+                  iconSize="sm-regular"
+                  className="text-grayA-9 hover:text-grayA-12"
+                />
               </button>
             ) : null
           }
@@ -194,7 +215,10 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
             }))
           }
         >
-          <SelectTrigger wrapperClassName="w-[150px] rounded-md" className="h-9 rounded-md">
+          <SelectTrigger
+            wrapperClassName="w-[150px] rounded-md"
+            className="h-9 rounded-md"
+          >
             <SelectValue placeholder="All levels" />
           </SelectTrigger>
           <SelectContent>
@@ -206,9 +230,14 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
         </Select>
         <Select
           value={filters.operation}
-          onValueChange={(value) => setFilters((p) => ({ ...p, operation: value }))}
+          onValueChange={(value) =>
+            setFilters((p) => ({ ...p, operation: value }))
+          }
         >
-          <SelectTrigger wrapperClassName="w-[150px] rounded-md" className="h-9 rounded-md">
+          <SelectTrigger
+            wrapperClassName="w-[150px] rounded-md"
+            className="h-9 rounded-md"
+          >
             <SelectValue placeholder="All methods" />
           </SelectTrigger>
           <SelectContent>
@@ -220,11 +249,15 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
             ))}
           </SelectContent>
         </Select>
-        {(filters.level !== null || filters.operation !== "all" || filters.searchQuery) && (
+        {(filters.level !== null ||
+          filters.operation !== "all" ||
+          filters.searchQuery) && (
           <Button
             type="button"
             className="h-9 px-3"
-            onClick={() => setFilters({ level: null, operation: "all", searchQuery: "" })}
+            onClick={() =>
+              setFilters({ level: null, operation: "all", searchQuery: "" })
+            }
           >
             Clear
           </Button>
@@ -253,13 +286,15 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <ChevronDown
-                        iconsize="sm-regular"
+                        iconSize="sm-regular"
                         className={cn(
                           "text-grayA-9 shrink-0 transition-transform duration-200",
-                          !isExpanded && "-rotate-90",
+                          !isExpanded && "-rotate-90"
                         )}
                       />
-                      <code className="font-mono text-xs text-grayA-12 truncate">{path}</code>
+                      <code className="font-mono text-xs text-grayA-12 truncate">
+                        {path}
+                      </code>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
                       <span className="text-xs text-grayA-9 font-medium tabular-nums">
@@ -267,7 +302,12 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                       </span>
                       <div className="flex items-center gap-1.5">
                         {Object.keys(operations).map((op) => (
-                          <Badge key={op} variant="secondary" size="sm" className="text-[10px]">
+                          <Badge
+                            key={op}
+                            variant="secondary"
+                            size="sm"
+                            className="text-[10px]"
+                          >
                             {op}
                           </Badge>
                         ))}
@@ -276,45 +316,55 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                   </button>
                   {isExpanded && (
                     <div className="border-t border-gray-4 bg-grayA-1 animate-in slide-in-from-top-2 duration-200">
-                      {Object.entries(operations).map(([operation, changes]) => (
-                        <div
-                          key={operation}
-                          className="py-2 px-3 border-b border-gray-4 last:border-b-0"
-                        >
-                          <div className="flex items-center gap-2.5 mb-2">
-                            <Badge variant="secondary" size="sm" className="text-[10px]">
-                              {operation}
-                            </Badge>
-                          </div>
-                          <div className="space-y-1">
-                            {changes.map((change, index) => (
-                              <div
-                                key={`${change.id}-${index}`}
-                                className={`px-2 py-1.5 rounded ${getSeverityColor(change.level)}`}
+                      {Object.entries(operations).map(
+                        ([operation, changes]) => (
+                          <div
+                            key={operation}
+                            className="py-2 px-3 border-b border-gray-4 last:border-b-0"
+                          >
+                            <div className="flex items-center gap-2.5 mb-2">
+                              <Badge
+                                variant="secondary"
+                                size="sm"
+                                className="text-[10px]"
                               >
-                                <div className="flex items-start gap-2.5">
-                                  <div className="shrink-0 mt-0.5">
-                                    {getSeverityIcon(change.level)}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs text-grayA-12">{change.text}</p>
-                                    <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                      <code className="text-[10px] text-grayA-10 font-mono">
-                                        {change.id}
-                                      </code>
-                                      {change.operationId && (
-                                        <span className="text-[10px] text-grayA-10">
-                                          • {change.operationId}
-                                        </span>
-                                      )}
+                                {operation}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1">
+                              {changes.map((change, index) => (
+                                <div
+                                  key={`${change.id}-${index}`}
+                                  className={`px-2 py-1.5 rounded ${getSeverityColor(
+                                    change.level
+                                  )}`}
+                                >
+                                  <div className="flex items-start gap-2.5">
+                                    <div className="shrink-0 mt-0.5">
+                                      {getSeverityIcon(change.level)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs text-grayA-12">
+                                        {change.text}
+                                      </p>
+                                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                                        <code className="text-[10px] text-grayA-10 font-mono">
+                                          {change.id}
+                                        </code>
+                                        {change.operationId && (
+                                          <span className="text-[10px] text-grayA-10">
+                                            • {change.operationId}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                     </div>
                   )}
                 </div>

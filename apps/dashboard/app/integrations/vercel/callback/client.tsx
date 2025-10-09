@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc/client";
 import type { Api, VercelBinding } from "@unkey/db";
+import { XMark } from "@unkey/icons";
 import {
   Button,
   Select,
@@ -18,7 +19,6 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceSwitcher } from "./workspace";
@@ -40,7 +40,7 @@ export const Client: React.FC<Props> = ({
   vercelTeamId,
 }) => {
   const [projectId, setProjectId] = useState<string | undefined>(
-    projects.length === 1 ? projects[0].id : undefined,
+    projects.length === 1 ? projects[0].id : undefined
   );
 
   const [selectedApis, setSelectedApis] = useState<
@@ -53,11 +53,18 @@ export const Client: React.FC<Props> = ({
   const router = useRouter();
 
   const disabled =
-    !projectId || !(selectedApis.development || selectedApis.preview || selectedApis.production);
+    !projectId ||
+    !(
+      selectedApis.development ||
+      selectedApis.preview ||
+      selectedApis.production
+    );
 
   const create = trpc.vercel.setupProject.useMutation({
     onSuccess: () => {
-      toast.success("Successfully added environment variables to your Vercel project");
+      toast.success(
+        "Successfully added environment variables to your Vercel project"
+      );
 
       toast("Redirecting back to Vercel");
       router.push(returnUrl);
@@ -106,8 +113,9 @@ export const Client: React.FC<Props> = ({
         {projectId ? (
           <div>
             <p className="text-sm text-content-subtle">
-              Connect your existing Unkey APIs to your project's environments. We suggest using
-              different APIs per environment for better isolation.
+              Connect your existing Unkey APIs to your project's environments.
+              We suggest using different APIs per environment for better
+              isolation.
             </p>
             <div className="flex flex-col gap-4 mt-4">
               {Object.entries(selectedApis).map(([environment, apiId]) => (
@@ -146,7 +154,7 @@ export const Client: React.FC<Props> = ({
                         });
                       }}
                     >
-                      <X className="w-4 h-4" />
+                      <XMark iconSize="md-regular" />
                     </Button>
                   </div>
                 </div>
@@ -169,7 +177,9 @@ export const Client: React.FC<Props> = ({
           variant="primary"
           onClick={() => {
             if (!projectId) {
-              toast.error("Project not selected. Please select a project and try again.");
+              toast.error(
+                "Project not selected. Please select a project and try again."
+              );
               return;
             }
 

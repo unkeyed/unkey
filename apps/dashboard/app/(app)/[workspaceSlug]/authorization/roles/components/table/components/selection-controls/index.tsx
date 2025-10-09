@@ -11,7 +11,10 @@ type SelectionControlsProps = {
   setSelectedRoles: (keys: Set<string>) => void;
 };
 
-export const SelectionControls = ({ selectedRoles, setSelectedRoles }: SelectionControlsProps) => {
+export const SelectionControls = ({
+  selectedRoles,
+  setSelectedRoles,
+}: SelectionControlsProps) => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -57,7 +60,9 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
                 <AnimatedCounter value={selectedRoles.size} />
-                <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                <div className="text-accent-9 text-[13px] leading-6">
+                  selected
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -69,7 +74,7 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
-                  <Trash iconsize="sm-regular" />
+                  <Trash iconSize="sm-regular" />
                   Delete roles
                 </Button>
                 <Button

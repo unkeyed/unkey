@@ -61,7 +61,9 @@ export const LoadMoreFooter = ({
         >
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-gray-9 font-medium">{countInfoText}</span>
+              <span className="text-[11px] text-gray-9 font-medium">
+                {countInfoText}
+              </span>
             </div>
             <div className="w-px h-3 bg-gray-6" />
             <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
@@ -73,7 +75,7 @@ export const LoadMoreFooter = ({
               className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
               title="Maximize"
             >
-              <ArrowsToAllDirections iconsize="sm-regular" />
+              <ArrowsToAllDirections iconSize="sm-regular" />
             </Button>
           </div>
         </button>
@@ -114,7 +116,9 @@ export const LoadMoreFooter = ({
               animation: "fadeInUp 0.3s ease-out 0.3s both",
             }}
           >
-            {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
+            {countInfoText && (
+              <div className="transition-all duration-200">{countInfoText}</div>
+            )}
             {!countInfoText && (
               <div className="flex gap-2 transition-all duration-200">
                 <span>Viewing</span>
@@ -122,7 +126,9 @@ export const LoadMoreFooter = ({
                   {totalVisible}
                 </span>
                 <span>of</span>
-                <span className="text-grayA-12 transition-colors duration-200">{totalCount}</span>
+                <span className="text-grayA-12 transition-colors duration-200">
+                  {totalCount}
+                </span>
                 <span>{itemLabel}</span>
               </div>
             )}
@@ -151,7 +157,7 @@ export const LoadMoreFooter = ({
                   onClick={handleClose}
                   title="Minimize"
                 >
-                  <ArrowsToCenter iconsize="lg-regular" />
+                  <ArrowsToCenter iconSize="lg-regular" />
                 </Button>
               </div>
             </div>

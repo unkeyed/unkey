@@ -13,10 +13,10 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const ArrowDottedRotateAnticlockwise: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
+  iconSize = "xl-thin",
   ...props
 }) => {
-  const { iconsize: pixelSize } = sizeMap[iconsize];
+  const { iconSize: pixelSize } = sizeMap[iconSize];
 
   return (
     <svg

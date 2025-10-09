@@ -1,6 +1,9 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
 
@@ -13,7 +16,10 @@ type ProjectActionsProps = {
   projectId: string;
 };
 
-export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
+export const ProjectActions = ({
+  projectId,
+  children,
+}: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
   const { workspace } = useWorkspace();
   // biome-ignore lint/style/noNonNullAssertion: This cannot be null
@@ -25,13 +31,13 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
 const getProjectActionItems = (
   projectId: string,
   workspaceSlug: string,
-  router: AppRouterInstance,
+  router: AppRouterInstance
 ): MenuItem[] => {
   return [
     {
       id: "favorite-project",
       label: "Add favorite",
-      icon: <Gear iconsize="md-medium" />,
+      icon: <Gear iconSize="md-medium" />,
       onClick: () => {},
       divider: true,
     },
@@ -39,7 +45,7 @@ const getProjectActionItems = (
       id: "copy-project-id",
       label: "Copy project ID",
       className: "mt-1",
-      icon: <Clone iconsize="md-medium" />,
+      icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(projectId)
@@ -56,7 +62,7 @@ const getProjectActionItems = (
     {
       id: "view-log",
       label: "View gateway logs",
-      icon: <Layers3 iconsize="md-regular" />,
+      icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
         router.push(`/${workspaceSlug}/projects/${projectId}/gateway-logs`);
       },
@@ -64,18 +70,20 @@ const getProjectActionItems = (
     {
       id: "project-settings",
       label: "Project settings",
-      icon: <Gear iconsize="md-medium" />,
+      icon: <Gear iconSize="md-medium" />,
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
-        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/settings`);
+        router.push(
+          `/projects/${projectId}/deployments/${fakeDeploymentId}/settings`
+        );
       },
       divider: true,
     },
     {
       id: "delete-project",
       label: "Delete project",
-      icon: <Trash iconsize="md-medium" />,
+      icon: <Trash iconSize="md-medium" />,
       ActionComponent: () => null,
     },
   ];

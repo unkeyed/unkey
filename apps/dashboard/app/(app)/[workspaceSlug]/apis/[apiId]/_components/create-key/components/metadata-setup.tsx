@@ -74,7 +74,7 @@ export const MetadataSetup = ({
         <ProtectionSwitch
           description="Add custom metadata to your API key as a JSON object. This metadata will be available when verifying the key."
           title="Metadata"
-          icon={<Code className="text-gray-12" iconsize="sm-regular" />}
+          icon={<Code className="text-gray-12" iconSize="sm-regular" />}
           checked={metadataEnabled}
           onCheckedChange={handleSwitchChange}
           {...register("metadata.enabled")}
@@ -90,7 +90,9 @@ export const MetadataSetup = ({
               size="sm"
               variant="outline"
               onClick={formatJSON}
-              disabled={!metadataEnabled || Boolean(errors.metadata?.data?.message)}
+              disabled={
+                !metadataEnabled || Boolean(errors.metadata?.data?.message)
+              }
               type="button"
             >
               <div className="text-[13px]">Format</div>

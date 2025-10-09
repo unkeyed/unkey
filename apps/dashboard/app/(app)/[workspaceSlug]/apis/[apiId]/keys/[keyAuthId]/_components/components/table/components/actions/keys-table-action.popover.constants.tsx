@@ -1,5 +1,8 @@
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
@@ -30,20 +33,20 @@ import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  trpcUtils: ReturnType<typeof trpc.useUtils>
 ): MenuItem[] => {
   return [
     {
       id: "override",
       label: "Edit key name...",
-      icon: <PenWriting3 iconsize="md-medium" />,
+      icon: <PenWriting3 iconSize="md-medium" />,
       ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
     },
     {
       id: "copy",
       label: "Copy key ID",
       className: "mt-1",
-      icon: <Clone iconsize="md-medium" />,
+      icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(key.id)
@@ -60,46 +63,58 @@ export const getKeysTableActionItems = (
     {
       id: "edit-external-id",
       label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY iconsize="md-medium" />,
-      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
+      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
+      ActionComponent: (props) => (
+        <EditExternalId {...props} keyDetails={key} />
+      ),
       divider: true,
     },
     {
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban iconsize="md-medium" /> : <Check iconsize="md-medium" />,
-      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
+      icon: key.enabled ? (
+        <Ban iconSize="md-medium" />
+      ) : (
+        <Check iconSize="md-medium" />
+      ),
+      ActionComponent: (props) => (
+        <UpdateKeyStatus {...props} keyDetails={key} />
+      ),
       divider: true,
     },
     {
       id: "edit-credits",
       label: "Edit credits...",
-      icon: <ChartPie iconsize="md-medium" />,
+      icon: <ChartPie iconSize="md-medium" />,
       ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
-      icon: <Gauge iconsize="md-medium" />,
-      ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
+      icon: <Gauge iconSize="md-medium" />,
+      ActionComponent: (props) => (
+        <EditRatelimits {...props} keyDetails={key} />
+      ),
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
-      icon: <CalendarClock iconsize="md-medium" />,
-      ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
+      icon: <CalendarClock iconSize="md-medium" />,
+      ActionComponent: (props) => (
+        <EditExpiration {...props} keyDetails={key} />
+      ),
     },
     {
       id: "edit-metadata",
       label: "Edit metadata...",
-      icon: <Code iconsize="md-medium" />,
+      icon: <Code iconSize="md-medium" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
       divider: true,
     },
     {
       id: "edit-rbac",
       label: "Manage roles and permissions...",
-      icon: <Tag iconsize="md-medium" />,
+      icon: <Tag iconSize="md-medium" />,
       ActionComponent: (props) => (
         <KeyRbacDialog
           {...props}
@@ -114,27 +129,37 @@ export const getKeysTableActionItems = (
       prefetch: async () => {
         try {
           // Primary data - always needed when dialog opens
-          const connectedData = await trpcUtils.key.connectedRolesAndPerms.fetch({
-            keyId: key.id,
-          });
+          const connectedData =
+            await trpcUtils.key.connectedRolesAndPerms.fetch({
+              keyId: key.id,
+            });
 
           const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
           const directPermissionIds =
-            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.id) ??
-            [];
+            connectedData?.permissions
+              ?.filter((p) => p.source === "direct")
+              ?.map((p) => p.id) ?? [];
           const rolePermissionIds =
-            connectedData?.permissions?.filter((p) => p.source === "role")?.map((p) => p.id) ?? [];
-          const allEffectivePermissionIds = [...rolePermissionIds, ...directPermissionIds];
+            connectedData?.permissions
+              ?.filter((p) => p.source === "role")
+              ?.map((p) => p.id) ?? [];
+          const allEffectivePermissionIds = [
+            ...rolePermissionIds,
+            ...directPermissionIds,
+          ];
 
           // Prefetch dependent data that requires connectedData
           const dependentPrefetches = [];
 
-          if (allEffectivePermissionIds.length > 0 || currentRoleIds.length > 0) {
+          if (
+            allEffectivePermissionIds.length > 0 ||
+            currentRoleIds.length > 0
+          ) {
             dependentPrefetches.push(
               trpcUtils.key.queryPermissionSlugs.prefetch({
                 roleIds: currentRoleIds,
                 permissionIds: allEffectivePermissionIds,
-              }),
+              })
             );
           }
 
@@ -182,7 +207,7 @@ export const getKeysTableActionItems = (
     {
       id: "delete-key",
       label: "Delete key",
-      icon: <Trash iconsize="md-medium" />,
+      icon: <Trash iconSize="md-medium" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];

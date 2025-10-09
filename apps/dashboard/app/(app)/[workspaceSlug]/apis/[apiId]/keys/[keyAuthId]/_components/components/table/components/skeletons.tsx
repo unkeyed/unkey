@@ -24,7 +24,7 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
   <div
     className={cn(
       "grid items-end h-[28px] bg-grayA-2 w-[158px] border border-transparent px-1 py-0 overflow-hidden rounded-md",
-      "animate-pulse",
+      "animate-pulse"
     )}
     style={{
       gridTemplateColumns: `repeat(${maxBars}, 3px)`,
@@ -74,9 +74,9 @@ export const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded m-0 items-center flex justify-center animate-pulse",
-      "border border-gray-6",
+      "border border-gray-6"
     )}
   >
-    <Dots className="text-gray-11" iconsize="sm-regular" />
+    <Dots className="text-gray-11" iconSize="sm-regular" />
   </button>
 );

@@ -46,7 +46,11 @@ export type OnboardingWizardProps = {
   onStepChange?: (stepIndex: number) => void;
 };
 
-export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
+export const OnboardingWizard = ({
+  steps,
+  onComplete,
+  onStepChange,
+}: OnboardingWizardProps) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const previousLoadingRef = useRef<boolean>(false);
 
@@ -141,13 +145,18 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             disabled={isFirstStep || isLoading || isLastStep}
           >
             <div className="flex items-center gap-1">
-              <ChevronLeft iconsize="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
+              <ChevronLeft
+                iconSize="sm-regular"
+                className="text-gray-12 !w-3 !h-3 flex-shrink-0"
+              />
               <span className="font-medium text-gray-12 text-xs">Back</span>
             </div>
           </Button>
           <div className="gap-[10px] items-center justify-center flex">
             {currentStep.icon}
-            <span className="text-gray-12 font-medium text-xs">{currentStep.name}</span>
+            <span className="text-gray-12 font-medium text-xs">
+              {currentStep.name}
+            </span>
           </div>
         </div>
         {/* Form validation progress circle*/}
@@ -155,16 +164,20 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
           {currentStep.kind === "required" ? (
             <div className="items-center flex gap-[10px]">
               <div className="items-center flex gap-1.5 text-xs">
-                <span className="font-medium text-gray-12">{currentStep.validFieldCount}</span>
+                <span className="font-medium text-gray-12">
+                  {currentStep.validFieldCount}
+                </span>
                 <span className="text-gray-10">of</span>
-                <span className="font-medium text-gray-12">{currentStep.requiredFieldCount}</span>
+                <span className="font-medium text-gray-12">
+                  {currentStep.requiredFieldCount}
+                </span>
                 <span className="text-gray-10">required fields</span>
               </div>
               <div className="flex-shrink-0">
                 <CircleProgress
                   value={currentStep.validFieldCount}
                   total={currentStep.requiredFieldCount}
-                  iconsize="sm-medium"
+                  iconSize="sm-medium"
                 />
               </div>
             </div>
@@ -178,9 +191,11 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 disabled={isLoading}
               >
                 <div className="flex items-center gap-1">
-                  <span className="font-medium text-gray-12 text-xs">Skip step</span>
+                  <span className="font-medium text-gray-12 text-xs">
+                    Skip step
+                  </span>
                   <ChevronRight
-                    iconsize="sm-regular"
+                    iconSize="sm-regular"
                     className="text-gray-12 !w-3 !h-3 flex-shrink-0"
                   />
                 </div>
@@ -191,7 +206,9 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       </div>
       <div className="border-t border-gray-5 p-10 flex flex-col flex-1 min-h-0">
         {/* Scrollable step content */}
-        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">{currentStep.body}</div>
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
+          {currentStep.body}
+        </div>
 
         <div className="mt-8" />
         <Separator className="my-2" />

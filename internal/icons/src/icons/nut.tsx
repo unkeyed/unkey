@@ -12,8 +12,11 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Nut: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const Nut: React.FC<IconProps> = ({
+  iconSize = "xl-thin",
+  ...props
+}) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
       height={pixelSize}
@@ -35,7 +38,14 @@ export const Nut: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => 
           stroke="currentColor"
           strokeWidth={strokeWidth}
         />
-        <circle cx="16" cy="16" fill="none" r="6" stroke="currentColor" strokeWidth={strokeWidth} />
+        <circle
+          cx="16"
+          cy="16"
+          fill="none"
+          r="6"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+        />
       </g>
     </svg>
   );

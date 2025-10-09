@@ -17,7 +17,7 @@ export const AssignedItemsCell = ({
       {
         enabled: kind === "keys",
         staleTime: 5 * 60 * 1000,
-      },
+      }
     );
   const { data: permissionsData, isLoading: permissionsLoading } =
     trpc.authorization.roles.connectedPerms.useQuery(
@@ -25,7 +25,7 @@ export const AssignedItemsCell = ({
       {
         enabled: kind === "permissions",
         staleTime: 5 * 60 * 1000,
-      },
+      }
     );
 
   const data = kind === "keys" ? keysData : permissionsData;
@@ -34,19 +34,21 @@ export const AssignedItemsCell = ({
 
   const icon =
     kind === "keys" ? (
-      <Key2 iconsize="md-medium" className="opacity-50" />
+      <Key2 iconSize="md-medium" className="opacity-50" />
     ) : (
-      <Page2 iconsize="md-medium" className="opacity-50" />
+      <Page2 iconSize="md-medium" className="opacity-50" />
     );
 
   const itemClassName = cn(
     "font-mono rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 transition-all duration-100 border border-dashed text-grayA-12",
-    isSelected ? "bg-grayA-4 border-grayA-7" : "bg-grayA-3 border-grayA-6 group-hover:bg-grayA-4",
+    isSelected
+      ? "bg-grayA-4 border-grayA-7"
+      : "bg-grayA-3 border-grayA-6 group-hover:bg-grayA-4"
   );
 
   const emptyClassName = cn(
     "rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 transition-all duration-100 border border-dashed bg-grayA-2",
-    isSelected ? "border-grayA-7 text-grayA-9" : "border-grayA-6 text-grayA-8",
+    isSelected ? "border-grayA-7 text-grayA-9" : "border-grayA-6 text-grayA-8"
   );
 
   if (isLoading) {

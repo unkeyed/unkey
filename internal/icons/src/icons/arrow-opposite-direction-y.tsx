@@ -13,10 +13,10 @@ import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
 export const ArrowOppositeDirectionY: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
+  iconSize = "xl-thin",
   ...props
 }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg
