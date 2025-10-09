@@ -13,12 +13,10 @@ var Cmd = &cli.Command{
 	Name:  "krane",
 	Usage: "Run the k8s management service",
 	Description: `krane (/kreɪn/) is the kubernetes deployment service for Unkey infrastructure.
-
 It manages the lifecycle of deployments in a kubernetes cluster:
 
 EXAMPLES:
 unkey run krane                                   # Run with default configuration`,
-
 	Flags: []cli.Flag{
 		// Server Configuration
 		cli.Int("http-port", "Port for the server to listen on. Default: 8080",
@@ -31,13 +29,18 @@ unkey run krane                                   # Run with default configurati
 		cli.String("backend", "Backend type for the service. Either kubernetes or docker. Default: kubernetes",
 			cli.Default("kubernetes"), cli.EnvVar("UNKEY_KRANE_BACKEND")),
 
+		cli.String("build-backend", "Build backend type. Either depot or docker. Default: depot",
+			cli.Default("depot"), cli.EnvVar("UNKEY_BUILD_BACKEND")),
+
 		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
 			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
+
+		cli.String("depot-token", "Depot authentication token. Required when build-backend is depot.",
+			cli.EnvVar("UNKEY_DEPOT_TOKEN")),
 
 		// This has no use outside of our demo cluster and will be removed soon
 		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
 	},
-
 	Action: action,
 }
 
@@ -46,9 +49,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return cli.Exit(err.Error(), 1)
 	}
+
+	buildBackend, err := parseBuildBackend(cmd.String("build-backend"))
+	if err != nil {
+		return cli.Exit(err.Error(), 1)
+	}
+
 	config := krane.Config{
 		HttpPort:              cmd.Int("http-port"),
 		Backend:               backend,
+		BuildBackend:          buildBackend,
 		Platform:              cmd.String("platform"),
 		Image:                 cmd.String("image"),
 		Region:                cmd.String("region"),
@@ -56,6 +66,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelTraceSamplingRate: 1.0,
 		InstanceID:            cmd.String("instance-id"),
 		DockerSocketPath:      cmd.String("docker-socket"),
+		DepotToken:            cmd.String("depot-token"),
 		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
 	}
 
@@ -74,9 +85,19 @@ func parseBackend(s string) (krane.Backend, error) {
 	case "docker":
 		return krane.Docker, nil
 	case "kubernetes":
-
 		return krane.Kubernetes, nil
 	default:
 		return "", fmt.Errorf("unknown backend type: %s", s)
+	}
+}
+
+func parseBuildBackend(s string) (krane.BuildBackend, error) {
+	switch s {
+	case "docker":
+		return krane.BuildBackendDocker, nil
+	case "depot":
+		return krane.BuildBackendDepot, nil
+	default:
+		return "", fmt.Errorf("unknown build backend type: %s", s)
 	}
 }

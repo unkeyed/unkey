@@ -1,4 +1,4 @@
-package depot
+package docker
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 )
 
-func (s *Depot) GenerateUploadURL(
+func (s *Docker) GenerateUploadURL(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.GenerateUploadURLRequest],
 ) (*connect.Response[ctrlv1.GenerateUploadURLResponse], error) {

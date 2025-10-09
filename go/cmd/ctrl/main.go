@@ -71,7 +71,9 @@ var Cmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
-		// Build S3 Configuration
+		// Build Configuration
+		cli.String("build-backend", "Build backend to use: 'docker' for local, 'depot' for production. Default: depot",
+			cli.Default("depot"), cli.EnvVar("UNKEY_BUILD_BACKEND")),
 		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
 		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
@@ -81,7 +83,7 @@ var Cmd = &cli.Command{
 		cli.String("build-s3-access-key-secret", "S3 secret access key for build contexts",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 
-		// Depot Configuration
+		// Depot Build Backend Configuration
 		cli.String("depot-api-url", "Depot API endpoint URL",
 			cli.EnvVar("UNKEY_DEPOT_API_URL")),
 		cli.String("depot-registry-url", "Depot container registry URL",
@@ -162,7 +164,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 		},
 
-		// Build S3 configuration
+		// Build configuration
+		BuildBackend: ctrl.BuildBackend(cmd.String("build-backend")),
 		BuildS3: ctrl.S3Config{
 			URL:             cmd.String("build-s3-url"),
 			Bucket:          cmd.String("build-s3-bucket"),
@@ -170,7 +173,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("build-s3-access-key-id"),
 		},
 
-		// Depot configuration
+		// Depot build backend configuration
 		Depot: ctrl.DepotConfig{
 			APIUrl:      cmd.String("depot-api-url"),
 			RegistryUrl: cmd.String("depot-registry-url"),

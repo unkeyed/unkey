@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/docker"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -179,16 +180,32 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create build storage: %w", err)
 	}
 
-	buildService := depot.New(depot.Config{
-		InstanceID:  cfg.InstanceID,
-		DB:          database,
-		APIUrl:      cfg.Depot.APIUrl,
-		RegistryUrl: cfg.Depot.RegistryUrl,
-		Username:    cfg.Depot.Username,
-		AccessToken: cfg.Depot.AccessToken,
-		Logger:      logger,
-		Storage:     buildStorage,
-	})
+	var buildService ctrlv1connect.BuildServiceClient
+	switch cfg.BuildBackend {
+	case BuildBackendDocker:
+		buildService = docker.New(docker.Config{
+			DB:      database,
+			Logger:  logger,
+			Storage: buildStorage,
+		})
+		logger.Info("Using Docker build backend")
+
+	case BuildBackendDepot:
+		buildService = depot.New(depot.Config{
+			InstanceID:  cfg.InstanceID,
+			DB:          database,
+			APIUrl:      cfg.Depot.APIUrl,
+			RegistryUrl: cfg.Depot.RegistryUrl,
+			Username:    cfg.Depot.Username,
+			AccessToken: cfg.Depot.AccessToken,
+			Logger:      logger,
+			Storage:     buildStorage,
+		})
+		logger.Info("Using Depot build backend")
+
+	default:
+		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
+	}
 
 	// Restate Client and Server
 

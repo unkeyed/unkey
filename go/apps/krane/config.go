@@ -20,6 +20,25 @@ const (
 	Kubernetes Backend = "kubernetes"
 )
 
+// BuildBackend represents the system responsible for building container images.
+type BuildBackend string
+
+const (
+	// BuildBackendDepot uses Depot's remote build infrastructure for fast,
+	// cached container image builds with native multi-platform support.
+	// Requires DEPOT_TOKEN for authentication and produces images that are
+	// pushed to a container registry for distribution across nodes.
+	// Recommended for production multi-node deployments.
+	BuildBackendDepot BuildBackend = "depot"
+
+	// BuildBackendDocker uses the local Docker daemon to build container images.
+	// Images are built and stored locally on the same host where deployments run.
+	// Suitable only for single-node deployments and local development where
+	// the build host and deployment host are the same machine.
+	// Does not support multi-node clusters as images remain local.
+	BuildBackendDocker BuildBackend = "docker"
+)
+
 // Config holds krane server configuration for Docker or Kubernetes backends.
 type Config struct {
 	// InstanceID is the unique identifier for this instance of the API server.
@@ -52,12 +71,22 @@ type Config struct {
 	// implementation is instantiated and which configuration fields are required.
 	Backend Backend
 
+	// BuildBackend specifies the container image build system to use.
+	// Must be either BuildBackendDepot or BuildBackendDocker.
+	// Determines how container images are built and made available to deployments.
+	BuildBackend BuildBackend
+
 	// DockerSocketPath specifies the Docker daemon socket path.
 	// Required when Backend is Docker. Common values:
 	//   - "/var/run/docker.sock" (Linux)
 	//   - "/var/run/docker.sock" (macOS with Docker Desktop)
 	// The path must be accessible by the krane process with appropriate permissions.
 	DockerSocketPath string
+
+	// DepotToken is the authentication token for Depot's build infrastructure.
+	// Required when BuildBackend is BuildBackendDepot.
+	// Obtain from https://depot.dev and store securely (e.g., environment variable).
+	DepotToken string
 
 	// OtelEnabled controls whether OpenTelemetry observability data is collected
 	// and sent to configured collectors. When enabled, the service exports
@@ -88,6 +117,10 @@ type Config struct {
 func (c Config) Validate() error {
 	if c.Backend == Docker && c.DockerSocketPath == "" {
 		return fmt.Errorf("--docker-socket is required when backend is docker")
+	}
+
+	if c.BuildBackend == BuildBackendDepot && c.DepotToken == "" {
+		return fmt.Errorf("--depot-token is required when build-backend is depot")
 	}
 
 	return nil

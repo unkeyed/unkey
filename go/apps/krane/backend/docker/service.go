@@ -10,16 +10,30 @@ import (
 )
 
 // docker implements kranev1connect.DeploymentServiceHandler using Docker Engine API.
+//
+// This backend is designed for single-node deployments where container images
+// are built locally using the Docker daemon and deployed on the same host.
+// It does not support multi-node clusters or remote image registries.
 type docker struct {
 	logger     logging.Logger
 	client     *client.Client
-	depotToken string
+	depotToken string // Authentication token for Depot registry (optional, only used when BuildBackend is Depot)
+
 	kranev1connect.UnimplementedDeploymentServiceHandler
 }
 
 var _ kranev1connect.DeploymentServiceHandler = (*docker)(nil)
 
 // New creates a Docker backend instance and validates daemon connectivity.
+//
+// The socketPath parameter specifies the Docker daemon socket location.
+// Common values are "/var/run/docker.sock" on Linux and macOS.
+//
+// The depotToken parameter is optional and only required when using Depot
+// as the build backend. Pass an empty string when using local Docker builds.
+//
+// Returns an error if the Docker daemon is unreachable or the socket
+// path is invalid. The socket must be accessible with appropriate permissions.
 func New(logger logging.Logger, socketPath string, depotToken string) (*docker, error) {
 	// Create Docker client with configurable socket path
 	// socketPath must not include protocol (e.g., "var/run/docker.sock")

@@ -57,7 +57,7 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 }
 
 // UploadBuildContext uploads the build context to S3 and returns the context key
-func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string, logger logging.Logger) (string, error) {
+func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
 	// Generate presigned upload URL
 	uploadReq := connect.NewRequest(&ctrlv1.GenerateUploadURLRequest{
 		UnkeyProjectID: c.opts.ProjectID,
@@ -81,10 +81,7 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 		return "", fmt.Errorf("empty upload URL or context key returned")
 	}
 
-	logger.Info("Generated upload URL", "context_key", contextKey)
-
 	// Create tar.gz from context path
-	logger.Info("Creating tar archive from context", "path", contextPath)
 	tarPath, err := createContextTar(contextPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create tar archive: %w", err)
@@ -92,12 +89,10 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 	defer os.Remove(tarPath)
 
 	// Upload tar to S3 using presigned URL
-	logger.Info("Uploading build context to S3")
 	if err := uploadToPresignedURL(ctx, uploadURL, tarPath); err != nil {
 		return "", fmt.Errorf("failed to upload build context: %w", err)
 	}
 
-	logger.Info("Successfully uploaded build context", "context_key", contextKey)
 	return contextKey, nil
 }
 

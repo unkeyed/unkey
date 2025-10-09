@@ -238,7 +238,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	if opts.DockerImage == "" {
 		// Upload build context to S3
 		ui.Print("Uploading build context...")
-		uploadedKey, err := controlPlane.UploadBuildContext(ctx, opts.Context, logger)
+		uploadedKey, err := controlPlane.UploadBuildContext(ctx, opts.Context)
 		if err != nil {
 			ui.PrintError("Failed to upload build context")
 			ui.PrintErrorDetails(err.Error())
