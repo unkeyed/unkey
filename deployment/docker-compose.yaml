@@ -90,6 +90,7 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       UNKEY_KAFKA_BROKERS: "kafka:9092"
+      UNKEY_CLICKHOUSE_ANALYTICS_DSN: "http://%s:%s@clickhouse:8123/default"
 
   redis:
     networks:
