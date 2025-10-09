@@ -37,8 +37,7 @@ import (
 // The workflow uses a 5-minute polling loop to wait for instances to become ready,
 // checking Krane deployment status every second and logging progress every 10 seconds.
 func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
-
-	var finishedSuccessfully = false
+	finishedSuccessfully := false
 
 	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.DeploymentId)
@@ -56,7 +55,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		if err := w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
 			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
-
 	}()
 
 	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
@@ -95,9 +93,81 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// Update version status to building
+	// Determine docker image - build if needed, otherwise use pre-built
+	var dockerImage string
 
-	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
+	if req.DockerImage != nil && *req.DockerImage != "" {
+		// Use pre-built image
+		dockerImage = *req.DockerImage
+		w.logger.Info("using pre-built docker image", "docker_image", dockerImage, "deployment_id", deployment.ID)
+	} else if req.ContextKey != nil && *req.ContextKey != "" {
+		// Build Docker image from uploaded context
+		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
+			return nil, err
+		}
+
+		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+				WorkspaceID:  deployment.WorkspaceID,
+				ProjectID:    deployment.ProjectID,
+				DeploymentID: deployment.ID,
+				Status:       "pending",
+				Message:      "Building Docker image from source",
+				CreatedAt:    time.Now().UnixMilli(),
+			})
+		}, restate.WithName("logging build start"))
+		if err != nil {
+			return nil, err
+		}
+
+		builtImage, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+			w.logger.Info("starting docker build",
+				"deployment_id", deployment.ID,
+				"context_key", *req.ContextKey)
+
+			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
+				UnkeyProjectID: deployment.ProjectID,
+				ContextKey:     *req.ContextKey,
+				DockerfilePath: *req.DockerfilePath,
+			})
+
+			buildResp, err := w.buildClient.CreateBuild(stepCtx, buildReq)
+			if err != nil {
+				return "", fmt.Errorf("build failed: %w", err)
+			}
+
+			imageName := buildResp.Msg.GetImageName()
+			w.logger.Info("docker build completed",
+				"deployment_id", deployment.ID,
+				"image_name", imageName)
+
+			return imageName, nil
+		}, restate.WithName("building docker image"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to build docker image: %w", err)
+		}
+
+		dockerImage = builtImage
+
+		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+				WorkspaceID:  deployment.WorkspaceID,
+				ProjectID:    deployment.ProjectID,
+				DeploymentID: deployment.ID,
+				Status:       "pending",
+				Message:      fmt.Sprintf("Docker image built successfully: %s", dockerImage),
+				CreatedAt:    time.Now().UnixMilli(),
+			})
+		}, restate.WithName("logging build complete"))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("neither docker_image nor context_key provided in deploy request")
+	}
+
+	// Update version status to deploying
+	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
 		return nil, err
 	}
 
@@ -105,18 +175,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// Create deployment request
 
 		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
-
 			Deployment: &kranev1.DeploymentRequest{
 				Namespace:     hardcodedNamespace,
 				DeploymentId:  deployment.ID,
-				Image:         req.DockerImage,
+				Image:         dockerImage,
 				Replicas:      1,
 				CpuMillicores: 512,
 				MemorySizeMib: 512,
 			},
 		}))
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.DockerImage, err)
+			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", dockerImage, err)
 		}
 
 		return restate.Void{}, nil
@@ -127,10 +196,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	w.logger.Info("deployment created", "deployment_id", deployment.ID)
 
-	// Update version status to deploying
-	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
-		return nil, err
-	}
 	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
 		// prevent updating the db unnecessarily
 
@@ -208,7 +273,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	openapiSpec, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-
 		for _, instance := range createdInstances {
 			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
 			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", deployment.ID)
@@ -237,25 +301,19 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 		// not an error really, just no OpenAPI spec found
 		return "", nil
-
 	}, restate.WithName("scrape openapi spec"))
-
 	if err != nil {
 		return nil, err
 	}
 
 	if openapiSpec != "" {
-
 		_, err = restate.Run(ctx, func(innerCtx restate.RunContext) (restate.Void, error) {
-
 			return restate.Void{}, db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
 				ID:          deployment.ID,
 				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
 			})
-
 		}, restate.WithName("update deployment openapi spec"))
-
 	}
 
 	allDomains := buildDomains(

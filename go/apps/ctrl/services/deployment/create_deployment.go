@@ -36,7 +36,6 @@ func (s *Service) CreateDeployment(
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-
 	workspaceID := project.WorkspaceID
 
 	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
@@ -94,41 +93,26 @@ func (s *Service) CreateDeployment(
 	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
 	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
 
-	// Determine docker image - either pre-built or build from context
-	var dockerImage string
+	var dockerImage *string
+	var contextKey *string
+	var dockerfilePath *string
+
 	if req.Msg.GetDockerImage() != "" {
-		// Use pre-built image
-		dockerImage = req.Msg.GetDockerImage()
+		img := req.Msg.GetDockerImage()
+		dockerImage = &img
 		s.logger.Info("using pre-built docker image",
 			"deployment_id", deploymentID,
-			"docker_image", dockerImage,
-		)
+			"docker_image", *dockerImage)
 	} else if req.Msg.GetContextKey() != "" {
-		// Build from uploaded context
-		s.logger.Info("starting build for deployment",
-			"deployment_id", deploymentID,
-			"project_id", req.Msg.GetProjectId(),
-			"context_key", req.Msg.GetContextKey(),
-		)
-
-		buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
-			UnkeyProjectID: req.Msg.GetProjectId(),
-			ContextKey:     req.Msg.GetContextKey(),
-			DockerfilePath: req.Msg.GetDockerFilePath(),
-		})
-
-		buildResp, err := s.buildService.CreateBuild(ctx, buildReq)
-		if err != nil {
-			s.logger.Error("failed to create build", "error", err.Error(), "deployment_id", deploymentID)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build failed: %w", err))
+		key := req.Msg.GetContextKey()
+		contextKey = &key
+		if req.Msg.GetDockerFilePath() != "" {
+			path := req.Msg.GetDockerFilePath()
+			dockerfilePath = &path
 		}
-
-		dockerImage = buildResp.Msg.GetImageName()
-		s.logger.Info("build completed successfully",
+		s.logger.Info("will build image in workflow",
 			"deployment_id", deploymentID,
-			"image_name", dockerImage,
-			"build_id", buildResp.Msg.GetBuildId(),
-		)
+			"context_key", *contextKey)
 	} else {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("either docker_image or context_key must be provided"))
@@ -176,9 +160,11 @@ func (s *Service) CreateDeployment(
 		keyAuthID = &keyspaceID
 	}
 	deployReq := &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		DockerImage:  dockerImage,
-		KeyAuthId:    keyAuthID,
+		DeploymentId:   deploymentID,
+		DockerImage:    dockerImage,
+		ContextKey:     contextKey,
+		DockerfilePath: dockerfilePath,
+		KeyAuthId:      keyAuthID,
 	}
 	// this is ugly, but we're waiting for
 	// https://github.com/restatedev/sdk-go/issues/103

@@ -168,6 +168,28 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
+	buildStorage, err := storage.NewS3(storage.S3Config{
+		Logger:            logger,
+		S3URL:             cfg.BuildS3.URL,
+		S3Bucket:          cfg.BuildS3.Bucket,
+		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
+		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create build storage: %w", err)
+	}
+
+	buildService := depot.New(depot.Config{
+		InstanceID:  cfg.InstanceID,
+		DB:          database,
+		APIUrl:      cfg.Depot.APIUrl,
+		RegistryUrl: cfg.Depot.RegistryUrl,
+		Username:    cfg.Depot.Username,
+		AccessToken: cfg.Depot.AccessToken,
+		Logger:      logger,
+		Storage:     buildStorage,
+	})
+
 	// Restate Client and Server
 
 	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
@@ -179,6 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
+		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
@@ -270,29 +293,6 @@ func Run(ctx context.Context, cfg Config) error {
 	connectOptions := []connect.HandlerOption{
 		connect.WithInterceptors(authInterceptor),
 	}
-
-	buildStorage, err := storage.NewS3(storage.S3Config{
-		Logger:            logger,
-		S3URL:             cfg.BuildS3.URL,
-		S3Bucket:          cfg.BuildS3.Bucket,
-		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create build storage: %w", err)
-	}
-
-	buildService := depot.New(depot.Config{
-		InstanceID:  cfg.InstanceID,
-		DB:          database,
-		APIUrl:      cfg.Depot.APIUrl,
-		RegistryUrl: cfg.Depot.RegistryUrl,
-		Username:    cfg.Depot.Username,
-		AccessToken: cfg.Depot.AccessToken,
-		Logger:      logger,
-		Storage:     buildStorage,
-	})
-
 	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService, connectOptions...))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
