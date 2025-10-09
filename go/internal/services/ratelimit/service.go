@@ -331,7 +331,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 			return RatelimitResponse{
 				Success:   false,
-				Remaining: remaining,
+				Remaining: max(0, remaining),
 				Reset:     currentWindow.start.Add(currentWindow.duration),
 				Limit:     req.Limit,
 				Current:   effectiveCount,
@@ -381,7 +381,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		return RatelimitResponse{
 			Success:   false,
-			Remaining: remaining,
+			Remaining: max(0, remaining),
 			Reset:     currentWindow.start.Add(currentWindow.duration),
 			Limit:     req.Limit,
 			Current:   effectiveCount,
@@ -429,7 +429,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 		return RatelimitResponse{
 			Success:   !exceeded,
-			Remaining: remaining,
+			Remaining: max(0, remaining),
 			Reset:     currentWindow.start.Add(currentWindow.duration),
 			Limit:     req.Limit,
 			Current:   effectiveCount,
@@ -475,7 +475,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 		return RatelimitResponse{
 			Success:   false,
-			Remaining: remaining,
+			Remaining: max(0, remaining),
 			Reset:     currentWindow.start.Add(currentWindow.duration),
 			Limit:     req.Limit,
 			Current:   effectiveCount,
