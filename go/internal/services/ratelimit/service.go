@@ -234,9 +234,10 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 	}
 
+	span.SetAttributes(attribute.Bool("passed", allPassed))
+
 	// If all passed, increment all counters (still holding locks!)
 	if allPassed {
-		span.SetAttributes(attribute.Bool("passed", true))
 		for _, rwk := range reqsWithKeys {
 			bucket := bucketMap[rwk.key]
 			currentWindow, _ := bucket.getCurrentWindow(rwk.req.Time)
@@ -246,7 +247,6 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			s.replayBuffer.Buffer(rwk.req)
 		}
 	} else {
-		span.SetAttributes(attribute.Bool("denied", true))
 
 		// At least one failed - adjust remaining values
 		for i, res := range responses {
@@ -294,12 +294,14 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	if err != nil {
 		return RatelimitResponse{}, err
 	}
+	span.SetAttributes(attribute.Bool("passed", res.Success))
 
 	// If successful, increment counter and buffer
 	if res.Success {
 		currentWindow, _ := b.getCurrentWindow(req.Time)
 		currentWindow.counter += req.Cost
 		s.replayBuffer.Buffer(req)
+
 	}
 
 	return res, nil
