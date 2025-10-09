@@ -386,6 +386,6 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		Remaining: remaining,
 		Reset:     currentWindow.start.Add(currentWindow.duration),
 		Limit:     req.Limit,
-		Current:   currentWindow.counter,
+		Current:   effectiveCount,
 	}, nil
 }
