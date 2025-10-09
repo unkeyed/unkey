@@ -98,7 +98,6 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 
 	// Test empty protobuf fields
 	req := &ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:              "ws_test",
 		ProjectId:                "proj_test",
 		GitCommitMessage:         "",
 		GitCommitAuthorAvatarUrl: "",
@@ -158,7 +157,6 @@ func TestCreateVersionTimestampValidation_InvalidSecondsFormat(t *testing.T) {
 
 	// Create proto request directly with seconds timestamp (should be rejected)
 	req := &ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:        "ws_test123",
 		ProjectId:          "proj_test456",
 		Branch:             "main",
 		SourceType:         ctrlv1.SourceType_SOURCE_TYPE_GIT,
@@ -177,7 +175,6 @@ func TestCreateVersionTimestampValidation_ValidMillisecondsFormat(t *testing.T) 
 
 	// Create proto request directly with milliseconds timestamp
 	req := &ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:        "ws_test123",
 		ProjectId:          "proj_test456",
 		Branch:             "main",
 		SourceType:         ctrlv1.SourceType_SOURCE_TYPE_GIT,
@@ -275,7 +272,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		{
 			name: "all_git_fields_populated",
 			request: &ctrlv1.CreateDeploymentRequest{
-				WorkspaceId:              "ws_test123",
 				ProjectId:                "proj_test456",
 				Branch:                   "feature/test-branch",
 				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
@@ -320,7 +316,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		{
 			name: "empty_git_fields",
 			request: &ctrlv1.CreateDeploymentRequest{
-				WorkspaceId:              "ws_test123",
 				ProjectId:                "proj_test456",
 				Branch:                   "main",
 				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
@@ -365,7 +360,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		{
 			name: "mixed_populated_and_empty_fields",
 			request: &ctrlv1.CreateDeploymentRequest{
-				WorkspaceId:              "ws_test123",
 				ProjectId:                "proj_test456",
 				Branch:                   "hotfix/urgent-fix",
 				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
@@ -417,7 +411,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			// This tests the actual field wiring that happens in the service
 			params := db.InsertDeploymentParams{
 				ID:            "test_deployment_id",
-				WorkspaceID:   tt.request.GetWorkspaceId(),
+				WorkspaceID:   "ws_test123", // In production, this is inferred from ProjectID via DB lookup, just hardcoded for the test
 				ProjectID:     tt.request.GetProjectId(),
 				EnvironmentID: "todo",
 				// Git field mappings - this is what we're testing

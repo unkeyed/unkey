@@ -186,15 +186,16 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 }
 
 type CreateKeyRequest struct {
-	Disabled    bool
-	WorkspaceID string
-	KeyAuthID   string
-	Remaining   *int32
-	IdentityID  *string
-	Meta        *string
-	Expires     *time.Time
-	Name        *string
-	Deleted     bool
+	Disabled       bool
+	WorkspaceID    string
+	KeyAuthID      string
+	Remaining      *int32
+	IdentityID     *string
+	Meta           *string
+	Expires        *time.Time
+	Name           *string
+	Deleted        bool
+	ForWorkspaceID *string // For creating root keys that target a specific workspace
 
 	Recoverable bool
 
@@ -228,7 +229,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Enabled:           !req.Disabled,
 		Start:             start,
 		Name:              sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
-		ForWorkspaceID:    sql.NullString{String: "", Valid: false},
+		ForWorkspaceID:    sql.NullString{String: ptr.SafeDeref(req.ForWorkspaceID, ""), Valid: req.ForWorkspaceID != nil},
 		Meta:              sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:        sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Expires:           sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
