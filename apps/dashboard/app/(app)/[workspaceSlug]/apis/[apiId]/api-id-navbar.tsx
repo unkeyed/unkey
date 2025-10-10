@@ -108,7 +108,7 @@ const NavbarContent = ({
 
   // Fetch key details when viewing a specific key
   const { data: keyData } = trpc.api.keys.list.useQuery(
-    { keyAuthId: keyspaceId!, limit: 1000 },
+    { keyAuthId: keyspaceId as string, limit: 1000 },
     {
       enabled: shouldFetchKey,
       select: (data) => data.keys.find((key) => key.id === keyId) || null,
@@ -176,7 +176,7 @@ const NavbarContent = ({
           {shouldFetchKey && keyData ? (
             <>
               <KeySettingsDialog keyData={keyData} />
-              <CopyableIDButton value={keyId!} />
+              <CopyableIDButton value={keyId as string} />
             </>
           ) : shouldFetchKey ? (
             <></>
