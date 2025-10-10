@@ -195,7 +195,7 @@ const NavbarContent = ({
               <KeySettingsDialog keyData={specificKey} />
               <CopyableIDButton value={keyId as string} />
             </>
-          ) : isKeyLoading ? (
+          ) : shouldFetchKey && isKeyLoading ? (
             <>
               <NavbarActionButton disabled>
                 <Gear />
