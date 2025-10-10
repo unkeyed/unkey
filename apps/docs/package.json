@@ -3,12 +3,12 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx mintlify@latest dev"
+    "dev": "mintlify dev"
   },
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "mintlify": "^4.2.31"
+    "mintlify": "^4.2.144"
   },
   "dependencies": {
     "sharp": "^0.34.3"

@@ -36,6 +36,7 @@ export const apiActions = z.enum([
   "decrypt_key",
   "read_key",
   "verify_key",
+  "read_analytics",
 ]);
 export const ratelimitActions = z.enum([
   "limit",
@@ -69,6 +70,15 @@ export const identityActions = z.enum([
   "update_identity",
   "delete_identity",
 ]);
+
+// Resources that require an ID (resource.id.action format)
+const scopedResources = {
+  api: { idSchema: apiId, actionsSchema: apiActions },
+  ratelimit: { idSchema: ratelimitNamespaceId, actionsSchema: ratelimitActions },
+  rbac: { idSchema: rbacId, actionsSchema: rbacActions },
+  identity: { idSchema: identityEnvId, actionsSchema: identityActions },
+} as const;
+
 export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
 } & {
@@ -80,6 +90,7 @@ export type Resources = {
 } & {
   [resourceId in `identity.${z.infer<typeof identityEnvId>}`]: z.infer<typeof identityActions>;
 };
+
 export type UnkeyPermission = Flatten<Resources> | "*";
 /**
  * Validation for roles used for our root keys
@@ -93,27 +104,18 @@ export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) 
     return true;
   }
   const split = s.split(".");
+
+  // Handle scoped resource.id.action format (3 parts)
   if (split.length !== 3) {
     return false;
   }
   const [resource, id, action] = split;
-  switch (resource) {
-    case "api": {
-      return apiId.safeParse(id).success && apiActions.safeParse(action).success;
-    }
-    case "ratelimit": {
-      return (
-        ratelimitNamespaceId.safeParse(id).success && ratelimitActions.safeParse(action).success
-      );
-    }
-    case "rbac": {
-      return rbacId.safeParse(id).success && rbacActions.safeParse(action).success;
-    }
-    case "identity": {
-      return identityEnvId.safeParse(id).success && identityActions.safeParse(action).success;
-    }
-    default: {
-      return false;
-    }
+  const resourceConfig = scopedResources[resource as keyof typeof scopedResources];
+  if (resourceConfig) {
+    return (
+      resourceConfig.idSchema.safeParse(id).success &&
+      resourceConfig.actionsSchema.safeParse(action).success
+    );
   }
+  return false;
 });

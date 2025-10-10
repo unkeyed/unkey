@@ -53,6 +53,10 @@ type Config struct {
 	// ClickhouseURL is the ClickHouse database connection string
 	ClickhouseURL string
 
+	// ClickhouseAnalyticsDSN is the DSN template for workspace-specific analytics connections
+	// Format: http://%s:%s@host:port/database (placeholders for username, password)
+	ClickhouseAnalyticsDSN string
+
 	// --- Database configuration ---
 
 	// DatabasePrimary is the primary database connection string for read and write operations

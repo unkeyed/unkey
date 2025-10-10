@@ -2,6 +2,7 @@ import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
 import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
@@ -120,6 +121,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   keySpaces: many(keyAuth),
   identities: many(identities),
   quotas: one(quotas),
+  clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),
 }));

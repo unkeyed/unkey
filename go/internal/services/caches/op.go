@@ -7,14 +7,14 @@ import (
 
 // DefaultFindFirstOp returns the appropriate cache operation based on the sql error
 func DefaultFindFirstOp(err error) cache.Op {
-	if err == nil {
-		// everything went well and we have a row response
-		return cache.WriteValue
-	}
-
 	if db.IsNotFound(err) {
 		// the response is empty, we need to store that the row does not exist
 		return cache.WriteNull
+	}
+
+	if err == nil {
+		// everything went well and we have a row response
+		return cache.WriteValue
 	}
 
 	// this is a noop in the cache

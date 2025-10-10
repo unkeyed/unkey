@@ -2,18 +2,15 @@
 // @generated from file vault/v1/object.proto (package vault.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file vault/v1/object.proto.
  */
-export const file_vault_v1_object: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChV2YXVsdC92MS9vYmplY3QucHJvdG8SCHZhdWx0LnYxIkAKEURhdGFFbmNyeXB0aW9uS2V5EgoKAmlkGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSCwoDa2V5GAMgASgMImQKGkVuY3J5cHRlZERhdGFFbmNyeXB0aW9uS2V5EgoKAmlkGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSJgoJZW5jcnlwdGVkGAMgASgLMhMudmF1bHQudjEuRW5jcnlwdGVkIj8KEEtleUVuY3J5cHRpb25LZXkSCgoCaWQYASABKAkSEgoKY3JlYXRlZF9hdBgCIAEoAxILCgNrZXkYAyABKAwifwoJRW5jcnlwdGVkEiYKCWFsZ29yaXRobRgBIAEoDjITLnZhdWx0LnYxLkFsZ29yaXRobRINCgVub25jZRgCIAEoDBISCgpjaXBoZXJ0ZXh0GAMgASgMEhkKEWVuY3J5cHRpb25fa2V5X2lkGAQgASgJEgwKBHRpbWUYBSABKAMqHAoJQWxnb3JpdGhtEg8KC0FFU18yNTZfR0NNEABCOFo2Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by92YXVsdC92MTt2YXVsdHYxYgZwcm90bzM",
-  );
+export const file_vault_v1_object: GenFile = /*@__PURE__*/
+  fileDesc("ChV2YXVsdC92MS9vYmplY3QucHJvdG8SCHZhdWx0LnYxIkAKEURhdGFFbmNyeXB0aW9uS2V5EgoKAmlkGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSCwoDa2V5GAMgASgMImQKGkVuY3J5cHRlZERhdGFFbmNyeXB0aW9uS2V5EgoKAmlkGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSJgoJZW5jcnlwdGVkGAMgASgLMhMudmF1bHQudjEuRW5jcnlwdGVkIj8KEEtleUVuY3J5cHRpb25LZXkSCgoCaWQYASABKAkSEgoKY3JlYXRlZF9hdBgCIAEoAxILCgNrZXkYAyABKAwifwoJRW5jcnlwdGVkEiYKCWFsZ29yaXRobRgBIAEoDjITLnZhdWx0LnYxLkFsZ29yaXRobRINCgVub25jZRgCIAEoDBISCgpjaXBoZXJ0ZXh0GAMgASgMEhkKEWVuY3J5cHRpb25fa2V5X2lkGAQgASgJEgwKBHRpbWUYBSABKAMqHAoJQWxnb3JpdGhtEg8KC0FFU18yNTZfR0NNEABClAEKDGNvbS52YXVsdC52MUILT2JqZWN0UHJvdG9QAVo2Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by92YXVsdC92MTt2YXVsdHYxogIDVlhYqgIIVmF1bHQuVjHKAghWYXVsdFxWMeICFFZhdWx0XFYxXEdQQk1ldGFkYXRh6gIJVmF1bHQ6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message vault.v1.DataEncryptionKey
@@ -41,8 +38,7 @@ export type DataEncryptionKey = Message<"vault.v1.DataEncryptionKey"> & {
  * Describes the message vault.v1.DataEncryptionKey.
  * Use `create(DataEncryptionKeySchema)` to create a new message.
  */
-export const DataEncryptionKeySchema: GenMessage<DataEncryptionKey> =
-  /*@__PURE__*/
+export const DataEncryptionKeySchema: GenMessage<DataEncryptionKey> = /*@__PURE__*/
   messageDesc(file_vault_v1_object, 0);
 
 /**
@@ -73,8 +69,7 @@ export type EncryptedDataEncryptionKey = Message<"vault.v1.EncryptedDataEncrypti
  * Describes the message vault.v1.EncryptedDataEncryptionKey.
  * Use `create(EncryptedDataEncryptionKeySchema)` to create a new message.
  */
-export const EncryptedDataEncryptionKeySchema: GenMessage<EncryptedDataEncryptionKey> =
-  /*@__PURE__*/
+export const EncryptedDataEncryptionKeySchema: GenMessage<EncryptedDataEncryptionKey> = /*@__PURE__*/
   messageDesc(file_vault_v1_object, 1);
 
 /**
@@ -103,8 +98,7 @@ export type KeyEncryptionKey = Message<"vault.v1.KeyEncryptionKey"> & {
  * Describes the message vault.v1.KeyEncryptionKey.
  * Use `create(KeyEncryptionKeySchema)` to create a new message.
  */
-export const KeyEncryptionKeySchema: GenMessage<KeyEncryptionKey> =
-  /*@__PURE__*/
+export const KeyEncryptionKeySchema: GenMessage<KeyEncryptionKey> = /*@__PURE__*/
   messageDesc(file_vault_v1_object, 2);
 
 /**
@@ -148,8 +142,7 @@ export type Encrypted = Message<"vault.v1.Encrypted"> & {
  * Describes the message vault.v1.Encrypted.
  * Use `create(EncryptedSchema)` to create a new message.
  */
-export const EncryptedSchema: GenMessage<Encrypted> =
-  /*@__PURE__*/
+export const EncryptedSchema: GenMessage<Encrypted> = /*@__PURE__*/
   messageDesc(file_vault_v1_object, 3);
 
 /**
@@ -165,4 +158,6 @@ export enum Algorithm {
 /**
  * Describes the enum vault.v1.Algorithm.
  */
-export const AlgorithmSchema: GenEnum<Algorithm> = /*@__PURE__*/ enumDesc(file_vault_v1_object, 0);
+export const AlgorithmSchema: GenEnum<Algorithm> = /*@__PURE__*/
+  enumDesc(file_vault_v1_object, 0);
+

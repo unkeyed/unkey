@@ -27,6 +27,26 @@ type Caches struct {
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
+
+	// Clickhouse Configuration caches clickhouse configuration lookups by workspace ID.
+	// Keys are string (workspace ID) and values are db.ClickhouseWorkspaceSetting.
+	ClickhouseSetting cache.Cache[string, db.ClickhouseWorkspaceSetting]
+
+	// KeyAuthToApiRow caches key_auth_id to api row mappings.
+	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
+	KeyAuthToApiRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
+
+	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
+	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
+	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
+
+	// ExternalIdToIdentity caches external_id to identity mappings.
+	// Keys are string (external_id) scoped to the workspace ID and values are db.Identity (full object).
+	ExternalIdToIdentity cache.Cache[cache.ScopedKey, db.Identity]
+
+	// Identity caches identity_id to identity mappings.
+	// Keys are string (identity_id) and values are db.Identity.
+	Identity cache.Cache[cache.ScopedKey, db.Identity]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -190,9 +210,102 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	clickhouseSetting, err := createCache(
+		config,
+		cache.Config[string, db.ClickhouseWorkspaceSetting]{
+			Fresh:    10 * time.Second,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "clickhouse_setting",
+			Clock:    config.Clock,
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create key_auth_id -> api row cache
+	keyAuthToApiRow, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "key_auth_to_api_row",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create api_id -> key_auth row cache
+	apiToKeyAuthRow, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "api_to_key_auth_row",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create external_id -> identity mapping cache (scoped to workspace)
+	externalIdToIdentity, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.Identity]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "external_id_to_identity",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	identity, err := createCache(
+		config,
+		cache.Config[cache.ScopedKey, db.Identity]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "identity_id_to_external_id",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
+		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
+		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
+		ExternalIdToIdentity:  middleware.WithTracing(externalIdToIdentity),
+		Identity:              middleware.WithTracing(identity),
 	}, nil
 }

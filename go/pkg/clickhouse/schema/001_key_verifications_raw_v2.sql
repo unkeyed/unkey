@@ -10,6 +10,7 @@ CREATE TABLE key_verifications_raw_v2
   key_space_id String,
   -- Empty string if the key has no identity
   identity_id String,
+  external_id String,
   key_id String,
 
   -- Right now this is a 3 character airport code, but when we move to aws,
@@ -34,6 +35,7 @@ CREATE TABLE key_verifications_raw_v2
 
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_external_id (external_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
 )
@@ -56,6 +58,7 @@ SELECT
     workspace_id,
     key_space_id,
     identity_id,
+    '' as external_id,
     key_id,
     region,
     outcome,

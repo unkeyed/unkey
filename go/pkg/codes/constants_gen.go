@@ -20,6 +20,30 @@ const (
 	UserErrorsBadRequestRequestTimeout URN = "err:user:bad_request:request_timeout"
 	// ClientClosedRequest indicates the client closed the connection before the request completed.
 	UserErrorsBadRequestClientClosedRequest URN = "err:user:bad_request:client_closed_request"
+	// InvalidAnalyticsQuery indicates the analytics SQL query is invalid or has syntax errors.
+	UserErrorsBadRequestInvalidAnalyticsQuery URN = "err:user:bad_request:invalid_analytics_query"
+	// InvalidAnalyticsTable indicates the table referenced in the analytics query is not allowed or does not exist.
+	UserErrorsBadRequestInvalidAnalyticsTable URN = "err:user:bad_request:invalid_analytics_table"
+	// InvalidAnalyticsFunction indicates a disallowed function was used in the analytics query.
+	UserErrorsBadRequestInvalidAnalyticsFunction URN = "err:user:bad_request:invalid_analytics_function"
+	// InvalidAnalyticsQueryType indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
+	UserErrorsBadRequestInvalidAnalyticsQueryType URN = "err:user:bad_request:invalid_analytics_query_type"
+
+	// UnprocessableEntity
+
+	// QueryExecutionTimeout indicates the query exceeded the maximum execution time limit.
+	UserErrorsUnprocessableEntityQueryExecutionTimeout URN = "err:user:unprocessable_entity:query_execution_timeout"
+	// QueryMemoryLimitExceeded indicates the query exceeded the maximum memory usage limit.
+	UserErrorsUnprocessableEntityQueryMemoryLimitExceeded URN = "err:user:unprocessable_entity:query_memory_limit_exceeded"
+	// QueryRowsLimitExceeded indicates the query exceeded the maximum rows to read limit.
+	UserErrorsUnprocessableEntityQueryRowsLimitExceeded URN = "err:user:unprocessable_entity:query_rows_limit_exceeded"
+	// QueryResultRowsLimitExceeded indicates the query exceeded the maximum result rows limit.
+	UserErrorsUnprocessableEntityQueryResultRowsLimitExceeded URN = "err:user:unprocessable_entity:query_result_rows_limit_exceeded"
+
+	// TooManyRequests
+
+	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
+	UserErrorsTooManyRequestsQueryQuotaExceeded URN = "err:user:too_many_requests:query_quota_exceeded"
 
 	// ----------------
 	// UnkeyAuthErrors
@@ -107,6 +131,13 @@ const (
 
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
+
+	// Analytics
+
+	// NotConfigured indicates analytics is not configured for the workspace.
+	UnkeyDataErrorsAnalyticsNotConfigured URN = "err:unkey:data:analytics_not_configured"
+	// ConnectionFailed indicates the connection to the analytics database failed.
+	UnkeyDataErrorsAnalyticsConnectionFailed URN = "err:unkey:data:analytics_connection_failed"
 
 	// ----------------
 	// UnkeyAppErrors

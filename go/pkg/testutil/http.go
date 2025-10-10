@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -40,16 +41,17 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB           db.Database
-	Caches       caches.Caches
-	Logger       logging.Logger
-	Keys         keys.KeyService
-	UsageLimiter usagelimiter.Service
-	Auditlogs    auditlogs.AuditLogService
-	ClickHouse   clickhouse.ClickHouse
-	Ratelimit    ratelimit.Service
-	Vault        *vault.Service
-	seeder       *seed.Seeder
+	DB                         db.Database
+	Caches                     caches.Caches
+	Logger                     logging.Logger
+	Keys                       keys.KeyService
+	UsageLimiter               usagelimiter.Service
+	Auditlogs                  auditlogs.AuditLogService
+	ClickHouse                 clickhouse.ClickHouse
+	Ratelimit                  ratelimit.Service
+	Vault                      *vault.Service
+	AnalyticsConnectionManager analytics.ConnectionManager
+	seeder                     *seed.Seeder
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -154,24 +156,36 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	// Create analytics connection manager
+	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
+		SettingsCache: caches.ClickhouseSetting,
+		Database:      db,
+		Logger:        logger,
+		Clock:         clk,
+		DSNTemplate:   "clickhouse://%s:%s@localhost:9000/default?secure=false&skip_verify=true&dial_timeout=10s",
+		Vault:         v,
+	})
+	require.NoError(t, err)
+
 	// Create seeder
 	seeder := seed.New(t, db, v)
 
 	seeder.Seed(context.Background())
 
 	h := Harness{
-		t:            t,
-		Logger:       logger,
-		srv:          srv,
-		validator:    validator,
-		Keys:         keyService,
-		UsageLimiter: ulSvc,
-		Ratelimit:    ratelimitService,
-		Vault:        v,
-		ClickHouse:   ch,
-		DB:           db,
-		seeder:       seeder,
-		Clock:        clk,
+		t:                          t,
+		Logger:                     logger,
+		srv:                        srv,
+		validator:                  validator,
+		Keys:                       keyService,
+		UsageLimiter:               ulSvc,
+		Ratelimit:                  ratelimitService,
+		Vault:                      v,
+		ClickHouse:                 ch,
+		DB:                         db,
+		seeder:                     seeder,
+		Clock:                      clk,
+		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,
 			Logger: logger,

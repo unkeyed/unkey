@@ -50,7 +50,7 @@ func (q *BulkQueries) {{.BulkFunctionName}}(ctx context.Context, args []{{.Param
     {{if .EmitMethodsWithDBArgument -}}
     _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
     {{else -}}
-	_, err := q.db.ExecContext(ctx, bulkQuery, allArgs...)
+    _, err := q.db.ExecContext(ctx, bulkQuery, allArgs...)
     {{end -}}
 
 	return err

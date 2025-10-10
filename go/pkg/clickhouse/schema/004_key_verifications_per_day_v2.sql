@@ -3,6 +3,7 @@ CREATE TABLE key_verifications_per_day_v2 (
   workspace_id String,
   key_space_id String,
   identity_id String,
+  external_id String,
   key_id String,
   outcome LowCardinality (String),
   tags Array(String),
@@ -33,6 +34,7 @@ SELECT
   workspace_id,
   key_space_id,
   identity_id,
+  external_id,
   key_id,
   outcome,
   tags,
@@ -49,6 +51,7 @@ GROUP BY
   time,
   key_space_id,
   identity_id,
+  external_id,
   key_id,
   outcome,
   tags

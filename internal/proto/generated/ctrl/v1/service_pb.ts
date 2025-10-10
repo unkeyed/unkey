@@ -2,30 +2,27 @@
 // @generated from file ctrl/v1/service.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/service.proto.
  */
-export const file_ctrl_v1_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChVjdHJsL3YxL3NlcnZpY2UucHJvdG8SB2N0cmwudjEiEQoPTGl2ZW5lc3NSZXF1ZXN0IkgKEExpdmVuZXNzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJEg8KB3ZlcnNpb24YAiABKAkSEwoLaW5zdGFuY2VfaWQYAyABKAkyUAoLQ3RybFNlcnZpY2USQQoITGl2ZW5lc3MSGC5jdHJsLnYxLkxpdmVuZXNzUmVxdWVzdBoZLmN0cmwudjEuTGl2ZW5lc3NSZXNwb25zZSIAQjZaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjFiBnByb3RvMw",
-  );
+export const file_ctrl_v1_service: GenFile = /*@__PURE__*/
+  fileDesc("ChVjdHJsL3YxL3NlcnZpY2UucHJvdG8SB2N0cmwudjEiEQoPTGl2ZW5lc3NSZXF1ZXN0IkgKEExpdmVuZXNzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJEg8KB3ZlcnNpb24YAiABKAkSEwoLaW5zdGFuY2VfaWQYAyABKAkyUAoLQ3RybFNlcnZpY2USQQoITGl2ZW5lc3MSGC5jdHJsLnYxLkxpdmVuZXNzUmVxdWVzdBoZLmN0cmwudjEuTGl2ZW5lc3NSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIMU2VydmljZVByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message ctrl.v1.LivenessRequest
  */
-export type LivenessRequest = Message<"ctrl.v1.LivenessRequest"> & {};
+export type LivenessRequest = Message<"ctrl.v1.LivenessRequest"> & {
+};
 
 /**
  * Describes the message ctrl.v1.LivenessRequest.
  * Use `create(LivenessRequestSchema)` to create a new message.
  */
-export const LivenessRequestSchema: GenMessage<LivenessRequest> =
-  /*@__PURE__*/
+export const LivenessRequestSchema: GenMessage<LivenessRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_service, 0);
 
 /**
@@ -52,8 +49,7 @@ export type LivenessResponse = Message<"ctrl.v1.LivenessResponse"> & {
  * Describes the message ctrl.v1.LivenessResponse.
  * Use `create(LivenessResponseSchema)` to create a new message.
  */
-export const LivenessResponseSchema: GenMessage<LivenessResponse> =
-  /*@__PURE__*/
+export const LivenessResponseSchema: GenMessage<LivenessResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_service, 1);
 
 /**
@@ -67,5 +63,7 @@ export const CtrlService: GenService<{
     methodKind: "unary";
     input: typeof LivenessRequestSchema;
     output: typeof LivenessResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_service, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ctrl_v1_service, 0);
+

@@ -9,6 +9,7 @@ type KeyVerificationV2 struct {
 	WorkspaceID  string   `ch:"workspace_id" json:"workspace_id"`
 	KeySpaceID   string   `ch:"key_space_id" json:"key_space_id"`
 	IdentityID   string   `ch:"identity_id" json:"identity_id"`
+	ExternalID   string   `ch:"external_id" json:"external_id"`
 	KeyID        string   `ch:"key_id" json:"key_id"`
 	Region       string   `ch:"region" json:"region"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
