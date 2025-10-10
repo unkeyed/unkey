@@ -107,14 +107,31 @@ const NavbarContent = ({
   const shouldFetchKey = Boolean(keyspaceId && keyId);
 
   // Fetch key details when viewing a specific key
-  const { data: keyData } = trpc.api.keys.list.useQuery(
-    { keyAuthId: keyspaceId as string, limit: 1000 },
+  const {
+    data: keyData,
+    isLoading: isKeyLoading,
+    error: keyError,
+  } = trpc.api.keys.list.useQuery(
+    {
+      // This cannot be empty string but required to silence TS errors
+      keyAuthId: keyspaceId ?? "",
+      // This cannot be empty string but required to silence TS errors
+      keyIds: [{ operator: "is", value: keyId ?? "" }],
+      cursor: null,
+      identities: null,
+      limit: 1,
+      names: null,
+    },
     {
       enabled: shouldFetchKey,
-      select: (data) => data.keys.find((key) => key.id === keyId) || null,
     },
   );
 
+  if (keyError) {
+    throw new Error(`Failed to fetch key details: ${keyError.message}`);
+  }
+
+  const specificKey = keyData?.keys.find((key) => key.id === keyId);
   const { currentApi } = layoutData;
 
   // Define base path for API navigation
@@ -173,12 +190,12 @@ const NavbarContent = ({
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          {shouldFetchKey && keyData ? (
+          {shouldFetchKey && specificKey ? (
             <>
-              <KeySettingsDialog keyData={keyData} />
+              <KeySettingsDialog keyData={specificKey} />
               <CopyableIDButton value={keyId as string} />
             </>
-          ) : shouldFetchKey ? (
+          ) : isKeyLoading ? (
             <>
               <NavbarActionButton disabled>
                 <Gear />
