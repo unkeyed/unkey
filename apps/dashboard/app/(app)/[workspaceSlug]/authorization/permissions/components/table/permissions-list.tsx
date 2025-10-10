@@ -61,7 +61,9 @@ export const PermissionsList = () => {
               onMouseEnter={() => setHoveredPermissionName(permission.name)}
               onMouseLeave={() => setHoveredPermissionName(null)}
             >
-              {!isSelected && !isHovered && <Page2 size="sm-regular" className="text-gray-12" />}
+              {!isSelected && !isHovered && (
+                <Page2 iconSize="sm-regular" className="text-gray-12" />
+              )}
               {(isSelected || isHovered) && (
                 <Checkbox
                   checked={isSelected}

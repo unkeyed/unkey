@@ -38,7 +38,7 @@ export const HiddenValueCell = ({
         onClick={(e) => handleClick(e)}
       >
         <div>
-          <CircleLock size="sm-regular" className="text-gray-9" />
+          <CircleLock iconSize="sm-regular" className="text-gray-9" />
         </div>
         <div>{displayValue}</div>
       </div>

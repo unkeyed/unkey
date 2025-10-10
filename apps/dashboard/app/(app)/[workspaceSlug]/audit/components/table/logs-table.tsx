@@ -2,9 +2,9 @@
 import { VirtualTable, type VirtualTableRef } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { Key, MathFunction } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { FunctionSquare, KeySquare } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAuditLogsQuery } from "./hooks/use-logs-query";
 import {
@@ -87,12 +87,12 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
           </div>
         ) : log.auditLog.actor.type === "key" ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <KeySquare className="w-4 h-4" />
+            <Key iconSize="sm-thin" />
             <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         ) : (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <FunctionSquare className="w-4 h-4" />
+            <MathFunction iconSize="sm-thin" />
             <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
           </div>
         )}

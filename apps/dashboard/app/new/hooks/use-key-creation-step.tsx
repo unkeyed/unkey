@@ -111,7 +111,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
 
   return {
     name: "API key",
-    icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
+    icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
     body: (
       <div className="relative">
         <FormProvider {...methods}>
@@ -139,7 +139,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={<Key2 className="text-gray-9 flex-shrink-0" size="sm-regular" />}
+                  icon={<Key2 className="text-gray-9 flex-shrink-0" iconSize="sm-regular" />}
                   title="General Setup"
                   description="Configure basic API key settings like prefix, byte length, and External ID"
                 >
@@ -149,7 +149,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={<Gauge className="text-gray-9 flex-shrink-0" size="sm-regular" />}
+                  icon={<Gauge className="text-gray-9 flex-shrink-0" iconSize="sm-regular" />}
                   title="Ratelimit"
                   description="Set request limits per time window to control API usage frequency"
                   defaultChecked={methods.watch("ratelimit.enabled")}
@@ -164,7 +164,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={<ChartPie className="text-gray-9 flex-shrink-0" size="sm-regular" />}
+                  icon={<ChartPie className="text-gray-9 flex-shrink-0" iconSize="sm-regular" />}
                   title="Credits"
                   description="Set usage limits based on credits or quota to control consumption"
                   defaultChecked={methods.watch("limit.enabled")}
@@ -179,7 +179,9 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={<CalendarClock className="text-gray-9 flex-shrink-0" size="sm-regular" />}
+                  icon={
+                    <CalendarClock className="text-gray-9 flex-shrink-0" iconSize="sm-regular" />
+                  }
                   title="Expiration"
                   description="Set when this API key should automatically expire and become invalid"
                   defaultChecked={methods.watch("expiration.enabled")}
@@ -198,7 +200,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
                 <ExpandableSettings
                   disabled={!isFormReady || isLoading || apiCreated}
                   disabledTooltip={tooltipContent}
-                  icon={<Code className="text-gray-9 flex-shrink-0" size="sm-regular" />}
+                  icon={<Code className="text-gray-9 flex-shrink-0" iconSize="sm-regular" />}
                   title="Metadata"
                   description="Add custom key-value pairs to store additional information with your API key"
                   defaultChecked={methods.watch("metadata.enabled")}

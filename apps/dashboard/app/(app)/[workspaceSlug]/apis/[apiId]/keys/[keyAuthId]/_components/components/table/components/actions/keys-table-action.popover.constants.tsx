@@ -36,14 +36,14 @@ export const getKeysTableActionItems = (
     {
       id: "override",
       label: "Edit key name...",
-      icon: <PenWriting3 size="md-regular" />,
+      icon: <PenWriting3 iconSize="md-medium" />,
       ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
     },
     {
       id: "copy",
       label: "Copy key ID",
       className: "mt-1",
-      icon: <Clone size="md-regular" />,
+      icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(key.id)
@@ -60,46 +60,46 @@ export const getKeysTableActionItems = (
     {
       id: "edit-external-id",
       label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY size="md-regular" />,
+      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
       ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
       divider: true,
     },
     {
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban size="md-regular" /> : <Check size="md-regular" />,
+      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
       ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
       divider: true,
     },
     {
       id: "edit-credits",
       label: "Edit credits...",
-      icon: <ChartPie size="md-regular" />,
+      icon: <ChartPie iconSize="md-medium" />,
       ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
-      icon: <Gauge size="md-regular" />,
+      icon: <Gauge iconSize="md-medium" />,
       ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
-      icon: <CalendarClock size="md-regular" />,
+      icon: <CalendarClock iconSize="md-medium" />,
       ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
     },
     {
       id: "edit-metadata",
       label: "Edit metadata...",
-      icon: <Code size="md-regular" />,
+      icon: <Code iconSize="md-medium" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
       divider: true,
     },
     {
       id: "edit-rbac",
       label: "Manage roles and permissions...",
-      icon: <Tag size="md-regular" />,
+      icon: <Tag iconSize="md-medium" />,
       ActionComponent: (props) => (
         <KeyRbacDialog
           {...props}
@@ -182,7 +182,7 @@ export const getKeysTableActionItems = (
     {
       id: "delete-key",
       label: "Delete key",
-      icon: <Trash size="md-regular" />,
+      icon: <Trash iconSize="md-medium" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];

@@ -32,7 +32,7 @@ Empty.Icon = function EmptyIcon({ className, children }: EmptyIconProps) {
         <div className="absolute left-0 top-1/2 -translate-y-1/2 h-32 bg-gradient-to-t from-[hsla(240,100%,17%,0.01)] via-[hsla(240,100%,10%,0.06)] to-[hsla(240,100%,17%,0.01)] dark:from-[hsla(0,0%,0%,0)] dark:via-[hsla(211,66%,92%,0.3)] dark:to-[hsla(0,0%,0%,0)] w-[1px]" />
         <div className="absolute right-0 top-1/2 -translate-y-1/2 h-32 bg-gradient-to-t from-[hsla(240,100%,17%,0.01)] via-[hsla(240,100%,10%,0.06)] to-[hsla(240,100%,17%,0.01)] dark:from-[hsla(0,0%,0%,0)] dark:via-[hsla(211,66%,92%,0.3)] dark:to-[hsla(0,0%,0%,0)] w-[1px] " />
         <div className="flex w-16 h-16 items-center justify-center rounded-2xl bg-gray-2 border-[1px] border-[hsla(240,100%,10%,0.06)] dark:border-[hsla(211,66%,92%,0.2)] text-accent-12 z-50 [&_svg]:pointer-events-none [&_svg]:size-7 [&_svg]:shrink-0">
-          <div>{children || <Ufo size="2xl-regular" />}</div>
+          <div>{children || <Ufo iconSize="2xl-regular" />}</div>
         </div>
       </div>
     </div>

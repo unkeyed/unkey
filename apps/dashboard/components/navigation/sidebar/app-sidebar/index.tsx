@@ -125,7 +125,7 @@ export function AppSidebar({
         <WorkspaceSwitcher />
         {state !== "collapsed" && !isMobile && (
           <button type="button" onClick={toggleSidebar}>
-            <SidebarLeftHide className="text-gray-8" size="xl-medium" />
+            <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
           </button>
         )}
       </div>
@@ -184,7 +184,7 @@ export function AppSidebar({
               >
                 <div className="flex items-center gap-2 justify-start w-full">
                   <div className="size-5 flex items-center">
-                    <ChevronLeft className="shrink-0 !size-3 text-gray-10" size="sm-medium" />
+                    <ChevronLeft className="shrink-0 !size-3 text-gray-10" iconSize="sm-medium" />
                   </div>
                   <div className="text-accent-9 text-xs leading-6">
                     {currentSoloConfig.backButtonText}

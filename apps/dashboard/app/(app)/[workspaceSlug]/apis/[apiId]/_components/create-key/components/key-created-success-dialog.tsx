@@ -134,9 +134,9 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
                   <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2 size="2xl-thin" />
+                  <Key2 iconSize="2xl-thin" />
                   <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
-                    <Check size="sm-bold" />
+                    <Check iconSize="sm-bold" />
                   </div>
                 </div>
                 <div className="border border-grayA-4 rounded-[14px] size-14" />
@@ -160,7 +160,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
                 <div className="flex gap-6 items-center">
                   <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
-                    <Key2 size="sm-regular" />
+                    <Key2 iconSize="sm-regular" />
                   </div>
                   <div className="flex flex-col gap-1 py-6">
                     <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
@@ -181,7 +181,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                     className="ml-auto font-medium text-[13px] text-gray-12"
                     onClick={() => handleCloseAttempt("go-to-details")}
                   >
-                    See key details <ArrowRight size="sm-regular" />
+                    See key details <ArrowRight iconSize="sm-regular" />
                   </Button>
                 </div>
               </div>
@@ -203,7 +203,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                   className="font-medium text-[13px] text-gray-12"
                   onClick={() => handleCloseAttempt("create-another")}
                 >
-                  <Plus size="sm-regular" />
+                  <Plus iconSize="sm-regular" />
                   Create another key
                 </Button>
               </div>

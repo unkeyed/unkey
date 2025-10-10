@@ -34,11 +34,11 @@ export const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCar
       </div>
       <div className="flex gap-1.5">
         <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[100px]">
-          <CodeBranch size="sm-regular" className="shrink-0 text-gray-12" />
+          <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
           <span className="truncate">{deployment.gitBranch}</span>
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11">
-          <CodeCommit size="sm-regular" className="shrink-0 text-gray-12" />
+          <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
           <span>{shortenId(deployment.gitCommitSha ?? "")}</span>
         </div>
       </div>

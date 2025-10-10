@@ -91,7 +91,7 @@ export const ConfirmPopover = ({
                 iconColor,
               )}
             >
-              <Icon size="sm-regular" />
+              <Icon iconSize="sm-regular" />
             </div>
             <div className="font-medium text-[13px] leading-7 text-gray-12">{title}</div>
           </div>

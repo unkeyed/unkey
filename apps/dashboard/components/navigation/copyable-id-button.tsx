@@ -73,6 +73,7 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      aria-label="Copy ID to clipboard"
     >
       <div className="flex gap-2 items-center justify-between w-full min-w-0 px-2">
         <div ref={textRef} className="select-text truncate min-w-0 flex-1">

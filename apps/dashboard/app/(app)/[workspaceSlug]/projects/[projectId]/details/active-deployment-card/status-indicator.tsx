@@ -56,7 +56,7 @@ export function StatusIndicator({
             className,
           )}
         >
-          <Cloud size="sm-regular" className="text-gray-12" />
+          <Cloud iconSize="sm-regular" className="text-gray-12" />
         </div>
         {withSignal && !isLoading && (
           <div className="absolute -top-0.5 -right-0.5">

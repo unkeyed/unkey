@@ -171,7 +171,7 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
       onClick={onClick}
       {...buttonProps}
     >
-      <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+      <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
     </Button>
   );
 });

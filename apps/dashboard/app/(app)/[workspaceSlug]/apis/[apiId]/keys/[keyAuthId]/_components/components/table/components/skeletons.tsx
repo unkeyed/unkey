@@ -77,6 +77,6 @@ export const ActionColumnSkeleton = () => (
       "border border-gray-6",
     )}
   >
-    <Dots className="text-gray-11" size="sm-regular" />
+    <Dots className="text-gray-11" iconSize="sm-regular" />
   </button>
 );

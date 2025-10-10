@@ -145,7 +145,7 @@ export const ExpirationSetup = ({
         <ProtectionSwitch
           description="Turn on to set an expiration date. When reached, the key will be automatically disabled."
           title="Expiration"
-          icon={<Clock className="text-gray-12" size="sm-regular" />}
+          icon={<Clock className="text-gray-12" iconSize="sm-regular" />}
           checked={expirationEnabled}
           onCheckedChange={handleSwitchChange}
           {...register("expiration.enabled")}

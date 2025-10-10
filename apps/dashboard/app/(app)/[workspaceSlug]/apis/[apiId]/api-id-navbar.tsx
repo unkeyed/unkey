@@ -88,7 +88,7 @@ const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
       <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[190px] transition-all ">
         <div className="h-3 w-[190px] bg-grayA-3 rounded" />
         <div>
-          <TaskUnchecked size="md-regular" className="!size-4" />
+          <TaskUnchecked iconSize="md-regular" className="!size-4" />
         </div>
       </div>
     </Navbar.Actions>

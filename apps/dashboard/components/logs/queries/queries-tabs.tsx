@@ -37,7 +37,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onFocus={() => handleSelection(0)}
         onBlur={() => handleSelection(0)}
       >
-        <ClockRotateClockwise size="md-regular" className="text-gray-9 py-[1px]" />
+        <ClockRotateClockwise iconSize="md-medium" className="text-gray-9 py-[1px]" />
         <div className="w-full">Recent</div>
         <div
           className={cn(
@@ -61,7 +61,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onBlur={() => handleSelection(1)}
       >
         <div className="w-4 h-4 text-gray-9">
-          <Bookmark size="sm-regular" className="text-gray-9 py-[1.5px]" />
+          <Bookmark iconSize="sm-regular" className="text-gray-9 py-[1.5px]" />
         </div>
         <div className="w-full">Saved</div>
         <div

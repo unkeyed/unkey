@@ -141,7 +141,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             disabled={isFirstStep || isLoading || isLastStep}
           >
             <div className="flex items-center gap-1">
-              <ChevronLeft size="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
+              <ChevronLeft iconSize="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
               <span className="font-medium text-gray-12 text-xs">Back</span>
             </div>
           </Button>
@@ -164,7 +164,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 <CircleProgress
                   value={currentStep.validFieldCount}
                   total={currentStep.requiredFieldCount}
-                  size="sm-medium"
+                  iconSize="sm-medium"
                 />
               </div>
             </div>
@@ -180,7 +180,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 <div className="flex items-center gap-1">
                   <span className="font-medium text-gray-12 text-xs">Skip step</span>
                   <ChevronRight
-                    size="sm-regular"
+                    iconSize="sm-regular"
                     className="text-gray-12 !w-3 !h-3 flex-shrink-0"
                   />
                 </div>

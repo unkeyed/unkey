@@ -20,7 +20,7 @@ export function OnboardingContent() {
     keyCreationStep,
     {
       name: "API key",
-      icon: <Key2 size="sm-regular" className="text-gray-11" />,
+      icon: <Key2 iconSize="sm-regular" className="text-gray-11" />,
       body: (
         <OnboardingSuccessStep isConfirmOpen={isConfirmOpen} setIsConfirmOpen={setIsConfirmOpen} />
       ),

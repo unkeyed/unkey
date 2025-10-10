@@ -13,8 +13,8 @@
 import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
-export const TriangleWarning2: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size];
+export const TriangleWarning2: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
     <svg

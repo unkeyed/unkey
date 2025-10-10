@@ -92,12 +92,12 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
   const getSeverityIcon = (level: number) => {
     if (level === 3) {
-      return <TriangleWarning size="sm-regular" className="text-errorA-11" />;
+      return <TriangleWarning iconSize="sm-regular" className="text-errorA-11" />;
     }
     if (level === 2) {
-      return <CircleWarning size="sm-regular" className="text-warningA-11" />;
+      return <CircleWarning iconSize="sm-regular" className="text-warningA-11" />;
     }
-    return <CircleInfo size="sm-regular" className="text-grayA-9" />;
+    return <CircleInfo iconSize="sm-regular" className="text-grayA-9" />;
   };
 
   const getSeverityColor = (level: number) => {
@@ -147,13 +147,13 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           <div className="flex items-center gap-2">
             {stats.breaking > 0 && (
               <Badge variant="error" className="gap-1.5">
-                <TriangleWarning size="sm-regular" className="shrink-0" />
+                <TriangleWarning iconSize="sm-regular" className="shrink-0" />
                 <span className="text-xs font-medium">{stats.breaking} breaking</span>
               </Badge>
             )}
             {stats.warning > 0 && (
               <Badge variant="warning" className="gap-1.5">
-                <CircleWarning size="sm-regular" className="shrink-0" />
+                <CircleWarning iconSize="sm-regular" className="shrink-0" />
                 <span className="text-xs">
                   {stats.warning} warning{stats.warning !== 1 ? "s" : ""}
                 </span>
@@ -170,7 +170,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           value={filters.searchQuery}
           onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
           placeholder="Search changes..."
-          leftIcon={<InputSearch size="sm-regular" className="text-grayA-9" />}
+          leftIcon={<InputSearch iconSize="sm-regular" className="text-grayA-9" />}
           rightIcon={
             filters.searchQuery ? (
               <button
@@ -178,7 +178,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                 onClick={() => setFilters((p) => ({ ...p, searchQuery: "" }))}
                 className="cursor-pointer"
               >
-                <CircleXMark size="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
+                <CircleXMark iconSize="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
               </button>
             ) : null
           }
@@ -253,7 +253,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <ChevronDown
-                        size="sm-regular"
+                        iconSize="sm-regular"
                         className={cn(
                           "text-grayA-9 shrink-0 transition-transform duration-200",
                           !isExpanded && "-rotate-90",

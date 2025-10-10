@@ -121,7 +121,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
 
   return {
     name: "Workspace",
-    icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
+    icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
     body: (
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col">
@@ -132,17 +132,17 @@ export const useWorkspaceStep = (): OnboardingStep => {
           {/*     <div className="flex items-center gap-2"> */}
           {/*       <Button variant="outline" className="w-fit"> */}
           {/*         <div className="gap-2 flex items-center text-[13px] leading-4 font-medium"> */}
-          {/*           <Refresh3 className="text-gray-12 !w-3 !h-3 flex-shrink-0" size="sm-regular" /> */}
+          {/*           <Refresh3 className="text-gray-12 !w-3 !h-3 flex-shrink-0" iconSize="sm-regular" /> */}
           {/*           Upload */}
           {/*         </div> */}
           {/*       </Button> */}
           {/*       <Button variant="outline" className="w-fit"> */}
           {/*         <div className="gap-2 flex items-center text-[13px] leading-4 font-medium"> */}
-          {/*           <Refresh3 className="text-gray-12 !w-3 !h-3 flex-shrink-0" size="sm-regular" /> */}
+          {/*           <Refresh3 className="text-gray-12 !w-3 !h-3 flex-shrink-0" iconSize="sm-regular" /> */}
           {/*           Gradient */}
           {/*         </div> */}
           {/*       </Button> */}
-          {/*       <Trash size="md-regular" className="text-gray-8 ml-[10px]" /> */}
+          {/*       <Trash iconSize="md-medium" className="text-gray-8 ml-[10px]" /> */}
           {/*     </div> */}
           {/*     <div className="text-gray-9 text-xs leading-6"> */}
           {/*       .png, .jpg, or .svg up to 10MB, and 480×480px */}

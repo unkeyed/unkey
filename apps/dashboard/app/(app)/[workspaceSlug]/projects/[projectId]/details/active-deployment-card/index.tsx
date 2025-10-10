@@ -222,7 +222,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
               variant="ghost"
               wrapperClassName="ml-4"
               className="min-h-[26px] text-xs rounded-lg placeholder:text-grayA-8"
-              leftIcon={<Magnifier size="sm-medium" className="text-accent-9 !size-[14px]" />}
+              leftIcon={<Magnifier iconSize="sm-medium" className="text-accent-9 !size-[14px]" />}
               placeholder="Find in logs..."
               value={searchTerm}
               onChange={handleSearchChange}

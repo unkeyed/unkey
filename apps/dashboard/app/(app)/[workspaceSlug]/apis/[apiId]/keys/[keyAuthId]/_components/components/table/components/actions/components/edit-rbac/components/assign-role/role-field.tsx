@@ -163,7 +163,7 @@ export const RoleField = ({
         }))}
         disabled={disabled}
         onRemoveItem={handleRemoveRole}
-        renderIcon={() => <Tag size="sm-regular" className="text-grayA-11" />}
+        renderIcon={() => <Tag iconSize="sm-regular" className="text-grayA-11" />}
         enableTransitions
         renderPrimaryText={(role) => role.name || "Unnamed Role"}
         renderSecondaryText={(role) => ("description" in role && role.description) || role.id}

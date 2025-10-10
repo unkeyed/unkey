@@ -3,8 +3,8 @@
 import { RequestResponseDetails } from "@/components/logs/details/request-response-details";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { Key, MathFunction } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
-import { FunctionSquare, KeySquare } from "lucide-react";
 
 type Props = {
   log: AuditLog;
@@ -45,12 +45,12 @@ export const LogFooter = ({ log }: Props) => {
               </div>
             ) : log.actor.type === "key" ? (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
-                <KeySquare className="w-4 h-4" />
+                <Key iconSize="sm-thin" />
                 <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             ) : (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
-                <FunctionSquare className="w-4 h-4" />
+                <MathFunction iconSize="sm-thin" />
                 <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             );

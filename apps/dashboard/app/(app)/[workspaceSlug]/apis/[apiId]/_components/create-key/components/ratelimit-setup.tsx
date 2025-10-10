@@ -65,7 +65,7 @@ export const RatelimitSetup = ({
           description="Turn on to restrict how frequently this key can be used. Requests
             beyond the limit will be blocked."
           title="Ratelimit"
-          icon={<Gauge className="text-gray-12" size="sm-regular" />}
+          icon={<Gauge className="text-gray-12" iconSize="sm-regular" />}
           checked={ratelimitEnabled}
           onCheckedChange={handleSwitchChange}
           {...register("ratelimit.enabled")}
@@ -117,7 +117,7 @@ export const RatelimitSetup = ({
                   onClick={() => remove(index)}
                   type="button"
                 >
-                  <Trash size="sm-regular" className="text-error-11" />
+                  <Trash iconSize="sm-regular" className="text-error-11" />
                 </Button>
               ) : null}
             </div>
