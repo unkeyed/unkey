@@ -20,8 +20,8 @@ func TestParser_EnforceLimit(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 LIMIT 1000")
 	require.NoError(t, err)
 
-	require.Contains(t, strings.ToLower(output.Query), "limit 100")
-	require.Contains(t, strings.ToLower(output.Query), "ws_123")
+	require.Contains(t, strings.ToLower(output), "limit 100")
+	require.Contains(t, strings.ToLower(output), "ws_123")
 }
 
 func TestParser_AddLimit(t *testing.T) {
@@ -36,7 +36,7 @@ func TestParser_AddLimit(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2")
 	require.NoError(t, err)
 
-	require.Contains(t, strings.ToLower(output.Query), "limit 50")
+	require.Contains(t, strings.ToLower(output), "limit 50")
 }
 
 func TestParser_PreserveSmallerLimit(t *testing.T) {
@@ -51,5 +51,5 @@ func TestParser_PreserveSmallerLimit(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 LIMIT 10")
 	require.NoError(t, err)
 
-	require.Contains(t, strings.ToLower(output.Query), "limit 10")
+	require.Contains(t, strings.ToLower(output), "limit 10")
 }

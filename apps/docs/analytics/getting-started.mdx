@@ -38,14 +38,25 @@ Analytics queries require a root key with analytics permissions. Create one in y
 
 ## Your First Query
 
-Once you have access, execute your first analytics query. Here are some common examples to get started:
+Once you have access, execute your first analytics query using the `/v2/analytics.getVerifications` endpoint.
 
 ### Count Total Verifications
 
 ```sql
 SELECT COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
+```
+
+Execute this query with curl:
+
+```bash
+curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
+  }'
 ```
 
 ### Break Down by Outcome
@@ -54,27 +65,60 @@ WHERE time >= now() - INTERVAL 7 DAY
 SELECT
   outcome,
   COUNT(*) as count
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY outcome
 ORDER BY count DESC
+```
+
+Execute this query with curl:
+
+```bash
+curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
+  }'
 ```
 
 ### Top Users by Usage
 
 ```sql
 SELECT
-  external_id,
-  COUNT(*) as verifications
-FROM key_verifications
-WHERE time >= now() - INTERVAL 30 DAY
-GROUP BY external_id
+  identity_id,
+  SUM(total_verifications) as verifications
+FROM key_verifications_per_day_v1
+WHERE day >= now() - INTERVAL 30 DAY
+GROUP BY identity_id
 ORDER BY verifications DESC
 LIMIT 10
 ```
 
+Execute this query with curl:
+
+```bash
+curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT identity_id, SUM(total_verifications) as verifications FROM key_verifications_per_day_v1 WHERE day >= now() - INTERVAL 30 DAY GROUP BY identity_id ORDER BY verifications DESC LIMIT 10"
+  }'
+```
+
 <Tip>
-  Check out the [Query Examples](/analytics/query-examples) page for 30+ ready-to-use queries covering billing, monitoring, and analytics use cases.
+  **Performance tip:** For longer time ranges, use pre-aggregated tables instead of the raw table:
+  - `key_verifications_per_minute_v1` - For queries spanning hours
+  - `key_verifications_per_hour_v1` - For queries spanning days
+  - `key_verifications_per_day_v1` - For queries spanning weeks/months
+  - `key_verifications_per_month_v1` - For queries spanning years
+
+  Use `SUM(total_verifications)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
+</Tip>
+
+<Tip>
+  Check out the [Query Examples](/analytics/query-examples) page for 30+
+  ready-to-use queries covering billing, monitoring, and analytics use cases.
 </Tip>
 
 ## Understanding the Response
@@ -89,33 +133,14 @@ Analytics queries return data as an array of objects:
   "data": {
     "verifications": [
       { "outcome": "VALID", "count": 1234 },
-      { "outcome": "RATE_LIMITED", "count": 56 }
+      { "outcome": "RATE_LIMITED", "count": 56 },
+      { "outcome": "USAGE_EXCEEDED", "count": 12 }
     ]
   }
 }
 ```
 
-Each object in `verifications` contains fields from your SELECT clause.
-
-## Working with Time
-
-All timestamps in Unkey Analytics are stored as **Unix milliseconds** (Int64). Use ClickHouse date functions to work with time ranges in your queries.
-
-**Time filtering examples:**
-
-```sql
--- Last 7 days
-WHERE time >= now() - INTERVAL 7 DAY
-
--- Last 24 hours
-WHERE time >= now() - INTERVAL 24 HOUR
-
--- Last 30 days
-WHERE time >= now() - INTERVAL 30 DAY
-
--- Last month
-WHERE time >= now() - INTERVAL 1 MONTH
-```
+Each object in the `verifications` array contains fields from your SELECT clause. The field names match the column names or aliases you specified in your query.
 
 ## Filtering by API or User
 

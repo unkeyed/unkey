@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
-	resulttransformer "github.com/unkeyed/unkey/go/pkg/clickhouse/result-transformer"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 )
@@ -13,26 +12,25 @@ import (
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
 	return &Parser{
-		config:         config,
-		columnMappings: make(map[string]string),
-		cteNames:       make(map[string]bool),
+		config:   config,
+		cteNames: make(map[string]bool),
 	}
 }
 
 // Parse parses and rewrites a query
-func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
+func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	// Parse SQL
 	parser := clickhouse.NewParser(query)
 	stmts, err := parser.ParseStmts()
 	if err != nil {
-		return ParseResult{}, fault.Wrap(err,
+		return "", fault.Wrap(err,
 			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 			fault.Public(fmt.Sprintf("Invalid SQL syntax: %v", err)),
 		)
 	}
 
 	if len(stmts) == 0 {
-		return ParseResult{}, fault.New("no statements found",
+		return "", fault.New("no statements found",
 			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 			fault.Public("No SQL statements found"),
 		)
@@ -41,7 +39,7 @@ func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
 	// Only allow SELECT
 	stmt, ok := stmts[0].(*clickhouse.SelectQuery)
 	if !ok {
-		return ParseResult{}, fault.New("only SELECT queries allowed",
+		return "", fault.New("only SELECT queries allowed",
 			fault.Code(codes.User.BadRequest.InvalidAnalyticsQueryType.URN()),
 			fault.Public("Only SELECT queries are allowed"),
 		)
@@ -52,51 +50,26 @@ func (p *Parser) Parse(ctx context.Context, query string) (ParseResult, error) {
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
 
-	// Build alias lookup map
-	p.buildAliasMap()
-
-	// Inject security filters BEFORE virtual column rewriting so they get resolved too
+	// Inject security filters
 	if err := p.injectSecurityFilters(); err != nil {
-		return ParseResult{}, err
-	}
-
-	// Rewrite SELECT clause for virtual columns
-	if err := p.rewriteSelectColumns(); err != nil {
-		return ParseResult{}, err
-	}
-
-	// Do all the rewriting
-	if err := p.rewriteVirtualColumns(ctx); err != nil {
-		return ParseResult{}, err
+		return "", err
 	}
 
 	if err := p.rewriteTables(); err != nil {
-		return ParseResult{}, err
+		return "", err
 	}
 
 	if err := p.injectWorkspaceFilter(); err != nil {
-		return ParseResult{}, err
+		return "", err
 	}
 
 	if err := p.enforceLimit(); err != nil {
-		return ParseResult{}, err
+		return "", err
 	}
 
 	if err := p.validateFunctions(); err != nil {
-		return ParseResult{}, err
+		return "", err
 	}
 
-	// Collect column mappings
-	mappings := make([]resulttransformer.ColumnMapping, 0, len(p.columnMappings))
-	for resultCol, actualCol := range p.columnMappings {
-		mappings = append(mappings, resulttransformer.ColumnMapping{
-			ResultColumn: resultCol,
-			ActualColumn: actualCol,
-		})
-	}
-
-	return ParseResult{
-		Query:          p.stmt.String(),
-		ColumnMappings: mappings,
-	}, nil
+	return p.stmt.String(), nil
 }

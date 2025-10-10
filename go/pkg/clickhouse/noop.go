@@ -30,6 +30,11 @@ func (n *noop) BufferKeyVerification(schema.KeyVerificationRequestV1) {
 	// Intentionally empty - discards the event
 }
 
+// BufferKeyVerificationV2 implements the Bufferer interface but discards the event.
+func (n *noop) BufferKeyVerificationV2(schema.KeyVerificationV2) {
+	// Intentionally empty - discards the event
+}
+
 // BufferRatelimit implements the Bufferer interface but discards the event.
 func (n *noop) BufferRatelimit(req schema.RatelimitRequestV1) {
 	// Intentionally empty - discards the event

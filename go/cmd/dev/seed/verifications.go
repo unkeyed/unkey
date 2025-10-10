@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/array"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
@@ -35,6 +36,8 @@ var verificationsCmd = &cli.Command{
 	},
 	Action: seedVerifications,
 }
+
+const chunkSize = 50_000
 
 func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
@@ -75,10 +78,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	identityUsagePercent := cmd.Float("identity-usage-percent")
 
 	// Calculate number of unique keys based on percentage
-	numKeys := int(float64(numVerifications) * (uniqueKeysPercent / 100.0))
-	if numKeys < 1 {
-		numKeys = 1
-	}
+	numKeys := max(1, int(float64(numVerifications)*(uniqueKeysPercent/100.0)))
 
 	// Calculate number of identities based on percentage of keys
 	numIdentities := int(float64(numKeys) * (keysWithIdentityPercent / 100.0))
@@ -122,6 +122,7 @@ type Key struct {
 	Name       string
 	Enabled    bool
 	IdentityID string // Empty string if no identity attached
+	ExternalID string // Empty string if no external ID attached
 }
 
 type Identity struct {
@@ -140,11 +141,14 @@ func (s *Seeder) Seed(ctx context.Context) error {
 	}
 	log.Printf("  Using workspace %s, API %s with keyAuth %s (prefix: %s)", workspaceID, s.apiID, keyAuthID, prefix)
 
-	// 2. Create Identities first (if needed)
+	// 2. Create Identities and Keys with batched transactions
 	var identities []Identity
+	var allKeys []Key
+
+	// Create identities first (if needed)
 	if s.numIdentities > 0 {
 		log.Printf("Creating %d identities...", s.numIdentities)
-		identities, err = s.createIdentities(ctx, workspaceID)
+		identities, err = s.createIdentitiesBatched(ctx, workspaceID)
 		if err != nil {
 			return fmt.Errorf("failed to create identities: %w", err)
 		}
@@ -152,9 +156,9 @@ func (s *Seeder) Seed(ctx context.Context) error {
 		log.Printf("No identities will be created (0 keys will have identities)")
 	}
 
-	// 3. Create Keys and attach identities to some of them
+	// Create keys and attach identities to some of them
 	log.Printf("Creating %d keys (%.1f%% will have identities)...", s.numKeys, s.keysWithIdentityPercent)
-	allKeys, err := s.createKeys(ctx, workspaceID, keyAuthID, prefix, identities)
+	allKeys, err = s.createKeysBatched(ctx, workspaceID, keyAuthID, prefix, identities)
 	if err != nil {
 		return fmt.Errorf("failed to create keys: %w", err)
 	}
@@ -199,7 +203,7 @@ func (s *Seeder) getAPIDetails(ctx context.Context) (workspaceID, keyAuthID, pre
 	return workspaceID, keyAuthID, prefix, nil
 }
 
-func (s *Seeder) createKeys(ctx context.Context, workspaceID, keyAuthID, prefix string, identities []Identity) ([]Key, error) {
+func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, prefix string, identities []Identity) ([]Key, error) {
 	allKeys := make([]Key, s.numKeys)
 	keyParams := make([]db.InsertKeyParams, s.numKeys)
 
@@ -211,7 +215,7 @@ func (s *Seeder) createKeys(ctx context.Context, workspaceID, keyAuthID, prefix 
 
 	now := time.Now().UnixMilli()
 
-	for i := 0; i < s.numKeys; i++ {
+	for i := range s.numKeys {
 		// Use the key service to create a proper key with real hash
 		keyResult, err := s.keyService.CreateKey(ctx, keys.CreateKeyRequest{
 			Prefix:     prefix,
@@ -233,10 +237,12 @@ func (s *Seeder) createKeys(ctx context.Context, workspaceID, keyAuthID, prefix 
 
 		// Determine if this key should have an identity attached
 		var identityID string
+		var externalID string
 		if i < keysWithIdentityCount && len(identities) > 0 {
 			// Attach an identity to this key
 			identity := identities[rand.IntN(len(identities))]
 			identityID = identity.ID
+			externalID = identity.ExternalID
 		}
 
 		key := Key{
@@ -247,6 +253,7 @@ func (s *Seeder) createKeys(ctx context.Context, workspaceID, keyAuthID, prefix 
 			Name:       name,
 			Enabled:    enabled,
 			IdentityID: identityID,
+			ExternalID: externalID,
 		}
 
 		// Prepare key params for bulk insert
@@ -281,11 +288,24 @@ func (s *Seeder) createKeys(ctx context.Context, workspaceID, keyAuthID, prefix 
 		}
 	}
 
-	// Bulk insert all keys
-	log.Printf("  Inserting %d keys...", s.numKeys)
-	err := db.BulkQuery.InsertKeys(ctx, s.db.RW(), keyParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to bulk insert keys: %w", err)
+	chunks := array.Chunk(keyParams, chunkSize)
+
+	// Commit every 5 chunks (250k rows per transaction)
+	batchSize := 5
+	for i := 0; i < len(chunks); i += batchSize {
+		err := db.Tx(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+			end := min(i+batchSize, len(chunks))
+			for j := i; j < end; j++ {
+				log.Printf("  Inserting %d keys... chunk %d/%d", len(chunks[j]), j+1, len(chunks))
+				if err := db.BulkQuery.InsertKeys(ctx, tx, chunks[j]); err != nil {
+					return fmt.Errorf("failed to bulk insert keys: %w", err)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	keysWithIdentity := 0
@@ -294,24 +314,23 @@ func (s *Seeder) createKeys(ctx context.Context, workspaceID, keyAuthID, prefix 
 			keysWithIdentity++
 		}
 	}
+
 	log.Printf("  Created %d total keys (%d with identities attached)", s.numKeys, keysWithIdentity)
 
 	return allKeys, nil
 }
 
-func (s *Seeder) createIdentities(ctx context.Context, workspaceID string) ([]Identity, error) {
+func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string) ([]Identity, error) {
 	identities := make([]Identity, s.numIdentities)
 	identityParams := make([]db.InsertIdentityParams, s.numIdentities)
 
 	domains := []string{"example.com", "test.com", "demo.org", "app.io"}
-
 	now := time.Now().UnixMilli()
-
-	for i := 0; i < s.numIdentities; i++ {
+	for i := range s.numIdentities {
 		identityID := uid.New("id")
-		// Generate unique external ID using random suffix to avoid collisions across runs
+		// Generate unique external ID using the identity ID to guarantee uniqueness
 		externalID := fmt.Sprintf("user-%s@%s",
-			uid.New("")[:12],
+			uid.New("ex"),
 			domains[rand.IntN(len(domains))],
 		)
 
@@ -333,14 +352,28 @@ func (s *Seeder) createIdentities(ctx context.Context, workspaceID string) ([]Id
 		identities[i] = identity
 	}
 
-	// Bulk insert all identities
-	log.Printf("  Inserting %d identities...", s.numIdentities)
-	err := db.BulkQuery.InsertIdentities(ctx, s.db.RW(), identityParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to bulk insert identities: %w", err)
+	chunks := array.Chunk(identityParams, chunkSize)
+
+	// Commit every 5 chunks (250k rows per transaction)
+	batchSize := 5
+	for i := 0; i < len(chunks); i += batchSize {
+		err := db.Tx(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+			end := min(i+batchSize, len(chunks))
+			for j := i; j < end; j++ {
+				log.Printf("  Inserting %d identities... chunk %d/%d", len(chunks[j]), j+1, len(chunks))
+				if err := db.BulkQuery.InsertIdentities(ctx, tx, chunks[j]); err != nil {
+					return fmt.Errorf("failed to bulk insert identities: %w", err)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	log.Printf("  Created %d identities", s.numIdentities)
+
 	return identities, nil
 }
 
@@ -368,7 +401,7 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 	mean := float64(len(keys)) * 0.2
 	stdDev := float64(len(keys)) / 5.0
 
-	for i := 0; i < s.numVerifications; i++ {
+	for i := range s.numVerifications {
 		// Generate timestamp with bias towards recent data
 		timeFraction := rand.Float64()
 		timeFraction = math.Pow(timeFraction, 0.5)
@@ -397,10 +430,12 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 
 		// Determine identity for this verification
 		var identityID string
+		var externalID string
 		if key.IdentityID != "" {
 			// Key has an identity - use it X% of the time (default 90%)
 			if rand.Float64()*100 < s.identityUsagePercent {
 				identityID = key.IdentityID
+				externalID = key.ExternalID
 			}
 			// Otherwise leave it blank (simulating key used before identity was attached)
 		}
@@ -416,17 +451,32 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 			}
 		}
 
+		// random latency
+		latency := rand.ExpFloat64()*50 + 1 // 1-100ms base range
+		if rand.Float64() < 0.1 {           // 10% chance of high latency
+			latency += rand.Float64() * 400 // Up to 500ms
+		}
+
+		// random credit spent between 0 and 50 but 70% should be 0
+		credit := rand.Int64N(51)
+		if rand.Float64() < 0.7 {
+			credit = 0
+		}
+
 		// Use BufferKeyVerification to let the clickhouse client batch automatically
-		s.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
-			RequestID:   uid.New("req"),
-			Time:        timestamp.UnixMilli(),
-			WorkspaceID: workspaceID,
-			KeySpaceID:  keyAuthID,
-			KeyID:       key.ID,
-			Region:      regions[rand.IntN(len(regions))],
-			Tags:        tags,
-			Outcome:     outcome,
-			IdentityID:  identityID,
+		s.clickhouse.BufferKeyVerificationV2(schema.KeyVerificationV2{
+			RequestID:    uid.New("req"),
+			Time:         timestamp.UnixMilli(),
+			WorkspaceID:  workspaceID,
+			KeySpaceID:   keyAuthID,
+			KeyID:        key.ID,
+			Region:       regions[rand.IntN(len(regions))],
+			Tags:         tags,
+			Outcome:      outcome,
+			IdentityID:   identityID,
+			ExternalID:   externalID,
+			Latency:      latency,
+			SpentCredits: credit,
 		})
 
 		// Log progress periodically

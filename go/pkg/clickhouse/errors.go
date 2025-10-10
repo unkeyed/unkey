@@ -75,7 +75,7 @@ func IsUserQueryError(err error) bool {
 }
 
 // ExtractUserFriendlyError extracts a user-friendly error message from ClickHouse error.
-// It cleans up internal ClickHouse formatting and truncates long messages.
+// It preserves the key information like unknown identifiers, suggestions, and error context.
 func ExtractUserFriendlyError(err error) string {
 	if err == nil {
 		return "Query failed"
@@ -83,26 +83,46 @@ func ExtractUserFriendlyError(err error) string {
 
 	errMsg := err.Error()
 
-	// Try to extract the meaningful part of the error message
-	// ClickHouse errors often have format: "code: XXX, message: actual message, ..."
-	if idx := strings.Index(errMsg, "message: "); idx != -1 {
-		errMsg = errMsg[idx+9:] // Skip "message: "
-		// Find the end (usually a comma or newline)
-		if endIdx := strings.Index(errMsg, ","); endIdx != -1 {
+	// ClickHouse errors from HTTP interface often contain the actual DB::Exception message
+	// Format: "Code: 47. DB::Exception: <actual error message>. (ERROR_NAME)"
+	if idx := strings.Index(errMsg, "DB::Exception: "); idx != -1 {
+		errMsg = errMsg[idx+15:] // Skip "DB::Exception: "
+
+		// Find the end marker (usually the error code in parentheses at the end)
+		if endIdx := strings.LastIndex(errMsg, " (version "); endIdx != -1 {
 			errMsg = errMsg[:endIdx]
+		}
+
+		// Remove the final error code if present like ". (UNKNOWN_IDENTIFIER)"
+		if endIdx := strings.LastIndex(errMsg, ". ("); endIdx != -1 {
+			errMsg = errMsg[:endIdx]
+		}
+
+		return strings.TrimSpace(errMsg)
+	}
+
+	// Try to extract from exception object
+	var chErr *ch.Exception
+	if errors.As(err, &chErr) {
+		return chErr.Message
+	}
+
+	// Clean up common prefixes for other formats
+	errMsg = strings.TrimPrefix(errMsg, "clickhouse: ")
+	errMsg = strings.TrimPrefix(errMsg, "sendQuery: ")
+	errMsg = strings.TrimPrefix(errMsg, "[HTTP 404] response body: ")
+	errMsg = strings.Trim(errMsg, "\"")
+
+	// If the message is too long, try to extract the first sentence
+	if len(errMsg) > 500 {
+		if idx := strings.Index(errMsg, ". "); idx != -1 && idx < 500 {
+			errMsg = errMsg[:idx+1]
+		} else {
+			errMsg = errMsg[:500] + "..."
 		}
 	}
 
-	// Clean up common prefixes
-	errMsg = strings.TrimPrefix(errMsg, "clickhouse: ")
-	errMsg = strings.TrimPrefix(errMsg, "code: ")
-
-	// If the message is too long, truncate it
-	if len(errMsg) > 200 {
-		errMsg = errMsg[:200] + "..."
-	}
-
-	return errMsg
+	return strings.TrimSpace(errMsg)
 }
 
 // errorResponse defines a structured error response with code and message

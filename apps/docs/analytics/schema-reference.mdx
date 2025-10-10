@@ -11,11 +11,11 @@ For convenience, you can use short aliases that automatically map to the full ta
 
 | Alias | Full Table Name | Description |
 |-------|----------------|-------------|
-| `key_verifications` | `default.key_verifications_raw_v2` | Raw verification events |
-| `key_verifications_per_minute` | `default.key_verifications_per_minute_v2` | Aggregated by minute |
-| `key_verifications_per_hour` | `default.key_verifications_per_hour_v2` | Aggregated by hour |
-| `key_verifications_per_day` | `default.key_verifications_per_day_v2` | Aggregated by day |
-| `key_verifications_per_month` | `default.key_verifications_per_month_v2` | Aggregated by month |
+| `key_verifications_v1` | `default.key_verifications_raw_v2` | Raw verification events |
+| `key_verifications_per_minute_v1` | `default.key_verifications_per_minute_v2` | Aggregated by minute |
+| `key_verifications_per_hour_v1` | `default.key_verifications_per_hour_v2` | Aggregated by hour |
+| `key_verifications_per_day_v1` | `default.key_verifications_per_day_v2` | Aggregated by day |
+| `key_verifications_per_month_v1` | `default.key_verifications_per_month_v2` | Aggregated by month |
 
 <Tip>
   Use aggregated tables (hour/day/month) for queries spanning long time periods to improve performance.
@@ -23,7 +23,7 @@ For convenience, you can use short aliases that automatically map to the full ta
 
 ## Raw Events Table
 
-The `key_verifications` table contains individual verification events as they occur.
+The `key_verifications_v1` table contains individual verification events as they occur.
 
 ### Columns
 
@@ -60,7 +60,7 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 ### Per Minute Table
 
-`key_verifications_per_minute` - Aggregated by minute
+`key_verifications_per_minute_v1` - Aggregated by minute
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -82,19 +82,19 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 ### Per Hour Table
 
-`key_verifications_per_hour` - Aggregated by hour
+`key_verifications_per_hour_v1` - Aggregated by hour
 
 Same columns as per-minute table, with `hour` instead of `minute`.
 
 ### Per Day Table
 
-`key_verifications_per_day` - Aggregated by day
+`key_verifications_per_day_v1` - Aggregated by day
 
 Same columns as per-minute table, with `day` instead of `minute`.
 
 ### Per Month Table
 
-`key_verifications_per_month` - Aggregated by month
+`key_verifications_per_month_v1` - Aggregated by month
 
 Same columns as per-minute table, with `month` instead of `minute`.
 
@@ -178,7 +178,7 @@ GROUP BY path
 ## Time Functions
 
 Timestamps are stored differently depending on the table:
-- **Raw table (`key_verifications`)**: `time` is `Int64` (Unix milliseconds)
+- **Raw table (`key_verifications_v1`)**: `time` is `Int64` (Unix milliseconds)
 - **Aggregated tables**: `time` is `DateTime`
 
 ### Current Time
@@ -190,7 +190,7 @@ SELECT toUnixTimestamp(now()) * 1000 as current_millis
 
 ### Time Ranges (Raw Table)
 
-For the raw `key_verifications` table, compare `time` with millisecond timestamps:
+For the raw `key_verifications_v1` table, compare `time` with millisecond timestamps:
 
 ```sql
 -- Last hour
@@ -257,13 +257,13 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `COUNT()` | Count rows | `SELECT COUNT(*) FROM key_verifications` |
-| `SUM()` | Sum values | `SELECT SUM(valid_count) FROM key_verifications_per_day` |
-| `AVG()` | Average | `SELECT AVG(latency_ms) FROM key_verifications` |
-| `MIN()` | Minimum value | `SELECT MIN(time) FROM key_verifications` |
-| `MAX()` | Maximum value | `SELECT MAX(time) FROM key_verifications` |
+| `COUNT()` | Count rows | `SELECT COUNT(*) FROM key_verifications_v1` |
+| `SUM()` | Sum values | `SELECT SUM(valid_count) FROM key_verifications_per_day_v1` |
+| `AVG()` | Average | `SELECT AVG(latency_ms) FROM key_verifications_v1` |
+| `MIN()` | Minimum value | `SELECT MIN(time) FROM key_verifications_v1` |
+| `MAX()` | Maximum value | `SELECT MAX(time) FROM key_verifications_v1` |
 | `countIf()` | Conditional count | `SELECT countIf(outcome = 'VALID')` |
-| `uniq()` | Count distinct | `SELECT uniq(key_id) FROM key_verifications` |
+| `uniq()` | Count distinct | `SELECT uniq(key_id) FROM key_verifications_v1` |
 
 ### String Functions
 

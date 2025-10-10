@@ -37,7 +37,6 @@ func (p *Parser) injectSecurityFilters() error {
 		}
 
 		// Build IN list: {column} IN ('val1', 'val2', ...)
-		// Virtual column rewriting will handle conversion to actual column later
 		items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
 		for i, value := range securityFilter.AllowedValues {
 			items[i] = &clickhouse.ColumnExpr{
@@ -47,7 +46,7 @@ func (p *Parser) injectSecurityFilters() error {
 			}
 		}
 
-		// Create filter using column name (virtual or actual)
+		// Create filter using column name
 		filter := &clickhouse.BinaryOperation{
 			LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
 			Operation: "IN",

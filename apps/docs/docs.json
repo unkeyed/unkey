@@ -113,7 +113,10 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                "pages": [
+                  "concepts/identities/overview",
+                  "concepts/identities/ratelimits"
+                ]
               }
             ]
           },
@@ -169,6 +172,7 @@
               },
               {
                 "group": "Analytics",
+                "hidden": true,
                 "icon": "chart-bar",
                 "pages": [
                   "analytics/overview",
@@ -267,7 +271,9 @@
                   },
                   {
                     "group": "Too Many Requests",
-                    "pages": ["errors/user/too_many_requests/query_quota_exceeded"]
+                    "pages": [
+                      "errors/user/too_many_requests/query_quota_exceeded"
+                    ]
                   },
                   {
                     "group": "Unprocessable Entity",

@@ -6,12 +6,5 @@ properties:
     type: string
     description: |
       SQL query to execute against your analytics data.
-
-      The query will be automatically rewritten to:
-      - Inject workspace_id filters for data isolation
-      - Map table aliases (e.g., key_verifications → default.key_verifications_raw_v2)
-      - Resolve virtual columns (apiId, externalId)
-      - Block dangerous operations
-
       Only SELECT queries are allowed.
-    example: "SELECT COUNT(*) as total FROM key_verifications WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
+    example: "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"

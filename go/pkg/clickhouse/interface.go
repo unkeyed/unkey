@@ -26,6 +26,10 @@ type Bufferer interface {
 	// These represent API key validation operations with their outcomes.
 	BufferKeyVerification(schema.KeyVerificationRequestV1)
 
+	// BufferKeyVerification adds a key verification event to the buffer.
+	// These represent API key validation operations with their outcomes.
+	BufferKeyVerificationV2(schema.KeyVerificationV2)
+
 	// BufferRatelimit adds a ratelimit event to the buffer.
 	// These represent API ratelimit operations with their outcome.
 	BufferRatelimit(schema.RatelimitRequestV1)

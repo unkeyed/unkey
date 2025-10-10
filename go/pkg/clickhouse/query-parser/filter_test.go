@@ -19,7 +19,7 @@ func TestParser_WorkspaceFilter(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2")
 	require.NoError(t, err)
 
-	require.Contains(t, output.Query, "workspace_id = 'ws_123'")
+	require.Contains(t, output, "workspace_id = 'ws_123'")
 }
 
 func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
@@ -33,9 +33,9 @@ func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE active = 1")
 	require.NoError(t, err)
 
-	require.Contains(t, output.Query, "workspace_id = 'ws_456'")
-	require.Contains(t, output.Query, "active = 1")
-	require.Contains(t, output.Query, "AND")
+	require.Contains(t, output, "workspace_id = 'ws_456'")
+	require.Contains(t, output, "active = 1")
+	require.Contains(t, output, "AND")
 }
 
 func TestSecurityFilterInjection(t *testing.T) {
@@ -57,17 +57,17 @@ func TestSecurityFilterInjection(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should only have workspace_id filter, no api_id filter
-		require.Contains(t, result.Query, "workspace_id = 'ws_test'")
-		require.NotContains(t, result.Query, "api_id IN")
+		require.Contains(t, result, "workspace_id = 'ws_test'")
+		require.NotContains(t, result, "api_id IN")
 	})
 
-	t.Run("injects single API ID filter", func(t *testing.T) {
+	t.Run("injects single key_space_id filter", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					Column:        "api_id",
-					AllowedValues: []string{"api_123"},
+					Column:        "key_space_id",
+					AllowedValues: []string{"ks_123"},
 				},
 			},
 			Limit: 100,
@@ -76,15 +76,6 @@ func TestSecurityFilterInjection(t *testing.T) {
 			},
 			AllowedTables: []string{
 				"default.key_verifications_raw_v2",
-			},
-			VirtualColumns: map[string]chquery.VirtualColumn{
-				"apiId": {
-					ActualColumn: "key_space_id",
-					Aliases:      []string{"api_id"},
-					Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
-						return map[string]string{"api_123": "ks_abc"}, nil
-					},
-				},
 			},
 		})
 
@@ -92,19 +83,18 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		// Should have both workspace_id and api_id filters
-		require.Contains(t, result.Query, "workspace_id = 'ws_test'")
-		// Virtual column should be resolved: api_id → key_space_id, 'api_123' → 'ks_abc'
-		require.Contains(t, result.Query, "key_space_id IN ('ks_abc')")
+		// Should have both workspace_id and key_space_id filters
+		require.Contains(t, result, "workspace_id = 'ws_test'")
+		require.Contains(t, result, "key_space_id IN ('ks_123')")
 	})
 
-	t.Run("injects multiple API IDs filter", func(t *testing.T) {
+	t.Run("injects multiple key_space_id filter", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					Column:        "api_id",
-					AllowedValues: []string{"api_123", "api_456", "api_789"},
+					Column:        "key_space_id",
+					AllowedValues: []string{"ks_123", "ks_456", "ks_789"},
 				},
 			},
 			Limit: 100,
@@ -113,19 +103,6 @@ func TestSecurityFilterInjection(t *testing.T) {
 			},
 			AllowedTables: []string{
 				"default.key_verifications_raw_v2",
-			},
-			VirtualColumns: map[string]chquery.VirtualColumn{
-				"apiId": {
-					ActualColumn: "key_space_id",
-					Aliases:      []string{"api_id"},
-					Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
-						return map[string]string{
-							"api_123": "ks_abc",
-							"api_456": "ks_def",
-							"api_789": "ks_ghi",
-						}, nil
-					},
-				},
 			},
 		})
 
@@ -134,12 +111,12 @@ func TestSecurityFilterInjection(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have both filters
-		require.Contains(t, result.Query, "workspace_id = 'ws_test'")
-		// All three resolved IDs should be in the IN clause
-		require.Contains(t, result.Query, "key_space_id IN")
-		require.Contains(t, result.Query, "'ks_abc'")
-		require.Contains(t, result.Query, "'ks_def'")
-		require.Contains(t, result.Query, "'ks_ghi'")
+		require.Contains(t, result, "workspace_id = 'ws_test'")
+		// All three IDs should be in the IN clause
+		require.Contains(t, result, "key_space_id IN")
+		require.Contains(t, result, "'ks_123'")
+		require.Contains(t, result, "'ks_456'")
+		require.Contains(t, result, "'ks_789'")
 	})
 
 	t.Run("combines with existing WHERE clause", func(t *testing.T) {
@@ -147,8 +124,8 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					Column:        "api_id",
-					AllowedValues: []string{"api_123"},
+					Column:        "key_space_id",
+					AllowedValues: []string{"ks_123"},
 				},
 			},
 			Limit: 100,
@@ -157,15 +134,6 @@ func TestSecurityFilterInjection(t *testing.T) {
 			},
 			AllowedTables: []string{
 				"default.key_verifications_raw_v2",
-			},
-			VirtualColumns: map[string]chquery.VirtualColumn{
-				"apiId": {
-					ActualColumn: "key_space_id",
-					Aliases:      []string{"api_id"},
-					Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
-						return map[string]string{"api_123": "ks_abc"}, nil
-					},
-				},
 			},
 		})
 
@@ -174,19 +142,19 @@ func TestSecurityFilterInjection(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should combine all three filters with AND
-		require.Contains(t, result.Query, "workspace_id = 'ws_test'")
-		require.Contains(t, result.Query, "key_space_id IN ('ks_abc')")
-		require.Contains(t, result.Query, "outcome = 'VALID'")
-		require.Contains(t, result.Query, "AND")
+		require.Contains(t, result, "workspace_id = 'ws_test'")
+		require.Contains(t, result, "key_space_id IN ('ks_123')")
+		require.Contains(t, result, "outcome = 'VALID'")
+		require.Contains(t, result, "AND")
 	})
 
-	t.Run("restricts access even when user queries different API", func(t *testing.T) {
+	t.Run("restricts access even when user queries different key_space_id", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					Column:        "api_id",
-					AllowedValues: []string{"api_123"}, // User only has access to api_123
+					Column:        "key_space_id",
+					AllowedValues: []string{"ks_123"}, // User only has access to ks_123
 				},
 			},
 			Limit: 100,
@@ -196,34 +164,22 @@ func TestSecurityFilterInjection(t *testing.T) {
 			AllowedTables: []string{
 				"default.key_verifications_raw_v2",
 			},
-			VirtualColumns: map[string]chquery.VirtualColumn{
-				"apiId": {
-					ActualColumn: "key_space_id",
-					Aliases:      []string{"api_id"},
-					Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
-						return map[string]string{
-							"api_123": "ks_abc",
-							"api_999": "ks_xyz", // Different API
-						}, nil
-					},
-				},
-			},
 		})
 
-		// User tries to query api_999 which they don't have access to
-		query := "SELECT COUNT(*) FROM key_verifications WHERE api_id = 'api_999'"
+		// User tries to query ks_999 which they don't have access to
+		query := "SELECT COUNT(*) FROM key_verifications WHERE key_space_id = 'ks_999'"
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
 		// Both filters are present, creating impossible AND condition
-		// Injected: key_space_id IN ('ks_abc') - only api_123
-		// User's: key_space_id = 'ks_xyz' - api_999
-		// Result: no rows (ks_abc AND ks_xyz = impossible)
-		require.Contains(t, result.Query, "key_space_id IN")
-		require.Contains(t, result.Query, "key_space_id =")
-		require.Contains(t, result.Query, "'ks_abc'") // Injected filter
-		require.Contains(t, result.Query, "'ks_xyz'") // User's filter
-		require.Contains(t, result.Query, "AND")      // Combined with AND
+		// Injected: key_space_id IN ('ks_123') - only ks_123
+		// User's: key_space_id = 'ks_999'
+		// Result: no rows (ks_123 AND ks_999 = impossible)
+		require.Contains(t, result, "key_space_id IN")
+		require.Contains(t, result, "key_space_id =")
+		require.Contains(t, result, "'ks_123'") // Injected filter
+		require.Contains(t, result, "'ks_999'") // User's filter
+		require.Contains(t, result, "AND")      // Combined with AND
 	})
 
 	t.Run("supports multiple security filters simultaneously", func(t *testing.T) {
@@ -231,12 +187,12 @@ func TestSecurityFilterInjection(t *testing.T) {
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
-					Column:        "api_id",
-					AllowedValues: []string{"api_123", "api_456"},
+					Column:        "key_space_id",
+					AllowedValues: []string{"ks_123", "ks_456"},
 				},
 				{
-					Column:        "namespace",
-					AllowedValues: []string{"ns_prod", "ns_staging"},
+					Column:        "namespace_id",
+					AllowedValues: []string{"nsid_111", "nsid_222"},
 				},
 			},
 			Limit: 100,
@@ -246,27 +202,6 @@ func TestSecurityFilterInjection(t *testing.T) {
 			AllowedTables: []string{
 				"default.ratelimits_v2",
 			},
-			VirtualColumns: map[string]chquery.VirtualColumn{
-				"apiId": {
-					ActualColumn: "key_space_id",
-					Aliases:      []string{"api_id"},
-					Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
-						return map[string]string{
-							"api_123": "ks_abc",
-							"api_456": "ks_def",
-						}, nil
-					},
-				},
-				"namespace": {
-					ActualColumn: "namespace_id",
-					Resolver: func(ctx context.Context, ids []string) (map[string]string, error) {
-						return map[string]string{
-							"ns_prod":    "nsid_111",
-							"ns_staging": "nsid_222",
-						}, nil
-					},
-				},
-			},
 		})
 
 		query := "SELECT COUNT(*) FROM ratelimits"
@@ -274,9 +209,9 @@ func TestSecurityFilterInjection(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have workspace + both security filters
-		require.Contains(t, result.Query, "workspace_id = 'ws_test'")
-		require.Contains(t, result.Query, "key_space_id IN ('ks_abc', 'ks_def')")
-		require.Contains(t, result.Query, "namespace_id IN ('nsid_111', 'nsid_222')")
-		require.Contains(t, result.Query, "AND")
+		require.Contains(t, result, "workspace_id = 'ws_test'")
+		require.Contains(t, result, "key_space_id IN ('ks_123', 'ks_456')")
+		require.Contains(t, result, "namespace_id IN ('nsid_111', 'nsid_222')")
+		require.Contains(t, result, "AND")
 	})
 }

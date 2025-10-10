@@ -50,7 +50,7 @@ func TestSQLInjectionAttempts(t *testing.T) {
 			// Query should either parse safely or fail
 			// Most importantly, workspace filter should ALWAYS be present
 			if err == nil {
-				require.Contains(t, result.Query, "workspace_id = 'ws_123'",
+				require.Contains(t, result, "workspace_id = 'ws_123'",
 					"Workspace filter MUST be present even with injection attempts")
 			}
 		})
@@ -95,7 +95,7 @@ func TestWorkspaceIsolationBypass(t *testing.T) {
 
 			// Even if query parses, workspace filter MUST be enforced
 			if err == nil {
-				require.Contains(t, result.Query, "workspace_id = 'ws_victim'", "Attacker's workspace should NOT be used - victim workspace MUST be enforced")
+				require.Contains(t, result, "workspace_id = 'ws_victim'", "Attacker's workspace should NOT be used - victim workspace MUST be enforced")
 			}
 		})
 	}
@@ -198,10 +198,10 @@ func TestSubqueryAttempts(t *testing.T) {
 				require.Contains(t, err.Error(), "not allowed", "Error should indicate table is not allowed")
 			} else {
 				require.NoError(t, err, "Subquery with allowed tables should work")
-				require.Contains(t, result.Query, "workspace_id = 'ws_123'",
+				require.Contains(t, result, "workspace_id = 'ws_123'",
 					"Workspace filter must be present even with subqueries")
 				// Should also respect limit
-				require.Contains(t, result.Query, "LIMIT",
+				require.Contains(t, result, "LIMIT",
 					"Limit must be enforced even with subqueries")
 			}
 		})
@@ -478,7 +478,7 @@ func TestSpecialCharactersInInput(t *testing.T) {
 			// Special characters should either be handled safely or rejected
 			// Most importantly, workspace filter should always be present
 			if err == nil {
-				require.Contains(t, result.Query, "workspace_id = 'ws_123'",
+				require.Contains(t, result, "workspace_id = 'ws_123'",
 					"Workspace filter must be present even with special characters")
 			}
 		})
@@ -523,9 +523,9 @@ func TestLimitBypass(t *testing.T) {
 
 			// Parser should enforce max limit
 			require.NoError(t, err, "Query should parse successfully but with limit enforced")
-			require.Contains(t, result.Query, "LIMIT 10", "Query must have LIMIT enforced to configured max of 10")
-			require.NotContains(t, result.Query, "LIMIT 100000", "Large limit should be reduced")
-			require.NotContains(t, result.Query, "LIMIT 999999999", "Extreme limit should be reduced")
+			require.Contains(t, result, "LIMIT 10", "Query must have LIMIT enforced to configured max of 10")
+			require.NotContains(t, result, "LIMIT 100000", "Large limit should be reduced")
+			require.NotContains(t, result, "LIMIT 999999999", "Extreme limit should be reduced")
 		})
 	}
 }

@@ -6,7 +6,8 @@ description: "Query your verification data with SQL"
 <Warning>
   **Analytics is currently in private beta and opt-in only.**
 
-  To request access, please email us at [support@unkey.dev](mailto:support@unkey.dev) with your workspace ID.
+To request access, please email us at [support@unkey.dev](mailto:support@unkey.dev) with your workspace ID.
+
 </Warning>
 
 ## What is Unkey Analytics?
@@ -21,6 +22,7 @@ Unkey Analytics provides a powerful SQL interface to query your API key verifica
 ## Why SQL?
 
 We chose SQL because it's:
+
 - **Universal** - developers already know it
 - **Powerful** - complex aggregations, joins, and filters
 - **Flexible** - adapt queries to your specific needs
@@ -34,9 +36,9 @@ Every key verification request is automatically stored and aggregated across mul
 graph LR
     A[Verify Key Request] --> B[Raw Events Table]
     B --> C[Minute Aggregates]
-    B --> D[Hour Aggregates]
-    B --> E[Day Aggregates]
-    B --> F[Month Aggregates]
+    C --> D[Hour Aggregates]
+    D --> E[Day Aggregates]
+    E --> F[Month Aggregates]
 ```
 
 You can query these tables using standard SQL
@@ -47,33 +49,128 @@ Get the total number of valid verifications in the last 7 days:
 
 ```sql
 SELECT COUNT(*) as total_verifications
-FROM key_verifications
+FROM key_verifications_v1
 WHERE outcome = 'VALID'
   AND time >= now() - INTERVAL 7 DAY
 ```
 
-This query is automatically rewritten to:
+Execute with curl:
+
+```bash
+curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT COUNT(*) as total_verifications FROM key_verifications_v1 WHERE outcome = '\''VALID'\'' AND time >= now() - INTERVAL 7 DAY"
+  }'
+```
+
+Response:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123"
+  },
+  "data": {
+    "verifications": [
+      {
+        "total_verifications": 45821
+      }
+    ]
+  }
+}
+```
+
+Your query is automatically rewritten to:
+
 1. Add your workspace_id filter for security
 2. Use the correct table name
 3. Apply resource limits
+
+## More Examples
+
+### Group Verifications by Outcome
+
+See the breakdown of verification results:
+
+```bash
+curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
+  }'
+```
+
+Response:
+
+```json
+{
+  "meta": {
+    "requestId": "req_def456"
+  },
+  "data": {
+    "verifications": [
+      { "outcome": "VALID", "count": 42350 },
+      { "outcome": "RATE_LIMITED", "count": 1205 },
+      { "outcome": "INVALID", "count": 89 }
+    ]
+  }
+}
+```
+
+### Track Usage by User
+
+Find your top users by verification count over the last 30 days using the daily aggregated table for better performance:
+
+```bash
+curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT identity_id, SUM(total_verifications) as verifications FROM key_verifications_per_day_v1 WHERE day >= now() - INTERVAL 30 DAY GROUP BY identity_id ORDER BY verifications DESC LIMIT 5"
+  }'
+```
+
+Response:
+
+```json
+{
+  "meta": {
+    "requestId": "req_ghi789"
+  },
+  "data": {
+    "verifications": [
+      { "identity_id": "user_alice", "verifications": 8420 },
+      { "identity_id": "user_bob", "verifications": 6105 },
+      { "identity_id": "user_charlie", "verifications": 4892 }
+    ]
+  }
+}
+```
+
+<Note>
+  **Raw vs Aggregated Tables:** The raw table uses `external_id` and `api_id`, while aggregated tables use `identity_id` and `key_space_id`. When querying aggregated tables, use `SUM(total_verifications)` instead of `COUNT(*)` for better performance.
+</Note>
 
 ## Available Data
 
 Every verification event contains:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `request_id` | String | Unique identifier for each request |
-| `time` | Int64 | Unix millisecond timestamp |
-| `workspace_id` | String | Your workspace identifier (automatically filtered) |
-| `api_id` | String | Your API identifier (e.g., `api_1234`) |
-| `external_id` | String | Your user's identifier (e.g., `user_abc`) |
-| `key_id` | String | Individual key identifier |
-| `outcome` | String | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |
-| `region` | String | Geographic region of the request |
-| `ip_address` | String | IP address of the requester |
-| `user_agent` | String | User agent string |
-| `tags` | Array(String) | Custom tags added during verification |
+| Field          | Type          | Description                                                                                                                               |
+| -------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `request_id`   | String        | Unique identifier for each request                                                                                                        |
+| `time`         | Int64         | Unix millisecond timestamp                                                                                                                |
+| `workspace_id` | String        | Your workspace identifier (automatically filtered)                                                                                        |
+| `api_id`       | String        | Your API identifier (e.g., `api_1234`)                                                                                                    |
+| `external_id`  | String        | Your user's identifier (e.g., `user_abc`)                                                                                                 |
+| `key_id`       | String        | Individual key identifier                                                                                                                 |
+| `outcome`      | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |
+| `region`       | String        | Geographic region of the request                                                                                                          |
+| `ip_address`   | String        | IP address of the requester                                                                                                               |
+| `user_agent`   | String        | User agent string                                                                                                                         |
+| `tags`         | Array(String) | Custom tags added during verification                                                                                                     |
 
 ## Next Steps
 
@@ -84,7 +181,11 @@ Every verification event contains:
   <Card title="Query Examples" icon="code" href="/analytics/query-examples">
     Explore common SQL patterns for analytics and billing
   </Card>
-  <Card title="Schema Reference" icon="table" href="/analytics/schema-reference">
+  <Card
+    title="Schema Reference"
+    icon="table"
+    href="/analytics/schema-reference"
+  >
     Browse available tables, columns, and data types
   </Card>
   <Card title="Security" icon="shield" href="/analytics/security">
