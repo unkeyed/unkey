@@ -12,8 +12,20 @@ import { type OnboardingStep, OnboardingWizard } from "./onboarding-wizard";
 export function OnboardingContent() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const workspaceStep = useWorkspaceStep();
-  const keyCreationStep = useKeyCreationStep();
+
+  const handleStepChange = (newStepIndex: number) => {
+    if (newStepIndex >= 0 && newStepIndex < steps.length) {
+      setCurrentStepIndex(newStepIndex);
+    }
+  };
+  const workspaceStep = useWorkspaceStep({
+    advance: () => {
+      handleStepChange(currentStepIndex + 1);
+    },
+  });
+  const keyCreationStep = useKeyCreationStep({
+    advance: () => handleStepChange(currentStepIndex + 1),
+  });
 
   const steps: OnboardingStep[] = [
     workspaceStep,
@@ -29,16 +41,13 @@ export function OnboardingContent() {
       buttonText: "Continue to dashboard",
       onStepNext: () => {
         setIsConfirmOpen(true);
+        return true;
       },
       onStepSkip: () => {
         setIsConfirmOpen(true);
       },
     },
   ];
-
-  const handleStepChange = (newStepIndex: number) => {
-    setCurrentStepIndex(newStepIndex);
-  };
 
   const currentStepInfo = stepInfos[currentStepIndex];
 
@@ -69,7 +78,11 @@ export function OnboardingContent() {
         <div className="mt-10" />
         {/* Form part */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          <OnboardingWizard steps={steps} onStepChange={handleStepChange} />
+          <OnboardingWizard
+            steps={steps}
+            currentStepIndex={currentStepIndex}
+            setCurrentStepIndex={handleStepChange}
+          />
         </div>
       </div>
       <div className="absolute bottom-4 left-4">
