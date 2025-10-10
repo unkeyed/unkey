@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
-import { ChevronExpandY, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
+import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
 import { KeySettingsDialog } from "./_components/key-settings-dialog";
 
@@ -179,7 +179,13 @@ const NavbarContent = ({
               <CopyableIDButton value={keyId as string} />
             </>
           ) : shouldFetchKey ? (
-            <></>
+            <>
+              <NavbarActionButton disabled>
+                <Gear />
+                Settings
+              </NavbarActionButton>
+              <CopyableIDButton value={keyId as string} />
+            </>
           ) : layoutData.keyAuth ? (
             <CreateKeyDialog
               keyspaceId={layoutData.keyAuth.id}
