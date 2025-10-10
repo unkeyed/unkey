@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
@@ -220,7 +221,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Krane:         kraneClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
-	})))
+	}), restate.WithInvocationRetryPolicy(
+		restate.WithMaxAttempts(10),
+		restate.PauseOnMaxAttempts(),
+	)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		Logger:        logger,

@@ -3,14 +3,10 @@ package docker
 import (
 	"context"
 	"fmt"
-	"io"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/go-connections/nat"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 )
@@ -27,44 +23,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 		"image", deployment.GetImage(),
 	)
 
-	// Only pull image if it's from a registry (contains '/') and depot token is configured
-	// Local images (no '/') are already available from local builds
-	if strings.Contains(deployment.GetImage(), "/") {
-		if d.depotToken == "" {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("depot token not configured but image requires registry pull"))
-		}
-
-		d.logger.Info("pulling image from registry", "image", deployment.GetImage())
-
-		authConfig := registry.AuthConfig{
-			Username: "x-token",
-			Password: d.depotToken,
-		}
-
-		encodedAuth, err := registry.EncodeAuthConfig(authConfig)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to encode auth: %w", err))
-		}
-
-		pullResp, err := d.client.ImagePull(ctx, deployment.GetImage(), image.PullOptions{
-			RegistryAuth: encodedAuth,
-		})
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to pull image: %w", err))
-		}
-		defer pullResp.Close()
-
-		// Wait for pull to complete
-		_, err = io.Copy(io.Discard, pullResp)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to complete image pull: %w", err))
-		}
-
-		d.logger.Info("image pulled successfully", "image", deployment.GetImage())
-	} else {
-		d.logger.Info("using local image", "image", deployment.GetImage())
-	}
+	d.logger.Info("using local image", "image", deployment.GetImage())
 
 	// Configure port mapping
 	exposedPorts := nat.PortSet{

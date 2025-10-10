@@ -283,7 +283,6 @@ services:
 
       # Backend configuration - use Docker backend for development
       UNKEY_KRANE_BACKEND: "docker"
-      UNKEY_BUILD_BACKEND: "docker" # Use "depot" for production
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
       UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
@@ -357,7 +356,6 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
       # Build configuration
-      UNKEY_BUILD_BACKEND: "docker" # Use "depot" for production
       UNKEY_BUILD_S3_URL: "http://s3:3902"
       UNKEY_BUILD_S3_BUCKET: "build-contexts"
       UNKEY_BUILD_S3_ACCESS_KEY_ID: "minio_root_user"
@@ -365,11 +363,16 @@ services:
 
       # API key for simple authentication (temporary, will be replaced with JWT)
       UNKEY_API_KEY: "your-local-dev-key"
-      # Depot configuration (for production)
+      # Depot configuration
+      UNKEY_BUILD_BACKEND: "${UNKEY_BUILD_BACKEND:-docker}"
+      UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
+      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
+
+      # Depot configuration
       UNKEY_DEPOT_API_URL: "https://api.depot.dev"
       UNKEY_DEPOT_REGISTRY_URL: "registry.depot.dev"
       UNKEY_DEPOT_USERNAME: "x-token"
-      UNKEY_DEPOT_ACCESS_TOKEN: "depot_org_249508a7f1ff42a62eb2f57b98cf9795459dc63d012a5b15823e374f5c806cad"
+      UNKEY_DEPOT_ACCESS_TOKEN: "${DEPOT_TOKEN:-}"
 
   otel:
     networks:

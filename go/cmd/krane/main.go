@@ -29,9 +29,6 @@ unkey run krane                                   # Run with default configurati
 		cli.String("backend", "Backend type for the service. Either kubernetes or docker. Default: kubernetes",
 			cli.Default("kubernetes"), cli.EnvVar("UNKEY_KRANE_BACKEND")),
 
-		cli.String("build-backend", "Build backend type. Either depot or docker. Default: depot",
-			cli.Default("depot"), cli.EnvVar("UNKEY_BUILD_BACKEND")),
-
 		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
 			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
 
@@ -50,15 +47,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return cli.Exit(err.Error(), 1)
 	}
 
-	buildBackend, err := parseBuildBackend(cmd.String("build-backend"))
-	if err != nil {
-		return cli.Exit(err.Error(), 1)
-	}
-
 	config := krane.Config{
 		HttpPort:              cmd.Int("http-port"),
 		Backend:               backend,
-		BuildBackend:          buildBackend,
 		Platform:              cmd.String("platform"),
 		Image:                 cmd.String("image"),
 		Region:                cmd.String("region"),
@@ -88,16 +79,5 @@ func parseBackend(s string) (krane.Backend, error) {
 		return krane.Kubernetes, nil
 	default:
 		return "", fmt.Errorf("unknown backend type: %s", s)
-	}
-}
-
-func parseBuildBackend(s string) (krane.BuildBackend, error) {
-	switch s {
-	case "docker":
-		return krane.BuildBackendDocker, nil
-	case "depot":
-		return krane.BuildBackendDepot, nil
-	default:
-		return "", fmt.Errorf("unknown build backend type: %s", s)
 	}
 }

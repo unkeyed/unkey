@@ -15,9 +15,8 @@ import (
 // are built locally using the Docker daemon and deployed on the same host.
 // It does not support multi-node clusters or remote image registries.
 type docker struct {
-	logger     logging.Logger
-	client     *client.Client
-	depotToken string // Authentication token for Depot registry (optional, only used when BuildBackend is Depot)
+	logger logging.Logger
+	client *client.Client
 
 	kranev1connect.UnimplementedDeploymentServiceHandler
 }
@@ -29,12 +28,9 @@ var _ kranev1connect.DeploymentServiceHandler = (*docker)(nil)
 // The socketPath parameter specifies the Docker daemon socket location.
 // Common values are "/var/run/docker.sock" on Linux and macOS.
 //
-// The depotToken parameter is optional and only required when using Depot
-// as the build backend. Pass an empty string when using local Docker builds.
-//
 // Returns an error if the Docker daemon is unreachable or the socket
 // path is invalid. The socket must be accessible with appropriate permissions.
-func New(logger logging.Logger, socketPath string, depotToken string) (*docker, error) {
+func New(logger logging.Logger, socketPath string) (*docker, error) {
 	// Create Docker client with configurable socket path
 	// socketPath must not include protocol (e.g., "var/run/docker.sock")
 	dockerClient, err := client.NewClientWithOpts(
@@ -56,8 +52,7 @@ func New(logger logging.Logger, socketPath string, depotToken string) (*docker, 
 	logger.Info("Docker client initialized successfully", "socket", socketPath)
 
 	return &docker{
-		logger:     logger,
-		client:     dockerClient,
-		depotToken: depotToken,
+		logger: logger,
+		client: dockerClient,
 	}, nil
 }
