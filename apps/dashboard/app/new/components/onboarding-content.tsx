@@ -2,7 +2,7 @@
 import { HelpButton } from "@/components/navigation/sidebar/help-button";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
 import { Key2 } from "@unkey/icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { stepInfos } from "../constants";
 import { useKeyCreationStep } from "../hooks/use-key-creation-step";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
@@ -13,21 +13,18 @@ export function OnboardingContent() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const [stepCount, setStepCount] = useState(0);
-
   const handleStepChange = (newStepIndex: number) => {
-    setCurrentStepIndex(newStepIndex);
-  };
-  const clamp = (i: number) => {
-    return Math.max(0, Math.min(stepCount - 1, i));
+    if (newStepIndex >= 0 && newStepIndex < steps.length) {
+      setCurrentStepIndex(newStepIndex);
+    }
   };
   const workspaceStep = useWorkspaceStep({
     advance: () => {
-      handleStepChange(clamp(currentStepIndex + 1));
+      handleStepChange(currentStepIndex + 1);
     },
   });
   const keyCreationStep = useKeyCreationStep({
-    advance: () => handleStepChange(clamp(currentStepIndex + 1)),
+    advance: () => handleStepChange(currentStepIndex + 1),
   });
 
   const steps: OnboardingStep[] = [
@@ -51,12 +48,6 @@ export function OnboardingContent() {
       },
     },
   ];
-
-  // stupid hack to get around the circular dependency
-  // we need the length of steps to determine the number of steps for boundary checking
-  useEffect(() => {
-    setStepCount(steps.length);
-  }, [steps.length]);
 
   const currentStepInfo = stepInfos[currentStepIndex];
 
