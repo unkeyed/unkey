@@ -2,6 +2,7 @@
 
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -9,6 +10,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { ChevronExpandY, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
+import { KeySettingsDialog } from "./_components/key-settings-dialog";
 
 // Types for better type safety
 interface ApiLayoutData {
@@ -83,10 +85,6 @@ const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
       </Navbar.Breadcrumbs.Link>
     </Navbar.Breadcrumbs>
     <Navbar.Actions>
-      <NavbarActionButton disabled>
-        <Plus />
-        Create new key
-      </NavbarActionButton>
       <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[190px] transition-all ">
         <div className="h-3 w-[190px] bg-grayA-3 rounded" />
         <div>
@@ -108,11 +106,14 @@ const NavbarContent = ({
 }: NavbarContentProps) => {
   const shouldFetchKey = Boolean(keyspaceId && keyId);
 
-  // If we expected to find a key but this component doesn't handle key details,
-  // we should handle this at a higher level or in a different component
-  if (shouldFetchKey) {
-    console.warn("Key fetching logic should be handled at a higher level");
-  }
+  // Fetch key details when viewing a specific key
+  const { data: keyData } = trpc.api.keys.list.useQuery(
+    { keyAuthId: keyspaceId!, limit: 1000 },
+    {
+      enabled: shouldFetchKey,
+      select: (data) => data.keys.find((key) => key.id === keyId) || null,
+    },
+  );
 
   const { currentApi } = layoutData;
 
@@ -171,19 +172,28 @@ const NavbarContent = ({
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
-        {layoutData.keyAuth ? (
-          <CreateKeyDialog
-            keyspaceId={layoutData.keyAuth.id}
-            apiId={currentApi.id}
-            copyIdValue={currentApi.id}
-            keyspaceDefaults={currentApi.keyspaceDefaults}
-          />
-        ) : (
-          <NavbarActionButton disabled>
-            <Plus />
-            Create new key
-          </NavbarActionButton>
-        )}
+        <Navbar.Actions>
+          {shouldFetchKey && keyData ? (
+            <>
+              <KeySettingsDialog keyData={keyData} />
+              <CopyableIDButton value={keyId!} />
+            </>
+          ) : shouldFetchKey ? (
+            <></>
+          ) : layoutData.keyAuth ? (
+            <CreateKeyDialog
+              keyspaceId={layoutData.keyAuth.id}
+              apiId={currentApi.id}
+              copyIdValue={currentApi.id}
+              keyspaceDefaults={currentApi.keyspaceDefaults}
+            />
+          ) : (
+            <NavbarActionButton disabled>
+              <Plus />
+              Create new key
+            </NavbarActionButton>
+          )}
+        </Navbar.Actions>
       </Navbar>
     </div>
   );
