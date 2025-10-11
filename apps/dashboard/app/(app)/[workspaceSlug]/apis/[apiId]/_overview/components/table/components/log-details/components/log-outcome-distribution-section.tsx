@@ -1,6 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CopyButton } from "@unkey/ui";
+import { CopyButton } from "@unkey/ui";
 import { formatOutcomeName, getOutcomeColor } from "../../../../../utils";
 
 export const OutcomeDistributionSection = ({
@@ -21,25 +21,23 @@ export const OutcomeDistributionSection = ({
   };
 
   return (
-    <div className="flex flex-col gap-1 mt-[16px]">
-      <div className="flex justify-between items-center">
-        <span className="text-[13px] text-accent-9 font-sans">
+    <div className="flex flex-col gap-1 mt-[16px] px-4">
+      <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative group">
+        <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans">
           Outcomes ({outcomeEntries.length})
-        </span>
-      </div>
-      <Card className="bg-gray-2 border-gray-4 rounded-lg">
-        <CardContent className="py-2 px-3 text-xs relative group">
+        </div>
+        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
           <div className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {outcomeEntries.map(([outcome, count]) => (
-              <div className="group flex items-center w-full p-[3px]" key={outcome}>
-                <div className="flex items-center text-left text-accent-9 whitespace-nowrap">
+              <div className="flex items-center w-full px-[3px] h-6" key={outcome}>
+                <div className="flex items-center text-left text-gray-11 whitespace-nowrap">
                   <div
                     className={cn(
                       "size-[10px] rounded-[2px] shadow-sm mr-2",
                       getOutcomeColor(outcome),
                     )}
                   />
-                  <span>{formatOutcomeName(outcome)}:</span>
+                  <span className="text-xs text-gray-11 ">{formatOutcomeName(outcome)}:</span>
                 </div>
                 <span className="ml-2 text-xs text-accent-12 truncate font-mono tabular-nums">
                   {formatNumber(count)}
@@ -47,16 +45,15 @@ export const OutcomeDistributionSection = ({
               </div>
             ))}
           </div>
-          <CopyButton
-            value={getTextToCopy()}
-            shape="square"
-            variant="primary"
-            size="2xlg"
-            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
-            aria-label="Copy content"
-          />
-        </CardContent>
-      </Card>
+        </div>
+        <CopyButton
+          value={getTextToCopy()}
+          shape="square"
+          variant="outline"
+          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"
+          aria-label="Copy content"
+        />
+      </div>
     </div>
   );
 };

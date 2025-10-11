@@ -46,9 +46,11 @@ const createLogSections = (log: Log | RatelimitLog) => [
   {
     title: "Request Body",
     content:
-      JSON.stringify(safeParseJson(log.request_body), null, 2) === "null"
-        ? EMPTY_TEXT
-        : JSON.stringify(safeParseJson(log.request_body), null, 2),
+      JSON.stringify(safeParseJson(log.request_body), null, 2) === "null" ? (
+        <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+      ) : (
+        JSON.stringify(safeParseJson(log.request_body), null, 2)
+      ),
   },
   {
     title: "Response Header",
@@ -57,9 +59,11 @@ const createLogSections = (log: Log | RatelimitLog) => [
   {
     title: "Response Body",
     content:
-      JSON.stringify(safeParseJson(log.response_body), null, 2) === "null"
-        ? EMPTY_TEXT
-        : JSON.stringify(safeParseJson(log.response_body), null, 2),
+      JSON.stringify(safeParseJson(log.response_body), null, 2) === "null" ? (
+        <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+      ) : (
+        JSON.stringify(safeParseJson(log.response_body), null, 2)
+      ),
   },
 ];
 
@@ -70,17 +74,21 @@ const createMetaContent = (log: SupportedLogTypes) => {
       const parsedMeta = JSON.parse((log.key_details as { meta: string })?.meta);
       return JSON.stringify(parsedMeta, null, 2);
     } catch {
-      return EMPTY_TEXT;
+      return <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>;
     }
   }
 
   // Standard log meta handling
   if ("request_body" in log || "response_body" in log) {
     const meta = extractResponseField(log as Log | RatelimitLog, "meta");
-    return JSON.stringify(meta, null, 2) === "null" ? EMPTY_TEXT : JSON.stringify(meta, null, 2);
+    return JSON.stringify(meta, null, 2) === "null" ? (
+      <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
+    ) : (
+      JSON.stringify(meta, null, 2)
+    );
   }
 
-  return EMPTY_TEXT;
+  return <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>;
 };
 
 // Type guards
@@ -146,7 +154,7 @@ export const LogDetails = ({
         isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
       )
     : "";
-  const staticClasses = animated ? "" : "absolute right-0 overflow-y-auto p-4";
+  const staticClasses = animated ? "" : "absolute right-0 overflow-y-auto";
 
   return (
     <ResizablePanel
@@ -314,7 +322,12 @@ const Footer = ({
 
   return (
     <Section delay={delay}>
-      {children || (isStandardLog(log) ? <LogFooter log={log} /> : null)}
+      {children ||
+        (isStandardLog(log) ? (
+          <div className="px-4">
+            <LogFooter log={log} />{" "}
+          </div>
+        ) : null)}
     </Section>
   );
 };
