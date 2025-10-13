@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
@@ -55,34 +54,6 @@ func (tm *tracingMiddleware) ListObjectKeys(ctx context.Context, prefix string) 
 		span.SetStatus(codes.Error, err.Error())
 	}
 	return keys, err
-}
-
-func (tm *tracingMiddleware) GetPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.GetPresignedURL", tm.name))
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("key", key),
-		attribute.String("expires_in", expiresIn.String()),
-	)
-	url, err := tm.next.GetPresignedURL(ctx, key, expiresIn)
-	if err != nil {
-		span.SetStatus(codes.Error, err.Error())
-	}
-	return url, err
-}
-
-func (tm *tracingMiddleware) PutPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("storage.%s.PutPresignedURL", tm.name))
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("key", key),
-		attribute.String("expires_in", expiresIn.String()),
-	)
-	url, err := tm.next.PutPresignedURL(ctx, key, expiresIn)
-	if err != nil {
-		span.SetStatus(codes.Error, err.Error())
-	}
-	return url, err
 }
 
 func (tm *tracingMiddleware) Key(shard string, dekID string) string {

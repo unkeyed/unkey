@@ -1,24 +1,25 @@
+// Package docker used for local testing using docker only
 package docker
 
 import (
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/storage"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
 type Docker struct {
 	ctrlv1connect.UnimplementedBuildServiceHandler
 	instanceID string
 	db         db.Database
-	storage    storage.Storage
+	storage    *storage.S3
 	logger     logging.Logger
 }
 
 type Config struct {
 	InstanceID string
 	DB         db.Database
-	Storage    storage.Storage
+	Storage    *storage.S3
 	Logger     logging.Logger
 }
 

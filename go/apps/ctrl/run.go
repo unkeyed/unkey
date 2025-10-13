@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/docker"
+	buildStorage "github.com/unkeyed/unkey/go/apps/ctrl/services/build/storage"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -170,7 +170,7 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
-	buildStorage, err := storage.NewS3(storage.S3Config{
+	storage, err := buildStorage.NewS3(buildStorage.S3Config{
 		Logger:            logger,
 		S3URL:             cfg.BuildS3.URL,
 		S3Bucket:          cfg.BuildS3.Bucket,
@@ -187,7 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 		buildService = docker.New(docker.Config{
 			DB:      database,
 			Logger:  logger,
-			Storage: buildStorage,
+			Storage: storage,
 		})
 		logger.Info("Using Docker build backend")
 
@@ -200,7 +200,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Username:    cfg.Depot.Username,
 			AccessToken: cfg.Depot.AccessToken,
 			Logger:      logger,
-			Storage:     buildStorage,
+			Storage:     storage,
 		})
 		logger.Info("Using Depot build backend")
 
@@ -221,10 +221,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Krane:         kraneClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
-	}), restate.WithInvocationRetryPolicy(
-		restate.WithMaxAttempts(10),
-		restate.PauseOnMaxAttempts(),
-	)))
+	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		Logger:        logger,

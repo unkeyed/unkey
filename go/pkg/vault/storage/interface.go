@@ -27,8 +27,4 @@ type Storage interface {
 
 	// Latest returns the object key for the latest version of the given workspace
 	Latest(shard string) string
-	// GetPresignedURL generates a presigned URL for downloading an object
-	GetPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error)
-	// PutPresignedURL generates a presigned URL for uploading an object
-	PutPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error)
 }
