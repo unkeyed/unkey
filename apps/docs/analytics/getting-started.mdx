@@ -51,7 +51,7 @@ WHERE time >= now() - INTERVAL 7 DAY
 Execute this query with curl:
 
 ```bash
-curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -74,7 +74,7 @@ ORDER BY count DESC
 Execute this query with curl:
 
 ```bash
-curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -98,7 +98,7 @@ LIMIT 10
 Execute this query with curl:
 
 ```bash
-curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -145,7 +145,7 @@ Each object in the `verifications` array contains fields from your SELECT clause
 
 ## Filtering by API or User
 
-You can filter queries using your API IDs and user identifiers directly. Use fields like `key_space_id` (find this in your API settings) and `external_id` with standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
+You can filter queries to specific APIs or users. Use `key_space_id` to filter by API (find this identifier in your API settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
 
 ## Resource Limits
 

@@ -57,7 +57,7 @@ WHERE outcome = 'VALID'
 Execute with curl:
 
 ```bash
-curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -95,7 +95,7 @@ Your query is automatically rewritten to:
 See the breakdown of verification results:
 
 ```bash
-curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -125,7 +125,7 @@ Response:
 Find your top users by verification count over the last 30 days using the daily aggregated table for better performance:
 
 ```bash
-curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
