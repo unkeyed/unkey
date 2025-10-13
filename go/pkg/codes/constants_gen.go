@@ -89,6 +89,11 @@ const (
 	// NotFound indicates the requested API was not found.
 	UnkeyDataErrorsApiNotFound URN = "err:unkey:data:api_not_found"
 
+	// KeySpace
+
+	// NotFound indicates the requested key space was not found.
+	UnkeyDataErrorsKeySpaceNotFound URN = "err:unkey:data:key_space_not_found"
+
 	// Permission
 
 	// Duplicate indicates the requested permission already exists.

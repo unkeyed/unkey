@@ -53,9 +53,10 @@ type Config struct {
 	// ClickhouseURL is the ClickHouse database connection string
 	ClickhouseURL string
 
-	// ClickhouseAnalyticsDSN is the DSN template for workspace-specific analytics connections
-	// Format: http://%s:%s@host:port/database (placeholders for username, password)
-	ClickhouseAnalyticsDSN string
+	// ClickhouseAnalyticsURL is the base URL for workspace-specific analytics connections
+	// Workspace credentials are injected programmatically at connection time
+	// Examples: "http://clickhouse:8123/default", "clickhouse://clickhouse:9000/default"
+	ClickhouseAnalyticsURL string
 
 	// --- Database configuration ---
 

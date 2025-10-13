@@ -2,7 +2,7 @@ package analytics
 
 import (
 	"context"
-	"fmt"
+	"net/url"
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
@@ -29,7 +29,7 @@ type connectionManager struct {
 	connectionCache cache.Cache[string, clickhouse.ClickHouse]
 	database        db.Database
 	logger          logging.Logger
-	dsnTemplate     string
+	baseURL         string
 	vault           *vault.Service
 }
 
@@ -39,7 +39,7 @@ type ConnectionManagerConfig struct {
 	Database      db.Database
 	Logger        logging.Logger
 	Clock         clock.Clock
-	DSNTemplate   string // e.g., "http://%s:%s@clickhouse:8123/default"
+	BaseURL       string // e.g., "http://clickhouse:8123/default" or "clickhouse://clickhouse:9000/default"
 	Vault         *vault.Service
 }
 
@@ -51,7 +51,7 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 		assert.NotNilAndNotZero(config.Database, "database is required"),
 		assert.NotNilAndNotZero(config.Logger, "logger is required"),
 		assert.NotNilAndNotZero(config.Clock, "clock is required"),
-		assert.NotNilAndNotZero(config.DSNTemplate, "DSN template is required"),
+		assert.NotNilAndNotZero(config.BaseURL, "base URL is required"),
 	)
 	if err != nil {
 		return nil, fault.Wrap(err,
@@ -79,7 +79,7 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 		connectionCache: connectionCache,
 		database:        config.Database,
 		logger:          config.Logger,
-		dsnTemplate:     config.DSNTemplate,
+		baseURL:         config.BaseURL,
 		vault:           config.Vault,
 	}, nil
 }
@@ -160,8 +160,19 @@ func (m *connectionManager) createConnection(ctx context.Context, workspaceID st
 		)
 	}
 
+	// Parse base URL and inject workspace-specific credentials
+	parsedURL, err := url.Parse(m.baseURL)
+	if err != nil {
+		return nil, db.ClickhouseWorkspaceSetting{}, fault.Wrap(err,
+			fault.Public("Invalid ClickHouse URL configuration"),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+		)
+	}
+
+	// Inject workspace credentials
+	parsedURL.User = url.UserPassword(settings.Username, decrypted.GetPlaintext())
 	conn, err := clickhouse.New(clickhouse.Config{
-		URL:    fmt.Sprintf(m.dsnTemplate, settings.Username, decrypted.GetPlaintext()),
+		URL:    parsedURL.String(),
 		Logger: m.logger,
 	})
 	if err != nil {

@@ -103,15 +103,8 @@ components:
                     type: string
                     description: |
                         SQL query to execute against your analytics data.
-
-                        The query will be automatically rewritten to:
-                        - Inject workspace_id filters for data isolation
-                        - Map table aliases (e.g., key_verifications → default.key_verifications_raw_v2)
-                        - Resolve virtual columns (apiId, externalId)
-                        - Block dangerous operations
-
                         Only SELECT queries are allowed.
-                    example: "SELECT COUNT(*) as total FROM key_verifications WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
+                    example: "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
         V2AnalyticsGetVerificationsResponseBody:
             type: object
             required:
@@ -3341,11 +3334,8 @@ paths:
     /v2/analytics.getVerifications:
         post:
             description: |
-                Execute custom SQL queries against your key verification analytics data with automatic workspace isolation and security controls.
-
-                This endpoint provides a powerful SQL interface to query your verification events across multiple time-series tables (raw events, minute/hour/day/month aggregates).
-
-                For complete documentation including available tables, columns, data types, query examples, and best practices, see the comprehensive schema reference in the API documentation.
+                Execute custom SQL queries against your key verification analytics.
+                For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
             operationId: getVerifications
             requestBody:
                 content:
@@ -3407,6 +3397,7 @@ paths:
             summary: Query key verification data
             tags:
                 - analytics
+            x-hidden: true
             x-speakeasy-name-override: getVerifications
     /v2/apis.createApi:
         post:

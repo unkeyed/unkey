@@ -264,13 +264,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize analytics connection manager
 	analyticsConnMgr := analytics.NewNoopConnectionManager()
-	if cfg.ClickhouseAnalyticsDSN != "" && vaultSvc != nil {
+	if cfg.ClickhouseAnalyticsURL != "" && vaultSvc != nil {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
 			Database:      db,
 			Logger:        logger,
 			Clock:         clk,
-			DSNTemplate:   cfg.ClickhouseAnalyticsDSN,
+			BaseURL:       cfg.ClickhouseAnalyticsURL,
 			Vault:         vaultSvc,
 		})
 		if err != nil {

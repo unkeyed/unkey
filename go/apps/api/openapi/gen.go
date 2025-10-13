@@ -534,13 +534,6 @@ type UpdateKeyCreditsRefillInterval string
 // V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
 type V2AnalyticsGetVerificationsRequestBody struct {
 	// Query SQL query to execute against your analytics data.
-	//
-	// The query will be automatically rewritten to:
-	// - Inject workspace_id filters for data isolation
-	// - Map table aliases (e.g., key_verifications → default.key_verifications_raw_v2)
-	// - Resolve virtual columns (apiId, externalId)
-	// - Block dangerous operations
-	//
 	// Only SELECT queries are allowed.
 	Query string `json:"query"`
 }

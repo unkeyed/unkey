@@ -369,6 +369,7 @@ func (c *cache[K, V]) SWRMany(
 		if seen[key] {
 			continue
 		}
+
 		seen[key] = true
 
 		hit := hits[key]
@@ -418,6 +419,7 @@ func (c *cache[K, V]) SWRMany(
 						notFoundKeys = append(notFoundKeys, key)
 					}
 				}
+
 				if len(notFoundKeys) > 0 {
 					c.SetNullMany(ctx, notFoundKeys)
 					for _, key := range notFoundKeys {

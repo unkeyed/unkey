@@ -28,7 +28,7 @@ Analytics queries require a root key with analytics permissions. Create one in y
 
 1. Go to **Settings** → **Root Keys**
 2. Click **Create New Root Key**
-3. Select permissions: `api.*.read_analytics`
+3. Select permissions: `api.*.read_analytics` OR `api.<api_id>.read_analytics`
 4. Copy and securely store your root key
 
 <Warning>
@@ -86,11 +86,11 @@ curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
 
 ```sql
 SELECT
-  identity_id,
+  external_id,
   SUM(total_verifications) as verifications
 FROM key_verifications_per_day_v1
 WHERE day >= now() - INTERVAL 30 DAY
-GROUP BY identity_id
+GROUP BY external_id
 ORDER BY verifications DESC
 LIMIT 10
 ```
@@ -102,7 +102,7 @@ curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT identity_id, SUM(total_verifications) as verifications FROM key_verifications_per_day_v1 WHERE day >= now() - INTERVAL 30 DAY GROUP BY identity_id ORDER BY verifications DESC LIMIT 10"
+    "query": "SELECT external_id, SUM(total_verifications) as verifications FROM key_verifications_per_day_v1 WHERE day >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY verifications DESC LIMIT 10"
   }'
 ```
 
@@ -113,7 +113,8 @@ curl -X POST https://api.unkey.dev/v2/analytics.getVerifications \
   - `key_verifications_per_day_v1` - For queries spanning weeks/months
   - `key_verifications_per_month_v1` - For queries spanning years
 
-  Use `SUM(total_verifications)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
+Use `SUM(total_verifications)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
+
 </Tip>
 
 <Tip>

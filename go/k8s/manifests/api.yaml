@@ -47,8 +47,8 @@ spec:
               value: "redis://redis:6379"
             - name: UNKEY_CLICKHOUSE_URL
               value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-            - name: UNKEY_CLICKHOUSE_ANALYTICS_DSN
-              value: "http://%s:%s@clickhouse:8123/default"
+            - name: UNKEY_CLICKHOUSE_ANALYTICS_URL
+              value: "http://clickhouse:8123/default"
             # Observability - DISABLED for development
             - name: UNKEY_OTEL
               value: "false"

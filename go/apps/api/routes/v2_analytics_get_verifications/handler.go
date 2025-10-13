@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -67,43 +68,48 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Build a list of keyAuthIds that the root key has permissions for.
+	// Build a list of keySpaceIds that the root key has permissions for.
 	securityFilters := []chquery.SecurityFilter{}
 
 	allowedAPIIds := extractAllowedAPIIds(auth.Permissions)
 	if len(allowedAPIIds) > 0 {
-		apis, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(ctx, array.Map(allowedAPIIds, func(apiId string) cache.ScopedKey {
-			return cache.ScopedKey{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Key:         apiId,
-			}
-		}), func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
-			apis, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{WorkspaceID: auth.AuthorizedWorkspaceID, ApiIds: allowedAPIIds})
-			if err != nil {
-				return nil, err
-			}
+		apis, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(
+			ctx,
+			array.Map(allowedAPIIds, func(apiId string) cache.ScopedKey {
+				return cache.ScopedKey{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Key:         apiId,
+				}
+			}),
+			func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
+				apis, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{WorkspaceID: auth.AuthorizedWorkspaceID, ApiIds: allowedAPIIds})
+				if err != nil {
+					return nil, err
+				}
 
-			return array.Reduce(
-				apis,
-				func(acc map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, api db.FindKeyAuthsByIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByIdsRow {
-					acc[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: api.ApiID}] = api
-					return acc
-				},
-				map[cache.ScopedKey]db.FindKeyAuthsByIdsRow{},
-			), nil
-		}, caches.DefaultFindFirstOp)
+				return array.Reduce(
+					apis,
+					func(acc map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, api db.FindKeyAuthsByIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByIdsRow {
+						acc[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: api.ApiID}] = api
+						return acc
+					},
+					map[cache.ScopedKey]db.FindKeyAuthsByIdsRow{},
+				), nil
+			},
+			caches.DefaultFindFirstOp,
+		)
 		if err != nil {
 			return err
 		}
 
-		keyAuthIds := make([]string, 0, len(apis))
+		keySpaceIds := make([]string, 0, len(apis))
 		for _, api := range apis {
-			keyAuthIds = append(keyAuthIds, api.KeyAuthID)
+			keySpaceIds = append(keySpaceIds, api.KeyAuthID)
 		}
 
 		securityFilters = append(securityFilters, chquery.SecurityFilter{
 			Column:        "key_space_id",
-			AllowedValues: keyAuthIds,
+			AllowedValues: keySpaceIds,
 		})
 	}
 
@@ -146,18 +152,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	}
 
-	keyAuthIds := parser.ExtractColumn("key_space_id")
-	if len(keyAuthIds) > 0 {
-		keyAuths, _, err := h.Caches.KeyAuthToApiRow.SWRMany(
+	keySpaceIds := parser.ExtractColumn("key_space_id")
+	if len(keySpaceIds) > 0 {
+		keySpaces, keySpaceHits, err := h.Caches.KeyAuthToApiRow.SWRMany(
 			ctx,
-			array.Map(keyAuthIds, func(keyAuthId string) cache.ScopedKey {
-				return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: keyAuthId}
+			array.Map(keySpaceIds, func(keySpaceId string) cache.ScopedKey {
+				return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: keySpaceId}
 			}),
 			func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, error) {
-				keyAuths, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
+				keySpaces, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
-					KeyAuthIds: array.Map(keys, func(keyAuth cache.ScopedKey) string {
-						return keyAuth.Key
+					KeyAuthIds: array.Map(keys, func(keySpace cache.ScopedKey) string {
+						return keySpace.Key
 					}),
 				})
 
@@ -166,7 +172,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 
 				return array.Reduce(
-					keyAuths,
+					keySpaces,
 					func(acc map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, api db.FindKeyAuthsByKeyAuthIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow {
 						acc[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: api.KeyAuthID}] = api
 						return acc
@@ -180,11 +186,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
+		// Check for missing key_space_ids (cache returns Null for entries that don't exist)
 		apiPermissions := make([]rbac.PermissionQuery, 0)
-		for _, keyAuth := range keyAuths {
+		for key, hit := range keySpaceHits {
+			if hit == cache.Null {
+				return fault.New("key_space_id not found",
+					fault.Code(codes.Data.KeySpace.NotFound.URN()),
+					fault.Public(fmt.Sprintf("KeySpace '%s' was not found.", key.Key)),
+				)
+			}
+
 			apiPermissions = append(apiPermissions, rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
-				ResourceID:   keyAuth.ApiID,
+				ResourceID:   keySpaces[key].ApiID,
 				Action:       rbac.ReadAnalytics,
 			}))
 		}

@@ -20,6 +20,12 @@ type dataApi struct {
 	NotFound Code
 }
 
+// dataKeySpace defines errors related to key space operations.
+type dataKeySpace struct {
+	// NotFound indicates the requested key space was not found.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -89,6 +95,7 @@ type UnkeyDataErrors struct {
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
+	KeySpace           dataKeySpace
 	Permission         dataPermission
 	Role               dataRole
 	KeyAuth            dataKeyAuth
@@ -113,6 +120,10 @@ var Data = UnkeyDataErrors{
 
 	Api: dataApi{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "api_not_found"},
+	},
+
+	KeySpace: dataKeySpace{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_space_not_found"},
 	},
 
 	Permission: dataPermission{

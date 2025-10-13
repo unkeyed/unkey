@@ -12,9 +12,12 @@ func (p *Parser) buildCTERegistry() {
 
 	for _, cte := range p.stmt.With.CTEs {
 		// CTE Expr is the name we reference it by
-		if ident, ok := cte.Expr.(*clickhouse.Ident); ok {
-			p.cteNames[ident.Name] = true
+		ident, ok := cte.Expr.(*clickhouse.Ident)
+		if !ok {
+			continue
 		}
+
+		p.cteNames[ident.Name] = true
 	}
 }
 
