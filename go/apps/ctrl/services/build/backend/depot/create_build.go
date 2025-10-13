@@ -22,7 +22,6 @@ import (
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/upload/uploadprovider"
 
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
@@ -60,38 +59,15 @@ func (s *Depot) CreateBuild(
 			fmt.Errorf("unkeyProjectID is required"))
 	}
 
-	// Download build context from S3
-	s.logger.Info("Downloading build context from S3", "context_key", req.Msg.ContextKey)
-	tarData, exists, err := s.storage.GetObject(ctx, req.Msg.ContextKey)
+	// Get presigned URL from S3 instead of downloading
+	s.logger.Info("Getting presigned URL for build context", "context_key", req.Msg.ContextKey)
+	contextURL, err := s.storage.GetPresignedURL(ctx, req.Msg.ContextKey, 15*time.Minute)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to download build context: %w", err))
-	}
-	if !exists {
-		return nil, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("build context not found: %s", req.Msg.ContextKey))
+			fmt.Errorf("failed to get presigned URL: %w", err))
 	}
 
-	// Create temp file for the tar
-	tmpFile, err := os.CreateTemp("", "build-context-*.tar.gz")
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to create temp file: %w", err))
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	// Write tar data to temp file
-	if _, err := tmpFile.Write(tarData); err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to write build context: %w", err))
-	}
-	if err := tmpFile.Close(); err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to close temp file: %w", err))
-	}
-
-	s.logger.Info("Build context downloaded", "size_bytes", len(tarData), "temp_file", tmpFile.Name())
+	s.logger.Info("Got presigned URL for build context", "context_key", req.Msg.ContextKey)
 
 	depotProjectID, err := s.getOrCreateDepotProject(ctx, req.Msg.UnkeyProjectID)
 	if err != nil {
@@ -99,10 +75,12 @@ func (s *Depot) CreateBuild(
 			fmt.Errorf("failed to get/create depot project: %w", err))
 	}
 
+	s.logger.Info("Creating depot build with", "depot_project_id", depotProjectID)
 	buildResp, err := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
 		ProjectId: depotProjectID,
 	}, s.accessToken)
 	if err != nil {
+		s.logger.Error("Creating depot build failed", "error", err, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create build: %w", err))
 	}
@@ -112,6 +90,7 @@ func (s *Depot) CreateBuild(
 
 	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, "arm64")
 	if buildErr != nil {
+		s.logger.Error("Acquiring depot build failed", "buildErr", buildErr, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to acquire machine: %w", buildErr))
 	}
@@ -119,25 +98,14 @@ func (s *Depot) CreateBuild(
 
 	buildkitClient, buildErr := buildkit.Connect(ctx)
 	if buildErr != nil {
+		s.logger.Error("Connection to depot build failed", "buildErr", buildErr, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
 	}
 
-	// Open the downloaded tar file
-	dockerfileReader, buildErr := os.Open(tmpFile.Name())
-	if buildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to open build context: %w", buildErr))
-	}
-	defer dockerfileReader.Close()
-
-	uploader := uploadprovider.New()
-	contextURL := uploader.Add(dockerfileReader)
-
 	timestamp := time.Now().UnixMilli()
 	imageTag := fmt.Sprintf("%s/%s:%s-%d", s.registryUrl, depotProjectID, req.Msg.UnkeyProjectID, timestamp)
 
-	// Use ImagePath from request, default to "Dockerfile"
 	dockerfilePath := req.Msg.GetDockerfilePath()
 	if dockerfilePath == "" {
 		dockerfilePath = "Dockerfile"
@@ -151,7 +119,6 @@ func (s *Depot) CreateBuild(
 			"filename": dockerfilePath,
 		},
 		Session: []session.Attachable{
-			uploader,
 			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 				ConfigFile: &configfile.ConfigFile{
 					AuthConfigs: map[string]types.AuthConfig{
@@ -175,7 +142,6 @@ func (s *Depot) CreateBuild(
 		},
 	}
 
-	// TODO: Maybe we should push those to CH
 	buildStatusCh := make(chan *client.SolveStatus, 10)
 	go func() {
 		enc := json.NewEncoder(os.Stdout)
@@ -194,7 +160,6 @@ func (s *Depot) CreateBuild(
 
 	s.logger.Info("Build completed successfully", "image_tag", imageTag, "build_id", buildResp.ID, "depot_project_id", depotProjectID)
 
-	// Pull the image to local Docker daemon so Krane can use it without auth
 	buildErr = s.pullImageToHost(ctx, imageTag)
 	if buildErr != nil {
 		s.logger.Error("Failed to pull image to host", "error", buildErr, "image", imageTag)
@@ -226,7 +191,9 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
 
+	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
+		s.logger.Info("Returning existing depot project", "depot_project_id", project.DepotProjectID, "unkey_project_id", "project_name", projectName)
 		return project.DepotProjectID.String, nil
 	}
 
@@ -238,8 +205,6 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	}
 
 	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.apiUrl)
-	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
-
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
 		RegionId: "us-east-1",

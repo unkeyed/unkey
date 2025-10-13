@@ -20,7 +20,7 @@ func (s *Docker) GenerateUploadURL(
 	}
 
 	// Generate unique S3 key for this build context
-	contextKey := fmt.Sprintf("%s/build-contexts/%d.tar.gz",
+	contextKey := fmt.Sprintf("%s/%d.tar.gz",
 		req.Msg.UnkeyProjectID,
 		time.Now().UnixNano())
 
