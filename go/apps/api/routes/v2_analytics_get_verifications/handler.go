@@ -217,7 +217,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
 	if err != nil {
-		return err
+		return clickhouse.WrapClickHouseError(err)
 	}
 
 	return s.JSON(http.StatusOK, Response{

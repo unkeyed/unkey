@@ -135,13 +135,13 @@ Access is restricted to an allow list of approved analytics tables only. Any tab
 
 ### Allowed Tables
 
-- `default.key_verifications_raw_v2` (alias: `key_verifications_v1`)
-- `default.key_verifications_per_minute_v2` (alias: `key_verifications_per_minute_v1`)
-- `default.key_verifications_per_hour_v2` (alias: `key_verifications_per_hour_v1`)
-- `default.key_verifications_per_day_v2` (alias: `key_verifications_per_day_v1`)
-- `default.key_verifications_per_month_v2` (alias: `key_verifications_per_month_v1`)
+- `key_verifications_v1` - Raw verification events
+- `key_verifications_per_minute_v1` - Aggregated by minute
+- `key_verifications_per_hour_v1` - Aggregated by hour
+- `key_verifications_per_day_v1` - Aggregated by day
+- `key_verifications_per_month_v1` - Aggregated by month
 
-All other tables (including system tables, information schema, and internal tables) are not accessible.
+All other tables (including system tables, information schema, and internal tables) are blocked for security.
 
 ## Authentication
 

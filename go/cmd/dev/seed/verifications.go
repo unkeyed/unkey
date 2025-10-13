@@ -444,7 +444,7 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 		// Generate tags (0-2 tags)
 		tagCount := rand.IntN(3)
 		tags := make([]string, 0, tagCount)
-		for j := 0; j < tagCount; j++ {
+		for range tagCount {
 			tag := tagOptions[rand.IntN(len(tagOptions))]
 			if !slices.Contains(tags, tag) {
 				tags = append(tags, tag)

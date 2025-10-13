@@ -5,20 +5,8 @@ description: "Tables, columns, and data types in Unkey Analytics"
 
 Unkey Analytics stores verification events across multiple time-series tables for efficient querying. This reference documents all available tables and their columns.
 
-## Table Aliases
-
-For convenience, you can use short aliases that automatically map to the full table names:
-
-| Alias                             | Full Table Name                           | Description             |
-| --------------------------------- | ----------------------------------------- | ----------------------- |
-| `key_verifications_v1`            | `default.key_verifications_raw_v2`        | Raw verification events |
-| `key_verifications_per_minute_v1` | `default.key_verifications_per_minute_v2` | Aggregated by minute    |
-| `key_verifications_per_hour_v1`   | `default.key_verifications_per_hour_v2`   | Aggregated by hour      |
-| `key_verifications_per_day_v1`    | `default.key_verifications_per_day_v2`    | Aggregated by day       |
-| `key_verifications_per_month_v1`  | `default.key_verifications_per_month_v2`  | Aggregated by month     |
-
 <Tip>
-  Use aggregated tables (hour/day/month) for queries spanning long time periods
+  Use aggregated tables (`per_hour`, `per_day`, `per_month`) for queries spanning long time periods
   to improve performance.
 </Tip>
 
@@ -65,39 +53,27 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 | Column                           | Type     | Description                                     |
 | -------------------------------- | -------- | ----------------------------------------------- |
-| `minute`                         | DateTime | Start of the minute (rounded down)              |
-| `workspace_id`                   | String   | Workspace identifier                            |
-| `key_space_id`                   | String   | API identifier                                  |
-| `key_id`                         | String   | API key identifier                              |
-| `identity_id`                    | String   | Identity identifier                             |
-| `region`                         | String   | Geographic region                               |
-| `total_verifications`            | UInt64   | Total verification count                        |
-| `valid_count`                    | UInt64   | Count of VALID verifications                    |
-| `rate_limited_count`             | UInt64   | Count of RATE_LIMITED verifications             |
-| `invalid_count`                  | UInt64   | Count of INVALID verifications                  |
-| `expired_count`                  | UInt64   | Count of EXPIRED verifications                  |
-| `disabled_count`                 | UInt64   | Count of DISABLED verifications                 |
-| `insufficient_permissions_count` | UInt64   | Count of INSUFFICIENT_PERMISSIONS verifications |
-| `forbidden_count`                | UInt64   | Count of FORBIDDEN verifications                |
-| `usage_exceeded_count`           | UInt64   | Count of USAGE_EXCEEDED verifications           |
+| `time`          | DateTime | Timestamp (DateTime for minute/hour, Date for day/month)             |
+| `workspace_id`  | String   | Workspace identifier                                                 |
+| `key_space_id`  | String   | API identifier                                                       |
+| `external_id`   | String   | Your user identifier                                                 |
+| `key_id`        | String   | API key identifier                                                   |
+| `outcome`       | String   | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.)            |
+| `tags`          | Array    | Tags associated with verifications                                   |
+| `count`         | UInt64   | Total verification count for this aggregation                        |
+| `spent_credits` | UInt64   | Total credits spent                                                  |
 
 ### Per Hour Table
 
-`key_verifications_per_hour_v1` - Aggregated by hour
-
-Same columns as per-minute table, with `hour` instead of `minute`.
+`key_verifications_per_hour_v1` - Aggregated by hour. Same columns as per-minute table.
 
 ### Per Day Table
 
-`key_verifications_per_day_v1` - Aggregated by day
-
-Same columns as per-minute table, with `day` instead of `minute`.
+`key_verifications_per_day_v1` - Aggregated by day. Same columns as per-minute table.
 
 ### Per Month Table
 
-`key_verifications_per_month_v1` - Aggregated by month
-
-Same columns as per-minute table, with `month` instead of `minute`.
+`key_verifications_per_month_v1` - Aggregated by month. Same columns as per-minute table.
 
 ## Filtering by API and User
 
@@ -106,21 +82,21 @@ You can filter by API and user identifiers:
 ### Filter by API
 
 ```sql
-SELECT COUNT(*) FROM key_verifications
+SELECT COUNT(*) FROM key_verifications_v1
 WHERE key_space_id = 'ks_1234'
 ```
 
 ### Filter by User
 
 ```sql
-SELECT COUNT(*) FROM key_verifications
+SELECT COUNT(*) FROM key_verifications_v1
 WHERE external_id = 'user_abc123'
 ```
 
 ### Multiple Values
 
 ```sql
-SELECT COUNT(*) FROM key_verifications
+SELECT COUNT(*) FROM key_verifications_v1
 WHERE key_space_id IN ('ks_1234', 'ks_5678')
   AND external_id IN ('user_abc', 'user_xyz')
 ```
@@ -134,22 +110,22 @@ Tags are stored as `Array(String)` and require array functions to query.
 ### Check if tag exists
 
 ```sql
-SELECT COUNT(*) FROM key_verifications
+SELECT COUNT(*) FROM key_verifications_v1
 WHERE has(tags, 'path=/api/users')
 ```
 
 ### Check if any tag exists
 
 ```sql
-SELECT COUNT(*) FROM key_verifications
+SELECT COUNT(*) FROM key_verifications_v1
 WHERE hasAny(tags, ['environment=prod', 'environment=staging'])
 ```
 
 ### Check if all tags exist
 
 ```sql
-SELECT COUNT(*) FROM key_verifications
-WHERE hasAll(tags, ['environment=prod', 'region=us-east-1'])
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE hasAll(tags, ['environment=production', 'team=backend'])
 ```
 
 ### Extract and group by tags
@@ -158,7 +134,7 @@ WHERE hasAll(tags, ['environment=prod', 'region=us-east-1'])
 SELECT
   arrayJoin(tags) as tag,
   COUNT(*) as count
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY tag
 ORDER BY count DESC
@@ -171,7 +147,7 @@ ORDER BY count DESC
 SELECT
   arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as path,
   COUNT(*) as requests
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY path
 ```

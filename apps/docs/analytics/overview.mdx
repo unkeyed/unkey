@@ -129,7 +129,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT identity_id, SUM(total_verifications) as verifications FROM key_verifications_per_day_v1 WHERE day >= now() - INTERVAL 30 DAY GROUP BY identity_id ORDER BY verifications DESC LIMIT 5"
+    "query": "SELECT external_id, SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY total DESC LIMIT 5"
   }'
 ```
 
@@ -142,19 +142,18 @@ Response:
   },
   "data": {
     "verifications": [
-      { "identity_id": "user_alice", "verifications": 8420 },
-      { "identity_id": "user_bob", "verifications": 6105 },
-      { "identity_id": "user_charlie", "verifications": 4892 }
+      { "external_id": "user_alice", "total": 8420 },
+      { "external_id": "user_bob", "total": 6105 },
+      { "external_id": "user_charlie", "total": 4892 }
     ]
   }
 }
 ```
 
 <Note>
-  **Raw vs Aggregated Tables:** The raw table uses `external_id` and
-  `key_space_id`, while aggregated tables use `identity_id` and `key_space_id`.
-  When querying aggregated tables, use `SUM(total_verifications)` instead of
-  `COUNT(*)` for better performance.
+  **Raw vs Aggregated Tables:** Use `SUM(count)` instead of `COUNT(*)` when
+  querying aggregated tables for better performance. Aggregated tables scan far
+  fewer rows than the raw table.
 </Note>
 
 ## Available Data

@@ -11,21 +11,44 @@ import (
 
 // Common user error patterns in ClickHouse error messages
 var userErrorPatterns = map[string]bool{
-	"unknown identifier":        true,
-	"unknown column":            true,
-	"unknown table":             true,
-	"missing columns":           true,
-	"there is no column":        true,
-	"type mismatch":             true,
-	"cannot convert":            true,
-	"syntax error":              true,
-	"expected":                  true,
-	"illegal type":              true,
-	"ambiguous column":          true,
-	"not an aggregate function": true,
-	"division by zero":          true,
-	"aggregate function":        true,
-	"window function":           true,
+	"unknown identifier":               true,
+	"unknown expression":               true,
+	"unknown function":                 true,
+	"unknown column":                   true,
+	"unknown table":                    true,
+	"missing columns":                  true,
+	"there is no column":               true,
+	"type mismatch":                    true,
+	"cannot convert":                   true,
+	"syntax error":                     true,
+	"expected":                         true,
+	"illegal type":                     true,
+	"ambiguous column":                 true,
+	"not an aggregate function":        true,
+	"division by zero":                 true,
+	"aggregate function":               true,
+	"window function":                  true,
+	"unknown_identifier":               true, // ClickHouse error code name
+	"db::exception":                    true, // Treat all DB exceptions as user errors
+	"maybe you meant":                  true, // ClickHouse suggestions
+	"no such column":                   true,
+	"doesn't exist":                    true,
+	"does not exist":                   true,
+	"failed at position":               true,
+	"unexpected token":                 true,
+	"invalid expression":               true,
+	"invalid number of arguments":      true,
+	"wrong number of arguments":        true,
+	"cannot parse":                     true,
+	"unrecognized token":               true,
+	"no matching signature":            true,
+	"incompatible types":               true,
+	"illegal aggregation":              true,
+	"cannot find column":               true,
+	"not allowed in this context":      true,
+	"not supported":                    true,
+	"invalid combination":              true,
+	"invalid or illegal":               true,
 }
 
 // ClickHouse exception codes that indicate user query errors
@@ -221,16 +244,10 @@ func WrapClickHouseError(err error) error {
 		}
 	}
 
-	// For other errors, check if it's a user error or system error
-	if IsUserQueryError(err) {
-		return fault.Wrap(err,
-			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
-			fault.Public(ExtractUserFriendlyError(err)),
-		)
-	}
-
-	// System/infrastructure error - don't expose details
+	// All other ClickHouse errors are treated as user query errors (400)
+	// This ensures we never return 500 for query execution issues
 	return fault.Wrap(err,
-		fault.Public("Query execution failed. Please try again."),
+		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+		fault.Public(ExtractUserFriendlyError(err)),
 	)
 }

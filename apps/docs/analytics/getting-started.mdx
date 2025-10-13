@@ -87,9 +87,9 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 ```sql
 SELECT
   external_id,
-  SUM(total_verifications) as verifications
+  SUM(count) as verifications
 FROM key_verifications_per_day_v1
-WHERE day >= now() - INTERVAL 30 DAY
+WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY external_id
 ORDER BY verifications DESC
 LIMIT 10
@@ -102,7 +102,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT external_id, SUM(total_verifications) as verifications FROM key_verifications_per_day_v1 WHERE day >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY verifications DESC LIMIT 10"
+    "query": "SELECT external_id, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY verifications DESC LIMIT 10"
   }'
 ```
 
@@ -113,7 +113,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   - `key_verifications_per_day_v1` - For queries spanning weeks/months
   - `key_verifications_per_month_v1` - For queries spanning years
 
-Use `SUM(total_verifications)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
+Use `SUM(count)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
 
 </Tip>
 
