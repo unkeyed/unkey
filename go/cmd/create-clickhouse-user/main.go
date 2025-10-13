@@ -73,19 +73,20 @@ var allowedTables = []string{
 	"default.key_verifications_per_hour_v2",
 	"default.key_verifications_per_day_v2",
 	"default.key_verifications_per_month_v2",
-	// Ratelimits
-	"default.ratelimits_raw_v2",
-	"default.ratelimits_per_minute_v2",
-	"default.ratelimits_per_hour_v2",
-	"default.ratelimits_per_day_v2",
-	"default.ratelimits_per_month_v2",
-	"default.ratelimits_last_used_v2",
-	// API requests
-	"default.api_requests_raw_v2",
-	"default.api_requests_per_minute_v2",
-	"default.api_requests_per_hour_v2",
-	"default.api_requests_per_day_v2",
-	"default.api_requests_per_month_v2",
+	// Not used ATM
+	// // Ratelimits
+	// "default.ratelimits_raw_v2",
+	// "default.ratelimits_per_minute_v2",
+	// "default.ratelimits_per_hour_v2",
+	// "default.ratelimits_per_day_v2",
+	// "default.ratelimits_per_month_v2",
+	// "default.ratelimits_last_used_v2",
+	// // API requests
+	// "default.api_requests_raw_v2",
+	// "default.api_requests_per_minute_v2",
+	// "default.api_requests_per_hour_v2",
+	// "default.api_requests_per_day_v2",
+	// "default.api_requests_per_month_v2",
 }
 
 func run(ctx context.Context, cmd *cli.Command) error {

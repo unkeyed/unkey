@@ -3,7 +3,6 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"math/rand/v2"
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
@@ -90,30 +89,13 @@ func (m *connectionManager) GetConnection(ctx context.Context, workspaceID strin
 	// Try to get cached connection
 	conn, hit := m.connectionCache.Get(ctx, workspaceID)
 	if hit == cache.Hit {
-		// 10% chance to verify connection is still alive
-		if rand.Float64() > 0.1 {
-			// Still need to get settings
-			settings, err := m.getSettings(ctx, workspaceID)
-			if err != nil {
-				return nil, db.ClickhouseWorkspaceSetting{}, err
-			}
-
-			return conn, settings, nil
+		// Still need to get settings
+		settings, err := m.getSettings(ctx, workspaceID)
+		if err != nil {
+			return nil, db.ClickhouseWorkspaceSetting{}, err
 		}
 
-		// Verify connection is still alive
-		if err := conn.Ping(ctx); err == nil {
-			// Still need to get settings
-			settings, err := m.getSettings(ctx, workspaceID)
-			if err != nil {
-				return nil, db.ClickhouseWorkspaceSetting{}, err
-			}
-
-			return conn, settings, nil
-		}
-
-		// Connection is dead, remove it from cache
-		m.connectionCache.Remove(ctx, workspaceID)
+		return conn, settings, nil
 	}
 
 	// Create new connection

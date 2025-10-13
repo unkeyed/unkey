@@ -205,7 +205,7 @@ func New(config Config) (Caches, error) {
 	clickhouseSetting, err := createCache(
 		config,
 		cache.Config[string, db.ClickhouseWorkspaceSetting]{
-			Fresh:    10 * time.Second,
+			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
 			Logger:   config.Logger,
 			MaxSize:  1_000_000,
