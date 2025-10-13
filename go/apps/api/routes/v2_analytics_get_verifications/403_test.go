@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"context"
-	"database/sql"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -19,27 +17,10 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	_ = h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
+	h.SetupAnalytics(workspace.ID)
 
 	// Create root key WITHOUT read_analytics permission
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
-
-	// Set up ClickHouse workspace settings
-	now := h.Clock.Now().UnixMilli()
-	err := db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
-		WorkspaceID:               workspace.ID,
-		Username:                  workspace.ID,
-		PasswordEncrypted:         "encrypted_password",
-		QuotaDurationSeconds:      3600,
-		MaxQueriesPerWindow:       1000,
-		MaxExecutionTimePerWindow: 1800,
-		MaxQueryExecutionTime:     30,
-		MaxQueryMemoryBytes:       1_000_000_000,
-		MaxQueryResultRows:        10_000_000,
-		MaxRowsToRead:             10_000_000,
-		CreatedAt:                 now,
-		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(t, err)
 
 	route := &Handler{
 		Logger:                     h.Logger,
@@ -57,7 +38,7 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT COUNT(*) FROM key_verifications",
+		Query: "SELECT COUNT(*) FROM key_verifications_v1",
 	}
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
@@ -74,27 +55,10 @@ func Test403_WrongApiPermission(t *testing.T) {
 	api2 := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
+	h.SetupAnalytics(workspace.ID)
 
 	// Create root key with permission only for api1
 	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
-
-	// Set up ClickHouse workspace settings
-	now := h.Clock.Now().UnixMilli()
-	err := db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
-		WorkspaceID:               workspace.ID,
-		Username:                  workspace.ID,
-		PasswordEncrypted:         "encrypted_password",
-		QuotaDurationSeconds:      3600,
-		MaxQueriesPerWindow:       1000,
-		MaxExecutionTimePerWindow: 1800,
-		MaxQueryExecutionTime:     30,
-		MaxQueryMemoryBytes:       1_000_000_000,
-		MaxQueryResultRows:        10_000_000,
-		MaxRowsToRead:             10_000_000,
-		CreatedAt:                 now,
-		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(t, err)
 
 	route := &Handler{
 		Logger:                     h.Logger,
@@ -111,9 +75,9 @@ func Test403_WrongApiPermission(t *testing.T) {
 		"Content-Type":  []string{"application/json"},
 	}
 
-	// Query filtering by api2 but user only has permission for api1
+	// Query filtering by api2's key_space_id but user only has permission for api1
 	req := Request{
-		Query: "SELECT COUNT(*) FROM key_verifications WHERE apiId = '" + api2.ID + "'",
+		Query: fmt.Sprintf("SELECT COUNT(*) FROM key_verifications_v1 WHERE key_space_id = '%s'", api2.KeyAuthID.String),
 	}
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)

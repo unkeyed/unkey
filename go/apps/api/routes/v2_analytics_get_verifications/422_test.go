@@ -1,16 +1,12 @@
 package handler
 
 import (
-	"context"
-	"database/sql"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -23,25 +19,11 @@ func Test422_ExceedsMaxResultRows(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
+	// Set up analytics with very low MaxQueryResultRows
+	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueryResultRows(1))
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	// Set up ClickHouse workspace settings with very low MaxQueryResultRows
 	now := h.Clock.Now().UnixMilli()
-	err := db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
-		WorkspaceID:               workspace.ID,
-		Username:                  workspace.ID,
-		PasswordEncrypted:         "encrypted_password",
-		QuotaDurationSeconds:      3600,
-		MaxQueriesPerWindow:       1000,
-		MaxExecutionTimePerWindow: 1800,
-		MaxQueryExecutionTime:     30,
-		MaxQueryMemoryBytes:       1_000_000_000,
-		MaxQueryResultRows:        1, // Very low limit
-		MaxRowsToRead:             10_000_000,
-		CreatedAt:                 now,
-		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(t, err)
 
 	// Buffer multiple key verifications to exceed the limit
 	for i := 0; i < 10; i++ {
@@ -74,14 +56,15 @@ func Test422_ExceedsMaxResultRows(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT * FROM key_verifications",
+		Query: "SELECT * FROM key_verifications_v1",
 	}
 
-	// Wait for data to be buffered, then expect 422 due to limit
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		res := testutil.CallRoute[Request, Response](h, route, headers, req)
-		require.Equal(c, 422, res.Status)
-	}, 30*time.Second, time.Second)
+	// Wait for data to be buffered
+	time.Sleep(2 * time.Second)
+
+	// Query should fail immediately with 422 due to max_result_rows=1 limit
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	require.Equal(t, 422, res.Status)
 }
 
 func Test422_ExceedsMaxMemory(t *testing.T) {
@@ -91,25 +74,11 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
+	// Set up analytics with very low MaxQueryMemoryBytes
+	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueryMemoryBytes(1))
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	// Set up ClickHouse workspace settings with very low MaxQueryMemoryBytes
 	now := h.Clock.Now().UnixMilli()
-	err := db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
-		WorkspaceID:               workspace.ID,
-		Username:                  workspace.ID,
-		PasswordEncrypted:         "encrypted_password",
-		QuotaDurationSeconds:      3600,
-		MaxQueriesPerWindow:       1000,
-		MaxExecutionTimePerWindow: 1800,
-		MaxQueryExecutionTime:     30,
-		MaxQueryMemoryBytes:       1, // Very low limit
-		MaxQueryResultRows:        10_000_000,
-		MaxRowsToRead:             10_000_000,
-		CreatedAt:                 now,
-		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(t, err)
 
 	// Buffer some verifications
 	for i := 0; i < 100; i++ {
@@ -142,14 +111,15 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT * FROM key_verifications",
+		Query: "SELECT * FROM key_verifications_v1",
 	}
 
-	// Wait for data to be buffered, then expect 422 due to memory limit
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		res := testutil.CallRoute[Request, Response](h, route, headers, req)
-		require.Equal(c, 422, res.Status)
-	}, 30*time.Second, time.Second)
+	// Wait for data to be buffered
+	time.Sleep(2 * time.Second)
+
+	// Query should fail immediately with 422 due to max_memory_usage=1 limit
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	require.Equal(t, 422, res.Status)
 }
 
 func Test422_ExceedsMaxRowsToRead(t *testing.T) {
@@ -159,25 +129,11 @@ func Test422_ExceedsMaxRowsToRead(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
+	// Set up analytics with very low MaxRowsToRead
+	h.SetupAnalytics(workspace.ID, testutil.WithMaxRowsToRead(1))
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	// Set up ClickHouse workspace settings with very low MaxRowsToRead
 	now := h.Clock.Now().UnixMilli()
-	err := db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
-		WorkspaceID:               workspace.ID,
-		Username:                  workspace.ID,
-		PasswordEncrypted:         "encrypted_password",
-		QuotaDurationSeconds:      3600,
-		MaxQueriesPerWindow:       1000,
-		MaxExecutionTimePerWindow: 1800,
-		MaxQueryExecutionTime:     30,
-		MaxQueryMemoryBytes:       1_000_000_000,
-		MaxQueryResultRows:        10_000_000,
-		MaxRowsToRead:             1, // Very low limit
-		CreatedAt:                 now,
-		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(t, err)
 
 	// Buffer multiple verifications
 	for i := 0; i < 10; i++ {
@@ -210,12 +166,13 @@ func Test422_ExceedsMaxRowsToRead(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT * FROM key_verifications",
+		Query: "SELECT * FROM key_verifications_v1",
 	}
 
-	// Wait for data to be buffered, then expect 422 due to rows limit
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		res := testutil.CallRoute[Request, Response](h, route, headers, req)
-		require.Equal(c, 422, res.Status)
-	}, 30*time.Second, time.Second)
+	// Wait for data to be buffered
+	time.Sleep(2 * time.Second)
+
+	// Query should fail immediately with 422 due to max_rows_to_read=1 limit
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	require.Equal(t, 422, res.Status)
 }

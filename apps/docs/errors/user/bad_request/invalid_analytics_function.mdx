@@ -40,7 +40,7 @@ Stick to standard analytics functions:
 <CodeGroup>
 
 ```sql Wrong - Blocked function
-SELECT file('/etc/passwd') FROM key_verifications
+SELECT file('/etc/passwd') FROM key_verifications_v1
 ```
 
 ```sql Correct - Safe analytics functions
@@ -48,7 +48,7 @@ SELECT
   toStartOfHour(time) as hour,
   COUNT(*) as total,
   AVG(response_time) as avg_response
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY hour
 ```
@@ -85,7 +85,7 @@ These are examples of allowed functions:
 <CodeGroup>
 
 ```sql Blocked - File access
-SELECT file('/path/to/file') FROM key_verifications
+SELECT file('/path/to/file') FROM key_verifications_v1
 ```
 
 ```sql Blocked - Network access
@@ -100,7 +100,7 @@ SELECT * FROM mysql('host:port', 'db', 'table', 'user', 'pass')
 SELECT
   api_id,
   COUNT(*) as verifications
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 DAY
 GROUP BY api_id
 ```

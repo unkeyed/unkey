@@ -255,14 +255,14 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 
 ### Array Functions
 
-| Function        | Description        | Example                                          |
-| --------------- | ------------------ | ------------------------------------------------ |
-| `has()`         | Check element      | `WHERE has(tags, 'production')`                  |
-| `hasAny()`      | Check any element  | `WHERE hasAny(tags, ['prod', 'staging'])`        |
-| `hasAll()`      | Check all elements | `WHERE hasAll(tags, ['prod', 'us'])`             |
-| `arrayJoin()`   | Expand array       | `SELECT arrayJoin(tags) as tag`                  |
-| `arrayFilter()` | Filter array       | `arrayFilter(x -> startsWith(x, 'path='), tags)` |
-| `length()`      | Array length       | `WHERE length(tags) > 0`                         |
+| Function        | Description        | Example                                             |
+| --------------- | ------------------ | --------------------------------------------------- |
+| `has()`         | Check element      | `WHERE has(tags, 'environment=production')`         |
+| `hasAny()`      | Check any element  | `WHERE hasAny(tags, ['team=backend', 'team=api'])`  |
+| `hasAll()`      | Check all elements | `WHERE hasAll(tags, ['environment=prod', 'tier=1'])` |
+| `arrayJoin()`   | Expand array       | `SELECT arrayJoin(tags) as tag`                     |
+| `arrayFilter()` | Filter array       | `arrayFilter(x -> startsWith(x, 'path='), tags)`    |
+| `length()`      | Array length       | `WHERE length(tags) > 0`                            |
 
 ### Math Functions
 

@@ -24,7 +24,7 @@ description: "Your query references a table that doesn't exist or isn't allowed.
 Your query tried to access a table that either doesn't exist or isn't allowed for security reasons.
 
 For security, only specific analytics tables are accessible:
-- `key_verifications` - Raw key verification events
+- `key_verifications_v1` - Raw key verification events
 - `key_verifications_per_minute_v1` - Minute-level aggregates
 - `key_verifications_per_hour_v1` - Hour-level aggregates
 - `key_verifications_per_day_v1` - Day-level aggregates
@@ -43,7 +43,7 @@ SELECT * FROM system.tables
 ```
 
 ```sql Correct - Analytics table
-SELECT * FROM key_verifications
+SELECT * FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
@@ -59,31 +59,21 @@ WHERE time >= now() - INTERVAL 1 DAY
 ```
 
 ```sql Correct
-SELECT * FROM key_verifications
+SELECT * FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 DAY
 ```
 
 </CodeGroup>
 
-### 3. Use Table Aliases
-
-You can use the short aliases for convenience:
-
-```sql
--- These are equivalent:
-SELECT * FROM key_verifications LIMIT 10
-SELECT * FROM default.key_verifications_raw_v2 LIMIT 10
-```
-
 ## Available Tables
 
-| Alias | Full Table Name | Description |
-|-------|----------------|-------------|
-| `key_verifications` | `default.key_verifications_raw_v2` | Raw verification events |
-| `key_verifications_per_minute_v1` | `default.key_verifications_per_minute_v1` | Minute aggregates |
-| `key_verifications_per_hour_v1` | `default.key_verifications_per_hour_v1` | Hour aggregates |
-| `key_verifications_per_day_v1` | `default.key_verifications_per_day_v1` | Day aggregates |
-| `key_verifications_per_month_v1` | `default.key_verifications_per_month_v1` | Month aggregates |
+| Table Name | Description |
+|------------|-------------|
+| `key_verifications_v1` | Raw verification events |
+| `key_verifications_per_minute_v1` | Minute-level aggregates |
+| `key_verifications_per_hour_v1` | Hour-level aggregates |
+| `key_verifications_per_day_v1` | Day-level aggregates |
+| `key_verifications_per_month_v1` | Month-level aggregates |
 
 <Note>
 For complete schema details and column descriptions, see our [Analytics Schema Documentation](https://unkey.com/docs/analytics/schema).

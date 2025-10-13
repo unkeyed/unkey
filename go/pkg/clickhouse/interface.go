@@ -47,6 +47,10 @@ type Querier interface {
 	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)
 	Exec(ctx context.Context, sql string, args ...any) error
 
+	// ConfigureUser creates or updates a ClickHouse user with permissions, quotas, and settings.
+	// This is idempotent and can be called multiple times to update configuration.
+	ConfigureUser(ctx context.Context, config UserConfig) error
+
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)

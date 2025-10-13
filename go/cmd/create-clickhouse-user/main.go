@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	driver "github.com/ClickHouse/clickhouse-go/v2"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
@@ -192,6 +191,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		// User exists - update quotas only (preserve password)
 		logger.Info("updating existing user quotas", "workspace_id", workspaceID, "username", existing.Username)
 		username = existing.Username
+		passwordEncrypted = existing.PasswordEncrypted
 		decrypted, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   workspaceID,
 			Encrypted: existing.PasswordEncrypted,
@@ -199,7 +199,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return fmt.Errorf("failed to decrypt password: %w", err)
 		}
-		passwordEncrypted = decrypted.GetPlaintext()
+		password = decrypted.GetPlaintext()
 
 		// Update limits
 		err = db.Query.UpdateClickhouseWorkspaceSettingsLimits(ctx, database.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
@@ -220,107 +220,23 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logger.Info("updated quotas in database")
 	}
 
-	// Create or alter ClickHouse user
-	logger.Info("creating/updating clickhouse user", "username", username)
-	createUserSQL := fmt.Sprintf("CREATE USER IF NOT EXISTS %s IDENTIFIED WITH sha256_password BY {password:String}", username)
-	err = ch.Exec(ctx, createUserSQL, driver.Named("password", password))
+	// Configure ClickHouse user with permissions, quotas, and settings
+	err = ch.ConfigureUser(ctx, clickhouse.UserConfig{
+		WorkspaceID:               workspaceID,
+		Username:                  username,
+		Password:                  password,
+		AllowedTables:             allowedTables,
+		QuotaDurationSeconds:      int32(cmd.Int("quota-duration-seconds")),
+		MaxQueriesPerWindow:       int32(cmd.Int("max-queries-per-window")),
+		MaxExecutionTimePerWindow: int32(cmd.Int("max-execution-time-per-window")),
+		MaxQueryExecutionTime:     int32(cmd.Int("max-query-execution-time")),
+		MaxQueryMemoryBytes:       cmd.Int64("max-query-memory-bytes"),
+		MaxQueryResultRows:        int32(cmd.Int("max-query-result-rows")),
+		MaxRowsToRead:             cmd.Int64("max-rows-to-read"),
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return fmt.Errorf("failed to configure clickhouse user: %w", err)
 	}
-
-	// Revoke all permissions
-	logger.Info("revoking all permissions")
-	revokeSQL := fmt.Sprintf("REVOKE ALL ON *.* FROM %s", username)
-	err = ch.Exec(ctx, revokeSQL)
-	if err != nil {
-		logger.Warn("failed to revoke permissions (user may be new)", "error", err)
-	}
-
-	// Grant SELECT on specified tables
-	for _, table := range allowedTables {
-		logger.Info("granting SELECT permission", "table", table)
-		grantSQL := fmt.Sprintf("GRANT SELECT ON %s TO %s", table, username)
-		err = ch.Exec(ctx, grantSQL)
-		if err != nil {
-			return fmt.Errorf("failed to grant SELECT on %s: %w", table, err)
-		}
-	}
-
-	policyName := fmt.Sprintf("workspace_%s_rls", workspaceID)
-
-	// Create row-level security (RLS) policies
-	for _, table := range allowedTables {
-		logger.Info("creating row policy", "table", table, "policy", policyName)
-
-		createPolicySQL := fmt.Sprintf(
-			"CREATE ROW POLICY OR REPLACE %s ON %s FOR SELECT USING workspace_id = '%s' TO %s",
-			policyName, table, workspaceID, username,
-		)
-		err = ch.Exec(ctx, createPolicySQL)
-		if err != nil {
-			return fmt.Errorf("failed to create row policy on %s: %w", table, err)
-		}
-	}
-
-	// Create or replace quota
-	quotaName := fmt.Sprintf("workspace_%s_quota", workspaceID)
-	logger.Info("creating/updating quota", "name", quotaName)
-
-	createOrReplaceQuotaSQL := fmt.Sprintf(`
-		CREATE QUOTA OR REPLACE %s
-		FOR INTERVAL %d SECOND
-			MAX queries = %d,
-			MAX execution_time = %d
-			-- MAX result_rows is intentionally NOT set here
-			-- Per-window result row limits are too restrictive for analytics queries
-			-- which legitimately need to return large result sets.
-			-- Per-query limits are still enforced via the settings profile (max_result_rows).
-		TO %s
-	`,
-		quotaName,
-		cmd.Int("quota-duration-seconds"),
-		cmd.Int("max-queries-per-window"),
-		cmd.Int("max-execution-time-per-window"),
-		username,
-	)
-	err = ch.Exec(ctx, createOrReplaceQuotaSQL)
-	if err != nil {
-		return fmt.Errorf("failed to create/replace quota: %w", err)
-	}
-
-	// Create or replace settings profile
-	profileName := fmt.Sprintf("workspace_%s_profile", workspaceID)
-	logger.Info("creating/updating settings profile", "name", profileName)
-
-	createOrReplaceProfileSQL := fmt.Sprintf(`
-		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
-			max_execution_time = %d,
-			max_memory_usage = %d,
-			max_result_rows = %d,
-			max_rows_to_read = %d,
-			readonly = 2
-		TO %s
-	`,
-		profileName,
-		cmd.Int("max-query-execution-time"),
-		cmd.Int64("max-query-memory-bytes"),
-		cmd.Int("max-query-result-rows"),
-		cmd.Int64("max-rows-to-read"),
-		username,
-	)
-	err = ch.Exec(ctx, createOrReplaceProfileSQL)
-	if err != nil {
-		return fmt.Errorf("failed to create/replace settings profile: %w", err)
-	}
-
-	logger.Info("successfully configured clickhouse user",
-		"workspace_id", workspaceID,
-		"username", username,
-		"tables", allowedTables,
-		"password_length", len(password),
-		"max_queries_per_window", cmd.Int("max-queries-per-window"),
-		"quota_duration_seconds", cmd.Int("quota-duration-seconds"),
-	)
 
 	return nil
 }

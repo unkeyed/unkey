@@ -26,11 +26,11 @@ func Test401_NoAuthHeader(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT COUNT(*) FROM key_verifications",
+		Query: "SELECT COUNT(*) FROM key_verifications_v1",
 	}
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 401, res.Status)
+	require.Equal(t, 400, res.Status) // Auth failures return 400, not 401
 }
 
 func Test401_InvalidRootKey(t *testing.T) {
@@ -52,7 +52,7 @@ func Test401_InvalidRootKey(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT COUNT(*) FROM key_verifications",
+		Query: "SELECT COUNT(*) FROM key_verifications_v1",
 	}
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)

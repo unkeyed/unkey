@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -10,15 +9,17 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
-func Test404_KeySpaceNotFound(t *testing.T) {
+func Test412_AnalyticsNotConfigured(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	workspace := h.CreateWorkspace()
 	_ = h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
-	h.SetupAnalytics(workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+
+	// Do NOT set up ClickHouse workspace settings
+	// This will cause GetConnection to fail
 
 	route := &Handler{
 		Logger:                     h.Logger,
@@ -35,11 +36,10 @@ func Test404_KeySpaceNotFound(t *testing.T) {
 		"Content-Type":  []string{"application/json"},
 	}
 
-	// Query with non-existent key_space_id
 	req := Request{
-		Query: fmt.Sprintf("SELECT COUNT(*) FROM key_verifications_v1 WHERE key_space_id = '%s'", "ks_nonexistent123"),
+		Query: "SELECT COUNT(*) FROM key_verifications_v1",
 	}
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 404, res.Status) // Key space not found
+	require.Equal(t, 412, res.Status) // Analytics not configured returns 412 Precondition Failed
 }

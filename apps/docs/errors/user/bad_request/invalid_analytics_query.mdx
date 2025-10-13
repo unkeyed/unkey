@@ -39,14 +39,14 @@ Common causes include:
 SELECT
   api_id
   COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1_v1
 ```
 
 ```sql Correct
 SELECT
   api_id,
   COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1_v1
 ```
 
 </CodeGroup>
@@ -56,11 +56,11 @@ FROM key_verifications
 <CodeGroup>
 
 ```sql Wrong - Unclosed quote
-SELECT * FROM key_verifications WHERE api_id = 'api_123
+SELECT * FROM key_verifications_v1_v1 WHERE api_id = 'api_123
 ```
 
 ```sql Correct
-SELECT * FROM key_verifications WHERE api_id = 'api_123'
+SELECT * FROM key_verifications_v1_v1 WHERE api_id = 'api_123'
 ```
 
 </CodeGroup>
@@ -70,11 +70,11 @@ SELECT * FROM key_verifications WHERE api_id = 'api_123'
 <CodeGroup>
 
 ```sql Wrong - Typo in SELECT
-SELCT * FROM key_verifications
+SELCT * FROM key_verifications_v1
 ```
 
 ```sql Correct
-SELECT * FROM key_verifications
+SELECT * FROM key_verifications_v1
 ```
 
 </CodeGroup>
@@ -86,7 +86,7 @@ Make sure you're using valid column names from your analytics tables:
 ```sql
 -- ✓ Valid columns
 SELECT time, api_id, outcome, key_id
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 

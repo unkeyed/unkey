@@ -35,7 +35,7 @@ Instead of fetching all rows, aggregate the data:
 
 ```sql Memory Intensive - Fetches all rows
 SELECT *
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
@@ -45,7 +45,7 @@ SELECT
   api_id,
   COUNT(*) as total,
   AVG(response_time) as avg_response
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY hour, api_id
 ```
@@ -60,13 +60,13 @@ Reduce the amount of data the query needs to process:
 
 ```sql Too Much Data
 SELECT api_id, key_id, outcome, time
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 30 DAY
 ```
 
 ```sql Filtered Query
 SELECT api_id, key_id, outcome, time
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 DAY
   AND api_id = 'api_123'
   AND outcome = 'VALID'
@@ -80,7 +80,7 @@ Add a LIMIT to cap the number of rows:
 
 ```sql
 SELECT api_id, key_id, outcome, time
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ORDER BY time DESC
 LIMIT 10000
@@ -94,14 +94,14 @@ GROUP BY on high-cardinality columns (like `key_id`) uses a lot of memory. Inste
 
 ```sql High Memory - Millions of unique keys
 SELECT key_id, COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY key_id
 ```
 
 ```sql Lower Memory - Hundreds of APIs
 SELECT api_id, COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY api_id
 ```

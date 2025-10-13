@@ -35,14 +35,14 @@ Explicitly limit the number of rows returned:
 
 ```sql Returns Too Many Rows
 SELECT *
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ORDER BY time DESC
 ```
 
 ```sql Limited Results
 SELECT *
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ORDER BY time DESC
 LIMIT 1000
@@ -58,7 +58,7 @@ Instead of fetching individual rows, aggregate the data:
 
 ```sql Too Many Individual Rows
 SELECT key_id, time, outcome
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
@@ -68,7 +68,7 @@ SELECT
   api_id,
   outcome,
   COUNT(*) as count
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY hour, api_id, outcome
 ```
@@ -83,13 +83,13 @@ Add filters to reduce the result set:
 
 ```sql Too Many Results
 SELECT key_id, outcome, time
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
 ```sql Filtered Results
 SELECT key_id, outcome, time
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 DAY
   AND api_id = 'api_123'
   AND outcome = 'DENIED'
@@ -107,7 +107,7 @@ If you only need the top results, filter early:
 
 ```sql Returns Everything
 SELECT api_id, COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY api_id
 ORDER BY total DESC
@@ -115,7 +115,7 @@ ORDER BY total DESC
 
 ```sql Top 100 Only
 SELECT api_id, COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY api_id
 ORDER BY total DESC

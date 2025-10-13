@@ -55,9 +55,9 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	}
 
 	req := Request{
-		Query: "SELECT COUNT(*) FROM key_verifications",
+		Query: "SELECT COUNT(*) FROM key_verifications_v1",
 	}
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 503, res.Status)
+	require.Equal(t, 503, res.Status) // Invalid password causes connection failure (503)
 }

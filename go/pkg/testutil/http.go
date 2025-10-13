@@ -3,6 +3,7 @@ package testutil
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
@@ -246,6 +248,100 @@ func (h *Harness) CreateRole(req seed.CreateRoleRequest) string {
 
 func (h *Harness) CreatePermission(req seed.CreatePermissionRequest) string {
 	return h.seeder.CreatePermission(context.Background(), req)
+}
+
+type SetupAnalyticsOption func(*setupAnalyticsConfig)
+
+type setupAnalyticsConfig struct {
+	MaxQueryResultRows        int32
+	MaxRowsToRead             int64
+	MaxQueryMemoryBytes       int64
+	MaxQueriesPerWindow       int32
+	MaxExecutionTimePerWindow int32
+	QuotaDurationSeconds      int32
+	MaxQueryExecutionTime     int32
+}
+
+func WithMaxQueryResultRows(rows int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxQueryResultRows = rows
+	}
+}
+
+func WithMaxRowsToRead(rows int64) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxRowsToRead = rows
+	}
+}
+
+func WithMaxQueryMemoryBytes(bytes int64) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxQueryMemoryBytes = bytes
+	}
+}
+
+func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
+	ctx := context.Background()
+
+	// Defaults
+	config := setupAnalyticsConfig{
+		MaxQueryResultRows:        10_000_000,
+		MaxRowsToRead:             10_000_000,
+		MaxQueryMemoryBytes:       1_000_000_000,
+		MaxQueriesPerWindow:       1_000,
+		MaxExecutionTimePerWindow: 1_800,
+		QuotaDurationSeconds:      3_600,
+		MaxQueryExecutionTime:     30,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(&config)
+	}
+
+	password := "test_password"
+	username := workspaceID
+
+	// Encrypt the password using the vault service
+	encryptRes, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+		Keyring: workspaceID,
+		Data:    password,
+	})
+	require.NoError(h.t, err)
+
+	// Configure ClickHouse user with permissions, quotas, and settings
+	err = h.ClickHouse.ConfigureUser(ctx, clickhouse.UserConfig{
+		WorkspaceID:               workspaceID,
+		Username:                  username,
+		Password:                  password,
+		AllowedTables:             clickhouse.DefaultAllowedTables(),
+		QuotaDurationSeconds:      config.QuotaDurationSeconds,
+		MaxQueriesPerWindow:       config.MaxQueriesPerWindow,
+		MaxExecutionTimePerWindow: config.MaxExecutionTimePerWindow,
+		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
+		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
+		MaxQueryResultRows:        config.MaxQueryResultRows,
+		MaxRowsToRead:             config.MaxRowsToRead,
+	})
+	require.NoError(h.t, err)
+
+	// Store the encrypted credentials in the database
+	now := h.Clock.Now().UnixMilli()
+	err = db.Query.InsertClickhouseWorkspaceSettings(ctx, h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
+		WorkspaceID:               workspaceID,
+		Username:                  username,
+		PasswordEncrypted:         encryptRes.Encrypted,
+		QuotaDurationSeconds:      config.QuotaDurationSeconds,
+		MaxQueriesPerWindow:       config.MaxQueriesPerWindow,
+		MaxExecutionTimePerWindow: config.MaxExecutionTimePerWindow,
+		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
+		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
+		MaxQueryResultRows:        config.MaxQueryResultRows,
+		MaxRowsToRead:             config.MaxRowsToRead,
+		CreatedAt:                 now,
+		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+	})
+	require.NoError(h.t, err)
 }
 
 func (h *Harness) Resources() seed.Resources {

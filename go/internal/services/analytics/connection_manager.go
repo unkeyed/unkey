@@ -155,8 +155,8 @@ func (m *connectionManager) createConnection(ctx context.Context, workspaceID st
 	})
 	if err != nil {
 		return nil, db.ClickhouseWorkspaceSetting{}, fault.Wrap(err,
-			fault.Public("Failed to decrypt workspace credentials"),
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Public("Failed to connect to ClickHouse analytics database"),
+			fault.Code(codes.Data.Analytics.ConnectionFailed.URN()),
 		)
 	}
 

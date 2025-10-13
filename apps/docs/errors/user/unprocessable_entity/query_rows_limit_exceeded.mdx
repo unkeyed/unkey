@@ -35,13 +35,13 @@ Always filter by time to limit the number of rows scanned:
 
 ```sql Scans Too Many Rows
 SELECT COUNT(*)
-FROM key_verifications
+FROM key_verifications_v1
 WHERE outcome = 'VALID'
 ```
 
 ```sql Limited Scan
 SELECT COUNT(*)
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
   AND outcome = 'VALID'
 ```
@@ -56,14 +56,14 @@ Add filters that reduce the data before aggregation:
 
 ```sql Scans Everything
 SELECT api_id, COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 90 DAY
 GROUP BY api_id
 ```
 
 ```sql Scans Less
 SELECT api_id, COUNT(*) as total
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
   AND api_id IN ('api_123', 'api_456')
 GROUP BY api_id
@@ -81,7 +81,7 @@ For historical queries, use aggregated tables that have fewer rows:
 SELECT
   toStartOfDay(time) as day,
   COUNT(*) as total
-FROM key_verifications_raw_v2
+FROM key_verifications_v1_v1
 WHERE time >= now() - INTERVAL 90 DAY
 GROUP BY day
 ```
@@ -90,7 +90,7 @@ GROUP BY day
 SELECT
   time as day,
   SUM(count) as total
-FROM key_verifications_per_day_v1
+FROM key_verifications_v1_per_day_v1
 WHERE time >= now() - INTERVAL 90 DAY
 GROUP BY day
 ```
@@ -110,7 +110,7 @@ for (let i = 0; i < 90; i += 7) {
 
   const result = await query(`
     SELECT COUNT(*) as total
-    FROM key_verifications
+    FROM key_verifications_v1
     WHERE time >= ${start} AND time < ${end}
   `);
 

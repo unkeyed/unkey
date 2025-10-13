@@ -64,6 +64,11 @@ func (n *noop) Exec(ctx context.Context, sql string, args ...any) error {
 	return nil
 }
 
+// ConfigureUser implements the Querier interface but does nothing.
+func (n *noop) ConfigureUser(ctx context.Context, config UserConfig) error {
+	return nil
+}
+
 func (n *noop) Ping(ctx context.Context) error {
 	return nil
 }
