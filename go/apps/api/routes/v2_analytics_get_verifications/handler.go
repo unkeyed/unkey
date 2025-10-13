@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/pkg/array"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/go/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -26,7 +28,6 @@ type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
-	// Services as public fields
 	Logger                     logging.Logger
 	DB                         db.Database
 	Keys                       keys.KeyService
@@ -66,17 +67,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Capture apiIds extracted from the query for permission checking
-	// var extractedAPIIds []string
-
-	// Build security filters for row-level access control
+	// Build a list of keyAuthIds that the root key has permissions for.
 	securityFilters := []chquery.SecurityFilter{}
 
-	// Add API filter if user doesn't have wildcard access
-	if allowedAPIIds := extractAllowedAPIIds(auth.Permissions); len(allowedAPIIds) > 0 {
+	allowedAPIIds := extractAllowedAPIIds(auth.Permissions)
+	if len(allowedAPIIds) > 0 {
+		apis, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(ctx, array.Map(allowedAPIIds, func(apiId string) cache.ScopedKey {
+			return cache.ScopedKey{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Key:         apiId,
+			}
+		}), func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
+			apis, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{WorkspaceID: auth.AuthorizedWorkspaceID, ApiIds: allowedAPIIds})
+			if err != nil {
+				return nil, err
+			}
+
+			return array.Reduce(
+				apis,
+				func(acc map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, api db.FindKeyAuthsByIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByIdsRow {
+					acc[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: api.ApiID}] = api
+					return acc
+				},
+				map[cache.ScopedKey]db.FindKeyAuthsByIdsRow{},
+			), nil
+		}, caches.DefaultFindFirstOp)
+		if err != nil {
+			return err
+		}
+
+		keyAuthIds := make([]string, 0, len(apis))
+		for _, api := range apis {
+			keyAuthIds = append(keyAuthIds, api.KeyAuthID)
+		}
+
 		securityFilters = append(securityFilters, chquery.SecurityFilter{
-			Column:        "api_id",
-			AllowedValues: allowedAPIIds,
+			Column:        "key_space_id",
+			AllowedValues: keyAuthIds,
 		})
 	}
 
@@ -108,9 +135,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	h.Logger.Info("executing query", "original", req.Query, "parsed", parsedQuery)
-
-	// api.*.read_analytics OR (any specific API permissions api.api_123.read_analytics)
+	// Now we build permission checks based on the key_space_id(s) one specified in the query itself
+	// If none are specified, we will just check if there is wildcard read_analytics permission set
 	permissionChecks := []rbac.PermissionQuery{
 		// Wildcard API analytics access
 		rbac.T(rbac.Tuple{
@@ -120,25 +146,59 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	}
 
-	// If query filters by apiId, add specific API permissions check (requires ALL)
-	// if len(extractedAPIIds) > 0 {
-	// 	apiPermissions := make([]rbac.PermissionQuery, len(extractedAPIIds))
-	// 	for i, apiID := range extractedAPIIds {
-	// 		apiPermissions[i] = rbac.T(rbac.Tuple{
-	// 			ResourceType: rbac.Api,
-	// 			ResourceID:   apiID,
-	// 			Action:       rbac.ReadAnalytics,
-	// 		})
-	// 	}
+	keyAuthIds := parser.ExtractColumn("key_space_id")
+	if len(keyAuthIds) > 0 {
+		keyAuths, _, err := h.Caches.KeyAuthToApiRow.SWRMany(
+			ctx,
+			array.Map(keyAuthIds, func(keyAuthId string) cache.ScopedKey {
+				return cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: keyAuthId}
+			}),
+			func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, error) {
+				keyAuths, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					KeyAuthIds: array.Map(keys, func(keyAuth cache.ScopedKey) string {
+						return keyAuth.Key
+					}),
+				})
 
-	// 	permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
-	// }
+				if err != nil {
+					return nil, err
+				}
 
-	// Verify user has at least one of: api.*.read_analytics, or all specific API permissions
+				return array.Reduce(
+					keyAuths,
+					func(acc map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, api db.FindKeyAuthsByKeyAuthIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow {
+						acc[cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: api.KeyAuthID}] = api
+						return acc
+					},
+					map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow{},
+				), nil
+			},
+			caches.DefaultFindFirstOp,
+		)
+		if err != nil {
+			return err
+		}
+
+		apiPermissions := make([]rbac.PermissionQuery, 0)
+		for _, keyAuth := range keyAuths {
+			apiPermissions = append(apiPermissions, rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   keyAuth.ApiID,
+				Action:       rbac.ReadAnalytics,
+			}))
+		}
+
+		permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
+	}
+
+	// Verify user has at least one of: api.*.read_analytics OR (api.<api_id1>.read_analytics AND api.<api_id2>.read_analytics)
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(permissionChecks...)))
 	if err != nil {
 		return err
 	}
+
+	h.Logger.Info("executing query", "original", req.Query, "parsed", parsedQuery)
 
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parsedQuery)

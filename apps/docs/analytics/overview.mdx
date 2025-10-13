@@ -151,7 +151,10 @@ Response:
 ```
 
 <Note>
-  **Raw vs Aggregated Tables:** The raw table uses `external_id` and `api_id`, while aggregated tables use `identity_id` and `key_space_id`. When querying aggregated tables, use `SUM(total_verifications)` instead of `COUNT(*)` for better performance.
+  **Raw vs Aggregated Tables:** The raw table uses `external_id` and
+  `key_space_id`, while aggregated tables use `identity_id` and `key_space_id`.
+  When querying aggregated tables, use `SUM(total_verifications)` instead of
+  `COUNT(*)` for better performance.
 </Note>
 
 ## Available Data
@@ -163,7 +166,7 @@ Every verification event contains:
 | `request_id`   | String        | Unique identifier for each request                                                                                                        |
 | `time`         | Int64         | Unix millisecond timestamp                                                                                                                |
 | `workspace_id` | String        | Your workspace identifier (automatically filtered)                                                                                        |
-| `api_id`       | String        | Your API identifier (e.g., `api_1234`)                                                                                                    |
+| `key_space_id` | String        | Your KeySpace identifier (e.g., `ks_1234`). Find this in your API settings.                                                               |
 | `external_id`  | String        | Your user's identifier (e.g., `user_abc`)                                                                                                 |
 | `key_id`       | String        | Individual key identifier                                                                                                                 |
 | `outcome`      | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |

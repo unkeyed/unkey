@@ -9,16 +9,17 @@ Unkey Analytics stores verification events across multiple time-series tables fo
 
 For convenience, you can use short aliases that automatically map to the full table names:
 
-| Alias | Full Table Name | Description |
-|-------|----------------|-------------|
-| `key_verifications_v1` | `default.key_verifications_raw_v2` | Raw verification events |
-| `key_verifications_per_minute_v1` | `default.key_verifications_per_minute_v2` | Aggregated by minute |
-| `key_verifications_per_hour_v1` | `default.key_verifications_per_hour_v2` | Aggregated by hour |
-| `key_verifications_per_day_v1` | `default.key_verifications_per_day_v2` | Aggregated by day |
-| `key_verifications_per_month_v1` | `default.key_verifications_per_month_v2` | Aggregated by month |
+| Alias                             | Full Table Name                           | Description             |
+| --------------------------------- | ----------------------------------------- | ----------------------- |
+| `key_verifications_v1`            | `default.key_verifications_raw_v2`        | Raw verification events |
+| `key_verifications_per_minute_v1` | `default.key_verifications_per_minute_v2` | Aggregated by minute    |
+| `key_verifications_per_hour_v1`   | `default.key_verifications_per_hour_v2`   | Aggregated by hour      |
+| `key_verifications_per_day_v1`    | `default.key_verifications_per_day_v2`    | Aggregated by day       |
+| `key_verifications_per_month_v1`  | `default.key_verifications_per_month_v2`  | Aggregated by month     |
 
 <Tip>
-  Use aggregated tables (hour/day/month) for queries spanning long time periods to improve performance.
+  Use aggregated tables (hour/day/month) for queries spanning long time periods
+  to improve performance.
 </Tip>
 
 ## Raw Events Table
@@ -27,32 +28,32 @@ The `key_verifications_v1` table contains individual verification events as they
 
 ### Columns
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `request_id` | String | Unique identifier for each verification request |
-| `time` | Int64 | Unix timestamp in milliseconds when verification occurred |
-| `workspace_id` | String | Workspace identifier (automatically filtered to your workspace) |
-| `api_id` | String | Your API identifier (e.g., `api_1234`) - use this to filter by API |
-| `external_id` | String | Your user's identifier (e.g., `user_abc`) - use this to filter by user |
-| `key_id` | String | Individual API key identifier |
-| `outcome` | String | Verification result (see [Outcome Values](#outcome-values)) |
-| `region` | String | Geographic region where verification occurred |
-| `tags` | Array(String) | Custom tags added during verification |
+| Column         | Type          | Description                                                                                             |
+| -------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| `request_id`   | String        | Unique identifier for each verification request                                                         |
+| `time`         | Int64         | Unix timestamp in milliseconds when verification occurred                                               |
+| `workspace_id` | String        | Workspace identifier (automatically filtered to your workspace)                                         |
+| `key_space_id` | String        | Your KeySpace identifier (e.g., `ks_1234`) - use this to filter by API. Find this in your API settings. |
+| `external_id`  | String        | Your user's identifier (e.g., `user_abc`) - use this to filter by user                                  |
+| `key_id`       | String        | Individual API key identifier                                                                           |
+| `outcome`      | String        | Verification result (see [Outcome Values](#outcome-values))                                             |
+| `region`       | String        | Geographic region where verification occurred                                                           |
+| `tags`         | Array(String) | Custom tags added during verification                                                                   |
 
 ### Outcome Values
 
 The `outcome` column contains one of these values:
 
-| Outcome | Description |
-|---------|-------------|
-| `VALID` | Key is valid and verification succeeded |
-| `RATE_LIMITED` | Verification exceeded rate limit |
-| `INVALID` | Key not found or malformed |
-| `EXPIRED` | Key has expired |
-| `DISABLED` | Key is disabled |
-| `INSUFFICIENT_PERMISSIONS` | Key lacks required permissions |
-| `FORBIDDEN` | Operation not allowed for this key |
-| `USAGE_EXCEEDED` | Key has exceeded usage limit |
+| Outcome                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| `VALID`                    | Key is valid and verification succeeded |
+| `RATE_LIMITED`             | Verification exceeded rate limit        |
+| `INVALID`                  | Key not found or malformed              |
+| `EXPIRED`                  | Key has expired                         |
+| `DISABLED`                 | Key is disabled                         |
+| `INSUFFICIENT_PERMISSIONS` | Key lacks required permissions          |
+| `FORBIDDEN`                | Operation not allowed for this key      |
+| `USAGE_EXCEEDED`           | Key has exceeded usage limit            |
 
 ## Aggregated Tables
 
@@ -62,23 +63,23 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 `key_verifications_per_minute_v1` - Aggregated by minute
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `minute` | DateTime | Start of the minute (rounded down) |
-| `workspace_id` | String | Workspace identifier |
-| `key_space_id` | String | API identifier |
-| `key_id` | String | API key identifier |
-| `identity_id` | String | Identity identifier |
-| `region` | String | Geographic region |
-| `total_verifications` | UInt64 | Total verification count |
-| `valid_count` | UInt64 | Count of VALID verifications |
-| `rate_limited_count` | UInt64 | Count of RATE_LIMITED verifications |
-| `invalid_count` | UInt64 | Count of INVALID verifications |
-| `expired_count` | UInt64 | Count of EXPIRED verifications |
-| `disabled_count` | UInt64 | Count of DISABLED verifications |
-| `insufficient_permissions_count` | UInt64 | Count of INSUFFICIENT_PERMISSIONS verifications |
-| `forbidden_count` | UInt64 | Count of FORBIDDEN verifications |
-| `usage_exceeded_count` | UInt64 | Count of USAGE_EXCEEDED verifications |
+| Column                           | Type     | Description                                     |
+| -------------------------------- | -------- | ----------------------------------------------- |
+| `minute`                         | DateTime | Start of the minute (rounded down)              |
+| `workspace_id`                   | String   | Workspace identifier                            |
+| `key_space_id`                   | String   | API identifier                                  |
+| `key_id`                         | String   | API key identifier                              |
+| `identity_id`                    | String   | Identity identifier                             |
+| `region`                         | String   | Geographic region                               |
+| `total_verifications`            | UInt64   | Total verification count                        |
+| `valid_count`                    | UInt64   | Count of VALID verifications                    |
+| `rate_limited_count`             | UInt64   | Count of RATE_LIMITED verifications             |
+| `invalid_count`                  | UInt64   | Count of INVALID verifications                  |
+| `expired_count`                  | UInt64   | Count of EXPIRED verifications                  |
+| `disabled_count`                 | UInt64   | Count of DISABLED verifications                 |
+| `insufficient_permissions_count` | UInt64   | Count of INSUFFICIENT_PERMISSIONS verifications |
+| `forbidden_count`                | UInt64   | Count of FORBIDDEN verifications                |
+| `usage_exceeded_count`           | UInt64   | Count of USAGE_EXCEEDED verifications           |
 
 ### Per Hour Table
 
@@ -106,7 +107,7 @@ You can filter by your API IDs and user identifiers directly:
 
 ```sql
 SELECT COUNT(*) FROM key_verifications
-WHERE api_id = 'api_1234'
+WHERE key_space_id = 'ks_1234'
 ```
 
 ### Filter by User
@@ -120,7 +121,7 @@ WHERE external_id = 'user_abc123'
 
 ```sql
 SELECT COUNT(*) FROM key_verifications
-WHERE api_id IN ('api_1234', 'api_5678')
+WHERE key_space_id IN ('ks_1234', 'ks_5678')
   AND external_id IN ('user_abc', 'user_xyz')
 ```
 
@@ -178,6 +179,7 @@ GROUP BY path
 ## Time Functions
 
 Timestamps are stored differently depending on the table:
+
 - **Raw table (`key_verifications_v1`)**: `time` is `Int64` (Unix milliseconds)
 - **Aggregated tables**: `time` is `DateTime`
 
@@ -255,52 +257,52 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 
 ### Aggregate Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `COUNT()` | Count rows | `SELECT COUNT(*) FROM key_verifications_v1` |
-| `SUM()` | Sum values | `SELECT SUM(valid_count) FROM key_verifications_per_day_v1` |
-| `AVG()` | Average | `SELECT AVG(latency_ms) FROM key_verifications_v1` |
-| `MIN()` | Minimum value | `SELECT MIN(time) FROM key_verifications_v1` |
-| `MAX()` | Maximum value | `SELECT MAX(time) FROM key_verifications_v1` |
-| `countIf()` | Conditional count | `SELECT countIf(outcome = 'VALID')` |
-| `uniq()` | Count distinct | `SELECT uniq(key_id) FROM key_verifications_v1` |
+| Function    | Description       | Example                                                     |
+| ----------- | ----------------- | ----------------------------------------------------------- |
+| `COUNT()`   | Count rows        | `SELECT COUNT(*) FROM key_verifications_v1`                 |
+| `SUM()`     | Sum values        | `SELECT SUM(valid_count) FROM key_verifications_per_day_v1` |
+| `AVG()`     | Average           | `SELECT AVG(latency_ms) FROM key_verifications_v1`          |
+| `MIN()`     | Minimum value     | `SELECT MIN(time) FROM key_verifications_v1`                |
+| `MAX()`     | Maximum value     | `SELECT MAX(time) FROM key_verifications_v1`                |
+| `countIf()` | Conditional count | `SELECT countIf(outcome = 'VALID')`                         |
+| `uniq()`    | Count distinct    | `SELECT uniq(key_id) FROM key_verifications_v1`             |
 
 ### String Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `lower()` | Convert to lowercase | `WHERE lower(outcome) = 'valid'` |
-| `upper()` | Convert to uppercase | `WHERE upper(region) = 'US-EAST-1'` |
-| `concat()` | Concatenate strings | `SELECT concat(region, '-', outcome)` |
-| `substring()` | Extract substring | `SELECT substring(key_id, 1, 8)` |
-| `startsWith()` | Check prefix | `WHERE startsWith(key_id, 'key_')` |
+| Function       | Description          | Example                               |
+| -------------- | -------------------- | ------------------------------------- |
+| `lower()`      | Convert to lowercase | `WHERE lower(outcome) = 'valid'`      |
+| `upper()`      | Convert to uppercase | `WHERE upper(region) = 'US-EAST-1'`   |
+| `concat()`     | Concatenate strings  | `SELECT concat(region, '-', outcome)` |
+| `substring()`  | Extract substring    | `SELECT substring(key_id, 1, 8)`      |
+| `startsWith()` | Check prefix         | `WHERE startsWith(key_id, 'key_')`    |
 
 ### Array Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `has()` | Check element | `WHERE has(tags, 'production')` |
-| `hasAny()` | Check any element | `WHERE hasAny(tags, ['prod', 'staging'])` |
-| `hasAll()` | Check all elements | `WHERE hasAll(tags, ['prod', 'us'])` |
-| `arrayJoin()` | Expand array | `SELECT arrayJoin(tags) as tag` |
-| `arrayFilter()` | Filter array | `arrayFilter(x -> startsWith(x, 'path='), tags)` |
-| `length()` | Array length | `WHERE length(tags) > 0` |
+| Function        | Description        | Example                                          |
+| --------------- | ------------------ | ------------------------------------------------ |
+| `has()`         | Check element      | `WHERE has(tags, 'production')`                  |
+| `hasAny()`      | Check any element  | `WHERE hasAny(tags, ['prod', 'staging'])`        |
+| `hasAll()`      | Check all elements | `WHERE hasAll(tags, ['prod', 'us'])`             |
+| `arrayJoin()`   | Expand array       | `SELECT arrayJoin(tags) as tag`                  |
+| `arrayFilter()` | Filter array       | `arrayFilter(x -> startsWith(x, 'path='), tags)` |
+| `length()`      | Array length       | `WHERE length(tags) > 0`                         |
 
 ### Math Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `round()` | Round number | `SELECT round(avg_latency, 2)` |
-| `floor()` | Round down | `SELECT floor(latency_ms / 100) * 100 as bucket` |
-| `ceil()` | Round up | `SELECT ceil(price)` |
-| `abs()` | Absolute value | `SELECT abs(difference)` |
+| Function  | Description    | Example                                          |
+| --------- | -------------- | ------------------------------------------------ |
+| `round()` | Round number   | `SELECT round(avg_latency, 2)`                   |
+| `floor()` | Round down     | `SELECT floor(latency_ms / 100) * 100 as bucket` |
+| `ceil()`  | Round up       | `SELECT ceil(price)`                             |
+| `abs()`   | Absolute value | `SELECT abs(difference)`                         |
 
 ### Conditional Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `if()` | If-then-else | `SELECT if(outcome = 'VALID', 1, 0)` |
-| `CASE` | Multi-condition | `CASE WHEN outcome = 'VALID' THEN 'success' ELSE 'failure' END` |
+| Function | Description     | Example                                                         |
+| -------- | --------------- | --------------------------------------------------------------- |
+| `if()`   | If-then-else    | `SELECT if(outcome = 'VALID', 1, 0)`                            |
+| `CASE`   | Multi-condition | `CASE WHEN outcome = 'VALID' THEN 'success' ELSE 'failure' END` |
 
 ## Performance Tips
 
@@ -308,18 +310,17 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 2. **Use aggregated tables** - Query hourly/daily/month tables for long ranges
 3. **Limit result sets** - Add LIMIT clauses to prevent large results
 4. **Filter before grouping** - Use WHERE instead of HAVING when possible
-5. **Use your own IDs** - Filter with api_id and external_id directly
-6. **Avoid SELECT *** - Only select columns you need
+5. **Avoid SELECT \*** - Only select columns you need
 
 ## Query Limits
 
-| Resource | Limit | Error Code |
-|----------|-------|-----------|
-| Execution time | 30 seconds | `query_execution_timeout` |
-| Memory usage | 1 GB | `query_memory_limit_exceeded` |
-| Rows to read | 10 million | `query_rows_limit_exceeded` |
-| Result rows | 10 million | `query_result_rows_limit_exceeded` |
-| Queries per hour | 1000 | `query_quota_exceeded` |
+| Resource         | Limit      | Error Code                         |
+| ---------------- | ---------- | ---------------------------------- |
+| Execution time   | 30 seconds | `query_execution_timeout`          |
+| Memory usage     | 1 GB       | `query_memory_limit_exceeded`      |
+| Rows to read     | 10 million | `query_rows_limit_exceeded`        |
+| Result rows      | 10 million | `query_result_rows_limit_exceeded` |
+| Queries per hour | 1000       | `query_quota_exceeded`             |
 
 See [Security](/analytics/security) for more details on query limits and restrictions.
 
@@ -332,7 +333,11 @@ See [Security](/analytics/security) for more details on query limits and restric
   <Card title="Security" icon="shield" href="/analytics/security">
     Understand workspace isolation and security
   </Card>
-  <Card title="ClickHouse Docs" icon="book" href="https://clickhouse.com/docs/en/sql-reference">
+  <Card
+    title="ClickHouse Docs"
+    icon="book"
+    href="https://clickhouse.com/docs/en/sql-reference"
+  >
     Browse ClickHouse SQL reference (external)
   </Card>
 </CardGroup>

@@ -26,191 +26,37 @@ The query parser is responsible for validating, rewriting, and securing user-sub
 
 1. **Parse SQL**: Uses `github.com/AfterShip/clickhouse-sql-parser` to parse the query into an AST
 2. **Validate query type**: Only SELECT queries are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)
-3. **Rewrite virtual columns**: Translates user-friendly column names to actual ClickHouse columns
-4. **Enforce workspace isolation**: Automatically injects `WHERE workspace_id = 'ws_xxx'` to every query
-5. **Validate table access**: Only allows queries against pre-approved tables
-6. **Enforce limits**: Adds `LIMIT` clause if not present, caps at configured maximum
-7. **Validate functions**: Blocks dangerous or expensive functions
+3. **Enforce workspace isolation**: Automatically injects `WHERE workspace_id = 'ws_xxx'` to every query
+4. **Validate table access**: Only allows queries against pre-approved tables
+5. **Enforce limits**: Adds `LIMIT` clause if not present, caps at configured maximum
+6. **Validate functions**: Blocks dangerous or expensive functions
 
 **Example transformation:**
 
 ```sql
 -- User submits:
-SELECT apiId, COUNT(*) FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY
+SELECT key_space_id, COUNT(*) FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY
 
 -- Parser rewrites to:
-SELECT key_space_id AS apiId, COUNT(*)
+SELECT key_space_id, COUNT(*)
 FROM default.key_verifications_raw_v2
 WHERE workspace_id = 'ws_4qD3194xe2x56qmv'
-  AND key_space_id IN ('ks_abc123')
   AND time >= now() - INTERVAL 7 DAY
 LIMIT 10000
 ```
 
-### Virtual Columns
+### Direct Column Access
 
-Virtual columns provide a user-friendly query API while maintaining security and workspace isolation. The system performs bidirectional transformations:
+Users query ClickHouse tables directly using the actual column names. The schema exposes:
 
-1. **Query Rewriting**: User-facing column names → Internal ClickHouse columns
-2. **Value Resolution**: User-facing IDs → Internal database IDs (before query execution)
-3. **Result Transformation**: Internal IDs → User-facing IDs (after query execution)
+- **`key_space_id`**: The API's KeyAuth ID (e.g., `ks_1234`)
+- **`identity_id`**: Internal identity identifier
+- **`external_id`**: User-provided external identifier
+- **`key_id`**: Individual key identifier
 
-**Supported virtual columns:**
+Users can find their `key_space_id` in the API settings in the dashboard.
 
-- **`apiId`** (alias: `api_id`) → `key_space_id`
-- **`externalId`** (alias: `external_id`) → `identity_id`
-
-#### Query Rewriting Flow
-
-When a user writes `SELECT externalId, COUNT(*) FROM key_verifications WHERE apiId = 'api_123'`, the parser performs these transformations:
-
-**1. Extract virtual column values from WHERE/HAVING clauses**
-
-```go
-// Parser walks the AST and collects all values for virtual columns
-virtualCols := map[string][]string{
-    "apiId": ["api_123"],
-}
-```
-
-**2. Resolve user IDs to internal IDs**
-
-```go
-// Call resolver function with extracted values
-resolved, err := vcConfig.Resolver(ctx, []string{"api_123"})
-// Returns: {"api_123": "ks_internal_456"}
-```
-
-**3. Rewrite WHERE clause values**
-
-```sql
--- Before: WHERE apiId = 'api_123'
--- After:  WHERE key_space_id = 'ks_internal_456'
-```
-
-**4. Rewrite SELECT columns with automatic aliasing**
-
-```sql
--- Before: SELECT externalId
--- After:  SELECT identity_id AS externalId
-```
-
-This ensures the ClickHouse result columns have the same names the user expects, even though internally we query different columns.
-
-**5. Rewrite GROUP BY/ORDER BY columns**
-
-```sql
--- Before: GROUP BY externalId
--- After:  GROUP BY identity_id
-```
-
-The final rewritten query:
-
-```sql
-SELECT identity_id AS externalId, COUNT(*)
-FROM default.key_verifications_raw_v2
-WHERE workspace_id = 'ws_xxx'
-  AND key_space_id = 'ks_internal_456'
-GROUP BY identity_id
-LIMIT 10000
-```
-
-#### Virtual Column Implementation
-
-**Parser Configuration** (`handler.go:88-159`):
-
-```go
-VirtualColumns: map[string]chquery.VirtualColumn{
-    "apiId": {
-        ActualColumn: "key_space_id",
-        Aliases:      []string{"api_id"},
-        Resolver: func(ctx context.Context, apiIDs []string) (map[string]string, error) {
-            // Query database to verify IDs exist in workspace
-            results, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
-                WorkspaceID: auth.AuthorizedWorkspaceID,
-                ApiIds:      apiIDs,
-            })
-
-            // Build lookup map: user ID -> internal ID
-            lookup := make(map[string]string)
-            for _, result := range results {
-                lookup[result.ApiID] = result.KeyAuthID
-            }
-
-            // If any requested ID wasn't found, return error
-            if len(lookup) != len(apiIDs) {
-                return nil, fault.New("API not found")
-            }
-
-            return lookup, nil
-        },
-    },
-}
-```
-
-**Key security features:**
-
-- Resolver validates IDs exist in workspace before query execution
-- Missing IDs return errors immediately (prevents guessing attacks)
-- Results are cached to minimize database load
-
-#### Result Transformation
-
-After ClickHouse returns results with internal IDs, we transform them back to user-facing IDs.
-
-**Transformer Configuration** (`handler.go:220-250`):
-
-```go
-transformer := resulttransformer.New([]resulttransformer.ColumnConfig{
-    {
-        ActualColumn:  "key_space_id",
-        VirtualColumn: "apiId",
-        Resolver: func(ctx context.Context, keySpaceIDs []string) (map[string]string, error) {
-            // Reverse lookup: internal ID -> user ID
-            results, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), ...)
-
-            lookup := make(map[string]string)
-            for _, result := range results {
-                lookup[result.KeyAuthID] = result.ApiID
-            }
-            return lookup, nil
-        },
-    },
-})
-```
-
-**Transformation flow:**
-
-1. Extract all internal IDs from ClickHouse result columns
-2. Batch resolve internal IDs → user IDs
-3. Replace internal IDs in result rows with user IDs
-4. Return transformed results
-
-Both forward and reverse resolvers are cached to minimize database queries.
-
-#### Unified Rewrite Function
-
-The parser uses a single walk function to handle all clause types:
-
-```go
-rewriteFunc := func(node clickhouse.Expr) bool {
-    // Handle BinaryOperation (WHERE/HAVING with values)
-    if binOp, ok := node.(*clickhouse.BinaryOperation); ok {
-        // Rewrite column name AND values
-        // Example: apiId = 'api_123' → key_space_id = 'ks_internal_456'
-    }
-
-    // Handle plain Ident (GROUP BY/SELECT/ORDER BY)
-    if ident, ok := node.(*clickhouse.Ident); ok {
-        // Rewrite column name only
-        // Example: externalId → identity_id
-    }
-
-    return true
-}
-```
-
-This function is applied to WHERE, HAVING, GROUP BY, and SELECT clauses, ensuring consistent rewriting across the entire query.
+**No ID transformation is performed** - users query with the actual IDs stored in ClickHouse, and results contain those same IDs.
 
 ### Table Aliases
 
@@ -245,7 +91,7 @@ Access to analytics requires one of these permissions:
 
 1. **`analytics.read`**: Workspace-level access to all analytics
 2. **`api.*.read_analytics`**: Wildcard access to analytics for all APIs
-3. **`api.<apiId>.read_analytics`**: Per-API analytics access (requires query to filter by that API)
+3. **`api.<api_id>.read_analytics`**: Per-API analytics access. The system translates `api_id` to `key_space_id` internally.
 
 **Permission checking logic** (`handler.go:170-212`):
 
@@ -264,13 +110,16 @@ permissionChecks := []rbac.PermissionQuery{
     }),
 }
 
-// If query filters by apiId, add specific API permissions check
-if len(extractedAPIIds) > 0 {
-    apiPermissions := make([]rbac.PermissionQuery, len(extractedAPIIds))
-    for i, apiID := range extractedAPIIds {
+// If query filters by key_space_id, translate to api_id and check permissions
+if len(extractedKeySpaceIds) > 0 {
+    // Translate key_space_id to api_id for permission check
+    apiIDs := translateKeySpaceToApiID(extractedKeySpaceIds)
+
+    apiPermissions := make([]rbac.PermissionQuery, len(apiIDs))
+    for i, apiID := range apiIDs {
         apiPermissions[i] = rbac.T(rbac.Tuple{
             ResourceType: rbac.Api,
-            ResourceID:   apiID,
+            ResourceID:   apiID, // Uses api_id, not key_space_id
             Action:       rbac.ReadAnalytics,
         })
     }
@@ -497,7 +346,7 @@ The connection manager performs periodic health checks:
 **Solutions**:
 - Grant `analytics.read` for workspace-level access
 - Grant `api.*.read_analytics` for all APIs
-- Grant specific `api.<apiId>.read_analytics` permissions and ensure query filters by that API
+- Grant specific `api.<api_id>.read_analytics` permissions. The system translates `api_id` to `key_space_id` for the permission check.
 
 ## Best Practices
 

@@ -69,3 +69,4 @@ func (p *Parser) injectSecurityFilters() error {
 
 	return nil
 }
+

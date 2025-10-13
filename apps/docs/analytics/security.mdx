@@ -87,7 +87,7 @@ Only explicitly approved functions are allowed. Any function not on this list wi
 
 You can use familiar identifiers directly in your queries:
 
-- **`api_id`** - Your Unkey API IDs (e.g., `api_1234`) that we provide to you
+- **`key_space_id`** - Your Unkey API IDs (e.g., `ks_1234`) that we provide to you. Find this in your API settings.
 - **`external_id`** - Your own user identifiers (e.g., `user_abc123`) from your application
 
 Unkey automatically handles the internal mapping securely. All comparison operators are supported: `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`
@@ -212,7 +212,6 @@ To optimize query performance and avoid hitting resource limits:
 1. **Filter by time** - Always include time-based filters to reduce data scanned
 2. **Use aggregated tables** - Query hourly/daily/monthly tables for longer time ranges
 3. **Add LIMIT clauses** - Prevent large result sets
-4. **Use your own IDs** - Filter with `api_id` and `external_id` for cleaner queries
 
 ## Next Steps
 
