@@ -1,10 +1,10 @@
 package docker
 
 import (
-	"bytes"
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -13,6 +13,15 @@ import (
 	"github.com/docker/docker/client"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 )
+
+type dockerBuildResponse struct {
+	Stream      string `json:"stream,omitempty"`
+	Error       string `json:"error,omitempty"`
+	ErrorDetail struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"errorDetail"`
+}
 
 func (d *Docker) CreateBuild(
 	ctx context.Context,
@@ -27,25 +36,28 @@ func (d *Docker) CreateBuild(
 			fmt.Errorf("unkeyProjectID is required"))
 	}
 
-	// Download tar from S3
-	d.logger.Info("Downloading build context from S3", "context_key", req.Msg.ContextKey)
-	tarData, exists, err := d.storage.GetObject(ctx, req.Msg.ContextKey)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to download build context: %w", err))
-	}
-	if !exists {
-		return nil, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("build context not found: %s", req.Msg.ContextKey))
-	}
-	d.logger.Info("Build context downloaded", "size_bytes", len(tarData))
+	d.logger.Info("Getting presigned URL for build context",
+		"context_key", req.Msg.ContextKey,
+		"unkey_project_id", req.Msg.UnkeyProjectID)
 
-	// Create Docker client
+	contextURL, err := d.storage.GetPresignedURL(ctx, req.Msg.ContextKey, 15*time.Minute)
+	if err != nil {
+		d.logger.Error("Failed to get presigned URL",
+			"error", err,
+			"context_key", req.Msg.ContextKey,
+			"unkey_project_id", req.Msg.UnkeyProjectID)
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to get presigned URL: %w", err))
+	}
+
 	dockerClient, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
+		d.logger.Error("Failed to create docker client",
+			"error", err,
+			"unkey_project_id", req.Msg.UnkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create docker client: %w", err))
 	}
@@ -62,35 +74,71 @@ func (d *Docker) CreateBuild(
 		dockerfilePath = "Dockerfile"
 	}
 
-	d.logger.Info("Starting Docker build", "image_tag", imageTag, "dockerfile", dockerfilePath)
+	d.logger.Info("Starting Docker build",
+		"image_tag", imageTag,
+		"dockerfile", dockerfilePath,
+		"platform", "linux/arm64",
+		"unkey_project_id", req.Msg.UnkeyProjectID)
 
 	buildOptions := build.ImageBuildOptions{
-		Tags:       []string{imageTag},
-		Dockerfile: dockerfilePath,
-		Platform:   "linux/arm64",
-		Remove:     true,
+		Tags:          []string{imageTag},
+		Dockerfile:    dockerfilePath,
+		Platform:      "linux/arm64",
+		Remove:        true,
+		RemoteContext: contextURL,
 	}
 
-	// Build image with tar from memory
-	buildResponse, err := dockerClient.ImageBuild(
-		ctx,
-		bytes.NewReader(tarData),
-		buildOptions,
-	)
+	buildResponse, err := dockerClient.ImageBuild(ctx, nil, buildOptions)
 	if err != nil {
+		d.logger.Error("Docker build failed",
+			"error", err,
+			"image_tag", imageTag,
+			"dockerfile", dockerfilePath,
+			"unkey_project_id", req.Msg.UnkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to start build: %w", err))
 	}
 	defer buildResponse.Body.Close()
 
-	// Stream build logs
-	if _, err := io.Copy(io.Discard, buildResponse.Body); err != nil {
-		d.logger.Error("Failed to read build output", "error", err)
+	scanner := bufio.NewScanner(buildResponse.Body)
+	var buildError error
+
+	for scanner.Scan() {
+		var resp dockerBuildResponse
+		if err := json.Unmarshal(scanner.Bytes(), &resp); err != nil {
+			continue
+		}
+
+		if resp.Error != "" {
+			buildError = fmt.Errorf("%s", resp.ErrorDetail.Message)
+			d.logger.Error("Build failed",
+				"error", resp.ErrorDetail.Message,
+				"image_tag", imageTag,
+				"unkey_project_id", req.Msg.UnkeyProjectID)
+			break
+		}
 	}
 
-	d.logger.Info("Build completed successfully", "image_tag", imageTag)
+	if err := scanner.Err(); err != nil {
+		d.logger.Error("Failed to read build output",
+			"error", err,
+			"image_tag", imageTag,
+			"unkey_project_id", req.Msg.UnkeyProjectID)
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to read build output: %w", err))
+	}
+
+	if buildError != nil {
+		return nil, connect.NewError(connect.CodeInternal, buildError)
+	}
 
 	buildID := fmt.Sprintf("docker-%d", timestamp)
+
+	d.logger.Info("Build completed successfully",
+		"image_tag", imageTag,
+		"build_id", buildID,
+		"unkey_project_id", req.Msg.UnkeyProjectID)
+
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
 		ImageName: imageTag,
 		BuildId:   buildID,
