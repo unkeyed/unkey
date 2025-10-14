@@ -4,6 +4,7 @@
   "root": false,
   "pages": [
     "api",
+    "analytics",
     "clickhouse",
     "clickhouse-proxy",
     "deploy",

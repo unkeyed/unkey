@@ -2,18 +2,15 @@
 // @generated from file partition/v1/gateway.proto (package partition.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file partition/v1/gateway.proto.
  */
-export const file_partition_v1_gateway: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChpwYXJ0aXRpb24vdjEvZ2F0ZXdheS5wcm90bxIMcGFydGl0aW9uLnYxIp4CCg1HYXRld2F5Q29uZmlnEiYKB3Byb2plY3QYASABKAsyFS5wYXJ0aXRpb24udjEuUHJvamVjdBIsCgpkZXBsb3ltZW50GAIgASgLMhgucGFydGl0aW9uLnYxLkRlcGxveW1lbnQSHQoDdm1zGAMgAygLMhAucGFydGl0aW9uLnYxLlZNEjIKC2F1dGhfY29uZmlnGAQgASgLMhgucGFydGl0aW9uLnYxLkF1dGhDb25maWdIAIgBARI+ChF2YWxpZGF0aW9uX2NvbmZpZxgFIAEoCzIeLnBhcnRpdGlvbi52MS5WYWxpZGF0aW9uQ29uZmlnSAGIAQFCDgoMX2F1dGhfY29uZmlnQhQKEl92YWxpZGF0aW9uX2NvbmZpZyIsCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhIKCmlzX2VuYWJsZWQYAiABKAgiKQoHUHJvamVjdBIKCgJpZBgBIAEoCRISCgppc19lbmFibGVkGAIgASgIIhAKAlZNEgoKAmlkGAEgASgJIiEKCkF1dGhDb25maWcSEwoLa2V5X2F1dGhfaWQYASABKAkiKAoQVmFsaWRhdGlvbkNvbmZpZxIUCgxvcGVuYXBpX3NwZWMYASABKAlCQFo+Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9wYXJ0aXRpb24vdjE7cGFydGl0aW9udjFiBnByb3RvMw",
-  );
+export const file_partition_v1_gateway: GenFile = /*@__PURE__*/
+  fileDesc("ChpwYXJ0aXRpb24vdjEvZ2F0ZXdheS5wcm90bxIMcGFydGl0aW9uLnYxIp4CCg1HYXRld2F5Q29uZmlnEiYKB3Byb2plY3QYASABKAsyFS5wYXJ0aXRpb24udjEuUHJvamVjdBIsCgpkZXBsb3ltZW50GAIgASgLMhgucGFydGl0aW9uLnYxLkRlcGxveW1lbnQSHQoDdm1zGAMgAygLMhAucGFydGl0aW9uLnYxLlZNEjIKC2F1dGhfY29uZmlnGAQgASgLMhgucGFydGl0aW9uLnYxLkF1dGhDb25maWdIAIgBARI+ChF2YWxpZGF0aW9uX2NvbmZpZxgFIAEoCzIeLnBhcnRpdGlvbi52MS5WYWxpZGF0aW9uQ29uZmlnSAGIAQFCDgoMX2F1dGhfY29uZmlnQhQKEl92YWxpZGF0aW9uX2NvbmZpZyIsCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhIKCmlzX2VuYWJsZWQYAiABKAgiKQoHUHJvamVjdBIKCgJpZBgBIAEoCRISCgppc19lbmFibGVkGAIgASgIIhAKAlZNEgoKAmlkGAEgASgJIiEKCkF1dGhDb25maWcSEwoLa2V5X2F1dGhfaWQYASABKAkiKAoQVmFsaWRhdGlvbkNvbmZpZxIUCgxvcGVuYXBpX3NwZWMYASABKAlCsQEKEGNvbS5wYXJ0aXRpb24udjFCDEdhdGV3YXlQcm90b1ABWj5naXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL3BhcnRpdGlvbi92MTtwYXJ0aXRpb252MaICA1BYWKoCDFBhcnRpdGlvbi5WMcoCDFBhcnRpdGlvblxWMeICGFBhcnRpdGlvblxWMVxHUEJNZXRhZGF0YeoCDVBhcnRpdGlvbjo6VjFiBnByb3RvMw");
 
 /**
  * GatewayConfig contains all configuration needed for a hostname
@@ -56,8 +53,7 @@ export type GatewayConfig = Message<"partition.v1.GatewayConfig"> & {
  * Describes the message partition.v1.GatewayConfig.
  * Use `create(GatewayConfigSchema)` to create a new message.
  */
-export const GatewayConfigSchema: GenMessage<GatewayConfig> =
-  /*@__PURE__*/
+export const GatewayConfigSchema: GenMessage<GatewayConfig> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 0);
 
 /**
@@ -79,8 +75,7 @@ export type Deployment = Message<"partition.v1.Deployment"> & {
  * Describes the message partition.v1.Deployment.
  * Use `create(DeploymentSchema)` to create a new message.
  */
-export const DeploymentSchema: GenMessage<Deployment> =
-  /*@__PURE__*/
+export const DeploymentSchema: GenMessage<Deployment> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 1);
 
 /**
@@ -102,8 +97,7 @@ export type Project = Message<"partition.v1.Project"> & {
  * Describes the message partition.v1.Project.
  * Use `create(ProjectSchema)` to create a new message.
  */
-export const ProjectSchema: GenMessage<Project> =
-  /*@__PURE__*/
+export const ProjectSchema: GenMessage<Project> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 2);
 
 /**
@@ -120,7 +114,8 @@ export type VM = Message<"partition.v1.VM"> & {
  * Describes the message partition.v1.VM.
  * Use `create(VMSchema)` to create a new message.
  */
-export const VMSchema: GenMessage<VM> = /*@__PURE__*/ messageDesc(file_partition_v1_gateway, 3);
+export const VMSchema: GenMessage<VM> = /*@__PURE__*/
+  messageDesc(file_partition_v1_gateway, 3);
 
 /**
  * Authentication middleware configuration
@@ -138,8 +133,7 @@ export type AuthConfig = Message<"partition.v1.AuthConfig"> & {
  * Describes the message partition.v1.AuthConfig.
  * Use `create(AuthConfigSchema)` to create a new message.
  */
-export const AuthConfigSchema: GenMessage<AuthConfig> =
-  /*@__PURE__*/
+export const AuthConfigSchema: GenMessage<AuthConfig> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 4);
 
 /**
@@ -160,6 +154,6 @@ export type ValidationConfig = Message<"partition.v1.ValidationConfig"> & {
  * Describes the message partition.v1.ValidationConfig.
  * Use `create(ValidationConfigSchema)` to create a new message.
  */
-export const ValidationConfigSchema: GenMessage<ValidationConfig> =
-  /*@__PURE__*/
+export const ValidationConfigSchema: GenMessage<ValidationConfig> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 5);
+

@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { CopyApiId } from "./copy-api-id";
+import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
 import { DeleteApi } from "./delete-api";
@@ -62,6 +63,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
           <div>
             <UpdateApiName api={api} />
             <CopyApiId apiId={api.id} />
+            <CopyKeySpaceId keySpaceId={keyAuth.id} />
           </div>
           <div>
             <DefaultBytes keyAuth={keyAuthForComponents} apiId={api.id} />

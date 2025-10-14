@@ -1,0 +1,122 @@
+---
+title: "query_memory_limit_exceeded"
+description: "Your query used more memory than allowed."
+---
+
+<Danger>`err:user:unprocessable_entity:query_memory_limit_exceeded`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Query exceeded the maximum memory limit of 2GB",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded"
+  }
+}
+```
+
+## What Happened?
+
+Your query tried to use more than 2GB of memory! We limit memory usage to keep the analytics service stable and fast for everyone.
+
+This typically happens when you're selecting too many rows, using large GROUP BY operations, or performing complex JOINs without enough filtering.
+
+## How to Fix It
+
+### 1. Use Aggregations Instead of Raw Data
+
+Instead of fetching all rows, aggregate the data:
+
+<CodeGroup>
+
+```sql Memory Intensive - Fetches all rows
+SELECT *
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+```sql Memory Efficient - Aggregates data
+SELECT
+  toStartOfHour(time) as hour,
+  api_id,
+  COUNT(*) as total,
+  AVG(response_time) as avg_response
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY hour, api_id
+```
+
+</CodeGroup>
+
+### 2. Add More Filters
+
+Reduce the amount of data the query needs to process:
+
+<CodeGroup>
+
+```sql Too Much Data
+SELECT api_id, key_id, outcome, time
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 30 DAY
+```
+
+```sql Filtered Query
+SELECT api_id, key_id, outcome, time
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 1 DAY
+  AND api_id = 'api_123'
+  AND outcome = 'VALID'
+```
+
+</CodeGroup>
+
+### 3. Limit Result Size
+
+Add a LIMIT to cap the number of rows:
+
+```sql
+SELECT api_id, key_id, outcome, time
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+ORDER BY time DESC
+LIMIT 10000
+```
+
+### 4. Avoid Large GROUP BY Cardinality
+
+GROUP BY on high-cardinality columns (like `key_id`) uses a lot of memory. Instead, group by lower-cardinality columns:
+
+<CodeGroup>
+
+```sql High Memory - Millions of unique keys
+SELECT key_id, COUNT(*) as total
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY key_id
+```
+
+```sql Lower Memory - Hundreds of APIs
+SELECT api_id, COUNT(*) as total
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY api_id
+```
+
+</CodeGroup>
+
+## Need More Memory?
+
+<Note>
+**Have a legitimate need for higher memory limits?** Contact our support team!
+
+[Reach out to support](mailto:support@unkey.dev) and tell us:
+- What you're trying to analyze
+- Why the query needs more than 2GB of memory
+- An example of the query you're running
+
+We'll review your use case and see if we can accommodate your needs.
+</Note>

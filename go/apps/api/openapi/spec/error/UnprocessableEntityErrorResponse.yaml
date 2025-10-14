@@ -1,0 +1,17 @@
+type: object
+required:
+  - meta
+  - error
+properties:
+  meta:
+    $ref: "../common/Meta.yaml"
+  error:
+    $ref: "./BaseError.yaml"
+description: |-
+  Error response when the request is syntactically valid but cannot be processed due to semantic constraints or resource limitations. This occurs when:
+  - A query exceeds execution time limits
+  - A query uses more memory than allowed
+  - A query scans too many rows
+  - A query result exceeds size limits
+
+  The request syntax is correct, but the operation cannot be completed due to business rules or resource constraints. Review the error details for specific limitations and adjust your request accordingly.

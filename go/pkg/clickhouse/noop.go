@@ -30,6 +30,11 @@ func (n *noop) BufferKeyVerification(schema.KeyVerificationRequestV1) {
 	// Intentionally empty - discards the event
 }
 
+// BufferKeyVerificationV2 implements the Bufferer interface but discards the event.
+func (n *noop) BufferKeyVerificationV2(schema.KeyVerificationV2) {
+	// Intentionally empty - discards the event
+}
+
 // BufferRatelimit implements the Bufferer interface but discards the event.
 func (n *noop) BufferRatelimit(req schema.RatelimitRequestV1) {
 	// Intentionally empty - discards the event
@@ -46,6 +51,30 @@ func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, ye
 }
 
 func (n *noop) Conn() ch.Conn {
+	return nil
+}
+
+// QueryToMaps implements the Querier interface but always returns an empty slice.
+func (n *noop) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+	return []map[string]any{}, nil
+}
+
+// Exec implements the Querier interface but does nothing.
+func (n *noop) Exec(ctx context.Context, sql string, args ...any) error {
+	return nil
+}
+
+// ConfigureUser implements the Querier interface but does nothing.
+func (n *noop) ConfigureUser(ctx context.Context, config UserConfig) error {
+	return nil
+}
+
+func (n *noop) Ping(ctx context.Context) error {
+	return nil
+}
+
+// Close closes the underlying ClickHouse connection.
+func (n *noop) Close() error {
 	return nil
 }
 
