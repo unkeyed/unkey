@@ -484,94 +484,40 @@ ORDER BY requests DESC
 
 </AccordionGroup>
 
-## Geographic Analytics
-
-<AccordionGroup>
-
-<Accordion title="Verifications by region">
-
-```sql
-SELECT
-  region,
-  COUNT(*) as verifications
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 30 DAY
-  AND region != ''
-GROUP BY region
-ORDER BY verifications DESC
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT region, COUNT(*) as verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY AND region != '' GROUP BY region ORDER BY verifications DESC"
-}
-```
-
-</Accordion>
-
-<Accordion title="Usage per user per region">
-
-```sql
-SELECT
-  external_id,
-  region,
-  COUNT(*) as verifications
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 30 DAY
-  AND external_id = 'user_123'
-  AND region != ''
-GROUP BY external_id, region
-ORDER BY verifications DESC
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, region, COUNT(*) as verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY AND external_id = 'user_123' AND region != '' GROUP BY external_id, region ORDER BY verifications DESC"
-}
-```
-
-</Accordion>
-
-</AccordionGroup>
-
 ## Billing & Usage-Based Pricing
 
 <AccordionGroup>
 
-<Accordion title="Monthly usage per user">
+<Accordion title="Monthly credits per user">
 
 ```sql
 SELECT
   external_id,
   toStartOfMonth(time) as month,
-  countIf(outcome = 'VALID') as billable_requests
+  SUM(spent_credits) as total_credits
 FROM key_verifications_v1
 WHERE external_id != ''
   AND time >= toStartOfMonth(now())
 GROUP BY external_id, month
-ORDER BY billable_requests DESC
+ORDER BY total_credits DESC
 ```
 
 **JSON format:**
 
 ```json
 {
-  "query": "SELECT external_id, toStartOfMonth(time) as month, countIf(outcome = 'VALID') as billable_requests FROM key_verifications_v1 WHERE external_id != '' AND time >= toStartOfMonth(now()) GROUP BY external_id, month ORDER BY billable_requests DESC"
+  "query": "SELECT external_id, toStartOfMonth(time) as month, SUM(spent_credits) as total_credits FROM key_verifications_v1 WHERE external_id != '' AND time >= toStartOfMonth(now()) GROUP BY external_id, month ORDER BY total_credits DESC"
 }
 ```
 
 </Accordion>
 
-<Accordion title="Current billing period usage">
+<Accordion title="Current billing period credits">
 
 ```sql
 SELECT
   external_id,
-  countIf(outcome = 'VALID') as requests_this_period
+  SUM(spent_credits) as credits_this_period
 FROM key_verifications_v1
 WHERE external_id = 'user_123'
   AND time >= 1704067200000  -- Start of billing period (Unix millis)
@@ -583,47 +529,47 @@ GROUP BY external_id
 
 ```json
 {
-  "query": "SELECT external_id, countIf(outcome = 'VALID') as requests_this_period FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= 1704067200000  -- Start of billing period (Unix millis) AND time < 1706745600000   -- End of billing period (Unix millis) GROUP BY external_id"
+  "query": "SELECT external_id, SUM(spent_credits) as credits_this_period FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= 1704067200000 AND time < 1706745600000 GROUP BY external_id"
 }
 ```
 
 </Accordion>
 
-<Accordion title="Usage tiers calculation">
+<Accordion title="Credit-based tier calculation">
 
 ```sql
 SELECT
   external_id,
-  countIf(outcome = 'VALID') as total_requests,
+  SUM(spent_credits) as total_credits,
   CASE
-    WHEN total_requests <= 1000 THEN 'free'
-    WHEN total_requests <= 10000 THEN 'starter'
-    WHEN total_requests <= 100000 THEN 'pro'
+    WHEN total_credits <= 1000 THEN 'free'
+    WHEN total_credits <= 10000 THEN 'starter'
+    WHEN total_credits <= 100000 THEN 'pro'
     ELSE 'enterprise'
   END as tier
 FROM key_verifications_v1
 WHERE time >= toStartOfMonth(now())
   AND external_id = 'user_123'
-  GROUP BY external_id
+GROUP BY external_id
 ```
 
 **JSON format:**
 
 ```json
 {
-  "query": "SELECT external_id, countIf(outcome = 'VALID') as total_requests, CASE WHEN total_requests <= 1000 THEN 'free' WHEN total_requests <= 10000 THEN 'starter' WHEN total_requests <= 100000 THEN 'pro' ELSE 'enterprise' END as tier FROM key_verifications_v1 WHERE time >= toStartOfMonth(now()) AND external_id = 'user_123' GROUP BY external_id"
+  "query": "SELECT external_id, SUM(spent_credits) as total_credits, CASE WHEN total_credits <= 1000 THEN 'free' WHEN total_credits <= 10000 THEN 'starter' WHEN total_credits <= 100000 THEN 'pro' ELSE 'enterprise' END as tier FROM key_verifications_v1 WHERE time >= toStartOfMonth(now()) AND external_id = 'user_123' GROUP BY external_id"
 }
 ```
 
 </Accordion>
 
-<Accordion title="Daily billing breakdown">
+<Accordion title="Daily credit usage and cost">
 
 ```sql
 SELECT
   toDate(time) as date,
-  countIf(outcome = 'VALID') as billable_requests,
-  billable_requests * 0.001 as estimated_cost  -- $0.001 per request
+  SUM(spent_credits) as credits_used,
+  credits_used * 0.001 as estimated_cost  -- $0.001 per credit
 FROM key_verifications_v1
 WHERE external_id = 'user_123'
   AND time >= now() - INTERVAL 30 DAY
@@ -635,85 +581,7 @@ ORDER BY date
 
 ```json
 {
-  "query": "SELECT toDate(time) as date, countIf(outcome = 'VALID') as billable_requests, billable_requests * 0.001 as estimated_cost  -- $0.001 per request FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
-}
-```
-
-</Accordion>
-
-</AccordionGroup>
-
-## Performance & Monitoring
-
-<AccordionGroup>
-
-<Accordion title="Success rate over time">
-
-```sql
-SELECT
-  time as date,
-  SUM(count) as total_requests,
-  SUM(if(outcome = 'VALID', count, 0)) as successful_requests,
-  round(successful_requests / total_requests * 100, 2) as success_rate
-FROM key_verifications_per_day_v1
-WHERE time >= now() - INTERVAL 30 DAY
-GROUP BY date
-ORDER BY date
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time as date, SUM(count) as total_requests, SUM(if(outcome = 'VALID', count, 0)) as successful_requests, round(successful_requests / total_requests * 100, 2) as success_rate FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
-}
-```
-
-</Accordion>
-
-<Accordion title="Error rate by API">
-
-```sql
-SELECT
-  key_space_id,
-  COUNT(*) as total_requests,
-  countIf(outcome != 'VALID') as errors,
-  round(errors / total_requests * 100, 2) as error_rate
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 7 DAY
-GROUP BY key_space_id
-HAVING error_rate > 5  -- Only show APIs with >5% error rate
-ORDER BY error_rate DESC
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT key_space_id, COUNT(*) as total_requests, countIf(outcome != 'VALID') as errors, round(errors / total_requests * 100, 2) as error_rate FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY GROUP BY key_space_id HAVING error_rate > 5  -- Only show APIs with >5% error rate ORDER BY error_rate DESC"
-}
-```
-
-</Accordion>
-
-<Accordion title="Rate limit violations">
-
-```sql
-SELECT
-  time as date,
-  SUM(count) as rate_limit_hits
-FROM key_verifications_per_day_v1
-WHERE outcome = 'RATE_LIMITED'
-  AND time >= now() - INTERVAL 30 DAY
-GROUP BY date
-ORDER BY date
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time as date, SUM(count) as rate_limit_hits FROM key_verifications_per_day_v1 WHERE outcome = 'RATE_LIMITED' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
+  "query": "SELECT toDate(time) as date, SUM(spent_credits) as credits_used, credits_used * 0.001 as estimated_cost FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
 }
 ```
 
