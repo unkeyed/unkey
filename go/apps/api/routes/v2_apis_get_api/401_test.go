@@ -3,28 +3,25 @@ package handler_test
 import (
 	"testing"
 
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_permissions"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_get_api"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/authz"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-func TestAuthenticationErrors(t *testing.T) {
+func TestGetApiUnauthorized(t *testing.T) {
 	authz.Test401[handler.Request, handler.Response](t,
 		func(h *testutil.Harness) zen.Route {
 			return &handler.Handler{
-				DB:        h.DB,
-				Keys:      h.Keys,
-				Logger:    h.Logger,
-				Auditlogs: h.Auditlogs,
-				KeyCache:  h.Caches.VerificationKeyByHash,
+				Logger: h.Logger,
+				DB:     h.DB,
+				Keys:   h.Keys,
 			}
 		},
 		func() handler.Request {
 			return handler.Request{
-				KeyId:       uid.New(uid.KeyPrefix),
-				Permissions: []string{"test.permission"},
+				ApiId: uid.New(uid.APIPrefix),
 			}
 		},
 	)

@@ -1,186 +1,113 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
-	"net/http"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_delete_key"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
-	"github.com/unkeyed/unkey/go/pkg/uid"
+	"github.com/unkeyed/unkey/go/pkg/testutil/authz"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-func TestKeyDeleteForbidden(t *testing.T) {
+func TestAuthorizationErrors(t *testing.T) {
+	authz.Test403(t,
+		authz.PermissionTestConfig[handler.Request, handler.Response]{
+			SetupHandler: func(h *testutil.Harness) zen.Route {
+				return &handler.Handler{
+					DB:        h.DB,
+					Keys:      h.Keys,
+					Logger:    h.Logger,
+					Auditlogs: h.Auditlogs,
+					KeyCache:  h.Caches.VerificationKeyByHash,
+				}
+			},
+			RequiredPermissions: []string{"api.*.delete_key"},
+			SetupResources: func(h *testutil.Harness) authz.TestResources {
+				// Create API for testing
+				api := h.CreateApi(seed.CreateApiRequest{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+				})
 
-	h := testutil.NewHarness(t)
-	ctx := context.Background()
+				// Create another API for cross-API testing
+				otherApi := h.CreateApi(seed.CreateApiRequest{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+				})
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
+				// Create a test key
+				keyResp := h.CreateKey(seed.CreateKeyRequest{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					KeyAuthID:   api.KeyAuthID.String,
+				})
 
-	h.Register(route)
+				// Create a key for the other API
+				otherKeyResp := h.CreateKey(seed.CreateKeyRequest{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					KeyAuthID:   otherApi.KeyAuthID.String,
+				})
 
-	// Create API for testing
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-	})
-	require.NoError(t, err)
+				return authz.TestResources{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					ApiID:       api.ID,
+					KeyAuthID:   api.KeyAuthID.String,
+					KeyID:       keyResp.KeyID,
+					OtherApiID:  otherApi.ID,
+					Custom: map[string]string{
+						"other_key_id": otherKeyResp.KeyID,
+					},
+				}
+			},
+			CreateRequest: func(res authz.TestResources) handler.Request {
+				return handler.Request{
+					KeyId: res.KeyID,
+				}
+			},
+		},
+	)
 
-	apiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "test-api",
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
+	// Cross-API permission test
+	t.Run("permission for different API", func(t *testing.T) {
+		h := testutil.NewHarness(t)
 
-	// Create another API for cross-API testing
-	otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            otherKeyAuthID,
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-	})
-	require.NoError(t, err)
+		route := &handler.Handler{
+			DB:        h.DB,
+			Keys:      h.Keys,
+			Logger:    h.Logger,
+			Auditlogs: h.Auditlogs,
+			KeyCache:  h.Caches.VerificationKeyByHash,
+		}
+		h.Register(route)
 
-	otherApiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          otherApiID,
-		Name:        "other-api",
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: otherKeyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
+		// Create two APIs
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+		})
+		otherApi := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+		})
 
-	// Create another Workspace for cross-API testing
-	otherWorkspace := h.CreateWorkspace()
+		// Create a key on the first API
+		keyResp := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			KeyAuthID:   api.KeyAuthID.String,
+		})
 
-	otherWsKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            otherWsKeyAuthID,
-		WorkspaceID:   otherWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-	})
-	require.NoError(t, err)
+		// Create root key with permission for otherApi only
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.delete_key", otherApi.ID))
 
-	otherWsApiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          otherWsApiID,
-		Name:        "test-api",
-		WorkspaceID: otherWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: otherWsKeyAuthID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	// Create a test key
-	keyID := uid.New(uid.KeyPrefix)
-	keyString := "test_" + uid.New("")
-	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       h.Resources().UserWorkspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: true, Int32: 100},
-	})
-	require.NoError(t, err)
-
-	req := handler.Request{
-		KeyId: keyID,
-	}
-
-	t.Run("no permissions", func(t *testing.T) {
-		// Create root key with no permissions
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		// Try to delete key from different API
+		req := handler.Request{
+			KeyId: keyResp.KeyID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("wrong permission - has create but not delete", func(t *testing.T) {
-		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
-
-		headers := http.Header{
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, map[string][]string{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}, req)
+
+		if res.Status != 403 {
+			t.Errorf("expected 403, got %d, body: %s", res.Status, res.RawBody)
 		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("cross workspace access", func(t *testing.T) {
-		// Create a different workspace
-		differentWorkspace := h.CreateWorkspace()
-
-		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.delete_key")
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("cross api access", func(t *testing.T) {
-		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.delete_key", otherApiID))
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
 	})
 }

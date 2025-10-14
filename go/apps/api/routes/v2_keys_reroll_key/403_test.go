@@ -1,137 +1,73 @@
 package handler_test
 
 import (
-	"fmt"
-	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_reroll_key"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/authz"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-func TestRerollKeyForbidden(t *testing.T) {
-	h := testutil.NewHarness(t)
+func TestAuthorizationErrors(t *testing.T) {
+	authz.Test403(t,
+		authz.PermissionTestConfig[handler.Request, handler.Response]{
+			SetupHandler: func(h *testutil.Harness) zen.Route {
+				return &handler.Handler{
+					DB:        h.DB,
+					Keys:      h.Keys,
+					Logger:    h.Logger,
+					Auditlogs: h.Auditlogs,
+					Vault:     h.Vault,
+				}
+			},
+			RequiredPermissions: []string{"api.*.create_key"},
+			SetupResources: func(h *testutil.Harness) authz.TestResources {
+				api := h.CreateApi(seed.CreateApiRequest{
+					WorkspaceID:   h.Resources().UserWorkspace.ID,
+					EncryptedKeys: true,
+				})
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
-	}
+				keyResp := h.CreateKey(seed.CreateKeyRequest{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					KeyAuthID:   api.KeyAuthID.String,
+				})
 
-	h.Register(route)
+				// Create a recoverable key for encryption permission testing
+				recoverableKeyResp := h.CreateKey(seed.CreateKeyRequest{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					KeyAuthID:   api.KeyAuthID.String,
+					Recoverable: true,
+				})
 
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		IpWhitelist:   "",
-		EncryptedKeys: true,
-		Name:          nil,
-		CreatedAt:     nil,
-		DefaultPrefix: nil,
-		DefaultBytes:  nil,
-	})
-
-	otherApi := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		IpWhitelist:   "",
-		EncryptedKeys: true,
-		Name:          nil,
-		CreatedAt:     nil,
-		DefaultPrefix: nil,
-		DefaultBytes:  nil,
-	})
-
-	key := h.CreateKey(seed.CreateKeyRequest{
-		Disabled:    false,
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
-	})
-
-	req := handler.Request{
-		KeyId:      key.KeyID,
-		Expiration: 0,
-	}
-
-	t.Run("no permissions", func(t *testing.T) {
-		// Create root key with no permissions
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("wrong permission - has read but not create", func(t *testing.T) {
-		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("permission for different API", func(t *testing.T) {
-		// Create root key with create permission for other API
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.create_key", otherApi.ID))
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	encryptedKey := h.CreateKey(seed.CreateKeyRequest{
-		Disabled:     false,
-		Recoverable:  true,
-		WorkspaceID:  h.Resources().UserWorkspace.ID,
-		KeyAuthID:    api.KeyAuthID.String,
-		Remaining:    nil,
-		IdentityID:   nil,
-		Meta:         nil,
-		Expires:      nil,
-		Name:         nil,
-		Deleted:      false,
-		RefillAmount: nil,
-		RefillDay:    nil,
-		Permissions:  nil,
-		Roles:        nil,
-		Ratelimits:   nil,
-	})
-
-	t.Run("reroll recoverable key without perms", func(t *testing.T) {
-		// Create root key with permission that partially matches but isn't sufficient because no encryption permission
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
-
-		req := handler.Request{
-			KeyId:      encryptedKey.KeyID,
-			Expiration: 0,
-		}
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
+				return authz.TestResources{
+					WorkspaceID: h.Resources().UserWorkspace.ID,
+					ApiID:       api.ID,
+					KeyAuthID:   api.KeyAuthID.String,
+					KeyID:       keyResp.KeyID,
+					Custom: map[string]string{
+						"recoverable_key_id": recoverableKeyResp.KeyID,
+					},
+				}
+			},
+			CreateRequest: func(res authz.TestResources) handler.Request {
+				return handler.Request{
+					KeyId: res.KeyID,
+				}
+			},
+			AdditionalPermissionTests: []authz.PermissionTestCase[handler.Request]{
+				{
+					Name:        "reroll recoverable key without encrypt_key permission",
+					Permissions: []string{"api.*.create_key"},
+					ModifyRequest: func(req handler.Request, res authz.TestResources) handler.Request {
+						return handler.Request{
+							KeyId: res.Custom["recoverable_key_id"],
+						}
+					},
+					ExpectedStatus: 403,
+				},
+			},
+		},
+	)
 }
