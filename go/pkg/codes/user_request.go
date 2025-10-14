@@ -28,8 +28,6 @@ type userUnprocessableEntity struct {
 	QueryMemoryLimitExceeded Code
 	// QueryRowsLimitExceeded indicates the query exceeded the maximum rows to read limit.
 	QueryRowsLimitExceeded Code
-	// QueryResultRowsLimitExceeded indicates the query exceeded the maximum result rows limit.
-	QueryResultRowsLimitExceeded Code
 }
 
 // userTooManyRequests defines errors related to rate limiting and quota exceeded.
@@ -64,10 +62,9 @@ var User = UserErrors{
 		InvalidAnalyticsQueryType:   Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query_type"},
 	},
 	UnprocessableEntity: userUnprocessableEntity{
-		QueryExecutionTimeout:        Code{SystemUser, CategoryUserUnprocessableEntity, "query_execution_timeout"},
-		QueryMemoryLimitExceeded:     Code{SystemUser, CategoryUserUnprocessableEntity, "query_memory_limit_exceeded"},
-		QueryRowsLimitExceeded:       Code{SystemUser, CategoryUserUnprocessableEntity, "query_rows_limit_exceeded"},
-		QueryResultRowsLimitExceeded: Code{SystemUser, CategoryUserUnprocessableEntity, "query_result_rows_limit_exceeded"},
+		QueryExecutionTimeout:    Code{SystemUser, CategoryUserUnprocessableEntity, "query_execution_timeout"},
+		QueryMemoryLimitExceeded: Code{SystemUser, CategoryUserUnprocessableEntity, "query_memory_limit_exceeded"},
+		QueryRowsLimitExceeded:   Code{SystemUser, CategoryUserUnprocessableEntity, "query_rows_limit_exceeded"},
 	},
 	TooManyRequests: userTooManyRequests{
 		QueryQuotaExceeded: Code{SystemUser, CategoryUserTooManyRequests, "query_quota_exceeded"},

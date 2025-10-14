@@ -96,8 +96,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			// Unprocessable Entity - Query resource limits
 			case codes.UserErrorsUnprocessableEntityQueryExecutionTimeout,
 				codes.UserErrorsUnprocessableEntityQueryMemoryLimitExceeded,
-				codes.UserErrorsUnprocessableEntityQueryRowsLimitExceeded,
-				codes.UserErrorsUnprocessableEntityQueryResultRowsLimitExceeded:
+				codes.UserErrorsUnprocessableEntityQueryRowsLimitExceeded:
 				return s.JSON(http.StatusUnprocessableEntity, openapi.UnprocessableEntityErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

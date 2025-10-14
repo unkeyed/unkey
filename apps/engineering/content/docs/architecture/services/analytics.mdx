@@ -249,9 +249,8 @@ Analytics-specific error codes:
 - **`query_execution_timeout`** (400): Query exceeded time limit
 - **`query_memory_limit_exceeded`** (400): Query exceeded memory limit
 - **`query_rows_limit_exceeded`** (400): Query exceeded rows-to-read limit
-- **`query_result_rows_limit_exceeded`** (400): Query returned too many rows
 
-These are mapped in `pkg/zen/middleware_errors.go:253-264` to appropriate HTTP status codes.
+These are mapped in `pkg/zen/middleware_errors.go` to appropriate HTTP status codes.
 
 ## Monitoring and Debugging
 

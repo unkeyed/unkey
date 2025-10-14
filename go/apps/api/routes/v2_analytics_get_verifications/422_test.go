@@ -19,14 +19,14 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
-	// Set up analytics with very low MaxQueryMemoryBytes
-	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueryMemoryBytes(1))
+	// Set up analytics with very low MaxQueryMemoryBytes (10KB - very restrictive)
+	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueryMemoryBytes(10_000))
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	now := h.Clock.Now().UnixMilli()
 
-	// Buffer some verifications
-	for i := 0; i < 100; i++ {
+	// Buffer many verifications to ensure memory usage exceeds limit
+	for i := 0; i < 50_000; i++ {
 		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
@@ -55,14 +55,15 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 		"Content-Type":  []string{"application/json"},
 	}
 
+	// Use a memory-intensive query with aggregation and grouping
 	req := Request{
-		Query: "SELECT * FROM key_verifications_v1",
+		Query: "SELECT key_id, region, outcome, COUNT(*) as count FROM key_verifications_v1 GROUP BY key_id, region, outcome",
 	}
 
-	// Wait for data to be buffered
-	time.Sleep(2 * time.Second)
+	// Wait for data to be buffered and flushed to ClickHouse
+	time.Sleep(10 * time.Second)
 
-	// Query should fail immediately with 422 due to max_memory_usage=1 limit
+	// Query should fail with 422 due to max_memory_usage limit being exceeded
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 422, res.Status)
 }

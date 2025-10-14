@@ -294,13 +294,12 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 
 ## Query Limits
 
-| Resource         | Limit      | Error Code                         |
-| ---------------- | ---------- | ---------------------------------- |
-| Execution time   | 30 seconds | `query_execution_timeout`          |
-| Memory usage     | 1 GB       | `query_memory_limit_exceeded`      |
-| Rows to read     | 10 million | `query_rows_limit_exceeded`        |
-| Result rows      | 10 million | `query_result_rows_limit_exceeded` |
-| Queries per hour | 1000       | `query_quota_exceeded`             |
+| Resource         | Limit      | Error Code                    |
+| ---------------- | ---------- | ----------------------------- |
+| Execution time   | 30 seconds | `query_execution_timeout`     |
+| Memory usage     | 1 GB       | `query_memory_limit_exceeded` |
+| Rows to read     | 10 million | `query_rows_limit_exceeded`   |
+| Queries per hour | 1000       | `query_quota_exceeded`        |
 
 See [Query Restrictions](/analytics/query-restrictions) for more details on query limits and restrictions.
 

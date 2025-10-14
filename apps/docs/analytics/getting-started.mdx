@@ -144,28 +144,9 @@ Each object in the `verifications` array contains fields from your SELECT clause
 
 You can filter queries to specific APIs or users. Use `key_space_id` to filter by API (find this identifier in your API settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
 
-## Resource Limits
-
-To protect our infrastructure and ensure fair usage, queries are subject to resource limits:
-
-| Limit              | Value             | Error Code                         |
-| ------------------ | ----------------- | ---------------------------------- |
-| Max execution time | 30 seconds        | `query_execution_timeout`          |
-| Max memory         | 1 GB              | `query_memory_limit_exceeded`      |
-| Max rows to read   | 10 million        | `query_rows_limit_exceeded`        |
-| Max result rows    | 10 million        | `query_result_rows_limit_exceeded` |
-| Query quota        | 1000 queries/hour | `query_quota_exceeded`             |
-
-If you hit these limits, try:
-
-- Adding more filters to reduce data scanned
-- Using aggregated tables (hourly/daily) instead of raw events
-- Reducing the time range
-- Adding a LIMIT clause
-
-## Error Handling
-
-Analytics queries return structured error codes including `query_execution_timeout`, `query_memory_limit_exceeded`, and `invalid_analytics_query`. See the [Error Codes](/errors/overview) documentation for a complete list of error codes.
+<Note>
+  Queries are subject to resource limits (execution time, memory, result size, and quota). See [Query Restrictions](/analytics/query-restrictions) for complete details on limits and error codes.
+</Note>
 
 ## Next Steps
 

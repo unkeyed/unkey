@@ -69,6 +69,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Remove obsolete MDX files that don't have corresponding error codes
+	if err := removeObsoleteMDXFiles(allErrorCodes); err != nil {
+		fmt.Fprintf(os.Stderr, "Error removing obsolete MDX files: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Update docs.json with all error files
 	if err := updateDocsJSON(allErrorCodes); err != nil {
 		fmt.Fprintf(os.Stderr, "Error updating docs.json: %v\n", err)
@@ -292,6 +298,72 @@ description: "%s"
 	}
 
 	fmt.Printf("\nMDX files: %d created, %d already existed\n", created, skipped)
+	return nil
+}
+
+// removeObsoleteMDXFiles deletes MDX files that don't have corresponding error codes
+func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
+	baseDocsPath := filepath.Join("..", "..", "..", "apps", "docs", "errors")
+
+	// Build a set of valid file paths from error codes
+	validPaths := make(map[string]bool)
+	for _, errCode := range errorCodes {
+		// Skip gateway errors
+		if errCode.Domain == "Gateway" {
+			continue
+		}
+
+		parts := strings.Split(errCode.URN, ":")
+		if len(parts) < 4 || parts[0] != "err" {
+			continue
+		}
+
+		// Build file path from URN
+		pathParts := parts[1 : len(parts)-1]
+		fileName := parts[len(parts)-1] + ".mdx"
+		filePath := filepath.Join(append([]string{baseDocsPath}, append(pathParts, fileName)...)...)
+		validPaths[filePath] = true
+	}
+
+	deleted := 0
+
+	// Walk through the errors directory
+	err := filepath.Walk(baseDocsPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and non-MDX files
+		if info.IsDir() || !strings.HasSuffix(path, ".mdx") {
+			return nil
+		}
+
+		// Skip overview.mdx (it's not an error code file)
+		if strings.HasSuffix(path, "overview.mdx") {
+			return nil
+		}
+
+		// Check if this file has a corresponding error code
+		if !validPaths[path] {
+			// Delete obsolete file
+			if err := os.Remove(path); err != nil {
+				return fmt.Errorf("failed to delete %s: %w", path, err)
+			}
+			deleted++
+			fmt.Printf("Deleted obsolete: %s\n", path)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if deleted > 0 {
+		fmt.Printf("\nRemoved %d obsolete MDX file(s)\n", deleted)
+	}
+
 	return nil
 }
 

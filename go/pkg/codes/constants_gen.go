@@ -37,8 +37,6 @@ const (
 	UserErrorsUnprocessableEntityQueryMemoryLimitExceeded URN = "err:user:unprocessable_entity:query_memory_limit_exceeded"
 	// QueryRowsLimitExceeded indicates the query exceeded the maximum rows to read limit.
 	UserErrorsUnprocessableEntityQueryRowsLimitExceeded URN = "err:user:unprocessable_entity:query_rows_limit_exceeded"
-	// QueryResultRowsLimitExceeded indicates the query exceeded the maximum result rows limit.
-	UserErrorsUnprocessableEntityQueryResultRowsLimitExceeded URN = "err:user:unprocessable_entity:query_result_rows_limit_exceeded"
 
 	// TooManyRequests
 

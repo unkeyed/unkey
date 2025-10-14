@@ -74,7 +74,7 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 	// Parser may catch this as invalid_input or invalid_analytics_query depending on when it's detected
 	require.True(t,
 		res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/application/invalid_input" ||
-		res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/user/bad_request/invalid_analytics_query",
+			res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/user/bad_request/invalid_analytics_query",
 		"Error type should be invalid_input or invalid_analytics_query")
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should show syntax error message")
 }
@@ -144,7 +144,7 @@ func Test400_InvalidTable(t *testing.T) {
 	// Parser may catch this as invalid_input or invalid_analytics_table depending on when it's detected
 	require.True(t,
 		res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/application/invalid_input" ||
-		res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/user/bad_request/invalid_analytics_table",
+			res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/user/bad_request/invalid_analytics_table",
 		"Error type should be invalid_input or invalid_analytics_table")
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should have a descriptive message")
 }
@@ -181,7 +181,7 @@ func Test400_NonSelectQuery(t *testing.T) {
 	// Parser may catch this as invalid_input or invalid_analytics_query_type depending on when it's detected
 	require.True(t,
 		res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/application/invalid_input" ||
-		res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/user/bad_request/invalid_analytics_query_type",
+			res.Body.Error.Type == "https://unkey.com/docs/errors/unkey/user/bad_request/invalid_analytics_query_type",
 		"Error type should be invalid_input or invalid_analytics_query_type")
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should have a descriptive message")
 }

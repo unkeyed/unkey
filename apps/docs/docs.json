@@ -79,9 +79,7 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": [
-                      "quickstart/identities/shared-ratelimits"
-                    ]
+                    "pages": ["quickstart/identities/shared-ratelimits"]
                   }
                 ]
               },
@@ -135,9 +133,7 @@
                     "pages": [
                       {
                         "group": "Ratelimiting",
-                        "pages": [
-                          "apis/features/ratelimiting/overview"
-                        ]
+                        "pages": ["apis/features/ratelimiting/overview"]
                       },
                       "apis/features/temp-keys",
                       "apis/features/remaining",
@@ -172,10 +168,7 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": [
-                  "audit-log/introduction",
-                  "audit-log/types"
-                ]
+                "pages": ["audit-log/introduction", "audit-log/types"]
               },
               {
                 "group": "Analytics",
@@ -186,7 +179,7 @@
                   "analytics/getting-started",
                   "analytics/query-examples",
                   "analytics/schema-reference",
-                  "analytics/security"
+                  "analytics/query-restrictions"
                 ]
               }
             ]
@@ -197,10 +190,7 @@
               {
                 "group": "Migrating API Keys",
                 "icon": "plane",
-                "pages": [
-                  "migrations/introduction",
-                  "migrations/keys"
-                ]
+                "pages": ["migrations/introduction", "migrations/keys"]
               }
             ]
           },
@@ -291,7 +281,6 @@
                     "pages": [
                       "errors/user/unprocessable_entity/query_execution_timeout",
                       "errors/user/unprocessable_entity/query_memory_limit_exceeded",
-                      "errors/user/unprocessable_entity/query_result_rows_limit_exceeded",
                       "errors/user/unprocessable_entity/query_rows_limit_exceeded"
                     ]
                   }
@@ -391,15 +380,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/api"]
               }
             ]
           },
@@ -424,15 +409,11 @@
               },
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               },
               {
                 "group": "Rust",
-                "pages": [
-                  "libraries/rs/overview"
-                ]
+                "pages": ["libraries/rs/overview"]
               },
               {
                 "group": "Springboot",
