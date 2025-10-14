@@ -31,7 +31,7 @@ message CreateDeploymentRequest {
   SourceType source_type = 5;
 
   // context_key must be provided
-  optional string context_key = 6; // S3 key for uploaded build context
+  string context_key = 6; // S3 key for uploaded build context
   optional string docker_file_path = 7; // Path to Dockerfile within context (default: "Dockerfile")
 
   // Extended git information

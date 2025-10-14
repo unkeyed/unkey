@@ -10,7 +10,7 @@ service BuildService {
 
 message CreateBuildRequest {
   string context_key = 1; // S3 key of the uploaded tar file
-  string dockerfile_path = 2; // Path to Dockerfile within the tar
+  optional string dockerfile_path = 2; // Path to Dockerfile within the tar
   string unkey_project_id = 3; // Your internal user/project ID
   string deployment_id = 4;
 }

@@ -15,10 +15,9 @@ service DeploymentService {
 
 message DeployRequest {
   string deployment_id = 1;
-  optional string docker_image = 2;
-  optional string context_key = 3;
-  optional string dockerfile_path = 4;
-  optional string key_auth_id = 5;
+  string context_key = 2;
+  optional string dockerfile_path = 3;
+  optional string key_auth_id = 4;
 }
 
 message DeployResponse {}

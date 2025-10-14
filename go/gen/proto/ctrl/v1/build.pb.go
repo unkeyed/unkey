@@ -23,9 +23,9 @@ const (
 
 type CreateBuildRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ContextKey     string                 `protobuf:"bytes,1,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"`               // S3 key of the uploaded tar file
-	DockerfilePath string                 `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`   // Path to Dockerfile within the tar
-	UnkeyProjectId string                 `protobuf:"bytes,3,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"` // Your internal user/project ID
+	ContextKey     string                 `protobuf:"bytes,1,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"`                   // S3 key of the uploaded tar file
+	DockerfilePath *string                `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"` // Path to Dockerfile within the tar
+	UnkeyProjectId string                 `protobuf:"bytes,3,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"`     // Your internal user/project ID
 	DeploymentId   string                 `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -69,8 +69,8 @@ func (x *CreateBuildRequest) GetContextKey() string {
 }
 
 func (x *CreateBuildRequest) GetDockerfilePath() string {
-	if x != nil {
-		return x.DockerfilePath
+	if x != nil && x.DockerfilePath != nil {
+		return *x.DockerfilePath
 	}
 	return ""
 }
@@ -257,13 +257,14 @@ var File_ctrl_v1_build_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\n" +
-	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xad\x01\n" +
+	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xc6\x01\n" +
 	"\x12CreateBuildRequest\x12\x1f\n" +
 	"\vcontext_key\x18\x01 \x01(\tR\n" +
-	"contextKey\x12'\n" +
-	"\x0fdockerfile_path\x18\x02 \x01(\tR\x0edockerfilePath\x12(\n" +
+	"contextKey\x12,\n" +
+	"\x0fdockerfile_path\x18\x02 \x01(\tH\x00R\x0edockerfilePath\x88\x01\x01\x12(\n" +
 	"\x10unkey_project_id\x18\x03 \x01(\tR\x0eunkeyProjectId\x12#\n" +
-	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentId\"y\n" +
+	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentIdB\x12\n" +
+	"\x10_dockerfile_path\"y\n" +
 	"\x13CreateBuildResponse\x12\x1d\n" +
 	"\n" +
 	"image_name\x18\x01 \x01(\tR\timageName\x12\x19\n" +
@@ -320,6 +321,7 @@ func file_ctrl_v1_build_proto_init() {
 	if File_ctrl_v1_build_proto != nil {
 		return
 	}
+	file_ctrl_v1_build_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
