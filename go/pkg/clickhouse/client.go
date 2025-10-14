@@ -372,7 +372,7 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 	defer rows.Close()
 
 	columns := rows.Columns()
-	var results []map[string]any
+	results := make([]map[string]any, 0)
 
 	for rows.Next() {
 		// Create slice of ch.Dynamic to scan into
