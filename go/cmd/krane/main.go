@@ -32,9 +32,6 @@ unkey run krane                                   # Run with default configurati
 		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
 			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
 
-		cli.String("depot-token", "Depot authentication token. Required when build-backend is depot.",
-			cli.EnvVar("UNKEY_DEPOT_TOKEN")),
-
 		// This has no use outside of our demo cluster and will be removed soon
 		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
 	},
@@ -57,7 +54,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelTraceSamplingRate: 1.0,
 		InstanceID:            cmd.String("instance-id"),
 		DockerSocketPath:      cmd.String("docker-socket"),
-		DepotToken:            cmd.String("depot-token"),
 		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
 	}
 

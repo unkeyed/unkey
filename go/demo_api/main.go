@@ -238,7 +238,7 @@ func main() {
 
 		response := RootResponse{
 			Meta: MetaInfo{
-				Service:     "Oz is making changes",
+				Service:     "Demo API Server",
 				Version:     "2.0.0",
 				RequestID:   generateRequestID(),
 				Status:      "operational",

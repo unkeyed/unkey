@@ -244,8 +244,6 @@ func (s *Depot) CreateBuild(
 // Steps:
 //
 //	Check database for existing project mapping
-//	List all Depot projects and search by name
-//	Return existing project ID if found
 //	Create new Depot project if not found
 //	Store project mapping in database
 func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
