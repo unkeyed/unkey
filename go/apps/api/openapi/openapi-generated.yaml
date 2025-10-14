@@ -2235,6 +2235,7 @@ components:
                     description: External identity ID
                 meta:
                     type: object
+                    additionalProperties: true
                     description: Identity metadata
                 ratelimits:
                     type: array

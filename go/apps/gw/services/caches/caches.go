@@ -30,8 +30,8 @@ type Caches struct {
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
 
-	// KeyHash -> Key verification data (for keys service)
-	VerificationKeyByHash cache.Cache[string, db.FindKeyForVerificationRow]
+	// KeyHash -> Key verification data with pre-parsed IP whitelist (for keys service)
+	VerificationKeyByHash cache.Cache[string, db.CachedKeyData]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -108,7 +108,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create certificate cache: %w", err)
 	}
 
-	verificationKeyByHash, err := cache.New(cache.Config[string, db.FindKeyForVerificationRow]{
+	verificationKeyByHash, err := cache.New(cache.Config[string, db.CachedKeyData]{
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 10,
 		Logger:   config.Logger,

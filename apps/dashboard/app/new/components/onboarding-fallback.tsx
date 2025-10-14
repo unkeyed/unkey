@@ -54,12 +54,11 @@ export function OnboardingFallback() {
                 requiredFieldCount: 1,
                 buttonText: "Continue",
                 description: "Set up your workspace to get started",
-                onStepNext: () => {},
                 onStepBack: () => {},
               },
             ]}
-            onComplete={() => {}}
-            onStepChange={() => {}}
+            currentStepIndex={0}
+            setCurrentStepIndex={() => {}}
           />
         </div>
       </div>

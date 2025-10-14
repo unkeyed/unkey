@@ -9,6 +9,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -263,13 +265,8 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		return nil
 	}
 
-	// Handle deployment step updates
-	onStepUpdate := func(event DeploymentStepEvent) error {
-		return handleStepUpdate(event, ui)
-	}
-
 	// Poll for deployment completion
-	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentID, onStatusChange, onStepUpdate)
+	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentID, onStatusChange)
 	if err != nil {
 		ui.CompleteCurrentStep(MsgDeploymentFailed, false)
 		return err
@@ -280,7 +277,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		ui.CompleteCurrentStep(MsgDeploymentStepCompleted, true)
 		ui.PrintSuccess(MsgDeploymentCompleted)
 		fmt.Printf("\n")
-		printCompletionInfo(finalDeployment)
+		printCompletionInfo(finalDeployment, opts.Environment)
 		fmt.Printf("\n")
 	}
 
@@ -295,32 +292,6 @@ func getNextStepMessage(currentMessage string) string {
 		}
 	}
 	return ""
-}
-
-func handleStepUpdate(event DeploymentStepEvent, ui *UI) error {
-	step := event.Step
-
-	if step.GetErrorMessage() != "" {
-		ui.CompleteCurrentStep(step.GetMessage(), false)
-		ui.PrintErrorDetails(step.GetErrorMessage())
-		return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
-	}
-
-	if step.GetMessage() != "" {
-		message := step.GetMessage()
-		nextStep := getNextStepMessage(message)
-
-		if !ui.stepSpinning {
-			// First step - start spinner, then complete and start next
-			ui.StartStepSpinner(message)
-			ui.CompleteStepAndStartNext(message, nextStep)
-		} else {
-			// Complete current step and start next
-			ui.CompleteStepAndStartNext(message, nextStep)
-		}
-	}
-
-	return nil
 }
 
 func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {
@@ -348,17 +319,19 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 	fmt.Printf("\n")
 }
 
-func printCompletionInfo(deployment *ctrlv1.Deployment) {
+func printCompletionInfo(deployment *ctrlv1.Deployment, env string) {
 	if deployment == nil || deployment.GetId() == "" {
 		fmt.Printf("✓ Deployment completed\n")
 		return
 	}
 
+	caser := cases.Title(language.English)
+
 	fmt.Println()
 	fmt.Println(CompletionTitle)
 	fmt.Printf("  %s: %s\n", CompletionDeploymentID, deployment.GetId())
 	fmt.Printf("  %s: %s\n", CompletionStatus, CompletionReady)
-	fmt.Printf("  %s: %s\n", CompletionEnvironment, DefaultEnvironment)
+	fmt.Printf("  %s: %s\n", CompletionEnvironment, caser.String(env))
 
 	fmt.Println()
 	fmt.Println(CompletionDomains)

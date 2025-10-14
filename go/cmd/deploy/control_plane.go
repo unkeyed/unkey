@@ -185,7 +185,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey st
 		Branch:                   c.opts.Branch,
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,
-		ContextKey:               &contextKey,
+		ContextKey:               contextKey,
 		DockerFilePath:           &c.opts.Dockerfile,
 		GitCommitSha:             commitInfo.CommitSHA,
 		GitCommitMessage:         commitInfo.Message,
@@ -246,14 +246,13 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	logger logging.Logger,
 	deploymentID string,
 	onStatusChange func(DeploymentStatusEvent) error,
-	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	timeout := time.NewTimer(300 * time.Second)
 	defer timeout.Stop()
 
-	processedSteps := make(map[int64]bool)
+	// Track processed steps by creation time to avoid duplicates
 	lastStatus := ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 
 	for {
@@ -287,10 +286,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 				lastStatus = currentStatus
 			}
 
-			if err := c.processNewSteps(deploymentID, deployment.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
-				return err
-			}
-
+			// Check for completion
 			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY {
 				return nil
 			}
@@ -298,43 +294,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	}
 }
 
-// processNewSteps processes new deployment steps and calls the event handler
-func (c *ControlPlaneClient) processNewSteps(
-	deploymentID string,
-	steps []*ctrlv1.DeploymentStep,
-	processedSteps map[int64]bool,
-	currentStatus ctrlv1.DeploymentStatus,
-	onStepUpdate func(DeploymentStepEvent) error,
-) error {
-	for _, step := range steps {
-		stepTimestamp := step.GetCreatedAt()
-
-		if processedSteps[stepTimestamp] {
-			continue
-		}
-
-		if step.GetErrorMessage() != "" {
-			return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
-		}
-
-		if step.GetMessage() != "" {
-			event := DeploymentStepEvent{
-				DeploymentID: deploymentID,
-				Step:         step,
-				Status:       currentStatus,
-			}
-			if err := onStepUpdate(event); err != nil {
-				return err
-			}
-
-			time.Sleep(800 * time.Millisecond)
-		}
-		processedSteps[stepTimestamp] = true
-	}
-	return nil
-}
-
-// getFailureMessage extracts failure message from deployment
+// getFailureMessage extracts failure message from version
 func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) string {
 	if deployment.GetErrorMessage() != "" {
 		return deployment.GetErrorMessage()
