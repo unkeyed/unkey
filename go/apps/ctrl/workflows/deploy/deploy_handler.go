@@ -94,7 +94,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	var dockerImage string
-	if req.ContextKey != nil && *req.ContextKey != "" {
+	if req.ContextKey != "" {
 		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
@@ -117,13 +117,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		dockerImage, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			w.logger.Info("starting docker build",
 				"deployment_id", deployment.ID,
-				"context_key", *req.ContextKey)
+				"context_key", req.ContextKey)
 
 			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
 				UnkeyProjectId: deployment.ProjectID,
 				DeploymentId:   deployment.ID,
-				ContextKey:     *req.ContextKey,
-				DockerfilePath: *req.DockerfilePath,
+				ContextKey:     req.ContextKey,
+				DockerfilePath: req.DockerfilePath,
 			})
 
 			buildResp, err := w.buildClient.CreateBuild(stepCtx, buildReq)

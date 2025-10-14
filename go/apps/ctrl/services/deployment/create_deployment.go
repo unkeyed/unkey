@@ -93,19 +93,19 @@ func (s *Service) CreateDeployment(
 	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
 	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
 
-	var contextKey *string
+	var contextKey string
 	var dockerfilePath *string
 
 	if req.Msg.GetContextKey() != "" {
 		key := req.Msg.GetContextKey()
-		contextKey = &key
+		contextKey = key
 		if req.Msg.GetDockerFilePath() != "" {
 			path := req.Msg.GetDockerFilePath()
 			dockerfilePath = &path
 		}
 		s.logger.Info("will build image in workflow",
 			"deployment_id", deploymentID,
-			"context_key", *contextKey)
+			"context_key", contextKey)
 	} else {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("context_key must be provided"))
