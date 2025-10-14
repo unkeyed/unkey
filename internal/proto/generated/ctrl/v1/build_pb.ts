@@ -2,15 +2,15 @@
 // @generated from file ctrl/v1/build.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/build.proto.
  */
 export const file_ctrl_v1_build: GenFile = /*@__PURE__*/
-  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIlgKEkNyZWF0ZUJ1aWxkUmVxdWVzdBISCgpjb250ZXh0S2V5GAEgASgJEhYKDmRvY2tlcmZpbGVQYXRoGAIgASgJEhYKDnVua2V5UHJvamVjdElEGAMgASgJIlEKE0NyZWF0ZUJ1aWxkUmVzcG9uc2USEQoJaW1hZ2VOYW1lGAEgASgJEg8KB2J1aWxkSWQYAiABKAkSFgoOZGVwb3RQcm9qZWN0SWQYAyABKAkiJQoSQ2FuY2VsQnVpbGRSZXF1ZXN0Eg8KB2J1aWxkSWQYASABKAkiJgoTQ2FuY2VsQnVpbGRSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIigKFUdldEJ1aWxkU3RhdHVzUmVxdWVzdBIPCgdidWlsZElkGAEgASgJIqsBChZHZXRCdWlsZFN0YXR1c1Jlc3BvbnNlEjYKBnN0YXR1cxgBIAEoDjImLmN0cmwudjEuR2V0QnVpbGRTdGF0dXNSZXNwb25zZS5TdGF0dXMSDQoFZXJyb3IYAiABKAkiSgoGU3RhdHVzEgsKB1VOS05PV04QABILCgdSVU5OSU5HEAESCwoHU1VDQ0VTUxACEgoKBkZBSUxFRBADEg0KCUNBTkNFTExFRBAEIjIKGEdlbmVyYXRlVXBsb2FkVVJMUmVxdWVzdBIWCg51bmtleVByb2plY3RJRBgBIAEoCSJVChlHZW5lcmF0ZVVwbG9hZFVSTFJlc3BvbnNlEhEKCXVwbG9hZFVSTBgBIAEoCRISCgpjb250ZXh0S2V5GAIgASgJEhEKCWV4cGlyZXNJbhgDIAEoAzLZAgoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJKCgtDYW5jZWxCdWlsZBIbLmN0cmwudjEuQ2FuY2VsQnVpbGRSZXF1ZXN0GhwuY3RybC52MS5DYW5jZWxCdWlsZFJlc3BvbnNlIgASUwoOR2V0QnVpbGRTdGF0dXMSHi5jdHJsLnYxLkdldEJ1aWxkU3RhdHVzUmVxdWVzdBofLmN0cmwudjEuR2V0QnVpbGRTdGF0dXNSZXNwb25zZSIAElwKEUdlbmVyYXRlVXBsb2FkVVJMEiEuY3RybC52MS5HZW5lcmF0ZVVwbG9hZFVSTFJlcXVlc3QaIi5jdHJsLnYxLkdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2UiAEKMAQoLY29tLmN0cmwudjFCCkJ1aWxkUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxInMKEkNyZWF0ZUJ1aWxkUmVxdWVzdBITCgtjb250ZXh0X2tleRgBIAEoCRIXCg9kb2NrZXJmaWxlX3BhdGgYAiABKAkSGAoQdW5rZXlfcHJvamVjdF9pZBgDIAEoCRIVCg1kZXBsb3ltZW50X2lkGAQgASgJIlUKE0NyZWF0ZUJ1aWxkUmVzcG9uc2USEgoKaW1hZ2VfbmFtZRgBIAEoCRIQCghidWlsZF9pZBgCIAEoCRIYChBkZXBvdF9wcm9qZWN0X2lkGAMgASgJIjQKGEdlbmVyYXRlVXBsb2FkVVJMUmVxdWVzdBIYChB1bmtleV9wcm9qZWN0X2lkGAEgASgJIlgKGUdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2USEgoKdXBsb2FkX3VybBgBIAEoCRITCgtjb250ZXh0X2tleRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgDMrgBCgxCdWlsZFNlcnZpY2USSgoLQ3JlYXRlQnVpbGQSGy5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVxdWVzdBocLmN0cmwudjEuQ3JlYXRlQnVpbGRSZXNwb25zZSIAElwKEUdlbmVyYXRlVXBsb2FkVVJMEiEuY3RybC52MS5HZW5lcmF0ZVVwbG9hZFVSTFJlcXVlc3QaIi5jdHJsLnYxLkdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2UiAEKMAQoLY29tLmN0cmwudjFCCkJ1aWxkUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.CreateBuildRequest
@@ -19,23 +19,28 @@ export type CreateBuildRequest = Message<"ctrl.v1.CreateBuildRequest"> & {
   /**
    * S3 key of the uploaded tar file
    *
-   * @generated from field: string contextKey = 1;
+   * @generated from field: string context_key = 1;
    */
   contextKey: string;
 
   /**
    * Path to Dockerfile within the tar
    *
-   * @generated from field: string dockerfilePath = 2;
+   * @generated from field: string dockerfile_path = 2;
    */
   dockerfilePath: string;
 
   /**
    * Your internal user/project ID
    *
-   * @generated from field: string unkeyProjectID = 3;
+   * @generated from field: string unkey_project_id = 3;
    */
-  unkeyProjectID: string;
+  unkeyProjectId: string;
+
+  /**
+   * @generated from field: string deployment_id = 4;
+   */
+  deploymentId: string;
 };
 
 /**
@@ -52,21 +57,21 @@ export type CreateBuildResponse = Message<"ctrl.v1.CreateBuildResponse"> & {
   /**
    * Full image tag (registry.depot.dev/project:tag)
    *
-   * @generated from field: string imageName = 1;
+   * @generated from field: string image_name = 1;
    */
   imageName: string;
 
   /**
    * Depot build ID for tracking
    *
-   * @generated from field: string buildId = 2;
+   * @generated from field: string build_id = 2;
    */
   buildId: string;
 
   /**
    * Depot project ID
    *
-   * @generated from field: string depotProjectId = 3;
+   * @generated from field: string depot_project_id = 3;
    */
   depotProjectId: string;
 };
@@ -79,128 +84,15 @@ export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> = /*@__P
   messageDesc(file_ctrl_v1_build, 1);
 
 /**
- * @generated from message ctrl.v1.CancelBuildRequest
- */
-export type CancelBuildRequest = Message<"ctrl.v1.CancelBuildRequest"> & {
-  /**
-   * Depot build ID to cancel
-   *
-   * @generated from field: string buildId = 1;
-   */
-  buildId: string;
-};
-
-/**
- * Describes the message ctrl.v1.CancelBuildRequest.
- * Use `create(CancelBuildRequestSchema)` to create a new message.
- */
-export const CancelBuildRequestSchema: GenMessage<CancelBuildRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 2);
-
-/**
- * @generated from message ctrl.v1.CancelBuildResponse
- */
-export type CancelBuildResponse = Message<"ctrl.v1.CancelBuildResponse"> & {
-  /**
-   * @generated from field: bool success = 1;
-   */
-  success: boolean;
-};
-
-/**
- * Describes the message ctrl.v1.CancelBuildResponse.
- * Use `create(CancelBuildResponseSchema)` to create a new message.
- */
-export const CancelBuildResponseSchema: GenMessage<CancelBuildResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 3);
-
-/**
- * @generated from message ctrl.v1.GetBuildStatusRequest
- */
-export type GetBuildStatusRequest = Message<"ctrl.v1.GetBuildStatusRequest"> & {
-  /**
-   * @generated from field: string buildId = 1;
-   */
-  buildId: string;
-};
-
-/**
- * Describes the message ctrl.v1.GetBuildStatusRequest.
- * Use `create(GetBuildStatusRequestSchema)` to create a new message.
- */
-export const GetBuildStatusRequestSchema: GenMessage<GetBuildStatusRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 4);
-
-/**
- * @generated from message ctrl.v1.GetBuildStatusResponse
- */
-export type GetBuildStatusResponse = Message<"ctrl.v1.GetBuildStatusResponse"> & {
-  /**
-   * @generated from field: ctrl.v1.GetBuildStatusResponse.Status status = 1;
-   */
-  status: GetBuildStatusResponse_Status;
-
-  /**
-   * Error message if failed
-   *
-   * @generated from field: string error = 2;
-   */
-  error: string;
-};
-
-/**
- * Describes the message ctrl.v1.GetBuildStatusResponse.
- * Use `create(GetBuildStatusResponseSchema)` to create a new message.
- */
-export const GetBuildStatusResponseSchema: GenMessage<GetBuildStatusResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 5);
-
-/**
- * @generated from enum ctrl.v1.GetBuildStatusResponse.Status
- */
-export enum GetBuildStatusResponse_Status {
-  /**
-   * @generated from enum value: UNKNOWN = 0;
-   */
-  UNKNOWN = 0,
-
-  /**
-   * @generated from enum value: RUNNING = 1;
-   */
-  RUNNING = 1,
-
-  /**
-   * @generated from enum value: SUCCESS = 2;
-   */
-  SUCCESS = 2,
-
-  /**
-   * @generated from enum value: FAILED = 3;
-   */
-  FAILED = 3,
-
-  /**
-   * @generated from enum value: CANCELLED = 4;
-   */
-  CANCELLED = 4,
-}
-
-/**
- * Describes the enum ctrl.v1.GetBuildStatusResponse.Status.
- */
-export const GetBuildStatusResponse_StatusSchema: GenEnum<GetBuildStatusResponse_Status> = /*@__PURE__*/
-  enumDesc(file_ctrl_v1_build, 5, 0);
-
-/**
  * @generated from message ctrl.v1.GenerateUploadURLRequest
  */
 export type GenerateUploadURLRequest = Message<"ctrl.v1.GenerateUploadURLRequest"> & {
   /**
    * Your internal user/project ID
    *
-   * @generated from field: string unkeyProjectID = 1;
+   * @generated from field: string unkey_project_id = 1;
    */
-  unkeyProjectID: string;
+  unkeyProjectId: string;
 };
 
 /**
@@ -208,7 +100,7 @@ export type GenerateUploadURLRequest = Message<"ctrl.v1.GenerateUploadURLRequest
  * Use `create(GenerateUploadURLRequestSchema)` to create a new message.
  */
 export const GenerateUploadURLRequestSchema: GenMessage<GenerateUploadURLRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 6);
+  messageDesc(file_ctrl_v1_build, 2);
 
 /**
  * @generated from message ctrl.v1.GenerateUploadURLResponse
@@ -217,21 +109,21 @@ export type GenerateUploadURLResponse = Message<"ctrl.v1.GenerateUploadURLRespon
   /**
    * Presigned PUT URL
    *
-   * @generated from field: string uploadURL = 1;
+   * @generated from field: string upload_url = 1;
    */
-  uploadURL: string;
+  uploadUrl: string;
 
   /**
    * S3 key to use in CreateBuild
    *
-   * @generated from field: string contextKey = 2;
+   * @generated from field: string context_key = 2;
    */
   contextKey: string;
 
   /**
    * Seconds until URL expires
    *
-   * @generated from field: int64 expiresIn = 3;
+   * @generated from field: int64 expires_in = 3;
    */
   expiresIn: bigint;
 };
@@ -241,7 +133,7 @@ export type GenerateUploadURLResponse = Message<"ctrl.v1.GenerateUploadURLRespon
  * Use `create(GenerateUploadURLResponseSchema)` to create a new message.
  */
 export const GenerateUploadURLResponseSchema: GenMessage<GenerateUploadURLResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 7);
+  messageDesc(file_ctrl_v1_build, 3);
 
 /**
  * @generated from service ctrl.v1.BuildService
@@ -254,22 +146,6 @@ export const BuildService: GenService<{
     methodKind: "unary";
     input: typeof CreateBuildRequestSchema;
     output: typeof CreateBuildResponseSchema;
-  },
-  /**
-   * @generated from rpc ctrl.v1.BuildService.CancelBuild
-   */
-  cancelBuild: {
-    methodKind: "unary";
-    input: typeof CancelBuildRequestSchema;
-    output: typeof CancelBuildResponseSchema;
-  },
-  /**
-   * @generated from rpc ctrl.v1.BuildService.GetBuildStatus
-   */
-  getBuildStatus: {
-    methodKind: "unary";
-    input: typeof GetBuildStatusRequestSchema;
-    output: typeof GetBuildStatusResponseSchema;
   },
   /**
    * @generated from rpc ctrl.v1.BuildService.GenerateUploadURL

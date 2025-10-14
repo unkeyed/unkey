@@ -93,14 +93,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// Determine docker image - build if needed, otherwise use pre-built
 	var dockerImage string
-
-	if req.DockerImage != nil && *req.DockerImage != "" {
-		// Use pre-built image
-		dockerImage = *req.DockerImage
-		w.logger.Info("using pre-built docker image", "docker_image", dockerImage, "deployment_id", deployment.ID)
-	} else if req.ContextKey != nil && *req.ContextKey != "" {
+	if req.ContextKey != nil && *req.ContextKey != "" {
 		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
@@ -120,13 +114,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return nil, err
 		}
 
-		builtImage, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		dockerImage, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			w.logger.Info("starting docker build",
 				"deployment_id", deployment.ID,
 				"context_key", *req.ContextKey)
 
 			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
-				UnkeyProjectID: deployment.ProjectID,
+				UnkeyProjectId: deployment.ProjectID,
+				DeploymentId:   deployment.ID,
 				ContextKey:     *req.ContextKey,
 				DockerfilePath: *req.DockerfilePath,
 			})
@@ -147,8 +142,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
 
-		dockerImage = builtImage
-
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 				WorkspaceID:  deployment.WorkspaceID,
@@ -163,7 +156,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("neither docker_image nor context_key provided in deploy request")
+		return nil, fmt.Errorf("context_key provided in deploy request")
 	}
 
 	// Update version status to deploying

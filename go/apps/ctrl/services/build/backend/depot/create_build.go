@@ -49,67 +49,112 @@ func (s *Depot) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
-	// Validate input
 	if req.Msg.ContextKey == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("contextKey is required"))
 	}
-	if req.Msg.UnkeyProjectID == "" {
+	if req.Msg.UnkeyProjectId == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("unkeyProjectID is required"))
 	}
 
-	// Get presigned URL from S3 instead of downloading
-	s.logger.Info("Getting presigned URL for build context", "context_key", req.Msg.ContextKey)
+	s.logger.Info("Starting build process",
+		"context_key", req.Msg.ContextKey,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
+	s.logger.Info("Getting presigned URL for build context",
+		"context_key", req.Msg.ContextKey,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
 	contextURL, err := s.storage.GetPresignedURL(ctx, req.Msg.ContextKey, 15*time.Minute)
 	if err != nil {
+		s.logger.Error("Failed to get presigned URL",
+			"error", err,
+			"context_key", req.Msg.ContextKey,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get presigned URL: %w", err))
 	}
 
-	s.logger.Info("Got presigned URL for build context", "context_key", req.Msg.ContextKey)
-
-	depotProjectID, err := s.getOrCreateDepotProject(ctx, req.Msg.UnkeyProjectID)
+	depotProjectID, err := s.getOrCreateDepotProject(ctx, req.Msg.UnkeyProjectId)
 	if err != nil {
+		s.logger.Error("Failed to get/create depot project",
+			"error", err,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get/create depot project: %w", err))
 	}
 
-	s.logger.Info("Creating depot build with", "depot_project_id", depotProjectID)
+	s.logger.Info("Creating depot build",
+		"depot_project_id", depotProjectID,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
 	buildResp, err := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
 		ProjectId: depotProjectID,
 	}, s.accessToken)
 	if err != nil {
-		s.logger.Error("Creating depot build failed", "error", err, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
+		s.logger.Error("Creating depot build failed",
+			"error", err,
+			"depot_project_id", depotProjectID,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create build: %w", err))
 	}
 
+	s.logger.Info("Depot build created",
+		"build_id", buildResp.ID,
+		"depot_project_id", depotProjectID,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
 	var buildErr error
 	defer buildResp.Finish(buildErr)
 
+	s.logger.Info("Acquiring build machine",
+		"build_id", buildResp.ID,
+		"platform", "arm64",
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
 	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, "arm64")
 	if buildErr != nil {
-		s.logger.Error("Acquiring depot build failed", "buildErr", buildErr, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
+		s.logger.Error("Acquiring depot build failed",
+			"error", buildErr,
+			"build_id", buildResp.ID,
+			"depot_project_id", depotProjectID,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to acquire machine: %w", buildErr))
 	}
 	defer buildkit.Release()
 
+	s.logger.Info("Build machine acquired, connecting to buildkit",
+		"build_id", buildResp.ID,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
 	buildkitClient, buildErr := buildkit.Connect(ctx)
 	if buildErr != nil {
-		s.logger.Error("Connection to depot build failed", "buildErr", buildErr, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
+		s.logger.Error("Connection to depot build failed",
+			"error", buildErr,
+			"build_id", buildResp.ID,
+			"depot_project_id", depotProjectID,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
 	}
 
-	timestamp := time.Now().UnixMilli()
-	imageTag := fmt.Sprintf("%s/%s:%s-%d", s.registryUrl, depotProjectID, req.Msg.UnkeyProjectID, timestamp)
+	// INFO: "s.registryUrl", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
+	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryUrl, depotProjectID, req.Msg.UnkeyProjectId, req.Msg.DeploymentId)
 
 	dockerfilePath := req.Msg.GetDockerfilePath()
 	if dockerfilePath == "" {
 		dockerfilePath = "Dockerfile"
 	}
+
+	s.logger.Info("Starting build execution",
+		"image_name", imageName,
+		"dockerfile", dockerfilePath,
+		"platform", "linux/arm64",
+		"build_id", buildResp.ID,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	solverOptions := client.SolveOpt{
 		Frontend: "dockerfile.v0",
@@ -134,7 +179,7 @@ func (s *Depot) CreateBuild(
 			{
 				Type: "image",
 				Attrs: map[string]string{
-					"name":           imageTag,
+					"name":           imageName,
 					"oci-mediatypes": "true",
 					"push":           "true",
 				},
@@ -153,24 +198,42 @@ func (s *Depot) CreateBuild(
 
 	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
 	if buildErr != nil {
-		s.logger.Error("Build failed", "error", buildErr, "depot_project_id", depotProjectID, "unkey_project_id", req.Msg.UnkeyProjectID)
+		s.logger.Error("Build failed",
+			"error", buildErr,
+			"image_name", imageName,
+			"build_id", buildResp.ID,
+			"depot_project_id", depotProjectID,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("build failed: %w", buildErr))
 	}
 
-	s.logger.Info("Build completed successfully", "image_tag", imageTag, "build_id", buildResp.ID, "depot_project_id", depotProjectID)
+	s.logger.Info("Build completed successfully",
+		"image_name", imageName,
+		"build_id", buildResp.ID,
+		"depot_project_id", depotProjectID,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
 
-	buildErr = s.pullImageToHost(ctx, imageTag)
+	s.logger.Info("Pulling image to host",
+		"image_name", imageName,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
+
+	buildErr = s.pullImageToHost(ctx, imageName)
 	if buildErr != nil {
-		s.logger.Error("Failed to pull image to host", "error", buildErr, "image", imageTag)
+		s.logger.Error("Failed to pull image to host",
+			"error", buildErr,
+			"image_name", imageName,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to pull image to host: %w", buildErr))
 	}
 
-	s.logger.Info("Image pulled to host successfully", "image_tag", imageTag)
+	s.logger.Info("Image pulled to host successfully",
+		"image_name", imageName,
+		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
-		ImageName:      imageTag,
+		ImageName:      imageName,
 		BuildId:        buildResp.ID,
 		DepotProjectId: depotProjectID,
 	}), nil
@@ -235,11 +298,18 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	return createResp.Msg.Project.ProjectId, nil
 }
 
+// RoundTrip implements http.RoundTripper by adding Bearer token authentication to requests.
+// This is required for authenticating with the Depot API when creating projects programmatically.
 func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Authorization", "Bearer "+t.token)
 	return t.base.RoundTrip(req)
 }
 
+// pullImageToHost pulls the built image from the remote registry to the local Docker daemon.
+// This is a workaround for running Depot builds locally: since the image is built and pushed
+// to a remote registry (not the local Docker daemon), we must explicitly pull it back.
+// Without this step, Krane cannot run the image because it only exists in the remote registry,
+// not in the local Docker environment where Krane operates.
 func (s *Depot) pullImageToHost(ctx context.Context, imageTag string) error {
 	dClient, err := dockerClient.NewClientWithOpts(
 		dockerClient.FromEnv,

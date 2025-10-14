@@ -58,9 +58,8 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 
 // UploadBuildContext uploads the build context to S3 and returns the context key
 func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
-	// Generate presigned upload URL
 	uploadReq := connect.NewRequest(&ctrlv1.GenerateUploadURLRequest{
-		UnkeyProjectID: c.opts.ProjectID,
+		UnkeyProjectId: c.opts.ProjectID,
 	})
 
 	authHeader := c.opts.APIKey
@@ -74,21 +73,19 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 		return "", fmt.Errorf("failed to generate upload URL: %w", err)
 	}
 
-	uploadURL := uploadResp.Msg.GetUploadURL()
+	uploadURL := uploadResp.Msg.GetUploadUrl()
 	contextKey := uploadResp.Msg.GetContextKey()
 
 	if uploadURL == "" || contextKey == "" {
 		return "", fmt.Errorf("empty upload URL or context key returned")
 	}
 
-	// Create tar.gz from context path
 	tarPath, err := createContextTar(contextPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create tar archive: %w", err)
 	}
 	defer os.Remove(tarPath)
 
-	// Upload tar to S3 using presigned URL
 	if err := uploadToPresignedURL(ctx, uploadURL, tarPath); err != nil {
 		return "", fmt.Errorf("failed to upload build context: %w", err)
 	}
@@ -151,7 +148,6 @@ func createContextTar(contextPath string) (string, error) {
 		return "", fmt.Errorf("failed to get absolute context path: %w", err)
 	}
 
-	// Ensure /tmp/ctrl exists with proper permissions
 	sharedDir := "/tmp/ctrl"
 	if err := os.MkdirAll(sharedDir, 0777); err != nil {
 		return "", fmt.Errorf("failed to create shared dir: %w", err)
@@ -164,7 +160,6 @@ func createContextTar(contextPath string) (string, error) {
 	tmpFile.Close()
 	tarPath := tmpFile.Name()
 
-	// Set permissive permissions so other containers can read
 	if err := os.Chmod(tarPath, 0666); err != nil {
 		os.Remove(tarPath)
 		return "", fmt.Errorf("failed to set file permissions: %w", err)
@@ -181,8 +176,7 @@ func createContextTar(contextPath string) (string, error) {
 }
 
 // CreateDeployment creates a new deployment in the control plane
-// CreateDeployment creates a new deployment in the control plane
-func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, dockerImage string) (string, error) {
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey string) (string, error) {
 	commitInfo := git.GetInfo()
 
 	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
@@ -192,7 +186,6 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, d
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,
 		ContextKey:               &contextKey,
-		DockerImage:              &dockerImage,
 		DockerFilePath:           stringPtr("Dockerfile"),
 		GitCommitSha:             commitInfo.CommitSHA,
 		GitCommitMessage:         commitInfo.Message,
@@ -228,9 +221,9 @@ func stringPtr(s string) *string {
 }
 
 // GetDeployment retrieves deployment information from the control plane
-func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId string) (*ctrlv1.Deployment, error) {
+func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID string) (*ctrlv1.Deployment, error) {
 	getReq := connect.NewRequest(&ctrlv1.GetDeploymentRequest{
-		DeploymentId: deploymentId,
+		DeploymentId: deploymentID,
 	})
 
 	authHeader := c.opts.APIKey
@@ -272,7 +265,9 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 		case <-ticker.C:
 			deployment, err := c.GetDeployment(ctx, deploymentID)
 			if err != nil {
-				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentID)
+				logger.Debug("Failed to get deployment status",
+					"error", err,
+					"deployment_id", deploymentID)
 				continue
 			}
 
@@ -339,7 +334,7 @@ func (c *ControlPlaneClient) processNewSteps(
 	return nil
 }
 
-// getFailureMessage extracts failure message from version
+// getFailureMessage extracts failure message from deployment
 func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) string {
 	if deployment.GetErrorMessage() != "" {
 		return deployment.GetErrorMessage()

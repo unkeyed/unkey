@@ -93,17 +93,10 @@ func (s *Service) CreateDeployment(
 	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
 	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
 
-	var dockerImage *string
 	var contextKey *string
 	var dockerfilePath *string
 
-	if req.Msg.GetDockerImage() != "" {
-		img := req.Msg.GetDockerImage()
-		dockerImage = &img
-		s.logger.Info("using pre-built docker image",
-			"deployment_id", deploymentID,
-			"docker_image", *dockerImage)
-	} else if req.Msg.GetContextKey() != "" {
+	if req.Msg.GetContextKey() != "" {
 		key := req.Msg.GetContextKey()
 		contextKey = &key
 		if req.Msg.GetDockerFilePath() != "" {
@@ -115,7 +108,7 @@ func (s *Service) CreateDeployment(
 			"context_key", *contextKey)
 	} else {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("either docker_image or context_key must be provided"))
+			fmt.Errorf("context_key must be provided"))
 	}
 
 	// Insert deployment into database
@@ -150,7 +143,7 @@ func (s *Service) CreateDeployment(
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
 		"environment", env.ID,
-		"docker_image", dockerImage,
+		"context_key", contextKey,
 	)
 
 	// Start the deployment workflow directly
@@ -161,7 +154,6 @@ func (s *Service) CreateDeployment(
 	}
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId:   deploymentID,
-		DockerImage:    dockerImage,
 		ContextKey:     contextKey,
 		DockerfilePath: dockerfilePath,
 		KeyAuthId:      keyAuthID,

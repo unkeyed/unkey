@@ -31,21 +31,21 @@ func (d *Docker) CreateBuild(
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("contextKey is required"))
 	}
-	if req.Msg.UnkeyProjectID == "" {
+	if req.Msg.UnkeyProjectId == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("unkeyProjectID is required"))
 	}
 
 	d.logger.Info("Getting presigned URL for build context",
 		"context_key", req.Msg.ContextKey,
-		"unkey_project_id", req.Msg.UnkeyProjectID)
+		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	contextURL, err := d.storage.GetPresignedURL(ctx, req.Msg.ContextKey, 15*time.Minute)
 	if err != nil {
 		d.logger.Error("Failed to get presigned URL",
 			"error", err,
 			"context_key", req.Msg.ContextKey,
-			"unkey_project_id", req.Msg.UnkeyProjectID)
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get presigned URL: %w", err))
 	}
@@ -57,17 +57,18 @@ func (d *Docker) CreateBuild(
 	if err != nil {
 		d.logger.Error("Failed to create docker client",
 			"error", err,
-			"unkey_project_id", req.Msg.UnkeyProjectID)
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create docker client: %w", err))
 	}
 	defer dockerClient.Close()
 
 	timestamp := time.Now().UnixMilli()
-	imageTag := fmt.Sprintf("%s:%d",
-		strings.ToLower(req.Msg.UnkeyProjectID),
-		timestamp,
-	)
+	// Docker requires lowercase repository names
+	imageName := strings.ToLower(fmt.Sprintf("%s-%s",
+		req.Msg.UnkeyProjectId,
+		req.Msg.DeploymentId,
+	))
 
 	dockerfilePath := req.Msg.GetDockerfilePath()
 	if dockerfilePath == "" {
@@ -75,13 +76,13 @@ func (d *Docker) CreateBuild(
 	}
 
 	d.logger.Info("Starting Docker build",
-		"image_tag", imageTag,
+		"image_name", imageName,
 		"dockerfile", dockerfilePath,
 		"platform", "linux/arm64",
-		"unkey_project_id", req.Msg.UnkeyProjectID)
+		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	buildOptions := build.ImageBuildOptions{
-		Tags:          []string{imageTag},
+		Tags:          []string{imageName},
 		Dockerfile:    dockerfilePath,
 		Platform:      "linux/arm64",
 		Remove:        true,
@@ -92,9 +93,9 @@ func (d *Docker) CreateBuild(
 	if err != nil {
 		d.logger.Error("Docker build failed",
 			"error", err,
-			"image_tag", imageTag,
+			"image_name", imageName,
 			"dockerfile", dockerfilePath,
-			"unkey_project_id", req.Msg.UnkeyProjectID)
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to start build: %w", err))
 	}
@@ -113,8 +114,8 @@ func (d *Docker) CreateBuild(
 			buildError = fmt.Errorf("%s", resp.ErrorDetail.Message)
 			d.logger.Error("Build failed",
 				"error", resp.ErrorDetail.Message,
-				"image_tag", imageTag,
-				"unkey_project_id", req.Msg.UnkeyProjectID)
+				"image_name", imageName,
+				"unkey_project_id", req.Msg.UnkeyProjectId)
 			break
 		}
 	}
@@ -122,8 +123,8 @@ func (d *Docker) CreateBuild(
 	if err := scanner.Err(); err != nil {
 		d.logger.Error("Failed to read build output",
 			"error", err,
-			"image_tag", imageTag,
-			"unkey_project_id", req.Msg.UnkeyProjectID)
+			"image_name", imageName,
+			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to read build output: %w", err))
 	}
@@ -135,12 +136,12 @@ func (d *Docker) CreateBuild(
 	buildID := fmt.Sprintf("docker-%d", timestamp)
 
 	d.logger.Info("Build completed successfully",
-		"image_tag", imageTag,
+		"image_name", imageName,
 		"build_id", buildID,
-		"unkey_project_id", req.Msg.UnkeyProjectID)
+		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
-		ImageName: imageTag,
+		ImageName: imageName,
 		BuildId:   buildID,
 	}), nil
 }

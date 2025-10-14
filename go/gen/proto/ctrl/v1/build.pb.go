@@ -21,66 +21,12 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetBuildStatusResponse_Status int32
-
-const (
-	GetBuildStatusResponse_UNKNOWN   GetBuildStatusResponse_Status = 0
-	GetBuildStatusResponse_RUNNING   GetBuildStatusResponse_Status = 1
-	GetBuildStatusResponse_SUCCESS   GetBuildStatusResponse_Status = 2
-	GetBuildStatusResponse_FAILED    GetBuildStatusResponse_Status = 3
-	GetBuildStatusResponse_CANCELLED GetBuildStatusResponse_Status = 4
-)
-
-// Enum value maps for GetBuildStatusResponse_Status.
-var (
-	GetBuildStatusResponse_Status_name = map[int32]string{
-		0: "UNKNOWN",
-		1: "RUNNING",
-		2: "SUCCESS",
-		3: "FAILED",
-		4: "CANCELLED",
-	}
-	GetBuildStatusResponse_Status_value = map[string]int32{
-		"UNKNOWN":   0,
-		"RUNNING":   1,
-		"SUCCESS":   2,
-		"FAILED":    3,
-		"CANCELLED": 4,
-	}
-)
-
-func (x GetBuildStatusResponse_Status) Enum() *GetBuildStatusResponse_Status {
-	p := new(GetBuildStatusResponse_Status)
-	*p = x
-	return p
-}
-
-func (x GetBuildStatusResponse_Status) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (GetBuildStatusResponse_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_ctrl_v1_build_proto_enumTypes[0].Descriptor()
-}
-
-func (GetBuildStatusResponse_Status) Type() protoreflect.EnumType {
-	return &file_ctrl_v1_build_proto_enumTypes[0]
-}
-
-func (x GetBuildStatusResponse_Status) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use GetBuildStatusResponse_Status.Descriptor instead.
-func (GetBuildStatusResponse_Status) EnumDescriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{5, 0}
-}
-
 type CreateBuildRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ContextKey     string                 `protobuf:"bytes,1,opt,name=contextKey,proto3" json:"contextKey,omitempty"`         // S3 key of the uploaded tar file
-	DockerfilePath string                 `protobuf:"bytes,2,opt,name=dockerfilePath,proto3" json:"dockerfilePath,omitempty"` // Path to Dockerfile within the tar
-	UnkeyProjectID string                 `protobuf:"bytes,3,opt,name=unkeyProjectID,proto3" json:"unkeyProjectID,omitempty"` // Your internal user/project ID
+	ContextKey     string                 `protobuf:"bytes,1,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"`               // S3 key of the uploaded tar file
+	DockerfilePath string                 `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`   // Path to Dockerfile within the tar
+	UnkeyProjectId string                 `protobuf:"bytes,3,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"` // Your internal user/project ID
+	DeploymentId   string                 `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -129,18 +75,25 @@ func (x *CreateBuildRequest) GetDockerfilePath() string {
 	return ""
 }
 
-func (x *CreateBuildRequest) GetUnkeyProjectID() string {
+func (x *CreateBuildRequest) GetUnkeyProjectId() string {
 	if x != nil {
-		return x.UnkeyProjectID
+		return x.UnkeyProjectId
+	}
+	return ""
+}
+
+func (x *CreateBuildRequest) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
 	}
 	return ""
 }
 
 type CreateBuildResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ImageName      string                 `protobuf:"bytes,1,opt,name=imageName,proto3" json:"imageName,omitempty"`           // Full image tag (registry.depot.dev/project:tag)
-	BuildId        string                 `protobuf:"bytes,2,opt,name=buildId,proto3" json:"buildId,omitempty"`               // Depot build ID for tracking
-	DepotProjectId string                 `protobuf:"bytes,3,opt,name=depotProjectId,proto3" json:"depotProjectId,omitempty"` // Depot project ID
+	ImageName      string                 `protobuf:"bytes,1,opt,name=image_name,json=imageName,proto3" json:"image_name,omitempty"`                  // Full image tag (registry.depot.dev/project:tag)
+	BuildId        string                 `protobuf:"bytes,2,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`                        // Depot build ID for tracking
+	DepotProjectId string                 `protobuf:"bytes,3,opt,name=depot_project_id,json=depotProjectId,proto3" json:"depot_project_id,omitempty"` // Depot project ID
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -196,200 +149,16 @@ func (x *CreateBuildResponse) GetDepotProjectId() string {
 	return ""
 }
 
-type CancelBuildRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BuildId       string                 `protobuf:"bytes,1,opt,name=buildId,proto3" json:"buildId,omitempty"` // Depot build ID to cancel
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CancelBuildRequest) Reset() {
-	*x = CancelBuildRequest{}
-	mi := &file_ctrl_v1_build_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CancelBuildRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CancelBuildRequest) ProtoMessage() {}
-
-func (x *CancelBuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_build_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CancelBuildRequest.ProtoReflect.Descriptor instead.
-func (*CancelBuildRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CancelBuildRequest) GetBuildId() string {
-	if x != nil {
-		return x.BuildId
-	}
-	return ""
-}
-
-type CancelBuildResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CancelBuildResponse) Reset() {
-	*x = CancelBuildResponse{}
-	mi := &file_ctrl_v1_build_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CancelBuildResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CancelBuildResponse) ProtoMessage() {}
-
-func (x *CancelBuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_build_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CancelBuildResponse.ProtoReflect.Descriptor instead.
-func (*CancelBuildResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *CancelBuildResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type GetBuildStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BuildId       string                 `protobuf:"bytes,1,opt,name=buildId,proto3" json:"buildId,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetBuildStatusRequest) Reset() {
-	*x = GetBuildStatusRequest{}
-	mi := &file_ctrl_v1_build_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetBuildStatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBuildStatusRequest) ProtoMessage() {}
-
-func (x *GetBuildStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_build_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBuildStatusRequest.ProtoReflect.Descriptor instead.
-func (*GetBuildStatusRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *GetBuildStatusRequest) GetBuildId() string {
-	if x != nil {
-		return x.BuildId
-	}
-	return ""
-}
-
-type GetBuildStatusResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Status        GetBuildStatusResponse_Status `protobuf:"varint,1,opt,name=status,proto3,enum=ctrl.v1.GetBuildStatusResponse_Status" json:"status,omitempty"`
-	Error         string                        `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"` // Error message if failed
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetBuildStatusResponse) Reset() {
-	*x = GetBuildStatusResponse{}
-	mi := &file_ctrl_v1_build_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetBuildStatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBuildStatusResponse) ProtoMessage() {}
-
-func (x *GetBuildStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_build_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBuildStatusResponse.ProtoReflect.Descriptor instead.
-func (*GetBuildStatusResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *GetBuildStatusResponse) GetStatus() GetBuildStatusResponse_Status {
-	if x != nil {
-		return x.Status
-	}
-	return GetBuildStatusResponse_UNKNOWN
-}
-
-func (x *GetBuildStatusResponse) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
 type GenerateUploadURLRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	UnkeyProjectID string                 `protobuf:"bytes,1,opt,name=unkeyProjectID,proto3" json:"unkeyProjectID,omitempty"` // Your internal user/project ID
+	UnkeyProjectId string                 `protobuf:"bytes,1,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"` // Your internal user/project ID
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GenerateUploadURLRequest) Reset() {
 	*x = GenerateUploadURLRequest{}
-	mi := &file_ctrl_v1_build_proto_msgTypes[6]
+	mi := &file_ctrl_v1_build_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +170,7 @@ func (x *GenerateUploadURLRequest) String() string {
 func (*GenerateUploadURLRequest) ProtoMessage() {}
 
 func (x *GenerateUploadURLRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_build_proto_msgTypes[6]
+	mi := &file_ctrl_v1_build_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,28 +183,28 @@ func (x *GenerateUploadURLRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateUploadURLRequest.ProtoReflect.Descriptor instead.
 func (*GenerateUploadURLRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GenerateUploadURLRequest) GetUnkeyProjectID() string {
+func (x *GenerateUploadURLRequest) GetUnkeyProjectId() string {
 	if x != nil {
-		return x.UnkeyProjectID
+		return x.UnkeyProjectId
 	}
 	return ""
 }
 
 type GenerateUploadURLResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UploadURL     string                 `protobuf:"bytes,1,opt,name=uploadURL,proto3" json:"uploadURL,omitempty"`   // Presigned PUT URL
-	ContextKey    string                 `protobuf:"bytes,2,opt,name=contextKey,proto3" json:"contextKey,omitempty"` // S3 key to use in CreateBuild
-	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expiresIn,proto3" json:"expiresIn,omitempty"`  // Seconds until URL expires
+	UploadUrl     string                 `protobuf:"bytes,1,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`    // Presigned PUT URL
+	ContextKey    string                 `protobuf:"bytes,2,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"` // S3 key to use in CreateBuild
+	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`   // Seconds until URL expires
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GenerateUploadURLResponse) Reset() {
 	*x = GenerateUploadURLResponse{}
-	mi := &file_ctrl_v1_build_proto_msgTypes[7]
+	mi := &file_ctrl_v1_build_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +216,7 @@ func (x *GenerateUploadURLResponse) String() string {
 func (*GenerateUploadURLResponse) ProtoMessage() {}
 
 func (x *GenerateUploadURLResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_build_proto_msgTypes[7]
+	mi := &file_ctrl_v1_build_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,12 +229,12 @@ func (x *GenerateUploadURLResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateUploadURLResponse.ProtoReflect.Descriptor instead.
 func (*GenerateUploadURLResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GenerateUploadURLResponse) GetUploadURL() string {
+func (x *GenerateUploadURLResponse) GetUploadUrl() string {
 	if x != nil {
-		return x.UploadURL
+		return x.UploadUrl
 	}
 	return ""
 }
@@ -488,45 +257,29 @@ var File_ctrl_v1_build_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\n" +
-	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\x84\x01\n" +
-	"\x12CreateBuildRequest\x12\x1e\n" +
+	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xad\x01\n" +
+	"\x12CreateBuildRequest\x12\x1f\n" +
+	"\vcontext_key\x18\x01 \x01(\tR\n" +
+	"contextKey\x12'\n" +
+	"\x0fdockerfile_path\x18\x02 \x01(\tR\x0edockerfilePath\x12(\n" +
+	"\x10unkey_project_id\x18\x03 \x01(\tR\x0eunkeyProjectId\x12#\n" +
+	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentId\"y\n" +
+	"\x13CreateBuildResponse\x12\x1d\n" +
 	"\n" +
-	"contextKey\x18\x01 \x01(\tR\n" +
-	"contextKey\x12&\n" +
-	"\x0edockerfilePath\x18\x02 \x01(\tR\x0edockerfilePath\x12&\n" +
-	"\x0eunkeyProjectID\x18\x03 \x01(\tR\x0eunkeyProjectID\"u\n" +
-	"\x13CreateBuildResponse\x12\x1c\n" +
-	"\timageName\x18\x01 \x01(\tR\timageName\x12\x18\n" +
-	"\abuildId\x18\x02 \x01(\tR\abuildId\x12&\n" +
-	"\x0edepotProjectId\x18\x03 \x01(\tR\x0edepotProjectId\".\n" +
-	"\x12CancelBuildRequest\x12\x18\n" +
-	"\abuildId\x18\x01 \x01(\tR\abuildId\"/\n" +
-	"\x13CancelBuildResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"1\n" +
-	"\x15GetBuildStatusRequest\x12\x18\n" +
-	"\abuildId\x18\x01 \x01(\tR\abuildId\"\xba\x01\n" +
-	"\x16GetBuildStatusResponse\x12>\n" +
-	"\x06status\x18\x01 \x01(\x0e2&.ctrl.v1.GetBuildStatusResponse.StatusR\x06status\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"J\n" +
-	"\x06Status\x12\v\n" +
-	"\aUNKNOWN\x10\x00\x12\v\n" +
-	"\aRUNNING\x10\x01\x12\v\n" +
-	"\aSUCCESS\x10\x02\x12\n" +
+	"image_name\x18\x01 \x01(\tR\timageName\x12\x19\n" +
+	"\bbuild_id\x18\x02 \x01(\tR\abuildId\x12(\n" +
+	"\x10depot_project_id\x18\x03 \x01(\tR\x0edepotProjectId\"D\n" +
+	"\x18GenerateUploadURLRequest\x12(\n" +
+	"\x10unkey_project_id\x18\x01 \x01(\tR\x0eunkeyProjectId\"z\n" +
+	"\x19GenerateUploadURLResponse\x12\x1d\n" +
 	"\n" +
-	"\x06FAILED\x10\x03\x12\r\n" +
-	"\tCANCELLED\x10\x04\"B\n" +
-	"\x18GenerateUploadURLRequest\x12&\n" +
-	"\x0eunkeyProjectID\x18\x01 \x01(\tR\x0eunkeyProjectID\"w\n" +
-	"\x19GenerateUploadURLResponse\x12\x1c\n" +
-	"\tuploadURL\x18\x01 \x01(\tR\tuploadURL\x12\x1e\n" +
+	"upload_url\x18\x01 \x01(\tR\tuploadUrl\x12\x1f\n" +
+	"\vcontext_key\x18\x02 \x01(\tR\n" +
+	"contextKey\x12\x1d\n" +
 	"\n" +
-	"contextKey\x18\x02 \x01(\tR\n" +
-	"contextKey\x12\x1c\n" +
-	"\texpiresIn\x18\x03 \x01(\x03R\texpiresIn2\xd9\x02\n" +
+	"expires_in\x18\x03 \x01(\x03R\texpiresIn2\xb8\x01\n" +
 	"\fBuildService\x12J\n" +
-	"\vCreateBuild\x12\x1b.ctrl.v1.CreateBuildRequest\x1a\x1c.ctrl.v1.CreateBuildResponse\"\x00\x12J\n" +
-	"\vCancelBuild\x12\x1b.ctrl.v1.CancelBuildRequest\x1a\x1c.ctrl.v1.CancelBuildResponse\"\x00\x12S\n" +
-	"\x0eGetBuildStatus\x12\x1e.ctrl.v1.GetBuildStatusRequest\x1a\x1f.ctrl.v1.GetBuildStatusResponse\"\x00\x12\\\n" +
+	"\vCreateBuild\x12\x1b.ctrl.v1.CreateBuildRequest\x1a\x1c.ctrl.v1.CreateBuildResponse\"\x00\x12\\\n" +
 	"\x11GenerateUploadURL\x12!.ctrl.v1.GenerateUploadURLRequest\x1a\".ctrl.v1.GenerateUploadURLResponse\"\x00B\x8c\x01\n" +
 	"\vcom.ctrl.v1B\n" +
 	"BuildProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
@@ -543,34 +296,23 @@ func file_ctrl_v1_build_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_build_proto_rawDescData
 }
 
-var file_ctrl_v1_build_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ctrl_v1_build_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ctrl_v1_build_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ctrl_v1_build_proto_goTypes = []any{
-	(GetBuildStatusResponse_Status)(0), // 0: ctrl.v1.GetBuildStatusResponse.Status
-	(*CreateBuildRequest)(nil),         // 1: ctrl.v1.CreateBuildRequest
-	(*CreateBuildResponse)(nil),        // 2: ctrl.v1.CreateBuildResponse
-	(*CancelBuildRequest)(nil),         // 3: ctrl.v1.CancelBuildRequest
-	(*CancelBuildResponse)(nil),        // 4: ctrl.v1.CancelBuildResponse
-	(*GetBuildStatusRequest)(nil),      // 5: ctrl.v1.GetBuildStatusRequest
-	(*GetBuildStatusResponse)(nil),     // 6: ctrl.v1.GetBuildStatusResponse
-	(*GenerateUploadURLRequest)(nil),   // 7: ctrl.v1.GenerateUploadURLRequest
-	(*GenerateUploadURLResponse)(nil),  // 8: ctrl.v1.GenerateUploadURLResponse
+	(*CreateBuildRequest)(nil),        // 0: ctrl.v1.CreateBuildRequest
+	(*CreateBuildResponse)(nil),       // 1: ctrl.v1.CreateBuildResponse
+	(*GenerateUploadURLRequest)(nil),  // 2: ctrl.v1.GenerateUploadURLRequest
+	(*GenerateUploadURLResponse)(nil), // 3: ctrl.v1.GenerateUploadURLResponse
 }
 var file_ctrl_v1_build_proto_depIdxs = []int32{
-	0, // 0: ctrl.v1.GetBuildStatusResponse.status:type_name -> ctrl.v1.GetBuildStatusResponse.Status
-	1, // 1: ctrl.v1.BuildService.CreateBuild:input_type -> ctrl.v1.CreateBuildRequest
-	3, // 2: ctrl.v1.BuildService.CancelBuild:input_type -> ctrl.v1.CancelBuildRequest
-	5, // 3: ctrl.v1.BuildService.GetBuildStatus:input_type -> ctrl.v1.GetBuildStatusRequest
-	7, // 4: ctrl.v1.BuildService.GenerateUploadURL:input_type -> ctrl.v1.GenerateUploadURLRequest
-	2, // 5: ctrl.v1.BuildService.CreateBuild:output_type -> ctrl.v1.CreateBuildResponse
-	4, // 6: ctrl.v1.BuildService.CancelBuild:output_type -> ctrl.v1.CancelBuildResponse
-	6, // 7: ctrl.v1.BuildService.GetBuildStatus:output_type -> ctrl.v1.GetBuildStatusResponse
-	8, // 8: ctrl.v1.BuildService.GenerateUploadURL:output_type -> ctrl.v1.GenerateUploadURLResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: ctrl.v1.BuildService.CreateBuild:input_type -> ctrl.v1.CreateBuildRequest
+	2, // 1: ctrl.v1.BuildService.GenerateUploadURL:input_type -> ctrl.v1.GenerateUploadURLRequest
+	1, // 2: ctrl.v1.BuildService.CreateBuild:output_type -> ctrl.v1.CreateBuildResponse
+	3, // 3: ctrl.v1.BuildService.GenerateUploadURL:output_type -> ctrl.v1.GenerateUploadURLResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_build_proto_init() }
@@ -583,14 +325,13 @@ func file_ctrl_v1_build_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_build_proto_rawDesc), len(file_ctrl_v1_build_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   8,
+			NumEnums:      0,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_ctrl_v1_build_proto_goTypes,
 		DependencyIndexes: file_ctrl_v1_build_proto_depIdxs,
-		EnumInfos:         file_ctrl_v1_build_proto_enumTypes,
 		MessageInfos:      file_ctrl_v1_build_proto_msgTypes,
 	}.Build()
 	File_ctrl_v1_build_proto = out.File

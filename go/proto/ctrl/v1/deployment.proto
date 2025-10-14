@@ -30,21 +30,20 @@ message CreateDeploymentRequest {
 
   SourceType source_type = 5;
 
-  // Either docker_image OR context_key must be provided
-  optional string docker_image = 6; // Pre-built image to use
-  optional string context_key = 13; // S3 key for uploaded build context
-  optional string docker_file_path = 14; // Path to Dockerfile within context (default: "Dockerfile")
+  // context_key must be provided
+  optional string context_key = 6; // S3 key for uploaded build context
+  optional string docker_file_path = 7; // Path to Dockerfile within context (default: "Dockerfile")
 
   // Extended git information
-  string git_commit_sha = 7; // For git sources
-  string git_commit_message = 8;
+  string git_commit_sha = 8; // For git sources
+  string git_commit_message = 9;
   // TODO: Add GitHub API integration to lookup username/avatar from email
-  string git_commit_author_handle = 9;
-  string git_commit_author_avatar_url = 10;
-  int64 git_commit_timestamp = 11; // Unix epoch milliseconds
+  string git_commit_author_handle = 10;
+  string git_commit_author_avatar_url = 11;
+  int64 git_commit_timestamp = 12; // Unix epoch milliseconds
 
   // Keyspace ID for authentication
-  optional string keyspace_id = 12;
+  optional string keyspace_id = 13;
 }
 
 message CreateDeploymentResponse {
