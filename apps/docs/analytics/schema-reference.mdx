@@ -241,7 +241,7 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 | ----------- | ----------------- | ----------------------------------------------------------- |
 | `COUNT()`   | Count rows        | `SELECT COUNT(*) FROM key_verifications_v1`                 |
 | `SUM()`     | Sum values        | `SELECT SUM(valid_count) FROM key_verifications_per_day_v1` |
-| `AVG()`     | Average           | `SELECT AVG(latency_ms) FROM key_verifications_v1`          |
+| `AVG()`     | Average           | `SELECT AVG(spent_credits) FROM key_verifications_v1`       |
 | `MIN()`     | Minimum value     | `SELECT MIN(time) FROM key_verifications_v1`                |
 | `MAX()`     | Maximum value     | `SELECT MAX(time) FROM key_verifications_v1`                |
 | `countIf()` | Conditional count | `SELECT countIf(outcome = 'VALID')`                         |
@@ -270,12 +270,12 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 
 ### Math Functions
 
-| Function  | Description    | Example                                          |
-| --------- | -------------- | ------------------------------------------------ |
-| `round()` | Round number   | `SELECT round(avg_latency, 2)`                   |
-| `floor()` | Round down     | `SELECT floor(latency_ms / 100) * 100 as bucket` |
-| `ceil()`  | Round up       | `SELECT ceil(price)`                             |
-| `abs()`   | Absolute value | `SELECT abs(difference)`                         |
+| Function  | Description    | Example                                                    |
+| --------- | -------------- | ---------------------------------------------------------- |
+| `round()` | Round number   | `SELECT round(AVG(spent_credits), 2)`                      |
+| `floor()` | Round down     | `SELECT floor(spent_credits / 100) * 100 as credit_bucket` |
+| `ceil()`  | Round up       | `SELECT ceil(spent_credits)`                               |
+| `abs()`   | Absolute value | `SELECT abs(difference)`                                   |
 
 ### Conditional Functions
 

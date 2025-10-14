@@ -5,11 +5,14 @@ import (
 )
 
 func (p *Parser) injectWorkspaceFilter() error {
-	// Walk the AST to inject workspace filter on all SELECT statements including subqueries
+	// Walk the AST to inject workspace filter only on SELECT statements that directly access tables
 	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		// Check if this is a SELECT query
 		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-			p.injectWorkspaceFilterOnSelect(selectQuery)
+			// Only inject if this SELECT directly references a table (not a subquery)
+			if p.selectReferencesTable(selectQuery) {
+				p.injectWorkspaceFilterOnSelect(selectQuery)
+			}
 		}
 		return true
 	})
@@ -48,17 +51,56 @@ func (p *Parser) injectSecurityFilters() error {
 			continue
 		}
 
-		// Walk the AST to inject security filter on all SELECT statements including subqueries
+		// Walk the AST to inject security filter only on SELECT statements that directly access tables
 		clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 			// Check if this is a SELECT query
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-				p.injectSecurityFilterOnSelect(selectQuery, securityFilter)
+				// Only inject if this SELECT directly references a table (not a subquery)
+				if p.selectReferencesTable(selectQuery) {
+					p.injectSecurityFilterOnSelect(selectQuery, securityFilter)
+				}
 			}
 			return true
 		})
 	}
 
 	return nil
+}
+
+// selectReferencesTable checks if a SELECT statement directly references a table in its FROM clause
+// Returns true if the FROM clause contains a table, false if it contains only a subquery
+func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
+	if stmt.From == nil {
+		return false
+	}
+
+	// Check if the FROM clause directly contains a subquery
+	// If it does, we should NOT inject filters here
+	hasSubquery := false
+	clickhouse.Walk(stmt.From, func(node clickhouse.Expr) bool {
+		if _, ok := node.(*clickhouse.SelectQuery); ok {
+			hasSubquery = true
+			return false // Stop walking
+		}
+		return true
+	})
+
+	// If there's a subquery in the FROM, don't inject filters
+	if hasSubquery {
+		return false
+	}
+
+	// Otherwise, check if there's a table reference
+	hasTable := false
+	clickhouse.Walk(stmt.From, func(node clickhouse.Expr) bool {
+		if _, ok := node.(*clickhouse.TableExpr); ok {
+			hasTable = true
+			return false // Stop walking
+		}
+		return true
+	})
+
+	return hasTable
 }
 
 // injectSecurityFilterOnSelect injects a security filter on a single SELECT statement

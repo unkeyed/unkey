@@ -121,11 +121,11 @@ ORDER BY time, outcome
 
 </AccordionGroup>
 
-## User & Identity Analytics
+## Usage by User
 
 <AccordionGroup>
 
-<Accordion title="Usage per user (identity)">
+<Accordion title="All users ranked by usage">
 
 ```sql
 SELECT
@@ -151,7 +151,7 @@ LIMIT 100
 
 </Accordion>
 
-<Accordion title="Usage for a specific user (by external_id)">
+<Accordion title="Usage for a specific user">
 
 ```sql
 SELECT
@@ -205,17 +205,16 @@ SELECT
   toDate(time) as date,
   COUNT(*) as verifications
 FROM key_verifications_v1
-WHERE external_id = 'user_123'
-  AND time >= now() - INTERVAL 30 DAY
+WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY external_id, date
-ORDER BY date
+ORDER BY external_id, date
 ```
 
 **JSON format:**
 
 ```json
 {
-  "query": "SELECT external_id, toDate(time) as date, COUNT(*) as verifications FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY date"
+  "query": "SELECT external_id, toDate(time) as date, COUNT(*) as verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY external_id, date"
 }
 ```
 
@@ -648,29 +647,6 @@ ORDER BY date
 
 <AccordionGroup>
 
-<Accordion title="Average response time trend (requires latency data)">
-
-```sql
-SELECT
-  toStartOfHour(time) as hour,
-  COUNT(*) as requests,
-  avg(latency_ms) as avg_latency
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 24 HOUR
-GROUP BY hour
-ORDER BY hour
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT toStartOfHour(time) as hour, COUNT(*) as requests, avg(latency_ms) as avg_latency FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY hour ORDER BY hour"
-}
-```
-
-</Accordion>
-
 <Accordion title="Success rate over time">
 
 ```sql
@@ -807,28 +783,6 @@ ORDER BY date
 ```json
 {
   "query": "SELECT date, verifications, avg(verifications) OVER ( ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW ) as moving_avg_7d FROM ( SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date ) ORDER BY date"
-}
-```
-
-</Accordion>
-
-<Accordion title="Percentile latencies (requires latency data)">
-
-```sql
-SELECT
-  quantile(0.50)(latency_ms) as p50_latency,
-  quantile(0.90)(latency_ms) as p90_latency,
-  quantile(0.95)(latency_ms) as p95_latency,
-  quantile(0.99)(latency_ms) as p99_latency
-FROM key_verifications_v1
-WHERE time >= now() - INTERVAL 24 HOUR
-```
-
-**JSON format:**
-
-```json
-{
-  "query": "SELECT quantile(0.50)(latency_ms) as p50_latency, quantile(0.90)(latency_ms) as p90_latency, quantile(0.95)(latency_ms) as p95_latency, quantile(0.99)(latency_ms) as p99_latency FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR"
 }
 ```
 
