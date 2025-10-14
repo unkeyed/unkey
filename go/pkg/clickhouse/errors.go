@@ -176,6 +176,10 @@ var resourceLimitPatterns = map[string]errorResponse{
 		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
 		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
 	},
+	"limit for rows": {
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
+		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
+	},
 	"result rows": {
 		code:    codes.User.UnprocessableEntity.QueryResultRowsLimitExceeded.URN(),
 		message: "Query result set too large. Try adding LIMIT clause or aggregating the data.",
@@ -203,6 +207,10 @@ var resourceLimitCodes = map[int32]errorResponse{
 	396: { // QUERY_WAS_CANCELLED
 		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query was cancelled due to resource limits.",
+	},
+	158: { // TOO_MANY_ROWS_OR_BYTES
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
+		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
 	},
 	198: { // TOO_MANY_ROWS
 		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),

@@ -4,10 +4,9 @@ description: "Query your verification data with SQL"
 ---
 
 <Warning>
-  **Analytics is currently in private beta and opt-in only.**
+  **Analytics is currently in private beta and available by request only.**
 
-To request access, please email us at [support@unkey.dev](mailto:support@unkey.dev) with your workspace ID.
-
+  See [Getting Started](/analytics/getting-started) for access instructions.
 </Warning>
 
 ## What is Unkey Analytics?
@@ -41,138 +40,28 @@ graph LR
     E --> F[Month Aggregates]
 ```
 
-You can query these tables using standard SQL
-
-## Quick Example
-
-Get the total number of valid verifications in the last 7 days:
-
-```sql
-SELECT COUNT(*) as total_verifications
-FROM key_verifications_v1
-WHERE outcome = 'VALID'
-  AND time >= now() - INTERVAL 7 DAY
-```
-
-Execute with curl:
-
-```bash
-curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
-  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "SELECT COUNT(*) as total_verifications FROM key_verifications_v1 WHERE outcome = '\''VALID'\'' AND time >= now() - INTERVAL 7 DAY"
-  }'
-```
-
-Response:
-
-```json
-{
-  "meta": {
-    "requestId": "req_abc123"
-  },
-  "data": {
-    "verifications": [
-      {
-        "total_verifications": 45821
-      }
-    ]
-  }
-}
-```
-
-Your query is automatically rewritten to:
-
-1. Add your workspace_id filter for security
-2. Use the correct table name
-3. Apply resource limits
-
-## More Examples
-
-### Group Verifications by Outcome
-
-See the breakdown of verification results:
-
-```bash
-curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
-  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
-  }'
-```
-
-Response:
-
-```json
-{
-  "meta": {
-    "requestId": "req_def456"
-  },
-  "data": {
-    "verifications": [
-      { "outcome": "VALID", "count": 42350 },
-      { "outcome": "RATE_LIMITED", "count": 1205 },
-      { "outcome": "INVALID", "count": 89 }
-    ]
-  }
-}
-```
-
-### Track Usage by User
-
-Find your top users by verification count over the last 30 days using the daily aggregated table for better performance:
-
-```bash
-curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
-  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "SELECT external_id, SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY total DESC LIMIT 5"
-  }'
-```
-
-Response:
-
-```json
-{
-  "meta": {
-    "requestId": "req_ghi789"
-  },
-  "data": {
-    "verifications": [
-      { "external_id": "user_alice", "total": 8420 },
-      { "external_id": "user_bob", "total": 6105 },
-      { "external_id": "user_charlie", "total": 4892 }
-    ]
-  }
-}
-```
-
-<Note>
-  **Raw vs Aggregated Tables:** Use `SUM(count)` instead of `COUNT(*)` when
-  querying aggregated tables for better performance. Aggregated tables scan far
-  fewer rows than the raw table.
-</Note>
+You can query these tables using standard SQL to:
+- Aggregate verification counts by time period
+- Group by API, user, or outcome
+- Filter by region, tags, or custom criteria
+- Calculate metrics for billing or monitoring
 
 ## Available Data
 
 Every verification event contains:
 
-| Field          | Type          | Description                                                                                                                               |
-| -------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `request_id`   | String        | Unique identifier for each request                                                                                                        |
-| `time`         | Int64         | Unix millisecond timestamp                                                                                                                |
-| `workspace_id` | String        | Your workspace identifier (automatically filtered)                                                                                        |
-| `key_space_id` | String        | Your KeySpace identifier (e.g., `ks_1234`). Find this in your API settings.                                                               |
-| `external_id`  | String        | Your user's identifier (e.g., `user_abc`)                                                                                                 |
-| `key_id`       | String        | Individual key identifier                                                                                                                 |
-| `outcome`      | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |
-| `region`       | String        | Geographic region of the request                                                                                                          |
-| `ip_address`   | String        | IP address of the requester                                                                                                               |
-| `user_agent`   | String        | User agent string                                                                                                                         |
-| `tags`         | Array(String) | Custom tags added during verification                                                                                                     |
+| Field           | Type          | Description                                                                                                                               |
+| --------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `request_id`    | String        | Unique identifier for each request                                                                                                        |
+| `time`          | Int64         | Unix millisecond timestamp                                                                                                                |
+| `workspace_id`  | String        | Your workspace identifier (automatically filtered)                                                                                        |
+| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). Find this in your API settings.                                                               |
+| `external_id`   | String        | Your user's identifier (e.g., `user_abc`)                                                                                                 |
+| `key_id`        | String        | Individual key identifier                                                                                                                 |
+| `outcome`       | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |
+| `region`        | String        | Unkey region that handled the verification                                                                                                |
+| `tags`          | Array(String) | Custom tags added during verification                                                                                                     |
+| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                 |
 
 ## Next Steps
 
@@ -190,7 +79,7 @@ Every verification event contains:
   >
     Browse available tables, columns, and data types
   </Card>
-  <Card title="Security" icon="shield" href="/analytics/security">
-    Understand workspace isolation and query security
+  <Card title="Query Restrictions" icon="shield-check" href="/analytics/query-restrictions">
+    View limits, quotas, and permissions
   </Card>
 </CardGroup>

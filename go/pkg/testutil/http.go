@@ -280,6 +280,18 @@ func WithMaxQueryMemoryBytes(bytes int64) SetupAnalyticsOption {
 	}
 }
 
+func WithMaxQueriesPerWindow(queries int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxQueriesPerWindow = queries
+	}
+}
+
+func WithMaxExecutionTimePerWindow(seconds int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxExecutionTimePerWindow = seconds
+	}
+}
+
 func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
 	ctx := context.Background()
 

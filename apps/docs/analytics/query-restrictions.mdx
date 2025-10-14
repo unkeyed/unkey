@@ -1,21 +1,13 @@
 ---
-title: Security
-description: "Workspace isolation, query restrictions, and resource limits"
+title: Query Restrictions
+description: "Limits, quotas, and permissions for analytics queries"
 ---
 
-Unkey Analytics is designed with security-first principles to ensure your data remains isolated and protected. This page explains the security controls and query restrictions.
+This page explains the restrictions, resource limits, and permissions for analytics queries.
 
 ## Workspace Isolation
 
-Every query is automatically scoped to your workspace. You can only access data that belongs to your workspace.
-
-### Automatic Filtering
-
-When you execute a query, Unkey automatically injects a `workspace_id` filter to ensure you can only access your own data.
-
-### Injection Protection
-
-Even if you try to bypass workspace filtering, it's impossible. Any attempt to access another workspace's data will return empty results.
+Every query is automatically scoped to your workspace. You can only access your own verification data - it's impossible to view data from other workspaces.
 
 ## Query Restrictions
 
@@ -83,15 +75,6 @@ Only explicitly approved functions are allowed. Any function not on this list wi
   inclusion.
 </Note>
 
-## Using Friendly IDs
-
-You can use familiar identifiers directly in your queries:
-
-- **`key_space_id`** - The identifier for your API (e.g., `ks_1234`). Find this in your API settings.
-- **`external_id`** - Your own user identifiers (e.g., `user_abc123`) from your application
-
-Unkey automatically handles the internal mapping securely. All comparison operators are supported: `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`
-
 ## Resource Limits
 
 To ensure fair usage and prevent abuse, queries are subject to resource limits:
@@ -129,20 +112,6 @@ When limits are exceeded, you'll receive specific error codes:
 | `query_result_rows_limit_exceeded` | Query returned more than 10M rows | Add LIMIT clause, aggregate data                           |
 | `query_quota_exceeded`             | Exceeded 1000 queries per hour    | Wait for quota to reset, optimize query frequency          |
 
-## Table Access Control
-
-Access is restricted to an allow list of approved analytics tables only. Any table not on this list will return an `invalid_table` error.
-
-### Allowed Tables
-
-- `key_verifications_v1` - Raw verification events
-- `key_verifications_per_minute_v1` - Aggregated by minute
-- `key_verifications_per_hour_v1` - Aggregated by hour
-- `key_verifications_per_day_v1` - Aggregated by day
-- `key_verifications_per_month_v1` - Aggregated by month
-
-All other tables (including system tables, information schema, and internal tables) are blocked for security.
-
 ## Authentication
 
 Analytics queries require a root key with specific permissions:
@@ -165,7 +134,7 @@ api.<api_id>.read_analytics
 
 Choose workspace-level for broad access or per-API for fine-grained control.
 
-### Best Practices
+### Root Key Best Practices
 
 1. **Use environment variables** - Never hardcode root keys
 2. **Rotate keys regularly** - Create new keys and revoke old ones
@@ -173,51 +142,18 @@ Choose workspace-level for broad access or per-API for fine-grained control.
 4. **Use separate keys** - Different keys for different services
 5. **Monitor usage** - Track which keys are making queries
 
-### Creating an Analytics Root Key
-
-1. Go to **Settings** → **Root Keys** in the Unkey dashboard
-2. Click **Create New Root Key**
-3. Name it (e.g., "Analytics API Key")
-4. Select permission: `api.*.read_analytics` or `api.<api_id>.read_analytics`
-5. Copy and store securely
-
-## Query Validation Flow
-
-When you submit a query, Unkey performs these security checks:
-
-```mermaid
-graph TD
-    A[Submit Query] --> B{Valid SQL?}
-    B -->|No| C[Return: invalid_analytics_query]
-    B -->|Yes| D{Only SELECT?}
-    D -->|No| E[Return: query_not_supported]
-    D -->|Yes| F{Allowed tables?}
-    F -->|No| G[Return: invalid_table]
-    F -->|Yes| H{Allowed functions?}
-    H -->|No| I[Return: invalid_function]
-    H -->|Yes| J[Inject workspace_id filter]
-    J --> K[Rewrite query]
-    K --> L[Apply resource limits]
-    L --> M{Execute query}
-    M -->|Timeout| N[Return: query_execution_timeout]
-    M -->|Memory exceeded| O[Return: query_memory_limit_exceeded]
-    M -->|Too many rows| P[Return: query_rows_limit_exceeded]
-    M -->|Success| Q[Return results]
-```
-
-## Best Practices
-
-To optimize query performance and avoid hitting resource limits:
-
-1. **Filter by time** - Always include time-based filters to reduce data scanned
-2. **Use aggregated tables** - Query hourly/daily/monthly tables for longer time ranges
-3. **Add LIMIT clauses** - Prevent large result sets
+<Tip>
+  See [Getting Started](/analytics/getting-started) for step-by-step instructions on creating an analytics root key.
+</Tip>
 
 ## Next Steps
 
 <CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/analytics/getting-started">
+    Create a root key and run your first query
+  </Card>
   <Card title="Query Examples" icon="code" href="/analytics/query-examples">
-    See secure query patterns in action
+    Explore common query patterns
   </Card>
   <Card
     title="Schema Reference"

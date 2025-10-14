@@ -16,17 +16,18 @@ The `key_verifications_v1` table contains individual verification events as they
 
 ### Columns
 
-| Column         | Type          | Description                                                                                             |
-| -------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `request_id`   | String        | Unique identifier for each verification request                                                         |
-| `time`         | Int64         | Unix timestamp in milliseconds when verification occurred                                               |
-| `workspace_id` | String        | Workspace identifier (automatically filtered to your workspace)                                         |
-| `key_space_id` | String        | Your KeySpace identifier (e.g., `ks_1234`) - use this to filter by API. Find this in your API settings. |
-| `external_id`  | String        | Your user's identifier (e.g., `user_abc`) - use this to filter by user                                  |
-| `key_id`       | String        | Individual API key identifier                                                                           |
-| `outcome`      | String        | Verification result (see [Outcome Values](#outcome-values))                                             |
-| `region`       | String        | Geographic region where verification occurred                                                           |
-| `tags`         | Array(String) | Custom tags added during verification                                                                   |
+| Column          | Type          | Description                                                                                             |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| `request_id`    | String        | Unique identifier for each verification request                                                         |
+| `time`          | Int64         | Unix timestamp in milliseconds when verification occurred                                               |
+| `workspace_id`  | String        | Workspace identifier (automatically filtered to your workspace)                                         |
+| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`) - use this to filter by API. Find this in your API settings. |
+| `external_id`   | String        | Your user's identifier (e.g., `user_abc`) - use this to filter by user                                  |
+| `key_id`        | String        | Individual API key identifier                                                                           |
+| `outcome`       | String        | Verification result (see [Outcome Values](#outcome-values))                                             |
+| `region`        | String        | Unkey region that handled the verification                                                              |
+| `tags`          | Array(String) | Custom tags added during verification                                                                   |
+| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                               |
 
 ### Outcome Values
 
@@ -77,7 +78,12 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 ## Filtering by API and User
 
-You can filter by API and user identifiers:
+You can use your familiar identifiers directly in queries:
+
+- **`key_space_id`** - Your API identifier (e.g., `ks_1234`). Find this in your API settings.
+- **`external_id`** - Your user identifiers (e.g., `user_abc123`) from your application
+
+All standard comparison operators are supported: `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`
 
 ### Filter by API
 
@@ -100,8 +106,6 @@ SELECT COUNT(*) FROM key_verifications_v1
 WHERE key_space_id IN ('ks_1234', 'ks_5678')
   AND external_id IN ('user_abc', 'user_xyz')
 ```
-
-**Supported operations:** `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`
 
 ## Working with Tags
 
@@ -298,7 +302,7 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 | Result rows      | 10 million | `query_result_rows_limit_exceeded` |
 | Queries per hour | 1000       | `query_quota_exceeded`             |
 
-See [Security](/analytics/security) for more details on query limits and restrictions.
+See [Query Restrictions](/analytics/query-restrictions) for more details on query limits and restrictions.
 
 ## Next Steps
 
@@ -306,8 +310,8 @@ See [Security](/analytics/security) for more details on query limits and restric
   <Card title="Query Examples" icon="code" href="/analytics/query-examples">
     Explore common SQL patterns for analytics
   </Card>
-  <Card title="Security" icon="shield" href="/analytics/security">
-    Understand workspace isolation and security
+  <Card title="Query Restrictions" icon="shield-check" href="/analytics/query-restrictions">
+    View limits, quotas, and permissions
   </Card>
   <Card
     title="ClickHouse Docs"

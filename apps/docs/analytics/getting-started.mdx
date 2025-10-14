@@ -3,16 +3,13 @@ title: Getting Started
 description: "Request access and run your first analytics query"
 ---
 
-<Warning>
-  **Analytics is currently in private beta and opt-in only.**
-
-To request access, please email us at [support@unkey.dev](mailto:support@unkey.dev) with your workspace ID and use case.
-
-</Warning>
-
 ## Request Access
 
-Analytics is currently available by request only. To get started:
+<Warning>
+  **Analytics is currently in private beta and available by request only.**
+</Warning>
+
+To get started:
 
 1. **Find your workspace ID** in the Unkey dashboard settings
 2. **Email us** at [support@unkey.dev](mailto:support@unkey.dev) with:
@@ -165,7 +162,6 @@ If you hit these limits, try:
 - Using aggregated tables (hourly/daily) instead of raw events
 - Reducing the time range
 - Adding a LIMIT clause
-- Using SAMPLE to process a subset of data
 
 ## Error Handling
 
@@ -184,7 +180,7 @@ Analytics queries return structured error codes including `query_execution_timeo
   >
     Browse available tables, columns, and data types
   </Card>
-  <Card title="Security" icon="shield" href="/analytics/security">
-    Understand workspace isolation and query security
+  <Card title="Query Restrictions" icon="shield-check" href="/analytics/query-restrictions">
+    View limits, quotas, and permissions
   </Card>
 </CardGroup>
