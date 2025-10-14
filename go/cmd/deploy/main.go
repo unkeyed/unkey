@@ -80,7 +80,6 @@ type DeployOptions struct {
 	KeyspaceID      string
 	Context         string
 	Branch          string
-	DockerImage     string
 	Dockerfile      string
 	Commit          string
 	Registry        string
@@ -189,7 +188,6 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
 		Branch:          cmd.String("branch"),
-		DockerImage:     cmd.String("docker-image"),
 		Dockerfile:      cmd.String("dockerfile"),
 		Commit:          cmd.String("commit"),
 		Registry:        cmd.String("registry"),
