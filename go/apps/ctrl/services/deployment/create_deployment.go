@@ -99,8 +99,8 @@ func (s *Service) CreateDeployment(
 	if req.Msg.GetContextKey() != "" {
 		key := req.Msg.GetContextKey()
 		contextKey = key
-		if req.Msg.GetDockerFilePath() != "" {
-			path := req.Msg.GetDockerFilePath()
+		if req.Msg.GetDockerfilePath() != "" {
+			path := req.Msg.GetDockerfilePath()
 			dockerfilePath = &path
 		}
 		s.logger.Info("will build image in workflow",

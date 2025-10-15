@@ -186,7 +186,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey st
 		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 		EnvironmentSlug:          c.opts.Environment,
 		ContextKey:               contextKey,
-		DockerFilePath:           &c.opts.Dockerfile,
+		DockerfilePath:           &c.opts.Dockerfile,
 		GitCommitSha:             commitInfo.CommitSHA,
 		GitCommitMessage:         commitInfo.Message,
 		GitCommitAuthorHandle:    commitInfo.AuthorHandle,
