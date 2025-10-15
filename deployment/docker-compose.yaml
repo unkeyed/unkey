@@ -277,6 +277,8 @@ services:
     volumes:
       # Mount Docker socket for Docker backend support
       - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ../go/.env
     environment:
       # Server configuration
       UNKEY_HTTP_PORT: "8080"
@@ -334,6 +336,8 @@ services:
         required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ../go/.env
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
       UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"

@@ -3,10 +3,8 @@ package depot
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -17,8 +15,6 @@ import (
 	"github.com/depot/depot-go/machine"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/types"
-	"github.com/docker/docker/api/types/image"
-	dockerClient "github.com/docker/docker/client"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
@@ -214,24 +210,6 @@ func (s *Depot) CreateBuild(
 		"depot_project_id", depotProjectID,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
-	s.logger.Info("Pulling image to host",
-		"image_name", imageName,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
-
-	buildErr = s.pullImageToHost(ctx, imageName)
-	if buildErr != nil {
-		s.logger.Error("Failed to pull image to host",
-			"error", buildErr,
-			"image_name", imageName,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to pull image to host: %w", buildErr))
-	}
-
-	s.logger.Info("Image pulled to host successfully",
-		"image_name", imageName,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
-
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
 		ImageName:      imageName,
 		BuildId:        buildResp.ID,
@@ -254,7 +232,10 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 
 	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
-		s.logger.Info("Returning existing depot project", "depot_project_id", project.DepotProjectID, "unkey_project_id", "project_name", projectName)
+		s.logger.Info("Returning existing depot project",
+			"depot_project_id", project.DepotProjectID.String,
+			"unkey_project_id", unkeyProjectID,
+			"project_name", projectName)
 		return project.DepotProjectID.String, nil
 	}
 
@@ -301,50 +282,4 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Authorization", "Bearer "+t.token)
 	return t.base.RoundTrip(req)
-}
-
-// pullImageToHost pulls the built image from the remote registry to the local Docker daemon.
-// This is a workaround for running Depot builds locally: since the image is built and pushed
-// to a remote registry (not the local Docker daemon), we must explicitly pull it back.
-// Without this step, Krane cannot run the image because it only exists in the remote registry,
-// not in the local Docker environment where Krane operates.
-func (s *Depot) pullImageToHost(ctx context.Context, imageTag string) error {
-	dClient, err := dockerClient.NewClientWithOpts(
-		dockerClient.FromEnv,
-		dockerClient.WithAPIVersionNegotiation(),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create docker client: %w", err)
-	}
-	defer dClient.Close()
-
-	authConfig := types.AuthConfig{
-		Username:      s.username,
-		Password:      s.accessToken,
-		ServerAddress: s.registryUrl,
-	}
-
-	// Encode auth to base64 JSON
-	authJSON, err := json.Marshal(authConfig)
-	if err != nil {
-		return fmt.Errorf("failed to marshal auth: %w", err)
-	}
-	encodedAuth := base64.URLEncoding.EncodeToString(authJSON)
-
-	// Pull the image
-	pullResp, err := dClient.ImagePull(ctx, imageTag, image.PullOptions{
-		RegistryAuth: encodedAuth,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to pull image: %w", err)
-	}
-	defer pullResp.Close()
-
-	// Wait for pull to complete
-	_, err = io.Copy(io.Discard, pullResp)
-	if err != nil {
-		return fmt.Errorf("failed to complete pull: %w", err)
-	}
-
-	return nil
 }

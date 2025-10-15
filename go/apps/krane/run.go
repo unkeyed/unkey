@@ -82,7 +82,12 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	case Docker:
 		{
-			svc, err = docker.New(logger, cfg.DockerSocketPath)
+			svc, err = docker.New(logger, docker.Config{
+				SocketPath:       cfg.DockerSocketPath,
+				RegistryURL:      cfg.RegistryURL,
+				RegistryUsername: cfg.RegistryUsername,
+				RegistryPassword: cfg.RegistryPassword,
+			})
 			if err != nil {
 				return fmt.Errorf("unable to init docker backend: %w", err)
 			}

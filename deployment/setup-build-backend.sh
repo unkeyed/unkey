@@ -94,27 +94,38 @@ if [ "$BACKEND" = "depot" ]; then
   fi
 
   # Write to .env file
-  cat >.env <<EOF
+  cat >../go/.env <<EOF
 UNKEY_BUILD_BACKEND=depot
 DEPOT_TOKEN=$DEPOT_TOKEN
 UNKEY_BUILD_S3_URL=$S3_URL
 UNKEY_BUILD_S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID
 UNKEY_BUILD_S3_ACCESS_KEY_SECRET=$S3_ACCESS_KEY_SECRET
+
+# Krane registry configuration - allows Krane to pull images built by Depot
+UNKEY_REGISTRY_URL=registry.depot.dev
+UNKEY_REGISTRY_USERNAME=x-token
+UNKEY_REGISTRY_PASSWORD=$DEPOT_TOKEN
 EOF
-  echo "✓ Updated .env file with depot backend and S3 configuration"
+  echo "✓ Updated go/.env file with depot backend and S3 configuration"
+  echo "✓ Configured Krane to pull images from Depot registry"
 else
   echo "Logging out from depot registry..."
   docker logout registry.depot.dev 2>/dev/null || true
   echo "✓ Switched to local Docker"
 
   # Write to .env file with default minio configuration
-  cat >.env <<EOF
+  cat >../go/.env <<EOF
 UNKEY_BUILD_BACKEND=docker
 UNKEY_BUILD_S3_URL=http://s3:3902
 UNKEY_BUILD_S3_ACCESS_KEY_ID=minio_root_user
 UNKEY_BUILD_S3_ACCESS_KEY_SECRET=minio_root_password
+
+# Krane registry configuration - not needed for local Docker builds
+# UNKEY_REGISTRY_URL=
+# UNKEY_REGISTRY_USERNAME=
+# UNKEY_REGISTRY_PASSWORD=
 EOF
-  echo "✓ Updated .env file with docker backend and local minio configuration"
+  echo "✓ Updated go/.env file with docker backend and local minio configuration"
 fi
 
 echo "✓ Done! Build backend set to: $BACKEND"

@@ -23,7 +23,11 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 		"image", deployment.GetImage(),
 	)
 
-	d.logger.Info("using local image", "image", deployment.GetImage())
+	// Ensure image exists locally (pull if not present)
+	if err := d.ensureImageExists(ctx, deployment.GetImage()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to ensure image exists: %w", err))
+	}
 
 	// Configure port mapping
 	exposedPorts := nat.PortSet{

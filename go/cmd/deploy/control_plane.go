@@ -75,7 +75,6 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 
 	uploadURL := uploadResp.Msg.GetUploadUrl()
 	contextKey := uploadResp.Msg.GetContextKey()
-
 	if uploadURL == "" || contextKey == "" {
 		return "", fmt.Errorf("empty upload URL or context key returned")
 	}

@@ -156,7 +156,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("context_key provided in deploy request")
+		return nil, fmt.Errorf("no context_key provided in deploy request")
 	}
 
 	// Update version status to deploying

@@ -32,6 +32,16 @@ unkey run krane                                   # Run with default configurati
 		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
 			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
 
+		// Registry Configuration
+		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
+			cli.EnvVar("UNKEY_REGISTRY_URL")),
+
+		cli.String("registry-username", "Username for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_USERNAME")),
+
+		cli.String("registry-password", "Password/token for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_PASSWORD")),
+
 		// This has no use outside of our demo cluster and will be removed soon
 		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
 	},
@@ -54,6 +64,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelTraceSamplingRate: 1.0,
 		InstanceID:            cmd.String("instance-id"),
 		DockerSocketPath:      cmd.String("docker-socket"),
+		RegistryURL:           cmd.String("registry-url"),
+		RegistryUsername:      cmd.String("registry-username"),
+		RegistryPassword:      cmd.String("registry-password"),
 		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
 	}
 
