@@ -50,6 +50,7 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 	})
 
 	t.Run("reject invalid refill config", func(t *testing.T) {
+		t.Parallel()
 		req := handler.Request{
 			KeyId: keyResponse.KeyID,
 			Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{

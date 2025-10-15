@@ -251,7 +251,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Create listener from HttpPort (production)
 		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if err != nil {
-			return fmt.Errorf("Unable to listen on port %d: %w", cfg.HttpPort, err)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.HttpPort, err)
 		}
 	}
 

@@ -51,10 +51,6 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		}
 	}
 
-	if !foundUser.RegistrationUri.Valid {
-		// todo: finish registration
-	}
-
 	resp, err := cfg.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   cfg.WorkspaceID,
 		Encrypted: foundUser.EncryptedKey,
@@ -63,7 +59,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
 	}
 
-	key, err := stringToPrivateKey(string(resp.Plaintext))
+	key, err := stringToPrivateKey(resp.Plaintext)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert private key: %w", err)
 	}

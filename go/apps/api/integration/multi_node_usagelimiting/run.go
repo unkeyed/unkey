@@ -98,7 +98,7 @@ func RunUsageLimitTest(
 
 	// Track successful requests and remaining credits
 	successCount := 0
-	var lastRemaining int64 = totalCredits
+	lastRemaining := totalCredits
 
 	// Create a load balancer to distribute requests across nodes
 	lb := integration.NewLoadbalancer(h)

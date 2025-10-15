@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysAddRolesRequestBody
-type Response = openapi.V2KeysAddRolesResponseBody
+type (
+	Request  = openapi.V2KeysAddRolesRequestBody
+	Response = openapi.V2KeysAddRolesResponseBody
+)
 
 type Handler struct {
 	Logger    logging.Logger
@@ -222,16 +224,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseData := make(openapi.V2KeysAddRolesResponseData, 0)
 	// Wrap row so we don't have to do the same logic twice.
 	for _, role := range rolesToAdd {
-		row := db.ListRolesByKeyIDRow{
-			ID:          role.ID,
-			WorkspaceID: role.WorkspaceID,
-			Name:        role.Name,
-			Description: role.Description,
-			CreatedAtM:  role.CreatedAtM,
-			UpdatedAtM:  role.UpdatedAtM,
-			Permissions: role.Permissions,
-		}
-
+		row := db.ListRolesByKeyIDRow(role)
 		currentRoles = append(currentRoles, row)
 	}
 

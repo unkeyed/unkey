@@ -96,9 +96,10 @@ func (p *SQLParser) extractValuesClause(cleanQuery string, valuesIndex int) stri
 	if cleanQuery[valuesStart] == '(' {
 		parenCount := 1
 		for j := valuesStart + 1; j < len(cleanQuery); j++ {
-			if cleanQuery[j] == '(' {
+			switch cleanQuery[j] {
+			case '(':
 				parenCount++
-			} else if cleanQuery[j] == ')' {
+			case ')':
 				parenCount--
 				if parenCount == 0 {
 					return strings.TrimSpace(cleanQuery[valuesStart : j+1])

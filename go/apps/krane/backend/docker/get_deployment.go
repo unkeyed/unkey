@@ -37,7 +37,7 @@ func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1
 		d.logger.Info("container found", "container", c)
 
 		// Determine container status
-		var status kranev1.DeploymentStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
+		var status kranev1.DeploymentStatus
 		switch c.State {
 		case container.StateRunning:
 			status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING

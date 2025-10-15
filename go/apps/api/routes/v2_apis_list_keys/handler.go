@@ -229,10 +229,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
 		keyData := db.ToKeyData(key)
-		response, err := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
-		if err != nil {
-			return err
-		}
+		response := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
 		responseData[i] = response
 	}
 
@@ -249,7 +246,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // buildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
+func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
 		CreatedAt: keyData.Key.CreatedAtM,
 		Enabled:   keyData.Key.Enabled,
@@ -380,5 +377,5 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		}
 	}
 
-	return response, nil
+	return response
 }
