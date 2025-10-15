@@ -235,8 +235,8 @@ func isWorkingDirDirty() bool {
 }
 
 // execGitCommand executes a git command and returns trimmed output
-func execGitCommand(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+func execGitCommand(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

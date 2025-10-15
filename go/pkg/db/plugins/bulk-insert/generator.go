@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -36,7 +35,7 @@ func NewGenerator() *Generator {
 }
 
 // Generate processes the plugin request and generates bulk insert functions.
-func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
+func (g *Generator) Generate(req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
 	var files []*plugin.File
 
 	// Collect all bulk functions for interface generation
@@ -102,10 +101,7 @@ func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File
 
 	// Parse the SQL query
 	parser := NewSQLParser()
-	parsedQuery, err := parser.Parse(query)
-	if err != nil {
-		return nil
-	}
+	parsedQuery := parser.Parse(query)
 
 	// Extract field names from query parameters
 	fields := g.extractFieldNames(query.Params)

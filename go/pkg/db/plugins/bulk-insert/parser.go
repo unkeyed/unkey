@@ -23,23 +23,21 @@ func NewSQLParser() *SQLParser {
 }
 
 // Parse parses an INSERT query and extracts its components.
-func (p *SQLParser) Parse(query *plugin.Query) (*ParsedQuery, error) {
+func (p *SQLParser) Parse(query *plugin.Query) *ParsedQuery {
 	// Get the actual SQL query text
 	originalSQL := query.Text
 	if originalSQL == "" {
 		originalSQL = query.Cmd
 	}
-
 	insertPart, valuesPart := p.parseInsertQuery(originalSQL)
 	onDuplicateKeyUpdate := p.extractOnDuplicateKeyUpdate(originalSQL)
 	placeholderCount := p.countPlaceholders(valuesPart)
-
 	return &ParsedQuery{
 		InsertPart:             insertPart,
 		ValuesPart:             valuesPart,
 		OnDuplicateKeyUpdate:   onDuplicateKeyUpdate,
 		ValuesPlaceholderCount: placeholderCount,
-	}, nil
+	}
 }
 
 // parseInsertQuery separates the INSERT part from the VALUES part.

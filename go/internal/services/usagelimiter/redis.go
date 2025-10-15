@@ -200,12 +200,11 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	}
 
 	// Key exists in Redis - use the explicit success flag from decrement
-	return s.handleResult(req, remaining, success)
+	return s.handleResult(req, remaining, success), nil
 }
 
 func (s *counterService) Invalidate(ctx context.Context, keyID string) error {
 	return s.counter.Delete(ctx, s.redisKey(keyID))
-
 }
 
 func (s *counterService) redisKey(keyID string) string {
@@ -214,7 +213,7 @@ func (s *counterService) redisKey(keyID string) string {
 
 // handleResult processes the result of a decrement operation using an explicit success flag.
 // This eliminates ambiguity in determining whether the operation succeeded or failed.
-func (s *counterService) handleResult(req UsageRequest, remaining int64, success bool) (UsageResponse, error) {
+func (s *counterService) handleResult(req UsageRequest, remaining int64, success bool) UsageResponse {
 	if success {
 		// decrement succeeded - buffer the change for async database sync
 		s.replayBuffer.Buffer(CreditChange{
@@ -224,12 +223,12 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 
-		return UsageResponse{Valid: true, Remaining: int32(remaining)}, nil
+		return UsageResponse{Valid: true, Remaining: int32(remaining)}
 	}
 
 	// Insufficient credits - return actual current count for accurate response
 	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
-	return UsageResponse{Valid: false, Remaining: int32(remaining)}, nil
+	return UsageResponse{Valid: false, Remaining: int32(remaining)}
 }
 
 // initializeFromDatabase loads credits from DB and initializes the counter.
@@ -242,7 +241,6 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
 		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
 	})
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
@@ -280,10 +278,10 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	if wasSet {
 		if hasSufficientCredits {
 			// Successful decrement - return the decremented value
-			return s.handleResult(req, initValue, true)
+			return s.handleResult(req, initValue, true), nil
 		} else {
 			// Insufficient credits - return the current unchanged value
-			return s.handleResult(req, currentCredits, false)
+			return s.handleResult(req, currentCredits, false), nil
 		}
 	}
 
@@ -295,14 +293,13 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	}
 
 	// Process the decrement result using explicit success flag
-	return s.handleResult(req, remaining, success)
+	return s.handleResult(req, remaining, success), nil
 }
 
 // replayRequests processes buffered credit changes and updates the database
 func (s *counterService) replayRequests() {
 	for change := range s.replayBuffer.Consume() {
 		err := s.syncWithDB(context.Background(), change)
-
 		if err != nil {
 			s.logger.Error("failed to replay credit change", "error", err)
 		}
@@ -324,7 +321,6 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 			Credits: sql.NullInt32{Int32: change.Cost, Valid: true},
 		})
 	})
-
 	if err != nil {
 		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
 		return err
@@ -393,5 +389,4 @@ func (s *counterService) Close() error {
 		s.logger.Debug("usage limiter replay buffer drained successfully")
 		return nil
 	}
-
 }

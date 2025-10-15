@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"testing"
 
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
@@ -100,7 +99,7 @@ func TestGenerator_Generate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := generator.Generate(context.Background(), tt.req)
+			resp, err := generator.Generate(tt.req)
 			if err != nil {
 				t.Fatalf("Generate() error = %v", err)
 			}
