@@ -19,10 +19,9 @@ import (
 // It returns detailed information about each pod instance including stable
 // DNS addresses, current status, and resource allocation.
 func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.GetDeploymentRequest]) (*connect.Response[kranev1.GetDeploymentResponse], error) {
-
 	err := assert.All(
-		assert.NotEmpty(req.Msg.Namespace),
-		assert.NotEmpty(req.Msg.DeploymentId),
+		assert.NotEmpty(req.Msg.GetNamespace()),
+		assert.NotEmpty(req.Msg.GetDeploymentId()),
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -92,7 +91,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 		default:
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 		}
-		//pod-1.my-headless-service.default.svc.cluster.local
+		// pod-1.my-headless-service.default.svc.cluster.local
 
 		// Create DNS entry for the pod
 		// For StatefulSets, pods have predictable DNS names: <pod-name>.<service-name>.<namespace>.svc.cluster.local

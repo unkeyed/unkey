@@ -44,7 +44,6 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Container configuration
 	containerConfig := &container.Config{
-
 		Image: deployment.GetImage(),
 		Labels: map[string]string{
 			"unkey.deployment.id": deployment.GetDeploymentId(),
@@ -58,7 +57,6 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Host configuration
 	hostConfig := &container.HostConfig{
-
 		PortBindings: portBindings,
 		RestartPolicy: container.RestartPolicy{
 			Name: "unless-stopped",
@@ -74,7 +72,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Create container
 
-	for i := range req.Msg.Deployment.Replicas {
+	for i := range req.Msg.GetDeployment().GetReplicas() {
 		resp, err := d.client.ContainerCreate(
 			ctx,
 			containerConfig,

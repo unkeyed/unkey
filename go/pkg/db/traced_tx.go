@@ -30,7 +30,7 @@ type TracedTx struct {
 var _ DBTx = (*TracedTx)(nil)
 
 // ExecContext executes a SQL statement within the transaction with tracing
-func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	ctx, span := tracing.Start(ctx, "Tx.ExecContext")
 	defer span.End()
 	span.SetAttributes(
@@ -63,6 +63,7 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 	)
 
 	start := time.Now()
+	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	stmt, err := t.tx.PrepareContext(ctx, query)
 
 	duration := time.Since(start).Seconds()
@@ -78,7 +79,7 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 }
 
 // QueryContext executes a SQL query within the transaction with tracing
-func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	ctx, span := tracing.Start(ctx, "Tx.QueryContext")
 	defer span.End()
 	span.SetAttributes(
@@ -87,6 +88,7 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...inter
 	)
 
 	start := time.Now()
+	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	rows, err := t.tx.QueryContext(ctx, query, args...)
 
 	duration := time.Since(start).Seconds()
@@ -102,7 +104,7 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...inter
 }
 
 // QueryRowContext executes a SQL query that returns a single row within the transaction with tracing
-func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	ctx, span := tracing.Start(ctx, "Tx.QueryRowContext")
 	defer span.End()
 	span.SetAttributes(

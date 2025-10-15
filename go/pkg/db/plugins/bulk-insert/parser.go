@@ -25,9 +25,9 @@ func NewSQLParser() *SQLParser {
 // Parse parses an INSERT query and extracts its components.
 func (p *SQLParser) Parse(query *plugin.Query) *ParsedQuery {
 	// Get the actual SQL query text
-	originalSQL := query.Text
+	originalSQL := query.GetText()
 	if originalSQL == "" {
-		originalSQL = query.Cmd
+		originalSQL = query.GetCmd()
 	}
 	insertPart, valuesPart := p.parseInsertQuery(originalSQL)
 	onDuplicateKeyUpdate := p.extractOnDuplicateKeyUpdate(originalSQL)

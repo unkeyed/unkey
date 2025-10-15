@@ -39,7 +39,7 @@ func New(config Config) (Authenticator, error) {
 // Authenticate processes API key authentication for the request.
 func (a *authenticator) Authenticate(ctx context.Context, sess *server.Session, config *partitionv1.GatewayConfig) error {
 	// Skip authentication if not configured or not enabled
-	if config.AuthConfig == nil {
+	if config.GetAuthConfig() == nil {
 		return nil
 	}
 
@@ -103,11 +103,11 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 	}
 
 	// Validate keyspace - ensure key belongs to the correct keyspace
-	if key.Key.KeyAuthID != config.AuthConfig.KeyAuthId {
+	if key.Key.KeyAuthID != config.GetAuthConfig().GetKeyAuthId() {
 		a.logger.Warn("key belongs to different keyspace",
 			"requestId", sess.RequestID(),
 			"key_id", key.Key.ID,
-			"expected_keyspace", config.AuthConfig.KeyAuthId,
+			"expected_keyspace", config.GetAuthConfig().GetKeyAuthId(),
 			"actual_keyspace", key.Key.KeyAuthID,
 		)
 

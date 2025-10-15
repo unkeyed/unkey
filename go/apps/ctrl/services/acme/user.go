@@ -59,7 +59,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
 	}
 
-	key, err := stringToPrivateKey(resp.Plaintext)
+	key, err := stringToPrivateKey(resp.GetPlaintext())
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert private key: %w", err)
 	}
@@ -106,7 +106,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 
 	id, err := db.Query.InsertAcmeUser(ctx, cfg.DB.RW(), db.InsertAcmeUserParams{
 		WorkspaceID:  cfg.WorkspaceID,
-		EncryptedKey: resp.Encrypted,
+		EncryptedKey: resp.GetEncrypted(),
 		CreatedAt:    time.Now().UnixMilli(),
 	})
 	if err != nil {

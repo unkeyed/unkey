@@ -104,16 +104,16 @@ func TestGenerator_Generate(t *testing.T) {
 				t.Fatalf("Generate() error = %v", err)
 			}
 
-			if len(resp.Files) != tt.expected {
-				t.Errorf("Generate() returned %d files, want %d", len(resp.Files), tt.expected)
+			if len(resp.GetFiles()) != tt.expected {
+				t.Errorf("Generate() returned %d files, want %d", len(resp.GetFiles()), tt.expected)
 			}
 
 			// Verify file names are correctly generated
-			for _, file := range resp.Files {
-				if file.Name == "" {
+			for _, file := range resp.GetFiles() {
+				if file.GetName() == "" {
 					t.Error("Generated file has empty name")
 				}
-				if len(file.Contents) == 0 {
+				if len(file.GetContents()) == 0 {
 					t.Error("Generated file has empty contents")
 				}
 			}

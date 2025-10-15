@@ -67,14 +67,13 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			return tls.Certificate{}, err
 		}
 
-		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(pem.Plaintext))
+		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(pem.GetPlaintext()))
 		if err != nil {
 			return tls.Certificate{}, err
 		}
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
-
 	if err != nil {
 		// todo: handle error
 		// if db.IsNotFound(err) {

@@ -98,24 +98,23 @@ func (s *service) GetConfig(ctx context.Context, host string) (*ConfigWithWorksp
 
 // SelectVM picks an available VM from the gateway's VM list using random selection.
 func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
-	if !config.Deployment.IsEnabled {
-		return nil, fmt.Errorf("gateway %s is disabled", config.Deployment.Id)
+	if !config.GetDeployment().GetIsEnabled() {
+		return nil, fmt.Errorf("gateway %s is disabled", config.GetDeployment().GetId())
 	}
 
-	if len(config.Vms) == 0 {
-		return nil, fmt.Errorf("no VMs available for gateway %s", config.Deployment.Id)
+	if len(config.GetVms()) == 0 {
+		return nil, fmt.Errorf("no VMs available for gateway %s", config.GetDeployment().GetId())
 	}
 
 	availableVms := make([]pdb.Vm, 0)
-	for _, vm := range config.Vms {
-		dbVm, hit, err := s.vmCache.SWR(ctx, vm.Id, func(ctx context.Context) (pdb.Vm, error) {
+	for _, vm := range config.GetVms() {
+		dbVm, hit, err := s.vmCache.SWR(ctx, vm.GetId(), func(ctx context.Context) (pdb.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
-			return pdb.Query.FindVMById(ctx, s.db.RO(), vm.Id)
+			return pdb.Query.FindVMById(ctx, s.db.RO(), vm.GetId())
 		}, caches.DefaultFindFirstOp)
-
 		if err != nil {
 			if db.IsNotFound(err) {
-				s.logger.Warn("failed to load VM from cache", slog.String("vm_id", vm.Id), slog.String("error", err.Error()))
+				s.logger.Warn("failed to load VM from cache", slog.String("vm_id", vm.GetId()), slog.String("error", err.Error()))
 				continue
 			}
 
@@ -134,7 +133,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	if len(availableVms) == 0 {
-		return nil, fmt.Errorf("no available VMs for gateway %s", config.Deployment.Id)
+		return nil, fmt.Errorf("no available VMs for gateway %s", config.GetDeployment().GetId())
 	}
 
 	// select random VM

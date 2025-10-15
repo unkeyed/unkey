@@ -60,6 +60,7 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 
 	// Track metrics
 	start := time.Now()
+	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	stmt, err := r.db.PrepareContext(ctx, query)
 
 	// Record latency and operation count
@@ -72,11 +73,11 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "prepare", status).Inc()
 
-	return stmt, err // nolint:sqlclosecheck
+	return stmt, err
 }
 
 // QueryContext executes a SQL query that returns rows.
-func (r *Replica) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	ctx, span := tracing.Start(ctx, "QueryContext")
 	defer span.End()
 	span.SetAttributes(
@@ -86,6 +87,7 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...interf
 
 	// Track metrics
 	start := time.Now()
+	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	rows, err := r.db.QueryContext(ctx, query, args...)
 
 	// Record latency and operation count
@@ -98,11 +100,11 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...interf
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "query", status).Inc()
 
-	return rows, err // nolint:sqlclosecheck
+	return rows, err
 }
 
 // QueryRowContext executes a SQL query that returns a single row.
-func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	ctx, span := tracing.Start(ctx, "QueryRowContext")
 	defer span.End()
 	span.SetAttributes(
