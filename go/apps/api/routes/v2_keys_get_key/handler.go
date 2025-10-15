@@ -288,7 +288,7 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 
 	// Only decrypt if the key is actually encrypted
 	if !keyData.EncryptedKey.Valid || !keyData.EncryptionKeyID.Valid {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	decrypted, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -300,7 +300,8 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 			"keyId", keyData.Key.ID,
 			"error", err,
 		)
-		return nil, nil // Return nil instead of failing the entire request
+		// Return nil instead of failing the entire request
+		return nil, nil //nolint:nilnil
 	}
 
 	return ptr.P(decrypted.GetPlaintext()), nil

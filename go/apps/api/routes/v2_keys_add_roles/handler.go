@@ -242,6 +242,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		rolePermissions := make([]db.Permission, 0)
 		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+			//nolint:musttag
 			_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
 		}
 

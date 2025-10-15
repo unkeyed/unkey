@@ -96,7 +96,8 @@ func (s *Service) ProcessChallenge(
 
 	// Step 4: Obtain or renew certificate
 	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
-		currCert, err := pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
+		var currCert pdb.Certificate
+		currCert, err = pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
 		if err != nil && !db.IsNotFound(err) {
 			return EncryptedCertificate{}, err
 		}

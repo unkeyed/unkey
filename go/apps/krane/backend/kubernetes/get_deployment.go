@@ -60,7 +60,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sDeploymentID))
 	}
 	var port int32 = 8080 // default
-	if err == nil && len(service.Spec.Ports) > 0 {
+	if len(service.Spec.Ports) > 0 {
 		port = service.Spec.Ports[0].Port
 	}
 

@@ -50,7 +50,7 @@ func newCachedFileProvider(cfg Config, cacheTTL time.Duration) (Provider, error)
 // loadTLSConfigCached returns cached TLS configuration or loads fresh certificates.
 func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 	if p.certFile == "" || p.keyFile == "" {
-		return nil, nil
+		return nil, nil //nolint: all
 	}
 
 	tlsConfig := &tls.Config{

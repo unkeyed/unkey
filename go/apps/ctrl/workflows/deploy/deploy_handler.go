@@ -52,7 +52,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return
 		}
 
-		if err := w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
+		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
 			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
 	}()
@@ -102,7 +102,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Create deployment request
 
-		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
+		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
 			Deployment: &kranev1.DeploymentRequest{
 				Namespace:     hardcodedNamespace,
 				DeploymentId:  deployment.ID,
@@ -137,7 +137,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
 			}
 
-			resp, err := w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
+			var resp *connect.Response[kranev1.GetDeploymentResponse]
+			resp, err = w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
 				Namespace:    hardcodedNamespace,
 				DeploymentId: deployment.ID,
 			}))
@@ -183,7 +184,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					"deployment_id", deployment.ID,
 					"address", instance.GetAddress(),
 					"status", status)
-				if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+				if err = partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
 					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.GetId(), err)
 				}
 
@@ -209,7 +210,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
 			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", deployment.ID)
 
-			resp, err := http.DefaultClient.Get(openapiURL)
+			var resp *http.Response
+			resp, err = http.DefaultClient.Get(openapiURL)
 			if err != nil {
 				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue
@@ -222,7 +224,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			}
 
 			// Read the OpenAPI spec
-			specBytes, err := io.ReadAll(resp.Body)
+			var specBytes []byte
+			specBytes, err = io.ReadAll(resp.Body)
 			if err != nil {
 				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue

@@ -29,8 +29,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitLimitRequestBody
-type Response = openapi.V2RatelimitLimitResponseBody
+type (
+	Request  = openapi.V2RatelimitLimitRequestBody
+	Response = openapi.V2RatelimitLimitResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 ratelimit limit endpoint
 type Handler struct {
@@ -73,9 +75,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	cacheKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace}
 
-	var loader = func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+	loader := func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 		result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-		response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+		var response db.FindRatelimitNamespaceRow
+		response, err = db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
 			return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Namespace:   req.Namespace,
@@ -146,7 +149,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
 
-			err := db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
+			err = db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
 				ID:          id,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Name:        req.Namespace,
@@ -160,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if db.IsDuplicateKeyError(err) {
-				namespace, err := loader(ctx)
+				namespace, err = loader(ctx)
 				if err != nil {
 					return result, fault.Wrap(err,
 						fault.Code(codes.App.Internal.UnexpectedError.URN()),

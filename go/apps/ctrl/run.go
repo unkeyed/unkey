@@ -78,7 +78,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 {
-		vaultStorage, err := storage.NewS3(storage.S3Config{
+		var vaultStorage storage.Storage
+		vaultStorage, err = storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,

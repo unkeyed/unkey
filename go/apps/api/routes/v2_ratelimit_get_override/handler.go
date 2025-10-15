@@ -19,8 +19,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitGetOverrideRequestBody
-type Response = openapi.V2RatelimitGetOverrideResponseBody
+type (
+	Request  = openapi.V2RatelimitGetOverrideRequestBody
+	Response = openapi.V2RatelimitGetOverrideResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 ratelimit get override endpoint
 type Handler struct {
@@ -32,7 +34,7 @@ type Handler struct {
 }
 
 // decodeOverrides safely decodes JSON bytes into override slice with proper error handling
-func decodeOverrides(data interface{}) ([]db.FindRatelimitNamespaceLimitOverride, error) {
+func decodeOverrides(data any) ([]db.FindRatelimitNamespaceLimitOverride, error) {
 	overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
 	if overrideBytes, ok := data.([]byte); ok && overrideBytes != nil {
 		if err := json.Unmarshal(overrideBytes, &overrides); err != nil {
@@ -70,7 +72,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-			response, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+			var response db.FindRatelimitNamespaceRow
+			response, err = db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Namespace:   req.Namespace,
 			})
@@ -89,7 +92,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
 			}
 
-			overrides, err := decodeOverrides(response.Overrides)
+			var overrides []db.FindRatelimitNamespaceLimitOverride
+			overrides, err = decodeOverrides(response.Overrides)
 			if err != nil {
 				return result, err
 			}
@@ -103,7 +107,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			return result, nil
 		}, caches.DefaultFindFirstOp)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("namespace was deleted",

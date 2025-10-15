@@ -143,6 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
+			//nolint:nestif
 			if req.ExternalId.IsSpecified() {
 				update.IdentityIDSpecified = 1
 				if req.ExternalId.IsNull() {
@@ -151,7 +152,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					externalID := req.ExternalId.MustGet()
 
 					// Try to find existing identity
-					identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+					var identity db.Identity
+					identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						Identity:    externalID,
 						Deleted:     false,
@@ -228,6 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
+			//nolint:nestif
 			if req.Credits.IsSpecified() {
 				if req.Credits.IsNull() {
 					update.RemainingRequestsSpecified = 1
@@ -311,7 +314,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Ratelimits != nil {
-				existingRatelimits, err := db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
+				var existingRatelimits []db.ListRatelimitsByKeyIDRow
+				existingRatelimits, err = db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
 				if err != nil && !db.IsNotFound(err) {
 					return fault.Wrap(err,
 						fault.Internal("unable to fetch ratelimits"),
@@ -388,7 +392,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Permissions != nil {
-				existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+				var existingPermissions []db.Permission
+				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Slugs:       *req.Permissions,
 				})
@@ -501,7 +506,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Roles != nil {
-				existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+				var existingRoles []db.FindRolesByNamesRow
+				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Names:       *req.Roles,
 				})

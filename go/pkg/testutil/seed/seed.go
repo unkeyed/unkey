@@ -254,12 +254,12 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	if req.Recoverable && s.Vault != nil {
-		encryption, err := s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+		var encryption *vaultv1.EncryptResponse
+		encryption, err = s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: req.WorkspaceID,
 			Data:    key,
 		})
 		require.NoError(s.t, err)
-
 		err = db.Query.InsertKeyEncryption(ctx, s.DB.RW(), db.InsertKeyEncryptionParams{
 			WorkspaceID:     req.WorkspaceID,
 			KeyID:           keyID,
@@ -267,7 +267,6 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			Encrypted:       encryption.GetEncrypted(),
 			EncryptionKeyID: encryption.GetKeyId(),
 		})
-
 		require.NoError(s.t, err)
 	}
 

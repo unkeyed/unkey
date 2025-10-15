@@ -80,7 +80,7 @@ func getConfigFilePath(configDir string) string {
 // createConfigWithValues creates a new unkey.json file with the provided values
 func createConfigWithValues(configDir, projectID, context string) error {
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return fmt.Errorf("%w %s: %w", ErrDirectoryCreate, configDir, err)
 	}
 
@@ -104,10 +104,9 @@ func writeConfig(configPath string, config *Config) error {
 		return fmt.Errorf("%w: %w", ErrConfigMarshal, err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
 		return fmt.Errorf("%w: %w", ErrConfigFileWrite, err)
 	}
-
 	return nil
 }
 

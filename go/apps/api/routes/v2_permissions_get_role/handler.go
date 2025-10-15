@@ -16,8 +16,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2PermissionsGetRoleRequestBody
-type Response = openapi.V2PermissionsGetRoleResponseBody
+type (
+	Request  = openapi.V2PermissionsGetRoleRequestBody
+	Response = openapi.V2PermissionsGetRoleResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 permissions get role endpoint
 type Handler struct {
@@ -95,6 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rolePermissions := make([]db.Permission, 0)
 	if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
+		//nolint: musttag
 		_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
 	}
 

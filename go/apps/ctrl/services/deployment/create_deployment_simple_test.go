@@ -410,10 +410,6 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			// Simulate the mapping logic from create_version.go
 			// This tests the actual field wiring that happens in the service
 			params := db.InsertDeploymentParams{
-				ID:            "test_deployment_id",
-				WorkspaceID:   "ws_test123", // In production, this is inferred from ProjectID via DB lookup, just hardcoded for the test
-				ProjectID:     tt.request.GetProjectId(),
-				EnvironmentID: "todo",
 				// Git field mappings - this is what we're testing
 				GitCommitSha:             sql.NullString{String: tt.request.GetGitCommitSha(), Valid: tt.request.GetGitCommitSha() != ""},
 				GitBranch:                sql.NullString{String: tt.request.GetBranch(), Valid: true},
@@ -421,10 +417,7 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				GitCommitAuthorHandle:    sql.NullString{String: tt.request.GetGitCommitAuthorHandle(), Valid: tt.request.GetGitCommitAuthorHandle() != ""},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: tt.request.GetGitCommitAuthorAvatarUrl(), Valid: tt.request.GetGitCommitAuthorAvatarUrl() != ""},
 				GitCommitTimestamp:       sql.NullInt64{Int64: tt.request.GetGitCommitTimestamp(), Valid: tt.request.GetGitCommitTimestamp() != 0},
-				RuntimeConfig:            []byte("{}"),
 				OpenapiSpec:              sql.NullString{String: "", Valid: false},
-				Status:                   db.DeploymentsStatusPending,
-				CreatedAt:                1724251845000,
 				UpdatedAt:                sql.NullInt64{Int64: 1724251845000, Valid: true},
 			}
 
