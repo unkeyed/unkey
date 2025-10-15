@@ -26,6 +26,7 @@ import (
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
@@ -49,14 +50,15 @@ func (s *Depot) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
-	if req.Msg.ContextKey == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("contextKey is required"))
+	if err := assert.All(
+		assert.NotEmpty(req.Msg.ContextKey, "contextKey is required"),
+		assert.NotEmpty(req.Msg.UnkeyProjectId, "unkeyProjectID is required"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	if req.Msg.UnkeyProjectId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("unkeyProjectID is required"))
-	}
+
+	const architecture = "amd64"
+	platform := fmt.Sprintf("linux/%s", architecture)
 
 	s.logger.Info("Starting build process",
 		"context_key", req.Msg.ContextKey,
@@ -111,10 +113,10 @@ func (s *Depot) CreateBuild(
 
 	s.logger.Info("Acquiring build machine",
 		"build_id", buildResp.ID,
-		"platform", "arm64",
+		"platform", architecture,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
-	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, "arm64")
+	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, architecture)
 	if buildErr != nil {
 		s.logger.Error("Acquiring depot build failed",
 			"error", buildErr,
@@ -152,14 +154,14 @@ func (s *Depot) CreateBuild(
 	s.logger.Info("Starting build execution",
 		"image_name", imageName,
 		"dockerfile", dockerfilePath,
-		"platform", "linux/arm64",
+		"platform", platform,
 		"build_id", buildResp.ID,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	solverOptions := client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
-			"platform": "linux/arm64",
+			"platform": platform,
 			"context":  contextURL,
 			"filename": dockerfilePath,
 		},

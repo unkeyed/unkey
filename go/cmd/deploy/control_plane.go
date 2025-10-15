@@ -149,7 +149,7 @@ func createContextTar(contextPath string) (string, error) {
 	}
 
 	sharedDir := "/tmp/ctrl"
-	if err := os.MkdirAll(sharedDir, 0777); err != nil {
+	if err := os.MkdirAll(sharedDir, 0o777); err != nil {
 		return "", fmt.Errorf("failed to create shared dir: %w", err)
 	}
 
@@ -160,7 +160,7 @@ func createContextTar(contextPath string) (string, error) {
 	tmpFile.Close()
 	tarPath := tmpFile.Name()
 
-	if err := os.Chmod(tarPath, 0666); err != nil {
+	if err := os.Chmod(tarPath, 0o666); err != nil {
 		os.Remove(tarPath)
 		return "", fmt.Errorf("failed to set file permissions: %w", err)
 	}
@@ -211,13 +211,6 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey st
 	}
 
 	return deploymentID, nil
-}
-
-func stringPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
 }
 
 // GetDeployment retrieves deployment information from the control plane

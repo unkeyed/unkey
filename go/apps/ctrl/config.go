@@ -1,6 +1,8 @@
 package ctrl
 
 import (
+	"fmt"
+
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
@@ -133,42 +135,23 @@ func (c Config) Validate() error {
 		}
 	}
 
-	// Validate build backend configuration
 	switch c.BuildBackend {
 	case BuildBackendDepot:
-		if err := assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.Depot.AccessToken, "Depot access token is required when using Depot backend"); err != nil {
-			return err
-		}
+		return assert.All(
+			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
+			assert.NotEmpty(c.Depot.AccessToken, "Depot access token is required when using Depot backend"),
+		)
 	case BuildBackendDocker:
-		if err := assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"); err != nil {
-			return err
-		}
-		if err := assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"); err != nil {
-			return err
-		}
-	case "":
-		return assert.NotEmpty(string(c.BuildBackend), "build backend must be specified (depot or docker)")
+		return assert.All(
+			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"),
+		)
 	default:
-		return assert.NotEmpty("", "build backend must be either 'depot' or 'docker'")
+		return fmt.Errorf("build backend must be either 'depot' or 'docker', got: %s", c.BuildBackend)
 	}
-
-	return nil
 }

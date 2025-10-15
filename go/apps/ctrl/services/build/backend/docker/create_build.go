@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/client"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 )
 
 type dockerBuildResponse struct {
@@ -27,14 +28,15 @@ func (d *Docker) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
-	if req.Msg.ContextKey == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("contextKey is required"))
+	if err := assert.All(
+		assert.NotEmpty(req.Msg.ContextKey, "contextKey is required"),
+		assert.NotEmpty(req.Msg.UnkeyProjectId, "unkeyProjectID is required"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	if req.Msg.UnkeyProjectId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("unkeyProjectID is required"))
-	}
+
+	const architecture = "amd64"
+	platform := fmt.Sprintf("linux/%s", architecture)
 
 	d.logger.Info("Getting presigned URL for build context",
 		"context_key", req.Msg.ContextKey,
@@ -78,13 +80,13 @@ func (d *Docker) CreateBuild(
 	d.logger.Info("Starting Docker build",
 		"image_name", imageName,
 		"dockerfile", dockerfilePath,
-		"platform", "linux/arm64",
+		"platform", platform,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	buildOptions := build.ImageBuildOptions{
 		Tags:          []string{imageName},
 		Dockerfile:    dockerfilePath,
-		Platform:      "linux/arm64",
+		Platform:      platform,
 		Remove:        true,
 		RemoteContext: contextURL,
 	}

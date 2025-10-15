@@ -1,10 +1,8 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -73,39 +71,6 @@ func NewS3(config S3Config) (*S3, error) {
 		presignClient: presignClient,
 		logger:        logger,
 	}, nil
-}
-
-func (s *S3) PutObject(ctx context.Context, key string, data []byte) error {
-	_, err := s.client.PutObject(ctx, &awsS3.PutObjectInput{
-		Bucket: aws.String(s.config.S3Bucket),
-		Key:    aws.String(key),
-		Body:   bytes.NewReader(data),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to put object: %w", err)
-	}
-	return nil
-}
-
-func (s *S3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
-	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
-		Bucket: aws.String(s.config.S3Bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode: 404") {
-			return nil, false, nil
-		}
-		return nil, false, fmt.Errorf("failed to get object: %w", err)
-	}
-	defer o.Body.Close()
-
-	b, err := io.ReadAll(o.Body)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to read object: %w", err)
-	}
-
-	return b, true, nil
 }
 
 // GetPresignedURL generates a presigned URL for downloading an object
