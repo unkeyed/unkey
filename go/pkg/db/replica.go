@@ -24,7 +24,7 @@ var _ DBTX = (*Replica)(nil)
 
 // ExecContext executes a SQL statement and returns a result summary.
 // It's used for INSERT, UPDATE, DELETE statements that don't return rows.
-func (r *Replica) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	ctx, span := tracing.Start(ctx, "ExecContext")
 	defer span.End()
 	span.SetAttributes(

@@ -125,6 +125,9 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 	}
 
 	user.Registration = reg
+	if id < 0 {
+		return nil, fmt.Errorf("registration ID cannot be negative")
+	}
 
 	err = db.Query.UpdateAcmeUserRegistrationURI(ctx, cfg.DB.RW(), db.UpdateAcmeUserRegistrationURIParams{
 		ID:              uint64(id),

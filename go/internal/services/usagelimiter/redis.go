@@ -222,7 +222,6 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 		})
 
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
-
 		return UsageResponse{Valid: true, Remaining: int32(remaining)} //nolint: gosec
 
 	}

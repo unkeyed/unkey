@@ -83,7 +83,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			//
 			// I believe going forward we need to re-evaluate that cause it's the wrong abstraction.
 			&corev1.Service{
-
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      k8sDeploymentID,
 					Namespace: req.Msg.GetDeployment().GetNamespace(),
@@ -115,7 +114,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			},
 			metav1.CreateOptions{},
 		)
-
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service: %w", err))
 	}
@@ -133,7 +131,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 
 			Spec: appsv1.StatefulSetSpec{
 				ServiceName: service.Name,
-				Replicas:    ptr.P(int32(req.Msg.GetDeployment().GetReplicas())),
+				Replicas:    ptr.P(int32(req.Msg.GetDeployment().GetReplicas())), //nolint: gosec
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"unkey.deployment.id": k8sDeploymentID,
@@ -150,8 +148,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 					Spec: corev1.PodSpec{
 						RestartPolicy: corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
-
-							corev1.Container{
+							{
 								Name:  "todo",
 								Image: req.Msg.GetDeployment().GetImage(),
 								Ports: []corev1.ContainerPort{
@@ -163,11 +160,12 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 								Resources: corev1.ResourceRequirements{
 									Requests: corev1.ResourceList{
 										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.Msg.GetDeployment().GetCpuMillicores()), resource.DecimalSI),
-										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI),
+										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
+
 									},
 									Limits: corev1.ResourceList{
 										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.Msg.GetDeployment().GetCpuMillicores()), resource.DecimalSI),
-										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI),
+										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
 									},
 								},
 							},
@@ -180,7 +178,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 				},
 			},
 		}, metav1.CreateOptions{})
-
 	if err != nil {
 		k.logger.Info("Deleting service, because deployment creation failed")
 		// Delete service

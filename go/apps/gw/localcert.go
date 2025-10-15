@@ -99,7 +99,7 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 	certFile := fmt.Sprintf("%s/unkey.local.crt", certDir)
 	keyFile := fmt.Sprintf("%s/unkey.local.key", certDir)
 
-	if err = os.WriteFile(certFile, certPEM, 0o644); err != nil {
+	if err = os.WriteFile(certFile, certPEM, 0o600); err != nil {
 		return fmt.Errorf("failed to write certificate file: %w", err)
 	}
 

@@ -44,7 +44,8 @@ func RunUsageLimitTest(
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		//nolint: gosec
+		Remaining: ptr.P(int32(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key
@@ -70,6 +71,7 @@ func RunUsageLimitTest(
 	req := handler.Request{
 		Key: keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
+			//nolint: gosec
 			Cost: int32(costPerRequest),
 		},
 	}
@@ -180,11 +182,15 @@ func RunUsageLimitTest(
 			return false
 		}
 		chStats = data[0]
+		//nolint: gosec
 		return int(chStats.TotalRequests) == totalRequests
 	}, 15*time.Second, 100*time.Millisecond)
 
+	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.SuccessCount+chStats.FailureCount))
+	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.TotalRequests))
+	//nolint: gosec
 	require.Equal(t, successCount, int(chStats.SuccessCount))
 
 	// Step 7: Verify Clickhouse Metrics Data
@@ -197,6 +203,7 @@ func RunUsageLimitTest(
 		err := row.Scan(&metricsCount, &uniqueCount)
 		require.NoError(t, err)
 
+		//nolint: gosec
 		return metricsCount == uint64(totalRequests) && uniqueCount == uint64(totalRequests)
 	}, 15*time.Second, 100*time.Millisecond)
 }

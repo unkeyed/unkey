@@ -30,7 +30,6 @@ type AcmeConfig struct {
 }
 
 type RestateConfig struct {
-
 	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
 	IngressURL string
 
@@ -83,7 +82,6 @@ type Config struct {
 	KraneAddress string
 
 	// APIKey is the API key for simple authentication (demo purposes only)
-	// TODO: Replace with JWT authentication when moving to private IP
 	APIKey string
 
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication

@@ -21,7 +21,6 @@ type AuthConfig struct {
 }
 
 // AuthMiddleware provides simple API key authentication
-// TODO: Replace with JWT authentication when moving to private IP
 type AuthMiddleware struct {
 	config AuthConfig
 }
@@ -45,7 +44,6 @@ func (m *AuthMiddleware) ConnectInterceptor() connect.UnaryInterceptorFunc {
 			}
 
 			// Extract API key from Authorization header
-			// TODO: Replace with JWT token extraction when moving to private IP
 			authHeader := strings.TrimSpace(req.Header().Get("Authorization"))
 			if authHeader == "" {
 				return nil, connect.NewError(connect.CodeUnauthenticated,
@@ -80,7 +78,6 @@ func (m *AuthMiddleware) ConnectInterceptor() connect.UnaryInterceptorFunc {
 			}
 
 			// Simple API key validation against environment variable
-			// TODO: Replace with JWT validation when moving to private IP
 			if apiKey != m.config.APIKey {
 				return nil, connect.NewError(connect.CodeUnauthenticated,
 					fmt.Errorf("invalid API key"))

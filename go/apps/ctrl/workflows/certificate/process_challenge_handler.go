@@ -69,7 +69,8 @@ func (s *Service) ProcessChallenge(
 	}
 
 	// Step 3: Get or create ACME client for this workspace
-	acmeClient, err := restate.Run(ctx, func(stepCtx restate.RunContext) (*certificate.Resource, error) {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (*certificate.Resource, error) {
+		// nolint: godox
 		// TODO: Get ACME client for workspace
 		// This requires implementing GetOrCreateUser from acme/user.go
 		// and setting up challenge providers (HTTP-01, DNS-01)
@@ -96,16 +97,10 @@ func (s *Service) ProcessChallenge(
 
 	// Step 4: Obtain or renew certificate
 	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
-		var currCert pdb.Certificate
-		currCert, err = pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
+		_, err = pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
 		if err != nil && !db.IsNotFound(err) {
 			return EncryptedCertificate{}, err
 		}
-
-		// TODO: Implement certificate obtain/renew logic
-		// This requires the ACME client from step 3
-		_ = currCert
-		_ = acmeClient
 
 		return EncryptedCertificate{}, restate.TerminalError(
 			err,

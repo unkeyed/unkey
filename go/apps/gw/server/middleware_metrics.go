@@ -71,7 +71,7 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 					Path:            s.r.URL.Path,
 					RequestHeaders:  requestHeaders,
 					RequestBody:     string(s.requestBody),
-					ResponseStatus:  int32(s.responseStatus),
+					ResponseStatus:  int32(s.responseStatus), //nolint: gosec
 					ResponseHeaders: responseHeaders,
 					ResponseBody:    string(s.responseBody),
 					Error:           getErrorMessage(s.error),

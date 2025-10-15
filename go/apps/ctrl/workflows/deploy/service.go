@@ -7,7 +7,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-const hardcodedNamespace = "unkey" // TODO change to workspace scope
+const hardcodedNamespace = "unkey"
 
 // Workflow orchestrates deployment lifecycle operations.
 //

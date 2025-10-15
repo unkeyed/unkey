@@ -139,6 +139,7 @@ func parseGitHubURL(url string) (owner, repo string) {
 
 // TODO: We'll have something smarter after demo. As long as we are demoing in a pushed repo we are good.
 // fetchGitHubAuthorInfo fetches the commit author's GitHub handle and avatar from GitHub API
+// nolint: godox
 func fetchGitHubAuthorInfo(owner, repo, sha string) (string, string) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, sha)
 

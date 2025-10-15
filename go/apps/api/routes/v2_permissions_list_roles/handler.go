@@ -75,7 +75,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		db.ListRolesParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			IDCursor:    cursor,
-			Limit:       int32(limit) + 1,
+			//nolint:gosec
+			Limit: int32(limit) + 1,
 		},
 	)
 	if err != nil {

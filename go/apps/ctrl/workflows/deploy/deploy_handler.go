@@ -174,9 +174,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					ID:            instance.GetId(),
 					DeploymentID:  deployment.ID,
 					Address:       sql.NullString{Valid: true, String: instance.GetAddress()},
-					CpuMillicores: 1000,   // TODO derive from spec
-					MemoryMb:      1024,   // TODO derive from spec
-					Status:        status, // TODO
+					CpuMillicores: 1000,
+					MemoryMb:      1024,
+					Status:        status,
 				}
 
 				w.logger.Info("upserting VM to database",

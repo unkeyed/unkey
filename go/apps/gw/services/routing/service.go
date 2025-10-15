@@ -137,6 +137,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	// select random VM
+	//nolint:gosec // G404: Non-cryptographic random selection for load balancing
 	selectedVM := availableVms[rand.Intn(len(availableVms))]
 
 	fullUrl := fmt.Sprintf("http://%s", selectedVM.Address.String)

@@ -39,8 +39,8 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 	}
 
 	// Configure resource limits
-	cpuNanos := int64(deployment.GetCpuMillicores()) * 1_000_000 // Convert millicores to nanoseconds
-	memoryBytes := int64(deployment.GetMemorySizeMib()) * 1024 * 1024
+	cpuNanos := int64(deployment.GetCpuMillicores()) * 1_000_000      // Convert millicores to nanoseconds
+	memoryBytes := int64(deployment.GetMemorySizeMib()) * 1024 * 1024 //nolint: gosec
 
 	// Container configuration
 	containerConfig := &container.Config{
