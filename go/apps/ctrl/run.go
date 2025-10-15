@@ -222,7 +222,7 @@ func Run(ctx context.Context, cfg Config) error {
 			)
 
 			err := retrier.Do(func() error {
-				req, err := http.NewRequestWithContext(ctx, "POST", registerURL, bytes.NewBufferString(payload))
+				req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewBufferString(payload))
 				if err != nil {
 					return fmt.Errorf("failed to create registration request: %w", err)
 				}

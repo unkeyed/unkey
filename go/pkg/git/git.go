@@ -146,7 +146,7 @@ func fetchGitHubAuthorInfo(owner, repo, sha string) (string, string) {
 		Timeout: 5 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", ""
 	}

@@ -69,17 +69,6 @@ const (
 	GitDirtyMarker = " (dirty)"
 )
 
-// Step predictor - maps current step message patterns to next expected steps
-var stepSequence = map[string]string{
-	"Version queued and ready to start":  "Downloading Docker image:",
-	"Downloading Docker image:":          "Building rootfs from Docker image:",
-	"Building rootfs from Docker image:": "Uploading rootfs image to storage",
-	"Uploading rootfs image to storage":  "Creating VM for version:",
-	"Creating VM for deployment:":        "VM booted successfully:",
-	"VM booted successfully:":            "Assigned hostname:",
-	"Assigned hostname:":                 MsgDeploymentStepCompleted,
-}
-
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
 	ProjectID       string
@@ -316,16 +305,6 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	return nil
-}
-
-func getNextStepMessage(currentMessage string) string {
-	// Check if current message starts with any known step pattern
-	for key, next := range stepSequence {
-		if len(currentMessage) >= len(key) && currentMessage[:len(key)] == key {
-			return next
-		}
-	}
-	return ""
 }
 
 func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {

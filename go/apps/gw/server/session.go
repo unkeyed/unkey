@@ -210,31 +210,6 @@ func (s *Session) reset() {
 	s.error = nil
 }
 
-// wrapResponseWriter wraps http.ResponseWriter to capture the status code.
-type wrapResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-	written    bool
-}
-
-func (w *wrapResponseWriter) WriteHeader(code int) {
-	if w.written {
-		return // Already written, don't write again
-	}
-
-	w.statusCode = code
-	w.written = true
-	w.ResponseWriter.WriteHeader(code)
-}
-
-func (w *wrapResponseWriter) Write(b []byte) (int, error) {
-	if !w.written {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	return w.ResponseWriter.Write(b)
-}
-
 // captureResponseWriter wraps http.ResponseWriter to capture the status code and response body.
 type captureResponseWriter struct {
 	http.ResponseWriter

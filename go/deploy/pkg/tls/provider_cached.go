@@ -121,12 +121,6 @@ func (p *cachedFileProvider) ClientTLSConfig() (*tls.Config, error) {
 	return p.loadTLSConfigCached()
 }
 
-// cacheMetrics tracks cache performance statistics.
-type cacheMetrics struct {
-	hits   uint64
-	misses uint64
-}
-
 // GetCacheMetrics returns cache hit and miss counts for monitoring.
 func (p *cachedFileProvider) GetCacheMetrics() (hits, misses uint64) {
 	return 0, 0
