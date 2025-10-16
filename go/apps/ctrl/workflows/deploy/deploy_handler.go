@@ -16,6 +16,7 @@ import (
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
+	"google.golang.org/protobuf/proto"
 )
 
 // Deploy orchestrates the complete deployment of a new Docker image.
@@ -94,7 +95,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	var dockerImage string
-	if req.ContextKey != "" {
+
+	if req.GetContextKey() != "" {
 		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
@@ -117,13 +119,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		dockerImage, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			w.logger.Info("starting docker build",
 				"deployment_id", deployment.ID,
-				"context_key", req.ContextKey)
+				"context_key", req.GetContextKey())
 
 			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
 				UnkeyProjectId: deployment.ProjectID,
 				DeploymentId:   deployment.ID,
-				ContextKey:     req.ContextKey,
-				DockerfilePath: req.DockerfilePath,
+				ContextKey:     req.GetContextKey(),
+				DockerfilePath: proto.String(req.GetDockerfilePath()),
 			})
 
 			buildResp, err := w.buildClient.CreateBuild(stepCtx, buildReq)
@@ -155,8 +157,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		if err != nil {
 			return nil, err
 		}
+
+	} else if req.GetDockerImage() != "" {
+		dockerImage = req.GetDockerImage()
+		w.logger.Info("using prebuilt docker image",
+			"deployment_id", deployment.ID,
+			"image", dockerImage)
 	} else {
-		return nil, fmt.Errorf("context_key provided in deploy request")
+		return nil, fmt.Errorf("either context_key or docker_image must be specified")
 	}
 
 	// Update version status to deploying

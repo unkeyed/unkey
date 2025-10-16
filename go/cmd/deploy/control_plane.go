@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
 // DeploymentStatusEvent represents a status change event
@@ -176,23 +177,45 @@ func createContextTar(contextPath string) (string, error) {
 }
 
 // CreateDeployment creates a new deployment in the control plane
-func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey string) (string, error) {
+// Pass either contextKey (for build from source) or dockerImage (for prebuilt image), not both
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, dockerImage string) (string, error) {
 	commitInfo := git.GetInfo()
 
-	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
-		ProjectId:                c.opts.ProjectID,
-		KeyspaceId:               &c.opts.KeyspaceID,
-		Branch:                   c.opts.Branch,
-		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
-		EnvironmentSlug:          c.opts.Environment,
-		ContextKey:               contextKey,
-		DockerfilePath:           &c.opts.Dockerfile,
-		GitCommitSha:             commitInfo.CommitSHA,
-		GitCommitMessage:         commitInfo.Message,
-		GitCommitAuthorHandle:    commitInfo.AuthorHandle,
-		GitCommitAuthorAvatarUrl: commitInfo.AuthorAvatarURL,
-		GitCommitTimestamp:       commitInfo.CommitTimestamp,
-	})
+	dockerfilePath := c.opts.Dockerfile
+	if dockerfilePath == "" {
+		dockerfilePath = "Dockerfile"
+	}
+
+	req := &ctrlv1.CreateDeploymentRequest{
+		ProjectId:       c.opts.ProjectID,
+		KeyspaceId:      &c.opts.KeyspaceID,
+		Branch:          c.opts.Branch,
+		EnvironmentSlug: c.opts.Environment,
+		GitCommit: &ctrlv1.GitCommitInfo{
+			CommitSha:       commitInfo.CommitSHA,
+			CommitMessage:   commitInfo.Message,
+			AuthorHandle:    commitInfo.AuthorHandle,
+			AuthorAvatarUrl: commitInfo.AuthorAvatarURL,
+			Timestamp:       commitInfo.CommitTimestamp,
+		},
+	}
+
+	if contextKey != "" {
+		req.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
+			BuildContext: &ctrlv1.BuildContext{
+				ContextKey:     contextKey,
+				DockerfilePath: ptr.P(dockerfilePath),
+			},
+		}
+	} else if dockerImage != "" {
+		req.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
+			DockerImage: dockerImage,
+		}
+	} else {
+		return "", fmt.Errorf("either contextKey or dockerImage must be provided")
+	}
+
+	createReq := connect.NewRequest(req)
 
 	authHeader := c.opts.APIKey
 	if authHeader == "" {

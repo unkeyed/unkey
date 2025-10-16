@@ -57,7 +57,7 @@ func (s *Depot) CreateBuild(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	const architecture = "amd64"
+	const architecture = "arm64"
 	platform := fmt.Sprintf("linux/%s", architecture)
 
 	s.logger.Info("Starting build process",

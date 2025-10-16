@@ -51,6 +51,7 @@ const (
 	LabelBranch  = "Branch"
 	LabelCommit  = "Commit"
 	LabelContext = "Context"
+	LabelImage   = "Image"
 
 	// Completion info labels
 	CompletionTitle        = "Deployment Complete"
@@ -65,22 +66,12 @@ const (
 	GitDirtyMarker = " (dirty)"
 )
 
-// Step predictor - maps current step message patterns to next expected steps
-var stepSequence = map[string]string{
-	"Version queued and ready to start":  "Downloading Docker image:",
-	"Downloading Docker image:":          "Building rootfs from Docker image:",
-	"Building rootfs from Docker image:": "Uploading rootfs image to storage",
-	"Uploading rootfs image to storage":  "Creating VM for version:",
-	"Creating VM for deployment:":        "VM booted successfully:",
-	"VM booted successfully:":            "Assigned hostname:",
-	"Assigned hostname:":                 MsgDeploymentStepCompleted,
-}
-
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
 	ProjectID       string
 	KeyspaceID      string
 	Context         string
+	DockerImage     string
 	Branch          string
 	Dockerfile      string
 	Commit          string
@@ -189,6 +180,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		KeyspaceID:      finalConfig.KeyspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
+		DockerImage:     cmd.String("docker-image"),
 		Branch:          cmd.String("branch"),
 		Dockerfile:      cmd.String("dockerfile"),
 		Commit:          cmd.String("commit"),
@@ -227,28 +219,40 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	controlPlane := NewControlPlaneClient(opts)
 
-	var contextKey string
+	var deploymentID string
+	var err error
 
-	// Upload build context to S3
-	ui.Print(MsgUploadingBuildContext)
-	uploadedKey, err := controlPlane.UploadBuildContext(ctx, opts.Context)
-	if err != nil {
-		ui.PrintError(MsgFailedToUploadContext)
-		ui.PrintErrorDetails(err.Error())
-		return err
-	}
-	contextKey = uploadedKey
-	ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgBuildContextUploaded, contextKey))
+	// Determine deployment source: prebuilt image or build from context
+	if opts.DockerImage != "" {
+		// Use prebuilt Docker image
+		ui.Print(MsgCreatingDeployment)
+		deploymentID, err = controlPlane.CreateDeployment(ctx, "", opts.DockerImage)
+		if err != nil {
+			ui.PrintError(MsgFailedToCreateDeployment)
+			ui.PrintErrorDetails(err.Error())
+			return err
+		}
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
+	} else {
+		// Build from context
+		ui.Print(MsgUploadingBuildContext)
+		contextKey, err := controlPlane.UploadBuildContext(ctx, opts.Context)
+		if err != nil {
+			ui.PrintError(MsgFailedToUploadContext)
+			ui.PrintErrorDetails(err.Error())
+			return err
+		}
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgBuildContextUploaded, contextKey))
 
-	// Create deployment
-	ui.Print(MsgCreatingDeployment)
-	deploymentID, err := controlPlane.CreateDeployment(ctx, contextKey)
-	if err != nil {
-		ui.PrintError(MsgFailedToCreateDeployment)
-		ui.PrintErrorDetails(err.Error())
-		return err
+		ui.Print(MsgCreatingDeployment)
+		deploymentID, err = controlPlane.CreateDeployment(ctx, contextKey, "")
+		if err != nil {
+			ui.PrintError(MsgFailedToCreateDeployment)
+			ui.PrintErrorDetails(err.Error())
+			return err
+		}
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
 	}
-	ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
 
 	// Track final deployment for completion info
 	var finalDeployment *ctrlv1.Deployment
@@ -284,16 +288,6 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	return nil
 }
 
-func getNextStepMessage(currentMessage string) string {
-	// Check if current message starts with any known step pattern
-	for key, next := range stepSequence {
-		if len(currentMessage) >= len(key) && currentMessage[:len(key)] == key {
-			return next
-		}
-	}
-	return ""
-}
-
 func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {
 	errorMsg := controlPlane.getFailureMessage(deployment)
 	ui.CompleteCurrentStep(MsgDeploymentFailed, false)
@@ -314,7 +308,11 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 		fmt.Printf("    %s: %s\n", LabelCommit, commitInfo)
 	}
 
-	fmt.Printf("    %s: %s\n", LabelContext, opts.Context)
+	if opts.DockerImage != "" {
+		fmt.Printf("    %s: %s\n", LabelImage, opts.DockerImage)
+	} else {
+		fmt.Printf("    %s: %s\n", LabelContext, opts.Context)
+	}
 
 	fmt.Printf("\n")
 }
