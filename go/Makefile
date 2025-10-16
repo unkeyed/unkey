@@ -34,7 +34,7 @@ build:
 	go build -o unkey ./main.go
 
 generate:
-	go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
+	go install github.com/restatedev/sdk-go/protoc-gen-go-restate@main
 	buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
 	buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...

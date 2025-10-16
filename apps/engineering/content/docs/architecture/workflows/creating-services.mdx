@@ -130,30 +130,56 @@ func Run(ctx context.Context, cfg Config) error {
 
 ### 5. Call the Service
 
-These are ugly, they're working on generating proper clients from the proto definitions
-https://github.com/restatedev/sdk-go/issues/103
+The Restate SDK now generates typed ingress clients from proto definitions. Use these for type-safe, clean service calls.
 
-**Blocking call:**
-
-```go
-response, err := restateingress.Object[*hydrav1.YourRequest, *hydrav1.YourResponse](
-    restateClient,
-    "hydra.v1.YourService",
-    keyValue,
-    "YourOperation",
-).Request(ctx, request)
-```
-
-**Fire-and-forget:**
+**Setup - Create a helper method in your service:**
 
 ```go
-invocation := restateingress.WorkflowSend[*hydrav1.YourRequest](
-    restateClient,
-    "hydra.v1.YourService",
-    keyValue,
-    "YourOperation",
-).Send(ctx, request)
+// In your service struct (e.g., apps/ctrl/services/deployment/service.go)
+type Service struct {
+    restate *restateingress.Client
+    // ... other fields
+}
+
+// Helper method to get typed client
+func (s *Service) yourServiceClient(key string) hydrav1.YourServiceIngressClient {
+    return hydrav1.NewYourServiceIngressClient(s.restate, key)
+}
 ```
+
+**Blocking call (Request):**
+
+```go
+response, err := s.yourServiceClient(keyValue).
+    YourOperation().
+    Request(ctx, &hydrav1.YourRequest{
+        KeyField: keyValue,
+    })
+if err != nil {
+    return nil, fmt.Errorf("operation failed: %w", err)
+}
+```
+
+**Fire-and-forget (Send):**
+
+```go
+invocation := s.yourServiceClient(keyValue).
+    YourOperation().
+    Send(ctx, &hydrav1.YourRequest{
+        KeyField: keyValue,
+    })
+if invocation.Error != nil {
+    return fmt.Errorf("failed to start: %w", invocation.Error)
+}
+// Use invocation.Id for tracking
+```
+
+**Benefits:**
+
+- Type-safe: Compile-time checking of requests/responses
+- Discoverable: IDE autocomplete for all operations
+- Cleaner: No manual service name strings or type parameters
+- Maintainable: Refactors automatically when proto changes
 
 ## Best Practices
 

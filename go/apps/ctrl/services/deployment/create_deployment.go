@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -134,23 +133,21 @@ func (s *Service) CreateDeployment(
 	if keyspaceID != "" {
 		keyAuthID = &keyspaceID
 	}
-	deployReq := &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		DockerImage:  req.Msg.GetDockerImage(),
-		KeyAuthId:    keyAuthID,
-	}
-	// this is ugly, but we're waiting for
-	// https://github.com/restatedev/sdk-go/issues/103
-	invocation := restateingress.WorkflowSend[*hydrav1.DeployRequest](
-		s.restate,
-		"hydra.v1.DeploymentService",
-		project.ID,
-		"Deploy",
-	).Send(ctx, deployReq)
+
+	// Send deployment request asynchronously (fire-and-forget)
+	invocation := s.deploymentClient(project.ID).
+		Deploy().
+		Send(ctx, &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			DockerImage:  req.Msg.GetDockerImage(),
+			KeyAuthId:    keyAuthID,
+		})
+
 	if invocation.Error != nil {
 		s.logger.Error("failed to start deployment workflow", "error", invocation.Error.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", invocation.Error))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("1. unable to start workflow: %w", invocation.Error))
 	}
+
 	s.logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,
 		"invocation_id", invocation.Id,
