@@ -280,9 +280,9 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	}
 
 	// Verify only one identity was created
-	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Identity:    externalID,
+		ExternalID:  externalID,
 		Deleted:     false,
 	})
 	require.NoError(t, err)

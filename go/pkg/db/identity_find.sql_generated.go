@@ -9,34 +9,66 @@ import (
 	"context"
 )
 
-const findIdentity = `-- name: FindIdentity :one
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at 
-FROM identities 
-WHERE workspace_id = ? 
- AND (external_id = ? OR id = ?) 
- AND deleted = ?
+const findIdentityByExternalID = `-- name: FindIdentityByExternalID :one
+SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+FROM identities
+WHERE workspace_id = ?
+  AND external_id = ?
+  AND deleted = ?
 `
 
-type FindIdentityParams struct {
+type FindIdentityByExternalIDParams struct {
 	WorkspaceID string `db:"workspace_id"`
-	Identity    string `db:"identity"`
+	ExternalID  string `db:"external_id"`
 	Deleted     bool   `db:"deleted"`
 }
 
-// FindIdentity
+// FindIdentityByExternalID
 //
 //	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 //	FROM identities
 //	WHERE workspace_id = ?
-//	 AND (external_id = ? OR id = ?)
-//	 AND deleted = ?
-func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error) {
-	row := db.QueryRowContext(ctx, findIdentity,
-		arg.WorkspaceID,
-		arg.Identity,
-		arg.Identity,
-		arg.Deleted,
+//	  AND external_id = ?
+//	  AND deleted = ?
+func (q *Queries) FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error) {
+	row := db.QueryRowContext(ctx, findIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.Deleted)
+	var i Identity
+	err := row.Scan(
+		&i.ID,
+		&i.ExternalID,
+		&i.WorkspaceID,
+		&i.Environment,
+		&i.Meta,
+		&i.Deleted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const findIdentityByID = `-- name: FindIdentityByID :one
+SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+FROM identities
+WHERE workspace_id = ?
+  AND id = ?
+  AND deleted = ?
+`
+
+type FindIdentityByIDParams struct {
+	WorkspaceID string `db:"workspace_id"`
+	IdentityID  string `db:"identity_id"`
+	Deleted     bool   `db:"deleted"`
+}
+
+// FindIdentityByID
+//
+//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+//	FROM identities
+//	WHERE workspace_id = ?
+//	  AND id = ?
+//	  AND deleted = ?
+func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error) {
+	row := db.QueryRowContext(ctx, findIdentityByID, arg.WorkspaceID, arg.IdentityID, arg.Deleted)
 	var i Identity
 	err := row.Scan(
 		&i.ID,

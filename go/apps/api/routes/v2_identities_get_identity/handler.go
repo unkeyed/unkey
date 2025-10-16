@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -52,52 +51,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Find the identity based on either IdentityId or ExternalId
-	type IdentityResult struct {
-		Identity   db.Identity
-		Ratelimits []db.Ratelimit
-	}
-
-	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
-		var identity db.Identity
-
-		identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
-			Identity:    req.Identity,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Deleted:     false,
-		})
-		if err != nil {
-			if db.IsNotFound(err) {
-				return IdentityResult{}, fault.New("identity not found",
-					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"),
-					fault.Public("This identity does not exist."),
-				)
-			}
-
-			return IdentityResult{}, fault.Wrap(err,
-				fault.Internal("unable to find identity"),
-				fault.Public("We're unable to retrieve the identity."),
-			)
-		}
-
-		// Get the ratelimits for this identity
-		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
-		if listErr != nil && !db.IsNotFound(listErr) {
-			return IdentityResult{}, fault.Wrap(listErr,
-				fault.Internal("unable to fetch ratelimits"),
-				fault.Public("We're unable to retrieve the identity's ratelimits."),
-			)
-		}
-
-		return IdentityResult{Identity: identity, Ratelimits: ratelimits}, nil
+	results, err := db.Query.FindIdentityWithRatelimits(ctx, h.DB.RO(), db.FindIdentityWithRatelimitsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Identity:    req.Identity,
+		Deleted:     false,
 	})
 	if err != nil {
-		return err
+		return fault.Wrap(err,
+			fault.Internal("unable to find identity"),
+			fault.Public("We're unable to retrieve the identity."),
+		)
 	}
 
-	identity := result.Identity
-	ratelimits := result.Ratelimits
+	if len(results) == 0 {
+		return fault.New("identity not found",
+			fault.Code(codes.Data.Identity.NotFound.URN()),
+			fault.Internal("identity not found"),
+			fault.Public("This identity does not exist."),
+		)
+	}
+
+	identity := results[0]
+
+	// Parse ratelimits JSON
+	var ratelimits []db.RatelimitInfo
+	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
+		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
+	}
 
 	// Check permissions using either wildcard or the specific identity ID
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
