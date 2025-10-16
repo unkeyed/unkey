@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
@@ -189,16 +188,7 @@ func (s *Depot) CreateBuild(
 		},
 	}
 
-	buildStatusCh := make(chan *client.SolveStatus, 10)
-	go func() {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		for status := range buildStatusCh {
-			_ = enc.Encode(status)
-		}
-	}()
-
-	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
+	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, nil)
 	if buildErr != nil {
 		s.logger.Error("Build failed",
 			"error", buildErr,

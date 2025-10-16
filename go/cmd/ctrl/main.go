@@ -74,8 +74,10 @@ var Cmd = &cli.Command{
 		// Build Configuration
 		cli.String("build-backend", "Build backend to use: 'docker' for local, 'depot' for production. Default: depot",
 			cli.Default("depot"), cli.EnvVar("UNKEY_BUILD_BACKEND")),
-		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts",
+		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts (internal)",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
+		cli.String("build-s3-external-url", "S3 Compatible Endpoint URL for build contexts (external/public)",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_EXTERNAL_URL")),
 		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
 		cli.String("build-s3-access-key-id", "S3 access key ID for build contexts",
@@ -168,6 +170,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		BuildBackend: ctrl.BuildBackend(cmd.String("build-backend")),
 		BuildS3: ctrl.S3Config{
 			URL:             cmd.String("build-s3-url"),
+			ExternalURL:     cmd.String("build-s3-external-url"),
 			Bucket:          cmd.String("build-s3-bucket"),
 			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
 			AccessKeyID:     cmd.String("build-s3-access-key-id"),

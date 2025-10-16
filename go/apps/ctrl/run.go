@@ -170,28 +170,42 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
-	storage, err := buildStorage.NewS3(buildStorage.S3Config{
-		Logger:            logger,
-		S3URL:             cfg.BuildS3.URL,
-		S3Bucket:          cfg.BuildS3.Bucket,
-		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create build storage: %w", err)
-	}
-
 	var buildService ctrlv1connect.BuildServiceClient
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
+		// Docker needs external URL for CLI access
+		dockerStorage, err := buildStorage.NewS3(buildStorage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.BuildS3.URL,
+			S3ExternalURL:     cfg.BuildS3.ExternalURL,
+			S3Bucket:          cfg.BuildS3.Bucket,
+			S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
+			S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create docker build storage: %w", err)
+		}
+
 		buildService = docker.New(docker.Config{
 			DB:      database,
 			Logger:  logger,
-			Storage: storage,
+			Storage: dockerStorage,
 		})
-		logger.Info("Using Docker build backend")
+		logger.Info("Using Docker build backend", "external_s3_url", cfg.BuildS3.ExternalURL)
 
 	case BuildBackendDepot:
+		// Depot doesn't need external URL
+		depotStorage, err := buildStorage.NewS3(buildStorage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.BuildS3.URL,
+			S3Bucket:          cfg.BuildS3.Bucket,
+			S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
+			S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create depot build storage: %w", err)
+		}
+
 		buildService = depot.New(depot.Config{
 			InstanceID:  cfg.InstanceID,
 			DB:          database,
@@ -200,7 +214,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Username:    cfg.Depot.Username,
 			AccessToken: cfg.Depot.AccessToken,
 			Logger:      logger,
-			Storage:     storage,
+			Storage:     depotStorage,
 		})
 		logger.Info("Using Depot build backend")
 

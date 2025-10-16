@@ -20,6 +20,7 @@ type S3Config struct {
 	Bucket          string
 	AccessKeyID     string
 	AccessKeySecret string
+	ExternalURL     string
 }
 
 type CloudflareConfig struct {
@@ -147,6 +148,7 @@ func (c Config) Validate() error {
 	case BuildBackendDocker:
 		return assert.All(
 			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
 			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),
 			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"),
 			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"),

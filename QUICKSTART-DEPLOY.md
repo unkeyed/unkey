@@ -117,17 +117,7 @@ This starts:
 ./deployment/setup-wildcard-dns.sh
 ```
 
-2. **REQUIRED for Docker backend**: Add S3 hostname to `/etc/hosts`:
-
-The Go CLI runs on your **host machine** and needs to upload build contexts to MinIO (S3). The build backend configuration uses `http://s3:3902`, where `s3` is the Docker service name. While Docker containers can resolve `s3` via Docker's internal DNS, your host machine cannot. Adding this entry maps `s3` to `127.0.0.1` so the CLI can reach MinIO on `localhost:3902`.
-
-```bash
-echo "127.0.0.1 s3" | sudo tee -a /etc/hosts
-```
-
-**Note:** This is only needed for the Docker backend. If using Depot, skip this step as Depot uses external S3 URLs.
-
-3. **OPTIONAL**: Install self-signed certificate for HTTPS (to avoid SSL errors):
+2. **OPTIONAL**: Install self-signed certificate for HTTPS (to avoid SSL errors):
 
 ```bash
 # For macOS
@@ -266,7 +256,6 @@ The demo_api already follows this pattern and listens on the PORT environment va
 
 ### Build Issues
 
-- **"dial tcp: lookup s3: no such host"**: You forgot to add `s3` to `/etc/hosts`. See Step 4.2 above.
 - **"depot login failed"**: Check your depot token in `deployment/config/depot.json` - it must start with `depot_org_`
 - **"S3 connection failed"**: Verify S3 credentials in your depot.json or ensure MinIO is running (for docker backend)
 - **Slow builds**: Switch to depot backend for faster builds with layer caching

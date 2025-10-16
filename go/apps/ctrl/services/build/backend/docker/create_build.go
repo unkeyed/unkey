@@ -42,7 +42,7 @@ func (d *Docker) CreateBuild(
 		"context_key", req.Msg.ContextKey,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
-	contextURL, err := d.storage.GetPresignedURL(ctx, req.Msg.ContextKey, 15*time.Minute)
+	contextURL, err := d.storage.GetPresignedURLExternal(ctx, req.Msg.ContextKey, 15*time.Minute)
 	if err != nil {
 		d.logger.Error("Failed to get presigned URL",
 			"error", err,
