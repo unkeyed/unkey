@@ -77,7 +77,7 @@ var Cmd = &cli.Command{
 		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts (internal)",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
 		cli.String("build-s3-external-url", "S3 Compatible Endpoint URL for build contexts (external/public)",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_EXTERNAL_URL")),
+			cli.EnvVar("UNKEY_BUILD_S3_EXTERNAL_URL")),
 		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
 		cli.String("build-s3-access-key-id", "S3 access key ID for build contexts",

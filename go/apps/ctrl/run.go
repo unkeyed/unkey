@@ -170,42 +170,29 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
+	buildStorage, err := buildStorage.NewS3(buildStorage.S3Config{
+		Logger:            logger,
+		S3URL:             cfg.BuildS3.URL,
+		S3PresignURL:      cfg.BuildS3.ExternalURL, // Empty for Depot, set for Docker
+		S3Bucket:          cfg.BuildS3.Bucket,
+		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
+		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create build storage: %w", err)
+	}
+
 	var buildService ctrlv1connect.BuildServiceClient
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
-		// Docker needs external URL for CLI access
-		dockerStorage, err := buildStorage.NewS3(buildStorage.S3Config{
-			Logger:            logger,
-			S3URL:             cfg.BuildS3.URL,
-			S3ExternalURL:     cfg.BuildS3.ExternalURL,
-			S3Bucket:          cfg.BuildS3.Bucket,
-			S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-			S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create docker build storage: %w", err)
-		}
-
 		buildService = docker.New(docker.Config{
 			DB:      database,
 			Logger:  logger,
-			Storage: dockerStorage,
+			Storage: buildStorage,
 		})
-		logger.Info("Using Docker build backend", "external_s3_url", cfg.BuildS3.ExternalURL)
+		logger.Info("Using Docker build backend", "presign_url", cfg.BuildS3.ExternalURL)
 
 	case BuildBackendDepot:
-		// Depot doesn't need external URL
-		depotStorage, err := buildStorage.NewS3(buildStorage.S3Config{
-			Logger:            logger,
-			S3URL:             cfg.BuildS3.URL,
-			S3Bucket:          cfg.BuildS3.Bucket,
-			S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-			S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create depot build storage: %w", err)
-		}
-
 		buildService = depot.New(depot.Config{
 			InstanceID:  cfg.InstanceID,
 			DB:          database,
@@ -214,7 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Username:    cfg.Depot.Username,
 			AccessToken: cfg.Depot.AccessToken,
 			Logger:      logger,
-			Storage:     depotStorage,
+			Storage:     buildStorage,
 		})
 		logger.Info("Using Depot build backend")
 
@@ -223,9 +210,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Restate Client and Server
-
 	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
-
 	restateSrv := restateServer.NewRestate()
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
