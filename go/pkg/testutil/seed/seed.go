@@ -272,28 +272,28 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	for _, role := range req.Roles {
-		roleID := s.CreateRole(ctx, role)
+		r := s.CreateRole(ctx, role)
 		err = db.Query.InsertKeyRole(ctx, s.DB.RW(), db.InsertKeyRoleParams{
 			KeyID:       keyID,
-			RoleID:      roleID,
+			RoleID:      r.ID,
 			WorkspaceID: req.WorkspaceID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(s.t, err)
-		res.RolesIds = append(res.RolesIds, roleID)
+		res.RolesIds = append(res.RolesIds, r.ID)
 	}
 
 	for _, permission := range req.Permissions {
-		permissionID := s.CreatePermission(ctx, permission)
+		perm := s.CreatePermission(ctx, permission)
 		err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
 			KeyID:        keyID,
-			PermissionID: permissionID,
+			PermissionID: perm.ID,
 			WorkspaceID:  req.WorkspaceID,
 			CreatedAt:    time.Now().UnixMilli(),
 		})
 
 		require.NoError(s.t, err)
-		res.PermissionIds = append(res.PermissionIds, permissionID)
+		res.PermissionIds = append(res.PermissionIds, perm.ID)
 	}
 
 	for _, ratelimit := range req.Ratelimits {
@@ -314,9 +314,11 @@ type CreateRatelimitRequest struct {
 	KeyID       *string
 }
 
-func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest) string {
+func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest) db.Ratelimit {
 	ratelimitID := uid.New(uid.RatelimitPrefix)
+	createdAt := time.Now().UnixMilli()
 	var err error
+
 	if req.IdentityID != nil {
 		err = db.Query.InsertIdentityRatelimit(ctx, s.DB.RW(), db.InsertIdentityRatelimitParams{
 			ID:          ratelimitID,
@@ -326,7 +328,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 			Limit:       req.Limit,
 			Duration:    req.Duration,
 			AutoApply:   req.AutoApply,
-			CreatedAt:   time.Now().UnixMilli(),
+			CreatedAt:   createdAt,
 		})
 	}
 
@@ -339,13 +341,24 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 			Limit:       req.Limit,
 			Duration:    req.Duration,
 			AutoApply:   req.AutoApply,
-			CreatedAt:   time.Now().UnixMilli(),
+			CreatedAt:   createdAt,
 		})
 	}
 
 	require.NoError(s.t, err)
 
-	return ratelimitID
+	return db.Ratelimit{
+		ID:          ratelimitID,
+		Name:        req.Name,
+		WorkspaceID: req.WorkspaceID,
+		CreatedAt:   createdAt,
+		UpdatedAt:   sql.NullInt64{Valid: false},
+		KeyID:       sql.NullString{String: ptr.SafeDeref(req.KeyID, ""), Valid: req.KeyID != nil},
+		IdentityID:  sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
+		Limit:       req.Limit,
+		Duration:    req.Duration,
+		AutoApply:   req.AutoApply,
+	}
 }
 
 type CreateIdentityRequest struct {
@@ -355,7 +368,7 @@ type CreateIdentityRequest struct {
 	Ratelimits  []CreateRatelimitRequest
 }
 
-func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) string {
+func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) db.Identity {
 	metaBytes := []byte("{}")
 	if len(req.Meta) > 0 {
 		metaBytes = req.Meta
@@ -380,7 +393,16 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
-	return identityId
+	return db.Identity{
+		ID:          identityId,
+		ExternalID:  req.ExternalID,
+		WorkspaceID: req.WorkspaceID,
+		Environment: "",
+		Meta:        metaBytes,
+		Deleted:     false,
+		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   sql.NullInt64{Valid: false},
+	}
 }
 
 type CreateRoleRequest struct {
@@ -391,33 +413,41 @@ type CreateRoleRequest struct {
 	Permissions []CreatePermissionRequest
 }
 
-func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) string {
+func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Role WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Role Name must be set"))
 
 	roleID := uid.New(uid.PermissionPrefix)
+	createdAt := time.Now().UnixMilli()
 
 	err := db.Query.InsertRole(ctx, s.DB.RW(), db.InsertRoleParams{
 		RoleID:      roleID,
 		WorkspaceID: req.WorkspaceID,
 		Name:        req.Name,
-		CreatedAt:   time.Now().UnixMilli(),
+		CreatedAt:   createdAt,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 	})
 	require.NoError(s.t, err)
 
 	for _, permission := range req.Permissions {
-		permissionID := s.CreatePermission(ctx, permission)
+		perm := s.CreatePermission(ctx, permission)
 		err = db.Query.InsertRolePermission(ctx, s.DB.RW(), db.InsertRolePermissionParams{
 			RoleID:       roleID,
-			PermissionID: permissionID,
+			PermissionID: perm.ID,
 			WorkspaceID:  req.WorkspaceID,
 			CreatedAtM:   time.Now().UnixMilli(),
 		})
 		require.NoError(s.t, err)
 	}
 
-	return roleID
+	return db.Role{
+		ID:          roleID,
+		WorkspaceID: req.WorkspaceID,
+		Name:        req.Name,
+		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+		CreatedAtM:  createdAt,
+		UpdatedAtM:  sql.NullInt64{Valid: false},
+	}
 }
 
 type CreatePermissionRequest struct {
@@ -427,21 +457,31 @@ type CreatePermissionRequest struct {
 	WorkspaceID string
 }
 
-func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) string {
+func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) db.Permission {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission Name must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission Slug must be set"))
 
 	permissionID := uid.New(uid.PermissionPrefix)
+	createdAt := time.Now().UnixMilli()
+
 	err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  req.WorkspaceID,
 		Name:         req.Name,
 		Slug:         req.Slug,
 		Description:  dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
-		CreatedAtM:   time.Now().UnixMilli(),
+		CreatedAtM:   createdAt,
 	})
 	require.NoError(s.t, err)
 
-	return permissionID
+	return db.Permission{
+		ID:          permissionID,
+		WorkspaceID: req.WorkspaceID,
+		Name:        req.Name,
+		Slug:        req.Slug,
+		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
+		CreatedAtM:  createdAt,
+		UpdatedAtM:  sql.NullInt64{Valid: false},
+	}
 }
