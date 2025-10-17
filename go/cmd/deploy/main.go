@@ -278,6 +278,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
+		// nolint: exhaustive // We just need those two for now
 		switch event.CurrentStatus {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
 			return handleDeploymentFailure(controlPlane, event.Deployment, ui)

@@ -83,7 +83,7 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("setup acme client"))
 	if err != nil {
 		_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
+			_ = db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
 				DomainID:  dom.ID,
 				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

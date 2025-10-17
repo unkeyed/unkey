@@ -62,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *server.Session) error {
 	}
 
 	h.Logger.Info("Certificate verification handled", "response", resp.Msg.GetToken())
-	s.Plain(http.StatusOK, []byte(resp.Msg.GetToken()))
+	_ = s.Plain(http.StatusOK, []byte(resp.Msg.GetToken()))
 
 	return nil
 }

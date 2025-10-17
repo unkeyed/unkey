@@ -38,9 +38,9 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 
 	// Record latency and operation count
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "exec", status).Observe(duration)
@@ -65,9 +65,9 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 
 	// Record latency and operation count
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
@@ -92,9 +92,9 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 
 	// Record latency and operation count
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
@@ -119,7 +119,7 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 	// Record latency and operation count
 	duration := time.Since(start).Seconds()
 	// QueryRowContext doesn't return an error, but we can still track timing
-	status := "success"
+	status := statusSuccess
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query_row", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "query_row", status).Inc()
@@ -140,9 +140,9 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 
 	// Record latency and operation count
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)

@@ -32,7 +32,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				code = codes.App.Internal.UnexpectedError
 			}
 
-			switch urn {
+			switch urn { //nolint: exhaustive
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,

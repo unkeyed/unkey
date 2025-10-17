@@ -19,6 +19,8 @@ func parseDomainSticky(sticky hydrav1.DomainSticky) db.NullDomainsSticky {
 		return db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyEnvironment}
 	case hydrav1.DomainSticky_DOMAIN_STICKY_LIVE:
 		return db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyLive}
+	case hydrav1.DomainSticky_DOMAIN_STICKY_UNSPECIFIED:
+		fallthrough
 	default:
 		return db.NullDomainsSticky{Valid: false}
 	}

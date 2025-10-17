@@ -155,6 +155,11 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 				fault.Code(codes.Gateway.Auth.RateLimited.URN()),
 				fault.Public("Rate limit exceeded"),
 			)
+		case keys.StatusValid, keys.StatusNotFound, keys.StatusDisabled,
+			keys.StatusExpired, keys.StatusForbidden, keys.StatusInsufficientPermissions,
+			keys.StatusUsageExceeded, keys.StatusWorkspaceDisabled,
+			keys.StatusWorkspaceNotFound:
+			fallthrough
 		default:
 			return fault.New("api key verification failed",
 				fault.Code(codes.Gateway.Auth.Unauthorized.URN()),

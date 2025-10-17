@@ -36,6 +36,7 @@ func convertChangesToProto(changes checker.Changes) []*ctrlv1.ChangelogEntry {
 
 	for i, change := range changes {
 		level := int32(1) // INFO
+		//nolint: exhaustive
 		switch change.GetLevel() {
 		case checker.WARN:
 			level = 2

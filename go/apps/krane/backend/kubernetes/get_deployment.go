@@ -32,7 +32,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	k.logger.Info("getting deployment", "deployment_id", k8sDeploymentID)
 
 	// Get the Job by name (deployment_id)
-	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.Namespace).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sDeploymentID))
@@ -69,7 +69,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 		MatchLabels: sfs.Spec.Selector.MatchLabels,
 	})
 
-	pods, err := k.clientset.CoreV1().Pods(req.Msg.Namespace).List(ctx, metav1.ListOptions{
+	pods, err := k.clientset.CoreV1().Pods(req.Msg.GetNamespace()).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -88,6 +88,10 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING
 		case corev1.PodFailed:
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING
+		case corev1.PodSucceeded:
+			// Handling to handle at this point
+		case corev1.PodUnknown:
+			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 		default:
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 		}

@@ -158,11 +158,13 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 									},
 								},
 								Resources: corev1.ResourceRequirements{
+									// nolint: exhaustive
 									Requests: corev1.ResourceList{
 										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.Msg.GetDeployment().GetCpuMillicores()), resource.DecimalSI),
 										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
 
 									},
+									// nolint: exhaustive
 									Limits: corev1.ResourceList{
 										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.Msg.GetDeployment().GetCpuMillicores()), resource.DecimalSI),
 										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
