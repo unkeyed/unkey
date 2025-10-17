@@ -286,6 +286,10 @@ services:
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
       UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
+      UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-}"
+      UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-}"
+      UNKEY_REGISTRY_PASSWORD: "${UNKEY_REGISTRY_PASSWORD:-}"
+
   restate:
     networks:
       - default
@@ -357,7 +361,7 @@ services:
 
       # Build configuration
       UNKEY_BUILD_S3_URL: "${UNKEY_BUILD_S3_URL:-http://s3:3902}"
-      UNKEY_BUILD_S3_EXTERNAL_URL: "${UNKEY_BUILD_S3_EXTERNAL_URL}" # For CLI/external access
+      UNKEY_BUILD_S3_EXTERNAL_URL: "${UNKEY_BUILD_S3_EXTERNAL_URL:-}" # For CLI/external access
       UNKEY_BUILD_S3_BUCKET: "build-contexts"
       UNKEY_BUILD_S3_ACCESS_KEY_ID: "${UNKEY_BUILD_S3_ACCESS_KEY_ID:-minio_root_user}"
       UNKEY_BUILD_S3_ACCESS_KEY_SECRET: "${UNKEY_BUILD_S3_ACCESS_KEY_SECRET:-minio_root_password}"
