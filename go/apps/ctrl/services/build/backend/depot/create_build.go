@@ -136,6 +136,7 @@ func (s *Depot) CreateBuild(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
 	}
+	defer buildkitClient.Close()
 
 	// INFO: "s.registryUrl", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
 	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryUrl, depotProjectID, req.Msg.UnkeyProjectId, req.Msg.DeploymentId)
