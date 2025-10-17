@@ -63,6 +63,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		identifier: req.Identifier,
 		limit:      req.Limit,
 		duration:   req.Duration,
+		createdAt:  req.CreatedAt,
 	}
 
 	bucket, _ := s.getOrCreateBucket(key)

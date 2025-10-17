@@ -120,6 +120,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 
 		ratelimitsToCheck[name] = RatelimitConfigAndResult{
 			ID:         rl.ID,
+			CreatedAt:  ptr.P(time.UnixMilli(rl.CreatedAt)),
 			Cost:       1,
 			Name:       rl.Name,
 			Duration:   time.Duration(rl.Duration) * time.Millisecond,
@@ -177,6 +178,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 			Identifier: identifier,
 			Response:   nil,
 			ID:         dbRl.ID,
+			CreatedAt:  ptr.P(time.UnixMilli(dbRl.CreatedAt)),
 		}
 	}
 
@@ -187,13 +189,20 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	ratelimitRequests := []ratelimit.RatelimitRequest{}
 	for name, config := range ratelimitsToCheck {
 		names = append(names, name)
-		ratelimitRequests = append(ratelimitRequests, ratelimit.RatelimitRequest{
+
+		req := ratelimit.RatelimitRequest{
 			Identifier: config.Identifier, // Use the pre-determined identifier
 			Limit:      config.Limit,
 			Duration:   config.Duration,
 			Cost:       config.Cost,
 			Time:       time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
-		})
+		}
+
+		if config.CreatedAt != nil {
+			req.CreatedAt = config.CreatedAt
+		}
+
+		ratelimitRequests = append(ratelimitRequests, req)
 	}
 
 	// Use different rate limiting paths based on number of limits

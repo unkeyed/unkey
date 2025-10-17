@@ -94,6 +94,17 @@ type RatelimitRequest struct {
 	// Time of the request
 	// If not specified or zero, the ratelimiter will use its own clock.
 	Time time.Time
+
+	// CreatedAt specifies when this rate limit was created.
+	// If provided, windows will be aligned to this timestamp instead of Unix epoch.
+	// This ensures the identifier gets the full duration (e.g., full 30 days).
+	//
+	// If nil, windows will be epoch-aligned. All identifiers with the same
+	// limit/duration will share window boundaries, which may result in users
+	// getting less than the full duration on their first window.
+	//
+	// Optional.
+	CreatedAt *time.Time
 }
 
 // RatelimitResponse contains the result of a rate limit check and the current state

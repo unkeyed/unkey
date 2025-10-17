@@ -331,7 +331,8 @@ type Querier interface {
 	//                         'identity_id', rl.identity_id,
 	//                         'limit', rl.limit,
 	//                         'duration', rl.duration,
-	//                         'auto_apply', rl.auto_apply
+	//                         'auto_apply', rl.auto_apply,
+	//                         'created_at', rl.created_at
 	//                      )
 	//                  )
 	//                  from `ratelimits` rl

@@ -23,6 +23,7 @@ type RatelimitConfigAndResult struct {
 	Duration   time.Duration
 	Limit      int64
 	AutoApply  bool
+	CreatedAt  *time.Time
 	Identifier string                       // The identifier to use for this rate limit
 	Response   *ratelimit.RatelimitResponse // nil until rate limit is checked
 }

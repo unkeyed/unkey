@@ -8,4 +8,5 @@ type KeyFindForVerificationRatelimit struct {
 	AutoApply  int    `json:"auto_apply"`
 	KeyID      string `json:"key_id"`
 	IdentityID string `json:"identity_id"`
+	CreatedAt  int64  `json:"created_at"`
 }

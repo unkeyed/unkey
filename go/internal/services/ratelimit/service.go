@@ -183,7 +183,12 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// Build and sort keys first (before getting buckets)
 	reqsWithKeys := make([]reqWithKey, len(reqs))
 	for i, req := range reqs {
-		key := bucketKey{req.Identifier, req.Limit, req.Duration}
+		key := bucketKey{
+			identifier: req.Identifier,
+			limit:      req.Limit,
+			duration:   req.Duration,
+			createdAt:  req.CreatedAt,
+		}
 		reqsWithKeys[i] = reqWithKey{
 			req:   req,
 			key:   key,
@@ -283,7 +288,12 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		return RatelimitResponse{}, err
 	}
 
-	key := bucketKey{req.Identifier, req.Limit, req.Duration}
+	key := bucketKey{
+		identifier: req.Identifier,
+		limit:      req.Limit,
+		duration:   req.Duration,
+		createdAt:  req.CreatedAt,
+	}
 	span.SetAttributes(attribute.String("key", key.toString()))
 	b, _ := s.getOrCreateBucket(key)
 	b.mu.Lock()
@@ -383,10 +393,12 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 	metrics.RatelimitDecision.WithLabelValues(decisionSource, "allowed").Inc()
 
+	resetTime := currentWindow.start.Add(currentWindow.duration)
+
 	return RatelimitResponse{
 		Success:   true,
 		Remaining: remaining,
-		Reset:     currentWindow.start.Add(currentWindow.duration),
+		Reset:     resetTime,
 		Limit:     req.Limit,
 		Current:   effectiveCount,
 	}, nil

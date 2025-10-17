@@ -6,20 +6,21 @@ import "time"
 // It ensures consistent window boundaries across all nodes in the cluster by aligning
 // windows to fixed time boundaries based on the duration.
 //
-// The sequence number is calculated by dividing the Unix timestamp (in milliseconds)
-// by the window duration (in milliseconds). This creates a monotonically increasing
-// sequence where each number uniquely identifies a time window.
+// The sequence number calculation depends on whether a createdAt timestamp is provided:
+//   - If createdAt is provided: sequences are relative to that timestamp (per-identifier fairness)
+//   - If createdAt is nil: sequences are relative to Unix epoch (shared boundaries)
 //
 // Parameters:
 //   - t: The time to convert to a sequence number
 //   - duration: The length of each rate limit window
+//   - createdAt: Optional creation timestamp for per-identifier windows
 //
 // Returns:
 //   - int64: A sequence number with these properties:
 //   - Monotonically increasing with time
 //   - Adjacent windows have consecutive numbers
 //   - Same number for any time within the same window
-//   - Aligned to clean time boundaries (e.g., minutes)
+//   - Aligned to clean time boundaries (either createdAt or epoch)
 //
 // Performance:
 //   - O(1) time complexity
@@ -28,18 +29,20 @@ import "time"
 //
 // Example Usage:
 //
-//	// For a 1-minute window
-//	seq := calculateSequence(time.Now(), time.Minute)
+//	// Epoch-based (shared boundaries)
+//	seq := calculateSequence(time.Now(), time.Minute, nil)
 //
-//	// Times within same minute get same sequence
-//	t1 := time.Date(2024, 1, 1, 12, 30, 0, 0, time.UTC)
-//	t2 := time.Date(2024, 1, 1, 12, 30, 45, 0, time.UTC)
-//	seq1 := calculateSequence(t1, time.Minute) // e.g., 26297340
-//	seq2 := calculateSequence(t2, time.Minute) // same as seq1
-//
-//	// Adjacent minutes get consecutive sequences
-//	t3 := time.Date(2024, 1, 1, 12, 31, 0, 0, time.UTC)
-//	seq3 := calculateSequence(t3, time.Minute) // seq1 + 1
-func calculateSequence(t time.Time, duration time.Duration) int64 {
+//	// Creation-based (per-identifier fairness)
+//	createdAt := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+//	seq := calculateSequence(time.Now(), 30*24*time.Hour, &createdAt)
+func calculateSequence(t time.Time, duration time.Duration, createdAt *time.Time) int64 {
+	if createdAt != nil {
+		// Creation-based: align windows to when the rate limit was created
+		// This ensures the identifier gets the full duration
+		timeSinceCreation := t.Sub(*createdAt).Milliseconds()
+		return timeSinceCreation / duration.Milliseconds()
+	}
+	// Epoch-based: align windows to Unix epoch (traditional behavior)
+	// All identifiers with same duration share window boundaries
 	return t.UnixMilli() / duration.Milliseconds()
 }

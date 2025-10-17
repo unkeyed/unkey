@@ -58,7 +58,7 @@ func newWindow(sequence int64, t time.Time, duration time.Duration) *window {
 	metrics.RatelimitWindowsCreated.Inc()
 	return &window{
 		sequence: sequence,
-		start:    t.Truncate(duration),
+		start:    t, // Caller is responsible for alignment (epoch or createdAt-based)
 		duration: duration,
 		counter:  0,
 	}

@@ -40,6 +40,9 @@ type bucket struct {
 	// duration is the time window for this rate limit
 	duration time.Duration
 
+	// createdAt is the optional creation timestamp for per-identifier windows
+	createdAt *time.Time
+
 	// windows maps sequence numbers to time windows
 	// Protected by mu
 	// Key: sequence number (calculated from time)
@@ -56,12 +59,14 @@ func (b *bucket) key() bucketKey {
 		identifier: b.identifier,
 		limit:      b.limit,
 		duration:   b.duration,
+		createdAt:  b.createdAt,
 	}
 }
 
 // bucketKey uniquely identifies a rate limit bucket by combining the
-// identifier, limit, and duration. This ensures separate tracking when
-// the same identifier has different rate limit configurations.
+// identifier, limit, duration, and optional creation timestamp.
+// This ensures separate tracking when the same identifier has different
+// rate limit configurations or different creation times.
 //
 // Thread Safety:
 //   - Immutable after creation
@@ -73,6 +78,7 @@ func (b *bucket) key() bucketKey {
 //	    identifier: "user-123",
 //	    limit:      100,
 //	    duration:   time.Minute,
+//	    createdAt:  nil,
 //	}
 //	bucketID := key.toString()
 type bucketKey struct {
@@ -84,9 +90,21 @@ type bucketKey struct {
 
 	// duration is the time window for the rate limit
 	duration time.Duration
+
+	// createdAt is the optional creation timestamp for per-identifier windows
+	createdAt *time.Time
 }
 
 func (b bucketKey) toString() string {
+	if b.createdAt != nil {
+		// Include creation timestamp in key to ensure different created_at
+		// values get different buckets (different window alignments)
+		return fmt.Sprintf("%s-%d-%d-%d",
+			b.identifier,
+			b.limit,
+			b.duration.Milliseconds(),
+			b.createdAt.Unix())
+	}
 	return fmt.Sprintf("%s-%d-%d", b.identifier, b.limit, b.duration.Milliseconds())
 }
 
@@ -115,6 +133,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 			identifier:  key.identifier,
 			limit:       key.limit,
 			duration:    key.duration,
+			createdAt:   key.createdAt,
 			windows:     make(map[int64]*window),
 			strictUntil: time.Time{},
 		}
@@ -138,12 +157,18 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 // Thread Safety:
 //   - Caller MUST hold bucket.mu lock
 func (b *bucket) getCurrentWindow(now time.Time) (*window, bool) {
-
-	sequence := calculateSequence(now, b.duration)
+	sequence := calculateSequence(now, b.duration, b.createdAt)
 
 	w, exists := b.windows[sequence]
 	if !exists {
-		w = newWindow(sequence, now.Truncate(b.duration), b.duration)
+		// Calculate window start based on createdAt if available
+		var windowStart time.Time
+		if b.createdAt != nil {
+			windowStart = b.createdAt.Add(time.Duration(sequence) * b.duration)
+		} else {
+			windowStart = now.Truncate(b.duration)
+		}
+		w = newWindow(sequence, windowStart, b.duration)
 		b.windows[sequence] = w
 	}
 	return w, exists
@@ -165,11 +190,18 @@ func (b *bucket) getCurrentWindow(now time.Time) (*window, bool) {
 // Performance: O(1) time and space complexity
 func (b *bucket) getPreviousWindow(now time.Time) (*window, bool) {
 
-	sequence := calculateSequence(now, b.duration) - 1
+	sequence := calculateSequence(now, b.duration, b.createdAt) - 1
 
 	w, exists := b.windows[sequence]
 	if !exists {
-		w = newWindow(sequence, now.Add(-b.duration).Truncate(b.duration), b.duration)
+		// Calculate window start based on createdAt if available
+		var windowStart time.Time
+		if b.createdAt != nil {
+			windowStart = b.createdAt.Add(time.Duration(sequence) * b.duration)
+		} else {
+			windowStart = now.Add(-b.duration).Truncate(b.duration)
+		}
+		w = newWindow(sequence, windowStart, b.duration)
 		b.windows[sequence] = w
 	}
 
