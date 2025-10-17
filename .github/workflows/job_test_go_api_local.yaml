@@ -14,7 +14,7 @@ jobs:
           mkdir -p ./apps/dashboard
           touch ./apps/dashboard/.env
       - name: Set up Docker Buildx
-        uses: useblacksmith/setup-docker-builder@1796035cb0632d35796ffec6b4b3bddafbc85c6e # v1
+        uses: useblacksmith/setup-docker-builder@78f41686563c732ccc097f7baac2f092f67538f0 # v1
       - name: Setup Go
         uses: ./.github/actions/setup-go
         with:
