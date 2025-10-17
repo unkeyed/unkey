@@ -17,9 +17,7 @@ jobs:
           mkdir -p ./apps/dashboard
           touch ./apps/dashboard/.env
       - name: Run containers
-        run: |
-          docker buildx prune -af
-          docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait --no-cache
+        run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
