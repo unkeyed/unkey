@@ -7,7 +7,8 @@ jobs:
   test:
     name: API Test Local
     timeout-minutes: 90
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    # runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Set up Docker Buildx
@@ -17,7 +18,7 @@ jobs:
           mkdir -p ./apps/dashboard
           touch ./apps/dashboard/.env
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait --build
+        run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
