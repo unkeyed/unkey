@@ -1,5 +1,18 @@
+import {
+  TIMESERIES_GRANULARITIES,
+  type TimeseriesGranularity,
+} from "@/lib/trpc/routers/utils/granularity";
 import { format } from "date-fns";
+import { parseTimestamp } from "../parse-timestamp";
 import type { TimeseriesData } from "./types";
+
+// Default time buffer for granularity fallbacks (1 minute)
+export const DEFAULT_TIME_BUFFER_MS = 60_000;
+
+// Singleton DateTimeFormat for timezone abbreviation extraction
+const TZ_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZoneName: "short",
+});
 
 // Define types for tooltip payload structure
 type TooltipPayloadItem = {
@@ -11,14 +24,45 @@ type TooltipPayloadItem = {
 };
 
 /**
+ * Get appropriate formatted time based on granularity (12-hour format without timezone)
+ */
+export function formatTimeForGranularity(date: Date, granularity?: TimeseriesGranularity): string {
+  if (!granularity) {
+    return format(date, "h:mma");
+  }
+
+  const config = TIMESERIES_GRANULARITIES[granularity];
+  return format(date, config.format);
+}
+
+export const getTimeBufferForGranularity = (granularity: TimeseriesGranularity): number => {
+  return TIMESERIES_GRANULARITIES[granularity].ms;
+};
+
+/**
+ * Get timezone abbreviation for a given date
+ */
+function getTimezoneAbbreviation(date?: Date): string {
+  const timezone =
+    TZ_FORMATTER.formatToParts(date || new Date()).find((part) => part.type === "timeZoneName")
+      ?.value || "";
+  return timezone;
+}
+
+/**
  * Creates a tooltip formatter that displays time intervals between data points
- * with a custom timestamp format that matches the bottom axis
+ * with granularity-aware timestamp formatting
  *
  * @param data - The chart data array containing timestamp information
- * @param timeFormat - Optional custom time format (defaults to "HH:mm")
+ * @param timeFormat - Optional custom time format (will be overridden if granularity is provided)
+ * @param granularity - Optional granularity to determine appropriate time format
  * @returns A formatter function for use with chart tooltips
  */
-export function createTimeIntervalFormatter(data?: TimeseriesData[], timeFormat = "HH:mm") {
+export function createTimeIntervalFormatter(
+  data?: TimeseriesData[],
+  timeFormat = "h:mm a",
+  granularity?: TimeseriesGranularity,
+) {
   return (tooltipPayload: TooltipPayloadItem[]) => {
     // Basic validation checks
     if (!tooltipPayload?.[0]?.payload) {
@@ -33,26 +77,49 @@ export function createTimeIntervalFormatter(data?: TimeseriesData[], timeFormat 
       return "";
     }
 
-    // Format timestamp with the provided format (defaults to just hours:minutes)
-    const formattedCurrentTimestamp = format(new Date(currentTimestamp), timeFormat);
+    // Use granularity-aware format if available, otherwise use provided timeFormat
+    const currentDate = new Date(parseTimestamp(currentTimestamp));
+    const formattedCurrentTimestamp = granularity
+      ? formatTimeForGranularity(currentDate, granularity)
+      : format(currentDate, timeFormat);
+
+    // Precompute timezone abbreviation using the current timestamp for consistency
+    const timezoneAbbr = getTimezoneAbbreviation(currentDate);
 
     // If we don't have necessary data, fallback to displaying just the current point
     if (!currentTimestamp || !data?.length) {
       return (
-        <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
+        <div className="px-4">
+          <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+            {formattedCurrentTimestamp} ({timezoneAbbr})
+          </span>
         </div>
       );
     }
 
     // Find position in the data array
-    const currentIndex = data.findIndex((item) => item?.originalTimestamp === currentTimestamp);
+    // Normalize both timestamps to numeric epoch values for reliable comparison
+    const normalizedCurrentTimestamp = parseTimestamp(currentTimestamp);
+    const currentIndex = data.findIndex((item) => {
+      if (!item?.originalTimestamp) {
+        return false;
+      }
+      const normalizedItemTimestamp = parseTimestamp(item.originalTimestamp);
+      // Use Number.isNaN to handle NaN cases safely
+      return (
+        !Number.isNaN(normalizedCurrentTimestamp) &&
+        !Number.isNaN(normalizedItemTimestamp) &&
+        normalizedCurrentTimestamp === normalizedItemTimestamp
+      );
+    });
 
     // If this is the last item or not found, just show current timestamp
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
       return (
-        <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
+        <div className="px-4">
+          <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+            {formattedCurrentTimestamp} ({timezoneAbbr})
+          </span>
         </div>
       );
     }
@@ -68,13 +135,26 @@ export function createTimeIntervalFormatter(data?: TimeseriesData[], timeFormat 
     }
 
     // Format the next timestamp with the same format
-    const formattedNextTimestamp = format(new Date(nextPoint.originalTimestamp), timeFormat);
+    const nextDate = new Date(parseTimestamp(nextPoint.originalTimestamp));
+    const formattedNextTimestamp = granularity
+      ? formatTimeForGranularity(nextDate, granularity)
+      : format(nextDate, timeFormat);
 
-    // Return formatted interval
+    // Compute timezone abbreviations for both timestamps to handle DST boundaries
+    const startTimezoneAbbr = timezoneAbbr;
+    const endTimezoneAbbr = getTimezoneAbbreviation(nextDate);
+
+    // Format timezone display: single if same, or both with arrow if different
+    const timezoneDisplay =
+      startTimezoneAbbr === endTimezoneAbbr
+        ? startTimezoneAbbr
+        : `${startTimezoneAbbr} → ${endTimezoneAbbr}`;
+
+    // Return formatted interval with timezone info
     return (
-      <div>
-        <span className="font-mono text-accent-9 text-xs px-4">
-          {formattedCurrentTimestamp} - {formattedNextTimestamp}
+      <div className="px-4">
+        <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+          {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezoneDisplay})
         </span>
       </div>
     );

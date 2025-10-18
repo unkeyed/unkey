@@ -41,17 +41,17 @@ export const OpenApiDiff = () => {
     [liveDeploymentId],
   );
 
-  const [newDeployment, oldDeployment] = query.data ?? [];
+  const newDeployment = query.data?.find((d) => d.id !== liveDeploymentId);
 
   const diff = trpc.deploy.deployment.getOpenApiDiff.useQuery({
     newDeploymentId: newDeployment?.id ?? "",
-    oldDeploymentId: oldDeployment?.id ?? "",
+    oldDeploymentId: liveDeploymentId ?? "",
   });
 
   // @ts-expect-error I have no idea why this whines about type diff
   const status = getDiffStatus(diff.data);
 
-  if (newDeployment && !oldDeployment) {
+  if (newDeployment && !liveDeploymentId) {
     return (
       <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full max-w-md">
         <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-[52px] flex items-center justify-center shrink-0">
@@ -71,23 +71,25 @@ export const OpenApiDiff = () => {
     return null;
   }
 
-  const diffUrl = `/${params?.workspaceSlug}/projects/${params?.projectId}/openapi-diff?from=${oldDeployment.id}&to=${newDeployment.id}`;
+  const diffUrl = `/${params?.workspaceSlug}/projects/${params?.projectId}/openapi-diff?from=${liveDeploymentId}&to=${newDeployment.id}`;
   return (
     <Link href={diffUrl} className="hover:opacity-80 transition-opacity block">
       <div className="gap-4 items-center flex w-full">
         <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
           <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
-            <StatusIndicator className="bg-transparent" />
+            <StatusIndicator className="bg-transparent" status={status} withSignal />
           </div>
           <div className="flex flex-col flex-1 px-3">
             <div className="text-grayA-9 text-xs">from</div>
-            <div className="text-accent-12 font-medium text-xs">{shortenId(oldDeployment.id)}</div>
+            <div className="text-accent-12 font-medium text-xs">
+              {shortenId(liveDeploymentId ?? "")}
+            </div>
           </div>
         </div>
         <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
         <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
           <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
-            <StatusIndicator status={status} withSignal className="bg-transparent" />
+            <StatusIndicator className="bg-transparent" />
           </div>
           <div className="flex flex-col flex-1 px-3">
             <div className="text-grayA-9 text-xs">to</div>

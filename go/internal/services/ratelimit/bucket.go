@@ -31,6 +31,9 @@ type bucket struct {
 	// mu protects all bucket operations
 	mu sync.RWMutex
 
+	// identifier is the rate limit subject (user ID, API key, etc)
+	identifier string
+
 	// limit is the maximum number of requests allowed per duration
 	limit int64
 
@@ -46,6 +49,14 @@ type bucket struct {
 	// strictUntil is when this bucket must sync with origin
 	// Used after rate limit exceeded to ensure consistency
 	strictUntil time.Time
+}
+
+func (b *bucket) key() bucketKey {
+	return bucketKey{
+		identifier: b.identifier,
+		limit:      b.limit,
+		duration:   b.duration,
+	}
 }
 
 // bucketKey uniquely identifies a rate limit bucket by combining the
@@ -101,6 +112,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 		metrics.RatelimitBucketsCreated.Inc()
 		b = &bucket{
 			mu:          sync.RWMutex{},
+			identifier:  key.identifier,
 			limit:       key.limit,
 			duration:    key.duration,
 			windows:     make(map[int64]*window),
