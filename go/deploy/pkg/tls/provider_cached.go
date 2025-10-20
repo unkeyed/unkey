@@ -41,6 +41,7 @@ func newCachedFileProvider(cfg Config, cacheTTL time.Duration) (Provider, error)
 		return nil, fmt.Errorf("unexpected provider type")
 	}
 
+	//nolint: exhaustruct
 	return &cachedFileProvider{
 		fileProvider: fp,
 		cacheTTL:     cacheTTL,
@@ -53,6 +54,7 @@ func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 		return nil, nil //nolint: all
 	}
 
+	//nolint: exhaustruct
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

@@ -69,6 +69,7 @@ func New(config Config) (*Server, error) {
 	if config.EnableTLS {
 		config.Logger.Info("Configuring TLS")
 
+		//nolint: exhaustruct
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				return config.CertManager.GetCertificate(context.Background(), hello.ServerName)
@@ -88,6 +89,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
+					error:          nil,
 					WorkspaceID:    "",
 					requestID:      "",
 					startTime:      time.Time{},

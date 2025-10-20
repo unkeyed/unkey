@@ -16,8 +16,9 @@ func privateKeyToString(privateKey *ecdsa.PrivateKey) (string, error) {
 
 	// Encode to PEM format
 	privKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: privKeyBytes,
+		Headers: map[string]string{},
+		Type:    "EC PRIVATE KEY",
+		Bytes:   privKeyBytes,
 	})
 
 	return string(privKeyPEM), nil

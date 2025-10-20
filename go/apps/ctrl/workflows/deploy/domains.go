@@ -53,6 +53,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		domains = append(domains,
 			newDomain{
 				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
+				//nolint: exhaustruct
 				sticky: db.NullDomainsSticky{Valid: false},
 			},
 		)

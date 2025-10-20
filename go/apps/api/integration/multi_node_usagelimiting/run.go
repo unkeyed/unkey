@@ -36,11 +36,13 @@ func RunUsageLimitTest(
 	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
 
 	// Create API using seed
+	// nolint: exhaustruct
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
 
 	// Create key with specified credit limit using seed
+	// nolint: exhaustruct
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
@@ -69,7 +71,10 @@ func RunUsageLimitTest(
 
 	// Prepare the key verification request
 	req := handler.Request{
-		Key: keyStart,
+		Ratelimits:  nil,
+		Permissions: nil,
+		Tags:        nil,
+		Key:         keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
 			//nolint: gosec
 			Cost: int32(costPerRequest),

@@ -272,9 +272,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create HTTP server for ACME challenges
 	challengeSrv, err := server.New(server.Config{
-		Logger:    logger,
-		Handler:   nil,
-		EnableTLS: false,
+		CertManager: nil,
+		Logger:      logger,
+		Handler:     nil,
+		EnableTLS:   false,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create challenge server: %w", err)

@@ -16,8 +16,9 @@ import (
 // with host.docker.internal addresses using dynamically assigned ports.
 func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1.GetDeploymentRequest]) (*connect.Response[kranev1.GetDeploymentResponse], error) {
 	deploymentID := req.Msg.GetDeploymentId()
-
 	d.logger.Info("getting deployment", "deployment_id", deploymentID)
+
+	//nolint:exhaustruct // Docker SDK types have many optional fields
 	containers, err := d.client.ContainerList(ctx, container.ListOptions{
 		All: true,
 		Filters: filters.NewArgs(
@@ -33,7 +34,6 @@ func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1
 	}
 
 	for _, c := range containers {
-
 		d.logger.Info("container found", "container", c)
 
 		// Determine container status
@@ -60,5 +60,6 @@ func (d *docker) GetDeployment(ctx context.Context, req *connect.Request[kranev1
 			Status:  status,
 		})
 	}
+
 	return connect.NewResponse(res), nil
 }

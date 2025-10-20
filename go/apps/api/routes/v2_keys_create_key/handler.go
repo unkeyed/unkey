@@ -343,6 +343,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Limit:       int32(ratelimit.Limit), // nolint:gosec
 						Duration:    ratelimit.Duration,
 						CreatedAt:   now,
+						UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 						AutoApply:   ratelimit.AutoApply,
 					}
 				}

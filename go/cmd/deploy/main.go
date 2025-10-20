@@ -119,8 +119,11 @@ var DeployFlags = []cli.Flag{
 // WARNING: Changing the "Description" part will also affect generated MDX.
 // Cmd defines the deploy CLI command
 var Cmd = &cli.Command{
-	Name:  "deploy",
-	Usage: "Deploy a new version or initialize configuration",
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "deploy",
+	Usage:    "Deploy a new version or initialize configuration",
 	Description: `Build and deploy a new version of your application, or initialize configuration.
 
 The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.

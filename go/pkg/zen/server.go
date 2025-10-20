@@ -111,13 +111,14 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
-					WorkspaceID:    "",
-					requestID:      "",
-					w:              nil,
-					r:              nil,
-					requestBody:    []byte{},
-					responseStatus: 0,
-					responseBody:   []byte{},
+					logRequestToClickHouse: true,
+					WorkspaceID:            "",
+					requestID:              "",
+					w:                      nil,
+					r:                      nil,
+					requestBody:            []byte{},
+					responseStatus:         0,
+					responseBody:           []byte{},
 				}
 			},
 		},
@@ -278,7 +279,6 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 			}
 
 			err = handle(r.Context(), sess)
-
 			if err != nil {
 				panic(err)
 			}

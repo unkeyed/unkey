@@ -177,6 +177,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				KeyID:        insertKeyParams.ID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				CreatedAt:    time.Now().UnixMilli(),
+				UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 			})
 			require.NoError(s.t, err)
 		}
@@ -240,8 +241,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	require.NoError(s.t, err)
 
 	res := CreateKeyResponse{
-		KeyID: keyID,
-		Key:   key,
+		KeyID:         keyID,
+		Key:           key,
+		RolesIds:      []string{},
+		PermissionIds: []string{},
 	}
 
 	if req.Deleted {
@@ -289,6 +292,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			PermissionID: permissionID,
 			WorkspaceID:  req.WorkspaceID,
 			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 		})
 
 		require.NoError(s.t, err)
@@ -339,6 +343,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 			Duration:    req.Duration,
 			AutoApply:   req.AutoApply,
 			CreatedAt:   time.Now().UnixMilli(),
+			UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 		})
 	}
 

@@ -22,6 +22,7 @@ func parseDomainSticky(sticky hydrav1.DomainSticky) db.NullDomainsSticky {
 	case hydrav1.DomainSticky_DOMAIN_STICKY_UNSPECIFIED:
 		fallthrough
 	default:
+		//nolint: exhaustruct
 		return db.NullDomainsSticky{Valid: false}
 	}
 }

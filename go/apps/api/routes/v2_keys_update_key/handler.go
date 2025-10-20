@@ -136,7 +136,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Name.IsSpecified() {
 				update.NameSpecified = 1
 				if req.Name.IsNull() {
-					update.Name = sql.NullString{Valid: false}
+					update.Name = sql.NullString{Valid: false, String: ""}
 				} else {
 					update.Name = sql.NullString{Valid: true, String: req.Name.MustGet()}
 				}
@@ -146,7 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.ExternalId.IsSpecified() {
 				update.IdentityIDSpecified = 1
 				if req.ExternalId.IsNull() {
-					update.IdentityID = sql.NullString{Valid: false}
+					update.IdentityID = sql.NullString{Valid: false, String: ""}
 				} else {
 					externalID := req.ExternalId.MustGet()
 
@@ -206,7 +206,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Meta.IsSpecified() {
 				update.MetaSpecified = 1
 				if req.Meta.IsNull() {
-					update.Meta = sql.NullString{Valid: false}
+					update.Meta = sql.NullString{Valid: false, String: ""}
 				} else {
 					metaBytes, marshalErr := json.Marshal(req.Meta.MustGet())
 					if marshalErr != nil {
@@ -223,7 +223,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Expires.IsSpecified() {
 				update.ExpiresSpecified = 1
 				if req.Expires.IsNull() {
-					update.Expires = sql.NullTime{Valid: false}
+					update.Expires = sql.NullTime{Valid: false, Time: time.Time{}}
 				} else {
 					update.Expires = sql.NullTime{Valid: true, Time: time.UnixMilli(req.Expires.MustGet())}
 				}
@@ -237,7 +237,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					update.RefillDaySpecified = 1
 					update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
 					update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
-					update.RemainingRequests = sql.NullInt32{Valid: false}
+					update.RemainingRequests = sql.NullInt32{Valid: false, Int32: 0}
 				} else {
 					credits := req.Credits.MustGet()
 					if credits.Remaining.IsSpecified() {
@@ -246,7 +246,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							// This also clears refilling
 							update.RefillAmountSpecified = 1
 							update.RefillDaySpecified = 1
-							update.RemainingRequests = sql.NullInt32{Valid: false}
+							update.RemainingRequests = sql.NullInt32{Valid: false, Int32: 0}
 							update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
 							update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
 						} else {
@@ -296,7 +296,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								}
 
 								// For daily, refill_day should remain NULL
-								update.RefillDay = sql.NullInt16{Valid: false}
+								update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
 							}
 						}
 					}
@@ -429,6 +429,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						CreatedAtM:   time.Now().UnixMilli(),
 					})
 
+					//nolint: exhaustruct
 					requestedPermissions = append(requestedPermissions, db.Permission{
 						ID:   newPermID,
 						Slug: requestedSlug,
@@ -453,7 +454,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 									ID:          toCreate.PermissionID,
 									Name:        toCreate.Slug,
 									DisplayName: toCreate.Name,
-									Meta: map[string]interface{}{
+									Meta: map[string]any{
 										"name": toCreate.Name,
 										"slug": toCreate.Slug,
 									},

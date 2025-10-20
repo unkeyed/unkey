@@ -91,7 +91,8 @@ func (s *Service) ProcessChallenge(
 			return restate.Void{}, nil
 		}, restate.WithName("mark challenge failed"))
 		return &hydrav1.ProcessChallengeResponse{
-			Status: "failed",
+			CertificateId: "",
+			Status:        "failed",
 		}, nil
 	}
 
@@ -109,7 +110,8 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("obtaining certificate"))
 	if err != nil {
 		return &hydrav1.ProcessChallengeResponse{
-			Status: "failed",
+			CertificateId: "",
+			Status:        "failed",
 		}, nil
 	}
 
@@ -148,6 +150,7 @@ func (s *Service) ProcessChallenge(
 	)
 
 	return &hydrav1.ProcessChallengeResponse{
-		Status: "success",
+		CertificateId: "",
+		Status:        "success",
 	}, nil
 }

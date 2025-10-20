@@ -263,6 +263,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
+		Project:          nil,
+		AuthConfig:       nil,
+		ValidationConfig: nil,
 		Deployment: &partitionv1.Deployment{
 			Id:        deployment.ID,
 			IsEnabled: true,
@@ -333,6 +336,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// only update this if the deployment is not rolled back
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
+				IsRolledBack:     false,
 				ID:               deployment.ProjectID,
 				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -346,6 +350,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// Log deployment completed
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+			ProjectID:    "",
+			WorkspaceID:  "",
 			DeploymentID: deployment.ID,
 			Status:       "completed",
 			Message:      "Deployment completed successfully",

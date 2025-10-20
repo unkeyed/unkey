@@ -82,7 +82,9 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			// stable dns addresses for each pod and that's what our database and gatway expect.
 			//
 			// I believe going forward we need to re-evaluate that cause it's the wrong abstraction.
+			//nolint:exhaustruct
 			&corev1.Service{
+				//nolint:exhaustruct
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      k8sDeploymentID,
 					Namespace: req.Msg.GetDeployment().GetNamespace(),
@@ -96,6 +98,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 					},
 				},
 
+				//nolint:exhaustruct
 				Spec: corev1.ServiceSpec{
 					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
 					Selector: map[string]string{
@@ -103,6 +106,8 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 					},
 					ClusterIP:                "None",
 					PublishNotReadyAddresses: true,
+
+					//nolint:exhaustruct
 					Ports: []corev1.ServicePort{
 						{
 							Port:       8080,
@@ -112,6 +117,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 					},
 				},
 			},
+			//nolint:exhaustruct
 			metav1.CreateOptions{},
 		)
 	if err != nil {
@@ -119,6 +125,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 	}
 
 	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetDeployment().GetNamespace()).Create(ctx,
+		//nolint: exhaustruct
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      k8sDeploymentID,
@@ -129,6 +136,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 				},
 			},
 
+			//nolint: exhaustruct
 			Spec: appsv1.StatefulSetSpec{
 				ServiceName: service.Name,
 				Replicas:    ptr.P(int32(req.Msg.GetDeployment().GetReplicas())), //nolint: gosec
@@ -183,6 +191,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 	if err != nil {
 		k.logger.Info("Deleting service, because deployment creation failed")
 		// Delete service
+		// nolint: exhaustruct
 		if rollbackErr := k.clientset.CoreV1().Services(req.Msg.GetDeployment().GetNamespace()).Delete(ctx, service.Name, metav1.DeleteOptions{}); rollbackErr != nil {
 			k.logger.Error("Failed to delete service", "error", rollbackErr.Error())
 		}
@@ -192,6 +201,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 
 	service.OwnerReferences = []metav1.OwnerReference{
 		// Automatically clean up the service, when the deployment gets deleted
+		//nolint:exhaustruct
 		{
 			APIVersion: "apps/v1",
 			Kind:       "StatefulSet",
@@ -199,7 +209,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			UID:        sfs.UID,
 		},
 	}
-
+	//nolint:exhaustruct
 	_, err = k.clientset.CoreV1().Services(req.Msg.GetDeployment().GetNamespace()).Update(ctx, service, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))

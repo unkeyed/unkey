@@ -46,7 +46,11 @@ func loadConfig(configPath string) (*Config, error) {
 	// Check if file exists
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
 		// Return empty config if file doesn't exist but directory does
-		return &Config{}, nil
+		return &Config{
+			KeyspaceID: "",
+			ProjectID:  "",
+			Context:    "",
+		}, nil
 	}
 
 	data, err := os.ReadFile(configFile)
@@ -54,7 +58,11 @@ func loadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("%w %s: %w", ErrConfigFileRead, configFile, err)
 	}
 
-	config := &Config{}
+	config := &Config{
+		KeyspaceID: "",
+		ProjectID:  "",
+		Context:    "",
+	}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("%w %s: %w", ErrConfigFileParse, configFile, err)
 	}
@@ -85,8 +93,9 @@ func createConfigWithValues(configDir, projectID, context string) error {
 	}
 
 	config := &Config{
-		ProjectID: projectID,
-		Context:   context,
+		KeyspaceID: "",
+		ProjectID:  projectID,
+		Context:    context,
 	}
 
 	configPath := filepath.Join(configDir, "unkey.json")

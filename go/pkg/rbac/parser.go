@@ -57,6 +57,7 @@ type parser struct {
 //	}
 //	// Use the resulting PermissionQuery...
 func newParser(input string) *parser {
+	//nolint: exhaustruct
 	p := &parser{
 		lexer: newLexer(input),
 	}

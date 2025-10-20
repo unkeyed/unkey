@@ -8,7 +8,7 @@ linters:
     - errcheck
     - errname
     - exhaustive
-    # - exhaustruct
+    - exhaustruct
     - gochecksumtype
     - goconst
     - godox
@@ -46,32 +46,32 @@ linters:
       check:
         - switch
         - map
-    # exhaustruct:
-    #   exclude:
-    #     - ^net/http.Client$
-    #     - ^net/http.Cookie$
-    #     - ^net/http.Request$
-    #     - ^net/http.Response$
-    #     - ^net/http.Server$
-    #     - ^net/http.Transport$
-    #     - ^net/url.URL$
-    #     - ^os/exec.Cmd$
-    #     - ^reflect.StructField$
-    #     - ^github.com/prometheus/client_golang/.+Opts$
-    #     - ^github.com/testcontainers/testcontainers-go.+Request$
-    #     - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
-    #     - ^github.com/ory/dockertest/v3.*$
-    #     - ^golang.org/x/tools/go/analysis.Analyzer$
-    #     - ^google.golang.org/protobuf/.+Options$
-    #     - ^gopkg.in/yaml.v3.Node$
-    #     - ^github.com/urfave/cli/v3.*$
-    #     - ^github.com/ClickHouse/clickhouse-go/v2.*$
-    #     - ^github.com/aws/aws-sdk-go-v2/.*$
-    #     - ^github.com/unkeyed/unkey/go/apps/api/openapi.Meta$
-    #     - ^gorm.io/gorm.Config$
-    #     - ^gorm.io/gorm.*$
-    #     - ^github.com/redis/go-redis/v9.Options$
-    #     - ^github.com/go-redis/redis/v8.Options$
+    exhaustruct:
+      exclude:
+        - ^net/http.Client$
+        - ^net/http.Cookie$
+        - ^net/http.Request$
+        - ^net/http.Response$
+        - ^net/http.Server$
+        - ^net/http.Transport$
+        - ^net/url.URL$
+        - ^os/exec.Cmd$
+        - ^reflect.StructField$
+        - ^github.com/prometheus/client_golang/.+Opts$
+        - ^github.com/testcontainers/testcontainers-go.+Request$
+        - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
+        - ^github.com/ory/dockertest/v3.*$
+        - ^golang.org/x/tools/go/analysis.Analyzer$
+        - ^google.golang.org/protobuf/.+Options$
+        - ^gopkg.in/yaml.v3.Node$
+        - ^github.com/urfave/cli/v3.*$
+        - ^github.com/ClickHouse/clickhouse-go/v2.*$
+        - ^github.com/aws/aws-sdk-go-v2/.*$
+        - ^github.com/unkeyed/unkey/go/apps/api/openapi.Meta$
+        - ^gorm.io/gorm.Config$
+        - ^gorm.io/gorm.*$
+        - ^github.com/redis/go-redis/v9.Options$
+        - ^github.com/go-redis/redis/v8.Options$
     funlen:
       lines: 100
       statements: 50

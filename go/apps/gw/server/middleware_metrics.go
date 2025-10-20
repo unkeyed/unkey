@@ -63,6 +63,8 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 				}
 
 				eventBuffer.BufferApiRequest(schema.ApiRequestV2{
+					QueryString:     "",
+					QueryParams:     map[string][]string{},
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            s.startTime.UnixMilli(),

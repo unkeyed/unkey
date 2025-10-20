@@ -194,6 +194,7 @@ func (s *Service) buildValidationError(validationErrors []*errors.ValidationErro
 		if len(err.SchemaValidationErrors) > 0 {
 			for _, schemaErr := range err.SchemaValidationErrors {
 				fe := FieldError{
+					Fix:     nil,
 					Field:   schemaErr.Location,
 					Message: schemaErr.Reason,
 				}
@@ -202,6 +203,7 @@ func (s *Service) buildValidationError(validationErrors []*errors.ValidationErro
 		} else {
 			// Handle general validation error
 			fe := FieldError{
+				Fix:     nil,
 				Field:   err.ValidationType,
 				Message: err.Reason,
 			}

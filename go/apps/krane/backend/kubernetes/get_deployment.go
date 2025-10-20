@@ -32,6 +32,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	k.logger.Info("getting deployment", "deployment_id", k8sDeploymentID)
 
 	// Get the Job by name (deployment_id)
+	// nolint: exhaustruct
 	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -55,6 +56,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	}
 
 	// Get the service to retrieve port info
+	// nolint: exhaustruct
 	service, err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sDeploymentID))
@@ -66,9 +68,11 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 
 	// Get all pods belonging to this stateful set
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
-		MatchLabels: sfs.Spec.Selector.MatchLabels,
+		MatchExpressions: nil,
+		MatchLabels:      sfs.Spec.Selector.MatchLabels,
 	})
 
+	//nolint: exhaustruct
 	pods, err := k.clientset.CoreV1().Pods(req.Msg.GetNamespace()).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})

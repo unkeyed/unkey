@@ -54,8 +54,10 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 	}
 
 	// Create certificate template
+	//nolint: exhaustruct
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
+		//nolint: exhaustruct
 		Subject: pkix.Name{
 			Organization: []string{"Unkey"},
 			Country:      []string{"US"},
@@ -80,14 +82,16 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 
 	// Encode certificate to PEM
 	certPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certBytes,
+		Headers: map[string]string{},
+		Type:    "CERTIFICATE",
+		Bytes:   certBytes,
 	})
 
 	// Encode private key to PEM
 	privateKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+		Headers: map[string]string{},
+		Type:    "RSA PRIVATE KEY",
+		Bytes:   x509.MarshalPKCS1PrivateKey(privateKey),
 	})
 
 	// Save to files for backup and user trust installation

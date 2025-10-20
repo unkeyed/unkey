@@ -135,6 +135,9 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		redisHostAddr := containers.Redis(h.t)
 
 		apiConfig := api.Config{
+			MaxRequestBodySize:      0,
+			HttpPort:                7070,
+			ChproxyToken:            "",
 			Platform:                "test",
 			Image:                   "test",
 			Listener:                ln,

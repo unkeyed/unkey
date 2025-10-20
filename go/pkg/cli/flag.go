@@ -417,7 +417,9 @@ func Default(value any) FlagOption {
 
 // String creates a new string flag with optional configuration
 func String(name, usage string, opts ...FlagOption) *StringFlag {
+	// nolint: exhaustruct
 	flag := &StringFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -452,7 +454,9 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 
 // Duration creates a new duration flag with optional configuration
 func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
+	// nolint: exhaustruct
 	flag := &DurationFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -491,7 +495,9 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 
 // Bool creates a new boolean flag with optional configuration
 func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
+	// nolint: exhaustruct
 	flag := &BoolFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -530,7 +536,9 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 
 // Int creates a new integer flag with optional configuration
 func Int(name, usage string, opts ...FlagOption) *IntFlag {
+	// nolint: exhaustruct
 	flag := &IntFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -570,7 +578,9 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 
 // Float creates a new float flag with optional configuration
 func Float(name, usage string, opts ...FlagOption) *FloatFlag {
+	// nolint: exhaustruct
 	flag := &FloatFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -610,7 +620,9 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 
 // StringSlice creates a new string slice flag with optional configuration
 func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
+	// nolint: exhaustruct
 	flag := &StringSliceFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -645,7 +657,9 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 
 // Int64 creates a new int64 flag with optional configuration
 func Int64(name, usage string, opts ...FlagOption) *Int64Flag {
+	// nolint: exhaustruct
 	flag := &Int64Flag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,

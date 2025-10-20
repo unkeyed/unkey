@@ -196,5 +196,10 @@ func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.F
 		return override, true, nil
 	}
 
-	return db.FindRatelimitNamespaceLimitOverride{}, false, nil
+	return db.FindRatelimitNamespaceLimitOverride{
+		ID:         "",
+		Limit:      0,
+		Identifier: "",
+		Duration:   0,
+	}, false, nil
 }

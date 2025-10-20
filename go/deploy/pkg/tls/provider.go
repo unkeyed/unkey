@@ -209,6 +209,7 @@ func (p *fileProvider) loadTLSConfig() (*tls.Config, error) {
 		return nil, nil //nolint:all
 	}
 
+	//nolint:exhaustruct
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -256,6 +257,7 @@ func (p *fileProvider) HTTPClient() *http.Client {
 	tlsConfig, _ := p.loadTLSConfig()
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
+		//nolint:exhaustruct // net.Dialer's zero values are intentional and recommended
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,

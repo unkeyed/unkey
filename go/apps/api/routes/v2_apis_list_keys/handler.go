@@ -248,10 +248,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 // buildKeyResponseData transforms internal key data into API response format.
 func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
-		CreatedAt: keyData.Key.CreatedAtM,
-		Enabled:   keyData.Key.Enabled,
-		KeyId:     keyData.Key.ID,
-		Start:     keyData.Key.Start,
+		Meta:        nil,
+		Ratelimits:  nil,
+		Name:        nil,
+		UpdatedAt:   nil,
+		Credits:     nil,
+		Expires:     nil,
+		Identity:    nil,
+		Permissions: nil,
+		Roles:       nil,
+		Plaintext:   nil,
+		CreatedAt:   keyData.Key.CreatedAtM,
+		Enabled:     keyData.Key.Enabled,
+		KeyId:       keyData.Key.ID,
+		Start:       keyData.Key.Start,
 	}
 
 	if plaintext != "" {
@@ -274,6 +284,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
+			Refill:    nil,
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
@@ -296,6 +307,8 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 	// Set identity
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
+			Meta:       nil,
+			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
 			ExternalId: keyData.Identity.ExternalID,
 		}

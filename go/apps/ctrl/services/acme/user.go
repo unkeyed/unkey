@@ -65,6 +65,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 	}
 
 	config := lego.NewConfig(&AcmeUser{
+		//nolint: exhaustruct
 		Registration: &registration.Resource{
 			URI: foundUser.RegistrationUri.String,
 		},

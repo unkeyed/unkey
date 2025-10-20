@@ -145,6 +145,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		namespace, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
+			//nolint: exhaustruct
 			result := db.FindRatelimitNamespace{}
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
@@ -346,5 +347,10 @@ func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.F
 		return override, true, nil
 	}
 
-	return db.FindRatelimitNamespaceLimitOverride{}, false, nil
+	return db.FindRatelimitNamespaceLimitOverride{
+		Limit:      0,
+		ID:         "",
+		Identifier: "",
+		Duration:   0,
+	}, false, nil
 }

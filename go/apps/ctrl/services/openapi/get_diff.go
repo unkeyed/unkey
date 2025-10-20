@@ -68,6 +68,7 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	// Generate diff report
+	// nolint: exhaustruct
 	diffReport, err := diff.Get(&diff.Config{}, s1, s2)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fault.Wrap(err,

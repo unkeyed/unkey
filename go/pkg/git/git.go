@@ -42,9 +42,15 @@ type githubCommitResponse struct {
 // Extended commit details (message, author, timestamp) are populated when available.
 func GetInfo() Info {
 	info := Info{
-		Branch:  "main", // Default branch
-		IsDirty: false,  // Assume clean if unknown
-		IsRepo:  false,  // Assume not a repo until proven otherwise
+		Branch:          "main", // Default branch
+		IsDirty:         false,  // Assume clean if unknown
+		IsRepo:          false,  // Assume not a repo until proven otherwise
+		CommitSHA:       "",
+		ShortSHA:        "",
+		Message:         "",
+		AuthorHandle:    "",
+		AuthorAvatarURL: "",
+		CommitTimestamp: 0,
 	}
 
 	// Check if we're in a Git repository

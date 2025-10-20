@@ -41,7 +41,8 @@ func New(logger logging.Logger, socketPath string) (*docker, error) {
 	logger.Info("Docker client initialized successfully", "socket", socketPath)
 
 	return &docker{
-		logger: logger,
-		client: dockerClient,
+		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
+		logger:                                logger,
+		client:                                dockerClient,
 	}, nil
 }

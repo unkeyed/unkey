@@ -26,22 +26,26 @@ func (s *Service) GetDeployment(
 
 	// Convert database model to proto
 	protoDeployment := &ctrlv1.Deployment{
-		Id:                   deployment.ID,
-		WorkspaceId:          deployment.WorkspaceID,
-		ProjectId:            deployment.ProjectID,
-		EnvironmentId:        deployment.EnvironmentID,
-		Status:               convertDbStatusToProto(deployment.Status),
-		CreatedAt:            deployment.CreatedAt,
-		GitCommitSha:         "",
-		GitBranch:            "",
-		ErrorMessage:         "",
-		EnvironmentVariables: nil,
-		Topology:             nil,
-		UpdatedAt:            0,
-		Hostnames:            nil,
-		RootfsImageId:        "",
-		BuildId:              "",
-		Steps:                nil,
+		GitCommitMessage:         "",
+		GitCommitAuthorHandle:    "",
+		GitCommitAuthorAvatarUrl: "",
+		GitCommitTimestamp:       0,
+		Id:                       deployment.ID,
+		WorkspaceId:              deployment.WorkspaceID,
+		ProjectId:                deployment.ProjectID,
+		EnvironmentId:            deployment.EnvironmentID,
+		Status:                   convertDbStatusToProto(deployment.Status),
+		CreatedAt:                deployment.CreatedAt,
+		GitCommitSha:             "",
+		GitBranch:                "",
+		ErrorMessage:             "",
+		EnvironmentVariables:     nil,
+		Topology:                 nil,
+		UpdatedAt:                0,
+		Hostnames:                nil,
+		RootfsImageId:            "",
+		BuildId:                  "",
+		Steps:                    nil,
 	}
 
 	if deployment.GitCommitSha.Valid {
@@ -77,9 +81,10 @@ func (s *Service) GetDeployment(
 		protoSteps := make([]*ctrlv1.DeploymentStep, len(deploymentSteps))
 		for i, step := range deploymentSteps {
 			protoSteps[i] = &ctrlv1.DeploymentStep{
-				Status:    string(step.Status),
-				CreatedAt: step.CreatedAt,
-				Message:   step.Message,
+				ErrorMessage: "",
+				Status:       string(step.Status),
+				CreatedAt:    step.CreatedAt,
+				Message:      step.Message,
 			}
 		}
 		protoDeployment.Steps = protoSteps

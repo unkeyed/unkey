@@ -92,6 +92,8 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 // It returns the wrapper and a function to retrieve the captured data.
 func (s *Session) CaptureResponseWriter() (http.ResponseWriter, func()) {
 	wrapper := &captureResponseWriter{
+		body:           []byte{},
+		written:        false,
 		ResponseWriter: s.w,
 		statusCode:     http.StatusOK, // Default to 200 if not set
 	}

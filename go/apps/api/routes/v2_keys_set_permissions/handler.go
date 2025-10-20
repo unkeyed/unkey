@@ -181,6 +181,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Slug:        perm,
 			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,
+			UpdatedAtM:  sql.NullInt64{Int64: now, Valid: true},
 		})
 	}
 

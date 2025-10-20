@@ -202,6 +202,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	kv := &KeyVerifier{
+		tags:                  []string{},
 		Key:                   key.FindKeyForVerificationRow,
 		clickhouse:            s.clickhouse,
 		rateLimiter:           s.raterLimiter,
