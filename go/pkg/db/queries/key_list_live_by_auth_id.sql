@@ -82,7 +82,7 @@ FROM `keys` k
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-WHERE k.key_auth_id = sqlc.arg(key_auth_id)
+WHERE k.key_auth_id = sqlc.arg(key_space_id)
   AND k.id >= sqlc.arg(id_cursor)
   AND (
     sqlc.arg(identity) = '' OR (i.external_id = sqlc.arg(identity) OR i.id = sqlc.arg(identity))

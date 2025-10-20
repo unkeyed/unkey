@@ -31,7 +31,7 @@ LIMIT ?
 `
 
 type ListKeysByKeyAuthIDParams struct {
-	KeyAuthID  string         `db:"key_auth_id"`
+	KeySpaceID string         `db:"key_space_id"`
 	IDCursor   string         `db:"id_cursor"`
 	IdentityID sql.NullString `db:"identity_id"`
 	Limit      int32          `db:"limit"`
@@ -67,7 +67,7 @@ type ListKeysByKeyAuthIDRow struct {
 //	LIMIT ?
 func (q *Queries) ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error) {
 	rows, err := db.QueryContext(ctx, listKeysByKeyAuthID,
-		arg.KeyAuthID,
+		arg.KeySpaceID,
 		arg.IDCursor,
 		arg.IdentityID,
 		arg.IdentityID,

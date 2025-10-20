@@ -1,4 +1,4 @@
--- name: InsertKeyring :exec
+-- name: InsertKeySpace :exec
 INSERT INTO `key_auth` (
     id,
     workspace_id,

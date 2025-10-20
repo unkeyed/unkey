@@ -140,7 +140,7 @@ func TestValidationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -175,7 +175,7 @@ func TestValidationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -210,7 +210,7 @@ func TestValidationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -247,7 +247,7 @@ func TestValidationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -314,7 +314,7 @@ func TestValidationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -361,7 +361,7 @@ func TestValidationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
