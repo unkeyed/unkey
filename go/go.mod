@@ -30,7 +30,7 @@ require (
 	github.com/pressly/goose/v3 v3.25.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.9.0
-	github.com/restatedev/sdk-go v0.20.3-0.20251014123254-dc9a560d76aa
+	github.com/restatedev/sdk-go v0.20.3-0.20251017160129-f65ac3c2e327
 	github.com/shirou/gopsutil/v4 v4.25.7
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0

@@ -783,6 +783,8 @@ github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/restatedev/sdk-go v0.20.3-0.20251014123254-dc9a560d76aa h1:BS+6PlURIQi5mdgbTLIcFc2chpwENwDrPN8YDUslatg=
 github.com/restatedev/sdk-go v0.20.3-0.20251014123254-dc9a560d76aa/go.mod h1:T3G/P3VBSRTvdverfEiCVVcsNSymzO5ebIyUU6uRqk8=
+github.com/restatedev/sdk-go v0.20.3-0.20251017160129-f65ac3c2e327 h1:/zD5uNZ6g6VcyouS4pWEgc7TwlpvkE94Z3IyZCF3SOw=
+github.com/restatedev/sdk-go v0.20.3-0.20251017160129-f65ac3c2e327/go.mod h1:T3G/P3VBSRTvdverfEiCVVcsNSymzO5ebIyUU6uRqk8=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=

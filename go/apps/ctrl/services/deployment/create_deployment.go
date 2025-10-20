@@ -135,7 +135,7 @@ func (s *Service) CreateDeployment(
 	}
 
 	// Send deployment request asynchronously (fire-and-forget)
-	invocation := s.deploymentClient(project.ID).
+	invocation, err := s.deploymentClient(project.ID).
 		Deploy().
 		Send(ctx, &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
@@ -143,9 +143,9 @@ func (s *Service) CreateDeployment(
 			KeyAuthId:    keyAuthID,
 		})
 
-	if invocation.Error != nil {
-		s.logger.Error("failed to start deployment workflow", "error", invocation.Error.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("1. unable to start workflow: %w", invocation.Error))
+	if err != nil {
+		s.logger.Error("failed to start deployment workflow", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("1. unable to start workflow: %w", err))
 	}
 
 	s.logger.Info("deployment workflow started",
