@@ -145,7 +145,7 @@ func (s *Service) CreateDeployment(
 
 	if err != nil {
 		s.logger.Error("failed to start deployment workflow", "error", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("1. unable to start workflow: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
 	}
 
 	s.logger.Info("deployment workflow started",
