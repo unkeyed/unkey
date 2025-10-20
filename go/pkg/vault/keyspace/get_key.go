@@ -1,4 +1,4 @@
-package keyring
+package keyspace
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-func (k *Keyring) GetKey(ctx context.Context, ringID, keyID string) (*vaultv1.DataEncryptionKey, error) {
-	ctx, span := tracing.Start(ctx, "keyring.GetKey")
+func (k *KeySpace) GetKey(ctx context.Context, spaceID, keyID string) (*vaultv1.DataEncryptionKey, error) {
+	ctx, span := tracing.Start(ctx, "keyspace.GetKey")
 	defer span.End()
 
-	lookupKey := k.buildLookupKey(ringID, keyID)
+	lookupKey := k.buildLookupKey(spaceID, keyID)
 	span.SetAttributes(attribute.String("lookupKey", lookupKey))
 
 	b, found, err := k.store.GetObject(ctx, lookupKey)

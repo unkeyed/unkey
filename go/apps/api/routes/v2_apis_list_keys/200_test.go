@@ -40,9 +40,9 @@ func TestSuccess(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
 
-	// Create a keyAuth (keyring) for the API
+	// Create a keySpace for the API
 	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keyAuthID,
 		WorkspaceID:   workspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
@@ -153,7 +153,7 @@ func TestSuccess(t *testing.T) {
 
 		insertParams := db.InsertKeyParams{
 			ID:                keyData.id,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keyAuthID,
 			Hash:              hash.Sha256(key),
 			Start:             keyData.start,
 			WorkspaceID:       workspace.ID,
@@ -430,7 +430,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("empty API returns empty result", func(t *testing.T) {
 		// Create a new API with no keys
 		emptyKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 			ID:          emptyKeyAuthID,
 			WorkspaceID: workspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
@@ -496,7 +496,7 @@ func TestSuccess(t *testing.T) {
 		keyWithRatelimits := uid.New("key")
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithRatelimits,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keyAuthID,
 			Hash:              hash.Sha256(uid.New("test")),
 			Start:             "rl_test_",
 			WorkspaceID:       workspace.ID,
@@ -516,7 +516,7 @@ func TestSuccess(t *testing.T) {
 		keyWithoutRatelimits := uid.New("key")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithoutRatelimits,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keyAuthID,
 			Hash:              hash.Sha256("no_rl_test_" + uid.New("")),
 			Start:             "no_rl_test_",
 			WorkspaceID:       workspace.ID,

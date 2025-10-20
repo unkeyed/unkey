@@ -34,7 +34,7 @@ func TestGetKeyForbidden(t *testing.T) {
 
 	// Create API for testing
 	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keyAuthID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
@@ -56,7 +56,7 @@ func TestGetKeyForbidden(t *testing.T) {
 
 	// Create another API for cross-API testing
 	otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            otherKeyAuthID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
@@ -80,7 +80,7 @@ func TestGetKeyForbidden(t *testing.T) {
 	otherWorkspace := h.CreateWorkspace()
 
 	otherWsKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            otherWsKeyAuthID,
 		WorkspaceID:   otherWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
@@ -105,7 +105,7 @@ func TestGetKeyForbidden(t *testing.T) {
 	keyString := "test_" + uid.New("")
 	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 		ID:                keyID,
-		KeyringID:         keyAuthID,
+		KeySpaceID:        keyAuthID,
 		Hash:              hash.Sha256(keyString),
 		Start:             keyString[:4],
 		WorkspaceID:       h.Resources().UserWorkspace.ID,

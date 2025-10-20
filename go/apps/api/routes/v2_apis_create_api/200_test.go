@@ -76,11 +76,11 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.NotEmpty(t, api.KeyAuthID.String)
 		require.False(t, api.DeletedAtM.Valid)
 
-		// Verify the key auth was created
-		keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+		// Verify the key space was created
+		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 		require.NoError(t, err)
-		require.Equal(t, h.Resources().UserWorkspace.ID, keyAuth.WorkspaceID)
-		require.False(t, keyAuth.DeletedAtM.Valid)
+		require.Equal(t, h.Resources().UserWorkspace.ID, keySpace.WorkspaceID)
+		require.False(t, keySpace.DeletedAtM.Valid)
 
 		// Verify the audit log was created
 		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.ApiId)

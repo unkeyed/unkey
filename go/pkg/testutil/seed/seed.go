@@ -22,7 +22,7 @@ import (
 // Resources represents seed data created for tests
 type Resources struct {
 	RootWorkspace db.Workspace
-	RootKeyring   db.KeyAuth
+	RootKeySpace  db.KeyAuth
 	RootApi       db.Api
 	UserWorkspace db.Workspace
 }
@@ -76,9 +76,9 @@ func (s *Seeder) Seed(ctx context.Context) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	keyring, err := db.Query.FindKeyringByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
 	require.NoError(s.t, err)
-	s.Resources.RootKeyring = keyring
+	s.Resources.RootKeySpace = keySpace
 }
 
 type CreateApiRequest struct {
@@ -93,7 +93,7 @@ type CreateApiRequest struct {
 
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, s.DB.RW(), db.InsertKeyringParams{
+	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
 		ID:                 keyAuthID,
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
@@ -130,7 +130,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		Hash:              hash.Sha256(key),
 		WorkspaceID:       s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:    sql.NullString{String: workspaceID, Valid: true},
-		KeyringID:         s.Resources.RootKeyring.ID,
+		KeySpaceID:        s.Resources.RootKeySpace.ID,
 		Start:             key[:4],
 		CreatedAtM:        time.Now().UnixMilli(),
 		Enabled:           true,
@@ -222,7 +222,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                keyID,
-		KeyringID:         req.KeyAuthID,
+		KeySpaceID:        req.KeyAuthID,
 		WorkspaceID:       req.WorkspaceID,
 		CreatedAtM:        time.Now().UnixMilli(),
 		Hash:              hash.Sha256(key),

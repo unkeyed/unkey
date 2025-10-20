@@ -11,7 +11,7 @@ func (s *Service) CreateDEK(ctx context.Context, req *vaultv1.CreateDEKRequest) 
 	ctx, span := tracing.Start(ctx, "vault.CreateDEK")
 	defer span.End()
 
-	key, err := s.keyring.CreateKey(ctx, req.GetKeyring())
+	key, err := s.keyspace.CreateKey(ctx, req.GetKeyring())
 	if err != nil {
 		return nil, err
 	}

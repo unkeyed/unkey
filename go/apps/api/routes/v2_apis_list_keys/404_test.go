@@ -64,9 +64,9 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for API in different workspace
 	t.Run("API in different workspace", func(t *testing.T) {
-		// Create a keyAuth for the API in the different workspace
+		// Create a keySpace for the API in the different workspace
 		otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 			ID:            otherKeyAuthID,
 			WorkspaceID:   workspace2.ID,
 			CreatedAtM:    time.Now().UnixMilli(),
@@ -105,9 +105,9 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for deleted API
 	t.Run("deleted API", func(t *testing.T) {
-		// Create a keyAuth for the API
+		// Create a keySpace for the API
 		deletedKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 			ID:            deletedKeyAuthID,
 			WorkspaceID:   workspace1.ID,
 			CreatedAtM:    time.Now().UnixMilli(),

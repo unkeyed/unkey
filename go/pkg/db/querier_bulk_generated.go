@@ -21,7 +21,7 @@ type BulkQuerier interface {
 	InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error
 	InsertKeyPermissions(ctx context.Context, db DBTX, args []InsertKeyPermissionParams) error
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
-	InsertKeyrings(ctx context.Context, db DBTX, args []InsertKeyringParams) error
+	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error

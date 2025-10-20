@@ -150,7 +150,7 @@ func TestWithRetry_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Insert keyring using sqlc
-	err = Query.InsertKeyring(ctx, dbInstance.RW(), InsertKeyringParams{
+	err = Query.InsertKeySpace(ctx, dbInstance.RW(), InsertKeySpaceParams{
 		ID:          keyringID,
 		WorkspaceID: workspaceID,
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -171,7 +171,7 @@ func TestWithRetry_Integration(t *testing.T) {
 			keyID := uid.New(uid.KeyPrefix)
 			err := Query.InsertKey(ctx, dbInstance.RW(), InsertKeyParams{
 				ID:                keyID,
-				KeyringID:         keyringID,
+				KeySpaceID:        keyringID,
 				Hash:              hash.Sha256(keyID),
 				Start:             "retry_start",
 				WorkspaceID:       workspaceID,
@@ -200,7 +200,7 @@ func TestWithRetry_Integration(t *testing.T) {
 
 		keyParams := InsertKeyParams{
 			ID:                keyID,
-			KeyringID:         keyringID,
+			KeySpaceID:        keyringID,
 			Hash:              hash.Sha256(keyID),
 			Start:             "dup_start",
 			WorkspaceID:       workspaceID,

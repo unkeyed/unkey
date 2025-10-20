@@ -1,4 +1,4 @@
-package keyring
+package keyspace
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
-type Keyring struct {
+type KeySpace struct {
 	store  storage.Storage
 	logger logging.Logger
 
@@ -25,9 +25,9 @@ type Config struct {
 	EncryptionKey  *vaultv1.KeyEncryptionKey
 }
 
-func New(config Config) (*Keyring, error) {
+func New(config Config) (*KeySpace, error) {
 
-	return &Keyring{
+	return &KeySpace{
 		store:          config.Store,
 		logger:         config.Logger,
 		encryptionKey:  config.EncryptionKey,
@@ -35,7 +35,7 @@ func New(config Config) (*Keyring, error) {
 	}, nil
 }
 
-// The storage layer doesn't know about keyrings, so we need to prefix the key with the keyring id
-func (k *Keyring) buildLookupKey(ringID, dekID string) string {
-	return fmt.Sprintf("keyring/%s/%s", ringID, dekID)
+// The storage layer doesn't know about keyspaces, so we need to prefix the key with the keyspace id
+func (k *KeySpace) buildLookupKey(spaceID, dekID string) string {
+	return fmt.Sprintf("keyring/%s/%s", spaceID, dekID)
 }

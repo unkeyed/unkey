@@ -427,10 +427,10 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
-	//FindKeyringByID
+	//FindKeySpaceByID
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
-	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	//FindLiveApiByID
 	//
 	//  SELECT apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
@@ -1181,7 +1181,7 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertKeyRole(ctx context.Context, db DBTX, arg InsertKeyRoleParams) error
-	//InsertKeyring
+	//InsertKeySpace
 	//
 	//  INSERT INTO `key_auth` (
 	//      id,
@@ -1202,7 +1202,7 @@ type Querier interface {
 	//      0,
 	//      0
 	//  )
-	InsertKeyring(ctx context.Context, db DBTX, arg InsertKeyringParams) error
+	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (

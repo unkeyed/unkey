@@ -33,9 +33,9 @@ func (s *Service) Decrypt(
 
 	dek, hit := s.keyCache.Get(ctx, cacheKey)
 	if hit == cache.Miss {
-		dek, err = s.keyring.GetKey(ctx, req.GetKeyring(), encrypted.GetEncryptionKeyId())
+		dek, err = s.keyspace.GetKey(ctx, req.GetKeyring(), encrypted.GetEncryptionKeyId())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get dek in keyring %s: %w", req.GetKeyring(), err)
+			return nil, fmt.Errorf("failed to get dek in keyspace %s: %w", req.GetKeyring(), err)
 		}
 		s.keyCache.Set(ctx, cacheKey, dek)
 	}

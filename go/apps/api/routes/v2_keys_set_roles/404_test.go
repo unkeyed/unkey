@@ -159,7 +159,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		// Create a keyring and key in the other workspace
 		otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
+		err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 			ID:                 otherKeyAuthID,
 			WorkspaceID:        otherWorkspaceID,
 			StoreEncryptedKeys: false,
@@ -173,7 +173,7 @@ func TestNotFoundErrors(t *testing.T) {
 		otherKeyString := "other_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                otherKeyID,
-			KeyringID:         otherKeyAuthID,
+			KeySpaceID:        otherKeyAuthID,
 			Hash:              hash.Sha256(otherKeyString),
 			Start:             otherKeyString[:4],
 			WorkspaceID:       otherWorkspaceID,

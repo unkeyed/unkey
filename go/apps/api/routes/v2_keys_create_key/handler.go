@@ -106,12 +106,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("api not set up for keys",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
 			)
 		}
 
@@ -157,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keyAuth.StoreEncryptedKeys {
+		if !keySpace.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -184,7 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			insertKeyParams := db.InsertKeyParams{
 				ID:                keyID,
-				KeyringID:         api.KeyAuthID.String,
+				KeySpaceID:        api.KeyAuthID.String,
 				Hash:              keyResult.Hash,
 				Start:             keyResult.Start,
 				WorkspaceID:       auth.AuthorizedWorkspaceID,
