@@ -163,13 +163,13 @@ if err != nil {
 **Fire-and-forget (Send):**
 
 ```go
-invocation := s.yourServiceClient(keyValue).
+invocation, err := s.yourServiceClient(keyValue).
     YourOperation().
     Send(ctx, &hydrav1.YourRequest{
         KeyField: keyValue,
     })
-if invocation.Error != nil {
-    return fmt.Errorf("failed to start: %w", invocation.Error)
+if err != nil {
+    return fmt.Errorf("failed to start: %w", err)
 }
 // Use invocation.Id for tracking
 ```
