@@ -2,17 +2,21 @@
 // @generated from file ctrl/v1/build.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/build.proto.
  */
-export const file_ctrl_v1_build: GenFile = /*@__PURE__*/
-  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxImgKEkNyZWF0ZUJ1aWxkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRISCgp2ZXJzaW9uX2lkGAMgASgJEhQKDGRvY2tlcl9pbWFnZRgEIAEoCSInChNDcmVhdGVCdWlsZFJlc3BvbnNlEhAKCGJ1aWxkX2lkGAEgASgJIiMKD0dldEJ1aWxkUmVxdWVzdBIQCghidWlsZF9pZBgBIAEoCSIxChBHZXRCdWlsZFJlc3BvbnNlEh0KBWJ1aWxkGAEgASgLMg4uY3RybC52MS5CdWlsZCLpAgoFQnVpbGQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSEgoKdmVyc2lvbl9pZBgEIAEoCRIkCgZzdGF0dXMYBSABKA4yFC5jdHJsLnYxLkJ1aWxkU3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYBiABKAkSLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIXCg9yb290ZnNfaW1hZ2VfaWQYCyABKAkqsAEKC0J1aWxkU3RhdHVzEhwKGEJVSUxEX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFEJVSUxEX1NUQVRVU19QRU5ESU5HEAESGAoUQlVJTERfU1RBVFVTX1JVTk5JTkcQAhIaChZCVUlMRF9TVEFUVVNfU1VDQ0VFREVEEAMSFwoTQlVJTERfU1RBVFVTX0ZBSUxFRBAEEhoKFkJVSUxEX1NUQVRVU19DQU5DRUxMRUQQBTKdAQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJBCghHZXRCdWlsZBIYLmN0cmwudjEuR2V0QnVpbGRSZXF1ZXN0GhkuY3RybC52MS5HZXRCdWlsZFJlc3BvbnNlIgBCjAEKC2NvbS5jdHJsLnYxQgpCdWlsZFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+export const file_ctrl_v1_build: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxImgKEkNyZWF0ZUJ1aWxkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRISCgp2ZXJzaW9uX2lkGAMgASgJEhQKDGRvY2tlcl9pbWFnZRgEIAEoCSInChNDcmVhdGVCdWlsZFJlc3BvbnNlEhAKCGJ1aWxkX2lkGAEgASgJIiMKD0dldEJ1aWxkUmVxdWVzdBIQCghidWlsZF9pZBgBIAEoCSIxChBHZXRCdWlsZFJlc3BvbnNlEh0KBWJ1aWxkGAEgASgLMg4uY3RybC52MS5CdWlsZCLpAgoFQnVpbGQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSEgoKdmVyc2lvbl9pZBgEIAEoCRIkCgZzdGF0dXMYBSABKA4yFC5jdHJsLnYxLkJ1aWxkU3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYBiABKAkSLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIXCg9yb290ZnNfaW1hZ2VfaWQYCyABKAkqsAEKC0J1aWxkU3RhdHVzEhwKGEJVSUxEX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFEJVSUxEX1NUQVRVU19QRU5ESU5HEAESGAoUQlVJTERfU1RBVFVTX1JVTk5JTkcQAhIaChZCVUlMRF9TVEFUVVNfU1VDQ0VFREVEEAMSFwoTQlVJTERfU1RBVFVTX0ZBSUxFRBAEEhoKFkJVSUxEX1NUQVRVU19DQU5DRUxMRUQQBTKdAQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJBCghHZXRCdWlsZBIYLmN0cmwudjEuR2V0QnVpbGRSZXF1ZXN0GhkuY3RybC52MS5HZXRCdWlsZFJlc3BvbnNlIgBCjAEKC2NvbS5jdHJsLnYxQgpCdWlsZFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * @generated from message ctrl.v1.CreateBuildRequest
@@ -43,7 +47,8 @@ export type CreateBuildRequest = Message<"ctrl.v1.CreateBuildRequest"> & {
  * Describes the message ctrl.v1.CreateBuildRequest.
  * Use `create(CreateBuildRequestSchema)` to create a new message.
  */
-export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> = /*@__PURE__*/
+export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 0);
 
 /**
@@ -60,7 +65,8 @@ export type CreateBuildResponse = Message<"ctrl.v1.CreateBuildResponse"> & {
  * Describes the message ctrl.v1.CreateBuildResponse.
  * Use `create(CreateBuildResponseSchema)` to create a new message.
  */
-export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> = /*@__PURE__*/
+export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 1);
 
 /**
@@ -77,7 +83,8 @@ export type GetBuildRequest = Message<"ctrl.v1.GetBuildRequest"> & {
  * Describes the message ctrl.v1.GetBuildRequest.
  * Use `create(GetBuildRequestSchema)` to create a new message.
  */
-export const GetBuildRequestSchema: GenMessage<GetBuildRequest> = /*@__PURE__*/
+export const GetBuildRequestSchema: GenMessage<GetBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 2);
 
 /**
@@ -94,7 +101,8 @@ export type GetBuildResponse = Message<"ctrl.v1.GetBuildResponse"> & {
  * Describes the message ctrl.v1.GetBuildResponse.
  * Use `create(GetBuildResponseSchema)` to create a new message.
  */
-export const GetBuildResponseSchema: GenMessage<GetBuildResponse> = /*@__PURE__*/
+export const GetBuildResponseSchema: GenMessage<GetBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 3);
 
 /**
@@ -171,8 +179,7 @@ export type Build = Message<"ctrl.v1.Build"> & {
  * Describes the message ctrl.v1.Build.
  * Use `create(BuildSchema)` to create a new message.
  */
-export const BuildSchema: GenMessage<Build> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_build, 4);
+export const BuildSchema: GenMessage<Build> = /*@__PURE__*/ messageDesc(file_ctrl_v1_build, 4);
 
 /**
  * Build status enum
@@ -214,7 +221,8 @@ export enum BuildStatus {
 /**
  * Describes the enum ctrl.v1.BuildStatus.
  */
-export const BuildStatusSchema: GenEnum<BuildStatus> = /*@__PURE__*/
+export const BuildStatusSchema: GenEnum<BuildStatus> =
+  /*@__PURE__*/
   enumDesc(file_ctrl_v1_build, 0);
 
 /**
@@ -230,7 +238,7 @@ export const BuildService: GenService<{
     methodKind: "unary";
     input: typeof CreateBuildRequestSchema;
     output: typeof CreateBuildResponseSchema;
-  },
+  };
   /**
    * Get build details
    *
@@ -240,7 +248,5 @@ export const BuildService: GenService<{
     methodKind: "unary";
     input: typeof GetBuildRequestSchema;
     output: typeof GetBuildResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_ctrl_v1_build, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_build, 0);
