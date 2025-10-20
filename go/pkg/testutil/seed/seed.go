@@ -417,7 +417,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Role WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Role Name must be set"))
 
-	roleID := uid.New(uid.PermissionPrefix)
+	roleID := uid.New(uid.RolePrefix)
 	createdAt := time.Now().UnixMilli()
 
 	err := db.Query.InsertRole(ctx, s.DB.RW(), db.InsertRoleParams{
@@ -459,8 +459,8 @@ type CreatePermissionRequest struct {
 
 func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) db.Permission {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
-	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission Name must be set"))
-	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission Slug must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.Name, "Permission Name must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.Slug, "Permission Slug must be set"))
 
 	permissionID := uid.New(uid.PermissionPrefix)
 	createdAt := time.Now().UnixMilli()
