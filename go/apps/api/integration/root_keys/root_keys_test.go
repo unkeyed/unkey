@@ -141,13 +141,13 @@ func TestGetRootKey_Expired(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	rootWorkspace := h.Resources().RootWorkspace
-	rootKeyring := h.Resources().RootKeyring
+	rootKeySpace := h.Resources().RootKeySpace
 
 	// Create an expired root key
 	expiredTime := time.Now().Add(-1 * time.Hour)
 	rootKeyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID:    rootWorkspace.ID,
-		KeyAuthID:      rootKeyring.ID,
+		KeyAuthID:      rootKeySpace.ID,
 		ForWorkspaceID: &workspace.ID,
 		Expires:        &expiredTime,
 	})
@@ -264,13 +264,13 @@ func TestGetRootKey_WorkspaceNotFound(t *testing.T) {
 	h := integration.New(t, integration.Config{NumNodes: 1})
 
 	rootWorkspace := h.Resources().RootWorkspace
-	rootKeyring := h.Resources().RootKeyring
+	rootKeySpace := h.Resources().RootKeySpace
 	nonExistentWorkspaceID := uid.New("ws_nonexistent")
 
 	// Create a root key pointing to a non-existent workspace
 	rootKeyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID:    rootWorkspace.ID,
-		KeyAuthID:      rootKeyring.ID,
+		KeyAuthID:      rootKeySpace.ID,
 		ForWorkspaceID: &nonExistentWorkspaceID,
 	})
 	rootKey := rootKeyResponse.Key

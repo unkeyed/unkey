@@ -1805,10 +1805,10 @@ type Querier interface {
 	//  SET remaining_requests = ?
 	//  WHERE id = ?
 	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error
-	//UpdateKeyringKeyEncryption
+	//UpdateKeySpaceKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
-	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
+	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
 	//UpdateProjectDeployments
 	//
 	//  UPDATE projects

@@ -44,7 +44,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
+	err = db.Query.UpdateKeySpaceKeyEncryption(ctx, h.DB.RW(), db.UpdateKeySpaceKeyEncryptionParams{
 		ID:                 keyAuthID,
 		StoreEncryptedKeys: true,
 	})
