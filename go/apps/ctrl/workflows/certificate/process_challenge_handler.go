@@ -105,6 +105,7 @@ func (s *Service) ProcessChallenge(
 			return EncryptedCertificate{}, err
 		}
 
+		// nolint: godox
 		// TODO: Implement certificate obtain/renew logic
 		// This requires the ACME client from step 3
 

@@ -174,6 +174,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					ID:           instance.GetId(),
 					DeploymentID: deployment.ID,
 					Address:      sql.NullString{Valid: true, String: instance.GetAddress()},
+					// nolint: godox
 					// TODO: Make sure configurable later
 					CpuMillicores: 1000,
 					MemoryMb:      1024,
