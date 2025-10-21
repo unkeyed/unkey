@@ -6,13 +6,15 @@ on:
 permissions:
   contents: read
 jobs:
+  detect_changes:
+    uses: ./.github/workflows/job_detect_changes.yaml
+
   autofix:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    needs: [detect_changes]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-        with:
-          fetch-depth: 2
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
@@ -23,58 +25,29 @@ jobs:
           node-version: 22
           cache: "pnpm"
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check for Go code changes in latest push
-        id: go-changes
-        run: |
-          BEFORE="${{ github.event.before }}"
-          AFTER="${{ github.event.after }}"
-
-          # Check if this is the first push (before is all zeros)
-          if [[ "$BEFORE" =~ ^0+$ ]]; then
-            # First push to branch - check if any files in this commit are Go files
-            if git diff --name-only HEAD~1 HEAD | grep -q '^go/'; then
-              echo "go=true" >> $GITHUB_OUTPUT
-            else
-              echo "go=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            # Subsequent pushes - check what changed between before and after
-            if git diff --name-only ${BEFORE} ${AFTER} | grep -q '^go/'; then
-              echo "go=true" >> $GITHUB_OUTPUT
-            else
-              echo "go=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-        shell: bash
-
       - name: Setup Go
-        if: steps.go-changes.outputs.go == 'true'
+        if: needs.detect_changes.outputs.go == 'true'
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
           go-version-file: ./go/go.mod
           cache-dependency-path: ./go/go.sum
-
       - name: Cache golangci-lint
-        if: steps.go-changes.outputs.go == 'true'
+        if: needs.detect_changes.outputs.go == 'true'
         uses: actions/cache@v4
         with:
           path: ~/go/bin/golangci-lint
           key: ${{ runner.os }}-golangci-lint-v2.4.0
-
       - name: Install golangci-lint
-        if: steps.go-changes.outputs.go == 'true'
+        if: needs.detect_changes.outputs.go == 'true'
         run: |
           if [ ! -f ~/go/bin/golangci-lint ]; then
             go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0
           fi
         shell: bash
-
       - name: Format Go code
-        if: steps.go-changes.outputs.go == 'true'
+        if: needs.detect_changes.outputs.go == 'true'
         run: make fmt
         working-directory: ./go
-
       - name: Install dependencies
         run: pnpm install --recursive
         env:
@@ -83,6 +56,7 @@ jobs:
         env:
           CI: 1
       - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27 # v1.3.2
+
   lint_docs:
     name: Docs
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
