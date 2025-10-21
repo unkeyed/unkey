@@ -121,21 +121,23 @@ func (s *Session) UserAgent() string {
 // Location returns the client's IP address, checking X-Forwarded-For header first,
 // then falling back to RemoteAddr.
 func (s *Session) Location() string {
-    xff := s.r.Header.Get("X-Forwarded-For")
-    if xff != "" {
-        ips := strings.Split(xff, ",")
-        ip := strings.TrimSpace(ips[0])
-        if ip != "" {
-            return ip
-        }
-    }
+	xff := s.r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		for _, ip := range ips {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				return ip
+			}
+		}
+	}
 
-    // Fall back to RemoteAddr
-    host, _, err := net.SplitHostPort(s.r.RemoteAddr)
-    if err == nil {
-        return host
-    }
-    return s.r.RemoteAddr
+	// Fall back to RemoteAddr
+	host, _, err := net.SplitHostPort(s.r.RemoteAddr)
+	if err == nil {
+		return host
+	}
+	return s.r.RemoteAddr
 }
 
 // ReadBody reads and returns the request body.

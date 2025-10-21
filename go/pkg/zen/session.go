@@ -129,19 +129,21 @@ func (s *Session) UserAgent() string {
 func (s *Session) Location() string {
 	xff := s.r.Header.Get("X-Forwarded-For")
 	if xff != "" {
-        ips := strings.Split(xff, ",")
-        ip := strings.TrimSpace(ips[0])
-        if ip != "" {
-            return ip
-        }
-    }
+		ips := strings.Split(xff, ",")
+		for _, ip := range ips {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				return ip
+			}
+		}
+	}
 
 	// Fall back to RemoteAddr
-    host, _, err := net.SplitHostPort(s.r.RemoteAddr)
-    if err == nil {
-        return host
-    }
-    return s.r.RemoteAddr
+	host, _, err := net.SplitHostPort(s.r.RemoteAddr)
+	if err == nil {
+		return host
+	}
+	return s.r.RemoteAddr
 }
 
 // Request returns the underlying http.Request.
