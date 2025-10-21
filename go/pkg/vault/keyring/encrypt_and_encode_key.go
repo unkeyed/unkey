@@ -1,4 +1,4 @@
-package keyspace
+package keyring
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (k *KeySpace) EncryptAndEncodeKey(ctx context.Context, dek *vaultv1.DataEncryptionKey) ([]byte, error) {
-	_, span := tracing.Start(ctx, "keyspace.EncryptAndEncodeKey")
+func (k *Keyring) EncryptAndEncodeKey(ctx context.Context, dek *vaultv1.DataEncryptionKey) ([]byte, error) {
+	_, span := tracing.Start(ctx, "keyring.EncryptAndEncodeKey")
 	defer span.End()
 	b, err := proto.Marshal(dek)
 	if err != nil {

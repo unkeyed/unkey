@@ -1,4 +1,4 @@
-package keyspace
+package keyring
 
 import (
 	"context"
@@ -8,10 +8,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
-func (k *KeySpace) RollKeys(ctx context.Context, spaceID string) error {
-	ctx, span := tracing.Start(ctx, "keyspace.RollKeys")
+func (k *Keyring) RollKeys(ctx context.Context, ringID string) error {
+	ctx, span := tracing.Start(ctx, "keyring.RollKeys")
 	defer span.End()
-	lookupKeys, err := k.store.ListObjectKeys(ctx, k.buildLookupKey(spaceID, "dek_"))
+	lookupKeys, err := k.store.ListObjectKeys(ctx, k.buildLookupKey(ringID, "dek_"))
 	if err != nil {
 		return fmt.Errorf("failed to list keys: %w", err)
 	}

@@ -10,7 +10,7 @@ import (
 	cacheMiddleware "github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/vault/keyspace"
+	"github.com/unkeyed/unkey/go/pkg/vault/keyring"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	"google.golang.org/protobuf/proto"
 )
@@ -26,7 +26,7 @@ type Service struct {
 	decryptionKeys map[string]*vaultv1.KeyEncryptionKey
 	encryptionKey  *vaultv1.KeyEncryptionKey
 
-	keyspace *keyspace.KeySpace
+	keyring *keyring.Keyring
 }
 
 type Config struct {
@@ -43,14 +43,14 @@ func New(cfg Config) (*Service, error) {
 
 	}
 
-	keySpace, err := keyspace.New(keyspace.Config{
+	kr, err := keyring.New(keyring.Config{
 		Store:          cfg.Storage,
 		Logger:         cfg.Logger,
 		DecryptionKeys: decryptionKeys,
 		EncryptionKey:  encryptionKey,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create keyspace: %w", err)
+		return nil, fmt.Errorf("failed to create keyring: %w", err)
 	}
 
 	cache, err := cache.New(cache.Config[string, *vaultv1.DataEncryptionKey]{
@@ -72,7 +72,7 @@ func New(cfg Config) (*Service, error) {
 		decryptionKeys: decryptionKeys,
 
 		encryptionKey: encryptionKey,
-		keyspace:      keySpace,
+		keyring:       kr,
 	}, nil
 }
 

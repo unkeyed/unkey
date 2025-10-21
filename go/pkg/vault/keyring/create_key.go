@@ -1,4 +1,4 @@
-package keyspace
+package keyring
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault/keys"
 )
 
-func (k *KeySpace) CreateKey(ctx context.Context, spaceID string) (*vaultv1.DataEncryptionKey, error) {
-	ctx, span := tracing.Start(ctx, "keyspace.CreateKey")
+func (k *Keyring) CreateKey(ctx context.Context, ringID string) (*vaultv1.DataEncryptionKey, error) {
+	ctx, span := tracing.Start(ctx, "keyring.CreateKey")
 	defer span.End()
 	keyId, key, err := keys.GenerateKey("dek")
 	if err != nil {
@@ -29,11 +29,11 @@ func (k *KeySpace) CreateKey(ctx context.Context, spaceID string) (*vaultv1.Data
 		return nil, fmt.Errorf("failed to encrypt and encode dek: %w", err)
 	}
 
-	err = k.store.PutObject(ctx, k.buildLookupKey(spaceID, dek.GetId()), b)
+	err = k.store.PutObject(ctx, k.buildLookupKey(ringID, dek.GetId()), b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to put encrypted dek: %w", err)
 	}
-	err = k.store.PutObject(ctx, k.buildLookupKey(spaceID, "LATEST"), b)
+	err = k.store.PutObject(ctx, k.buildLookupKey(ringID, "LATEST"), b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to put encrypted dek: %w", err)
 	}

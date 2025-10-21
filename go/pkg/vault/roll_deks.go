@@ -24,7 +24,7 @@ func (s *Service) RollDeks(ctx context.Context) error {
 		if !found {
 			return storage.ErrObjectNotFound
 		}
-		dek, kekID, err := s.keyspace.DecodeAndDecryptKey(ctx, b)
+		dek, kekID, err := s.keyring.DecodeAndDecryptKey(ctx, b)
 		if err != nil {
 			return fmt.Errorf("failed to decode and decrypt key: %w", err)
 		}
@@ -34,7 +34,7 @@ func (s *Service) RollDeks(ctx context.Context) error {
 			)
 			continue
 		}
-		reencrypted, err := s.keyspace.EncryptAndEncodeKey(ctx, dek)
+		reencrypted, err := s.keyring.EncryptAndEncodeKey(ctx, dek)
 		if err != nil {
 			return fmt.Errorf("failed to re-encrypt key: %w", err)
 		}

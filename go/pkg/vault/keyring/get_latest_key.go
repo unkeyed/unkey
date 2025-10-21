@@ -1,4 +1,4 @@
-package keyspace
+package keyring
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
-// GetLatestKey returns the latest key from the keyspace. If no key is found, it creates a new key.
-func (k *KeySpace) GetLatestKey(ctx context.Context, spaceID string) (*vaultv1.DataEncryptionKey, error) {
-	ctx, span := tracing.Start(ctx, "keyspace.GetLatestKey")
+// GetLatestKey returns the latest key from the keyring. If no key is found, it creates a new key.
+func (k *Keyring) GetLatestKey(ctx context.Context, ringID string) (*vaultv1.DataEncryptionKey, error) {
+	ctx, span := tracing.Start(ctx, "keyring.GetLatestKey")
 	defer span.End()
-	dek, err := k.GetKey(ctx, spaceID, "LATEST")
+	dek, err := k.GetKey(ctx, ringID, "LATEST")
 
 	if err == nil {
 		return dek, nil
@@ -25,5 +25,5 @@ func (k *KeySpace) GetLatestKey(ctx context.Context, spaceID string) (*vaultv1.D
 		return nil, fmt.Errorf("failed to get key: %w", err)
 	}
 
-	return k.CreateKey(ctx, spaceID)
+	return k.CreateKey(ctx, ringID)
 }
