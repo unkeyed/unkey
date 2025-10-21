@@ -81,6 +81,9 @@ export default async function SuccessPage(props: Props) {
       },
     });
 
+    // Check if this is a first-time user (no previous subscriptions)
+    const isFirstTimeUser = !ws.stripeCustomerId;
+
     // Update workspace with stripe customer ID
     try {
       await db
@@ -102,7 +105,29 @@ export default async function SuccessPage(props: Props) {
       );
     }
 
-    // Success - redirect to billing page with workspace slug
+    // If this is a first-time user, show plan selection modal
+    if (isFirstTimeUser) {
+      try {
+        const products = await stripe.products
+          .list({
+            active: true,
+            ids: e.STRIPE_PRODUCT_IDS_PRO,
+            limit: 100,
+            expand: ["data.default_price"],
+          })
+          .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
+
+        return (
+          <SuccessClient workSpaceSlug={ws.slug} showPlanSelection={true} products={products} />
+        );
+      } catch (error) {
+        console.error("Failed to load products:", error);
+        // Fall back to regular billing page if products fail to load
+        return <SuccessClient workSpaceSlug={ws.slug} />;
+      }
+    }
+
+    // Success - redirect to billing page for existing customers
     return <SuccessClient workSpaceSlug={ws.slug} />;
   } catch (error) {
     console.error("Error processing Stripe session:", error);
@@ -117,3 +142,31 @@ export default async function SuccessPage(props: Props) {
     );
   }
 }
+
+const mapProduct = (p: Stripe.Product) => {
+  if (!p.default_price) {
+    throw new Error(`Product ${p.id} is missing default_price`);
+  }
+
+  const price = typeof p.default_price === "string" ? null : (p.default_price as Stripe.Price);
+
+  if (!price) {
+    throw new Error(`Product ${p.id} default_price must be expanded`);
+  }
+
+  if (price.unit_amount === null || price.unit_amount === undefined) {
+    throw new Error(`Product ${p.id} price is missing unit_amount`);
+  }
+
+  const quotaValue = Number.parseInt(p.metadata.quota_requests_per_month, 10);
+
+  return {
+    id: p.id,
+    name: p.name,
+    priceId: price.id,
+    dollar: price.unit_amount / 100,
+    quotas: {
+      requestsPerMonth: quotaValue,
+    },
+  };
+};

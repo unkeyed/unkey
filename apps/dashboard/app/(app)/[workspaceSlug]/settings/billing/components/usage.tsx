@@ -1,7 +1,17 @@
+"use client";
 import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import { SettingCard } from "@unkey/ui";
 
-export const Usage: React.FC<{ current: number; max: number }> = ({ current, max }) => {
+export const Usage: React.FC<{
+  quota: number;
+}> = ({ quota }) => {
+  const { data: usage } = trpc.billing.queryUsage.useQuery();
+  const verifications = usage?.billableVerifications || 0;
+  const ratelimits = usage?.billableRatelimits || 0;
+  const current = verifications + ratelimits;
+  const max = quota || 150000;
+
   return (
     <SettingCard
       title="Usage this month"

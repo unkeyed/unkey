@@ -116,6 +116,7 @@ import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
+import { getBillingInfo } from "./stripe/getBillingInfo";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
@@ -212,6 +213,7 @@ export const router = t.router({
     updateSubscription,
     cancelSubscription,
     uncancelSubscription,
+    getBillingInfo,
   }),
   vercel: vercelRouter,
   plain: t.router({
