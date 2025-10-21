@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: ./go/go.sum
 
       - name: Cache golangci-lint
-        uses: actions/cache@5b097dc7fa07ac4c395eff24977337884dc22d5a # v4
+        uses: actions/cache@v4
         with:
           path: ~/go/bin/golangci-lint
           key: ${{ runner.os }}-golangci-lint-v2.4.0
