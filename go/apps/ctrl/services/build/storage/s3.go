@@ -115,6 +115,9 @@ func (s *S3) PutPresignedURL(ctx context.Context, key string, expiresIn time.Dur
 }
 
 func (s *S3) presign(ctx context.Context, key string, expiresIn time.Duration, method string) (string, error) {
+	logger := s.logger.With("method", method, "key", key, "expires_in", expiresIn.String())
+	logger.Info("presigning URL")
+
 	opts := func(o *awsS3.PresignOptions) {
 		o.Expires = expiresIn
 	}
@@ -134,10 +137,12 @@ func (s *S3) presign(ctx context.Context, key string, expiresIn time.Duration, m
 			Key:    aws.String(key),
 		}, opts)
 	default:
+		logger.Error("unsupported HTTP method", "error", fmt.Sprintf("method %s is not supported", method))
 		return "", fmt.Errorf("unsupported method: %s", method)
 	}
 
 	if err != nil {
+		logger.Error("failed to presign URL", "error", err)
 		return "", fmt.Errorf("failed to presign %s: %w", method, err)
 	}
 

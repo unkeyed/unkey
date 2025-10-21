@@ -63,6 +63,10 @@ type DepotConfig struct {
 	Username string
 	// AccessToken is the Depot API access token for authentication
 	AccessToken string
+	// Run builds on this platform ("dynamic", "linux/amd64", "linux/arm64") (default "dynamic")
+	BuildPlatform string
+	// Build data will be stored in the chosen region ("us-east-1","eu-central-1") (default "us-east-1")
+	ProjectRegion string
 }
 
 type Config struct {
@@ -144,6 +148,8 @@ func (c Config) Validate() error {
 			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
 			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
 			assert.NotEmpty(c.Depot.AccessToken, "Depot access token is required when using Depot backend"),
+			assert.NotEmpty(c.Depot.BuildPlatform, "Depot build platform is required when using Depot backend"), // ADD THIS
+			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"), // ADD THIS TOO
 		)
 	case BuildBackendDocker:
 		return assert.All(

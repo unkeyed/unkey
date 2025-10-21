@@ -378,6 +378,10 @@ services:
       UNKEY_DEPOT_REGISTRY_URL: "registry.depot.dev"
       UNKEY_DEPOT_USERNAME: "x-token"
       UNKEY_DEPOT_ACCESS_TOKEN: "${DEPOT_TOKEN:-}"
+      # Run builds on this platform ("dynamic", "linux/amd64", "linux/arm64") (default "dynamic")
+      UNKEY_DEPOT_BUILD_PLATFORM: "linux/amd64"
+      # Build data will be stored in the chosen region ("us-east-1","eu-central-1") (default "us-east-1")
+      UNKEY_DEPOT_PROJECT_REGION: "us-east-1"
 
   otel:
     networks:

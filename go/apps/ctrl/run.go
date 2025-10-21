@@ -194,14 +194,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	case BuildBackendDepot:
 		buildService = depot.New(depot.Config{
-			InstanceID:  cfg.InstanceID,
-			DB:          database,
-			APIUrl:      cfg.Depot.APIUrl,
-			RegistryUrl: cfg.Depot.RegistryUrl,
-			Username:    cfg.Depot.Username,
-			AccessToken: cfg.Depot.AccessToken,
-			Logger:      logger,
-			Storage:     buildStorage,
+			InstanceID:    cfg.InstanceID,
+			DB:            database,
+			APIUrl:        cfg.Depot.APIUrl,
+			RegistryUrl:   cfg.Depot.RegistryUrl,
+			Username:      cfg.Depot.Username,
+			AccessToken:   cfg.Depot.AccessToken,
+			BuildPlatform: cfg.Depot.BuildPlatform,
+			ProjectRegion: cfg.Depot.ProjectRegion,
+			Logger:        logger,
+			Storage:       buildStorage,
 		})
 		logger.Info("Using Depot build backend")
 

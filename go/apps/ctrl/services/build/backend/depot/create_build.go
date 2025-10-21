@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
@@ -23,11 +24,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
-
-type authTransport struct {
-	token string
-	base  http.RoundTripper
-}
 
 // CreateBuild orchestrates the container image build process using Depot.
 //
@@ -51,14 +47,20 @@ func (s *Depot) CreateBuild(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	const architecture = "arm64"
-	platform := fmt.Sprintf("linux/%s", architecture)
+	buildPlatform := strings.TrimPrefix(s.buildPlatform, "/")
+	parts := strings.Split(buildPlatform, "/")
 
-	s.logger.Info("Starting build process",
-		"context_key", req.Msg.ContextKey,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+	if err := assert.All(
+		assert.Equal(len(parts), 2, fmt.Sprintf("invalid build platform format: %s (expected format: linux/amd64)", s.buildPlatform)),
+		assert.Equal(parts[0], "linux", fmt.Sprintf("unsupported OS: %s (only linux is supported)", parts[0])),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 
-	s.logger.Info("Getting presigned URL for build context",
+	platform := buildPlatform
+	architecture := parts[1]
+
+	s.logger.Info("Starting build process - getting presigned URL for build context",
 		"context_key", req.Msg.ContextKey,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
@@ -235,17 +237,18 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		return project.DepotProjectID.String, nil
 	}
 
-	httpClient := &http.Client{
-		Transport: &authTransport{
-			token: s.accessToken,
-			base:  http.DefaultTransport,
-		},
-	}
+	httpClient := &http.Client{}
+	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("Authorization", "Bearer "+s.accessToken)
+			return next(ctx, req)
+		}
+	})
 
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.apiUrl)
+	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.apiUrl, connect.WithInterceptors(authInterceptor))
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
-		RegionId: "us-east-1",
+		RegionId: s.projectRegion,
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   50,
 			KeepDays: 14,
@@ -271,11 +274,4 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	s.logger.Info("Created new Depot project", "depot_project_id", createResp.Msg.Project.ProjectId, "unkey_project_id", unkeyProjectID, "project_name", projectName)
 
 	return createResp.Msg.Project.ProjectId, nil
-}
-
-// RoundTrip implements http.RoundTripper by adding Bearer token authentication to requests.
-// This is required for authenticating with the Depot API when creating projects programmatically.
-func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", "Bearer "+t.token)
-	return t.base.RoundTrip(req)
 }

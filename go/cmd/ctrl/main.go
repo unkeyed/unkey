@@ -94,6 +94,10 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_DEPOT_USERNAME")),
 		cli.String("depot-access-token", "Depot API access token",
 			cli.EnvVar("UNKEY_DEPOT_ACCESS_TOKEN")),
+		cli.String("depot-build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
+			cli.EnvVar("UNKEY_DEPOT_BUILD_PLATFORM"), cli.Default("linux/amd64")),
+		cli.String("depot-project-region", "Build data will be stored in the chosen region ('us-east-1','eu-central-1')",
+			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
@@ -178,10 +182,12 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Depot build backend configuration
 		Depot: ctrl.DepotConfig{
-			APIUrl:      cmd.String("depot-api-url"),
-			RegistryUrl: cmd.String("depot-registry-url"),
-			Username:    cmd.String("depot-username"),
-			AccessToken: cmd.String("depot-access-token"),
+			APIUrl:        cmd.String("depot-api-url"),
+			RegistryUrl:   cmd.String("depot-registry-url"),
+			Username:      cmd.String("depot-username"),
+			AccessToken:   cmd.String("depot-access-token"),
+			BuildPlatform: cmd.String("depot-build-platform"),
+			ProjectRegion: cmd.String("depot-project-region"),
 		},
 
 		// Acme configuration

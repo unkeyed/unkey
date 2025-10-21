@@ -10,14 +10,16 @@ import (
 
 type Depot struct {
 	ctrlv1connect.UnimplementedBuildServiceHandler
-	instanceID  string
-	db          db.Database
-	storage     *storage.S3
-	apiUrl      string
-	registryUrl string
-	username    string
-	accessToken string
-	logger      logging.Logger
+	instanceID    string
+	db            db.Database
+	storage       *storage.S3
+	apiUrl        string
+	registryUrl   string
+	username      string
+	accessToken   string
+	buildPlatform string
+	projectRegion string
+	logger        logging.Logger
 }
 
 type Config struct {
@@ -28,7 +30,11 @@ type Config struct {
 	RegistryUrl string
 	Username    string
 	AccessToken string
-	Logger      logging.Logger
+	// Run builds on this platform ("dynamic", "linux/amd64", "linux/arm64")
+	BuildPlatform string
+	// Build data will be stored in the chosen region ("us-east-1","eu-central-1")
+	ProjectRegion string
+	Logger        logging.Logger
 }
 
 func New(cfg Config) *Depot {
@@ -41,6 +47,8 @@ func New(cfg Config) *Depot {
 		registryUrl:                      cfg.RegistryUrl,
 		username:                         cfg.Username,
 		accessToken:                      cfg.AccessToken,
+		buildPlatform:                    cfg.BuildPlatform,
+		projectRegion:                    cfg.ProjectRegion,
 		logger:                           cfg.Logger,
 	}
 }

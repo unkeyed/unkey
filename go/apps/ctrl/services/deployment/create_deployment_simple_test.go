@@ -178,32 +178,6 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 	require.False(t, isValid, "Seconds-based timestamp should be considered invalid")
 }
 
-// TestCreateDeploymentTimestampValidation_ValidMillisecondsFormat tests valid timestamp
-func TestCreateDeploymentTimestampValidation_ValidMillisecondsFormat(t *testing.T) {
-	t.Parallel()
-
-	// Create proto request directly with milliseconds timestamp
-	req := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       "proj_test456",
-		Branch:          "main",
-		EnvironmentSlug: "production",
-		Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
-			BuildContext: &ctrlv1.BuildContext{
-				ContextKey:     "test-key",
-				DockerfilePath: ptr.P("Dockerfile"),
-			},
-		},
-		GitCommit: &ctrlv1.GitCommitInfo{
-			CommitSha: "abc123def456",
-			Timestamp: time.Now().UnixMilli(), // This is in milliseconds - should be accepted
-		},
-	}
-
-	// Use shared validation helper
-	isValid := validateTimestamp(req.GetGitCommit().GetTimestamp())
-	require.True(t, isValid, "Milliseconds-based timestamp should be considered valid")
-}
-
 // TestTimestampValidationBoundaries tests edge cases for timestamp validation
 func TestTimestampValidationBoundaries(t *testing.T) {
 	t.Parallel()

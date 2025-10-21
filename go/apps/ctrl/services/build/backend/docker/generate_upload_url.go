@@ -20,23 +20,23 @@ func (s *Docker) GenerateUploadURL(
 	}
 
 	// Generate unique S3 key for this build context
-	contextKey := fmt.Sprintf("%s/%d.tar.gz",
+	buildContextPath := fmt.Sprintf("%s/%d.tar.gz",
 		req.Msg.UnkeyProjectId,
 		time.Now().UnixNano())
 
 	// Generate presigned URL (15 minutes expiration)
-	uploadURL, err := s.storage.PutPresignedURL(ctx, contextKey, 15*time.Minute)
+	uploadURL, err := s.storage.PutPresignedURL(ctx, buildContextPath, 15*time.Minute)
 	if err != nil {
-		s.logger.Error("Failed to generate presigned URL", "error", err, "context_key", contextKey)
+		s.logger.Error("Failed to generate presigned URL", "error", err, "context_key", buildContextPath)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to generate presigned URL: %w", err))
 	}
 
-	s.logger.Info("Generated upload URL", "context_key", contextKey, "unkey_project_id", req.Msg.UnkeyProjectId)
+	s.logger.Info("Generated upload URL", "context_key", buildContextPath, "unkey_project_id", req.Msg.UnkeyProjectId)
 
 	return connect.NewResponse(&ctrlv1.GenerateUploadURLResponse{
 		UploadUrl:  uploadURL,
-		ContextKey: contextKey,
+		ContextKey: buildContextPath,
 		ExpiresIn:  900, // 15 minutes
 	}), nil
 }
