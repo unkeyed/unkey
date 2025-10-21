@@ -68,6 +68,12 @@ spec:
             - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
               value: "minio_root_password"
             # Build S3 Storage (from depot-credentials secret)
+            #kubectl create secret generic depot-credentials \
+            # --from-literal=token=xxxx \
+            # --from-literal=s3-url=xxx \
+            # --from-literal=s3-access-key-id=xxx \
+            # --from-literal=s3-access-key-secret=xxx \
+            #   --namespace=unkey
             - name: UNKEY_BUILD_S3_URL
               valueFrom:
                 secretKeyRef:
@@ -91,6 +97,11 @@ spec:
                   name: depot-credentials
                   key: s3-access-key-secret
             # Depot Configuration
+            #kubectl create secret docker-registry depot-registry \
+            # --docker-server=registry.depot.dev \
+            # --docker-username=x-token \
+            # --docker-password=xxx \
+            # --namespace=unkey
             - name: UNKEY_DEPOT_API_URL
               value: "https://api.depot.dev"
             - name: UNKEY_DEPOT_REGISTRY_URL
