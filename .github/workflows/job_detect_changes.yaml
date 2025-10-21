@@ -55,9 +55,26 @@ jobs:
       configs: ${{ steps.changes.outputs.configs }}
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 2
+
+      - name: Get comparison commits
+        id: commits
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "base=HEAD~1" >> $GITHUB_OUTPUT
+            echo "head=HEAD" >> $GITHUB_OUTPUT
+          else
+            echo "base=${{ github.event.before }}" >> $GITHUB_OUTPUT
+            echo "head=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
+          base: ${{ steps.commits.outputs.base }}
+          ref: ${{ steps.commits.outputs.head }}
           filters: |
             # API application and its direct dependencies
             api:
