@@ -171,9 +171,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				}
 
 				upsertParams := partitiondb.UpsertVMParams{
-					ID:            instance.GetId(),
-					DeploymentID:  deployment.ID,
-					Address:       sql.NullString{Valid: true, String: instance.GetAddress()},
+					ID:           instance.GetId(),
+					DeploymentID: deployment.ID,
+					Address:      sql.NullString{Valid: true, String: instance.GetAddress()},
+					// TODO: Make sure configurable later
 					CpuMillicores: 1000,
 					MemoryMb:      1024,
 					Status:        status,
@@ -350,8 +351,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// Log deployment completed
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			ProjectID:    "",
-			WorkspaceID:  "",
+			ProjectID:    deployment.ProjectID,
+			WorkspaceID:  deployment.WorkspaceID,
 			DeploymentID: deployment.ID,
 			Status:       "completed",
 			Message:      "Deployment completed successfully",

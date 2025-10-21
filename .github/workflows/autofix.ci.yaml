@@ -26,6 +26,8 @@ jobs:
         with:
           go-version-file: ./go/go.mod
           cache-dependency-path: ./go/go.sum
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Format Go code
         run: make fmt
         working-directory: ./go

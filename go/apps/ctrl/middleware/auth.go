@@ -80,7 +80,7 @@ func (m *AuthMiddleware) ConnectInterceptor() connect.UnaryInterceptorFunc {
 			// Simple API key validation against environment variable
 			if apiKey != m.config.APIKey {
 				return nil, connect.NewError(connect.CodeUnauthenticated,
-					fmt.Errorf("invalid API key"))
+					ErrInvalidAPIKey)
 			}
 
 			// Continue to next handler

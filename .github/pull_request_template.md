@@ -4,7 +4,7 @@
 
 Fixes # (issue)
 
-_If there is not an issue for this, please create one first. This is used to tracking purposes and also helps use understand why this PR exists_
+_If there is not an issue for this, please create one first. This is used to tracking purposes and also helps us understand why this PR exists_
 
 <!-- If there isn't an issue for this PR, please re-review our Contributing Guide and create an issue -->
 

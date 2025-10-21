@@ -62,7 +62,13 @@ func (h *Handler) Handle(ctx context.Context, s *server.Session) error {
 	}
 
 	h.Logger.Info("Certificate verification handled", "response", resp.Msg.GetToken())
-	_ = s.Plain(http.StatusOK, []byte(resp.Msg.GetToken()))
+	if werr := s.Plain(http.StatusOK, []byte(resp.Msg.GetToken())); werr != nil {
+		return fault.Wrap(werr,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("failed to write ACME challenge response"),
+			fault.Public("Failed to handle ACME challenge"),
+		)
+	}
 
 	return nil
 }

@@ -83,11 +83,13 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("setup acme client"))
 	if err != nil {
 		_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			_ = db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
+			if updateErr := db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
 				DomainID:  dom.ID,
 				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
+			}); updateErr != nil {
+				s.logger.Error("failed to update challenge status", "error", updateErr, "domain_id", dom.ID)
+			}
 			return restate.Void{}, nil
 		}, restate.WithName("mark challenge failed"))
 		return &hydrav1.ProcessChallengeResponse{
@@ -102,6 +104,9 @@ func (s *Service) ProcessChallenge(
 		if err != nil && !db.IsNotFound(err) {
 			return EncryptedCertificate{}, err
 		}
+
+		// TODO: Implement certificate obtain/renew logic
+		// This requires the ACME client from step 3
 
 		return EncryptedCertificate{}, restate.TerminalError(
 			err,
