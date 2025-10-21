@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 2
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
@@ -30,6 +32,7 @@ jobs:
           else
             echo "go=false" >> $GITHUB_OUTPUT
           fi
+        shell: bash
 
       - name: Setup Go
         if: steps.go-changes.outputs.go == 'true'
