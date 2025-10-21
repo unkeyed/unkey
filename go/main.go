@@ -22,7 +22,7 @@ func main() {
 		Action:      nil,
 		Name:        "unkey",
 		Usage:       "Run unkey",
-		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
+		Description: `Unkey CLI – deploy, run and administer Unkey services`,
 		Version:     versioncmd.Version,
 		Commands: []*cli.Command{
 			run.Cmd,
