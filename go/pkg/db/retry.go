@@ -10,6 +10,8 @@ import (
 const (
 	// DefaultBackoff is the base duration for exponential backoff in database retries
 	DefaultBackoff = 50 * time.Millisecond
+	// DefaultAttempts is the maximum number of retry attempts for database operations
+	DefaultAttempt = 3
 )
 
 // WithRetry executes a database operation with optimized retry configuration.
@@ -29,7 +31,7 @@ const (
 func WithRetry[T any](fn func() (T, error)) (T, error) {
 	return retry.DoWithResult(
 		retry.New(
-			retry.Attempts(3),
+			retry.Attempts(DefaultAttempt),
 			retry.Backoff(backoffStrategy),
 			retry.ShouldRetry(shouldRetryError),
 		),
@@ -59,7 +61,7 @@ func WithRetry[T any](fn func() (T, error)) (T, error) {
 func WithRetryContext[T any](ctx context.Context, fn func() (T, error)) (T, error) {
 	return retry.DoWithResultContext(
 		retry.New(
-			retry.Attempts(3),
+			retry.Attempts(DefaultAttempt),
 			retry.Backoff(backoffStrategy),
 			retry.ShouldRetry(shouldRetryError),
 		),
