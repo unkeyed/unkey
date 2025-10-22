@@ -38,7 +38,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 	t.Run("delete identity by external ID", func(t *testing.T) {
 		externalID := "test_user_1"
-		identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),
@@ -71,7 +71,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify identity still exists but marked as deleted
 		deletedIdentity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID,
+			IdentityID:  identity.ID,
 			Deleted:     true,
 		})
 		require.NoError(t, err, "identity should still exist with deleted=true")
@@ -95,7 +95,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 			},
 		)
 
-		identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),
@@ -103,7 +103,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		})
 
 		// Verify rate limits exist
-		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identityID, Valid: true})
+		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimits, numberOfRatelimits)
 
@@ -117,20 +117,20 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify identity is soft deleted
 		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID,
+			IdentityID:  identity.ID,
 			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
 
 		// Verify rate limits still exist (they should remain for audit purposes)
-		rateLimitsAfterDeletion, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identityID, Valid: true})
+		rateLimitsAfterDeletion, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, rateLimitsAfterDeletion, numberOfRatelimits, "rate limits should still exist after soft deletion")
 	})
 
 	t.Run("delete identity with wildcard permission", func(t *testing.T) {
 		externalID := "test_user_wildcard"
-		identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),
@@ -152,7 +152,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify identity is soft deleted
 		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID,
+			IdentityID:  identity.ID,
 			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
@@ -160,7 +160,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 	t.Run("verify audit logs are created", func(t *testing.T) {
 		externalID := "test_user_audit_logs"
-		identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),
@@ -187,7 +187,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 
 		// Verify audit logs were created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), identityID)
+		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), identity.ID)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(auditLogs), 1, "should have audit logs for identity deletion")
 
@@ -207,7 +207,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		externalID := "test_user_duplicate"
 
 		// Create first identity
-		identityID1 := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),
@@ -219,7 +219,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
 
 		// Create a new identity with the same external ID (this will trigger the duplicate key scenario)
-		identityID2 := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),
@@ -233,7 +233,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify the new identity is soft deleted
 		_, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID2,
+			IdentityID:  identity2.ID,
 			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err)
@@ -241,7 +241,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify the old identity was hard deleted (should not be found even with deleted=true)
 		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID1,
+			IdentityID:  identity1.ID,
 			Deleted:     true,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "old identity should be hard deleted")
@@ -255,7 +255,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		externalID := "stripe_user_12345"
 
 		// Step 1: Create initial identity with "Advanced" tier ratelimit (300k/month)
-		identityID1 := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte(`{"tier":"advanced"}`),
@@ -275,7 +275,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
 
 		// Step 3: Create new identity with "Starter" tier ratelimit (20k/month)
-		identityID2 := h.CreateIdentity(seed.CreateIdentityRequest{
+		identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID, // Same externalId
 			Meta:        []byte(`{"tier":"starter"}`),
@@ -297,17 +297,17 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify the new identity is soft deleted (not hard deleted)
 		deletedIdentity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID2,
+			IdentityID:  identity2.ID,
 			Deleted:     true,
 		})
 		require.NoError(t, err, "new identity should exist as soft-deleted")
-		require.Equal(t, identityID2, deletedIdentity.ID)
+		require.Equal(t, identity2.ID, deletedIdentity.ID)
 		require.True(t, deletedIdentity.Deleted)
 
 		// Verify the new identity cannot be found as active
 		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID2,
+			IdentityID:  identity2.ID,
 			Deleted:     false,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "new identity should not be active")
@@ -315,7 +315,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		// Verify the old identity was hard deleted (cleanup)
 		_, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			IdentityID:  identityID1,
+			IdentityID:  identity1.ID,
 			Deleted:     true,
 		})
 		require.Equal(t, sql.ErrNoRows, err, "old identity should be hard deleted as cleanup")
