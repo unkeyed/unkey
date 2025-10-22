@@ -9,6 +9,8 @@ package hydrav1
 import (
 	fmt "fmt"
 	sdk_go "github.com/restatedev/sdk-go"
+	encoding "github.com/restatedev/sdk-go/encoding"
+	ingress "github.com/restatedev/sdk-go/ingress"
 )
 
 // DeploymentServiceClient is the client API for hydra.v1.DeploymentService service.
@@ -54,6 +56,44 @@ func (c *deploymentServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Cl
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
 	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Object[*PromoteResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "Promote", cOpts...))
+}
+
+// DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type DeploymentServiceIngressClient interface {
+	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
+	Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse]
+	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
+}
+
+type deploymentServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewDeploymentServiceIngressClient(client *ingress.Client, key string) DeploymentServiceIngressClient {
+	return &deploymentServiceIngressClient{
+		client,
+		"hydra.v1.DeploymentService",
+		key,
+	}
+}
+
+func (c *deploymentServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
+}
+
+func (c *deploymentServiceIngressClient) Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.key, &codec)
+}
+
+func (c *deploymentServiceIngressClient) Promote() ingress.Requester[*PromoteRequest, *PromoteResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.key, &codec)
 }
 
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
