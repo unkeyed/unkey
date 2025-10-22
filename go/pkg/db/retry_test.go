@@ -245,3 +245,169 @@ func TestWithRetry_Integration(t *testing.T) {
 		require.Equal(t, 1, callCount, "should not retry on not found error")
 	})
 }
+
+func TestWithRetryContext_ContextCancellation(t *testing.T) {
+	t.Run("context already cancelled before first attempt", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		callCount := 0
+		result, err := WithRetryContext(ctx, func() (string, error) {
+			callCount++
+			return "should not be called", nil
+		})
+
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, "", result)
+		require.Equal(t, 0, callCount, "should not call function when context already cancelled")
+	})
+
+	t.Run("context cancelled during backoff", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		// Cancel after 25ms - during first backoff (50ms)
+		time.AfterFunc(25*time.Millisecond, cancel)
+
+		callCount := 0
+		result, err := WithRetryContext(ctx, func() (string, error) {
+			callCount++
+			return "", errors.New("temporary error")
+		})
+
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, "", result)
+		require.Equal(t, 1, callCount, "should stop after first attempt when cancelled during backoff")
+	})
+
+	t.Run("context deadline exceeded during retry", func(t *testing.T) {
+		// 25ms timeout: enough for first attempt, but deadline exceeded during first backoff (50ms)
+		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
+		defer cancel()
+
+		callCount := 0
+		result, err := WithRetryContext(ctx, func() (string, error) {
+			callCount++
+			return "", errors.New("temporary error")
+		})
+
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		require.Equal(t, "", result)
+		require.Equal(t, 1, callCount, "should stop after first attempt when deadline exceeded during backoff")
+	})
+
+	t.Run("success with valid context", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		callCount := 0
+		result, err := WithRetryContext(ctx, func() (string, error) {
+			callCount++
+			if callCount < 2 {
+				return "", errors.New("temporary error")
+			}
+			return "success", nil
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, "success", result)
+		require.Equal(t, 2, callCount, "should retry and succeed with valid context")
+	})
+}
+
+func TestWithRetryContext_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	ctx := context.Background()
+
+	// Set up test database using containers
+	mysqlCfg := containers.MySQL(t)
+	mysqlCfg.DBName = "unkey"
+
+	// Create database instance
+	dbInstance, err := New(Config{
+		PrimaryDSN: mysqlCfg.FormatDSN(),
+		Logger:     logging.NewNoop(),
+	})
+	require.NoError(t, err)
+	defer dbInstance.Close()
+
+	// Create test data using sqlc statements
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	keyringID := uid.New(uid.KeyAuthPrefix)
+
+	// Insert workspace using sqlc
+	err = Query.InsertWorkspace(ctx, dbInstance.RW(), InsertWorkspaceParams{
+		ID:        workspaceID,
+		OrgID:     workspaceID,
+		Name:      "Test Workspace",
+		Slug:      uid.New("slug"),
+		CreatedAt: time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	// Insert keyring using sqlc
+	err = Query.InsertKeyring(ctx, dbInstance.RW(), InsertKeyringParams{
+		ID:          keyringID,
+		WorkspaceID: workspaceID,
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+	defer dbInstance.Close()
+
+	t.Run("context cancelled stops database operation", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Cancel after 25ms - during first backoff (50ms)
+		time.AfterFunc(25*time.Millisecond, cancel)
+
+		callCount := 0
+		insertedKeyID := ""
+
+		_, err := WithRetryContext(ctx, func() (string, error) {
+			callCount++
+
+			// Simulate transient error that would normally trigger retry
+			if callCount == 1 {
+				return "", errors.New("connection timeout")
+			}
+
+			// This should never execute because context is cancelled during backoff
+			keyID := uid.New(uid.KeyPrefix)
+			err := Query.InsertKey(ctx, dbInstance.RW(), InsertKeyParams{
+				ID:                keyID,
+				KeyringID:         keyringID,
+				Hash:              hash.Sha256(keyID),
+				Start:             "cancelled_key",
+				WorkspaceID:       workspaceID,
+				ForWorkspaceID:    sql.NullString{},
+				Name:              sql.NullString{String: "should_not_insert", Valid: true},
+				IdentityID:        sql.NullString{},
+				Meta:              sql.NullString{},
+				Expires:           sql.NullTime{},
+				CreatedAtM:        time.Now().UnixMilli(),
+				Enabled:           true,
+				RemainingRequests: sql.NullInt32{},
+				RefillDay:         sql.NullInt16{},
+				RefillAmount:      sql.NullInt32{},
+			})
+			if err == nil {
+				insertedKeyID = keyID
+			}
+			return keyID, err
+		})
+
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, 1, callCount, "should stop after first attempt")
+		require.Empty(t, insertedKeyID, "should not insert key after context cancelled")
+
+		// Verify key was not inserted in database
+		_, err = Query.FindKeyForVerification(ctx, dbInstance.RO(), insertedKeyID)
+		require.Error(t, err, "key should not exist in database")
+	})
+}
