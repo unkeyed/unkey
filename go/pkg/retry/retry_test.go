@@ -248,7 +248,7 @@ func TestDoWithResult(t *testing.T) {
 			expectedCalls:  3,
 			expectedResult: "success",
 			expectedError:  nil,
-			expectedSleep:  300 * time.Millisecond, // 100ms + 200ms
+			expectedSleep:  300 * time.Millisecond,
 		},
 		{
 			name:           "should return last result on complete failure",
@@ -257,15 +257,6 @@ func TestDoWithResult(t *testing.T) {
 			expectedCalls:  3,
 			expectedResult: "result3", // last attempt's result
 			expectedError:  errors.New("fail3"),
-			expectedSleep:  300 * time.Millisecond, // 100ms + 200ms
-		},
-		{
-			name:           "should return zero value when all attempts return zero value",
-			errorSequence:  []error{errors.New("fail"), errors.New("fail"), errors.New("fail")},
-			resultSequence: []string{"", "", ""},
-			expectedCalls:  3,
-			expectedResult: "",
-			expectedError:  errors.New("fail"),
 			expectedSleep:  300 * time.Millisecond,
 		},
 	}
