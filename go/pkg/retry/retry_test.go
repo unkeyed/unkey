@@ -115,7 +115,6 @@ func TestRetry(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-
 		})
 	}
 }
@@ -216,6 +215,86 @@ func TestShouldRetry(t *testing.T) {
 			if tt.expectedError != nil {
 				require.Error(t, err)
 				require.Equal(t, tt.expectedError, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestDoWithResult(t *testing.T) {
+	tests := []struct {
+		name           string
+		errorSequence  []error
+		resultSequence []string
+		expectedCalls  int
+		expectedResult string
+		expectedError  error
+		expectedSleep  time.Duration
+	}{
+		{
+			name:           "should return result on first success",
+			errorSequence:  []error{nil},
+			resultSequence: []string{"success"},
+			expectedCalls:  1,
+			expectedResult: "success",
+			expectedError:  nil,
+			expectedSleep:  0,
+		},
+		{
+			name:           "should return result after retries",
+			errorSequence:  []error{errors.New("temp"), errors.New("temp"), nil},
+			resultSequence: []string{"", "", "success"},
+			expectedCalls:  3,
+			expectedResult: "success",
+			expectedError:  nil,
+			expectedSleep:  300 * time.Millisecond, // 100ms + 200ms
+		},
+		{
+			name:           "should return last result on complete failure",
+			errorSequence:  []error{errors.New("fail1"), errors.New("fail2"), errors.New("fail3")},
+			resultSequence: []string{"result1", "result2", "result3"},
+			expectedCalls:  3,
+			expectedResult: "result3", // last attempt's result
+			expectedError:  errors.New("fail3"),
+			expectedSleep:  300 * time.Millisecond, // 100ms + 200ms
+		},
+		{
+			name:           "should return zero value when all attempts return zero value",
+			errorSequence:  []error{errors.New("fail"), errors.New("fail"), errors.New("fail")},
+			resultSequence: []string{"", "", ""},
+			expectedCalls:  3,
+			expectedResult: "",
+			expectedError:  errors.New("fail"),
+			expectedSleep:  300 * time.Millisecond,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			retrier := New()
+			totalSleep := time.Duration(0)
+			retrier.sleep = func(d time.Duration) {
+				totalSleep += d
+			}
+
+			calls := 0
+			result, err := DoWithResult(retrier, func() (string, error) {
+				idx := calls
+				calls++
+				if idx < len(tt.errorSequence) {
+					return tt.resultSequence[idx], tt.errorSequence[idx]
+				}
+				return "", nil
+			})
+
+			require.Equal(t, tt.expectedCalls, calls, "unexpected number of calls")
+			require.Equal(t, tt.expectedSleep, totalSleep, "unexpected sleep duration")
+			require.Equal(t, tt.expectedResult, result, "unexpected result")
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.Equal(t, tt.expectedError.Error(), err.Error())
 			} else {
 				require.NoError(t, err)
 			}
