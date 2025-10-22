@@ -6,9 +6,12 @@ on:
 permissions:
   contents: read
 jobs:
+  detect_changes:
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    uses: ./.github/workflows/job_detect_changes.yaml
   autofix:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Setup pnpm
@@ -36,7 +39,8 @@ jobs:
       - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27 # v1.3.2
   lint_docs:
     name: Docs
-    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    if: ((github.event.pull_request.draft == false || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.docs == 'true')
+    needs: [detect_changes]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
