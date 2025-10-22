@@ -46,7 +46,7 @@ func TestGetKeyByKey(t *testing.T) {
 	})
 
 	// Create test identity with ratelimit using testutil helper
-	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  "test_user",
 		Meta:        []byte(`{"role": "admin"}`),
@@ -66,7 +66,7 @@ func TestGetKeyByKey(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
 		Name:        &keyName,
-		IdentityID:  &identityID,
+		IdentityID:  &identity.ID,
 	})
 	keyID := key.KeyID
 

@@ -96,7 +96,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		adminName := "admin_idempotent"
-		adminId := h.CreateRole(seed.CreateRoleRequest{
+		admin := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        adminName,
 			Description: ptr.P("admin_idempotent"),
@@ -112,7 +112,7 @@ func TestSuccess(t *testing.T) {
 		// First, add admin role to the key
 		err := db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
 			KeyID:       key.KeyID,
-			RoleID:      adminId,
+			RoleID:      admin.ID,
 			WorkspaceID: workspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
