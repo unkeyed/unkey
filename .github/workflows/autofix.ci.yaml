@@ -8,7 +8,7 @@ permissions:
 jobs:
   autofix:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Setup pnpm
