@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.45.0
+          image: prom/prometheus:v3.5.0
           ports:
             - containerPort: 9090
           args:
