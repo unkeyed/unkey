@@ -30,7 +30,7 @@ func NewS3(t *testing.T, networks ...string) S3 {
 		Name:         "s3",
 		SkipReaper:   true,
 		Networks:     networks,
-		Image:        "bitnamilegacy/minio:sha256-953d489a81cc4de7975f90e07202189c4325da39b0b92470b6a13c7ea99e36cd",
+		Image:        "bitnamilegacy/minio:2025.7.23-debian-12-r5",
 		ExposedPorts: []string{"9000/tcp"},
 		WaitingFor:   wait.ForHTTP("/minio/health/live").WithPort("9000"),
 		Env: map[string]string{

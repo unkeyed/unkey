@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: minio
-          image: bitnamilegacy/minio:sha256-953d489a81cc4de7975f90e07202189c4325da39b0b92470b6a13c7ea99e36cd
+          image: bitnamilegacy/minio:2025.7.23-debian-12-r5
           ports:
             - containerPort: 9000
               name: api
