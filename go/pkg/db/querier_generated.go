@@ -1400,14 +1400,20 @@ type Querier interface {
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//  AND deleted = ?
-	//  AND id >= ?
-	//  ORDER BY id ASC
+	//  SELECT
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      c.id as credit_id,
+	//      c.remaining as credit_remaining,
+	//      c.refill_amount as credit_refill_amount,
+	//      c.refill_day as credit_refill_day
+	//  FROM identities i
+	//  LEFT JOIN credits c ON c.identity_id = i.id
+	//  WHERE i.workspace_id = ?
+	//  AND i.deleted = ?
+	//  AND i.id >= ?
+	//  ORDER BY i.id ASC
 	//  LIMIT ?
-	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
+	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
 	//ListIdentityRatelimits
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply

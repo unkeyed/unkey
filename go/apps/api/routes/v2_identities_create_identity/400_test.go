@@ -220,7 +220,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("invalid credit value - too large", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New(""),
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](2147483648), // max int32 + 1
 			},
 		}
@@ -234,7 +234,7 @@ func TestBadRequests(t *testing.T) {
 	t.Run("invalid credit value - negative", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId: uid.New(""),
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](-1),
 			},
 		}
@@ -250,13 +250,13 @@ func TestBadRequests(t *testing.T) {
 
 		req := handler.Request{
 			ExternalId: uid.New(""),
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](100),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: &openapi.CreditsRefill{
 					Amount:    50,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
-				}),
+				},
 			},
 		}
 
@@ -271,13 +271,13 @@ func TestBadRequests(t *testing.T) {
 
 		req := handler.Request{
 			ExternalId: uid.New(""),
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](100),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: &openapi.CreditsRefill{
 					Amount:    50,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
-				}),
+				},
 			},
 		}
 

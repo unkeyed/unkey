@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -129,10 +130,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExternalId: identity.ExternalID,
 			Ratelimits: nil,
 			Meta:       nil,
+			Credits:    nil,
 		}
 
 		if len(formattedRatelimits) > 0 {
 			newIdentity.Ratelimits = ptr.P(formattedRatelimits)
+		}
+
+		if identity.CreditID.Valid {
+			newIdentity.Credits = &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
+				Refill:    nil,
+			}
+
+			if identity.CreditRefillAmount.Valid {
+				var refillDay *int
+				interval := openapi.Daily
+				if identity.CreditRefillDay.Valid {
+					interval = openapi.Monthly
+					refillDay = ptr.P(int(identity.CreditRefillDay.Int16))
+				}
+
+				newIdentity.Credits.Refill = &openapi.CreditsRefill{
+					Amount:    int64(identity.CreditRefillAmount.Int32),
+					Interval:  interval,
+					RefillDay: refillDay,
+				}
+			}
 		}
 
 		// Add metadata if available

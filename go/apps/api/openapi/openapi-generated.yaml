@@ -358,7 +358,7 @@ components:
 
                         When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
                 credits:
-                    "$ref": "#/components/schemas/IdentityCreditsData"
+                    "$ref": "#/components/schemas/Credits"
                     description: |
                         Configure credit limits for this identity that are shared across all associated keys.
                         When a key belonging to this identity is verified, credits are deducted from the identity's balance rather than individual key limits.
@@ -499,7 +499,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/IdentityCreditsData"
+                    "$ref": "#/components/schemas/Credits"
             additionalProperties: false
         V2IdentitiesUpdateIdentityRequestBody:
             type: object
@@ -538,7 +538,7 @@ components:
                           duration: 3600000
                           autoApply: true
                 credits:
-                    "$ref": "#/components/schemas/UpdateIdentityCreditsData"
+                    "$ref": "#/components/schemas/UpdateCredits"
             additionalProperties: false
             required:
                 - identity
@@ -759,7 +759,7 @@ components:
                         Essential for trial periods, temporary access, and security compliance requiring key rotation.
                     example: 1704067200000
                 credits:
-                    "$ref": "#/components/schemas/KeyCreditsData"
+                    "$ref": "#/components/schemas/Credits"
                     description: |
                         Controls usage-based limits through credit consumption with optional automatic refills.
                         Unlike rate limits which control frequency, credits control total usage with global consistency.
@@ -1152,7 +1152,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    "$ref": "#/components/schemas/KeyCreditsData"
+                    "$ref": "#/components/schemas/Credits"
             additionalProperties: false
         V2KeysUpdateKeyRequestBody:
             type: object
@@ -1234,7 +1234,7 @@ components:
                         Active sessions continue until their next verification attempt after expiry.
                     example: 1704067200000
                 credits:
-                    "$ref": "#/components/schemas/UpdateKeyCreditsData"
+                    "$ref": "#/components/schemas/UpdateCredits"
                     description: |
                         Controls usage-based limits for this key through credit consumption.
                         Omitting this field preserves current credit settings, while setting null enables unlimited usage.
@@ -2231,7 +2231,7 @@ components:
                         - editor
                         - viewer
                 credits:
-                    "$ref": "#/components/schemas/KeyCreditsData"
+                    "$ref": "#/components/schemas/Credits"
                 identity:
                     "$ref": "#/components/schemas/Identity"
                 plaintext:
@@ -2249,9 +2249,9 @@ components:
                 - createdAt
                 - enabled
             additionalProperties: false
-        KeyCreditsData:
+        Credits:
             type: object
-            description: Credit configuration and remaining balance for this key.
+            description: Credit configuration and remaining balance.
             properties:
                 remaining:
                     type:
@@ -2263,7 +2263,7 @@ components:
                     description: Number of credits remaining (null for unlimited).
                     example: 1000
                 refill:
-                    "$ref": "#/components/schemas/KeyCreditsRefill"
+                    "$ref": "#/components/schemas/CreditsRefill"
             required:
                 - remaining
             additionalProperties: false
@@ -2286,7 +2286,7 @@ components:
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
                 credits:
-                    "$ref": "#/components/schemas/IdentityCreditsData"
+                    "$ref": "#/components/schemas/Credits"
             required:
                 - externalId
                 - id
@@ -2331,7 +2331,7 @@ components:
                 - duration
                 - autoApply
             additionalProperties: false
-        KeyCreditsRefill:
+        CreditsRefill:
             type: object
             description: Configuration for automatic credit refill behavior.
             properties:
@@ -2364,50 +2364,6 @@ components:
                 - monthly
             description: How often credits are automatically refilled.
             example: monthly
-        IdentityCreditsData:
-            type: object
-            description: Credit configuration and remaining balance for this identity.
-            properties:
-                remaining:
-                    type:
-                        - integer
-                        - "null"
-                    format: int64
-                    minimum: 0
-                    maximum: 9223372036854776000
-                    description: Number of credits remaining (null for unlimited).
-                    example: 1000
-                refill:
-                    "$ref": "#/components/schemas/IdentityCreditsRefill"
-            additionalProperties: false
-        IdentityCreditsRefill:
-            type:
-                - object
-                - "null"
-            description: Configuration for automatic credit refill behavior. Set to null to disable refills.
-            properties:
-                interval:
-                    "$ref": "#/components/schemas/CreditInterval"
-                amount:
-                    type: integer
-                    format: int64
-                    minimum: 1
-                    maximum: 9223372036854776000
-                    description: Number of credits to add during each refill cycle.
-                    example: 1000
-                refillDay:
-                    type: integer
-                    minimum: 1
-                    maximum: 31
-                    description: |
-                        Day of the month for monthly refills (1-31).
-                        Only required when interval is 'monthly'.
-                        For days beyond the month's length, refill occurs on the last day of the month.
-                    example: 15
-            required:
-                - interval
-                - amount
-            additionalProperties: false
         RatelimitRequest:
             type: object
             required:
@@ -2485,14 +2441,13 @@ components:
             description: |
                 Defines how to modify credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
             example: set
-        UpdateIdentityCreditsData:
+        UpdateCredits:
             type:
                 - object
                 - "null"
             description: |
-                Update credit configuration for this identity.
+                Update credit configuration.
                 Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
-                Credits are shared across all keys belonging to this identity and take priority over key-level credits during verification.
 
                 Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
             properties:
@@ -2506,7 +2461,35 @@ components:
                     description: Number of credits remaining (null for unlimited).
                     example: 1000
                 refill:
-                    "$ref": "#/components/schemas/IdentityCreditsRefill"
+                    "$ref": "#/components/schemas/UpdateCreditsRefill"
+            additionalProperties: false
+        UpdateCreditsRefill:
+            type:
+                - object
+                - "null"
+            description: Configuration for automatic credit refill behavior. Set to null to disable refills.
+            properties:
+                interval:
+                    "$ref": "#/components/schemas/CreditInterval"
+                amount:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    maximum: 9223372036854776000
+                    description: Number of credits to add during each refill cycle.
+                    example: 1000
+                refillDay:
+                    type: integer
+                    minimum: 1
+                    maximum: 31
+                    description: |
+                        Day of the month for monthly refills (1-31).
+                        Only required when interval is 'monthly'.
+                        For days beyond the month's length, refill occurs on the last day of the month.
+                    example: 15
+            required:
+                - interval
+                - amount
             additionalProperties: false
         V2KeysAddPermissionsResponseData:
             type: array
@@ -2736,52 +2719,6 @@ components:
                 - An empty array indicates the key now has no roles assigned at all
             items:
                 "$ref": "#/components/schemas/Role"
-        UpdateKeyCreditsData:
-            type:
-                - object
-                - "null"
-            description: Credit configuration and remaining balance for this key.
-            properties:
-                remaining:
-                    type:
-                        - integer
-                        - "null"
-                    format: int64
-                    minimum: 0
-                    maximum: 9223372036854776000
-                    description: Number of credits remaining (null for unlimited). This also clears the refilling schedule.
-                    example: 1000
-                refill:
-                    "$ref": "#/components/schemas/UpdateKeyCreditsRefill"
-            additionalProperties: false
-        UpdateKeyCreditsRefill:
-            type:
-                - object
-                - "null"
-            description: Configuration for automatic credit refill behavior.
-            properties:
-                interval:
-                    "$ref": "#/components/schemas/CreditInterval"
-                amount:
-                    type: integer
-                    format: int64
-                    minimum: 1
-                    maximum: 9223372036854776000
-                    description: Number of credits to add during each refill cycle.
-                    example: 1000
-                refillDay:
-                    type: integer
-                    minimum: 1
-                    maximum: 31
-                    description: |
-                        Day of the month for monthly refills (1-31).
-                        Only required when interval is 'monthly'.
-                        For days beyond the month's length, refill occurs on the last day of the month.
-                    example: 15
-            required:
-                - interval
-                - amount
-            additionalProperties: false
         KeysVerifyKeyCredits:
             type: object
             required:

@@ -34,7 +34,7 @@ properties:
         duration: 3600000
         autoApply: true
   credits:
-    "$ref": "./UpdateIdentityCreditsData.yaml"
+    "$ref": "../../../../common/UpdateCredits.yaml"
 additionalProperties: false
 required:
   - identity

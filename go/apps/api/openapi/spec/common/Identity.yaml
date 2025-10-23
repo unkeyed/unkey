@@ -16,7 +16,7 @@ properties:
     items:
       "$ref": "./RatelimitResponse.yaml"
   credits:
-    "$ref": "./IdentityCreditsData.yaml"
+    "$ref": "./Credits.yaml"
 required:
   - externalId
   - id

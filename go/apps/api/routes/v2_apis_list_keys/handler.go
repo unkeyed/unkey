@@ -276,7 +276,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 
 	// Set credits
 	if keyData.KeyCredits != nil {
-		response.Credits = &openapi.KeyCreditsData{
+		response.Credits = &openapi.Credits{
 			Remaining: nullable.NewNullableWithValue(int64(keyData.KeyCredits.Remaining)),
 		}
 
@@ -288,7 +288,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 				refillDay = ptr.P(int(keyData.KeyCredits.RefillDay.Int16))
 			}
 
-			response.Credits.Refill = &openapi.KeyCreditsRefill{
+			response.Credits.Refill = &openapi.CreditsRefill{
 				Amount:    int64(keyData.KeyCredits.RefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
@@ -313,7 +313,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 
 		// Add identity credits if they exist
 		if keyData.IdentityCredits != nil {
-			response.Identity.Credits = &openapi.IdentityCreditsData{
+			response.Identity.Credits = &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue(int64(keyData.IdentityCredits.Remaining)),
 			}
 
@@ -325,11 +325,11 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 					refillDay = ptr.P(int(keyData.IdentityCredits.RefillDay.Int16))
 				}
 
-				response.Identity.Credits.Refill = nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				response.Identity.Credits.Refill = &openapi.CreditsRefill{
 					Amount:    int64(keyData.IdentityCredits.RefillAmount.Int32),
 					Interval:  interval,
 					RefillDay: refillDay,
-				})
+				}
 			}
 		}
 	}

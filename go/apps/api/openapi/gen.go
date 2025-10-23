@@ -126,6 +126,29 @@ type CreditInterval string
 // CreditOperation Defines how to modify credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
 type CreditOperation string
 
+// Credits Credit configuration and remaining balance.
+type Credits struct {
+	// Refill Configuration for automatic credit refill behavior.
+	Refill *CreditsRefill `json:"refill,omitempty"`
+
+	// Remaining Number of credits remaining (null for unlimited).
+	Remaining nullable.Nullable[int64] `json:"remaining"`
+}
+
+// CreditsRefill Configuration for automatic credit refill behavior.
+type CreditsRefill struct {
+	// Amount Number of credits to add during each refill cycle.
+	Amount int64 `json:"amount"`
+
+	// Interval How often credits are automatically refilled.
+	Interval CreditInterval `json:"interval"`
+
+	// RefillDay Day of the month for monthly refills (1-31).
+	// Only required when interval is 'monthly'.
+	// For days beyond the month's length, refill occurs on the last day of the month.
+	RefillDay *int `json:"refillDay,omitempty"`
+}
+
 // EmptyResponse Empty response object by design. A successful response indicates this operation was successfully executed.
 type EmptyResponse = map[string]interface{}
 
@@ -159,8 +182,8 @@ type GoneErrorResponse struct {
 
 // Identity defines model for Identity.
 type Identity struct {
-	// Credits Credit configuration and remaining balance for this identity.
-	Credits *IdentityCreditsData `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance.
+	Credits *Credits `json:"credits,omitempty"`
 
 	// ExternalId External identity ID
 	ExternalId string `json:"externalId"`
@@ -173,29 +196,6 @@ type Identity struct {
 
 	// Ratelimits Identity ratelimits
 	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
-}
-
-// IdentityCreditsData Credit configuration and remaining balance for this identity.
-type IdentityCreditsData struct {
-	// Refill Configuration for automatic credit refill behavior. Set to null to disable refills.
-	Refill nullable.Nullable[IdentityCreditsRefill] `json:"refill,omitempty"`
-
-	// Remaining Number of credits remaining (null for unlimited).
-	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
-}
-
-// IdentityCreditsRefill Configuration for automatic credit refill behavior. Set to null to disable refills.
-type IdentityCreditsRefill struct {
-	// Amount Number of credits to add during each refill cycle.
-	Amount int64 `json:"amount"`
-
-	// Interval How often credits are automatically refilled.
-	Interval CreditInterval `json:"interval"`
-
-	// RefillDay Day of the month for monthly refills (1-31).
-	// Only required when interval is 'monthly'.
-	// For days beyond the month's length, refill occurs on the last day of the month.
-	RefillDay *int `json:"refillDay,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -212,36 +212,13 @@ type InternalServerErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// KeyCreditsData Credit configuration and remaining balance for this key.
-type KeyCreditsData struct {
-	// Refill Configuration for automatic credit refill behavior.
-	Refill *KeyCreditsRefill `json:"refill,omitempty"`
-
-	// Remaining Number of credits remaining (null for unlimited).
-	Remaining nullable.Nullable[int64] `json:"remaining"`
-}
-
-// KeyCreditsRefill Configuration for automatic credit refill behavior.
-type KeyCreditsRefill struct {
-	// Amount Number of credits to add during each refill cycle.
-	Amount int64 `json:"amount"`
-
-	// Interval How often credits are automatically refilled.
-	Interval CreditInterval `json:"interval"`
-
-	// RefillDay Day of the month for monthly refills (1-31).
-	// Only required when interval is 'monthly'.
-	// For days beyond the month's length, refill occurs on the last day of the month.
-	RefillDay *int `json:"refillDay,omitempty"`
-}
-
 // KeyResponseData defines model for KeyResponseData.
 type KeyResponseData struct {
 	// CreatedAt Unix timestamp in milliseconds when key was created.
 	CreatedAt int64 `json:"createdAt"`
 
-	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsData `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance.
+	Credits *Credits `json:"credits,omitempty"`
 
 	// Enabled Whether the key is enabled or disabled.
 	Enabled bool `json:"enabled"`
@@ -498,30 +475,20 @@ type UnauthorizedErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
-// UpdateIdentityCreditsData Update credit configuration for this identity.
+// UpdateCredits Update credit configuration.
 // Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
-// Credits are shared across all keys belonging to this identity and take priority over key-level credits during verification.
 //
 // Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
-type UpdateIdentityCreditsData struct {
+type UpdateCredits struct {
 	// Refill Configuration for automatic credit refill behavior. Set to null to disable refills.
-	Refill nullable.Nullable[IdentityCreditsRefill] `json:"refill,omitempty"`
+	Refill nullable.Nullable[UpdateCreditsRefill] `json:"refill,omitempty"`
 
 	// Remaining Number of credits remaining (null for unlimited).
 	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
 }
 
-// UpdateKeyCreditsData Credit configuration and remaining balance for this key.
-type UpdateKeyCreditsData struct {
-	// Refill Configuration for automatic credit refill behavior.
-	Refill nullable.Nullable[UpdateKeyCreditsRefill] `json:"refill,omitempty"`
-
-	// Remaining Number of credits remaining (null for unlimited). This also clears the refilling schedule.
-	Remaining nullable.Nullable[int64] `json:"remaining,omitempty"`
-}
-
-// UpdateKeyCreditsRefill Configuration for automatic credit refill behavior.
-type UpdateKeyCreditsRefill struct {
+// UpdateCreditsRefill Configuration for automatic credit refill behavior. Set to null to disable refills.
+type UpdateCreditsRefill struct {
 	// Amount Number of credits to add during each refill cycle.
 	Amount int64 `json:"amount"`
 
@@ -665,8 +632,8 @@ type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
-	// Credits Credit configuration and remaining balance for this identity.
-	Credits *IdentityCreditsData `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance.
+	Credits *Credits `json:"credits,omitempty"`
 
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
 	// Must be stable and unique across your workspace - duplicate externalIds return CONFLICT errors.
@@ -782,8 +749,8 @@ type V2IdentitiesUpdateCreditsRequestBody struct {
 
 // V2IdentitiesUpdateCreditsResponseBody defines model for V2IdentitiesUpdateCreditsResponseBody.
 type V2IdentitiesUpdateCreditsResponseBody struct {
-	// Data Credit configuration and remaining balance for this identity.
-	Data IdentityCreditsData `json:"data"`
+	// Data Credit configuration and remaining balance.
+	Data Credits `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -791,12 +758,11 @@ type V2IdentitiesUpdateCreditsResponseBody struct {
 
 // V2IdentitiesUpdateIdentityRequestBody defines model for V2IdentitiesUpdateIdentityRequestBody.
 type V2IdentitiesUpdateIdentityRequestBody struct {
-	// Credits Update credit configuration for this identity.
+	// Credits Update credit configuration.
 	// Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
-	// Credits are shared across all keys belonging to this identity and take priority over key-level credits during verification.
 	//
 	// Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
-	Credits nullable.Nullable[UpdateIdentityCreditsData] `json:"credits,omitempty"`
+	Credits nullable.Nullable[UpdateCredits] `json:"credits,omitempty"`
 
 	// Identity The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
 	Identity string `json:"identity"`
@@ -927,8 +893,8 @@ type V2KeysCreateKeyRequestBody struct {
 	// Consider 32 bytes for highly sensitive APIs, but avoid values above 64 bytes unless specifically required.
 	ByteLength *int `json:"byteLength,omitempty"`
 
-	// Credits Credit configuration and remaining balance for this key.
-	Credits *KeyCreditsData `json:"credits,omitempty"`
+	// Credits Credit configuration and remaining balance.
+	Credits *Credits `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is active immediately upon creation.
 	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
@@ -1337,8 +1303,8 @@ type V2KeysUpdateCreditsRequestBody struct {
 
 // V2KeysUpdateCreditsResponseBody defines model for V2KeysUpdateCreditsResponseBody.
 type V2KeysUpdateCreditsResponseBody struct {
-	// Data Credit configuration and remaining balance for this key.
-	Data KeyCreditsData `json:"data"`
+	// Data Credit configuration and remaining balance.
+	Data Credits `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -1346,8 +1312,11 @@ type V2KeysUpdateCreditsResponseBody struct {
 
 // V2KeysUpdateKeyRequestBody defines model for V2KeysUpdateKeyRequestBody.
 type V2KeysUpdateKeyRequestBody struct {
-	// Credits Credit configuration and remaining balance for this key.
-	Credits nullable.Nullable[UpdateKeyCreditsData] `json:"credits,omitempty"`
+	// Credits Update credit configuration.
+	// Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
+	//
+	// Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
+	Credits nullable.Nullable[UpdateCredits] `json:"credits,omitempty"`
 
 	// Enabled Controls whether the key is currently active for verification requests.
 	// When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings.

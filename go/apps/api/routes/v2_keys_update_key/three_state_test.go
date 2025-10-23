@@ -353,7 +353,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Set credits to null
 			req := handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Credits: nullable.NewNullNullable[openapi.UpdateKeyCreditsData](),
+				Credits: nullable.NewNullNullable[openapi.UpdateCredits](),
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -390,7 +390,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Set credits.remaining to null
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 					Remaining: nullable.NewNullNullable[int64](),
 				}),
 			}
@@ -429,8 +429,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Set credits.refill to null
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
 				}),
 			}
 
@@ -461,8 +461,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Update only refill
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:    150,
 						Interval:  openapi.Monthly,
 						RefillDay: ptr.P(20),
@@ -499,7 +499,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Update only remaining
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 					Remaining: nullable.NewNullableWithValue(int64(999)),
 				}),
 			}
@@ -568,8 +568,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Set daily refill
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:   25,
 						Interval: openapi.Daily,
 						// No RefillDay for daily
@@ -600,9 +600,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Step 1: Add credits with refill
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 					Remaining: nullable.NewNullableWithValue(int64(1000)),
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:    500,
 						Interval:  openapi.Monthly,
 						RefillDay: ptr.P(1),
@@ -615,8 +615,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Step 2: Clear refill only
 			req = handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
 				}),
 			}
 			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -630,8 +630,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Step 3: Add back refill without changing remaining
 			req = handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:   250,
 						Interval: openapi.Daily,
 					}),
@@ -649,7 +649,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Step 4: Clear everything
 			req = handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Credits: nullable.NewNullNullable[openapi.UpdateKeyCreditsData](),
+				Credits: nullable.NewNullNullable[openapi.UpdateCredits](),
 			}
 			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)

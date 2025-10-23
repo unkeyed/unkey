@@ -1,7 +1,5 @@
-type:
-  - object
-  - "null"
-description: Configuration for automatic credit refill behavior. Set to null to disable refills.
+type: object
+description: Configuration for automatic credit refill behavior.
 properties:
   interval:
     "$ref": "./CreditInterval.yaml"

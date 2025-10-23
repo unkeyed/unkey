@@ -6,7 +6,7 @@ properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    "$ref": "../../../../common/KeyCreditsData.yaml"
+    "$ref": "../../../../common/Credits.yaml"
 additionalProperties: false
 examples:
   planUpgradeSuccess:

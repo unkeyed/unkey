@@ -169,9 +169,9 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
 		Enabled:    ptr.P(true),
-		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+		Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 			Remaining: nullable.NewNullableWithValue(int64(100)),
-			Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+			Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 				Interval: openapi.Daily,
 				Amount:   50,
 			}),
@@ -265,8 +265,8 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 
 	req := handler.Request{
 		KeyId: key.KeyID,
-		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-			Refill:    nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
+		Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+			Refill:    nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
 			Remaining: nullable.NewNullableWithValue(newCredits),
 		}),
 	}

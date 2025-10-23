@@ -129,6 +129,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		metaMap = make(map[string]any)
 	}
 
+	data := openapi.Identity{
+		Id:         identity.ID,
+		ExternalId: identity.ExternalID,
+		Meta:       &metaMap,
+		Credits:    nil,
+		Ratelimits: nil,
+	}
+
 	// Format ratelimits for the response
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 	for _, r := range ratelimits {
@@ -141,12 +149,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Format credits for the response (populated from JOIN in FindIdentity query)
-	var responseCredits *openapi.IdentityCreditsData
+	if len(responseRatelimits) == 0 {
+		responseRatelimits = nil
+	}
 
 	if identity.CreditID.Valid {
-		creditsData := openapi.IdentityCreditsData{
+		data.Credits = &openapi.Credits{
 			Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
+			Refill:    nil,
 		}
 
 		if identity.CreditRefillAmount.Valid {
@@ -157,29 +167,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				refillDay = ptr.P(int(identity.CreditRefillDay.Int16))
 			}
 
-			responseCredits = &openapi.IdentityCreditsData{
-				Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
-					Amount:    int64(identity.CreditRefillAmount.Int32),
-					Interval:  interval,
-					RefillDay: refillDay,
-				}),
+			data.Credits.Refill = &openapi.CreditsRefill{
+				Amount:    int64(identity.CreditRefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
 			}
 		}
-
-		responseCredits = &creditsData
 	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.Identity{
-			Id:         identity.ID,
-			ExternalId: identity.ExternalID,
-			Meta:       &metaMap,
-			Ratelimits: &responseRatelimits,
-			Credits:    responseCredits,
-		},
+		Data: data,
 	})
 }

@@ -341,7 +341,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](100),
 			}),
 		}
@@ -354,7 +354,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(100), res.Body.Data.Credits.Remaining.MustGet())
-		assert.False(t, res.Body.Data.Credits.Refill.IsSpecified())
+		assert.Nil(t, res.Body.Data.Credits.Refill)
 	})
 
 	t.Run("update existing credits remaining only", func(t *testing.T) {
@@ -364,7 +364,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](200),
 				// Not specifying refill - should preserve existing refill config
 			}),
@@ -379,8 +379,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		assert.Equal(t, int64(200), res.Body.Data.Credits.Remaining.MustGet())
 
 		// Verify refill preserved
-		require.True(t, res.Body.Data.Credits.Refill.IsSpecified())
-		refill := res.Body.Data.Credits.Refill.MustGet()
+		require.NotNil(t, res.Body.Data.Credits.Refill)
+		refill := *res.Body.Data.Credits.Refill
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(100), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
@@ -396,8 +396,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		refillDay := 10
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 					Amount:    150,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
@@ -415,8 +415,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		assert.Equal(t, int64(50), res.Body.Data.Credits.Remaining.MustGet())
 
 		// Verify refill added
-		require.True(t, res.Body.Data.Credits.Refill.IsSpecified())
-		refill := res.Body.Data.Credits.Refill.MustGet()
+		require.NotNil(t, res.Body.Data.Credits.Refill)
+		refill := *res.Body.Data.Credits.Refill
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(150), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
@@ -432,9 +432,9 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		refillDay := 1
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](300),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 					Amount:    500,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
@@ -450,8 +450,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(300), res.Body.Data.Credits.Remaining.MustGet())
 
-		require.True(t, res.Body.Data.Credits.Refill.IsSpecified())
-		refill := res.Body.Data.Credits.Refill.MustGet()
+		require.NotNil(t, res.Body.Data.Credits.Refill)
+		refill := res.Body.Data.Credits.Refill
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(500), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
@@ -466,8 +466,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
-				Refill: nullable.NewNullNullable[openapi.IdentityCreditsRefill](), // explicitly null
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Refill: nullable.NewNullNullable[openapi.UpdateCreditsRefill](), // explicitly null
 				// Not specifying remaining - should preserve
 			}),
 		}
@@ -481,7 +481,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		assert.Equal(t, int64(100), res.Body.Data.Credits.Remaining.MustGet())
 
 		// Verify refill removed
-		assert.False(t, res.Body.Data.Credits.Refill.IsSpecified())
+		assert.Nil(t, res.Body.Data.Credits.Refill)
 	})
 
 	t.Run("daily refill configuration", func(t *testing.T) {
@@ -491,8 +491,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 					Amount:   25,
 					Interval: openapi.Daily,
 					// RefillDay should be nil for daily
@@ -505,8 +505,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		// Verify refill
 		require.NotNil(t, res.Body.Data.Credits)
-		require.True(t, res.Body.Data.Credits.Refill.IsSpecified())
-		refill := res.Body.Data.Credits.Refill.MustGet()
+		require.NotNil(t, res.Body.Data.Credits.Refill)
+		refill := *res.Body.Data.Credits.Refill
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(25), refill.Amount)
 		assert.Equal(t, openapi.Daily, refill.Interval)
@@ -520,7 +520,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits:  nullable.NewNullNullable[openapi.UpdateIdentityCreditsData](), // explicitly null
+			Credits:  nullable.NewNullNullable[openapi.UpdateCredits](), // explicitly null
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
@@ -535,7 +535,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullNullable[int64](), // null means unlimited
 			}),
 		}
@@ -563,7 +563,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		req := handler.Request{
 			Identity: identityID,
 			Meta:     &meta,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](1000),
 			}),
 		}
@@ -605,8 +605,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(777), res.Body.Data.Credits.Remaining.MustGet())
 
-		require.True(t, res.Body.Data.Credits.Refill.IsSpecified())
-		refill := res.Body.Data.Credits.Refill.MustGet()
+		require.NotNil(t, res.Body.Data.Credits.Refill)
+		refill := *res.Body.Data.Credits.Refill
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(888), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
@@ -623,9 +623,9 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		// Change to daily refill with different amount and remaining
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](500),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 					Amount:   20,
 					Interval: openapi.Daily,
 				}),
@@ -639,8 +639,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(500), res.Body.Data.Credits.Remaining.MustGet())
 
-		require.True(t, res.Body.Data.Credits.Refill.IsSpecified())
-		refill := res.Body.Data.Credits.Refill.MustGet()
+		require.NotNil(t, res.Body.Data.Credits.Refill)
+		refill := *res.Body.Data.Credits.Refill
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(20), refill.Amount)
 		assert.Equal(t, openapi.Daily, refill.Interval)
@@ -652,7 +652,7 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](0),
 			}),
 		}
@@ -671,9 +671,9 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		refillDay := 32 // Invalid day
 		req := handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](100),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 					Amount:    50,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
@@ -707,8 +707,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		// Test 2: Set refill to null but don't touch remaining
 		req = handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
-				Refill: nullable.NewNullNullable[openapi.IdentityCreditsRefill](), // explicitly null
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Refill: nullable.NewNullNullable[openapi.UpdateCreditsRefill](), // explicitly null
 				// Remaining not set - should preserve
 			}),
 		}
@@ -717,12 +717,12 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data.Credits)
 		assert.Equal(t, int64(100), res.Body.Data.Credits.Remaining.MustGet()) // preserved
-		assert.False(t, res.Body.Data.Credits.Refill.IsSpecified())            // removed
+		assert.Nil(t, res.Body.Data.Credits.Refill)                            // removed
 
 		// Test 3: Update remaining but don't touch refill (which is now null)
 		req = handler.Request{
 			Identity: identityID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateIdentityCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue[int64](200),
 				// Refill not set - should preserve (as null)
 			}),
@@ -732,6 +732,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data.Credits)
 		assert.Equal(t, int64(200), res.Body.Data.Credits.Remaining.MustGet())
-		assert.False(t, res.Body.Data.Credits.Refill.IsSpecified()) // still null
+		assert.Nil(t, res.Body.Data.Credits.Refill) // still null
 	})
 }

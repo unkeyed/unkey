@@ -444,7 +444,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		req := handler.Request{
 			ExternalId: externalId,
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](500),
 			},
 		}
@@ -471,13 +471,13 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		req := handler.Request{
 			ExternalId: externalId,
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](1000),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: &openapi.CreditsRefill{
 					Amount:    100,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
-				}),
+				},
 			},
 		}
 
@@ -505,13 +505,13 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		req := handler.Request{
 			ExternalId: externalId,
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](50),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: &openapi.CreditsRefill{
 					Amount:   10,
 					Interval: openapi.Daily,
 					// RefillDay should be nil for daily
-				}),
+				},
 			},
 		}
 
@@ -536,7 +536,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		req := handler.Request{
 			ExternalId: externalId,
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullNullable[int64](), // null means unlimited
 			},
 		}
@@ -594,13 +594,13 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 					Duration: 60000,
 				},
 			},
-			Credits: &openapi.IdentityCreditsData{
+			Credits: &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue[int64](5000),
-				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				Refill: &openapi.CreditsRefill{
 					Amount:    1000,
 					Interval:  openapi.Monthly,
 					RefillDay: &refillDay,
-				}),
+				},
 			},
 		}
 

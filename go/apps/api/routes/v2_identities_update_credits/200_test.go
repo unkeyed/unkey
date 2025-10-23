@@ -318,9 +318,8 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, int64(110), remaining)
 
 		// Verify refill config is preserved
-		require.True(t, res.Body.Data.Refill.IsSpecified())
-		refill, err := res.Body.Data.Refill.Get()
-		require.NoError(t, err)
+		require.NotNil(t, res.Body.Data.Refill)
+		refill := res.Body.Data.Refill
 		require.Equal(t, int64(50), refill.Amount)
 		require.Equal(t, openapi.Monthly, refill.Interval)
 		require.NotNil(t, refill.RefillDay)
@@ -371,9 +370,8 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, int64(150), remaining)
 
 		// Verify refill config is preserved
-		require.True(t, res.Body.Data.Refill.IsSpecified())
-		refill, err := res.Body.Data.Refill.Get()
-		require.NoError(t, err)
+		require.NotNil(t, res.Body.Data.Refill)
+		refill := res.Body.Data.Refill
 		require.Equal(t, int64(25), refill.Amount)
 		require.Equal(t, openapi.Daily, refill.Interval)
 		require.Nil(t, refill.RefillDay)

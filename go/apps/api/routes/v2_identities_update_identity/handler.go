@@ -13,7 +13,9 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/array"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -37,6 +39,7 @@ type Handler struct {
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
 	UsageLimiter usagelimiter.Service
+	KeyCache     cache.Cache[string, db.CachedKeyData]
 }
 
 const (
@@ -562,9 +565,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Build credits response from updated identity
-	var identityCredits *openapi.IdentityCreditsData
+	var identityCredits *openapi.Credits
 	if updatedIdentity.CreditID.Valid {
-		identityCredits = &openapi.IdentityCreditsData{
+		identityCredits = &openapi.Credits{
 			Remaining: nullable.NewNullableWithValue(int64(updatedIdentity.CreditRemaining.Int32)),
 		}
 
@@ -576,11 +579,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				refillDay = ptr.P(int(updatedIdentity.CreditRefillDay.Int16))
 			}
 
-			identityCredits.Refill = nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+			identityCredits.Refill = &openapi.CreditsRefill{
 				Amount:    int64(updatedIdentity.CreditRefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
-			})
+			}
 		}
 	}
 
@@ -604,6 +607,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				"credit_id", updatedIdentity.CreditID.String,
 				"identity_id", identity.ID,
 			)
+		}
+
+		// Find and invalidate all keys belonging to this identity
+		keys, err := db.Query.ListKeysByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
+		if err != nil {
+			h.Logger.Error("Failed to find keys for identity",
+				"error", err.Error(),
+				"identity_id", identity.ID,
+			)
+		}
+
+		if len(keys) > 0 {
+			hashes := array.Map(keys, func(key db.ListKeysByIdentityIDRow) string {
+				return key.Hash
+			})
+
+			h.KeyCache.Remove(ctx, hashes...)
 		}
 	}
 

@@ -242,7 +242,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Add identity credits if they exist
 		if key.IdentityCredits != nil {
-			keyData.Identity.Credits = &openapi.IdentityCreditsData{
+			keyData.Identity.Credits = &openapi.Credits{
 				Remaining: nullable.NewNullableWithValue(int64(key.IdentityCredits.Remaining)),
 			}
 
@@ -254,11 +254,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					refillDay = ptr.P(int(key.IdentityCredits.RefillDay.Int16))
 				}
 
-				keyData.Identity.Credits.Refill = nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+				keyData.Identity.Credits.Refill = &openapi.CreditsRefill{
 					Amount:    int64(key.IdentityCredits.RefillAmount.Int32),
 					Interval:  interval,
 					RefillDay: refillDay,
-				})
+				}
 			}
 		}
 	}

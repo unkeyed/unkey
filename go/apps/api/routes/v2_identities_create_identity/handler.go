@@ -143,8 +143,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			// Handle refill configuration
-			if req.Credits.Refill.IsSpecified() && !req.Credits.Refill.IsNull() {
-				refill, _ := req.Credits.Refill.Get()
+			if req.Credits.Refill != nil {
+				refill := *req.Credits.Refill
 				creditParams.RefillAmount = sql.NullInt32{Int32: int32(refill.Amount), Valid: true}
 
 				if refill.Interval == openapi.Monthly && refill.RefillDay != nil {
@@ -154,6 +154,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							fault.Public("Refill day must be between 1 and 31"),
 						)
 					}
+
 					creditParams.RefillDay = sql.NullInt16{Int16: int16(*refill.RefillDay), Valid: true}
 				}
 			}
