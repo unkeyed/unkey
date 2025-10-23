@@ -11,25 +11,14 @@ import { Shell } from "./components/shell";
 export default function BillingPage() {
   const workspace = useWorkspaceNavigation();
 
-  // Early return if workspace is not available
-  if (!workspace) {
-    return (
-      <div>
-        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-        <Empty>
-          <Empty.Title>Workspace not found</Empty.Title>
-          <Empty.Description>Unable to load workspace information.</Empty.Description>
-        </Empty>
-      </div>
-    );
-  }
-
   // Check for legacy subscriptions
-  const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+  const isLegacy =
+    workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
   if (isLegacy) {
     // Fetch usage data for legacy display
-    const { data: usage, isLoading: usageLoading } = trpc.billing.queryUsage.useQuery();
+    const { data: usage, isLoading: usageLoading } =
+      trpc.billing.queryUsage.useQuery();
     const verifications = usage?.billableVerifications || 0;
     const ratelimits = usage?.billableRatelimits || 0;
 
@@ -76,9 +65,13 @@ export default function BillingPage() {
           description={
             <>
               <p>
-                You are on the legacy usage-based plan. You can stay on this plan if you want but
-                it's likely more expensive than our new{" "}
-                <Link href="https://unkey.com/pricing" className="underline" target="_blank">
+                You are on the legacy usage-based plan. You can stay on this
+                plan if you want but it's likely more expensive than our new{" "}
+                <Link
+                  href="https://unkey.com/pricing"
+                  className="underline"
+                  target="_blank"
+                >
                   tiered pricing
                 </Link>
                 .

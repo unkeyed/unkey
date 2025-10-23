@@ -119,11 +119,18 @@ import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateSubscription } from "./stripe/updateSubscription";
+import { getCheckoutSession } from "./stripe/getCheckoutSession";
+import { getCustomer } from "./stripe/getCustomer";
+import { getProducts } from "./stripe/getProducts";
+import { getSetupIntent } from "./stripe/getSetupIntent";
+import { updateCustomer } from "./stripe/updateCustomer";
+import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
 import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
+import { getWorkspaceById } from "./workspace/getById";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
@@ -204,6 +211,7 @@ export const router = t.router({
   workspace: t.router({
     create: createWorkspace,
     getCurrent: getCurrentWorkspace,
+    getById: getWorkspaceById,
     updateName: changeWorkspaceName,
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
@@ -214,6 +222,12 @@ export const router = t.router({
     cancelSubscription,
     uncancelSubscription,
     getBillingInfo,
+    updateCustomer,
+    getCheckoutSession,
+    getCustomer,
+    getProducts,
+    getSetupIntent,
+    updateWorkspaceStripeCustomer,
   }),
   vercel: vercelRouter,
   plain: t.router({

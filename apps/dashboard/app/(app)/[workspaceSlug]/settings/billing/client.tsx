@@ -14,17 +14,9 @@ import { FreeTierAlert } from "./components/free-tier-alert";
 import { Shell } from "./components/shell";
 import { SubscriptionStatus } from "./components/subscription-status";
 import { Usage } from "./components/usage";
+import { PlanSelectionModal } from "./components/plan-selection-modal";
 
-const PlanSelectionModal = dynamic(
-  () =>
-    import("./components/plan-selection-modal").then((mod) => ({
-      default: mod.PlanSelectionModal,
-    })),
-  {
-    ssr: false,
-    loading: () => null,
-  },
-);
+const MAX_QUOTA = 150000;
 
 export const Client: React.FC = () => {
   const workspace = useWorkspaceNavigation();
@@ -57,7 +49,8 @@ export const Client: React.FC = () => {
         <Empty>
           <Empty.Title>Failed to load billing information</Empty.Title>
           <Empty.Description>
-            There was an error loading your billing information. Please try again later.
+            There was an error loading your billing information. Please try
+            again later.
           </Empty.Description>
         </Empty>
       </div>
@@ -69,10 +62,15 @@ export const Client: React.FC = () => {
   const subscription = billingInfo?.subscription;
   const currentProductId = billingInfo?.currentProductId;
 
-  const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
-  const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
+  const allowUpdate =
+    subscription && ["active", "trialing"].includes(subscription.status);
+
   const isFreeTier = !subscription || subscription.status !== "active";
-  const currentProduct = allowUpdate ? products.find((p) => p.id === currentProductId) : undefined;
+  const allowCancel =
+    subscription && subscription.status === "active" && !subscription.cancelAt;
+  const currentProduct = allowUpdate
+    ? products.find((p) => p.id === currentProductId)
+    : undefined;
 
   return (
     <div>
@@ -88,7 +86,7 @@ export const Client: React.FC = () => {
 
         <CancelAlert cancelAt={subscription?.cancelAt} />
         {isFreeTier ? <FreeTierAlert /> : null}
-        <Usage quota={currentProduct?.quotas?.requestsPerMonth || 150000} />
+        <Usage quota={currentProduct?.quotas?.requestsPerMonth || MAX_QUOTA} />
 
         {workspace.stripeCustomerId ? (
           <>
@@ -109,41 +107,43 @@ export const Client: React.FC = () => {
         ) : (
           <SettingCard
             title="Add payment method"
-            border={subscription && allowCancel ? "top" : "both"}
+            border="both"
             description="Before upgrading, you need to add a payment method."
             className="sm:w-full text-wrap w-full"
             contentWidth="w-full"
           >
             <div className="flex justify-end w-full">
               <Button variant="primary">
-                <Link href={`/${workspace.slug}/settings/billing/stripe/checkout`}>
+                <Link
+                  href={`/${workspace.slug}/settings/billing/stripe/checkout`}
+                >
                   Add payment method
                 </Link>
               </Button>
             </div>
           </SettingCard>
         )}
-        <div className="w-full">
-          {workspace.stripeCustomerId ? (
-            <SettingCard
-              title="Billing Portal"
-              border={subscription && allowCancel ? "top" : "both"}
-              description="Manage Payment methods and see your invoices."
-              className="w-full"
-              contentWidth="w-full lg:w-[320px]"
-            >
-              <div className="w-full flex h-full items-center justify-end gap-4">
-                <Button variant="outline" size="lg">
-                  <Link href={`/${workspace.slug}/settings/billing/stripe/portal`}>
-                    Open Portal
-                  </Link>
-                </Button>
-              </div>
-            </SettingCard>
-          ) : null}
+        {workspace.stripeCustomerId ? (
+          <SettingCard
+            title="Billing Portal"
+            border="both"
+            description="Manage Payment methods and see your invoices."
+            className="w-full"
+            contentWidth="w-full lg:w-[320px]"
+          >
+            <div className="w-full flex h-full items-center justify-end gap-4">
+              <Button variant="outline" size="lg">
+                <Link
+                  href={`/${workspace.slug}/settings/billing/stripe/portal`}
+                >
+                  Open Portal
+                </Link>
+              </Button>
+            </div>
+          </SettingCard>
+        ) : null}
 
-          {subscription && allowCancel ? <CancelPlan /> : null}
-        </div>
+        {subscription && allowCancel ? <CancelPlan /> : null}
       </Shell>
     </div>
   );

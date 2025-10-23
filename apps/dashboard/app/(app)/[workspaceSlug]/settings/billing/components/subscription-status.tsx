@@ -9,32 +9,26 @@ export const SubscriptionStatus: React.FC<{
   workspaceId: string;
   workspaceSlug: string;
 }> = (props) => {
-  switch (props.status) {
-    case "active":
-      return null;
-
-    case "incomplete":
-    case "incomplete_expired":
-    case "unpaid":
-    case "past_due":
-      return (
-        <SettingCard
-          title="Payment Required"
-          description="There is a problem with your payment. Please resolve it."
-          border="both"
-          className="border-error-7 bg-error-3"
-        >
-          <div className="flex justify-end w-full">
-            <Button variant="primary" size="lg">
-              <Link href={`/${props.workspaceSlug}/settings/billing/stripe/portal`}>
-                Open Portal
-              </Link>
-            </Button>
-          </div>
-        </SettingCard>
-      );
-    case "paused":
-    case "canceled":
+  const statusList = ["incomplete", "incomplete_expired", "unpaid", "past_due"];
+  if (statusList.includes(props.status)) {
+    return (
+      <SettingCard
+        title="Payment Required"
+        description="There is a problem with your payment. Please resolve it."
+        border="both"
+        className="border-error-7 bg-error-3"
+      >
+        <div className="flex justify-end w-full">
+          <Button variant="primary" size="lg">
+            <Link
+              href={`/${props.workspaceSlug}/settings/billing/stripe/portal`}
+            >
+              Open Portal
+            </Link>
+          </Button>
+        </div>
+      </SettingCard>
+    );
   }
   return null;
 };

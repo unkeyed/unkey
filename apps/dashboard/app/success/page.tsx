@@ -1,172 +1,198 @@
-import { db, eq, schema } from "@/lib/db";
-import { stripeEnv } from "@/lib/env";
-import { Empty } from "@unkey/ui";
-import { redirect } from "next/navigation";
-import Stripe from "stripe";
+"use client";
+
+import { trpc } from "@/lib/trpc/client";
+import { Empty, Loading } from "@unkey/ui";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { SuccessClient } from "./client";
 
-type Props = {
-  searchParams: {
-    session_id?: string;
-  };
-};
-
-export default async function SuccessPage(props: Props) {
-  // If no session_id, just redirect back to billing
-  // This will make a user login if they are not logged in
-  // This will also redirect to the billing page if the user is logged in
-  if (!props.searchParams.session_id) {
-    return <SuccessClient />;
-  }
-
-  // Process the Stripe session and update workspace
-  const e = stripeEnv();
-  if (!e) {
-    return (
-      <Empty>
-        <Empty.Title>Stripe is not configured</Empty.Title>
-        <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </Empty.Description>
-      </Empty>
-    );
-  }
-
-  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-    typescript: true,
-  });
-
-  try {
-    const session = await stripe.checkout.sessions.retrieve(props.searchParams.session_id);
-
-    if (!session) {
-      console.warn("Stripe session not found");
-      return redirect("/auth/sign-in");
-    }
-
-    const workspaceReference = session.client_reference_id;
-    if (!workspaceReference) {
-      console.warn("Stripe session client_reference_id not found");
-      return <SuccessClient />;
-    }
-
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, workspaceReference), isNull(table.deletedAtM)),
-    });
-
-    if (!ws) {
-      console.warn("Workspace not found");
-      return <SuccessClient />;
-    }
-
-    const customer = await stripe.customers.retrieve(session.customer as string);
-    if (!customer || !session.setup_intent) {
-      console.warn("Stripe customer not found");
-      return <SuccessClient workSpaceSlug={ws.slug} />;
-    }
-
-    const setupIntent = await stripe.setupIntents.retrieve(session.setup_intent.toString());
-
-    if (!setupIntent.payment_method) {
-      console.warn("Stripe payment method not found");
-      return <SuccessClient workSpaceSlug={ws.slug} />;
-    }
-
-    // Update customer with default payment method
-    await stripe.customers.update(customer.id, {
-      invoice_settings: {
-        default_payment_method: setupIntent.payment_method.toString(),
-      },
-    });
-
-    // Check if this is a first-time user (no previous subscriptions)
-    const isFirstTimeUser = !ws.stripeCustomerId;
-
-    // Update workspace with stripe customer ID
-    try {
-      await db
-        .update(schema.workspaces)
-        .set({
-          stripeCustomerId: customer.id,
-        })
-        .where(eq(schema.workspaces.id, ws.id));
-    } catch (error) {
-      console.error("Failed to update workspace:", error);
-      return (
-        <Empty>
-          <Empty.Title>Failed to update workspace</Empty.Title>
-          <Empty.Description>
-            There was an error updating your workspace with payment information. Please contact
-            support@unkey.dev.
-          </Empty.Description>
-        </Empty>
-      );
-    }
-
-    // If this is a first-time user, show plan selection modal
-    if (isFirstTimeUser) {
-      try {
-        const products = await stripe.products
-          .list({
-            active: true,
-            ids: e.STRIPE_PRODUCT_IDS_PRO,
-            limit: 100,
-            expand: ["data.default_price"],
-          })
-          .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
-
-        return (
-          <SuccessClient workSpaceSlug={ws.slug} showPlanSelection={true} products={products} />
-        );
-      } catch (error) {
-        console.error("Failed to load products:", error);
-        // Fall back to regular billing page if products fail to load
-        return <SuccessClient workSpaceSlug={ws.slug} />;
-      }
-    }
-
-    // Success - redirect to billing page for existing customers
-    return <SuccessClient workSpaceSlug={ws.slug} />;
-  } catch (error) {
-    console.error("Error processing Stripe session:", error);
-    return (
-      <Empty>
-        <Empty.Title>Failed to update workspace</Empty.Title>
-        <Empty.Description>
-          There was an error updating your workspace with payment information. Please contact
-          support@unkey.dev.
-        </Empty.Description>
-      </Empty>
-    );
-  }
-}
-
-const mapProduct = (p: Stripe.Product) => {
-  if (!p.default_price) {
-    throw new Error(`Product ${p.id} is missing default_price`);
-  }
-
-  const price = typeof p.default_price === "string" ? null : (p.default_price as Stripe.Price);
-
-  if (!price) {
-    throw new Error(`Product ${p.id} default_price must be expanded`);
-  }
-
-  if (price.unit_amount === null || price.unit_amount === undefined) {
-    throw new Error(`Product ${p.id} price is missing unit_amount`);
-  }
-
-  const quotaValue = Number.parseInt(p.metadata.quota_requests_per_month, 10);
-
-  return {
-    id: p.id,
-    name: p.name,
-    priceId: price.id,
-    dollar: price.unit_amount / 100,
+type ProcessedData = {
+  workspaceSlug?: string;
+  showPlanSelection?: boolean;
+  products?: Array<{
+    id: string;
+    name: string;
+    priceId: string;
+    dollar: number;
     quotas: {
-      requestsPerMonth: quotaValue,
-    },
-  };
+      requestsPerMonth: number;
+    };
+  }>;
 };
+
+export default function SuccessPage() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams?.get("session_id") ?? null;
+
+  const [processedData, setProcessedData] = useState<ProcessedData>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateCustomerMutation = trpc.stripe.updateCustomer.useMutation();
+  const updateWorkspaceStripeCustomerMutation =
+    trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
+
+  const trpcUtils = trpc.useUtils();
+
+  useEffect(() => {
+    if (!sessionId) {
+      setProcessedData({});
+      setLoading(false);
+      return;
+    }
+
+    const processStripeSession = async () => {
+      try {
+        setLoading(true);
+
+        // Get checkout session
+        const sessionResponse = await trpcUtils.stripe.getCheckoutSession.fetch(
+          {
+            sessionId: sessionId,
+          }
+        );
+
+        if (!sessionResponse) {
+          console.warn("Stripe session not found");
+          setProcessedData({});
+          setLoading(false);
+          return;
+        }
+
+        const workspaceId = sessionResponse.client_reference_id;
+        if (!workspaceId) {
+          console.warn("Stripe session client_reference_id not found");
+          setProcessedData({});
+          setLoading(false);
+          return;
+        }
+
+        // Get workspace details to get the slug
+        const workspace = await trpcUtils.workspace.getById.fetch({
+          workspaceId: workspaceId,
+        });
+
+        if (!workspace) {
+          console.warn("Workspace not found");
+          setProcessedData({});
+          setLoading(false);
+          return;
+        } else {
+          trpcUtils.workspace.getCurrent.invalidate();
+        }
+
+        // Check if we have customer and setup intent
+        if (!sessionResponse.customer || !sessionResponse.setup_intent) {
+          console.warn("Stripe customer or setup intent not found");
+          setProcessedData({ workspaceSlug: workspace.slug });
+          setLoading(false);
+          return;
+        }
+
+        // Get customer details
+        const customer = await trpcUtils.stripe.getCustomer.fetch({
+          customerId: sessionResponse.customer,
+        });
+
+        // Get setup intent details
+        const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
+          setupIntentId: sessionResponse.setup_intent,
+        });
+
+        if (!customer || !setupIntent?.payment_method) {
+          console.warn("Customer or payment method not found");
+          setProcessedData({ workspaceSlug: workspace.slug });
+          setLoading(false);
+          return;
+        }
+
+        // Update customer with default payment method
+        try {
+          await updateCustomerMutation.mutateAsync({
+            customerId: customer.id,
+            paymentMethod: setupIntent.payment_method,
+          });
+        } catch (error) {
+          console.error("Failed to update customer:", error);
+          // Continue processing even if customer update fails
+        }
+
+        // Update workspace with stripe customer ID
+        try {
+          await updateWorkspaceStripeCustomerMutation.mutateAsync({
+            stripeCustomerId: customer.id,
+          });
+          trpcUtils.workspace.invalidate();
+        } catch (error) {
+          console.error("Failed to update workspace:", error);
+          setError("Failed to update workspace with payment information");
+          setLoading(false);
+          return;
+        }
+
+        // Check if this is a first-time user by getting billing info
+        try {
+          const billingInfo = await trpcUtils.stripe.getBillingInfo.fetch();
+          const isFirstTimeUser = !billingInfo.hasPreviousSubscriptions;
+
+          if (isFirstTimeUser) {
+            // Get products for plan selection
+            try {
+              const products = await trpcUtils.stripe.getProducts.fetch();
+              setProcessedData({
+                workspaceSlug: workspace.slug,
+                showPlanSelection: true,
+                products: products,
+              });
+            } catch (error) {
+              console.error("Failed to load products:", error);
+              // Fall back to regular billing page if products fail to load
+              setProcessedData({ workspaceSlug: workspace.slug });
+            }
+          } else {
+            setProcessedData({ workspaceSlug: workspace.slug });
+          }
+        } catch (error) {
+          console.error("Failed to get billing info:", error);
+          // Fall back to regular billing page
+          setProcessedData({ workspaceSlug: workspace.slug });
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Error processing Stripe session:", error);
+        setError("Failed to process payment session");
+        setLoading(false);
+      }
+    };
+
+    processStripeSession();
+  }, [sessionId]);
+
+  if (loading) {
+    return (
+      <Empty className="flex items-center justify-center h-screen w-full">
+        <Loading type="spinner" size={40} />
+      </Empty>
+    );
+  }
+
+  if (error) {
+    return (
+      <Empty>
+        <Empty.Title>Payment Processing Error</Empty.Title>
+        <Empty.Description>
+          {error}. Please contact support@unkey.dev if this issue persists.
+        </Empty.Description>
+      </Empty>
+    );
+  }
+
+  return (
+    <SuccessClient
+      workSpaceSlug={processedData.workspaceSlug}
+      showPlanSelection={processedData.showPlanSelection}
+      products={processedData.products}
+    />
+  );
+}

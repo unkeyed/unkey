@@ -2,6 +2,7 @@ import { stripeEnv } from "@/lib/env";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
+import { mapProduct } from "../utils/stripe";
 import { z } from "zod";
 
 const productSchema = z.object({
@@ -29,34 +30,6 @@ const billingInfoSchema = z.object({
   currentProductId: z.string().optional(),
 });
 
-const mapProduct = (p: Stripe.Product) => {
-  if (!p.default_price) {
-    throw new Error(`Product ${p.id} is missing default_price`);
-  }
-
-  const price = typeof p.default_price === "string" ? null : (p.default_price as Stripe.Price);
-
-  if (!price) {
-    throw new Error(`Product ${p.id} default_price must be expanded`);
-  }
-
-  if (price.unit_amount === null || price.unit_amount === undefined) {
-    throw new Error(`Product ${p.id} price is missing unit_amount`);
-  }
-
-  const quotaValue = Number.parseInt(p.metadata.quota_requests_per_month, 10);
-
-  return {
-    id: p.id,
-    name: p.name,
-    priceId: price.id,
-    dollar: price.unit_amount / 100,
-    quotas: {
-      requestsPerMonth: quotaValue,
-    },
-  };
-};
-
 export const getBillingInfo = t.procedure
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
@@ -75,28 +48,33 @@ export const getBillingInfo = t.procedure
       typescript: true,
     });
 
-    const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
-      stripe.products
-        .list({
-          active: true,
-          ids: e.STRIPE_PRODUCT_IDS_PRO,
-          limit: 100,
-          expand: ["data.default_price"],
-        })
-        .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)),
-      ctx.workspace.stripeSubscriptionId
-        ? await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId)
-        : undefined,
+    const [products, subscription, hasPreviousSubscriptions] =
+      await Promise.all([
+        stripe.products
+          .list({
+            active: true,
+            ids: e.STRIPE_PRODUCT_IDS_PRO,
+            limit: 100,
+            expand: ["data.default_price"],
+          })
+          .then((res) =>
+            res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)
+          ),
+        ctx.workspace.stripeSubscriptionId
+          ? await stripe.subscriptions.retrieve(
+              ctx.workspace.stripeSubscriptionId
+            )
+          : undefined,
 
-      ctx.workspace.stripeCustomerId
-        ? await stripe.subscriptions
-            .list({
-              customer: ctx.workspace.stripeCustomerId,
-              status: "canceled",
-            })
-            .then((res) => res.data.length > 0)
-        : false,
-    ]);
+        ctx.workspace.stripeCustomerId
+          ? await stripe.subscriptions
+              .list({
+                customer: ctx.workspace.stripeCustomerId,
+                status: "canceled",
+              })
+              .then((res) => res.data.length > 0)
+          : false,
+      ]);
 
     return {
       products,
@@ -104,28 +82,13 @@ export const getBillingInfo = t.procedure
         ? {
             id: subscription.id,
             status: subscription.status,
-            cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
+            cancelAt: subscription.cancel_at
+              ? subscription.cancel_at * 1000
+              : undefined,
           }
         : undefined,
       hasPreviousSubscriptions,
-      currentProductId: subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined,
+      currentProductId:
+        subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined,
     };
   });
-
-// Usage example to replace lines 119-142 in page.tsx:
-//
-// Instead of:
-// const [products, subscription, hasPreviousSubscriptions] = await Promise.all([...]);
-//
-// Use in a client component:
-// const { data: billingInfo } = trpc.stripe.getBillingInfo.useQuery();
-// const { data: usageData } = trpc.billing.queryUsage.useQuery();
-//
-// Then access:
-// - billingInfo?.products
-// - billingInfo?.subscription
-// - billingInfo?.hasPreviousSubscriptions
-// - billingInfo?.currentProductId
-// - usageData?.billableVerifications
-// - usageData?.billableRatelimits
-// - usageData?.billableTotal
