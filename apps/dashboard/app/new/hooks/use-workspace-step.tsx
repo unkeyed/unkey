@@ -126,7 +126,6 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
   }).length;
 
   const isLoading = createWorkspace.isLoading;
-
   return {
     name: "Workspace",
     icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
@@ -135,26 +134,38 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
         <div className="flex flex-col">
           <div className="space-y-4 p-1">
             <FormInput
-              {...form.register("workspaceName")}
+              {...form.register("workspaceName", {
+                onChange: (evt) => {
+                  // Re-validate on change to update validFieldCount
+                  form.trigger("workspaceName");
+
+                  // Only auto-generate if not manually edited
+                  if (!slugManuallyEdited && evt.target.value.length > 3) {
+                    form.setValue("slug", slugify(evt.target.value), {
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
               placeholder="Enter workspace name"
               label="Workspace name"
-              onBlur={(evt) => {
-                const currentSlug = form.getValues("slug");
-                const isSlugDirty = form.formState.dirtyFields.slug;
-
-                // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
-                if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
-                  form.setValue("slug", slugify(evt.currentTarget.value), {
-                    shouldValidate: true,
-                  });
-                }
-              }}
               required
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
             />
             <FormInput
-              {...form.register("slug")}
+              {...form.register("slug", {
+                onChange: (evt) => {
+                  // If we don't clear the manually set error, it will persist even if the user clears
+                  // or changes the input
+                  form.clearErrors("slug");
+                  const v = evt.currentTarget.value;
+                  setSlugManuallyEdited(v.length > 0);
+
+                  // Re-validate on change to update validFieldCount
+                  form.trigger("slug");
+                },
+              })}
               placeholder="enter-a-handle"
               label="Workspace URL handle"
               required
@@ -167,6 +178,10 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
                 form.clearErrors("slug");
                 const v = evt.currentTarget.value;
                 setSlugManuallyEdited(v.length > 0);
+                form.setValue("slug", slugify(v), {
+                  shouldValidate: true,
+                });
+                form.trigger("slug");
               }}
             />
           </div>
