@@ -44,7 +44,7 @@ func TestRerollKeySuccess(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
-	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  "test_123",
 		Meta:        []byte(`{"name": "Test User"}`),
@@ -77,7 +77,7 @@ func TestRerollKeySuccess(t *testing.T) {
 				RefillAmount: ptr.P(int32(100)),
 				RefillDay:    ptr.P(int16(1)),
 			},
-			IdentityID:  ptr.P(identityID),
+			IdentityID:  ptr.P(identity.ID),
 			Meta:        nil,
 			Expires:     nil,
 			Name:        ptr.P("Test-Key"),

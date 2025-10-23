@@ -65,7 +65,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		nullValue.SetNull()
 
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Set,
 			Value:     nullValue,
 		}
@@ -75,14 +75,14 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.True(t, res.Body.Data.Remaining.IsNull())
 
-		_, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		_, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.True(t, db.IsNotFound(err))
 	})
 
 	setTo := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("set to fixed value of %d", setTo), func(t *testing.T) {
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Set,
 			Value:     nullable.NewNullableWithValue(setTo),
 		}
@@ -95,7 +95,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, remaining, setTo)
 
-		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.EqualValues(t, credits.Remaining, setTo)
 	})
@@ -103,12 +103,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
 		// Get current credits before decrement
-		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		currentCredits := int64(credits.Remaining)
 
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Increment,
 			Value:     nullable.NewNullableWithValue(increaseBy),
 		}
@@ -121,7 +121,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, remaining, currentCredits+increaseBy)
 
-		credits, err = db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err = db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.EqualValues(t, credits.Remaining, currentCredits+increaseBy)
 	})
@@ -129,7 +129,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	decreaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("decrease credits by %d", decreaseBy), func(t *testing.T) {
 		// Get current credits before decrement
-		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		currentCredits := int64(credits.Remaining)
 
@@ -140,7 +140,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Decrement,
 			Value:     nullable.NewNullableWithValue(decreaseBy),
 		}
@@ -153,7 +153,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, remaining, shouldBeRemaining)
 
-		credits, err = db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err = db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.EqualValues(t, credits.Remaining, shouldBeRemaining)
 	})
@@ -183,7 +183,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		cacheTestKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  &identity,
+			IdentityID:  &identity.ID,
 		})
 
 		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, cacheTestKey.Key)
@@ -198,7 +198,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		// Update the key's credits
 		newCredits := int64(50)
 		updateReq := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Set,
 			Value:     nullable.NewNullableWithValue(newCredits),
 		}
@@ -234,7 +234,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Set,
 			Value:     nullable.NewNullableWithValue(int64(0)),
 		}
@@ -248,7 +248,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, int64(0), remaining)
 
 		// Verify in database - should have credits record with 0 (not deleted)
-		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.EqualValues(t, 0, credits.Remaining)
 	})
@@ -263,12 +263,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		})
 
 		// Verify unlimited (no credits record)
-		_, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		_, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.True(t, db.IsNotFound(err))
 
 		// Set to specific value
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Set,
 			Value:     nullable.NewNullableWithValue(int64(500)),
 		}
@@ -282,7 +282,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, int64(500), remaining)
 
 		// Verify in database
-		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.EqualValues(t, 500, credits.Remaining)
 	})
@@ -303,7 +303,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Increment,
 			Value:     nullable.NewNullableWithValue(int64(10)),
 		}
@@ -401,19 +401,19 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		key1 := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  &identity,
+			IdentityID:  &identity.ID,
 		})
 
 		key2 := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  &identity,
+			IdentityID:  &identity.ID,
 		})
 
 		key3 := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  &identity,
+			IdentityID:  &identity.ID,
 		})
 
 		// Verify initial state for all keys
@@ -429,7 +429,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 		// Update credits
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Set,
 			Value:     nullable.NewNullableWithValue(int64(250)),
 		}
@@ -465,7 +465,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Decrement,
 			Value:     nullable.NewNullableWithValue(int64(50)),
 		}
@@ -479,7 +479,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, int64(0), remaining)
 
 		// Verify in database
-		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity, Valid: true})
+		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		require.EqualValues(t, 0, credits.Remaining)
 	})
@@ -496,7 +496,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 		// Increment by large value
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Increment,
 			Value:     nullable.NewNullableWithValue(int64(1000000)),
 		}

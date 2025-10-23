@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -34,16 +33,12 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 
 	// Call the Restate workflow using project ID as the key
 	// This ensures only one rollback per project can run at a time
-	// Using Object for blocking/synchronous invocation
-	_, err = restateingress.Object[*hydrav1.RollbackRequest, *hydrav1.RollbackResponse](
-		s.restate,
-		"hydra.v1.DeploymentService",
-		sourceDeployment.ProjectID,
-		"Rollback",
-	).Request(ctx, &hydrav1.RollbackRequest{
-		SourceDeploymentId: req.Msg.GetSourceDeploymentId(),
-		TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
-	})
+	_, err = s.deploymentClient(sourceDeployment.ProjectID).
+		Rollback().
+		Request(ctx, &hydrav1.RollbackRequest{
+			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),
+			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
+		})
 
 	if err != nil {
 		s.logger.Error("rollback workflow failed",

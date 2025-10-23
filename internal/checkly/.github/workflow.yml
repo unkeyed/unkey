@@ -21,7 +21,7 @@ jobs:
   test-e2e:
     if: github.event.deployment_status.state == 'success' # Only run when the deployment was successful.
     name: Test E2E on Checkly
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4

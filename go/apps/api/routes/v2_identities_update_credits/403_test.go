@@ -34,7 +34,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 	})
 
 	req := handler.Request{
-		Identity:  identity,
+		Identity:  identity.ID,
 		Operation: openapi.Increment,
 		Value:     nullable.NewNullableWithValue(int64(10)),
 	}

@@ -384,7 +384,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		req := handler.Request{
-			Identity: identity,
+			Identity: identity.ID,
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status)

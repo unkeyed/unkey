@@ -21,7 +21,7 @@ on:
   workflow_dispatch: # Allow manual trigger
 jobs:
   check-runbook-freshness:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     # Security: Set timeout to prevent runaway workflows
     timeout-minutes: 10
     # Security: Restrict environment access

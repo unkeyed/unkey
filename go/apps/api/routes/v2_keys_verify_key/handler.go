@@ -25,7 +25,7 @@ import (
 type Request = openapi.V2KeysVerifyKeyRequestBody
 type Response = openapi.V2KeysVerifyKeyResponseBody
 
-const DefaultCost = 1
+const DefaultCost int32 = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
@@ -128,11 +128,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
+	cost := DefaultCost
 	if req.Credits != nil {
-		opts = append(opts, keys.WithCredits(req.Credits.Cost))
-	} else if key.IdentityCredits != nil || key.KeyCredits != nil {
-		opts = append(opts, keys.WithCredits(DefaultCost))
+		cost = req.Credits.Cost
 	}
+	opts = append(opts, keys.WithCredits(cost))
 
 	if req.Ratelimits != nil {
 		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
@@ -142,7 +142,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if req.Permissions != nil {
-		// Parse the permissions query string using the RBAC parser
 		query, parseErr := rbac.ParseQuery(*req.Permissions)
 		if parseErr != nil {
 			return fault.Wrap(parseErr,

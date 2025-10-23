@@ -107,7 +107,7 @@ var (
 	// This counter helps understand the distribution of decision-making in the cluster.
 	//
 	// Example usage:
-	//   metrics.RatelimitDecisions.WithLabelValues("local", "allowed").Inc()
+	//   metrics.RatelimitDecisions.WithLabelValues("local", "passed").Inc()
 	//   metrics.RatelimitDecisions.WithLabelValues("origin", "denied").Inc()
 	RatelimitDecision = promauto.NewCounterVec(
 		prometheus.CounterOpts{

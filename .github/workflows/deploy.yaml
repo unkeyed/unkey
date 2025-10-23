@@ -62,7 +62,7 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   mintlify_deployment:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs:
       - api_production_deployment
     name: Deploy docs

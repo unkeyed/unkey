@@ -66,7 +66,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 
 	t.Run("increment with null throws error", func(t *testing.T) {
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Increment,
 		}
 
@@ -78,7 +78,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 
 	t.Run("can't increment unlimited key", func(t *testing.T) {
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Increment,
 			Value:     nullable.NewNullableWithValue(int64(1)),
 		}
@@ -91,7 +91,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 
 	t.Run("decrement with null throws error", func(t *testing.T) {
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Decrement,
 		}
 
@@ -103,7 +103,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 
 	t.Run("can't decrement unlimited key", func(t *testing.T) {
 		req := handler.Request{
-			Identity:  identity,
+			Identity:  identity.ID,
 			Operation: openapi.Decrement,
 			Value:     nullable.NewNullableWithValue(int64(1)),
 		}
@@ -125,7 +125,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 		})
 
 		req := handler.Request{
-			Identity:  identityWithCredits,
+			Identity:  identityWithCredits.ID,
 			Operation: openapi.Increment,
 			Value:     nullable.NewNullableWithValue(int64(-10)),
 		}
@@ -148,7 +148,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 		})
 
 		req := handler.Request{
-			Identity:  identityWithCredits,
+			Identity:  identityWithCredits.ID,
 			Operation: openapi.Decrement,
 			Value:     nullable.NewNullableWithValue(int64(-10)),
 		}
@@ -172,7 +172,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 
 		// Try to set value larger than max int32
 		req := handler.Request{
-			Identity:  identityWithCredits,
+			Identity:  identityWithCredits.ID,
 			Operation: openapi.Set,
 			Value:     nullable.NewNullableWithValue(int64(2147483648)), // max int32 + 1
 		}
@@ -199,9 +199,8 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 		// This test verifies it doesn't return 400
 		nullValue := nullable.Nullable[int64]{}
 		nullValue.SetNull()
-
 		req := handler.Request{
-			Identity:  identityWithCredits,
+			Identity:  identityWithCredits.ID,
 			Operation: openapi.Set,
 			Value:     nullValue,
 		}
