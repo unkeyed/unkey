@@ -9,6 +9,8 @@ package hydrav1
 import (
 	fmt "fmt"
 	sdk_go "github.com/restatedev/sdk-go"
+	encoding "github.com/restatedev/sdk-go/encoding"
+	ingress "github.com/restatedev/sdk-go/ingress"
 )
 
 // RoutingServiceClient is the client API for hydra.v1.RoutingService service.
@@ -49,6 +51,42 @@ func (c *routingServiceClient) SwitchDomains(opts ...sdk_go.ClientOption) sdk_go
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
 	return sdk_go.WithRequestType[*SwitchDomainsRequest](sdk_go.Object[*SwitchDomainsResponse](c.ctx, "hydra.v1.RoutingService", c.key, "SwitchDomains", cOpts...))
+}
+
+// RoutingServiceIngressClient is the ingress client API for hydra.v1.RoutingService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type RoutingServiceIngressClient interface {
+	// AssignDomains creates or reassigns domains to a deployment and creates gateway configs
+	// Used during initial deployment
+	AssignDomains() ingress.Requester[*AssignDomainsRequest, *AssignDomainsResponse]
+	// SwitchDomains reassigns existing domains to a different deployment and updates gateway configs
+	// Used during rollback/promote operations
+	SwitchDomains() ingress.Requester[*SwitchDomainsRequest, *SwitchDomainsResponse]
+}
+
+type routingServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewRoutingServiceIngressClient(client *ingress.Client, key string) RoutingServiceIngressClient {
+	return &routingServiceIngressClient{
+		client,
+		"hydra.v1.RoutingService",
+		key,
+	}
+}
+
+func (c *routingServiceIngressClient) AssignDomains() ingress.Requester[*AssignDomainsRequest, *AssignDomainsResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*AssignDomainsRequest, *AssignDomainsResponse](c.client, c.serviceName, "AssignDomains", &c.key, &codec)
+}
+
+func (c *routingServiceIngressClient) SwitchDomains() ingress.Requester[*SwitchDomainsRequest, *SwitchDomainsResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*SwitchDomainsRequest, *SwitchDomainsResponse](c.client, c.serviceName, "SwitchDomains", &c.key, &codec)
 }
 
 // RoutingServiceServer is the server API for hydra.v1.RoutingService service.

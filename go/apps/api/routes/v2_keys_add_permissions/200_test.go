@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_add_permissions"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -57,13 +58,11 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Create a permission using testutil helper
-		permissionSlug := "documents.write.single.name"
-		permissionDescription := "Write documents permission"
-		permissionID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        permissionSlug,
-			Slug:        permissionSlug,
-			Description: &permissionDescription,
+			Name:        "documents.write.single.name",
+			Slug:        "documents.write.single.name",
+			Description: ptr.P("Write documents permission"),
 		})
 
 		// Verify key has no permissions initially
@@ -73,7 +72,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:       keyID,
-			Permissions: []string{permissionSlug},
+			Permissions: []string{permission.Name},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -87,14 +86,14 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 1)
-		require.Equal(t, permissionID, res.Body.Data[0].Id)
+		require.Equal(t, permission.ID, res.Body.Data[0].Id)
 		require.Equal(t, "documents.write.single.name", res.Body.Data[0].Name)
 
 		// Verify permission was added to key
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 1)
-		require.Equal(t, permissionID, finalPermissions[0].ID)
+		require.Equal(t, permission.ID, finalPermissions[0].ID)
 	})
 
 	t.Run("add multiple permissions", func(t *testing.T) {
@@ -117,27 +116,23 @@ func TestSuccess(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Create permissions using testutil helper
-		permission1Name := "documents.read.multiple"
-		permissionDescription1 := "Read documents permission"
-		permission1ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission1 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        permission1Name,
-			Slug:        permission1Name,
-			Description: &permissionDescription1,
+			Name:        "documents.read.multiple",
+			Slug:        "documents.read.multiple",
+			Description: ptr.P("Read documents permission"),
 		})
 
-		permission2Slug := "documents.write.multiple"
-		permissionDescription2 := "Write documents permission"
-		permission2ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission2 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        permission2Slug,
-			Slug:        permission2Slug,
-			Description: &permissionDescription2,
+			Name:        "documents.write.multiple",
+			Slug:        "documents.write.multiple",
+			Description: ptr.P("Write documents permission"),
 		})
 
 		req := handler.Request{
 			KeyId:       keyID,
-			Permissions: []string{permission1Name, permission2Slug},
+			Permissions: []string{permission1.Name, permission2.Name},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -162,8 +157,8 @@ func TestSuccess(t *testing.T) {
 		}
 
 		// Verify both permissions are in response
-		require.True(t, contains(permission1ID))
-		require.True(t, contains(permission2ID))
+		require.True(t, contains(permission1.ID))
+		require.True(t, contains(permission2.ID))
 
 		// Verify permissions were added to key
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
@@ -250,11 +245,10 @@ func TestSuccess(t *testing.T) {
 		// Create permissions using testutil helper
 		existingPermissionDescription := "Read documents permission"
 		newPermissionDescription := "Write documents permission"
-		newPermissionSlug := "documents.write.existing"
-		newPermissionID := h.CreatePermission(seed.CreatePermissionRequest{
+		newPermission := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
-			Name:        newPermissionSlug,
-			Slug:        newPermissionSlug,
+			Name:        "documents.write.existing",
+			Slug:        "documents.write.existing",
 			Description: &newPermissionDescription,
 		})
 
@@ -277,7 +271,7 @@ func TestSuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:       keyID,
-			Permissions: []string{newPermissionSlug},
+			Permissions: []string{newPermission.Name},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -298,7 +292,7 @@ func TestSuccess(t *testing.T) {
 			permissionIDs[p.Id] = true
 		}
 		require.True(t, permissionIDs[keyResponse.PermissionIds[0]])
-		require.True(t, permissionIDs[newPermissionID])
+		require.True(t, permissionIDs[newPermission.ID])
 
 		// Verify permissions in database
 		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
