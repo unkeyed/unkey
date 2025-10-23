@@ -2,8 +2,8 @@ import { stripeEnv } from "@/lib/env";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
-import { mapProduct } from "../utils/stripe";
 import { z } from "zod";
+import { mapProduct } from "../utils/stripe";
 
 const productSchema = z.object({
   id: z.string(),
@@ -48,33 +48,28 @@ export const getBillingInfo = t.procedure
       typescript: true,
     });
 
-    const [products, subscription, hasPreviousSubscriptions] =
-      await Promise.all([
-        stripe.products
-          .list({
-            active: true,
-            ids: e.STRIPE_PRODUCT_IDS_PRO,
-            limit: 100,
-            expand: ["data.default_price"],
-          })
-          .then((res) =>
-            res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)
-          ),
-        ctx.workspace.stripeSubscriptionId
-          ? await stripe.subscriptions.retrieve(
-              ctx.workspace.stripeSubscriptionId
-            )
-          : undefined,
+    const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
+      stripe.products
+        .list({
+          active: true,
+          ids: e.STRIPE_PRODUCT_IDS_PRO,
+          limit: 100,
+          expand: ["data.default_price"],
+        })
+        .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)),
+      ctx.workspace.stripeSubscriptionId
+        ? await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId)
+        : undefined,
 
-        ctx.workspace.stripeCustomerId
-          ? await stripe.subscriptions
-              .list({
-                customer: ctx.workspace.stripeCustomerId,
-                status: "canceled",
-              })
-              .then((res) => res.data.length > 0)
-          : false,
-      ]);
+      ctx.workspace.stripeCustomerId
+        ? await stripe.subscriptions
+            .list({
+              customer: ctx.workspace.stripeCustomerId,
+              status: "canceled",
+            })
+            .then((res) => res.data.length > 0)
+        : false,
+    ]);
 
     return {
       products,
@@ -82,13 +77,10 @@ export const getBillingInfo = t.procedure
         ? {
             id: subscription.id,
             status: subscription.status,
-            cancelAt: subscription.cancel_at
-              ? subscription.cancel_at * 1000
-              : undefined,
+            cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
           }
         : undefined,
       hasPreviousSubscriptions,
-      currentProductId:
-        subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined,
+      currentProductId: subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined,
     };
   });

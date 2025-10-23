@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 
 type PlanSelectionModalProps = {
   isOpen: boolean;
@@ -28,10 +29,11 @@ export const PlanSelectionModal = ({
   isOpen,
   onOpenChange,
   products,
-  workspaceSlug,
   currentProductId,
   isChangingPlan = false,
 }: PlanSelectionModalProps) => {
+  const workspace = useWorkspaceNavigation();
+  console.log(workspace.stripeCustomerId);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     null
   );
@@ -60,6 +62,7 @@ export const PlanSelectionModal = ({
       trpcUtils.stripe.getBillingInfo.invalidate(),
       trpcUtils.billing.queryUsage.invalidate(),
       trpcUtils.workspace.getCurrent.invalidate(),
+      trpcUtils.workspace.getCurrent.refetch(),
     ]);
   }, [trpcUtils]);
 
@@ -75,7 +78,7 @@ export const PlanSelectionModal = ({
       // Wait for workspace data to be refetched before navigation
       await trpcUtils.workspace.getCurrent.refetch();
 
-      router.push(`/${workspaceSlug}/settings/billing`);
+      router.push(`/${workspace.slug}/settings/billing`);
     },
     onError: (err) => {
       setIsLoading(false);
@@ -110,14 +113,14 @@ export const PlanSelectionModal = ({
 
     setIsLoading(true);
 
-    if (selectedProductId === "free" && !isChangingPlan) {
-      // For free tier on initial selection, just close modal and redirect
-      setIsLoading(false);
-      handleOpenChange(false);
-      toast.success("Staying on Free plan - you can upgrade anytime!");
-      router.push(`/${workspaceSlug}/settings/billing`);
-      return;
-    }
+    // if (selectedProductId === "free" && !isChangingPlan) {
+    //   // For free tier on initial selection, just close modal and redirect
+    //   setIsLoading(false);
+    //   handleOpenChange(false);
+    //   toast.success("Staying on Free plan - you can upgrade anytime!");
+    //   router.push(`/${workspace.slug}/settings/billing`);
+    //   return;
+    // }
 
     if (isChangingPlan && currentProductId) {
       // Update existing subscription
@@ -134,14 +137,18 @@ export const PlanSelectionModal = ({
   };
 
   const handleSkip = async () => {
-    handleOpenChange(false);
     if (!isChangingPlan) {
       await revalidateData();
+      // Wait for workspace data to be refetched before navigation
+      console.log(workspace.stripeCustomerId);
+
+      console.log(workspace.stripeCustomerId);
       toast.info(
         "Payment method added - you can upgrade anytime from billing settings!"
       );
-      router.push(`/${workspaceSlug}/settings/billing`);
+      router.push(`/${workspace.slug}/settings/billing`);
     }
+    handleOpenChange(false);
   };
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);

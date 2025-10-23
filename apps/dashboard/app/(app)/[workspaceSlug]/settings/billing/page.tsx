@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, Input, SettingCard } from "@unkey/ui";
+import { Button, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
@@ -12,13 +12,11 @@ export default function BillingPage() {
   const workspace = useWorkspaceNavigation();
 
   // Check for legacy subscriptions
-  const isLegacy =
-    workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+  const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
   if (isLegacy) {
     // Fetch usage data for legacy display
-    const { data: usage, isLoading: usageLoading } =
-      trpc.billing.queryUsage.useQuery();
+    const { data: usage, isLoading: usageLoading } = trpc.billing.queryUsage.useQuery();
     const verifications = usage?.billableVerifications || 0;
     const ratelimits = usage?.billableRatelimits || 0;
 
@@ -65,13 +63,9 @@ export default function BillingPage() {
           description={
             <>
               <p>
-                You are on the legacy usage-based plan. You can stay on this
-                plan if you want but it's likely more expensive than our new{" "}
-                <Link
-                  href="https://unkey.com/pricing"
-                  className="underline"
-                  target="_blank"
-                >
+                You are on the legacy usage-based plan. You can stay on this plan if you want but
+                it's likely more expensive than our new{" "}
+                <Link href="https://unkey.com/pricing" className="underline" target="_blank">
                   tiered pricing
                 </Link>
                 .

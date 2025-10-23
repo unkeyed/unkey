@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { Empty, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { SuccessClient } from "./client";
 
 type ProcessedData = {
@@ -72,14 +72,14 @@ export default function SuccessPage() {
           workspaceId: workspaceId,
         });
 
-        if (!workspace) {
-          console.warn("Workspace not found");
-          setProcessedData({});
-          setLoading(false);
-          return;
-        } else {
-          trpcUtils.workspace.getCurrent.invalidate();
-        }
+        // if (workspace) {
+        //   trpcUtils.workspace.getCurrent.invalidate();
+        // } else {
+        //   console.warn("Workspace not found");
+        //   setProcessedData({});
+        //   setLoading(false);
+        //   return;
+        // }
 
         // Check if we have customer and setup intent
         if (!sessionResponse.customer || !sessionResponse.setup_intent) {
@@ -122,7 +122,7 @@ export default function SuccessPage() {
           await updateWorkspaceStripeCustomerMutation.mutateAsync({
             stripeCustomerId: customer.id,
           });
-          trpcUtils.workspace.invalidate();
+          await trpcUtils.workspace.invalidate();
         } catch (error) {
           console.error("Failed to update workspace:", error);
           setError("Failed to update workspace with payment information");
@@ -167,7 +167,7 @@ export default function SuccessPage() {
     };
 
     processStripeSession();
-  }, [sessionId]);
+  }, [sessionId, trpcUtils]);
 
   if (loading) {
     return (
@@ -189,10 +189,12 @@ export default function SuccessPage() {
   }
 
   return (
-    <SuccessClient
-      workSpaceSlug={processedData.workspaceSlug}
-      showPlanSelection={processedData.showPlanSelection}
-      products={processedData.products}
-    />
+    <Suspense>
+      <SuccessClient
+        workSpaceSlug={processedData.workspaceSlug}
+        showPlanSelection={processedData.showPlanSelection}
+        products={processedData.products}
+      />
+    </Suspense>
   );
 }

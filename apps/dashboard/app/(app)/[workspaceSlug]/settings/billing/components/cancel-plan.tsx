@@ -35,12 +35,7 @@ export const CancelPlan: React.FC = () => {
           description="Canceling your plan will downgrade your workspace to the free tier at the end of the current period. You can resume your subscription until then."
           onConfirm={() => cancelSubscription.mutateAsync()}
           trigger={(onClick) => (
-            <Button
-              variant="outline"
-              color="danger"
-              size="lg"
-              onClick={onClick}
-            >
+            <Button variant="outline" color="danger" size="lg" onClick={onClick}>
               Cancel Plan
             </Button>
           )}

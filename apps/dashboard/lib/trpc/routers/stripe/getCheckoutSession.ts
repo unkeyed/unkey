@@ -19,7 +19,7 @@ export const getCheckoutSession = t.procedure
   .input(
     z.object({
       sessionId: z.string(),
-    })
+    }),
   )
   .output(checkoutSessionSchema)
   .query(async ({ input }) => {

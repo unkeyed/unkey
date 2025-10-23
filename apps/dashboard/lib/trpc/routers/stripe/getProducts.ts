@@ -2,8 +2,8 @@ import { stripeEnv } from "@/lib/env";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
-import { mapProduct } from "../utils/stripe";
 import { z } from "zod";
+import { mapProduct } from "../utils/stripe";
 
 const productSchema = z.object({
   id: z.string(),
@@ -19,7 +19,7 @@ export const getProducts = t.procedure
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .output(z.array(productSchema))
-  .query(async ({ ctx }) => {
+  .query(async () => {
     const e = stripeEnv();
     if (!e) {
       throw new TRPCError({
@@ -40,9 +40,7 @@ export const getProducts = t.procedure
         limit: 100,
         expand: ["data.default_price"],
       })
-      .then((res) =>
-        res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)
-      );
+      .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
 
     return products;
   });

@@ -18,7 +18,7 @@ export const getSetupIntent = t.procedure
   .input(
     z.object({
       setupIntentId: z.string(),
-    })
+    }),
   )
   .output(setupIntentSchema)
   .query(async ({ input }) => {
@@ -48,9 +48,7 @@ export const getSetupIntent = t.procedure
       return {
         id: setupIntent.id,
         client_secret: setupIntent.client_secret,
-        payment_method: setupIntent.payment_method
-          ? setupIntent.payment_method.toString()
-          : null,
+        payment_method: setupIntent.payment_method ? setupIntent.payment_method.toString() : null,
         status: setupIntent.status,
         usage: setupIntent.usage,
       };

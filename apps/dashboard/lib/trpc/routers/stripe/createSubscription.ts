@@ -13,7 +13,7 @@ export const createSubscription = t.procedure
   .input(
     z.object({
       productId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const e = stripeEnv();
@@ -58,9 +58,7 @@ export const createSubscription = t.procedure
       });
     }
 
-    const customer = await stripe.customers.retrieve(
-      ctx.workspace.stripeCustomerId
-    );
+    const customer = await stripe.customers.retrieve(ctx.workspace.stripeCustomerId);
     if (!customer) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -91,28 +89,16 @@ export const createSubscription = t.procedure
       .insert(schema.quotas)
       .values({
         workspaceId: ctx.workspace.id,
-        requestsPerMonth: Number.parseInt(
-          product.metadata.quota_requests_per_month
-        ),
-        logsRetentionDays: Number.parseInt(
-          product.metadata.quota_logs_retention_days
-        ),
-        auditLogsRetentionDays: Number.parseInt(
-          product.metadata.quota_audit_logs_retention_days
-        ),
+        requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
+        logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
+        auditLogsRetentionDays: Number.parseInt(product.metadata.quota_audit_logs_retention_days),
         team: true,
       })
       .onDuplicateKeyUpdate({
         set: {
-          requestsPerMonth: Number.parseInt(
-            product.metadata.quota_requests_per_month
-          ),
-          logsRetentionDays: Number.parseInt(
-            product.metadata.quota_logs_retention_days
-          ),
-          auditLogsRetentionDays: Number.parseInt(
-            product.metadata.quota_audit_logs_retention_days
-          ),
+          requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
+          logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
+          auditLogsRetentionDays: Number.parseInt(product.metadata.quota_audit_logs_retention_days),
           team: true,
         },
       });

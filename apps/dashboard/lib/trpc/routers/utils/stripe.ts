@@ -1,14 +1,11 @@
-import Stripe from "stripe";
+import type Stripe from "stripe";
 
 export const mapProduct = (p: Stripe.Product) => {
   if (!p.default_price) {
     throw new Error(`Product ${p.id} is missing default_price`);
   }
 
-  const price =
-    typeof p.default_price === "string"
-      ? null
-      : (p.default_price as Stripe.Price);
+  const price = typeof p.default_price === "string" ? null : (p.default_price as Stripe.Price);
 
   if (!price) {
     throw new Error(`Product ${p.id} default_price must be expanded`);

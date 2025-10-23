@@ -11,7 +11,7 @@ export const updateWorkspaceStripeCustomer = t.procedure
   .input(
     z.object({
       stripeCustomerId: z.string().min(1, "Stripe customer ID is required"),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     await db

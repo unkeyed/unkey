@@ -39,7 +39,7 @@ export const updateCustomer = t.procedure
         },
       });
 
-      if (!customer || (customer as any).deleted) {
+      if (!customer) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Customer not found or has been deleted",

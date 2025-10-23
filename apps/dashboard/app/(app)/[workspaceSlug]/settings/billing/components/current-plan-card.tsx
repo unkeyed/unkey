@@ -12,19 +12,14 @@ type CurrentPlanCardProps = {
   onChangePlan?: () => void;
 };
 
-export const CurrentPlanCard = ({
-  currentProduct,
-  onChangePlan,
-}: CurrentPlanCardProps) => {
+export const CurrentPlanCard = ({ currentProduct, onChangePlan }: CurrentPlanCardProps) => {
   const handleChangePlan = useCallback(() => {
     onChangePlan?.();
   }, [onChangePlan]);
   return (
     <SettingCard
       title="Current Plan"
-      description={
-        <div className="min-w-[300px]">Your active subscription plan</div>
-      }
+      description={<div className="min-w-[300px]">Your active subscription plan</div>}
       border="both"
       className="w-full min-w-[200px]"
       contentWidth="w-full"
@@ -56,21 +51,14 @@ const ProductHelper: React.FC<ProductHelperProps> = ({ currentProduct }) => {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <h3 className="font-semibold text-gray-12">
-          {currentProduct?.name || "Free Plan"}
-        </h3>
-        <span className="text-xs bg-info-3 text-info-11 px-2 py-0.5 rounded-full">
-          Active
-        </span>
+        <h3 className="font-semibold text-gray-12">{currentProduct?.name || "Free Plan"}</h3>
+        <span className="text-xs bg-info-3 text-info-11 px-2 py-0.5 rounded-full">Active</span>
       </div>
       <div className="flex items-center gap-4 text-sm text-gray-11">
         <span>
-          {formatNumber(currentProduct?.quotas.requestsPerMonth || 150000)}{" "}
-          requests/month
+          {formatNumber(currentProduct?.quotas.requestsPerMonth || 150000)} requests/month
         </span>
-        <span className="font-medium text-gray-12">
-          ${currentProduct?.dollar || 0}/mo
-        </span>
+        <span className="font-medium text-gray-12">${currentProduct?.dollar || 0}/mo</span>
       </div>
     </div>
   );

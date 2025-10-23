@@ -20,11 +20,7 @@ export const SubscriptionStatus: React.FC<{
       >
         <div className="flex justify-end w-full">
           <Button variant="primary" size="lg">
-            <Link
-              href={`/${props.workspaceSlug}/settings/billing/stripe/portal`}
-            >
-              Open Portal
-            </Link>
+            <Link href={`/${props.workspaceSlug}/settings/billing/stripe/portal`}>Open Portal</Link>
           </Button>
         </div>
       </SettingCard>

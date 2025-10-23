@@ -21,7 +21,7 @@ export const getCustomer = t.procedure
   .input(
     z.object({
       customerId: z.string(),
-    })
+    }),
   )
   .output(customerSchema)
   .query(async ({ input }) => {
@@ -54,8 +54,7 @@ export const getCustomer = t.procedure
         name: customer.name ?? null,
         invoice_settings: customer.invoice_settings
           ? {
-              default_payment_method: customer.invoice_settings
-                .default_payment_method
+              default_payment_method: customer.invoice_settings.default_payment_method
                 ? customer.invoice_settings.default_payment_method.toString()
                 : null,
             }
