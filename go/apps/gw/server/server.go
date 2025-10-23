@@ -69,6 +69,7 @@ func New(config Config) (*Server, error) {
 	if config.EnableTLS {
 		config.Logger.Info("Configuring TLS")
 
+		//nolint: exhaustruct
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				return config.CertManager.GetCertificate(context.Background(), hello.ServerName)
@@ -88,6 +89,7 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
+					error:          nil,
 					WorkspaceID:    "",
 					requestID:      "",
 					startTime:      time.Time{},
@@ -185,7 +187,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // WrapHandler converts a HandleFunc to an http.Handler using the server's session pool.
 func (s *Server) WrapHandler(handler HandleFunc, middlewares []Middleware) http.Handler {
 	// Apply middleware
-	var handle HandleFunc = handler
+	var handle HandleFunc
 
 	// Reverse the middlewares to run in the desired order
 	for i := len(middlewares) - 1; i >= 0; i-- {

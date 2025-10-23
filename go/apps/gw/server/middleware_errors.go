@@ -56,6 +56,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			// Determine status code based on error type
 			status := http.StatusInternalServerError
 
+			//nolint: exhaustive
 			switch urn {
 			case codes.UnkeyGatewayErrorsInternalInternalServerError,
 				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed:
@@ -87,6 +88,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			)
 
 			// Handle gateway errors with HTML responses
+			//nolint:exhaustive
 			switch urn {
 			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
 				return s.HTML(http.StatusNotFound, []byte(`<!DOCTYPE html>
@@ -103,7 +105,6 @@ func WithErrorHandling(logger logging.Logger) Middleware {
    <a href="/">Return to homepage</a>
 </body>
 </html>`))
-
 			case codes.UnkeyGatewayErrorsProxyBadGateway,
 				codes.UnkeyGatewayErrorsProxyProxyForwardFailed:
 				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
@@ -152,6 +153,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
    <a href="/">Return to homepage</a>
 </body>
 </html>`))
+
 			}
 
 			// Create error response

@@ -12,8 +12,11 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "run",
-	Usage: "Run Unkey services",
+	Flags:   []cli.Flag{},
+	Version: "",
+	Aliases: []string{},
+	Name:    "run",
+	Usage:   "Run Unkey services",
 	Description: `Run various Unkey services in development or production environments.
 
 This command starts different Unkey microservices. Each service can be configured independently and runs as a standalone process.

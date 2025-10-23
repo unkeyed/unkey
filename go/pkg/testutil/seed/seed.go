@@ -177,6 +177,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				KeyID:        insertKeyParams.ID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				CreatedAt:    time.Now().UnixMilli(),
+				UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 			})
 			require.NoError(s.t, err)
 		}
@@ -240,8 +241,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	require.NoError(s.t, err)
 
 	res := CreateKeyResponse{
-		KeyID: keyID,
-		Key:   key,
+		KeyID:         keyID,
+		Key:           key,
+		RolesIds:      []string{},
+		PermissionIds: []string{},
 	}
 
 	if req.Deleted {
@@ -254,12 +257,12 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	if req.Recoverable && s.Vault != nil {
-		encryption, err := s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+		var encryption *vaultv1.EncryptResponse
+		encryption, err = s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: req.WorkspaceID,
 			Data:    key,
 		})
 		require.NoError(s.t, err)
-
 		err = db.Query.InsertKeyEncryption(ctx, s.DB.RW(), db.InsertKeyEncryptionParams{
 			WorkspaceID:     req.WorkspaceID,
 			KeyID:           keyID,
@@ -267,7 +270,6 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			Encrypted:       encryption.GetEncrypted(),
 			EncryptionKeyID: encryption.GetKeyId(),
 		})
-
 		require.NoError(s.t, err)
 	}
 
@@ -290,6 +292,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			PermissionID: perm.ID,
 			WorkspaceID:  req.WorkspaceID,
 			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 		})
 
 		require.NoError(s.t, err)
@@ -341,6 +344,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 			Limit:       req.Limit,
 			Duration:    req.Duration,
 			AutoApply:   req.AutoApply,
+			UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 			CreatedAt:   createdAt,
 		})
 	}

@@ -69,17 +69,6 @@ const (
 	GitDirtyMarker = " (dirty)"
 )
 
-// Step predictor - maps current step message patterns to next expected steps
-var stepSequence = map[string]string{
-	"Version queued and ready to start":  "Downloading Docker image:",
-	"Downloading Docker image:":          "Building rootfs from Docker image:",
-	"Building rootfs from Docker image:": "Uploading rootfs image to storage",
-	"Uploading rootfs image to storage":  "Creating VM for version:",
-	"Creating VM for deployment:":        "VM booted successfully:",
-	"VM booted successfully:":            "Assigned hostname:",
-	"Assigned hostname:":                 MsgDeploymentStepCompleted,
-}
-
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
 	ProjectID       string
@@ -130,8 +119,11 @@ var DeployFlags = []cli.Flag{
 // WARNING: Changing the "Description" part will also affect generated MDX.
 // Cmd defines the deploy CLI command
 var Cmd = &cli.Command{
-	Name:  "deploy",
-	Usage: "Deploy a new version or initialize configuration",
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "deploy",
+	Usage:    "Deploy a new version or initialize configuration",
 	Description: `Build and deploy a new version of your application, or initialize configuration.
 
 The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
@@ -289,6 +281,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
+		// nolint: exhaustive // We just need those two for now
 		switch event.CurrentStatus {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
 			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
@@ -316,16 +309,6 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	return nil
-}
-
-func getNextStepMessage(currentMessage string) string {
-	// Check if current message starts with any known step pattern
-	for key, next := range stepSequence {
-		if len(currentMessage) >= len(key) && currentMessage[:len(key)] == key {
-			return next
-		}
-	}
-	return ""
 }
 
 func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {

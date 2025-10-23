@@ -42,9 +42,15 @@ type githubCommitResponse struct {
 // Extended commit details (message, author, timestamp) are populated when available.
 func GetInfo() Info {
 	info := Info{
-		Branch:  "main", // Default branch
-		IsDirty: false,  // Assume clean if unknown
-		IsRepo:  false,  // Assume not a repo until proven otherwise
+		Branch:          "main", // Default branch
+		IsDirty:         false,  // Assume clean if unknown
+		IsRepo:          false,  // Assume not a repo until proven otherwise
+		CommitSHA:       "",
+		ShortSHA:        "",
+		Message:         "",
+		AuthorHandle:    "",
+		AuthorAvatarURL: "",
+		CommitTimestamp: 0,
 	}
 
 	// Check if we're in a Git repository
@@ -139,6 +145,7 @@ func parseGitHubURL(url string) (owner, repo string) {
 
 // TODO: We'll have something smarter after demo. As long as we are demoing in a pushed repo we are good.
 // fetchGitHubAuthorInfo fetches the commit author's GitHub handle and avatar from GitHub API
+// nolint: godox
 func fetchGitHubAuthorInfo(owner, repo, sha string) (string, string) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, sha)
 
@@ -146,7 +153,7 @@ func fetchGitHubAuthorInfo(owner, repo, sha string) (string, string) {
 		Timeout: 5 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", ""
 	}
@@ -235,8 +242,8 @@ func isWorkingDirDirty() bool {
 }
 
 // execGitCommand executes a git command and returns trimmed output
-func execGitCommand(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+func execGitCommand(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

@@ -69,7 +69,8 @@ func (s *Service) ProcessChallenge(
 	}
 
 	// Step 3: Get or create ACME client for this workspace
-	acmeClient, err := restate.Run(ctx, func(stepCtx restate.RunContext) (*certificate.Resource, error) {
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (*certificate.Resource, error) {
+		// nolint: godox
 		// TODO: Get ACME client for workspace
 		// This requires implementing GetOrCreateUser from acme/user.go
 		// and setting up challenge providers (HTTP-01, DNS-01)
@@ -82,29 +83,31 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("setup acme client"))
 	if err != nil {
 		_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
+			if updateErr := db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
 				DomainID:  dom.ID,
 				Status:    db.AcmeChallengesStatusFailed,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
+			}); updateErr != nil {
+				s.logger.Error("failed to update challenge status", "error", updateErr, "domain_id", dom.ID)
+			}
 			return restate.Void{}, nil
 		}, restate.WithName("mark challenge failed"))
 		return &hydrav1.ProcessChallengeResponse{
-			Status: "failed",
+			CertificateId: "",
+			Status:        "failed",
 		}, nil
 	}
 
 	// Step 4: Obtain or renew certificate
 	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
-		currCert, err := pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
+		_, err = pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
 		if err != nil && !db.IsNotFound(err) {
 			return EncryptedCertificate{}, err
 		}
 
+		// nolint: godox
 		// TODO: Implement certificate obtain/renew logic
 		// This requires the ACME client from step 3
-		_ = currCert
-		_ = acmeClient
 
 		return EncryptedCertificate{}, restate.TerminalError(
 			err,
@@ -113,7 +116,8 @@ func (s *Service) ProcessChallenge(
 	}, restate.WithName("obtaining certificate"))
 	if err != nil {
 		return &hydrav1.ProcessChallengeResponse{
-			Status: "failed",
+			CertificateId: "",
+			Status:        "failed",
 		}, nil
 	}
 
@@ -152,6 +156,7 @@ func (s *Service) ProcessChallenge(
 	)
 
 	return &hydrav1.ProcessChallengeResponse{
-		Status: "success",
+		CertificateId: "",
+		Status:        "success",
 	}, nil
 }

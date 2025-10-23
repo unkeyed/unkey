@@ -96,6 +96,7 @@ func (c *Client) ClientTLSConfig() *tls.Config {
 func (c *Client) HTTPClient() *http.Client {
 	transport := &http.Transport{
 		TLSClientConfig: c.ClientTLSConfig(),
+		//nolint:exhaustruct // net.Dialer's zero values are intentional and recommended
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,

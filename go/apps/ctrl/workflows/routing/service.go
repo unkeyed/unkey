@@ -43,9 +43,10 @@ type Config struct {
 // New creates a new routing service instance.
 func New(cfg Config) *Service {
 	return &Service{
-		db:            cfg.DB,
-		partitionDB:   cfg.PartitionDB,
-		logger:        cfg.Logger,
-		defaultDomain: cfg.DefaultDomain,
+		UnimplementedRoutingServiceServer: hydrav1.UnimplementedRoutingServiceServer{},
+		db:                                cfg.DB,
+		partitionDB:                       cfg.PartitionDB,
+		logger:                            cfg.Logger,
+		defaultDomain:                     cfg.DefaultDomain,
 	}
 }

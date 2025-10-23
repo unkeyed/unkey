@@ -278,7 +278,7 @@ func BenchmarkMap(b *testing.B) {
 		}
 		b.ResetTimer()
 
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Map(input, func(n int) string { return strconv.Itoa(n) })
 		}
 	})
@@ -291,7 +291,7 @@ func BenchmarkMap(b *testing.B) {
 		}
 		b.ResetTimer()
 
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Map(input, func(item Item) int { return item.Value })
 		}
 	})
@@ -303,7 +303,7 @@ func BenchmarkMap(b *testing.B) {
 		}
 		b.ResetTimer()
 
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Map(input, func(n int) int { return n * 2 })
 		}
 	})
@@ -318,13 +318,13 @@ func BenchmarkMapVsManual(b *testing.B) {
 	}
 
 	b.Run("Map", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Map(input, func(n int) string { return strconv.Itoa(n) })
 		}
 	})
 
 	b.Run("Manual_make_and_loop", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			result := make([]string, len(input))
 			for j, v := range input {
 				result[j] = strconv.Itoa(v)
@@ -333,11 +333,12 @@ func BenchmarkMapVsManual(b *testing.B) {
 	})
 
 	b.Run("Append_based", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var result []string
 			for _, v := range input {
 				result = append(result, strconv.Itoa(v))
 			}
+			_ = result
 		}
 	})
 }

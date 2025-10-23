@@ -37,11 +37,10 @@ import (
 // The workflow uses a 5-minute polling loop to wait for instances to become ready,
 // checking Krane deployment status every second and logging progress every 10 seconds.
 func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
-
-	var finishedSuccessfully = false
+	finishedSuccessfully := false
 
 	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
-		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.DeploymentId)
+		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.GetDeploymentId())
 	}, restate.WithName("finding deployment"))
 	if err != nil {
 		return nil, err
@@ -53,10 +52,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return
 		}
 
-		if err := w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
+		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
 			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
-
 	}()
 
 	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
@@ -104,19 +102,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Create deployment request
 
-		_, err := w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
-
+		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
 			Deployment: &kranev1.DeploymentRequest{
 				Namespace:     hardcodedNamespace,
 				DeploymentId:  deployment.ID,
-				Image:         req.DockerImage,
+				Image:         req.GetDockerImage(),
 				Replicas:      1,
 				CpuMillicores: 512,
 				MemorySizeMib: 512,
 			},
 		}))
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.DockerImage, err)
+			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.GetDockerImage(), err)
 		}
 
 		return restate.Void{}, nil
@@ -140,7 +137,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
 			}
 
-			resp, err := w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
+			var resp *connect.Response[kranev1.GetDeploymentResponse]
+			resp, err = w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
 				Namespace:    hardcodedNamespace,
 				DeploymentId: deployment.ID,
 			}))
@@ -155,12 +153,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 			allReady := true
 			for _, instance := range resp.Msg.GetInstances() {
-				if instance.Status != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
+				if instance.GetStatus() != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
 					allReady = false
 				}
 
 				var status partitiondb.VmsStatus
-				switch instance.Status {
+				switch instance.GetStatus() {
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
 					status = partitiondb.VmsStatusProvisioning
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
@@ -173,24 +171,26 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				}
 
 				upsertParams := partitiondb.UpsertVMParams{
-					ID:            instance.Id,
-					DeploymentID:  deployment.ID,
-					Address:       sql.NullString{Valid: true, String: instance.Address},
-					CpuMillicores: 1000,   // TODO derive from spec
-					MemoryMb:      1024,   // TODO derive from spec
-					Status:        status, // TODO
+					ID:           instance.GetId(),
+					DeploymentID: deployment.ID,
+					Address:      sql.NullString{Valid: true, String: instance.GetAddress()},
+					// nolint: godox
+					// TODO: Make sure configurable later
+					CpuMillicores: 1000,
+					MemoryMb:      1024,
+					Status:        status,
 				}
 
 				w.logger.Info("upserting VM to database",
-					"vm_id", instance.Id,
+					"vm_id", instance.GetId(),
 					"deployment_id", deployment.ID,
-					"address", instance.Address,
+					"address", instance.GetAddress(),
 					"status", status)
-				if err := partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
-					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.Id, err)
+				if err = partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.GetId(), err)
 				}
 
-				w.logger.Info("successfully upserted VM to database", "vm_id", instance.Id)
+				w.logger.Info("successfully upserted VM to database", "vm_id", instance.GetId())
 
 			}
 
@@ -208,12 +208,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	openapiSpec, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-
 		for _, instance := range createdInstances {
 			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
 			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", deployment.ID)
 
-			resp, err := http.DefaultClient.Get(openapiURL)
+			var resp *http.Response
+			resp, err = http.DefaultClient.Get(openapiURL)
 			if err != nil {
 				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue
@@ -226,7 +226,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			}
 
 			// Read the OpenAPI spec
-			specBytes, err := io.ReadAll(resp.Body)
+			var specBytes []byte
+			specBytes, err = io.ReadAll(resp.Body)
 			if err != nil {
 				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
 				continue
@@ -237,25 +238,19 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 		// not an error really, just no OpenAPI spec found
 		return "", nil
-
 	}, restate.WithName("scrape openapi spec"))
-
 	if err != nil {
 		return nil, err
 	}
 
 	if openapiSpec != "" {
-
 		_, err = restate.Run(ctx, func(innerCtx restate.RunContext) (restate.Void, error) {
-
 			return restate.Void{}, db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
 				ID:          deployment.ID,
 				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
 			})
-
 		}, restate.WithName("update deployment openapi spec"))
-
 	}
 
 	allDomains := buildDomains(
@@ -270,6 +265,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// Create VM protobuf objects for gateway config
 	gatewayConfig := &partitionv1.GatewayConfig{
+		Project:          nil,
+		AuthConfig:       nil,
+		ValidationConfig: nil,
 		Deployment: &partitionv1.Deployment{
 			Id:        deployment.ID,
 			IsEnabled: true,
@@ -279,7 +277,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	for i, vm := range createdInstances {
 		gatewayConfig.Vms[i] = &partitionv1.VM{
-			Id: vm.Id,
+			Id: vm.GetId(),
 		}
 	}
 
@@ -340,6 +338,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// only update this if the deployment is not rolled back
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
+				IsRolledBack:     false,
 				ID:               deployment.ProjectID,
 				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -353,6 +352,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// Log deployment completed
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
+			ProjectID:    deployment.ProjectID,
+			WorkspaceID:  deployment.WorkspaceID,
 			DeploymentID: deployment.ID,
 			Status:       "completed",
 			Message:      "Deployment completed successfully",

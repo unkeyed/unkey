@@ -73,11 +73,11 @@ type Config struct {
 // See [promhttp.Handler] for details on the Prometheus metrics handler.
 func New(config Config) (*zen.Server, error) {
 	z, err := zen.New(zen.Config{
-		Logger: config.Logger,
-		Flags:  nil,
-		TLS:    nil,
+		MaxRequestBodySize: 0,
+		Logger:             config.Logger,
+		Flags:              nil,
+		TLS:                nil,
 	})
-
 	if err != nil {
 		return nil, err
 	}

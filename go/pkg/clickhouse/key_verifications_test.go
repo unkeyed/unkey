@@ -17,6 +17,7 @@ import (
 )
 
 func TestKeyVerifications(t *testing.T) {
+	t.Parallel()
 	dsn := containers.ClickHouse(t)
 
 	opts, err := ch.ParseDSN(dsn)
@@ -24,7 +25,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	conn, err := ch.Open(opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	t.Cleanup(func() { conn.Close() })
 
 	err = conn.Ping(context.Background())
 	require.NoError(t, err)
@@ -80,7 +81,6 @@ func TestKeyVerifications(t *testing.T) {
 			SpentCredits: rand.Int63n(10),
 			Latency:      latency,
 		}
-
 	})
 	t.Logf("Generated %d verifications in %s", len(verifications), time.Since(t0))
 
@@ -108,19 +108,15 @@ func TestKeyVerifications(t *testing.T) {
 	}, time.Minute, time.Second)
 
 	t.Run("totals are correct", func(t *testing.T) {
-
 		for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
-
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
-
 					queried := int64(0)
 					err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
 					require.NoError(c, err)
 					t.Logf("expected %d, got %d", len(verifications), queried)
 					require.Equal(c, len(verifications), int(queried))
 				}, time.Minute, time.Second)
-
 			})
 		}
 	})
@@ -129,16 +125,12 @@ func TestKeyVerifications(t *testing.T) {
 		countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
 			acc[v.Outcome] = acc[v.Outcome] + 1
 			return acc
-
 		}, map[string]int{})
 
 		for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
-
 				for outcome, count := range countByOutcome {
-
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
-
 						queried := int64(0)
 						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND outcome = ?;", table, workspaceID, outcome).Scan(&queried)
 						require.NoError(c, err)
@@ -146,7 +138,6 @@ func TestKeyVerifications(t *testing.T) {
 						require.Equal(c, count, int(queried))
 					}, time.Minute, time.Second)
 				}
-
 			})
 		}
 	})
@@ -160,7 +151,6 @@ func TestKeyVerifications(t *testing.T) {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
-
 			}, map[string]int{})
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
@@ -168,16 +158,13 @@ func TestKeyVerifications(t *testing.T) {
 					t.Parallel()
 
 					for outcome, count := range countByOutcome {
-
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
-
 							queried := int64(0)
 							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table, workspaceID, keyID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
 					}
-
 				})
 			}
 		}
@@ -191,23 +178,18 @@ func TestKeyVerifications(t *testing.T) {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
-
 			}, map[string]int{})
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
-
 					for outcome, count := range countByOutcome {
-
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
-
 							queried := int64(0)
 							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table, workspaceID, identityID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
 					}
-
 				})
 			}
 		}
@@ -224,14 +206,12 @@ func TestKeyVerifications(t *testing.T) {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
-
 			}, map[string]int{})
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
-
 							queried := int64(0)
 							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table, workspaceID, tag, outcome).Scan(&queried)
 							require.NoError(c, err)
@@ -265,7 +245,6 @@ func TestKeyVerifications(t *testing.T) {
 				require.InDelta(t, avg, queriedAvg, 0.01)
 				require.InDelta(t, p75, float64(queriedP75), 1.0)
 				require.InDelta(t, p99, float64(queriedP99), 1.0)
-
 			})
 		}
 	})
@@ -284,7 +263,6 @@ func TestKeyVerifications(t *testing.T) {
 				require.NoError(t, err)
 
 				require.Equal(t, credits, queried)
-
 			})
 		}
 	})
@@ -306,7 +284,6 @@ func TestKeyVerifications(t *testing.T) {
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
-
 				})
 			}
 
@@ -331,7 +308,6 @@ func TestKeyVerifications(t *testing.T) {
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
-
 				})
 			}
 
@@ -353,6 +329,5 @@ func TestKeyVerifications(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, billableVerifications, queried)
-
 	})
 }

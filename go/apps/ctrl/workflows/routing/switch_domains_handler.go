@@ -68,7 +68,7 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 		}
 
 		if len(gatewayParams) > 0 {
-			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, s.partitionDB.RW(), gatewayParams); err != nil {
+			if err = partitiondb.BulkQuery.UpsertGateway(stepCtx, s.partitionDB.RW(), gatewayParams); err != nil {
 				return restate.Void{}, fmt.Errorf("failed to upsert gateway configs: %w", err)
 			}
 			s.logger.Info("updated gateway configs", "count", len(gatewayParams))
@@ -76,7 +76,6 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 
 		return restate.Void{}, nil
 	}, restate.WithName("upsert-gateway-configs"))
-
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 				"domain_name", domain.Domain,
 			)
 
-			err := db.Query.ReassignDomain(stepCtx, s.db.RW(), db.ReassignDomainParams{
+			err = db.Query.ReassignDomain(stepCtx, s.db.RW(), db.ReassignDomainParams{
 				ID:                domain.ID,
 				TargetWorkspaceID: domain.WorkspaceID,
 				DeploymentID:      sql.NullString{Valid: true, String: req.GetTargetDeploymentId()},
@@ -105,7 +104,6 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 		s.logger.Info("reassigned domains", "count", len(domains))
 		return restate.Void{}, nil
 	}, restate.WithName("reassign-domains"))
-
 	if err != nil {
 		return nil, err
 	}

@@ -51,7 +51,7 @@ func TestSession_BodySizeLimit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/", strings.NewReader(tt.bodyContent))
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.bodyContent))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -76,7 +76,7 @@ func TestSession_BodySizeLimitWithBindBody(t *testing.T) {
 	// Test that BindBody still works correctly with body size limits
 	bodyContent := `{"name":"test","value":42}`
 
-	req := httptest.NewRequest("POST", "/", strings.NewReader(bodyContent))
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(bodyContent))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -134,7 +134,7 @@ func TestSession_MaxBytesErrorMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a body larger than the limit
 			bodyContent := strings.Repeat("x", tt.bodySize)
-			req := httptest.NewRequest("POST", "/", strings.NewReader(bodyContent))
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(bodyContent))
 			w := httptest.NewRecorder()
 
 			sess := &Session{}
@@ -166,7 +166,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	handlerInvoked := false
 
 	// Register a simple route that would process the body
-	testRoute := NewRoute("POST", "/test", func(ctx context.Context, s *Session) error {
+	testRoute := NewRoute(http.MethodPost, "/test", func(ctx context.Context, s *Session) error {
 		// This should never be reached due to the body size limit
 		handlerInvoked = true
 		return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -181,7 +181,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 
 	// Create request with body larger than limit (200 bytes vs 100 byte limit)
 	bodyContent := strings.Repeat("x", 200)
-	req := httptest.NewRequest("POST", "/test", strings.NewReader(bodyContent))
+	req := httptest.NewRequest(http.MethodPost, "/test", strings.NewReader(bodyContent))
 	w := httptest.NewRecorder()
 
 	// Call through the zen server
@@ -193,14 +193,14 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	// Parse and validate JSON response structure
 	require.Contains(t, w.Header().Get("Content-Type"), "application/json")
 
-	var response map[string]interface{}
+	var response map[string]any
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err, "Response should be valid JSON")
 
 	// Validate that response contains error field
 	require.Contains(t, response, "error", "Response should contain 'error' field")
 
-	errorObj, ok := response["error"].(map[string]interface{})
+	errorObj, ok := response["error"].(map[string]any)
 	require.True(t, ok, "Error field should be an object")
 
 	// Validate required JSON fields in error object
@@ -219,7 +219,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 
 func TestSession_ClickHouseLoggingControl(t *testing.T) {
 	// Test that the new ClickHouse logging control methods work correctly
-	req := httptest.NewRequest("POST", "/", strings.NewReader("test"))
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("test"))
 	w := httptest.NewRecorder()
 
 	sess := &Session{}

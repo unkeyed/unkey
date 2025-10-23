@@ -238,7 +238,7 @@ func (c *Command) getDefaultValue(flag Flag) string {
 		}
 	case *DurationFlag:
 		if f.HasValue() {
-			return fmt.Sprintf("%s", f.Value())
+			return f.Value().String()
 		}
 	}
 	return ""

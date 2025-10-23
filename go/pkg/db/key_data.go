@@ -51,6 +51,7 @@ func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
 }
 
 func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
+	//nolint: exhaustruct
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -86,9 +87,10 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 		Permissions:     nil,
 		RolePermissions: nil,
 		Ratelimits:      nil,
-	} //nolint:exhaustruct
+	}
 
 	if r.IdentityID.Valid {
+		//nolint:exhaustruct
 		kd.Identity = &Identity{
 			ID:          r.IdentityID.String,
 			ExternalID:  r.IdentityExternalID.String,
@@ -115,6 +117,7 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 }
 
 func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
+	//nolint:exhaustruct
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -150,9 +153,10 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Permissions:     nil,
 		RolePermissions: nil,
 		Ratelimits:      nil,
-	} //nolint:exhaustruct
+	}
 
 	if r.IdentityTableID.Valid {
+		//nolint: exhaustruct
 		kd.Identity = &Identity{
 			ID:          r.IdentityTableID.String,
 			ExternalID:  r.IdentityExternalID.String,
