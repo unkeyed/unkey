@@ -164,7 +164,7 @@ services:
     networks:
       - default
     container_name: s3
-    image: bitnamilegacy/minio:2025.4.3
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     ports:
       - 3902:3902
       - 3903:3903
@@ -294,7 +294,7 @@ services:
     networks:
       - default
     container_name: restate
-    image: docker.io/restatedev/restate:latest
+    image: docker.io/restatedev/restate:1.5.3
     ports:
       - "8081:8080" # Ingress endpoint (host:container)
       - "9070:9070" # Admin endpoint and UI

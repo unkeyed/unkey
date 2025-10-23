@@ -90,6 +90,16 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
+	//DeleteOldIdentityByExternalID
+	//
+	//  DELETE i, rl
+	//  FROM identities i
+	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  WHERE i.workspace_id = ?
+	//    AND i.external_id = ?
+	//    AND i.id != ?
+	//    AND i.deleted = true
+	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error
 	//DeleteOldIdentityWithRatelimits
 	//
 	//  DELETE i, rl
@@ -255,14 +265,69 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
-	//FindIdentity
+	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
-	//   AND (external_id = ? OR id = ?)
-	//   AND deleted = ?
-	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error)
+	//    AND external_id = ?
+	//    AND deleted = ?
+	FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error)
+	//FindIdentityByID
+	//
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	//    AND deleted = ?
+	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
+	//FindIdentityWithRatelimits
+	//
+	//  SELECT
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', rl.id,
+	//                  'name', rl.name,
+	//                  'key_id', rl.key_id,
+	//                  'identity_id', rl.identity_id,
+	//                  'limit', rl.`limit`,
+	//                  'duration', rl.duration,
+	//                  'auto_apply', rl.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  WHERE i.workspace_id = ?
+	//    AND i.id = ?
+	//    AND i.deleted = ?
+	//  UNION ALL
+	//  SELECT
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', rl.id,
+	//                  'name', rl.name,
+	//                  'key_id', rl.key_id,
+	//                  'identity_id', rl.identity_id,
+	//                  'limit', rl.`limit`,
+	//                  'duration', rl.duration,
+	//                  'auto_apply', rl.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  WHERE i.workspace_id = ?
+	//    AND i.external_id = ?
+	//    AND i.deleted = ?
+	//  LIMIT 1
+	FindIdentityWithRatelimits(ctx context.Context, db DBTX, arg FindIdentityWithRatelimitsParams) ([]FindIdentityWithRatelimitsRow, error)
 	//FindKeyByID
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k
