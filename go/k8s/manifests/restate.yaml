@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: restate
-          image: docker.io/restatedev/restate:1.5.1
+          image: docker.io/restatedev/restate:1.5.3
           ports:
             - containerPort: 8080
               name: ingress
