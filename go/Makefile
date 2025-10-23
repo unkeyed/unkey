@@ -13,10 +13,25 @@ endif
 GOMAXPROCS_VAL := $(or $(GOMAXPROCS),$(DETECTED_PROCS))
 PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS_VAL) / 2; else echo 1; fi)
 
-install:
+BUF_VERSION := 1.59.0
+GOLANGCI_VERSION := 2.5.0
+SQLC_VERSION := 1.30.0
+
+GOBIN := $(shell go env GOPATH)/bin
+
+install: tools
 	go mod tidy
 
-fmt:
+
+tools:
+	# Check if tool is installed with correct version via grep. If not found (grep fails), install it.
+	@buf --version 2>/dev/null | grep -q "$(BUF_VERSION)" || (echo "Installing buf@$(BUF_VERSION)..." && GOBIN=$(GOBIN) go install github.com/bufbuild/buf/cmd/buf@v$(BUF_VERSION))
+	@echo "Installing protoc-gen-go-restate@latest..."
+	@GOBIN=$(GOBIN) go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
+	@golangci-lint --version 2>/dev/null | grep -q "$(GOLANGCI_VERSION)" || (echo "Installing golangci-lint@$(GOLANGCI_VERSION)..." && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(GOBIN) v$(GOLANGCI_VERSION))
+	@sqlc version 2>/dev/null | grep -q "$(SQLC_VERSION)" || (echo "Installing sqlc@$(SQLC_VERSION)..." && GOBIN=$(GOBIN) go install github.com/sqlc-dev/sqlc/cmd/sqlc@v$(SQLC_VERSION))
+
+fmt: tools
 	go fmt ./...
 	golangci-lint run
 
@@ -33,8 +48,7 @@ clean:
 build:
 	go build -o unkey ./main.go
 
-generate:
-	go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
+generate: tools
 	buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
 	buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
