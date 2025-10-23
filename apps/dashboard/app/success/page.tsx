@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { Empty, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
 
 type ProcessedData = {
@@ -46,11 +46,9 @@ export default function SuccessPage() {
         setLoading(true);
 
         // Get checkout session
-        const sessionResponse = await trpcUtils.stripe.getCheckoutSession.fetch(
-          {
-            sessionId: sessionId,
-          }
-        );
+        const sessionResponse = await trpcUtils.stripe.getCheckoutSession.fetch({
+          sessionId: sessionId,
+        });
 
         if (!sessionResponse) {
           console.warn("Stripe session not found");
