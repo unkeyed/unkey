@@ -15,7 +15,7 @@ PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS
 
 BUF_VERSION := 1.59.0
 GOLANGCI_VERSION := 2.5.0
-SQLC_VERSION := 1.30.0
+SQLC_VERSION := 1.29.0
 
 GOBIN := $(shell go env GOPATH)/bin
 
