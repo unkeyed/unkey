@@ -4,6 +4,7 @@ import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+import { clearWorkspaceCache } from "../workspace/getCurrent";
 
 export const updateWorkspaceStripeCustomer = t.procedure
   .use(requireUser)
@@ -50,6 +51,9 @@ export const updateWorkspaceStripeCustomer = t.procedure
 
         // Invalidate workspace cache after successful update
         await invalidateWorkspaceCache(ctx.tenant.id);
+
+        // Also clear the tRPC workspace cache to ensure fresh data on next request
+        clearWorkspaceCache(ctx.tenant.id);
       })
       .catch((_err) => {
         throw new TRPCError({
