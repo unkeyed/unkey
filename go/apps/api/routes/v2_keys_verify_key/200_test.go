@@ -156,7 +156,7 @@ func TestSuccess(t *testing.T) {
 			req := handler.Request{
 				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
-					Cost: 5,
+					Cost: 3,
 				},
 			}
 
@@ -165,7 +165,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 			require.True(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(2), "Key should have 2 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("exceeding with custom credit cost", func(t *testing.T) {
@@ -173,14 +173,14 @@ func TestSuccess(t *testing.T) {
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
 				Credits: &seed.CreditRequest{
-					Remaining: 5,
+					Remaining: 2,
 				},
 			})
 
 			req := handler.Request{
 				Key: key.Key,
 				Credits: &openapi.KeysVerifyKeyCredits{
-					Cost: 15,
+					Cost: 10,
 				},
 			}
 
@@ -189,7 +189,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should be usage exceeded but got %s", res.Body.Data.Code)
 			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
-			require.EqualValues(t, *res.Body.Data.Credits, int32(5), "Key should have 5 credits remaining but got %d", *res.Body.Data.Credits)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(2), "Key should have 2 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 
 		t.Run("allow credits 0 even when remaining 0", func(t *testing.T) {
@@ -224,7 +224,9 @@ func TestSuccess(t *testing.T) {
 				ExternalID:  uid.New(""),
 				Meta:        nil,
 				Ratelimits:  nil,
-				Credits:     nil,
+				Credits: &seed.CreditRequest{
+					Remaining: 5,
+				},
 			})
 
 			key := h.CreateKey(seed.CreateKeyRequest{

@@ -214,7 +214,7 @@ func (s *counterService) redisKey(creditID string) string {
 // handleResult processes the result of a decrement operation using an explicit success flag.
 // This eliminates ambiguity in determining whether the operation succeeded or failed.
 func (s *counterService) handleResult(req UsageRequest, remaining int64, success bool) (UsageResponse, error) {
-	if !success {
+	if success {
 		// decrement succeeded - buffer the change for async database sync
 		s.replayBuffer.Buffer(CreditChange{
 			CreditID: req.CreditID,
