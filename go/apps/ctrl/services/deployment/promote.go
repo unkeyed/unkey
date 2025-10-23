@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -32,14 +31,11 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 
 	// Call the Restate workflow using project ID as the key
 	// This ensures only one operation per project can run at a time
-	_, err = restateingress.Object[*hydrav1.PromoteRequest, *hydrav1.PromoteResponse](
-		s.restate,
-		"hydra.v1.DeploymentService",
-		targetDeployment.ProjectID,
-		"Promote",
-	).Request(ctx, &hydrav1.PromoteRequest{
-		TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
-	})
+	_, err = s.deploymentClient(targetDeployment.ProjectID).
+		Promote().
+		Request(ctx, &hydrav1.PromoteRequest{
+			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
+		})
 
 	if err != nil {
 		s.logger.Error("promotion workflow failed",
