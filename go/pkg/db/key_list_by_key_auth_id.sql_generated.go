@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const listKeysByKeyAuthID = `-- name: ListKeysByKeyAuthID :many
@@ -38,12 +39,12 @@ type ListKeysByKeyAuthIDParams struct {
 }
 
 type ListKeysByKeyAuthIDRow struct {
-	Key             Key            `db:"key"`
-	IdentityID      sql.NullString `db:"identity_id"`
-	ExternalID      sql.NullString `db:"external_id"`
-	IdentityMeta    []byte         `db:"identity_meta"`
-	EncryptedKey    sql.NullString `db:"encrypted_key"`
-	EncryptionKeyID sql.NullString `db:"encryption_key_id"`
+	Key             Key             `db:"key"`
+	IdentityID      sql.NullString  `db:"identity_id"`
+	ExternalID      sql.NullString  `db:"external_id"`
+	IdentityMeta    json.RawMessage `db:"identity_meta"`
+	EncryptedKey    sql.NullString  `db:"encrypted_key"`
+	EncryptionKeyID sql.NullString  `db:"encryption_key_id"`
 }
 
 // ListKeysByKeyAuthID

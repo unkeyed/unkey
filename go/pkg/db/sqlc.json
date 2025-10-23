@@ -37,7 +37,7 @@
             {
               "db_type": "json",
               "go_type": {
-                "type": "[]byte"
+                "type": "json.RawMessage"
               },
               "nullable": true
             },

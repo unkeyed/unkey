@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 )
 
 // KeyData represents the complete data for a key including all relationships
@@ -82,11 +81,11 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 		Workspace:       Workspace{}, // Empty Workspace since not in this query
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           nil,
-		Permissions:     nil,
-		RolePermissions: nil,
-		Ratelimits:      nil,
-	} //nolint:exhaustruct
+		Roles:           UnmarshalJSONArray[RoleInfo](r.Roles),
+		Permissions:     UnmarshalJSONArray[PermissionInfo](r.Permissions),
+		RolePermissions: UnmarshalJSONArray[PermissionInfo](r.RolePermissions),
+		Ratelimits:      UnmarshalJSONArray[RatelimitInfo](r.Ratelimits),
+	}
 
 	if r.IdentityID.Valid {
 		kd.Identity = &Identity{
@@ -95,20 +94,6 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 			WorkspaceID: r.WorkspaceID,
 			Meta:        r.IdentityMeta,
 		}
-	}
-
-	// It's fine to fail here
-	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
-		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
-	}
-	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
-		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
-	}
-	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
-		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
-	}
-	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
-		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
 	}
 
 	return kd
@@ -146,11 +131,11 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Workspace:       r.Workspace,
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           nil,
-		Permissions:     nil,
-		RolePermissions: nil,
-		Ratelimits:      nil,
-	} //nolint:exhaustruct
+		Roles:           UnmarshalJSONArray[RoleInfo](r.Roles),
+		Permissions:     UnmarshalJSONArray[PermissionInfo](r.Permissions),
+		RolePermissions: UnmarshalJSONArray[PermissionInfo](r.RolePermissions),
+		Ratelimits:      UnmarshalJSONArray[RatelimitInfo](r.Ratelimits),
+	}
 
 	if r.IdentityTableID.Valid {
 		kd.Identity = &Identity{
@@ -159,20 +144,6 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			WorkspaceID: r.WorkspaceID,
 			Meta:        r.IdentityMeta,
 		}
-	}
-
-	// It's fine to fail here
-	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
-		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
-	}
-	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
-		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
-	}
-	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
-		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
-	}
-	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
-		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
 	}
 
 	return kd

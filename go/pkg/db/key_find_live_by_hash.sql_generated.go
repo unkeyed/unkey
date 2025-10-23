@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const findLiveKeyByHash = `-- name: FindLiveKeyByHash :one
@@ -102,41 +103,41 @@ WHERE k.hash = ?
 `
 
 type FindLiveKeyByHashRow struct {
-	ID                 string         `db:"id"`
-	KeyAuthID          string         `db:"key_auth_id"`
-	Hash               string         `db:"hash"`
-	Start              string         `db:"start"`
-	WorkspaceID        string         `db:"workspace_id"`
-	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
-	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
-	IdentityID         sql.NullString `db:"identity_id"`
-	Meta               sql.NullString `db:"meta"`
-	Expires            sql.NullTime   `db:"expires"`
-	CreatedAtM         int64          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
-	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
-	Environment        sql.NullString `db:"environment"`
-	Api                Api            `db:"api"`
-	KeyAuth            KeyAuth        `db:"key_auth"`
-	Workspace          Workspace      `db:"workspace"`
-	IdentityTableID    sql.NullString `db:"identity_table_id"`
-	IdentityExternalID sql.NullString `db:"identity_external_id"`
-	IdentityMeta       []byte         `db:"identity_meta"`
-	EncryptedKey       sql.NullString `db:"encrypted_key"`
-	EncryptionKeyID    sql.NullString `db:"encryption_key_id"`
-	Roles              interface{}    `db:"roles"`
-	Permissions        interface{}    `db:"permissions"`
-	RolePermissions    interface{}    `db:"role_permissions"`
-	Ratelimits         interface{}    `db:"ratelimits"`
+	ID                 string          `db:"id"`
+	KeyAuthID          string          `db:"key_auth_id"`
+	Hash               string          `db:"hash"`
+	Start              string          `db:"start"`
+	WorkspaceID        string          `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString  `db:"for_workspace_id"`
+	Name               sql.NullString  `db:"name"`
+	OwnerID            sql.NullString  `db:"owner_id"`
+	IdentityID         sql.NullString  `db:"identity_id"`
+	Meta               sql.NullString  `db:"meta"`
+	Expires            sql.NullTime    `db:"expires"`
+	CreatedAtM         int64           `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64   `db:"deleted_at_m"`
+	RefillDay          sql.NullInt16   `db:"refill_day"`
+	RefillAmount       sql.NullInt32   `db:"refill_amount"`
+	LastRefillAt       sql.NullTime    `db:"last_refill_at"`
+	Enabled            bool            `db:"enabled"`
+	RemainingRequests  sql.NullInt32   `db:"remaining_requests"`
+	RatelimitAsync     sql.NullBool    `db:"ratelimit_async"`
+	RatelimitLimit     sql.NullInt32   `db:"ratelimit_limit"`
+	RatelimitDuration  sql.NullInt64   `db:"ratelimit_duration"`
+	Environment        sql.NullString  `db:"environment"`
+	Api                Api             `db:"api"`
+	KeyAuth            KeyAuth         `db:"key_auth"`
+	Workspace          Workspace       `db:"workspace"`
+	IdentityTableID    sql.NullString  `db:"identity_table_id"`
+	IdentityExternalID sql.NullString  `db:"identity_external_id"`
+	IdentityMeta       json.RawMessage `db:"identity_meta"`
+	EncryptedKey       sql.NullString  `db:"encrypted_key"`
+	EncryptionKeyID    sql.NullString  `db:"encryption_key_id"`
+	Roles              interface{}     `db:"roles"`
+	Permissions        interface{}     `db:"permissions"`
+	RolePermissions    interface{}     `db:"role_permissions"`
+	Ratelimits         interface{}     `db:"ratelimits"`
 }
 
 // FindLiveKeyByHash

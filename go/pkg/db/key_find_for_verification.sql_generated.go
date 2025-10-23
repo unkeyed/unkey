@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const findKeyForVerification = `-- name: FindKeyForVerification :one
@@ -90,32 +91,32 @@ where k.hash = ?
 `
 
 type FindKeyForVerificationRow struct {
-	ID                  string         `db:"id"`
-	KeyAuthID           string         `db:"key_auth_id"`
-	WorkspaceID         string         `db:"workspace_id"`
-	ForWorkspaceID      sql.NullString `db:"for_workspace_id"`
-	Name                sql.NullString `db:"name"`
-	Meta                sql.NullString `db:"meta"`
-	Expires             sql.NullTime   `db:"expires"`
-	DeletedAtM          sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay           sql.NullInt16  `db:"refill_day"`
-	RefillAmount        sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt        sql.NullTime   `db:"last_refill_at"`
-	Enabled             bool           `db:"enabled"`
-	RemainingRequests   sql.NullInt32  `db:"remaining_requests"`
-	IpWhitelist         sql.NullString `db:"ip_whitelist"`
-	ApiWorkspaceID      string         `db:"api_workspace_id"`
-	ApiID               string         `db:"api_id"`
-	ApiDeletedAtM       sql.NullInt64  `db:"api_deleted_at_m"`
-	Roles               interface{}    `db:"roles"`
-	Permissions         interface{}    `db:"permissions"`
-	Ratelimits          interface{}    `db:"ratelimits"`
-	IdentityID          sql.NullString `db:"identity_id"`
-	ExternalID          sql.NullString `db:"external_id"`
-	IdentityMeta        []byte         `db:"identity_meta"`
-	KeyAuthDeletedAtM   sql.NullInt64  `db:"key_auth_deleted_at_m"`
-	WorkspaceEnabled    bool           `db:"workspace_enabled"`
-	ForWorkspaceEnabled sql.NullBool   `db:"for_workspace_enabled"`
+	ID                  string          `db:"id"`
+	KeyAuthID           string          `db:"key_auth_id"`
+	WorkspaceID         string          `db:"workspace_id"`
+	ForWorkspaceID      sql.NullString  `db:"for_workspace_id"`
+	Name                sql.NullString  `db:"name"`
+	Meta                sql.NullString  `db:"meta"`
+	Expires             sql.NullTime    `db:"expires"`
+	DeletedAtM          sql.NullInt64   `db:"deleted_at_m"`
+	RefillDay           sql.NullInt16   `db:"refill_day"`
+	RefillAmount        sql.NullInt32   `db:"refill_amount"`
+	LastRefillAt        sql.NullTime    `db:"last_refill_at"`
+	Enabled             bool            `db:"enabled"`
+	RemainingRequests   sql.NullInt32   `db:"remaining_requests"`
+	IpWhitelist         sql.NullString  `db:"ip_whitelist"`
+	ApiWorkspaceID      string          `db:"api_workspace_id"`
+	ApiID               string          `db:"api_id"`
+	ApiDeletedAtM       sql.NullInt64   `db:"api_deleted_at_m"`
+	Roles               interface{}     `db:"roles"`
+	Permissions         interface{}     `db:"permissions"`
+	Ratelimits          interface{}     `db:"ratelimits"`
+	IdentityID          sql.NullString  `db:"identity_id"`
+	ExternalID          sql.NullString  `db:"external_id"`
+	IdentityMeta        json.RawMessage `db:"identity_meta"`
+	KeyAuthDeletedAtM   sql.NullInt64   `db:"key_auth_deleted_at_m"`
+	WorkspaceEnabled    bool            `db:"workspace_enabled"`
+	ForWorkspaceEnabled sql.NullBool    `db:"for_workspace_enabled"`
 }
 
 // FindKeyForVerification
