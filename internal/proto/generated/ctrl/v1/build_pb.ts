@@ -2,15 +2,18 @@
 // @generated from file ctrl/v1/build.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/build.proto.
  */
-export const file_ctrl_v1_build: GenFile = /*@__PURE__*/
-  fileDesc("ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIpMBChJDcmVhdGVCdWlsZFJlcXVlc3QSGgoSYnVpbGRfY29udGV4dF9wYXRoGAEgASgJEhwKD2RvY2tlcmZpbGVfcGF0aBgCIAEoCUgAiAEBEhgKEHVua2V5X3Byb2plY3RfaWQYAyABKAkSFQoNZGVwbG95bWVudF9pZBgEIAEoCUISChBfZG9ja2VyZmlsZV9wYXRoIlUKE0NyZWF0ZUJ1aWxkUmVzcG9uc2USEgoKaW1hZ2VfbmFtZRgBIAEoCRIQCghidWlsZF9pZBgCIAEoCRIYChBkZXBvdF9wcm9qZWN0X2lkGAMgASgJIjQKGEdlbmVyYXRlVXBsb2FkVVJMUmVxdWVzdBIYChB1bmtleV9wcm9qZWN0X2lkGAEgASgJIl8KGUdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2USEgoKdXBsb2FkX3VybBgBIAEoCRIaChJidWlsZF9jb250ZXh0X3BhdGgYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoAzK4AQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJcChFHZW5lcmF0ZVVwbG9hZFVSTBIhLmN0cmwudjEuR2VuZXJhdGVVcGxvYWRVUkxSZXF1ZXN0GiIuY3RybC52MS5HZW5lcmF0ZVVwbG9hZFVSTFJlc3BvbnNlIgBCjAEKC2NvbS5jdHJsLnYxQgpCdWlsZFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
+export const file_ctrl_v1_build: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIpMBChJDcmVhdGVCdWlsZFJlcXVlc3QSGgoSYnVpbGRfY29udGV4dF9wYXRoGAEgASgJEhwKD2RvY2tlcmZpbGVfcGF0aBgCIAEoCUgAiAEBEhgKEHVua2V5X3Byb2plY3RfaWQYAyABKAkSFQoNZGVwbG95bWVudF9pZBgEIAEoCUISChBfZG9ja2VyZmlsZV9wYXRoIlUKE0NyZWF0ZUJ1aWxkUmVzcG9uc2USEgoKaW1hZ2VfbmFtZRgBIAEoCRIQCghidWlsZF9pZBgCIAEoCRIYChBkZXBvdF9wcm9qZWN0X2lkGAMgASgJIjQKGEdlbmVyYXRlVXBsb2FkVVJMUmVxdWVzdBIYChB1bmtleV9wcm9qZWN0X2lkGAEgASgJIl8KGUdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2USEgoKdXBsb2FkX3VybBgBIAEoCRIaChJidWlsZF9jb250ZXh0X3BhdGgYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoAzK4AQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJcChFHZW5lcmF0ZVVwbG9hZFVSTBIhLmN0cmwudjEuR2VuZXJhdGVVcGxvYWRVUkxSZXF1ZXN0GiIuY3RybC52MS5HZW5lcmF0ZVVwbG9hZFVSTFJlc3BvbnNlIgBCjAEKC2NvbS5jdHJsLnYxQgpCdWlsZFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message ctrl.v1.CreateBuildRequest
@@ -47,7 +50,8 @@ export type CreateBuildRequest = Message<"ctrl.v1.CreateBuildRequest"> & {
  * Describes the message ctrl.v1.CreateBuildRequest.
  * Use `create(CreateBuildRequestSchema)` to create a new message.
  */
-export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> = /*@__PURE__*/
+export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 0);
 
 /**
@@ -80,7 +84,8 @@ export type CreateBuildResponse = Message<"ctrl.v1.CreateBuildResponse"> & {
  * Describes the message ctrl.v1.CreateBuildResponse.
  * Use `create(CreateBuildResponseSchema)` to create a new message.
  */
-export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> = /*@__PURE__*/
+export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 1);
 
 /**
@@ -99,7 +104,8 @@ export type GenerateUploadURLRequest = Message<"ctrl.v1.GenerateUploadURLRequest
  * Describes the message ctrl.v1.GenerateUploadURLRequest.
  * Use `create(GenerateUploadURLRequestSchema)` to create a new message.
  */
-export const GenerateUploadURLRequestSchema: GenMessage<GenerateUploadURLRequest> = /*@__PURE__*/
+export const GenerateUploadURLRequestSchema: GenMessage<GenerateUploadURLRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 2);
 
 /**
@@ -132,7 +138,8 @@ export type GenerateUploadURLResponse = Message<"ctrl.v1.GenerateUploadURLRespon
  * Describes the message ctrl.v1.GenerateUploadURLResponse.
  * Use `create(GenerateUploadURLResponseSchema)` to create a new message.
  */
-export const GenerateUploadURLResponseSchema: GenMessage<GenerateUploadURLResponse> = /*@__PURE__*/
+export const GenerateUploadURLResponseSchema: GenMessage<GenerateUploadURLResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 3);
 
 /**
@@ -146,7 +153,7 @@ export const BuildService: GenService<{
     methodKind: "unary";
     input: typeof CreateBuildRequestSchema;
     output: typeof CreateBuildResponseSchema;
-  },
+  };
   /**
    * @generated from rpc ctrl.v1.BuildService.GenerateUploadURL
    */
@@ -154,7 +161,5 @@ export const BuildService: GenService<{
     methodKind: "unary";
     input: typeof GenerateUploadURLRequestSchema;
     output: typeof GenerateUploadURLResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_ctrl_v1_build, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_build, 0);
