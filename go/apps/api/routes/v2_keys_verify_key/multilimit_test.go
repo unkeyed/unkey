@@ -131,7 +131,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				IdentityID:  ptr.P(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1",
@@ -181,7 +181,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				IdentityID:  ptr.P(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-reject",
@@ -236,7 +236,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				IdentityID:  ptr.P(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-fallback",
@@ -296,13 +296,13 @@ func TestMultiLimit(t *testing.T) {
 			key1 := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				IdentityID:  ptr.P(identity.ID),
 			})
 
 			key2 := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				IdentityID:  ptr.P(identity.ID),
 			})
 
 			// Use up some quota with key1
@@ -411,7 +411,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				IdentityID:  ptr.P(identity.ID),
 			})
 
 			// First request with cost 4 should pass

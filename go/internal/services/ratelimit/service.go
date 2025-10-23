@@ -323,7 +323,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 			b.strictUntil = req.Time.Add(req.Duration)
 			metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "allowed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
 		}
 
 		return RatelimitResponse{
@@ -381,7 +381,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		}, nil
 	}
 
-	metrics.RatelimitDecision.WithLabelValues(decisionSource, "allowed").Inc()
+	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
 
 	return RatelimitResponse{
 		Success:   true,
