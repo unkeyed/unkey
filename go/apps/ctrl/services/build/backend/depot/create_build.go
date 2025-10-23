@@ -41,8 +41,8 @@ func (s *Depot) CreateBuild(
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
 	if err := assert.All(
-		assert.NotEmpty(req.Msg.ContextKey, "contextKey is required"),
-		assert.NotEmpty(req.Msg.UnkeyProjectId, "unkeyProjectID is required"),
+		assert.NotEmpty(req.Msg.BuildContextPath, "build_context_path is required"),
+		assert.NotEmpty(req.Msg.UnkeyProjectId, "unkey_project_id is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -61,14 +61,14 @@ func (s *Depot) CreateBuild(
 	architecture := parts[1]
 
 	s.logger.Info("Starting build process - getting presigned URL for build context",
-		"context_key", req.Msg.ContextKey,
+		"build_context_path", req.Msg.BuildContextPath,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
-	contextURL, err := s.storage.GetPresignedURL(ctx, req.Msg.ContextKey, 15*time.Minute)
+	contextURL, err := s.storage.GetPresignedURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
 	if err != nil {
 		s.logger.Error("Failed to get presigned URL",
 			"error", err,
-			"context_key", req.Msg.ContextKey,
+			"build_context_path", req.Msg.BuildContextPath,
 			"unkey_project_id", req.Msg.UnkeyProjectId)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get presigned URL: %w", err))

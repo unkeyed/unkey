@@ -260,11 +260,11 @@ func (*CreateDeploymentRequest_BuildContext) isCreateDeploymentRequest_Source() 
 func (*CreateDeploymentRequest_DockerImage) isCreateDeploymentRequest_Source() {}
 
 type BuildContext struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ContextKey     string                 `protobuf:"bytes,1,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"`                   // S3 key for uploaded build context
-	DockerfilePath *string                `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"` // Path to Dockerfile within context (default: "Dockerfile")
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	BuildContextPath string                 `protobuf:"bytes,1,opt,name=build_context_path,json=buildContextPath,proto3" json:"build_context_path,omitempty"` // S3 key for uploaded build context
+	DockerfilePath   *string                `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"`   // Path to Dockerfile within context (default: "Dockerfile")
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *BuildContext) Reset() {
@@ -297,9 +297,9 @@ func (*BuildContext) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *BuildContext) GetContextKey() string {
+func (x *BuildContext) GetBuildContextPath() string {
 	if x != nil {
-		return x.ContextKey
+		return x.BuildContextPath
 	}
 	return ""
 }
@@ -1133,10 +1133,9 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"keyspaceId\x88\x01\x01B\b\n" +
 	"\x06sourceB\r\n" +
 	"\v_git_commitB\x0e\n" +
-	"\f_keyspace_idJ\x04\b\x01\x10\x02\"q\n" +
-	"\fBuildContext\x12\x1f\n" +
-	"\vcontext_key\x18\x01 \x01(\tR\n" +
-	"contextKey\x12,\n" +
+	"\f_keyspace_idJ\x04\b\x01\x10\x02\"~\n" +
+	"\fBuildContext\x12,\n" +
+	"\x12build_context_path\x18\x01 \x01(\tR\x10buildContextPath\x12,\n" +
 	"\x0fdockerfile_path\x18\x02 \x01(\tH\x00R\x0edockerfilePath\x88\x01\x01B\x12\n" +
 	"\x10_dockerfile_path\"\xc4\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +

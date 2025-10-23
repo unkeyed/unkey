@@ -163,8 +163,8 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 		EnvironmentSlug: "production",
 		Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
 			BuildContext: &ctrlv1.BuildContext{
-				ContextKey:     "test-key",
-				DockerfilePath: ptr.P("Dockerfile"),
+				BuildContextPath: "test-key",
+				DockerfilePath:   ptr.P("Dockerfile"),
 			},
 		},
 		GitCommit: &ctrlv1.GitCommitInfo{
@@ -266,8 +266,8 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				EnvironmentSlug: "production",
 				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
 					BuildContext: &ctrlv1.BuildContext{
-						ContextKey:     "test-key",
-						DockerfilePath: ptr.P("Dockerfile"),
+						BuildContextPath: "test-key",
+						DockerfilePath:   ptr.P("Dockerfile"),
 					},
 				},
 				GitCommit: &ctrlv1.GitCommitInfo{
@@ -314,8 +314,8 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				EnvironmentSlug: "production",
 				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
 					BuildContext: &ctrlv1.BuildContext{
-						ContextKey:     "test-key",
-						DockerfilePath: ptr.P("Dockerfile"),
+						BuildContextPath: "test-key",
+						DockerfilePath:   ptr.P("Dockerfile"),
 					},
 				},
 				GitCommit: &ctrlv1.GitCommitInfo{
@@ -362,8 +362,8 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				EnvironmentSlug: "production",
 				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
 					BuildContext: &ctrlv1.BuildContext{
-						ContextKey:     "test-key",
-						DockerfilePath: ptr.P("Dockerfile"),
+						BuildContextPath: "test-key",
+						DockerfilePath:   ptr.P("Dockerfile"),
 					},
 				},
 				GitCommit: &ctrlv1.GitCommitInfo{

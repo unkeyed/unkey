@@ -35,8 +35,8 @@ func (s *Depot) GenerateUploadURL(
 	s.logger.Info("Generated upload URL", "context_key", buildContextPath, "unkey_project_id", req.Msg.UnkeyProjectId)
 
 	return connect.NewResponse(&ctrlv1.GenerateUploadURLResponse{
-		UploadUrl:  uploadURL,
-		ContextKey: buildContextPath,
-		ExpiresIn:  900, // 15 minutes
+		UploadUrl:        uploadURL,
+		BuildContextPath: buildContextPath,
+		ExpiresIn:        900, // 15 minutes
 	}), nil
 }

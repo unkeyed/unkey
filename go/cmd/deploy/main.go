@@ -236,16 +236,16 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	} else {
 		// Build from context
 		ui.Print(MsgUploadingBuildContext)
-		contextKey, err := controlPlane.UploadBuildContext(ctx, opts.Context)
+		buildContextPath, err := controlPlane.UploadBuildContext(ctx, opts.Context)
 		if err != nil {
 			ui.PrintError(MsgFailedToUploadContext)
 			ui.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgBuildContextUploaded, contextKey))
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgBuildContextUploaded, buildContextPath))
 
 		ui.Print(MsgCreatingDeployment)
-		deploymentID, err = controlPlane.CreateDeployment(ctx, contextKey, "")
+		deploymentID, err = controlPlane.CreateDeployment(ctx, buildContextPath, "")
 		if err != nil {
 			ui.PrintError(MsgFailedToCreateDeployment)
 			ui.PrintErrorDetails(err.Error())

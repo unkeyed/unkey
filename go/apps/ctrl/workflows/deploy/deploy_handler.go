@@ -96,7 +96,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	var dockerImage string
 
-	if req.GetContextKey() != "" {
+	if req.GetBuildContextPath() != "" {
 		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
@@ -119,13 +119,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		dockerImage, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			w.logger.Info("starting docker build",
 				"deployment_id", deployment.ID,
-				"context_key", req.GetContextKey())
+				"build_context_path", req.GetBuildContextPath())
 
 			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
-				UnkeyProjectId: deployment.ProjectID,
-				DeploymentId:   deployment.ID,
-				ContextKey:     req.GetContextKey(),
-				DockerfilePath: proto.String(req.GetDockerfilePath()),
+				UnkeyProjectId:   deployment.ProjectID,
+				DeploymentId:     deployment.ID,
+				BuildContextPath: req.GetBuildContextPath(),
+				DockerfilePath:   proto.String(req.GetDockerfilePath()),
 			})
 
 			buildResp, err := w.buildClient.CreateBuild(stepCtx, buildReq)
@@ -164,7 +164,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			"deployment_id", deployment.ID,
 			"image", dockerImage)
 	} else {
-		return nil, fmt.Errorf("either context_key or docker_image must be specified")
+		return nil, fmt.Errorf("either build_context_path or docker_image must be specified")
 	}
 
 	// Update version status to deploying

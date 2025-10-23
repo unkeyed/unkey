@@ -9,7 +9,7 @@ service BuildService {
 }
 
 message CreateBuildRequest {
-  string context_key = 1; // S3 key of the uploaded tar file
+  string build_context_path = 1; // S3 key of the uploaded tar file
   optional string dockerfile_path = 2; // Path to Dockerfile within the tar
   string unkey_project_id = 3; // Your internal user/project ID
   string deployment_id = 4;
@@ -27,6 +27,6 @@ message GenerateUploadURLRequest {
 
 message GenerateUploadURLResponse {
   string upload_url = 1; // Presigned PUT URL
-  string context_key = 2; // S3 key to use in CreateBuild
+  string build_context_path = 2; // S3 key to use in CreateBuild
   int64 expires_in = 3; // Seconds until URL expires
 }

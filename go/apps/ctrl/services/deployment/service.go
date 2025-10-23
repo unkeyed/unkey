@@ -1,3 +1,9 @@
+// Package deployment manages the full deployment lifecycle including creation,
+// promotion, and rollback operations. All operations are keyed by project ID
+// in Restate to ensure only one operation runs per project at a time.
+//
+// Supports two deployment sources: build from source (with build context and
+// Dockerfile path) or prebuilt Docker images.
 package deployment
 
 import (

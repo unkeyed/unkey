@@ -22,13 +22,13 @@ const (
 )
 
 type CreateBuildRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ContextKey     string                 `protobuf:"bytes,1,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"`                   // S3 key of the uploaded tar file
-	DockerfilePath *string                `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"` // Path to Dockerfile within the tar
-	UnkeyProjectId string                 `protobuf:"bytes,3,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"`     // Your internal user/project ID
-	DeploymentId   string                 `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	BuildContextPath string                 `protobuf:"bytes,1,opt,name=build_context_path,json=buildContextPath,proto3" json:"build_context_path,omitempty"` // S3 key of the uploaded tar file
+	DockerfilePath   *string                `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"`   // Path to Dockerfile within the tar
+	UnkeyProjectId   string                 `protobuf:"bytes,3,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"`       // Your internal user/project ID
+	DeploymentId     string                 `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *CreateBuildRequest) Reset() {
@@ -61,9 +61,9 @@ func (*CreateBuildRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_build_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateBuildRequest) GetContextKey() string {
+func (x *CreateBuildRequest) GetBuildContextPath() string {
 	if x != nil {
-		return x.ContextKey
+		return x.BuildContextPath
 	}
 	return ""
 }
@@ -194,12 +194,12 @@ func (x *GenerateUploadURLRequest) GetUnkeyProjectId() string {
 }
 
 type GenerateUploadURLResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UploadUrl     string                 `protobuf:"bytes,1,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`    // Presigned PUT URL
-	ContextKey    string                 `protobuf:"bytes,2,opt,name=context_key,json=contextKey,proto3" json:"context_key,omitempty"` // S3 key to use in CreateBuild
-	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`   // Seconds until URL expires
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	UploadUrl        string                 `protobuf:"bytes,1,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`                        // Presigned PUT URL
+	BuildContextPath string                 `protobuf:"bytes,2,opt,name=build_context_path,json=buildContextPath,proto3" json:"build_context_path,omitempty"` // S3 key to use in CreateBuild
+	ExpiresIn        int64                  `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`                       // Seconds until URL expires
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GenerateUploadURLResponse) Reset() {
@@ -239,9 +239,9 @@ func (x *GenerateUploadURLResponse) GetUploadUrl() string {
 	return ""
 }
 
-func (x *GenerateUploadURLResponse) GetContextKey() string {
+func (x *GenerateUploadURLResponse) GetBuildContextPath() string {
 	if x != nil {
-		return x.ContextKey
+		return x.BuildContextPath
 	}
 	return ""
 }
@@ -257,10 +257,9 @@ var File_ctrl_v1_build_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\n" +
-	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xc6\x01\n" +
-	"\x12CreateBuildRequest\x12\x1f\n" +
-	"\vcontext_key\x18\x01 \x01(\tR\n" +
-	"contextKey\x12,\n" +
+	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xd3\x01\n" +
+	"\x12CreateBuildRequest\x12,\n" +
+	"\x12build_context_path\x18\x01 \x01(\tR\x10buildContextPath\x12,\n" +
 	"\x0fdockerfile_path\x18\x02 \x01(\tH\x00R\x0edockerfilePath\x88\x01\x01\x12(\n" +
 	"\x10unkey_project_id\x18\x03 \x01(\tR\x0eunkeyProjectId\x12#\n" +
 	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentIdB\x12\n" +
@@ -271,12 +270,11 @@ const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\bbuild_id\x18\x02 \x01(\tR\abuildId\x12(\n" +
 	"\x10depot_project_id\x18\x03 \x01(\tR\x0edepotProjectId\"D\n" +
 	"\x18GenerateUploadURLRequest\x12(\n" +
-	"\x10unkey_project_id\x18\x01 \x01(\tR\x0eunkeyProjectId\"z\n" +
+	"\x10unkey_project_id\x18\x01 \x01(\tR\x0eunkeyProjectId\"\x87\x01\n" +
 	"\x19GenerateUploadURLResponse\x12\x1d\n" +
 	"\n" +
-	"upload_url\x18\x01 \x01(\tR\tuploadUrl\x12\x1f\n" +
-	"\vcontext_key\x18\x02 \x01(\tR\n" +
-	"contextKey\x12\x1d\n" +
+	"upload_url\x18\x01 \x01(\tR\tuploadUrl\x12,\n" +
+	"\x12build_context_path\x18\x02 \x01(\tR\x10buildContextPath\x12\x1d\n" +
 	"\n" +
 	"expires_in\x18\x03 \x01(\x03R\texpiresIn2\xb8\x01\n" +
 	"\fBuildService\x12J\n" +

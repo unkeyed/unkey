@@ -86,24 +86,24 @@ func (s *Service) CreateDeployment(
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
-	var gitCommitSha, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarUrl string
+	var gitCommitSha, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
 	var gitCommitTimestamp int64
 
 	if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
 		gitCommitSha = gitCommit.GetCommitSha()
 		gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
 		gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
-		gitCommitAuthorAvatarUrl = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+		gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
 		gitCommitTimestamp = gitCommit.GetTimestamp()
 	}
 
-	var contextKey string
+	var buildContextKey string
 	var dockerfilePath string
 	var dockerImage *string
 
 	switch source := req.Msg.GetSource().(type) {
 	case *ctrlv1.CreateDeploymentRequest_BuildContext:
-		contextKey = source.BuildContext.GetContextKey()
+		buildContextKey = source.BuildContext.GetBuildContextPath()
 		dockerfilePath = source.BuildContext.GetDockerfilePath()
 		if dockerfilePath == "" {
 			dockerfilePath = "./Dockerfile"
@@ -119,10 +119,10 @@ func (s *Service) CreateDeployment(
 	}
 
 	// Log deployment source
-	if contextKey != "" {
+	if buildContextKey != "" {
 		s.logger.Info("deployment will build from source",
 			"deployment_id", deploymentID,
-			"context_key", contextKey,
+			"context_key", buildContextKey,
 			"dockerfile", dockerfilePath)
 	} else {
 		s.logger.Info("deployment will use prebuilt image",
@@ -149,7 +149,7 @@ func (s *Service) CreateDeployment(
 		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
 		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
 		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
-		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: gitCommitAuthorAvatarUrl != ""},
+		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 	})
 	if err != nil {
@@ -162,7 +162,7 @@ func (s *Service) CreateDeployment(
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
 		"environment", env.ID,
-		"context_key", contextKey,
+		"context_key", buildContextKey,
 		"docker_image", dockerImage,
 	)
 
@@ -180,7 +180,7 @@ func (s *Service) CreateDeployment(
 
 	switch source := req.Msg.GetSource().(type) {
 	case *ctrlv1.CreateDeploymentRequest_BuildContext:
-		deployReq.ContextKey = proto.String(source.BuildContext.GetContextKey())
+		deployReq.BuildContextPath = proto.String(source.BuildContext.GetBuildContextPath())
 		deployReq.DockerfilePath = source.BuildContext.DockerfilePath
 	case *ctrlv1.CreateDeploymentRequest_DockerImage:
 		deployReq.DockerImage = proto.String(source.DockerImage)
@@ -190,7 +190,6 @@ func (s *Service) CreateDeployment(
 	invocation, err := s.deploymentClient(project.ID).
 		Deploy().
 		Send(ctx, deployReq)
-
 	if err != nil {
 		s.logger.Error("failed to start deployment workflow", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))

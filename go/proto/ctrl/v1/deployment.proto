@@ -41,7 +41,7 @@ message CreateDeploymentRequest {
 }
 
 message BuildContext {
-  string context_key = 1; // S3 key for uploaded build context
+  string build_context_path = 1; // S3 key for uploaded build context
   optional string dockerfile_path = 2; // Path to Dockerfile within context (default: "Dockerfile")
 }
 

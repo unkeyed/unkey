@@ -75,9 +75,9 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 	}
 
 	uploadURL := uploadResp.Msg.GetUploadUrl()
-	contextKey := uploadResp.Msg.GetContextKey()
+	buildContextPath := uploadResp.Msg.GetBuildContextPath()
 
-	if uploadURL == "" || contextKey == "" {
+	if uploadURL == "" || buildContextPath == "" {
 		return "", fmt.Errorf("empty upload URL or context key returned")
 	}
 
@@ -91,7 +91,7 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 		return "", fmt.Errorf("failed to upload build context: %w", err)
 	}
 
-	return contextKey, nil
+	return buildContextPath, nil
 }
 
 // uploadToPresignedURL uploads a file to a presigned S3 URL
@@ -177,8 +177,8 @@ func createContextTar(contextPath string) (string, error) {
 }
 
 // CreateDeployment creates a new deployment in the control plane
-// Pass either contextKey (for build from source) or dockerImage (for prebuilt image), not both
-func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, dockerImage string) (string, error) {
+// Pass either buildContextPath (for build from source) or dockerImage (for prebuilt image), not both
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextPath, dockerImage string) (string, error) {
 	commitInfo := git.GetInfo()
 
 	dockerfilePath := c.opts.Dockerfile
@@ -200,11 +200,11 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, d
 		},
 	}
 
-	if contextKey != "" {
+	if buildContextPath != "" {
 		req.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
 			BuildContext: &ctrlv1.BuildContext{
-				ContextKey:     contextKey,
-				DockerfilePath: ptr.P(dockerfilePath),
+				BuildContextPath: buildContextPath,
+				DockerfilePath:   ptr.P(dockerfilePath),
 			},
 		}
 	} else if dockerImage != "" {
@@ -212,7 +212,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, contextKey, d
 			DockerImage: dockerImage,
 		}
 	} else {
-		return "", fmt.Errorf("either contextKey or dockerImage must be provided")
+		return "", fmt.Errorf("either buildContextPath or dockerImage must be provided")
 	}
 
 	createReq := connect.NewRequest(req)
