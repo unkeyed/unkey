@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -52,16 +54,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Find the identity based on either IdentityId or ExternalId
+	// Find the identity (credits are included via JOIN in FindIdentity query)
 	type IdentityResult struct {
-		Identity   db.Identity
+		Identity   db.FindIdentityRow
 		Ratelimits []db.Ratelimit
 	}
 
 	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
-		var identity db.Identity
-
-		identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+		identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
 			Identity:    req.Identity,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Deleted:     false,
@@ -141,6 +141,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
+	// Format credits for the response (populated from JOIN in FindIdentity query)
+	var responseCredits *openapi.IdentityCreditsData
+
+	if identity.CreditID.Valid {
+		creditsData := openapi.IdentityCreditsData{
+			Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
+		}
+
+		if identity.CreditRefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if identity.CreditRefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(identity.CreditRefillDay.Int16))
+			}
+
+			responseCredits = &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
+				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+					Amount:    int64(identity.CreditRefillAmount.Int32),
+					Interval:  interval,
+					RefillDay: refillDay,
+				}),
+			}
+		}
+
+		responseCredits = &creditsData
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
@@ -150,6 +179,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExternalId: identity.ExternalID,
 			Meta:       &metaMap,
 			Ratelimits: &responseRatelimits,
+			Credits:    responseCredits,
 		},
 	})
 }

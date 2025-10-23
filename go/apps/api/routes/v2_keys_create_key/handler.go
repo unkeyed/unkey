@@ -183,21 +183,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for attempt := range 3 {
 		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			insertKeyParams := db.InsertKeyParams{
-				ID:                keyID,
-				KeyringID:         api.KeyAuthID.String,
-				Hash:              keyResult.Hash,
-				Start:             keyResult.Start,
-				WorkspaceID:       auth.AuthorizedWorkspaceID,
-				ForWorkspaceID:    sql.NullString{String: "", Valid: false},
-				CreatedAtM:        now,
-				Enabled:           true,
-				RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-				RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
-				RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
-				Name:              sql.NullString{String: "", Valid: false},
-				IdentityID:        sql.NullString{String: "", Valid: false},
-				Meta:              sql.NullString{String: "", Valid: false},
-				Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
+				ID:             keyID,
+				KeyringID:      api.KeyAuthID.String,
+				Hash:           keyResult.Hash,
+				Start:          keyResult.Start,
+				WorkspaceID:    auth.AuthorizedWorkspaceID,
+				ForWorkspaceID: sql.NullString{String: "", Valid: false},
+				CreatedAtM:     now,
+				Enabled:        true,
+
+				Name:       sql.NullString{String: "", Valid: false},
+				IdentityID: sql.NullString{String: "", Valid: false},
+				Meta:       sql.NullString{String: "", Valid: false},
+				Expires:    sql.NullTime{Time: time.Time{}, Valid: false},
 			}
 
 			// Set optional fields
@@ -270,37 +268,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				insertKeyParams.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
 			}
 
-			if req.Credits != nil {
-				if req.Credits.Remaining.IsSpecified() {
-					insertKeyParams.RemainingRequests = sql.NullInt32{
-						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
-						Valid: true,
-					}
-				}
-
-				if req.Credits.Refill != nil {
-					insertKeyParams.RefillAmount = sql.NullInt32{
-						Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
-						Valid: true,
-					}
-
-					if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
-						if req.Credits.Refill.RefillDay == nil {
-							return fault.New("missing refillDay",
-								fault.Code(codes.App.Validation.InvalidInput.URN()),
-								fault.Internal("refillDay required for monthly interval"),
-								fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
-							)
-						}
-
-						insertKeyParams.RefillDay = sql.NullInt16{
-							Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
-							Valid: true,
-						}
-					}
-				}
-			}
-
 			// Set enabled status (default true)
 			if req.Enabled != nil {
 				insertKeyParams.Enabled = *req.Enabled
@@ -312,6 +279,53 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to create key."),
 				)
+			}
+
+			// Insert credits if provided
+			if req.Credits != nil && req.Credits.Remaining.IsSpecified() {
+				var refillDay sql.NullInt16
+				var refillAmount sql.NullInt32
+
+				if req.Credits.Refill != nil {
+					refillAmount = sql.NullInt32{
+						Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
+						Valid: true,
+					}
+
+					if req.Credits.Refill.Interval == openapi.Monthly {
+						if req.Credits.Refill.RefillDay == nil {
+							return fault.New("missing refillDay",
+								fault.Code(codes.App.Validation.InvalidInput.URN()),
+								fault.Internal("refillDay required for monthly interval"),
+								fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+							)
+						}
+
+						refillDay = sql.NullInt16{
+							Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+							Valid: true,
+						}
+					}
+				}
+
+				err = db.Query.InsertCredit(ctx, tx, db.InsertCreditParams{
+					ID:           uid.New(uid.CreditPrefix),
+					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					KeyID:        sql.NullString{Valid: true, String: keyID},
+					IdentityID:   sql.NullString{Valid: false},
+					Remaining:    int32(req.Credits.Remaining.MustGet()), // nolint:gosec
+					RefillDay:    refillDay,
+					RefillAmount: refillAmount,
+					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+					RefilledAt:   sql.NullInt64{Valid: false},
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to create key credits."),
+					)
+				}
 			}
 
 			if encryption != nil {

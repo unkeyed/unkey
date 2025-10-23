@@ -357,6 +357,15 @@ components:
                         - Each named limit can have different thresholds and windows
 
                         When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
+                credits:
+                    "$ref": "#/components/schemas/IdentityCreditsData"
+                    description: |
+                        Configure credit limits for this identity that are shared across all associated keys.
+                        When a key belonging to this identity is verified, credits are deducted from the identity's balance rather than individual key limits.
+                        Essential for implementing usage-based billing and quota management at the user or organization level.
+
+                        Identity credits take priority over key-level credits during verification.
+                        If not specified, the identity has unlimited credits by default.
         V2IdentitiesCreateIdentityResponseBody:
             type: object
             required:
@@ -453,6 +462,45 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2IdentitiesUpdateCreditsRequestBody:
+            type: object
+            required:
+                - identity
+                - operation
+            properties:
+                identity:
+                    type: string
+                    minLength: 3
+                    description: The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service). This uniquely identifies which identity's credits will be updated across all associated keys.
+                    example: user_123
+                value:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
+
+                        Set to null when using 'set' operation to make the identity unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification for keys associated with this identity, and when credits reach zero, verification fails with `code=INSUFFICIENT_CREDITS`.
+
+                        Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
+                    example: 10000
+                operation:
+                    "$ref": "#/components/schemas/CreditOperation"
+            additionalProperties: false
+        V2IdentitiesUpdateCreditsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/IdentityCreditsData"
+            additionalProperties: false
         V2IdentitiesUpdateIdentityRequestBody:
             type: object
             properties:
@@ -489,6 +537,8 @@ components:
                           limit: 1000
                           duration: 3600000
                           autoApply: true
+                credits:
+                    "$ref": "#/components/schemas/UpdateIdentityCreditsData"
             additionalProperties: false
             required:
                 - identity
@@ -1091,14 +1141,7 @@ components:
                         Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
                     example: 1000
                 operation:
-                    type: string
-                    enum:
-                        - set
-                        - increment
-                        - decrement
-                    description: |
-                        Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
-                    example: set
+                    "$ref": "#/components/schemas/CreditOperation"
             additionalProperties: false
         V2KeysUpdateCreditsResponseBody:
             type: object
@@ -2242,6 +2285,8 @@ components:
                     description: Identity ratelimits
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
+                credits:
+                    "$ref": "#/components/schemas/IdentityCreditsData"
             required:
                 - externalId
                 - id
@@ -2291,12 +2336,58 @@ components:
             description: Configuration for automatic credit refill behavior.
             properties:
                 interval:
-                    type: string
-                    enum:
-                        - daily
-                        - monthly
-                    description: How often credits are automatically refilled.
-                    example: daily
+                    "$ref": "#/components/schemas/CreditInterval"
+                amount:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    maximum: 9223372036854776000
+                    description: Number of credits to add during each refill cycle.
+                    example: 1000
+                refillDay:
+                    type: integer
+                    minimum: 1
+                    maximum: 31
+                    description: |
+                        Day of the month for monthly refills (1-31).
+                        Only required when interval is 'monthly'.
+                        For days beyond the month's length, refill occurs on the last day of the month.
+                    example: 15
+            required:
+                - interval
+                - amount
+            additionalProperties: false
+        CreditInterval:
+            type: string
+            enum:
+                - daily
+                - monthly
+            description: How often credits are automatically refilled.
+            example: monthly
+        IdentityCreditsData:
+            type: object
+            description: Credit configuration and remaining balance for this identity.
+            properties:
+                remaining:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: Number of credits remaining (null for unlimited).
+                    example: 1000
+                refill:
+                    "$ref": "#/components/schemas/IdentityCreditsRefill"
+            additionalProperties: false
+        IdentityCreditsRefill:
+            type:
+                - object
+                - "null"
+            description: Configuration for automatic credit refill behavior. Set to null to disable refills.
+            properties:
+                interval:
+                    "$ref": "#/components/schemas/CreditInterval"
                 amount:
                     type: integer
                     format: int64
@@ -2385,6 +2476,38 @@ components:
             items:
                 "$ref": "#/components/schemas/Identity"
             description: List of identities matching the specified criteria.
+        CreditOperation:
+            type: string
+            enum:
+                - set
+                - increment
+                - decrement
+            description: |
+                Defines how to modify credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
+            example: set
+        UpdateIdentityCreditsData:
+            type:
+                - object
+                - "null"
+            description: |
+                Update credit configuration for this identity.
+                Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
+                Credits are shared across all keys belonging to this identity and take priority over key-level credits during verification.
+
+                Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
+            properties:
+                remaining:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: Number of credits remaining (null for unlimited).
+                    example: 1000
+                refill:
+                    "$ref": "#/components/schemas/IdentityCreditsRefill"
+            additionalProperties: false
         V2KeysAddPermissionsResponseData:
             type: array
             description: |-
@@ -2638,12 +2761,7 @@ components:
             description: Configuration for automatic credit refill behavior.
             properties:
                 interval:
-                    type: string
-                    enum:
-                        - daily
-                        - monthly
-                    description: How often credits are automatically refilled.
-                    example: daily
+                    "$ref": "#/components/schemas/CreditInterval"
                 amount:
                     type: integer
                     format: int64
@@ -3914,6 +4032,77 @@ paths:
                 outputs:
                     nextCursor: $.data.cursor
                 type: cursor
+    /v2/identities.updateCredits:
+        post:
+            description: |
+                Update credit quotas for an identity in response to plan changes, billing cycles, or usage purchases.
+
+                Use this for user upgrades/downgrades, monthly quota resets, credit purchases, or promotional bonuses. Supports three operations: set, increment, or decrement credits. Set to null for unlimited usage.
+
+                Identity credits are shared across all keys belonging to the identity and take priority over key-level credits during verification.
+
+                **Important**: Setting unlimited credits automatically clears existing refill configurations.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `identity.*.update_identity` (to update any identity)
+                - `identity.<identity_id>.update_identity` (to update a specific identity)
+
+                **Side Effects**
+
+                Credit updates take effect immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes propagate instantly but may take up to 30 seconds to reach all edge regions.
+            operationId: updateIdentityCredits
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2IdentitiesUpdateCreditsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2IdentitiesUpdateCreditsResponseBody'
+                    description: |
+                        Credits updated successfully. Response includes updated remaining credits and refill settings.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Update identity credits
+            tags:
+                - identities
+            x-speakeasy-name-override: updateIdentityCredits
     /v2/identities.updateIdentity:
         post:
             description: |
@@ -4718,7 +4907,7 @@ paths:
                 **Side Effects**
 
                 Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
-            operationId: updateCredits
+            operationId: updateKeyCredits
             requestBody:
                 content:
                     application/json:
@@ -4768,7 +4957,7 @@ paths:
             summary: Update key credits
             tags:
                 - keys
-            x-speakeasy-name-override: updateCredits
+            x-speakeasy-name-override: updateKeyCredits
     /v2/keys.updateKey:
         post:
             description: |

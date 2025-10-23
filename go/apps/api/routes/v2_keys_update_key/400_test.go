@@ -55,7 +55,7 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 			Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
 				Remaining: nullable.NewNullableWithValue(int64(100)),
 				Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
-					Interval:  openapi.UpdateKeyCreditsRefillIntervalDaily,
+					Interval:  openapi.Daily,
 					Amount:    100,
 					RefillDay: ptr.P(int(4)), // Invalid: can't set refillDay for daily
 

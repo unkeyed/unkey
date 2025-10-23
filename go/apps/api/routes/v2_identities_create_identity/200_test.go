@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
@@ -436,5 +437,192 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NoError(t, err)
 
 		require.JSONEq(t, string(expectedJSON), string(actualJSON), "Metadata with various types was not stored correctly")
+	})
+
+	t.Run("create identity with credits only", func(t *testing.T) {
+		externalId := uid.New("")
+
+		req := handler.Request{
+			ExternalId: externalId,
+			Credits: &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullableWithValue[int64](500),
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.IdentityId)
+
+		// Verify credits were created
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    res.Body.Data.IdentityId,
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+		require.True(t, identity.CreditID.Valid)
+		require.Equal(t, int32(500), identity.CreditRemaining.Int32)
+	})
+
+	t.Run("create identity with credits and monthly refill", func(t *testing.T) {
+		externalId := uid.New("")
+		refillDay := 15
+
+		req := handler.Request{
+			ExternalId: externalId,
+			Credits: &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullableWithValue[int64](1000),
+				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+					Amount:    100,
+					Interval:  openapi.Monthly,
+					RefillDay: &refillDay,
+				}),
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+
+		// Verify credits with refill were created
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    res.Body.Data.IdentityId,
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+		require.True(t, identity.CreditID.Valid)
+		require.Equal(t, int32(1000), identity.CreditRemaining.Int32)
+		require.True(t, identity.CreditRefillAmount.Valid)
+		require.Equal(t, int32(100), identity.CreditRefillAmount.Int32)
+		require.True(t, identity.CreditRefillDay.Valid)
+		require.Equal(t, int16(15), identity.CreditRefillDay.Int16)
+	})
+
+	t.Run("create identity with daily refill", func(t *testing.T) {
+		externalId := uid.New("")
+
+		req := handler.Request{
+			ExternalId: externalId,
+			Credits: &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullableWithValue[int64](50),
+				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+					Amount:   10,
+					Interval: openapi.Daily,
+					// RefillDay should be nil for daily
+				}),
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+
+		// Verify daily refill
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    res.Body.Data.IdentityId,
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+		require.Equal(t, int32(50), identity.CreditRemaining.Int32)
+		require.Equal(t, int32(10), identity.CreditRefillAmount.Int32)
+		require.False(t, identity.CreditRefillDay.Valid) // Should be null for daily
+	})
+
+	t.Run("create identity with unlimited credits", func(t *testing.T) {
+		externalId := uid.New("")
+
+		req := handler.Request{
+			ExternalId: externalId,
+			Credits: &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullNullable[int64](), // null means unlimited
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+
+		// Verify no credits were created (unlimited)
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    res.Body.Data.IdentityId,
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+		require.False(t, identity.CreditID.Valid) // No credits record for unlimited
+	})
+
+	t.Run("create identity without credits", func(t *testing.T) {
+		externalId := uid.New("")
+
+		req := handler.Request{
+			ExternalId: externalId,
+			// No credits field
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+
+		// Verify no credits were created
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    res.Body.Data.IdentityId,
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+		require.False(t, identity.CreditID.Valid)
+	})
+
+	t.Run("create identity with all features", func(t *testing.T) {
+		externalId := uid.New("")
+		refillDay := 1
+
+		req := handler.Request{
+			ExternalId: externalId,
+			Meta: &map[string]interface{}{
+				"plan": "enterprise",
+				"tier": 3,
+			},
+			Ratelimits: &[]openapi.RatelimitRequest{
+				{
+					Name:     "api_requests",
+					Limit:    1000,
+					Duration: 60000,
+				},
+			},
+			Credits: &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullableWithValue[int64](5000),
+				Refill: nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+					Amount:    1000,
+					Interval:  openapi.Monthly,
+					RefillDay: &refillDay,
+				}),
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+
+		// Verify all features were created
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Identity:    res.Body.Data.IdentityId,
+			Deleted:     false,
+		})
+		require.NoError(t, err)
+
+		// Check metadata
+		require.NotNil(t, identity.Meta)
+
+		// Check credits
+		require.True(t, identity.CreditID.Valid)
+		require.Equal(t, int32(5000), identity.CreditRemaining.Int32)
+		require.Equal(t, int32(1000), identity.CreditRefillAmount.Int32)
+		require.Equal(t, int16(1), identity.CreditRefillDay.Int16)
 	})
 }

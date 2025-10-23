@@ -74,7 +74,21 @@ SELECT
         FROM ratelimits rl
         WHERE rl.key_id = k.id OR rl.identity_id = i.id),
         JSON_ARRAY()
-    ) as ratelimits
+    ) as ratelimits,
+
+    -- Key credits
+    kc.id as credit_id,
+    kc.remaining as credit_remaining,
+    kc.refill_amount as credit_refill_amount,
+    kc.refill_day as credit_refill_day,
+    kc.refilled_at as credit_refilled_at,
+
+    -- Identity credits
+    ic.id as identity_credit_id,
+    ic.remaining as identity_credit_remaining,
+    ic.refill_amount as identity_credit_refill_amount,
+    ic.refill_day as identity_credit_refill_day,
+    ic.refilled_at as identity_credit_refilled_at
 
 FROM `keys` k
 JOIN apis a ON a.key_auth_id = k.key_auth_id
@@ -82,6 +96,8 @@ JOIN key_auth ka ON ka.id = k.key_auth_id
 JOIN workspaces ws ON ws.id = k.workspace_id
 LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+LEFT JOIN credits kc ON kc.key_id = k.id
+LEFT JOIN credits ic ON ic.identity_id = i.id
 WHERE k.hash = sqlc.arg(hash)
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL

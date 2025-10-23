@@ -57,19 +57,18 @@ func TestValidationErrors(t *testing.T) {
 	validKeyID := uid.New(uid.KeyPrefix)
 	keyString := "test_" + uid.New("")
 	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-		ID:                validKeyID,
-		KeyringID:         keyAuthID,
-		Hash:              hash.Sha256(keyString),
-		Start:             keyString[:4],
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "Test Key"},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false},
-		Meta:              sql.NullString{Valid: false},
-		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: false},
+		ID:             validKeyID,
+		KeyringID:      keyAuthID,
+		Hash:           hash.Sha256(keyString),
+		Start:          keyString[:4],
+		WorkspaceID:    workspace.ID,
+		ForWorkspaceID: sql.NullString{Valid: false},
+		Name:           sql.NullString{Valid: true, String: "Test Key"},
+		CreatedAtM:     time.Now().UnixMilli(),
+		Enabled:        true,
+		IdentityID:     sql.NullString{Valid: false},
+		Meta:           sql.NullString{Valid: false},
+		Expires:        sql.NullTime{Valid: false},
 	})
 	require.NoError(t, err)
 

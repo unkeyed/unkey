@@ -48,12 +48,17 @@ type KeyVerifier struct {
 	session *zen.Session // The current request session
 	region  string       // Geographic region identifier
 
+	// Credits - identity credits take priority over key credits
+	IdentityCredits *db.Credit // Identity-level credits (shared across all keys for this identity)
+	KeyCredits      *db.Credit // Key-level credits (specific to this key)
+
 	// Services
 	rateLimiter  ratelimit.Service     // Rate limiting service
 	usageLimiter usagelimiter.Service  // Usage limiting service
 	rBAC         *rbac.RBAC            // Role-based access control service
 	clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
 	logger       logging.Logger        // Logger for verification operations
+	db           db.Database           // Database access for credit updates
 }
 
 // GetRatelimitConfigs returns the rate limit configurations

@@ -15,10 +15,11 @@ import (
 func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:    h.Logger,
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
+		Logger:       h.Logger,
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Auditlogs:    h.Auditlogs,
+		UsageLimiter: h.UsageLimiter,
 	}
 
 	h.Register(route)

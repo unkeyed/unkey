@@ -26,14 +26,7 @@ properties:
       Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
     example: 1000
   operation:
-    type: string
-    enum:
-      - set
-      - increment
-      - decrement
-    description: |
-      Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
-    example: set
+    "$ref": "../../../../common/CreditOperation.yaml"
 additionalProperties: false
 examples:
   planUpgrade:

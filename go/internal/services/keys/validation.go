@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -17,7 +16,8 @@ import (
 )
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
-// It updates the key's remaining request count and marks the key as invalid if the limit is exceeded.
+// Priority: Identity credits > Key credits. If identity has credits, those are used and deducted.
+// Otherwise, key credits are used. Unlimited is indicated by nil credits.
 func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	ctx, span := tracing.Start(ctx, "verify.withCredits")
 	defer span.End()
@@ -26,23 +26,39 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return nil
 	}
 
-	// Key has unlimited requests if set to NULL
-	if !k.Key.RemainingRequests.Valid {
+	// Determine which credits to use (identity takes priority)
+	var creditID string
+
+	if k.IdentityCredits == nil && k.KeyCredits == nil {
 		return nil
 	}
 
+	if k.IdentityCredits != nil {
+		// Use identity credits
+		creditID = k.IdentityCredits.ID
+	} else if k.KeyCredits != nil {
+		// Fall back to key credits
+		creditID = k.KeyCredits.ID
+	}
+
+	// Use the credit ID for usage limiting
 	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
-		KeyId: k.Key.ID,
-		Cost:  cost,
+		CreditID: creditID,
+		Cost:     cost,
 	})
 	if err != nil {
 		return err
 	}
 
-	// Always update remaining requests with the accurate count from the usageLimiter
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
+	// Update the appropriate credit object with the new remaining count
+	if k.IdentityCredits != nil {
+		k.IdentityCredits.Remaining = usage.Remaining
+	} else if k.KeyCredits != nil {
+		k.KeyCredits.Remaining = usage.Remaining
+	}
+
 	if !usage.Valid {
-		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
+		k.setInvalid(StatusUsageExceeded, "Credit limit exceeded.")
 	}
 
 	return nil

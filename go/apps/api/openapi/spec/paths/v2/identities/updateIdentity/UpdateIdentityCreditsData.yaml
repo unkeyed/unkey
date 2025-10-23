@@ -1,0 +1,22 @@
+type:
+  - object
+  - "null"
+description: |
+  Update credit configuration for this identity.
+  Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
+  Credits are shared across all keys belonging to this identity and take priority over key-level credits during verification.
+
+  Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
+properties:
+  remaining:
+    type:
+      - integer
+      - "null"
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Number of credits remaining (null for unlimited).
+    example: 1000
+  refill:
+    "$ref": "../../../../common/IdentityCreditsRefill.yaml"
+additionalProperties: false

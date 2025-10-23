@@ -69,18 +69,20 @@ func TestRerollKeySuccess(t *testing.T) {
 	t.Run("successfully rerolled key with all options", func(t *testing.T) {
 		t.Parallel()
 		key := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID:  workspace.ID,
-			Disabled:     false,
-			KeyAuthID:    api.KeyAuthID.String,
-			Remaining:    ptr.P(int32(16)),
-			IdentityID:   ptr.P(identityID),
-			Meta:         nil,
-			Expires:      nil,
-			Name:         ptr.P("Test-Key"),
-			Deleted:      false,
-			Recoverable:  true,
-			RefillAmount: ptr.P(int32(100)),
-			RefillDay:    ptr.P(int16(1)),
+			WorkspaceID: workspace.ID,
+			Disabled:    false,
+			KeyAuthID:   api.KeyAuthID.String,
+			Credits: &seed.CreditRequest{
+				Remaining:    16,
+				RefillAmount: ptr.P(int32(100)),
+				RefillDay:    ptr.P(int16(1)),
+			},
+			IdentityID:  ptr.P(identityID),
+			Meta:        nil,
+			Expires:     nil,
+			Name:        ptr.P("Test-Key"),
+			Deleted:     false,
+			Recoverable: true,
 			Permissions: []seed.CreatePermissionRequest{
 				{
 					Name:        "Read documents",

@@ -106,7 +106,9 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(5)),
+				Credits: &seed.CreditRequest{
+					Remaining: 5,
+				},
 			})
 
 			req := handler.Request{
@@ -125,7 +127,9 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(0)),
+				Credits: &seed.CreditRequest{
+					Remaining: 0,
+				},
 			})
 
 			req := handler.Request{
@@ -144,7 +148,9 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(5)),
+				Credits: &seed.CreditRequest{
+					Remaining: 5,
+				},
 			})
 
 			req := handler.Request{
@@ -166,7 +172,9 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(5)),
+				Credits: &seed.CreditRequest{
+					Remaining: 5,
+				},
 			})
 
 			req := handler.Request{
@@ -188,7 +196,163 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeyAuthID:   api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(0)),
+				Credits: &seed.CreditRequest{
+					Remaining: 0,
+				},
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 0,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be code valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
+		})
+	})
+
+	t.Run("key with identity credits", func(t *testing.T) {
+		t.Run("allowed default credit cost", func(t *testing.T) {
+			identity := h.CreateIdentity(seed.CreateIdentityRequest{
+				WorkspaceID: workspace.ID,
+				ExternalID:  uid.New(""),
+				Meta:        nil,
+				Ratelimits:  nil,
+				Credits:     nil,
+			})
+
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				IdentityID:  &identity,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(4), "Key should have 4 credits but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("exceeding with default credit cost", func(t *testing.T) {
+			identity := h.CreateIdentity(seed.CreateIdentityRequest{
+				WorkspaceID: workspace.ID,
+				ExternalID:  uid.New(""),
+				Meta:        nil,
+				Ratelimits:  nil,
+				Credits: &seed.CreditRequest{
+					Remaining: 0,
+				},
+			})
+
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				IdentityID:  &identity,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should show usage exceeded but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("allowed custom credit cost", func(t *testing.T) {
+			identity := h.CreateIdentity(seed.CreateIdentityRequest{
+				WorkspaceID: workspace.ID,
+				ExternalID:  uid.New(""),
+				Meta:        nil,
+				Ratelimits:  nil,
+				Credits: &seed.CreditRequest{
+					Remaining: 5,
+				},
+			})
+
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				IdentityID:  &identity,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 5,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("exceeding with custom credit cost", func(t *testing.T) {
+			identity := h.CreateIdentity(seed.CreateIdentityRequest{
+				WorkspaceID: workspace.ID,
+				ExternalID:  uid.New(""),
+				Meta:        nil,
+				Ratelimits:  nil,
+				Credits: &seed.CreditRequest{
+					Remaining: 5,
+				},
+			})
+
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				IdentityID:  &identity,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 15,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should be usage exceeded but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(5), "Key should have 5 credits remaining but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("allow credits 0 even when remaining 0", func(t *testing.T) {
+			identity := h.CreateIdentity(seed.CreateIdentityRequest{
+				WorkspaceID: workspace.ID,
+				ExternalID:  uid.New(""),
+				Meta:        nil,
+				Ratelimits:  nil,
+				Credits: &seed.CreditRequest{
+					Remaining: 0,
+				},
+			})
+
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeyAuthID:   api.KeyAuthID.String,
+				IdentityID:  &identity,
 			})
 
 			req := handler.Request{

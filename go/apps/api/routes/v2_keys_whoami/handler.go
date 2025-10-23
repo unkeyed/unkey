@@ -128,21 +128,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Set credits
-	if keyData.Key.RemainingRequests.Valid {
+	if keyData.KeyCredits != nil {
 		response.Credits = &openapi.KeyCreditsData{
-			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
+			Remaining: nullable.NewNullableWithValue(int64(keyData.KeyCredits.Remaining)),
 		}
 
-		if keyData.Key.RefillAmount.Valid {
+		if keyData.KeyCredits.RefillAmount.Valid {
 			var refillDay *int
-			interval := openapi.KeyCreditsRefillIntervalDaily
-			if keyData.Key.RefillDay.Valid {
-				interval = openapi.KeyCreditsRefillIntervalMonthly
-				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+			interval := openapi.Daily
+			if keyData.KeyCredits.RefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(keyData.KeyCredits.RefillDay.Int16))
 			}
 
 			response.Credits.Refill = &openapi.KeyCreditsRefill{
-				Amount:    int64(keyData.Key.RefillAmount.Int32),
+				Amount:    int64(keyData.KeyCredits.RefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
 			}
@@ -162,6 +162,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				h.Logger.Error("failed to unmarshal identity meta", "error", err)
 			} else {
 				response.Identity.Meta = &identityMeta
+			}
+		}
+
+		// Add identity credits if they exist
+		if keyData.IdentityCredits != nil {
+			response.Identity.Credits = &openapi.IdentityCreditsData{
+				Remaining: nullable.NewNullableWithValue(int64(keyData.IdentityCredits.Remaining)),
+			}
+
+			if keyData.IdentityCredits.RefillAmount.Valid {
+				var refillDay *int
+				interval := openapi.Daily
+				if keyData.IdentityCredits.RefillDay.Valid {
+					interval = openapi.Monthly
+					refillDay = ptr.P(int(keyData.IdentityCredits.RefillDay.Int16))
+				}
+
+				response.Identity.Credits.Refill = nullable.NewNullableWithValue(openapi.IdentityCreditsRefill{
+					Amount:    int64(keyData.IdentityCredits.RefillAmount.Int32),
+					Interval:  interval,
+					RefillDay: refillDay,
+				})
 			}
 		}
 	}

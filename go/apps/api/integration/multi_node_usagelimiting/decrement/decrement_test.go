@@ -186,17 +186,13 @@ func TestDecrementAccuracy(t *testing.T) {
 
 			var dbRemaining int64
 			require.Eventually(t, func() bool {
-				finalKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+				credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), keyResponse.KeyID)
 				if err != nil {
 					return false
 				}
 
-				if finalKey.RemainingRequests.Valid {
-					dbRemaining = int64(finalKey.RemainingRequests.Int32)
-					return dbRemaining == expectedRemaining
-				}
-
-				return false
+				dbRemaining = int64(credits.Remaining)
+				return dbRemaining == expectedRemaining
 			}, 10*time.Second, 200*time.Millisecond, "Database should reach exact consistency within timeout")
 
 			t.Logf("Database remaining credits: %d", dbRemaining)

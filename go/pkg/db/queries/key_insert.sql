@@ -12,10 +12,7 @@ INSERT INTO `keys` (
     meta,
     expires,
     created_at_m,
-    enabled,
-    remaining_requests,
-    refill_day,
-    refill_amount
+    enabled
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(keyring_id),
@@ -29,8 +26,5 @@ INSERT INTO `keys` (
     sqlc.arg(meta),
     sqlc.arg(expires),
     sqlc.arg(created_at_m),
-    sqlc.arg(enabled),
-    sqlc.arg(remaining_requests),
-    sqlc.arg(refill_day),
-    sqlc.arg(refill_amount)
+    sqlc.arg(enabled)
 );

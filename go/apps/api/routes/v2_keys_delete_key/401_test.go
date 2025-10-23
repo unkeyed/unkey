@@ -62,18 +62,17 @@ func TestKeyDeleteUnauthorized(t *testing.T) {
 	})
 
 	insertParams := db.InsertKeyParams{
-		ID:                keyID,
-		KeyringID:         keyAuthID,
-		Hash:              key.Hash,
-		Start:             key.Start,
-		WorkspaceID:       workspace.ID,
-		ForWorkspaceID:    sql.NullString{Valid: false},
-		Name:              sql.NullString{Valid: true, String: "test-key"},
-		Expires:           sql.NullTime{Valid: false},
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 100, Valid: true},
+		ID:             keyID,
+		KeyringID:      keyAuthID,
+		Hash:           key.Hash,
+		Start:          key.Start,
+		WorkspaceID:    workspace.ID,
+		ForWorkspaceID: sql.NullString{Valid: false},
+		Name:           sql.NullString{Valid: true, String: "test-key"},
+		Expires:        sql.NullTime{Valid: false},
+		CreatedAtM:     time.Now().UnixMilli(),
+		Enabled:        true,
+		IdentityID:     sql.NullString{Valid: false, String: ""},
 	}
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)

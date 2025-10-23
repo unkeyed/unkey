@@ -172,19 +172,18 @@ func TestNotFoundErrors(t *testing.T) {
 		otherKeyID := uid.New(uid.KeyPrefix)
 		otherKeyString := "other_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                otherKeyID,
-			KeyringID:         otherKeyAuthID,
-			Hash:              hash.Sha256(otherKeyString),
-			Start:             otherKeyString[:4],
-			WorkspaceID:       otherWorkspaceID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Other Workspace Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+			ID:             otherKeyID,
+			KeyringID:      otherKeyAuthID,
+			Hash:           hash.Sha256(otherKeyString),
+			Start:          otherKeyString[:4],
+			WorkspaceID:    otherWorkspaceID,
+			ForWorkspaceID: sql.NullString{Valid: false},
+			Name:           sql.NullString{Valid: true, String: "Other Workspace Key"},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        true,
+			IdentityID:     sql.NullString{Valid: false},
+			Meta:           sql.NullString{Valid: false},
+			Expires:        sql.NullTime{Valid: false},
 		})
 		require.NoError(t, err)
 

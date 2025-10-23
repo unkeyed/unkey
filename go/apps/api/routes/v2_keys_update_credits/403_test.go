@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -43,7 +42,9 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
 		KeyAuthID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(100)),
+		Credits: &seed.CreditRequest{
+			Remaining: 100,
+		},
 	})
 
 	req := handler.Request{

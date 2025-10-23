@@ -20,17 +20,5 @@ UPDATE `keys` k SET
         WHEN CAST(sqlc.arg('expires_specified') AS UNSIGNED) = 1 THEN sqlc.narg('expires') 
         ELSE k.expires 
     END,
-    remaining_requests = CASE 
-        WHEN CAST(sqlc.arg('remaining_requests_specified') AS UNSIGNED) = 1 THEN sqlc.narg('remaining_requests') 
-        ELSE k.remaining_requests 
-    END,
-    refill_amount = CASE 
-        WHEN CAST(sqlc.arg('refill_amount_specified') AS UNSIGNED) = 1 THEN sqlc.narg('refill_amount') 
-        ELSE k.refill_amount 
-    END,
-    refill_day = CASE 
-        WHEN CAST(sqlc.arg('refill_day_specified') AS UNSIGNED) = 1 THEN sqlc.narg('refill_day') 
-        ELSE k.refill_day 
-    END,
     updated_at_m = sqlc.arg('now')
 WHERE id = sqlc.arg('id');

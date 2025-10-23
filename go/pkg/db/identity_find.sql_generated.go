@@ -7,14 +7,22 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findIdentity = `-- name: FindIdentity :one
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at 
-FROM identities 
-WHERE workspace_id = ? 
- AND (external_id = ? OR id = ?) 
- AND deleted = ?
+SELECT
+  identities.id, identities.external_id, identities.workspace_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at,
+  credits.id AS credit_id,
+  credits.remaining AS credit_remaining,
+  credits.refill_amount AS credit_refill_amount,
+  credits.refill_day AS credit_refill_day,
+  credits.refilled_at AS credit_refilled_at
+FROM identities
+LEFT JOIN credits ON credits.identity_id = identities.id
+WHERE identities.workspace_id = ?
+  AND (identities.external_id = ? OR identities.id = ?)
+  AND identities.deleted = ?
 `
 
 type FindIdentityParams struct {
@@ -23,21 +31,44 @@ type FindIdentityParams struct {
 	Deleted     bool   `db:"deleted"`
 }
 
+type FindIdentityRow struct {
+	ID                 string         `db:"id"`
+	ExternalID         string         `db:"external_id"`
+	WorkspaceID        string         `db:"workspace_id"`
+	Environment        string         `db:"environment"`
+	Meta               []byte         `db:"meta"`
+	Deleted            bool           `db:"deleted"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
+	CreditID           sql.NullString `db:"credit_id"`
+	CreditRemaining    sql.NullInt32  `db:"credit_remaining"`
+	CreditRefillAmount sql.NullInt32  `db:"credit_refill_amount"`
+	CreditRefillDay    sql.NullInt16  `db:"credit_refill_day"`
+	CreditRefilledAt   sql.NullInt64  `db:"credit_refilled_at"`
+}
+
 // FindIdentity
 //
-//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+//	SELECT
+//	  identities.id, identities.external_id, identities.workspace_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at,
+//	  credits.id AS credit_id,
+//	  credits.remaining AS credit_remaining,
+//	  credits.refill_amount AS credit_refill_amount,
+//	  credits.refill_day AS credit_refill_day,
+//	  credits.refilled_at AS credit_refilled_at
 //	FROM identities
-//	WHERE workspace_id = ?
-//	 AND (external_id = ? OR id = ?)
-//	 AND deleted = ?
-func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (Identity, error) {
+//	LEFT JOIN credits ON credits.identity_id = identities.id
+//	WHERE identities.workspace_id = ?
+//	  AND (identities.external_id = ? OR identities.id = ?)
+//	  AND identities.deleted = ?
+func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error) {
 	row := db.QueryRowContext(ctx, findIdentity,
 		arg.WorkspaceID,
 		arg.Identity,
 		arg.Identity,
 		arg.Deleted,
 	)
-	var i Identity
+	var i FindIdentityRow
 	err := row.Scan(
 		&i.ID,
 		&i.ExternalID,
@@ -47,6 +78,11 @@ func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityPar
 		&i.Deleted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditID,
+		&i.CreditRemaining,
+		&i.CreditRefillAmount,
+		&i.CreditRefillDay,
+		&i.CreditRefilledAt,
 	)
 	return i, err
 }

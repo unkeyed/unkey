@@ -170,21 +170,18 @@ func TestWithRetry_Integration(t *testing.T) {
 			// Succeed on second attempt - insert using sqlc
 			keyID := uid.New(uid.KeyPrefix)
 			err := Query.InsertKey(ctx, dbInstance.RW(), InsertKeyParams{
-				ID:                keyID,
-				KeyringID:         keyringID,
-				Hash:              hash.Sha256(keyID),
-				Start:             "retry_start",
-				WorkspaceID:       workspaceID,
-				ForWorkspaceID:    sql.NullString{},
-				Name:              sql.NullString{String: "retry_key", Valid: true},
-				IdentityID:        sql.NullString{},
-				Meta:              sql.NullString{},
-				Expires:           sql.NullTime{},
-				CreatedAtM:        time.Now().UnixMilli(),
-				Enabled:           true,
-				RemainingRequests: sql.NullInt32{},
-				RefillDay:         sql.NullInt16{},
-				RefillAmount:      sql.NullInt32{},
+				ID:             keyID,
+				KeyringID:      keyringID,
+				Hash:           hash.Sha256(keyID),
+				Start:          "retry_start",
+				WorkspaceID:    workspaceID,
+				ForWorkspaceID: sql.NullString{},
+				Name:           sql.NullString{String: "retry_key", Valid: true},
+				IdentityID:     sql.NullString{},
+				Meta:           sql.NullString{},
+				Expires:        sql.NullTime{},
+				CreatedAtM:     time.Now().UnixMilli(),
+				Enabled:        true,
 			})
 
 			return keyID, err
@@ -199,21 +196,18 @@ func TestWithRetry_Integration(t *testing.T) {
 		keyID := uid.New(uid.KeyPrefix)
 
 		keyParams := InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         keyringID,
-			Hash:              hash.Sha256(keyID),
-			Start:             "dup_start",
-			WorkspaceID:       workspaceID,
-			ForWorkspaceID:    sql.NullString{},
-			Name:              sql.NullString{String: "dup_key", Valid: true},
-			IdentityID:        sql.NullString{},
-			Meta:              sql.NullString{},
-			Expires:           sql.NullTime{},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			RemainingRequests: sql.NullInt32{},
-			RefillDay:         sql.NullInt16{},
-			RefillAmount:      sql.NullInt32{},
+			ID:             keyID,
+			KeyringID:      keyringID,
+			Hash:           hash.Sha256(keyID),
+			Start:          "dup_start",
+			WorkspaceID:    workspaceID,
+			ForWorkspaceID: sql.NullString{},
+			Name:           sql.NullString{String: "dup_key", Valid: true},
+			IdentityID:     sql.NullString{},
+			Meta:           sql.NullString{},
+			Expires:        sql.NullTime{},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        true,
 		}
 		err := Query.InsertKey(ctx, dbInstance.RW(), keyParams)
 		require.NoError(t, err)

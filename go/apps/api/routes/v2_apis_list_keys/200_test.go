@@ -152,18 +152,17 @@ func TestSuccess(t *testing.T) {
 		key := keyData.start + uid.New("")
 
 		insertParams := db.InsertKeyParams{
-			ID:                keyData.id,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(key),
-			Start:             keyData.start,
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: keyData.name},
-			Meta:              sql.NullString{Valid: true, String: string(metaBytes)},
-			Expires:           sql.NullTime{Valid: false},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           keyData.enabled,
-			RemainingRequests: sql.NullInt32{Valid: false},
+			ID:             keyData.id,
+			KeyringID:      keyAuthID,
+			Hash:           hash.Sha256(key),
+			Start:          keyData.start,
+			WorkspaceID:    workspace.ID,
+			ForWorkspaceID: sql.NullString{Valid: false},
+			Name:           sql.NullString{Valid: true, String: keyData.name},
+			Meta:           sql.NullString{Valid: true, String: string(metaBytes)},
+			Expires:        sql.NullTime{Valid: false},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        keyData.enabled,
 		}
 
 		if keyData.identityID != nil {
@@ -495,40 +494,36 @@ func TestSuccess(t *testing.T) {
 		// Create a key with ratelimits
 		keyWithRatelimits := uid.New("key")
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyWithRatelimits,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(uid.New("test")),
-			Start:             "rl_test_",
-			WorkspaceID:       workspace.ID,
-			Name:              sql.NullString{Valid: true, String: "Key with Ratelimits"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-
-			IdentityID: sql.NullString{Valid: false},
+			ID:             keyWithRatelimits,
+			KeyringID:      keyAuthID,
+			Hash:           hash.Sha256(uid.New("test")),
+			Start:          "rl_test_",
+			WorkspaceID:    workspace.ID,
+			Name:           sql.NullString{Valid: true, String: "Key with Ratelimits"},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        true,
+			ForWorkspaceID: sql.NullString{Valid: false},
+			Meta:           sql.NullString{Valid: false},
+			Expires:        sql.NullTime{Valid: false},
+			IdentityID:     sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 
 		// Create a key without ratelimits
 		keyWithoutRatelimits := uid.New("key")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyWithoutRatelimits,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256("no_rl_test_" + uid.New("")),
-			Start:             "no_rl_test_",
-			WorkspaceID:       workspace.ID,
-			Name:              sql.NullString{Valid: true, String: "Key without Ratelimits"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-
-			IdentityID: sql.NullString{Valid: false},
+			ID:             keyWithoutRatelimits,
+			KeyringID:      keyAuthID,
+			Hash:           hash.Sha256("no_rl_test_" + uid.New("")),
+			Start:          "no_rl_test_",
+			WorkspaceID:    workspace.ID,
+			Name:           sql.NullString{Valid: true, String: "Key without Ratelimits"},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        true,
+			ForWorkspaceID: sql.NullString{Valid: false},
+			Meta:           sql.NullString{Valid: false},
+			Expires:        sql.NullTime{Valid: false},
+			IdentityID:     sql.NullString{Valid: false},
 		})
 		require.NoError(t, err)
 

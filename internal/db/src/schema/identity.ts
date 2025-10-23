@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { credits } from "./credits";
 import { keys } from "./keys";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -44,6 +45,10 @@ export const identitiesRelations = relations(identities, ({ one, many }) => ({
   }),
   keys: many(keys),
   ratelimits: many(ratelimits),
+  credits: one(credits, {
+    fields: [identities.id],
+    references: [credits.identityId],
+  }),
 }));
 
 /**

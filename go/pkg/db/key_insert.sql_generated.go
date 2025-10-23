@@ -24,10 +24,7 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     meta,
     expires,
     created_at_m,
-    enabled,
-    remaining_requests,
-    refill_day,
-    refill_amount
+    enabled
 ) VALUES (
     ?,
     ?,
@@ -41,29 +38,23 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     ?,
     ?,
     ?,
-    ?,
-    ?,
-    ?,
     ?
 )
 `
 
 type InsertKeyParams struct {
-	ID                string         `db:"id"`
-	KeyringID         string         `db:"keyring_id"`
-	Hash              string         `db:"hash"`
-	Start             string         `db:"start"`
-	WorkspaceID       string         `db:"workspace_id"`
-	ForWorkspaceID    sql.NullString `db:"for_workspace_id"`
-	Name              sql.NullString `db:"name"`
-	IdentityID        sql.NullString `db:"identity_id"`
-	Meta              sql.NullString `db:"meta"`
-	Expires           sql.NullTime   `db:"expires"`
-	CreatedAtM        int64          `db:"created_at_m"`
-	Enabled           bool           `db:"enabled"`
-	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
-	RefillDay         sql.NullInt16  `db:"refill_day"`
-	RefillAmount      sql.NullInt32  `db:"refill_amount"`
+	ID             string         `db:"id"`
+	KeyringID      string         `db:"keyring_id"`
+	Hash           string         `db:"hash"`
+	Start          string         `db:"start"`
+	WorkspaceID    string         `db:"workspace_id"`
+	ForWorkspaceID sql.NullString `db:"for_workspace_id"`
+	Name           sql.NullString `db:"name"`
+	IdentityID     sql.NullString `db:"identity_id"`
+	Meta           sql.NullString `db:"meta"`
+	Expires        sql.NullTime   `db:"expires"`
+	CreatedAtM     int64          `db:"created_at_m"`
+	Enabled        bool           `db:"enabled"`
 }
 
 // InsertKey
@@ -81,10 +72,7 @@ type InsertKeyParams struct {
 //	    meta,
 //	    expires,
 //	    created_at_m,
-//	    enabled,
-//	    remaining_requests,
-//	    refill_day,
-//	    refill_amount
+//	    enabled
 //	) VALUES (
 //	    ?,
 //	    ?,
@@ -94,9 +82,6 @@ type InsertKeyParams struct {
 //	    ?,
 //	    ?,
 //	    null,
-//	    ?,
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -117,9 +102,6 @@ func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) e
 		arg.Expires,
 		arg.CreatedAtM,
 		arg.Enabled,
-		arg.RemainingRequests,
-		arg.RefillDay,
-		arg.RefillAmount,
 	)
 	return err
 }

@@ -4,6 +4,7 @@ package multi_node_usagelimiting
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -30,34 +30,29 @@ const (
 const (
 	// lowLoadAccuracyTolerance is the tolerance for low load scenarios (0% - perfect accuracy expected)
 	lowLoadAccuracyTolerance = 0.0
-	
+
 	// highLoadAccuracyTolerance is the maximum tolerance for high contention scenarios (1% maximum)
 	highLoadAccuracyTolerance = 0.01
 )
 
 // waitForDatabaseConsistency polls the database until the remaining credits match exactly
 // the expected value or the timeout is reached using require.Eventually.
-func waitForDatabaseConsistency(t *testing.T, ctx context.Context, dbConn db.DBTX, 
+func waitForDatabaseConsistency(t *testing.T, ctx context.Context, dbConn db.DBTX,
 	keyID string, expectedRemaining int64, timeout time.Duration, pollInterval time.Duration) (int32, error) {
-	
+
 	var finalRemaining int32
 	var lastErr error
-	
+
 	require.Eventually(t, func() bool {
-		finalKey, err := db.Query.FindKeyByID(ctx, dbConn, keyID)
+		credits, err := db.Query.FindCreditsByKeyID(ctx, dbConn, sql.NullString{String: keyID, Valid: true})
 		if err != nil {
 			lastErr = err
 			return false
 		}
-		
-		if finalKey.RemainingRequests.Valid {
-			finalRemaining = finalKey.RemainingRequests.Int32
-			return int64(finalRemaining) == expectedRemaining
-		}
-		
-		return false
+
+		return int64(credits.Remaining) == expectedRemaining
 	}, timeout, pollInterval, "Database should reach exact consistency within timeout")
-	
+
 	return finalRemaining, lastErr
 }
 
@@ -132,7 +127,9 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeyAuthID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		Credits: &seed.CreditRequest{
+			Remaining: int32(totalCredits),
+		},
 	})
 
 	keyStart := keyResponse.Key
@@ -178,7 +175,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 				// Add some jitter to simulate real-world timing
 				needSleep := (reqNum%10 == 0)
 				jitter := time.Millisecond * time.Duration(workerID%5)
-				
+
 				if needSleep {
 					time.Sleep(jitter)
 				}
@@ -235,7 +232,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	} else {
 		// High contention - allow maximum 1% error margin for race conditions
 		minExpected := max(0, int(float64(expectedSuccessful)*(1.0-highLoadAccuracyTolerance)))
-		require.GreaterOrEqual(t, successCount, minExpected, 
+		require.GreaterOrEqual(t, successCount, minExpected,
 			"Should not under-count by more than %.0f%% on high load", highLoadAccuracyTolerance*100)
 	}
 
@@ -258,15 +255,15 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	}
 
 	// Step 4: Verify final state in database with polling-based wait
-	t.Logf("Waiting for database consistency (timeout: %v, poll interval: %v)", 
+	t.Logf("Waiting for database consistency (timeout: %v, poll interval: %v)",
 		defaultReplayTimeout, defaultReplayPollInterval)
-	
-	dbRemaining, err := waitForDatabaseConsistency(t, ctx, h.DB.RO(), keyResponse.KeyID, 
+
+	dbRemaining, err := waitForDatabaseConsistency(t, ctx, h.DB.RO(), keyResponse.KeyID,
 		expectedRemaining, defaultReplayTimeout, defaultReplayPollInterval)
 	require.NoError(t, err, "Database query should not fail during consistency check")
-	
+
 	t.Logf("Database remaining credits: %d", dbRemaining)
-	
+
 	// Verify the final consistency - must be 100% accurate
 	require.Equal(t, expectedRemaining, int64(dbRemaining),
 		"Database remaining credits must be 100%% accurate after replay")

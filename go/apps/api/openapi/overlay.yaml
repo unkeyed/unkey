@@ -51,3 +51,29 @@ actions:
   - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
     update:
       nullable: true
+  # Identity credits overlays
+  - target: $["components"]["schemas"]["IdentityCreditsData"]["properties"]["remaining"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["IdentityCreditsData"]["properties"]["remaining"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["UpdateIdentityCreditsData"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["UpdateIdentityCreditsData"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["UpdateIdentityCreditsData"]["properties"]["remaining"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["UpdateIdentityCreditsData"]["properties"]["remaining"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["IdentityCreditsRefill"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["IdentityCreditsRefill"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2IdentitiesUpdateCreditsRequestBody"]["properties"]["value"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2IdentitiesUpdateCreditsRequestBody"]["properties"]["value"]
+    update:
+      nullable: true

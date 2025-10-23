@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -144,6 +145,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			AuthorizedWorkspaceID: key.WorkspaceID,
 			isRootKey:             key.ForWorkspaceID.Valid,
 			Key:                   key.FindKeyForVerificationRow,
+			db:                    s.db,
 		}
 
 		return kv, kv.log, nil
@@ -201,6 +203,36 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
+	// Populate key credits if present in query result
+	var keyCredits *db.Credit
+	if key.KeyCreditID.Valid {
+		keyCredits = &db.Credit{
+			ID:           key.KeyCreditID.String,
+			WorkspaceID:  key.WorkspaceID,
+			KeyID:        sql.NullString{Valid: true, String: key.ID},
+			IdentityID:   sql.NullString{Valid: false},
+			Remaining:    key.KeyCreditRemaining.Int32,
+			RefillDay:    key.KeyCreditRefillDay,
+			RefillAmount: key.KeyCreditRefillAmount,
+			RefilledAt:   key.KeyCreditRefilledAt,
+		}
+	}
+
+	// Populate identity credits if present in query result
+	var identityCredits *db.Credit
+	if key.IdentityCreditID.Valid {
+		identityCredits = &db.Credit{
+			ID:           key.IdentityCreditID.String,
+			WorkspaceID:  key.WorkspaceID,
+			KeyID:        sql.NullString{Valid: false},
+			IdentityID:   key.IdentityID,
+			Remaining:    key.IdentityCreditRemaining.Int32,
+			RefillDay:    key.IdentityCreditRefillDay,
+			RefillAmount: key.IdentityCreditRefillAmount,
+			RefilledAt:   key.IdentityCreditRefilledAt,
+		}
+	}
+
 	kv := &KeyVerifier{
 		Key:                   key.FindKeyForVerificationRow,
 		clickhouse:            s.clickhouse,
@@ -213,6 +245,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		region:                s.region,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
+		db:                    s.db,
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,
@@ -221,6 +254,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		Roles:             roles,
 		Permissions:       permissions,
 		RatelimitResults:  nil,
+		IdentityCredits:   identityCredits, // Populated from JOIN
+		KeyCredits:        keyCredits,      // Populated from JOIN
 	}
 
 	if key.DeletedAtM.Valid {
