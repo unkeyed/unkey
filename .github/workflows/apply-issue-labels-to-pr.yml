@@ -6,7 +6,7 @@ on:
 jobs:
   label_on_pr:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     permissions:
       contents: none
       issues: read
