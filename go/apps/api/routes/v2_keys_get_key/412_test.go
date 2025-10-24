@@ -42,7 +42,7 @@ func TestPreconditionError(t *testing.T) {
 	}
 
 	key := h.CreateKey(seed.CreateKeyRequest{
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
@@ -82,7 +82,7 @@ func TestPreconditionError(t *testing.T) {
 		}
 
 		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 
@@ -132,7 +132,7 @@ func TestPreconditionError(t *testing.T) {
 		}
 
 		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 

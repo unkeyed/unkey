@@ -28,7 +28,7 @@ func TestUnauthorized(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{

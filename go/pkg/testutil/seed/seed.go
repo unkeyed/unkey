@@ -188,7 +188,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
-	KeyAuthID      string
+	KeySpaceID     string
 	Remaining      *int32
 	IdentityID     *string
 	Meta           *string
@@ -222,7 +222,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                keyID,
-		KeySpaceID:        req.KeyAuthID,
+		KeySpaceID:        req.KeySpaceID,
 		WorkspaceID:       req.WorkspaceID,
 		CreatedAtM:        time.Now().UnixMilli(),
 		Hash:              hash.Sha256(key),

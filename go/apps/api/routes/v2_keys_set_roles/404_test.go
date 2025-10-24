@@ -56,7 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 	keyName := "Valid Test Key"
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 	})
 	validKeyID := keyResponse.KeyID
