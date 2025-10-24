@@ -37,7 +37,7 @@ export function CommandMenu() {
           <DiscordCommand />
           <GenericLinkCommand
             close={() => setOpen(false)}
-            href="/docs"
+            href="https://www.unkey.com/docs"
             label="Documentation"
             icon={BookOpen}
           />
