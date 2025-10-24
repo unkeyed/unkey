@@ -137,7 +137,7 @@ func TestWithRetry_Integration(t *testing.T) {
 
 	// Create test data using sqlc statements
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	keySpaceID := uid.New(uid.KeyAuthPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
 
 	// Insert workspace using sqlc
 	err = Query.InsertWorkspace(ctx, dbInstance.RW(), InsertWorkspaceParams{

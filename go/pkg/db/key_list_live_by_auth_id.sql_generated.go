@@ -107,10 +107,10 @@ LIMIT ?
 `
 
 type ListLiveKeysByKeyAuthIDParams struct {
-	KeyAuthID string `db:"key_auth_id"`
-	IDCursor  string `db:"id_cursor"`
-	Identity  string `db:"identity"`
-	Limit     int32  `db:"limit"`
+	KeySpaceID string `db:"key_space_id"`
+	IDCursor   string `db:"id_cursor"`
+	Identity   string `db:"identity"`
+	Limit      int32  `db:"limit"`
 }
 
 type ListLiveKeysByKeyAuthIDRow struct {
@@ -245,7 +245,7 @@ type ListLiveKeysByKeyAuthIDRow struct {
 //	LIMIT ?
 func (q *Queries) ListLiveKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListLiveKeysByKeyAuthIDParams) ([]ListLiveKeysByKeyAuthIDRow, error) {
 	rows, err := db.QueryContext(ctx, listLiveKeysByKeyAuthID,
-		arg.KeyAuthID,
+		arg.KeySpaceID,
 		arg.IDCursor,
 		arg.Identity,
 		arg.Identity,

@@ -18,8 +18,8 @@ AND deleted_at_m IS NULL
 `
 
 type SoftDeleteManyKeysByKeyAuthIDParams struct {
-	Now       sql.NullInt64 `db:"now"`
-	KeyAuthID string        `db:"key_auth_id"`
+	Now        sql.NullInt64 `db:"now"`
+	KeySpaceID string        `db:"key_space_id"`
 }
 
 // SoftDeleteManyKeysByKeyAuthID
@@ -29,6 +29,6 @@ type SoftDeleteManyKeysByKeyAuthIDParams struct {
 //	WHERE key_auth_id = ?
 //	AND deleted_at_m IS NULL
 func (q *Queries) SoftDeleteManyKeysByKeyAuthID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeyAuthIDParams) error {
-	_, err := db.ExecContext(ctx, softDeleteManyKeysByKeyAuthID, arg.Now, arg.KeyAuthID)
+	_, err := db.ExecContext(ctx, softDeleteManyKeysByKeyAuthID, arg.Now, arg.KeySpaceID)
 	return err
 }

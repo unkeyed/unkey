@@ -32,9 +32,9 @@ func TestPreconditionError(t *testing.T) {
 	h.Register(route)
 
 	// Create API manually
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:            keyAuthID,
+		ID:            keySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
@@ -48,7 +48,7 @@ func TestPreconditionError(t *testing.T) {
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

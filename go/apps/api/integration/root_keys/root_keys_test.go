@@ -36,7 +36,7 @@ func TestGetRootKey_Valid(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -70,7 +70,7 @@ func TestGetRootKey_NotFound(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -115,7 +115,7 @@ func TestGetRootKey_Disabled(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -147,7 +147,7 @@ func TestGetRootKey_Expired(t *testing.T) {
 	expiredTime := time.Now().Add(-1 * time.Hour)
 	rootKeyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID:    rootWorkspace.ID,
-		KeyAuthID:      rootKeySpace.ID,
+		KeySpaceID:     rootKeySpace.ID,
 		ForWorkspaceID: &workspace.ID,
 		Expires:        &expiredTime,
 	})
@@ -159,7 +159,7 @@ func TestGetRootKey_Expired(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -192,7 +192,7 @@ func TestGetRootKey_TargetWorkspaceDisabled(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	// Disable the target workspace
@@ -239,7 +239,7 @@ func TestGetRootKey_RootWorkspaceDisabled(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -270,7 +270,7 @@ func TestGetRootKey_WorkspaceNotFound(t *testing.T) {
 	// Create a root key pointing to a non-existent workspace
 	rootKeyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID:    rootWorkspace.ID,
-		KeyAuthID:      rootKeySpace.ID,
+		KeySpaceID:     rootKeySpace.ID,
 		ForWorkspaceID: &nonExistentWorkspaceID,
 	})
 	rootKey := rootKeyResponse.Key
@@ -282,7 +282,7 @@ func TestGetRootKey_WorkspaceNotFound(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -313,7 +313,7 @@ func TestGetRootKey_MissingBearer(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}
@@ -357,7 +357,7 @@ func TestGetRootKey_Deleted(t *testing.T) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{Key: keyResponse.Key}

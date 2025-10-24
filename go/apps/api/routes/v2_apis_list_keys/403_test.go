@@ -34,9 +34,9 @@ func TestAuthorizationErrors(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// Create a keySpace for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:            keyAuthID,
+		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
@@ -45,7 +45,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	err = db.Query.UpdateKeySpaceKeyEncryption(ctx, h.DB.RW(), db.UpdateKeySpaceKeyEncryptionParams{
-		ID:                 keyAuthID,
+		ID:                 keySpaceID,
 		StoreEncryptedKeys: true,
 	})
 	require.NoError(t, err)
@@ -57,7 +57,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

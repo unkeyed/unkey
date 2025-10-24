@@ -43,9 +43,9 @@ func TestValidationErrors(t *testing.T) {
 	}
 
 	// Create a valid key for testing
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:                 keyAuthID,
+		ID:                 keySpaceID,
 		WorkspaceID:        workspace.ID,
 		StoreEncryptedKeys: false,
 		DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
@@ -58,7 +58,7 @@ func TestValidationErrors(t *testing.T) {
 	keyString := "test_" + uid.New("")
 	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 		ID:                validKeyID,
-		KeySpaceID:        keyAuthID,
+		KeySpaceID:        keySpaceID,
 		Hash:              hash.Sha256(keyString),
 		Start:             keyString[:4],
 		WorkspaceID:       workspace.ID,

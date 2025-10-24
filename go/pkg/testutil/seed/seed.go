@@ -92,9 +92,9 @@ type CreateApiRequest struct {
 }
 
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
-		ID:                 keyAuthID,
+		ID:                 keySpaceID,
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		DefaultPrefix:      sql.NullString{String: ptr.SafeDeref(req.DefaultPrefix), Valid: req.DefaultPrefix != nil},
@@ -110,7 +110,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 		WorkspaceID: req.WorkspaceID,
 		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  ptr.SafeDeref(req.CreatedAt, time.Now().UnixMilli()),
 	})
 	require.NoError(s.t, err)

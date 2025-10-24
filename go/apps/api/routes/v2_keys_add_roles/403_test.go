@@ -88,9 +88,9 @@ func TestAuthorizationErrors(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace1.ID, "api.*.update_key")
 
 		// Create a test keyring in workspace2
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
+		keySpaceID := uid.New(uid.KeySpacePrefix)
 		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-			ID:                 keyAuthID,
+			ID:                 keySpaceID,
 			WorkspaceID:        workspace2.ID,
 			StoreEncryptedKeys: false,
 			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
@@ -104,7 +104,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		keyString := "test_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyID,
-			KeySpaceID:        keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(keyString),
 			Start:             keyString[:4],
 			WorkspaceID:       workspace2.ID,
