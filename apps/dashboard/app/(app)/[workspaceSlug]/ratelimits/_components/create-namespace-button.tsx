@@ -4,8 +4,8 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
-import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { Plus } from "@unkey/icons";
+import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
@@ -19,7 +19,7 @@ const formSchema = z.object({
     .max(50, "Name must not exceed 50 characters")
     .regex(
       /^[a-zA-Z0-9_\-\.]+$/,
-      "Only alphanumeric characters, underscores, hyphens, and periods are allowed"
+      "Only alphanumeric characters, underscores, hyphens, and periods are allowed",
     ),
 });
 
@@ -88,8 +88,7 @@ export const CreateNamespaceButton = ({
               Create Namespace
             </Button>
             <div className="text-gray-9 text-xs">
-              Namespaces can be used to separate different rate limiting
-              concerns
+              Namespaces can be used to separate different rate limiting concerns
             </div>
           </div>
         }

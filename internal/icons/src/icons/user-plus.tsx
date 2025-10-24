@@ -12,10 +12,7 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const UserPlus: React.FC<IconProps> = ({
-  iconsize = "xl-thin",
-  ...props
-}) => {
+export const UserPlus: React.FC<IconProps> = ({ iconsize = "xl-thin", ...props }) => {
   const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
 
   return (
@@ -26,20 +23,8 @@ export const UserPlus: React.FC<IconProps> = ({
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        transform="translate(0.25 0.25)"
-      >
-        <circle
-          cx="10"
-          cy="6"
-          fill="none"
-          r="4"
-          stroke="currentcolor"
-          strokeWidth={strokeWidth}
-        />
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round" transform="translate(0.25 0.25)">
+        <circle cx="10" cy="6" fill="none" r="4" stroke="currentcolor" strokeWidth={strokeWidth} />
         <path
           d="m10,13c-4.418,0-8,3.582-8,8,5.333,1.333,10.667,1.333,16,0,0-4.418-3.582-8-8-8Z"
           fill="none"

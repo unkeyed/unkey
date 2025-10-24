@@ -1,6 +1,6 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
+import { Magnifier, Plus, Trash } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { Plus, Magnifier, Trash } from "@unkey/icons";
 
 // Basic Variants
 
@@ -111,10 +111,7 @@ export const OutlineExample = () => (
           <Button variant="outline" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button
-            variant="outline"
-            className="!ring-4 !ring-gray-7 !border-grayA-12"
-          >
+          <Button variant="outline" className="!ring-4 !ring-gray-7 !border-grayA-12">
             Focus
           </Button>
           <Button variant="outline" loading>
@@ -132,10 +129,7 @@ export const OutlineExample = () => (
           <Button variant="outline" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button
-            variant="outline"
-            className="!ring-4 !ring-gray-7 !border-grayA-12"
-          >
+          <Button variant="outline" className="!ring-4 !ring-gray-7 !border-grayA-12">
             Focus
           </Button>
           <Button variant="outline" loading>
@@ -205,10 +199,7 @@ export const GhostExample = () => (
           <Button variant="ghost" className="!bg-grayA-4">
             Hover
           </Button>
-          <Button
-            variant="ghost"
-            className="!ring-4 !ring-gray-7 !border-grayA-12"
-          >
+          <Button variant="ghost" className="!ring-4 !ring-gray-7 !border-grayA-12">
             Focus
           </Button>
           <Button variant="ghost" loading>
@@ -227,10 +218,7 @@ export const GhostExample = () => (
           <Button variant="ghost" className="!bg-grayA-4">
             Hover
           </Button>
-          <Button
-            variant="ghost"
-            className="!ring-4 !ring-gray-7 !border-grayA-12"
-          >
+          <Button variant="ghost" className="!ring-4 !ring-gray-7 !border-grayA-12">
             Focus
           </Button>
           <Button variant="ghost" loading>
@@ -522,11 +510,7 @@ export const DangerGhostExample = () => (
           <Button variant="ghost" color="danger" className="!bg-error-3">
             Hover
           </Button>
-          <Button
-            variant="ghost"
-            color="danger"
-            className="!ring-4 !ring-error-7 !border-error-11"
-          >
+          <Button variant="ghost" color="danger" className="!ring-4 !ring-error-7 !border-error-11">
             Focus
           </Button>
           <Button variant="ghost" color="danger" loading>
@@ -546,11 +530,7 @@ export const DangerGhostExample = () => (
           <Button variant="ghost" color="danger" className="!bg-error-3">
             Hover
           </Button>
-          <Button
-            variant="ghost"
-            color="danger"
-            className="!ring-4 !ring-error-7 !border-error-11"
-          >
+          <Button variant="ghost" color="danger" className="!ring-4 !ring-error-7 !border-error-11">
             Focus
           </Button>
           <Button variant="ghost" color="danger" loading>
@@ -625,11 +605,7 @@ export const WarningPrimaryExample = () => (
           <Button variant="primary" color="warning">
             Default
           </Button>
-          <Button
-            variant="primary"
-            color="warning"
-            className="!bg-warning-8/90"
-          >
+          <Button variant="primary" color="warning" className="!bg-warning-8/90">
             Hover
           </Button>
           <Button
@@ -653,11 +629,7 @@ export const WarningPrimaryExample = () => (
           <Button variant="primary" color="warning">
             Default
           </Button>
-          <Button
-            variant="primary"
-            color="warning"
-            className="!bg-warning-8/90"
-          >
+          <Button variant="primary" color="warning" className="!bg-warning-8/90">
             Hover
           </Button>
           <Button
@@ -951,11 +923,7 @@ export const SuccessPrimaryExample = () => (
           <Button variant="primary" color="success">
             Default
           </Button>
-          <Button
-            variant="primary"
-            color="success"
-            className="!bg-success-9/90"
-          >
+          <Button variant="primary" color="success" className="!bg-success-9/90">
             Hover
           </Button>
           <Button
@@ -979,11 +947,7 @@ export const SuccessPrimaryExample = () => (
           <Button variant="primary" color="success">
             Default
           </Button>
-          <Button
-            variant="primary"
-            color="success"
-            className="!bg-success-9/90"
-          >
+          <Button variant="primary" color="success" className="!bg-success-9/90">
             Hover
           </Button>
           <Button
@@ -1280,11 +1244,7 @@ export const InfoPrimaryExample = () => (
           <Button variant="primary" color="info" className="!bg-info-9/90">
             Hover
           </Button>
-          <Button
-            variant="primary"
-            color="info"
-            className="!ring-4 !ring-info-6 !border-info-11"
-          >
+          <Button variant="primary" color="info" className="!ring-4 !ring-info-6 !border-info-11">
             Focus
           </Button>
           <Button variant="primary" color="info" loading>
@@ -1304,11 +1264,7 @@ export const InfoPrimaryExample = () => (
           <Button variant="primary" color="info" className="!bg-info-9/90">
             Hover
           </Button>
-          <Button
-            variant="primary"
-            color="info"
-            className="!ring-4 !ring-info-6 !border-info-11"
-          >
+          <Button variant="primary" color="info" className="!ring-4 !ring-info-6 !border-info-11">
             Focus
           </Button>
           <Button variant="primary" color="info" loading>
@@ -1386,11 +1342,7 @@ export const InfoOutlineExample = () => (
           <Button variant="outline" color="info" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button
-            variant="outline"
-            color="info"
-            className="!ring-4 !ring-info-6 !border-info-11"
-          >
+          <Button variant="outline" color="info" className="!ring-4 !ring-info-6 !border-info-11">
             Focus
           </Button>
           <Button variant="outline" color="info" loading>
@@ -1410,11 +1362,7 @@ export const InfoOutlineExample = () => (
           <Button variant="outline" color="info" className="!bg-grayA-2">
             Hover
           </Button>
-          <Button
-            variant="outline"
-            color="info"
-            className="!ring-4 !ring-info-6 !border-info-11"
-          >
+          <Button variant="outline" color="info" className="!ring-4 !ring-info-6 !border-info-11">
             Focus
           </Button>
           <Button variant="outline" color="info" loading>
@@ -1492,11 +1440,7 @@ export const InfoGhostExample = () => (
           <Button variant="ghost" color="info" className="!bg-info-3">
             Hover
           </Button>
-          <Button
-            variant="ghost"
-            color="info"
-            className="!ring-4 !ring-info-6 !border-info-11"
-          >
+          <Button variant="ghost" color="info" className="!ring-4 !ring-info-6 !border-info-11">
             Focus
           </Button>
           <Button variant="ghost" color="info" loading>
@@ -1516,11 +1460,7 @@ export const InfoGhostExample = () => (
           <Button variant="ghost" color="info" className="!bg-info-3">
             Hover
           </Button>
-          <Button
-            variant="ghost"
-            color="info"
-            className="!ring-4 !ring-info-6 !border-info-11"
-          >
+          <Button variant="ghost" color="info" className="!ring-4 !ring-info-6 !border-info-11">
             Focus
           </Button>
           <Button variant="ghost" color="info" loading>

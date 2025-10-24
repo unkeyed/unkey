@@ -27,20 +27,12 @@ const searchParamsSchema = z.object({
 export default function Page(props: Props) {
   const validatedParams = searchParamsSchema.parse(props.searchParams);
   const search = validatedParams.search ?? "";
-  const limit = validatedParams.limit
-    ? Number.parseInt(validatedParams.limit, 10)
-    : DEFAULT_LIMIT;
+  const limit = validatedParams.limit ? Number.parseInt(validatedParams.limit, 10) : DEFAULT_LIMIT;
 
   const workspace = useWorkspaceNavigation();
 
   if (!workspace.betaFeatures.identities) {
-    return (
-      <OptIn
-        title="Identities"
-        description="Identities are in beta"
-        feature="identities"
-      />
-    );
+    return <OptIn title="Identities" description="Identities are in beta" feature="identities" />;
   }
 
   return (

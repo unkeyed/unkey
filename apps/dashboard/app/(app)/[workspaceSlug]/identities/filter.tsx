@@ -11,7 +11,7 @@ export function SearchField(): JSX.Element {
       history: "replace",
       shallow: true,
       clearOnDefault: true,
-    })
+    }),
   );
 
   // Local draft state for immediate UI updates

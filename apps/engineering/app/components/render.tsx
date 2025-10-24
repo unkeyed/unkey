@@ -1,7 +1,7 @@
 "use client";
+import { ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { ChevronRight } from "@unkey/icons";
 import { type PropsWithChildren, useState } from "react";
 import reactElementToJSXString from "react-element-to-jsx-string";
 
@@ -9,9 +9,7 @@ type Props = {
   customCodeSnippet?: string;
 };
 
-export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (
-  props
-) => {
+export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (props) => {
   const [open, setOpen] = useState(false);
 
   const snippet =
@@ -50,12 +48,9 @@ export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (
         </Button>
       </div>
       <div
-        className={cn(
-          "w-full bg-gray-2 transition-all max-h-96 overflow-y-scroll",
-          {
-            hidden: !open,
-          }
-        )}
+        className={cn("w-full bg-gray-2 transition-all max-h-96 overflow-y-scroll", {
+          hidden: !open,
+        })}
       >
         <div className="flex items-start">
           <pre className="py-0 text-gray-8 text-right">

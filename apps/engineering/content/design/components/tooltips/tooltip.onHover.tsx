@@ -1,8 +1,8 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Row } from "@/app/components/row";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { CircleInfo } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 export const OnHoverExample: React.FC = () => (
   <RenderComponentWithSnippet
     customCodeSnippet={`<Row>
@@ -66,10 +66,7 @@ export const OnHoverExample: React.FC = () => (
           <p className="inline-flex gap-4 border border-gray-2 px-3 py-1 rounded-lg ">
             Bottom{" "}
             <span>
-              <CircleInfo
-                iconsize="md-regular"
-                className="text-gray-10 self-auto h-full"
-              />
+              <CircleInfo iconsize="md-regular" className="text-gray-10 self-auto h-full" />
             </span>
           </p>
         </TooltipTrigger>
@@ -82,10 +79,7 @@ export const OnHoverExample: React.FC = () => (
           <p className="inline-flex gap-4 border border-gray-2 px-3 py-1 rounded-lg ">
             Top{" "}
             <span>
-              <CircleInfo
-                iconsize="md-regular"
-                className="text-gray-10 self-auto h-full"
-              />
+              <CircleInfo iconsize="md-regular" className="text-gray-10 self-auto h-full" />
             </span>
           </p>
         </TooltipTrigger>
@@ -98,10 +92,7 @@ export const OnHoverExample: React.FC = () => (
           <p className="inline-flex gap-4 border border-gray-2 px-3 py-1 rounded-lg ">
             Right{" "}
             <span>
-              <CircleInfo
-                iconsize="md-regular"
-                className="text-gray-10 self-auto h-full"
-              />
+              <CircleInfo iconsize="md-regular" className="text-gray-10 self-auto h-full" />
             </span>
           </p>
         </TooltipTrigger>
@@ -114,10 +105,7 @@ export const OnHoverExample: React.FC = () => (
           <p className="inline-flex gap-4 border border-gray-2 px-3 py-1 rounded-lg ">
             Left{" "}
             <span>
-              <CircleInfo
-                iconsize="md-regular"
-                className="text-gray-10 self-auto h-full"
-              />
+              <CircleInfo iconsize="md-regular" className="text-gray-10 self-auto h-full" />
             </span>
           </p>
         </TooltipTrigger>

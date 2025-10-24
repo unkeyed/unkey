@@ -11,13 +11,9 @@ type SuggestionsProps = PropsWithChildren<{
   onChange: (id: number) => void;
 }>;
 
-export const DateTimeSuggestions = ({
-  className,
-  options,
-  onChange,
-}: SuggestionsProps) => {
+export const DateTimeSuggestions = ({ className, options, onChange }: SuggestionsProps) => {
   const [focusedIndex, setFocusedIndex] = useState<number>(
-    () => options.findIndex((option) => option.checked) ?? 0
+    () => options.findIndex((option) => option.checked) ?? 0,
   );
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -79,18 +75,12 @@ export const DateTimeSuggestions = ({
       className={cn("flex flex-col justify-center w-full", className)}
       aria-label="Time range options"
     >
-      <ScrollArea
-        className="w-full rounded-md md:max-h-[380px]"
-        ref={scrollAreaRef}
-      >
+      <ScrollArea className="w-full rounded-md md:max-h-[380px]" ref={scrollAreaRef}>
         <div className="flex flex-col gap-1.5 p-1">
           {options.map(({ id, display, checked }, index) => (
             <div
               key={id}
-              className={cn(
-                "group relative w-full rounded-lg",
-                "focus-within:outline-none"
-              )}
+              className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
             >
               <button
                 type="button"
@@ -114,7 +104,7 @@ export const DateTimeSuggestions = ({
                   "focus:outline-none focus:ring-2 focus:ring-accent-7",
                   "focus:bg-gray-3",
                   checked && "bg-gray-3",
-                  focusedIndex === index && "bg-gray-3"
+                  focusedIndex === index && "bg-gray-3",
                 )}
                 tabIndex={0}
               >

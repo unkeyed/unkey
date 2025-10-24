@@ -8,14 +8,7 @@ import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { getAuth } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
-import {
-  type Api,
-  type Key,
-  type VercelBinding,
-  db,
-  eq,
-  schema,
-} from "@/lib/db";
+import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { Gear } from "@unkey/icons";
 import { Button, Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
@@ -35,8 +28,7 @@ type Props = {
 export default async function Page(props: Props) {
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     with: {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAtM),
@@ -58,29 +50,20 @@ export default async function Page(props: Props) {
   }
 
   const integration = props.searchParams.configurationId
-    ? workspace.vercelIntegrations.find(
-        (i) => i.id === props.searchParams.configurationId
-      )
+    ? workspace.vercelIntegrations.find((i) => i.id === props.searchParams.configurationId)
     : workspace.vercelIntegrations.at(0);
 
   if (!integration) {
     return (
       <div>
-        <Navigation
-          href={`/${workspace.slug}/settings/vercel`}
-          name="Settings"
-          icon={<Gear />}
-        />
+        <Navigation href={`/${workspace.slug}/settings/vercel`} name="Settings" icon={<Gear />} />
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
           <Empty>
             <Empty.Title>Vercel is not connected to this workspace</Empty.Title>
             <Empty.Actions>
-              <Link
-                target="_blank"
-                href="https://vercel.com/integrations/unkey"
-              >
+              <Link target="_blank" href="https://vercel.com/integrations/unkey">
                 <Button>Connect</Button>
               </Link>
             </Empty.Actions>
@@ -102,8 +85,7 @@ export default async function Page(props: Props) {
       <Empty>
         <Empty.Title>Error</Empty.Title>
         <Empty.Description>
-          We couldn't load your projects from Vercel. Please try again or
-          contact support.
+          We couldn't load your projects from Vercel. Please try again or contact support.
         </Empty.Description>
         <Empty.Description>
           <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
@@ -112,19 +94,25 @@ export default async function Page(props: Props) {
     );
   }
 
-  const apis = workspace.apis.reduce((acc, api) => {
-    acc[api.id] = api;
-    return acc;
-  }, {} as Record<string, Api>);
+  const apis = workspace.apis.reduce(
+    (acc, api) => {
+      acc[api.id] = api;
+      return acc;
+    },
+    {} as Record<string, Api>,
+  );
 
   const rootKeys = (
     await db.query.keys.findMany({
       where: eq(schema.keys.forWorkspaceId, workspace.id),
     })
-  ).reduce((acc, key) => {
-    acc[key.id] = key;
-    return acc;
-  }, {} as Record<string, Key>);
+  ).reduce(
+    (acc, key) => {
+      acc[key.id] = key;
+      return acc;
+    },
+    {} as Record<string, Key>,
+  );
 
   const users = (
     await Promise.all(
@@ -146,14 +134,17 @@ export default async function Page(props: Props) {
             console.error(`Failed to fetch user ${id}:`, error);
             return null;
           }
-        })
+        }),
     )
   )
     .filter((user): user is NonNullable<typeof user> => user !== null)
-    .reduce((acc, user) => {
-      acc[user.id] = user;
-      return acc;
-    }, {} as Record<string, { id: string; name: string; image: string | null }>);
+    .reduce(
+      (acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      },
+      {} as Record<string, { id: string; name: string; image: string | null }>,
+    );
 
   const projects = await Promise.all(
     rawProjects.map(async (p) => ({
@@ -184,27 +175,18 @@ export default async function Page(props: Props) {
                 })
               | null
             >
-          >
+          >,
         ),
-    }))
+    })),
   );
 
   return (
     <div>
-      <Navigation
-        href={`/${workspace.slug}/settings/vercel`}
-        icon={<Gear />}
-        name="Settings"
-      />
+      <Navigation href={`/${workspace.slug}/settings/vercel`} icon={<Gear />} name="Settings" />
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />
-        <Client
-          projects={projects}
-          apis={apis}
-          rootKeys={rootKeys}
-          integration={integration}
-        />
+        <Client projects={projects} apis={apis} rootKeys={rootKeys} integration={integration} />
       </PageContent>
     </div>
   );

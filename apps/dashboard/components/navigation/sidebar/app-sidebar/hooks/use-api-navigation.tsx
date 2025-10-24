@@ -19,7 +19,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-      }
+      },
     );
 
   // Convert API data to navigation items with sub-items for settings and keys
@@ -31,8 +31,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
     return data.pages.flatMap((page) =>
       page.apiList.map((api) => {
         const aIndex = segments.findIndex((s) => s === "apis");
-        const currentApiActive =
-          aIndex !== -1 && segments.at(aIndex + 1) === api.id;
+        const currentApiActive = aIndex !== -1 && segments.at(aIndex + 1) === api.id;
 
         const settingsItem: NavItem = {
           icon: Gear,
@@ -77,15 +76,13 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         };
 
         return apiNavItem;
-      })
+      }),
     );
   }, [data?.pages, segments, workspace.slug]);
 
   const enhancedNavItems = useMemo(() => {
     const items = [...baseNavItems];
-    const apisItemIndex = items.findIndex(
-      (item) => item.href === `/${workspace.slug}/apis`
-    );
+    const apisItemIndex = items.findIndex((item) => item.href === `/${workspace.slug}/apis`);
 
     if (apisItemIndex !== -1) {
       const apisItem = { ...items[apisItemIndex] };
@@ -97,9 +94,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
         apisItem.items?.push({
           icon: () => null,
           href: "#load-more-apis",
-          label: (
-            <div className="font-normal decoration-dotted underline ">More</div>
-          ),
+          label: <div className="font-normal decoration-dotted underline ">More</div>,
           active: false,
           loadMoreAction: true,
         });

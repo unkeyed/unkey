@@ -1,6 +1,6 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { InlineLink } from "@unkey/ui";
 import { ExternalLink } from "@unkey/icons";
+import { InlineLink } from "@unkey/ui";
 
 export const InlineLinkBasic = () => {
   return (
@@ -11,8 +11,7 @@ export const InlineLinkBasic = () => {
 </p>`}
     >
       <p>
-        This is a basic{" "}
-        <InlineLink href="https://example.com" label="inline link" /> in a
+        This is a basic <InlineLink href="https://example.com" label="inline link" /> in a
         paragraph.
       </p>
     </RenderComponentWithSnippet>

@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowOppositeDirectionY, Dots, Minus, Trash } from "@unkey/icons";
 import { Badge, Button, Checkbox, InfoTooltip, toast } from "@unkey/ui";
-import { ArrowOppositeDirectionY, Minus, Dots, Trash } from "@unkey/icons";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,9 +60,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
         <div className="flex items-center justify-center">
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(value) =>
-              table.toggleAllPageRowsSelected(!!value)
-            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label="Select all"
           />
         </div>
@@ -87,8 +85,8 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
           asChild
           content={
             <p>
-              This is the first part of the key to visually match it. We don't
-              store the full key for security reasons.
+              This is the first part of the key to visually match it. We don't store the full key
+              for security reasons.
             </p>
           }
         >
@@ -119,10 +117,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
           row.original.expires.getTime() < Date.now() ? (
             <span>Expired</span>
           ) : (
-            <span>
-              in{" "}
-              {ms(row.original.expires.getTime() - Date.now(), { long: true })}
-            </span>
+            <span>in {ms(row.original.expires.getTime() - Date.now(), { long: true })}</span>
           )
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />
@@ -167,9 +162,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                   }}
                 >
                   <Dots className="w-4 h-4 mr-2 rotate-90" />
-                  <Link href={`/settings/root-keys/${row.original.id}`}>
-                    Details
-                  </Link>
+                  <Link href={`/settings/root-keys/${row.original.id}`}>Details</Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>
                   <DropdownMenuItem
@@ -185,13 +178,12 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                   <DialogHeader>
                     <DialogTitle>Revoke Root Key</DialogTitle>
                     <DialogDescription>
-                      Delete the key{" "}
-                      <Badge variant="secondary">{row.original.start}...</Badge>{" "}
+                      Delete the key <Badge variant="secondary">{row.original.start}...</Badge>{" "}
                       permanenty
                     </DialogDescription>
                     <Alert variant="alert">
-                      This action can not be undone. Your root key will no
-                      longer be able to create resources
+                      This action can not be undone. Your root key will no longer be able to create
+                      resources
                     </Alert>
                   </DialogHeader>
 
@@ -199,9 +191,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                     <Button
                       variant="destructive"
                       disabled={deleteKey.isLoading}
-                      onClick={() =>
-                        deleteKey.mutate({ keyIds: [row.original.id] })
-                      }
+                      onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
                       loading={deleteKey.isLoading}
                     >
                       Delete permanently
