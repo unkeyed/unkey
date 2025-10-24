@@ -11,7 +11,12 @@ export const FreeTierAlert: React.FC = () => {
         The Free tier includes 150k requests of free usage.
         <br />
         To unlock additional usage and add team members, upgrade to Pro.{" "}
-        <Link href="https://unkey.com/pricing" target="_blank" className="underline text-info-11">
+        <Link
+          href="https://unkey.com/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-info-11"
+        >
           See Pricing
         </Link>
       </Empty.Description>

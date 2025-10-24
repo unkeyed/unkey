@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Input, SettingCard } from "@unkey/ui";
+import { Button, Empty, Input, Loading, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
@@ -14,22 +14,21 @@ export default function BillingPage() {
   // Check for legacy subscriptions
   const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
+  const { data: usage, isLoading: usageLoading } = trpc.billing.queryUsage.useQuery(undefined, {
+    enabled: Boolean(isLegacy),
+  });
+
+  if (usageLoading) {
+    return (
+      <Empty>
+        <Loading />
+      </Empty>
+    );
+  }
   if (isLegacy) {
     // Fetch usage data for legacy display
-    const { data: usage, isLoading: usageLoading } = trpc.billing.queryUsage.useQuery();
     const verifications = usage?.billableVerifications || 0;
     const ratelimits = usage?.billableRatelimits || 0;
-
-    if (usageLoading) {
-      return (
-        <div className="animate-pulse">
-          <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-          <Shell>
-            <div className="w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
-          </Shell>
-        </div>
-      );
-    }
 
     return (
       <Shell>

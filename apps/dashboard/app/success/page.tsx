@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { Empty, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
 
 type ProcessedData = {
@@ -33,6 +33,17 @@ function SuccessContent() {
     trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
 
   const trpcUtils = trpc.useUtils();
+
+  const updateCustomer = useCallback(
+    (data: { customerId: string; paymentMethod: string }) =>
+      updateCustomerMutation.mutateAsync(data),
+    [updateCustomerMutation.mutateAsync],
+  );
+
+  const updateWorkspaceStripeCustomer = useCallback(
+    (data: { stripeCustomerId: string }) => updateWorkspaceStripeCustomerMutation.mutateAsync(data),
+    [updateWorkspaceStripeCustomerMutation.mutateAsync],
+  );
 
   useEffect(() => {
     if (!sessionId) {
@@ -106,7 +117,7 @@ function SuccessContent() {
 
         // Update customer with default payment method
         try {
-          await updateCustomerMutation.mutateAsync({
+          await updateCustomer({
             customerId: customer.id,
             paymentMethod: setupIntent.payment_method,
           });
@@ -117,7 +128,7 @@ function SuccessContent() {
 
         // Update workspace with stripe customer ID
         try {
-          await updateWorkspaceStripeCustomerMutation.mutateAsync({
+          await updateWorkspaceStripeCustomer({
             stripeCustomerId: customer.id,
           });
           await trpcUtils.workspace.invalidate();
@@ -165,7 +176,7 @@ function SuccessContent() {
     };
 
     processStripeSession();
-  }, [sessionId, trpcUtils]);
+  }, [sessionId, trpcUtils, updateCustomer, updateWorkspaceStripeCustomer]);
 
   if (loading) {
     return (

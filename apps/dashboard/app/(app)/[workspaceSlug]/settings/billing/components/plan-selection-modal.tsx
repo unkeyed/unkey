@@ -33,7 +33,6 @@ export const PlanSelectionModal = ({
   isChangingPlan = false,
 }: PlanSelectionModalProps) => {
   const workspace = useWorkspaceNavigation();
-  console.log(workspace.stripeCustomerId);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -66,16 +65,11 @@ export const PlanSelectionModal = ({
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
     onSuccess: async () => {
+      handleOpenChange(false);
       setIsLoading(false);
-
       toast.success("Plan activated successfully!");
-
-      // Invalidate and refetch all queries to ensure fresh data
       await revalidateData();
-
-      // Wait for workspace data to be refetched before navigation
       await trpcUtils.workspace.getCurrent.refetch();
-
       router.push(`/${workspace.slug}/settings/billing`);
     },
     onError: (err) => {
@@ -86,17 +80,11 @@ export const PlanSelectionModal = ({
 
   const updateSubscription = trpc.stripe.updateSubscription.useMutation({
     onSuccess: async () => {
-      setIsLoading(false);
-
-      toast.success("Plan changed successfully!");
-
-      // Invalidate all queries to ensure fresh data
-      await revalidateData();
-
-      // Wait for workspace data to be refetched before navigation
-      await trpcUtils.workspace.getCurrent.refetch();
-
       handleOpenChange(false);
+      setIsLoading(false);
+      toast.success("Plan changed successfully!");
+      await revalidateData();
+      await trpcUtils.workspace.getCurrent.refetch();
     },
     onError: (err) => {
       setIsLoading(false);
@@ -111,26 +99,21 @@ export const PlanSelectionModal = ({
 
     setIsLoading(true);
 
-    // if (selectedProductId === "free" && !isChangingPlan) {
-    //   // For free tier on initial selection, just close modal and redirect
-    //   setIsLoading(false);
-    //   handleOpenChange(false);
-    //   toast.success("Staying on Free plan - you can upgrade anytime!");
-    //   router.push(`/${workspace.slug}/settings/billing`);
-    //   return;
-    // }
-
-    if (isChangingPlan && currentProductId) {
-      // Update existing subscription
-      await updateSubscription.mutateAsync({
-        oldProductId: currentProductId,
-        newProductId: selectedProductId,
-      });
-    } else {
-      // Create new subscription
-      await createSubscription.mutateAsync({
-        productId: selectedProductId,
-      });
+    try {
+      if (isChangingPlan && currentProductId) {
+        // Update existing subscription
+        await updateSubscription.mutateAsync({
+          oldProductId: currentProductId,
+          newProductId: selectedProductId,
+        });
+      } else {
+        // Create new subscription
+        await createSubscription.mutateAsync({
+          productId: selectedProductId,
+        });
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -138,9 +121,6 @@ export const PlanSelectionModal = ({
     if (!isChangingPlan) {
       await revalidateData();
       // Wait for workspace data to be refetched before navigation
-      console.log(workspace.stripeCustomerId);
-
-      console.log(workspace.stripeCustomerId);
       toast.info("Payment method added - you can upgrade anytime from billing settings!");
       router.push(`/${workspace.slug}/settings/billing`);
     }
@@ -197,7 +177,7 @@ export const PlanSelectionModal = ({
       showCloseWarning={true}
       onAttemptClose={handleCloseAttempt}
       footer={
-        <div className="w-full flex flex-col gap-3">
+        <div className="w-full flex flex-col gap-6">
           <Button
             type="button"
             variant="primary"

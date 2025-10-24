@@ -34,7 +34,9 @@ export const Client: React.FC = () => {
       <div className="animate-pulse">
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
         <Shell>
-          <div className="w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          <div className="w-full h-[150px] bg-gray-180 dark:bg-gray-800 rounded-lg mt-1" />
+          <div className="w-full h-[90px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          <div className="w-full h-[90px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
         </Shell>
       </div>
     );
