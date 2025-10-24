@@ -4,6 +4,7 @@ import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight, Magnifier } from "@unkey/icons";
+import { Loader } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ProjectContentWrapper } from "../components/project-content-wrapper";
@@ -16,17 +17,20 @@ export default function DiffPage() {
   const { collections, liveDeploymentId } = useProject();
   const searchParams = useSearchParams();
 
-  const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
+  const [selectedFromDeployment, setSelectedFromDeployment] =
+    useState<string>("");
   const [selectedToDeployment, setSelectedToDeployment] = useState<string>("");
 
   const deployments = useLiveQuery((q) =>
     q
       .from({ deployment: collections.deployments })
-      .join({ environment: collections.environments }, ({ environment, deployment }) =>
-        eq(environment.id, deployment.environmentId),
+      .join(
+        { environment: collections.environments },
+        ({ environment, deployment }) =>
+          eq(environment.id, deployment.environmentId)
       )
       .orderBy(({ deployment }) => deployment.createdAt, "desc")
-      .limit(100),
+      .limit(100)
   );
 
   const sortedDeployments = deployments.data ?? [];
@@ -42,8 +46,12 @@ export default function DiffPage() {
 
     // If URL params exist, use them
     if (fromParam && toParam) {
-      const fromExists = sortedDeployments.some((d) => d.deployment.id === fromParam);
-      const toExists = sortedDeployments.some((d) => d.deployment.id === toParam);
+      const fromExists = sortedDeployments.some(
+        (d) => d.deployment.id === fromParam
+      );
+      const toExists = sortedDeployments.some(
+        (d) => d.deployment.id === toParam
+      );
 
       if (fromExists) {
         setSelectedFromDeployment(fromParam);
@@ -56,12 +64,19 @@ export default function DiffPage() {
 
     // Otherwise, fall back to live deployment if no params
     if (liveDeploymentId) {
-      const exists = sortedDeployments.some((d) => d.deployment.id === liveDeploymentId);
+      const exists = sortedDeployments.some(
+        (d) => d.deployment.id === liveDeploymentId
+      );
       if (exists) {
         setSelectedFromDeployment(liveDeploymentId);
       }
     }
-  }, [liveDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
+  }, [
+    liveDeploymentId,
+    sortedDeployments,
+    deployments.isLoading,
+    searchParams,
+  ]);
 
   const {
     data: diffData,
@@ -74,19 +89,21 @@ export default function DiffPage() {
     },
     {
       enabled: Boolean(selectedFromDeployment) && Boolean(selectedToDeployment),
-    },
+    }
   );
 
   const getDeploymentLabel = useCallback(
     (deploymentId: string): string => {
-      const deployment = sortedDeployments.find((d) => d.deployment.id === deploymentId);
+      const deployment = sortedDeployments.find(
+        (d) => d.deployment.id === deploymentId
+      );
       if (!deployment) {
         return deploymentId;
       }
 
       return shortenId(deploymentId);
     },
-    [sortedDeployments],
+    [sortedDeployments]
   );
 
   const showEmptyState = !selectedFromDeployment || !selectedToDeployment;
@@ -99,8 +116,12 @@ export default function DiffPage() {
         <div className="flex w-full justify-between items-center px-[22px]">
           <div className="flex gap-5 items-center">
             <div className="flex flex-col gap-1">
-              <div className="text-accent-12 font-medium text-[13px]">Compare Deployments</div>
-              <div className="text-grayA-9 text-xs">View API changes between deployments</div>
+              <div className="text-accent-12 font-medium text-[13px]">
+                Compare Deployments
+              </div>
+              <div className="text-grayA-9 text-xs">
+                View API changes between deployments
+              </div>
             </div>
           </div>
         </div>
@@ -127,7 +148,10 @@ export default function DiffPage() {
                 disabledDeploymentId={selectedToDeployment}
               />
 
-              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
+              <ArrowRight
+                className="shrink-0 text-gray-9 size-[14px]"
+                size="sm-regular"
+              />
 
               <DeploymentSelect
                 value={selectedToDeployment}
@@ -158,10 +182,12 @@ export default function DiffPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-grayA-12 font-medium text-sm">No deployments selected</h3>
+                <h3 className="text-grayA-12 font-medium text-sm">
+                  No deployments selected
+                </h3>
                 <p className="text-grayA-9 text-xs max-w-[280px] leading-relaxed">
-                  Select two deployments above to compare their OpenAPI specifications and see what
-                  changed between versions.
+                  Select two deployments above to compare their OpenAPI
+                  specifications and see what changed between versions.
                 </p>
               </div>
             </div>
@@ -172,8 +198,12 @@ export default function DiffPage() {
               {diffLoading && (
                 <div className="text-center py-12 px-8">
                   <Loader className="w-6 h-6 mx-auto mb-3 animate-spin text-grayA-9" />
-                  <p className="text-[13px] text-grayA-11 font-medium">Analyzing changes...</p>
-                  <p className="text-xs text-grayA-9 mt-1">Comparing API specifications</p>
+                  <p className="text-[13px] text-grayA-11 font-medium">
+                    Analyzing changes...
+                  </p>
+                  <p className="text-xs text-grayA-9 mt-1">
+                    Comparing API specifications
+                  </p>
                 </div>
               )}
 
