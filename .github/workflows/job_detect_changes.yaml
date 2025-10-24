@@ -40,7 +40,7 @@ permissions:
 jobs:
   build:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     outputs:
       api: ${{ steps.changes.outputs.api }}
       dashboard: ${{ steps.changes.outputs.dashboard }}
