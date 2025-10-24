@@ -33,7 +33,9 @@ export const PlanSelectionModal = ({
   isChangingPlan = false,
 }: PlanSelectionModalProps) => {
   const workspace = useWorkspaceNavigation();
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const router = useRouter();
@@ -51,7 +53,7 @@ export const PlanSelectionModal = ({
     (open: boolean) => {
       onOpenChange?.(open);
     },
-    [onOpenChange],
+    [onOpenChange]
   );
 
   const revalidateData = useCallback(async () => {
@@ -121,7 +123,9 @@ export const PlanSelectionModal = ({
     if (!isChangingPlan) {
       await revalidateData();
       // Wait for workspace data to be refetched before navigation
-      toast.info("Payment method added - you can upgrade anytime from billing settings!");
+      toast.info(
+        "Payment method added - you can upgrade anytime from billing settings!"
+      );
       router.push(`/${workspace.slug}/settings/billing`);
     }
     handleOpenChange(false);
@@ -133,7 +137,7 @@ export const PlanSelectionModal = ({
     toast.info(
       isChangingPlan
         ? "Please select a plan or click 'Cancel' to close"
-        : "Please select a plan or choose 'I'll choose later' to continue",
+        : "Please select a plan or choose 'I'll choose later' to continue"
     );
   };
 
@@ -190,15 +194,15 @@ export const PlanSelectionModal = ({
             {selectedProductId === "free" && !isChangingPlan
               ? "Continue with Free Plan"
               : selectedProduct
-                ? `${isChangingPlan ? "Change to" : "Start"} ${
-                    selectedProduct.name
-                  } Plan - $${selectedProduct.dollar}/mo`
-                : "Select a plan first"}
+              ? `${isChangingPlan ? "Change to" : "Start"} ${
+                  selectedProduct.name
+                } Plan - $${selectedProduct.dollar}/mo`
+              : "Select a plan first"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="lg"
             disabled={isLoading}
             className="w-full text-gray-11 hover:text-gray-12"
             onClick={handleSkip}
@@ -219,8 +223,8 @@ export const PlanSelectionModal = ({
                 selectedProductId === product.id
                   ? "border-info-7 bg-info-2 ring-1 ring-info-7"
                   : currentProductId === product.id
-                    ? "border-gray-5 bg-gray-2"
-                    : "border-gray-4",
+                  ? "border-gray-5 bg-gray-2"
+                  : "border-gray-4"
               )}
             >
               <input
@@ -239,7 +243,7 @@ export const PlanSelectionModal = ({
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center",
                         selectedProductId === product.id
                           ? "border-info-9 bg-info-9"
-                          : "border-gray-6",
+                          : "border-gray-6"
                       )}
                     >
                       {selectedProductId === product.id && (
@@ -248,7 +252,9 @@ export const PlanSelectionModal = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-12">{product.name}</h3>
+                        <h3 className="font-semibold text-gray-12">
+                          {product.name}
+                        </h3>
                         {currentProductId === product.id && (
                           <span className="text-xs bg-info-3 text-info-11 px-2 py-0.5 rounded-full">
                             Current
@@ -256,7 +262,8 @@ export const PlanSelectionModal = ({
                         )}
                       </div>
                       <p className="text-sm text-gray-11">
-                        {formatNumber(product.quotas.requestsPerMonth)} requests/month
+                        {formatNumber(product.quotas.requestsPerMonth)}{" "}
+                        requests/month
                       </p>
                     </div>
                   </div>
@@ -264,7 +271,9 @@ export const PlanSelectionModal = ({
                 <div className="text-right">
                   <div className="font-semibold text-gray-12">
                     ${product.dollar}
-                    <span className="text-sm font-normal text-gray-11">/mo</span>
+                    <span className="text-sm font-normal text-gray-11">
+                      /mo
+                    </span>
                   </div>
                 </div>
               </div>
@@ -274,7 +283,8 @@ export const PlanSelectionModal = ({
 
         <div className="text-center">
           <p className="text-xs text-gray-9">
-            You can change or cancel your plan anytime from the billing settings.
+            You can change or cancel your plan anytime from the billing
+            settings.
           </p>
         </div>
       </div>
