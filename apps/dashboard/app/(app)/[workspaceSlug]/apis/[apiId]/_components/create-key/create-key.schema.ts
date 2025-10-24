@@ -120,7 +120,7 @@ export const ratelimitItemSchema = z.object({
   id: z.string().nullish(), // Will be used only for updating case
   name: z
     .string()
-    .min(3, { message: "Name is required" })
+    .min(3, { message: "Name is required and should have at least 3 characters" })
     .max(256, { message: "Name cannot exceed 256 characters" }),
   refillInterval: z.coerce
     .number({
