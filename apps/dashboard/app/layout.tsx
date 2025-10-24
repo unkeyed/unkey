@@ -1,5 +1,4 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
-import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import "@/styles/tailwind/tailwind.css";
@@ -52,25 +51,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <Suspense>
-        <PostHogPageview />
-      </Suspense>
-      <PHProvider>
-        <body className="min-h-full antialiased">
-          <ReactQueryProvider>
-            <ThemeProvider attribute="class">
-              <WorkspaceProvider>
-                <Toaster />
-                {children}
-                <CommandMenu />
-                <Suspense>
-                  <Feedback />
-                </Suspense>
-              </WorkspaceProvider>
-            </ThemeProvider>
-          </ReactQueryProvider>
-        </body>
-      </PHProvider>
+      <body className="min-h-full antialiased">
+        <ReactQueryProvider>
+          <ThemeProvider attribute="class">
+            <WorkspaceProvider>
+              <Toaster />
+              {children}
+              <CommandMenu />
+              <Suspense>
+                <Feedback />
+              </Suspense>
+            </WorkspaceProvider>
+          </ThemeProvider>
+        </ReactQueryProvider>
+      </body>
     </html>
   );
 }
