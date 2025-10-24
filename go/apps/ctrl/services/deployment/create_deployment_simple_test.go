@@ -8,9 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
-// validateTimestamp applies the same validation logic as the CreateVersion service
+// validateTimestamp applies the same validation logic as the CreateDeployment service
 func validateTimestamp(timestamp int64) bool {
 	if timestamp == 0 {
 		return true // Zero timestamps skip validation (optional field)
@@ -68,15 +69,15 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 			t.Parallel()
 
 			// Test that special characters are preserved in protobuf
-			req := &ctrlv1.CreateDeploymentRequest{
-				GitCommitMessage:         tt.input,
-				GitCommitAuthorHandle:    tt.input,
-				GitCommitAuthorAvatarUrl: tt.input,
+			gitCommit := &ctrlv1.GitCommitInfo{
+				CommitMessage:   tt.input,
+				AuthorHandle:    tt.input,
+				AuthorAvatarUrl: tt.input,
 			}
 
-			require.Equal(t, tt.expected, req.GetGitCommitMessage())
-			require.Equal(t, tt.expected, req.GetGitCommitAuthorHandle())
-			require.Equal(t, tt.expected, req.GetGitCommitAuthorAvatarUrl())
+			require.Equal(t, tt.expected, gitCommit.GetCommitMessage())
+			require.Equal(t, tt.expected, gitCommit.GetAuthorHandle())
+			require.Equal(t, tt.expected, gitCommit.GetAuthorAvatarUrl())
 
 			// Test that special characters are preserved in database model
 			deployment := db.Deployment{
@@ -97,18 +98,18 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 	t.Parallel()
 
 	// Test empty protobuf fields
-	req := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:                "proj_test",
-		GitCommitMessage:         "",
-		GitCommitAuthorAvatarUrl: "",
-		GitCommitTimestamp:       0,
+	gitCommit := &ctrlv1.GitCommitInfo{
+		CommitMessage:   "",
+		AuthorHandle:    "",
+		AuthorAvatarUrl: "",
+		Timestamp:       0,
 	}
 
 	// Empty strings should be returned as-is
-	require.Equal(t, "", req.GetGitCommitMessage())
-	require.Equal(t, "", req.GetGitCommitAuthorHandle())
-	require.Equal(t, "", req.GetGitCommitAuthorAvatarUrl())
-	require.Equal(t, int64(0), req.GetGitCommitTimestamp())
+	require.Equal(t, "", gitCommit.GetCommitMessage())
+	require.Equal(t, "", gitCommit.GetAuthorHandle())
+	require.Equal(t, "", gitCommit.GetAuthorAvatarUrl())
+	require.Equal(t, int64(0), gitCommit.GetTimestamp())
 
 	// Test NULL database fields
 	deployment := db.Deployment{
@@ -134,10 +135,10 @@ func TestTimestampConversion(t *testing.T) {
 	nowMillis := now.UnixMilli()
 
 	// Test protobuf timestamp
-	req := &ctrlv1.CreateDeploymentRequest{
-		GitCommitTimestamp: nowMillis,
+	gitCommit := &ctrlv1.GitCommitInfo{
+		Timestamp: nowMillis,
 	}
-	require.Equal(t, nowMillis, req.GetGitCommitTimestamp())
+	require.Equal(t, nowMillis, gitCommit.GetTimestamp())
 
 	// Test database timestamp
 	deployment := db.Deployment{
@@ -151,40 +152,30 @@ func TestTimestampConversion(t *testing.T) {
 	require.Equal(t, now.Unix(), retrievedTime.Unix()) // Compare at second precision
 }
 
-// TestCreateVersionTimestampValidation_InvalidSecondsFormat tests timestamp validation
-func TestCreateVersionTimestampValidation_InvalidSecondsFormat(t *testing.T) {
+// TestCreateDeploymentTimestampValidation_InvalidSecondsFormat tests timestamp validation
+func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) {
 	t.Parallel()
 
 	// Create proto request directly with seconds timestamp (should be rejected)
 	req := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:          "proj_test456",
-		Branch:             "main",
-		SourceType:         ctrlv1.SourceType_SOURCE_TYPE_GIT,
-		GitCommitSha:       "abc123def456",
-		GitCommitTimestamp: time.Now().Unix(), // This is in seconds - should be rejected
+		ProjectId:       "proj_test456",
+		Branch:          "main",
+		EnvironmentSlug: "production",
+		Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
+			BuildContext: &ctrlv1.BuildContext{
+				BuildContextPath: "test-key",
+				DockerfilePath:   ptr.P("Dockerfile"),
+			},
+		},
+		GitCommit: &ctrlv1.GitCommitInfo{
+			CommitSha: "abc123def456",
+			Timestamp: time.Now().Unix(), // This is in seconds - should be rejected
+		},
 	}
 
 	// Use shared validation helper
-	isValid := validateTimestamp(req.GetGitCommitTimestamp())
+	isValid := validateTimestamp(req.GetGitCommit().GetTimestamp())
 	require.False(t, isValid, "Seconds-based timestamp should be considered invalid")
-}
-
-// TestCreateVersionTimestampValidation_ValidMillisecondsFormat tests valid timestamp
-func TestCreateVersionTimestampValidation_ValidMillisecondsFormat(t *testing.T) {
-	t.Parallel()
-
-	// Create proto request directly with milliseconds timestamp
-	req := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:          "proj_test456",
-		Branch:             "main",
-		SourceType:         ctrlv1.SourceType_SOURCE_TYPE_GIT,
-		GitCommitSha:       "abc123def456",
-		GitCommitTimestamp: time.Now().UnixMilli(), // This is in milliseconds - should be accepted
-	}
-
-	// Use shared validation helper
-	isValid := validateTimestamp(req.GetGitCommitTimestamp())
-	require.True(t, isValid, "Milliseconds-based timestamp should be considered valid")
 }
 
 // TestTimestampValidationBoundaries tests edge cases for timestamp validation
@@ -245,8 +236,8 @@ func TestTimestampValidationBoundaries(t *testing.T) {
 	}
 }
 
-// TestCreateVersionFieldMapping tests the actual field mapping from protobuf to database params
-func TestCreateVersionFieldMapping(t *testing.T) {
+// TestCreateDeploymentFieldMapping tests the actual field mapping from protobuf to database params
+func TestCreateDeploymentFieldMapping(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -259,10 +250,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			gitBranchValid                bool
 			gitCommitMessage              string
 			gitCommitMessageValid         bool
-			gitCommitAuthorName           string
-			gitCommitAuthorNameValid      bool
-			gitCommitAuthorUsername       string
-			gitCommitAuthorUsernameValid  bool
+			gitCommitAuthorHandle         string
+			gitCommitAuthorHandleValid    bool
 			gitCommitAuthorAvatarUrl      string
 			gitCommitAuthorAvatarUrlValid bool
 			gitCommitTimestamp            int64
@@ -272,14 +261,22 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		{
 			name: "all_git_fields_populated",
 			request: &ctrlv1.CreateDeploymentRequest{
-				ProjectId:                "proj_test456",
-				Branch:                   "feature/test-branch",
-				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
-				GitCommitSha:             "abc123def456789",
-				GitCommitMessage:         "feat: implement new feature",
-				GitCommitAuthorHandle:    "janedoe",
-				GitCommitAuthorAvatarUrl: "https://github.com/janedoe.png",
-				GitCommitTimestamp:       1724251845123, // Fixed millisecond timestamp
+				ProjectId:       "proj_test456",
+				Branch:          "feature/test-branch",
+				EnvironmentSlug: "production",
+				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
+					BuildContext: &ctrlv1.BuildContext{
+						BuildContextPath: "test-key",
+						DockerfilePath:   ptr.P("Dockerfile"),
+					},
+				},
+				GitCommit: &ctrlv1.GitCommitInfo{
+					CommitSha:       "abc123def456789",
+					CommitMessage:   "feat: implement new feature",
+					AuthorHandle:    "janedoe",
+					AuthorAvatarUrl: "https://github.com/janedoe.png",
+					Timestamp:       1724251845123, // Fixed millisecond timestamp
+				},
 			},
 			expected: struct {
 				gitCommitSha                  string
@@ -288,10 +285,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitBranchValid                bool
 				gitCommitMessage              string
 				gitCommitMessageValid         bool
-				gitCommitAuthorName           string
-				gitCommitAuthorNameValid      bool
-				gitCommitAuthorUsername       string
-				gitCommitAuthorUsernameValid  bool
+				gitCommitAuthorHandle         string
+				gitCommitAuthorHandleValid    bool
 				gitCommitAuthorAvatarUrl      string
 				gitCommitAuthorAvatarUrlValid bool
 				gitCommitTimestamp            int64
@@ -303,10 +298,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitBranchValid:                true,
 				gitCommitMessage:              "feat: implement new feature",
 				gitCommitMessageValid:         true,
-				gitCommitAuthorName:           "Jane Doe",
-				gitCommitAuthorNameValid:      true,
-				gitCommitAuthorUsername:       "janedoe",
-				gitCommitAuthorUsernameValid:  true,
+				gitCommitAuthorHandle:         "janedoe",
+				gitCommitAuthorHandleValid:    true,
 				gitCommitAuthorAvatarUrl:      "https://github.com/janedoe.png",
 				gitCommitAuthorAvatarUrlValid: true,
 				gitCommitTimestamp:            1724251845123,
@@ -316,14 +309,22 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		{
 			name: "empty_git_fields",
 			request: &ctrlv1.CreateDeploymentRequest{
-				ProjectId:                "proj_test456",
-				Branch:                   "main",
-				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
-				GitCommitSha:             "",
-				GitCommitMessage:         "",
-				GitCommitAuthorHandle:    "",
-				GitCommitAuthorAvatarUrl: "",
-				GitCommitTimestamp:       0,
+				ProjectId:       "proj_test456",
+				Branch:          "main",
+				EnvironmentSlug: "production",
+				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
+					BuildContext: &ctrlv1.BuildContext{
+						BuildContextPath: "test-key",
+						DockerfilePath:   ptr.P("Dockerfile"),
+					},
+				},
+				GitCommit: &ctrlv1.GitCommitInfo{
+					CommitSha:       "",
+					CommitMessage:   "",
+					AuthorHandle:    "",
+					AuthorAvatarUrl: "",
+					Timestamp:       0,
+				},
 			},
 			expected: struct {
 				gitCommitSha                  string
@@ -332,10 +333,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitBranchValid                bool
 				gitCommitMessage              string
 				gitCommitMessageValid         bool
-				gitCommitAuthorName           string
-				gitCommitAuthorNameValid      bool
-				gitCommitAuthorUsername       string
-				gitCommitAuthorUsernameValid  bool
+				gitCommitAuthorHandle         string
+				gitCommitAuthorHandleValid    bool
 				gitCommitAuthorAvatarUrl      string
 				gitCommitAuthorAvatarUrlValid bool
 				gitCommitTimestamp            int64
@@ -347,10 +346,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitBranchValid:                true,
 				gitCommitMessage:              "",
 				gitCommitMessageValid:         false,
-				gitCommitAuthorName:           "",
-				gitCommitAuthorNameValid:      false,
-				gitCommitAuthorUsername:       "",
-				gitCommitAuthorUsernameValid:  false,
+				gitCommitAuthorHandle:         "",
+				gitCommitAuthorHandleValid:    false,
 				gitCommitAuthorAvatarUrl:      "",
 				gitCommitAuthorAvatarUrlValid: false,
 				gitCommitTimestamp:            0,
@@ -360,14 +357,22 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		{
 			name: "mixed_populated_and_empty_fields",
 			request: &ctrlv1.CreateDeploymentRequest{
-				ProjectId:                "proj_test456",
-				Branch:                   "hotfix/urgent-fix",
-				SourceType:               ctrlv1.SourceType_SOURCE_TYPE_GIT,
-				GitCommitSha:             "xyz789abc123",
-				GitCommitMessage:         "fix: critical security issue",
-				GitCommitAuthorHandle:    "", // Empty
-				GitCommitAuthorAvatarUrl: "", // Empty
-				GitCommitTimestamp:       1724251845999,
+				ProjectId:       "proj_test456",
+				Branch:          "hotfix/urgent-fix",
+				EnvironmentSlug: "production",
+				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
+					BuildContext: &ctrlv1.BuildContext{
+						BuildContextPath: "test-key",
+						DockerfilePath:   ptr.P("Dockerfile"),
+					},
+				},
+				GitCommit: &ctrlv1.GitCommitInfo{
+					CommitSha:       "xyz789abc123",
+					CommitMessage:   "fix: critical security issue",
+					AuthorHandle:    "", // Empty
+					AuthorAvatarUrl: "", // Empty
+					Timestamp:       1724251845999,
+				},
 			},
 			expected: struct {
 				gitCommitSha                  string
@@ -376,10 +381,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitBranchValid                bool
 				gitCommitMessage              string
 				gitCommitMessageValid         bool
-				gitCommitAuthorName           string
-				gitCommitAuthorNameValid      bool
-				gitCommitAuthorUsername       string
-				gitCommitAuthorUsernameValid  bool
+				gitCommitAuthorHandle         string
+				gitCommitAuthorHandleValid    bool
 				gitCommitAuthorAvatarUrl      string
 				gitCommitAuthorAvatarUrlValid bool
 				gitCommitTimestamp            int64
@@ -391,10 +394,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 				gitBranchValid:                true,
 				gitCommitMessage:              "fix: critical security issue",
 				gitCommitMessageValid:         true,
-				gitCommitAuthorName:           "",
-				gitCommitAuthorNameValid:      false, // Empty string should be invalid
-				gitCommitAuthorUsername:       "",
-				gitCommitAuthorUsernameValid:  false, // Empty string should be invalid
+				gitCommitAuthorHandle:         "",
+				gitCommitAuthorHandleValid:    false, // Empty string should be invalid
 				gitCommitAuthorAvatarUrl:      "",
 				gitCommitAuthorAvatarUrlValid: false, // Empty string should be invalid
 				gitCommitTimestamp:            1724251845999,
@@ -407,20 +408,30 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Simulate the mapping logic from create_version.go
-			// This tests the actual field wiring that happens in the service
+			// Extract git info (simulating service logic)
+			var gitCommitSha, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarUrl string
+			var gitCommitTimestamp int64
+
+			if gitCommit := tt.request.GetGitCommit(); gitCommit != nil {
+				gitCommitSha = gitCommit.GetCommitSha()
+				gitCommitMessage = gitCommit.GetCommitMessage()
+				gitCommitAuthorHandle = gitCommit.GetAuthorHandle()
+				gitCommitAuthorAvatarUrl = gitCommit.GetAuthorAvatarUrl()
+				gitCommitTimestamp = gitCommit.GetTimestamp()
+			}
+
+			// Simulate the mapping logic from create_deployment.go
 			params := db.InsertDeploymentParams{
-				ID:            "test_deployment_id",
-				WorkspaceID:   "ws_test123", // In production, this is inferred from ProjectID via DB lookup, just hardcoded for the test
-				ProjectID:     tt.request.GetProjectId(),
-				EnvironmentID: "todo",
-				// Git field mappings - this is what we're testing
-				GitCommitSha:             sql.NullString{String: tt.request.GetGitCommitSha(), Valid: tt.request.GetGitCommitSha() != ""},
+				ID:                       "test_deployment_id",
+				WorkspaceID:              "ws_test123",
+				ProjectID:                tt.request.GetProjectId(),
+				EnvironmentID:            "env_test",
+				GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
 				GitBranch:                sql.NullString{String: tt.request.GetBranch(), Valid: true},
-				GitCommitMessage:         sql.NullString{String: tt.request.GetGitCommitMessage(), Valid: tt.request.GetGitCommitMessage() != ""},
-				GitCommitAuthorHandle:    sql.NullString{String: tt.request.GetGitCommitAuthorHandle(), Valid: tt.request.GetGitCommitAuthorHandle() != ""},
-				GitCommitAuthorAvatarUrl: sql.NullString{String: tt.request.GetGitCommitAuthorAvatarUrl(), Valid: tt.request.GetGitCommitAuthorAvatarUrl() != ""},
-				GitCommitTimestamp:       sql.NullInt64{Int64: tt.request.GetGitCommitTimestamp(), Valid: tt.request.GetGitCommitTimestamp() != 0},
+				GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
+				GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
+				GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: gitCommitAuthorAvatarUrl != ""},
+				GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 				RuntimeConfig:            []byte("{}"),
 				OpenapiSpec:              sql.NullString{String: "", Valid: false},
 				Status:                   db.DeploymentsStatusPending,
@@ -438,8 +449,8 @@ func TestCreateVersionFieldMapping(t *testing.T) {
 			require.Equal(t, tt.expected.gitCommitMessage, params.GitCommitMessage.String, "GitCommitMessage string mismatch")
 			require.Equal(t, tt.expected.gitCommitMessageValid, params.GitCommitMessage.Valid, "GitCommitMessage valid flag mismatch")
 
-			require.Equal(t, tt.expected.gitCommitAuthorUsername, params.GitCommitAuthorHandle.String, "GitCommitAuthorUsername string mismatch")
-			require.Equal(t, tt.expected.gitCommitAuthorUsernameValid, params.GitCommitAuthorHandle.Valid, "GitCommitAuthorUsername valid flag mismatch")
+			require.Equal(t, tt.expected.gitCommitAuthorHandle, params.GitCommitAuthorHandle.String, "GitCommitAuthorHandle string mismatch")
+			require.Equal(t, tt.expected.gitCommitAuthorHandleValid, params.GitCommitAuthorHandle.Valid, "GitCommitAuthorHandle valid flag mismatch")
 
 			require.Equal(t, tt.expected.gitCommitAuthorAvatarUrl, params.GitCommitAuthorAvatarUrl.String, "GitCommitAuthorAvatarUrl string mismatch")
 			require.Equal(t, tt.expected.gitCommitAuthorAvatarUrlValid, params.GitCommitAuthorAvatarUrl.Valid, "GitCommitAuthorAvatarUrl valid flag mismatch")

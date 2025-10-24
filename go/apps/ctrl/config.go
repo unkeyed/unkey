@@ -1,9 +1,18 @@
 package ctrl
 
 import (
+	"fmt"
+
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
+)
+
+type BuildBackend string
+
+const (
+	BuildBackendDepot  BuildBackend = "depot"
+	BuildBackendDocker BuildBackend = "docker"
 )
 
 type S3Config struct {
@@ -11,6 +20,7 @@ type S3Config struct {
 	Bucket          string
 	AccessKeyID     string
 	AccessKeySecret string
+	ExternalURL     string
 }
 
 type CloudflareConfig struct {
@@ -30,7 +40,6 @@ type AcmeConfig struct {
 }
 
 type RestateConfig struct {
-
 	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
 	IngressURL string
 
@@ -43,6 +52,21 @@ type RestateConfig struct {
 	// RegisterAs is the url of this service, used for self-registration with the Restate platform
 	// ie: http://ctrl:9080
 	RegisterAs string
+}
+
+type DepotConfig struct {
+	// APIUrl is the URL of the Depot API endpoint (e.g., "https://api.depot.dev")
+	APIUrl string
+	// RegistryUrl is the URL of the Depot container registry (e.g., "registry.depot.dev")
+	RegistryUrl string
+	// Username is the registry username for authentication (typically "x-token" for token-based auth)
+	Username string
+	// AccessToken is the Depot API access token for authentication
+	AccessToken string
+	// Run builds on this platform ("dynamic", "linux/amd64", "linux/arm64") (default "dynamic")
+	BuildPlatform string
+	// Build data will be stored in the chosen region ("us-east-1","eu-central-1") (default "us-east-1")
+	ProjectRegion string
 }
 
 type Config struct {
@@ -101,6 +125,11 @@ type Config struct {
 	DefaultDomain string
 
 	Restate RestateConfig
+
+	// --- Build Storage Configuration ---
+	BuildBackend BuildBackend
+	BuildS3      S3Config
+	Depot        DepotConfig
 }
 
 func (c Config) Validate() error {
@@ -111,5 +140,26 @@ func (c Config) Validate() error {
 		}
 	}
 
-	return nil
+	switch c.BuildBackend {
+	case BuildBackendDepot:
+		return assert.All(
+			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
+			assert.NotEmpty(c.Depot.AccessToken, "Depot access token is required when using Depot backend"),
+			assert.NotEmpty(c.Depot.BuildPlatform, "Depot build platform is required when using Depot backend"), // ADD THIS
+			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"), // ADD THIS TOO
+		)
+	case BuildBackendDocker:
+		return assert.All(
+			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"),
+		)
+	default:
+		return fmt.Errorf("build backend must be either 'depot' or 'docker', got: %s", c.BuildBackend)
+	}
 }

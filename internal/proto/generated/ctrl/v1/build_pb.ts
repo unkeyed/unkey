@@ -3,10 +3,8 @@
 /* eslint-disable */
 
 import type { Message } from "@bufbuild/protobuf";
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 
 /**
  * Describes the file ctrl/v1/build.proto.
@@ -14,8 +12,7 @@ import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 export const file_ctrl_v1_build: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxImgKEkNyZWF0ZUJ1aWxkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRISCgp2ZXJzaW9uX2lkGAMgASgJEhQKDGRvY2tlcl9pbWFnZRgEIAEoCSInChNDcmVhdGVCdWlsZFJlc3BvbnNlEhAKCGJ1aWxkX2lkGAEgASgJIiMKD0dldEJ1aWxkUmVxdWVzdBIQCghidWlsZF9pZBgBIAEoCSIxChBHZXRCdWlsZFJlc3BvbnNlEh0KBWJ1aWxkGAEgASgLMg4uY3RybC52MS5CdWlsZCLpAgoFQnVpbGQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSEgoKdmVyc2lvbl9pZBgEIAEoCRIkCgZzdGF0dXMYBSABKA4yFC5jdHJsLnYxLkJ1aWxkU3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYBiABKAkSLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIXCg9yb290ZnNfaW1hZ2VfaWQYCyABKAkqsAEKC0J1aWxkU3RhdHVzEhwKGEJVSUxEX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFEJVSUxEX1NUQVRVU19QRU5ESU5HEAESGAoUQlVJTERfU1RBVFVTX1JVTk5JTkcQAhIaChZCVUlMRF9TVEFUVVNfU1VDQ0VFREVEEAMSFwoTQlVJTERfU1RBVFVTX0ZBSUxFRBAEEhoKFkJVSUxEX1NUQVRVU19DQU5DRUxMRUQQBTKdAQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJBCghHZXRCdWlsZBIYLmN0cmwudjEuR2V0QnVpbGRSZXF1ZXN0GhkuY3RybC52MS5HZXRCdWlsZFJlc3BvbnNlIgBCjAEKC2NvbS5jdHJsLnYxQgpCdWlsZFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
-    [file_google_protobuf_timestamp],
+    "ChNjdHJsL3YxL2J1aWxkLnByb3RvEgdjdHJsLnYxIpMBChJDcmVhdGVCdWlsZFJlcXVlc3QSGgoSYnVpbGRfY29udGV4dF9wYXRoGAEgASgJEhwKD2RvY2tlcmZpbGVfcGF0aBgCIAEoCUgAiAEBEhgKEHVua2V5X3Byb2plY3RfaWQYAyABKAkSFQoNZGVwbG95bWVudF9pZBgEIAEoCUISChBfZG9ja2VyZmlsZV9wYXRoIlUKE0NyZWF0ZUJ1aWxkUmVzcG9uc2USEgoKaW1hZ2VfbmFtZRgBIAEoCRIQCghidWlsZF9pZBgCIAEoCRIYChBkZXBvdF9wcm9qZWN0X2lkGAMgASgJIjQKGEdlbmVyYXRlVXBsb2FkVVJMUmVxdWVzdBIYChB1bmtleV9wcm9qZWN0X2lkGAEgASgJIl8KGUdlbmVyYXRlVXBsb2FkVVJMUmVzcG9uc2USEgoKdXBsb2FkX3VybBgBIAEoCRIaChJidWlsZF9jb250ZXh0X3BhdGgYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoAzK4AQoMQnVpbGRTZXJ2aWNlEkoKC0NyZWF0ZUJ1aWxkEhsuY3RybC52MS5DcmVhdGVCdWlsZFJlcXVlc3QaHC5jdHJsLnYxLkNyZWF0ZUJ1aWxkUmVzcG9uc2UiABJcChFHZW5lcmF0ZVVwbG9hZFVSTBIhLmN0cmwudjEuR2VuZXJhdGVVcGxvYWRVUkxSZXF1ZXN0GiIuY3RybC52MS5HZW5lcmF0ZVVwbG9hZFVSTFJlc3BvbnNlIgBCjAEKC2NvbS5jdHJsLnYxQgpCdWlsZFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
   );
 
 /**
@@ -23,24 +20,30 @@ export const file_ctrl_v1_build: GenFile =
  */
 export type CreateBuildRequest = Message<"ctrl.v1.CreateBuildRequest"> & {
   /**
-   * @generated from field: string workspace_id = 1;
+   * S3 key of the uploaded tar file
+   *
+   * @generated from field: string build_context_path = 1;
    */
-  workspaceId: string;
+  buildContextPath: string;
 
   /**
-   * @generated from field: string project_id = 2;
+   * Path to Dockerfile within the tar
+   *
+   * @generated from field: optional string dockerfile_path = 2;
    */
-  projectId: string;
+  dockerfilePath?: string;
 
   /**
-   * @generated from field: string version_id = 3;
+   * Your internal user/project ID
+   *
+   * @generated from field: string unkey_project_id = 3;
    */
-  versionId: string;
+  unkeyProjectId: string;
 
   /**
-   * @generated from field: string docker_image = 4;
+   * @generated from field: string deployment_id = 4;
    */
-  dockerImage: string;
+  deploymentId: string;
 };
 
 /**
@@ -56,9 +59,25 @@ export const CreateBuildRequestSchema: GenMessage<CreateBuildRequest> =
  */
 export type CreateBuildResponse = Message<"ctrl.v1.CreateBuildResponse"> & {
   /**
-   * @generated from field: string build_id = 1;
+   * Full image tag (registry.depot.dev/project:tag)
+   *
+   * @generated from field: string image_name = 1;
+   */
+  imageName: string;
+
+  /**
+   * Depot build ID for tracking
+   *
+   * @generated from field: string build_id = 2;
    */
   buildId: string;
+
+  /**
+   * Depot project ID
+   *
+   * @generated from field: string depot_project_id = 3;
+   */
+  depotProjectId: string;
 };
 
 /**
@@ -70,168 +89,64 @@ export const CreateBuildResponseSchema: GenMessage<CreateBuildResponse> =
   messageDesc(file_ctrl_v1_build, 1);
 
 /**
- * @generated from message ctrl.v1.GetBuildRequest
+ * @generated from message ctrl.v1.GenerateUploadURLRequest
  */
-export type GetBuildRequest = Message<"ctrl.v1.GetBuildRequest"> & {
+export type GenerateUploadURLRequest = Message<"ctrl.v1.GenerateUploadURLRequest"> & {
   /**
-   * @generated from field: string build_id = 1;
+   * Your internal user/project ID
+   *
+   * @generated from field: string unkey_project_id = 1;
    */
-  buildId: string;
+  unkeyProjectId: string;
 };
 
 /**
- * Describes the message ctrl.v1.GetBuildRequest.
- * Use `create(GetBuildRequestSchema)` to create a new message.
+ * Describes the message ctrl.v1.GenerateUploadURLRequest.
+ * Use `create(GenerateUploadURLRequestSchema)` to create a new message.
  */
-export const GetBuildRequestSchema: GenMessage<GetBuildRequest> =
+export const GenerateUploadURLRequestSchema: GenMessage<GenerateUploadURLRequest> =
   /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 2);
 
 /**
- * @generated from message ctrl.v1.GetBuildResponse
+ * @generated from message ctrl.v1.GenerateUploadURLResponse
  */
-export type GetBuildResponse = Message<"ctrl.v1.GetBuildResponse"> & {
+export type GenerateUploadURLResponse = Message<"ctrl.v1.GenerateUploadURLResponse"> & {
   /**
-   * @generated from field: ctrl.v1.Build build = 1;
+   * Presigned PUT URL
+   *
+   * @generated from field: string upload_url = 1;
    */
-  build?: Build;
+  uploadUrl: string;
+
+  /**
+   * S3 key to use in CreateBuild
+   *
+   * @generated from field: string build_context_path = 2;
+   */
+  buildContextPath: string;
+
+  /**
+   * Seconds until URL expires
+   *
+   * @generated from field: int64 expires_in = 3;
+   */
+  expiresIn: bigint;
 };
 
 /**
- * Describes the message ctrl.v1.GetBuildResponse.
- * Use `create(GetBuildResponseSchema)` to create a new message.
+ * Describes the message ctrl.v1.GenerateUploadURLResponse.
+ * Use `create(GenerateUploadURLResponseSchema)` to create a new message.
  */
-export const GetBuildResponseSchema: GenMessage<GetBuildResponse> =
+export const GenerateUploadURLResponseSchema: GenMessage<GenerateUploadURLResponse> =
   /*@__PURE__*/
   messageDesc(file_ctrl_v1_build, 3);
-
-/**
- * @generated from message ctrl.v1.Build
- */
-export type Build = Message<"ctrl.v1.Build"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string workspace_id = 2;
-   */
-  workspaceId: string;
-
-  /**
-   * @generated from field: string project_id = 3;
-   */
-  projectId: string;
-
-  /**
-   * @generated from field: string version_id = 4;
-   */
-  versionId: string;
-
-  /**
-   * Build details
-   *
-   * @generated from field: ctrl.v1.BuildStatus status = 5;
-   */
-  status: BuildStatus;
-
-  /**
-   * For failed builds
-   *
-   * @generated from field: string error_message = 6;
-   */
-  errorMessage: string;
-
-  /**
-   * Timestamps
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 7;
-   */
-  createdAt?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp started_at = 8;
-   */
-  startedAt?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp completed_at = 9;
-   */
-  completedAt?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp updated_at = 10;
-   */
-  updatedAt?: Timestamp;
-
-  /**
-   * Build metadata
-   *
-   * Output rootfs image
-   *
-   * @generated from field: string rootfs_image_id = 11;
-   */
-  rootfsImageId: string;
-};
-
-/**
- * Describes the message ctrl.v1.Build.
- * Use `create(BuildSchema)` to create a new message.
- */
-export const BuildSchema: GenMessage<Build> = /*@__PURE__*/ messageDesc(file_ctrl_v1_build, 4);
-
-/**
- * Build status enum
- *
- * @generated from enum ctrl.v1.BuildStatus
- */
-export enum BuildStatus {
-  /**
-   * @generated from enum value: BUILD_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: BUILD_STATUS_PENDING = 1;
-   */
-  PENDING = 1,
-
-  /**
-   * @generated from enum value: BUILD_STATUS_RUNNING = 2;
-   */
-  RUNNING = 2,
-
-  /**
-   * @generated from enum value: BUILD_STATUS_SUCCEEDED = 3;
-   */
-  SUCCEEDED = 3,
-
-  /**
-   * @generated from enum value: BUILD_STATUS_FAILED = 4;
-   */
-  FAILED = 4,
-
-  /**
-   * @generated from enum value: BUILD_STATUS_CANCELLED = 5;
-   */
-  CANCELLED = 5,
-}
-
-/**
- * Describes the enum ctrl.v1.BuildStatus.
- */
-export const BuildStatusSchema: GenEnum<BuildStatus> =
-  /*@__PURE__*/
-  enumDesc(file_ctrl_v1_build, 0);
 
 /**
  * @generated from service ctrl.v1.BuildService
  */
 export const BuildService: GenService<{
   /**
-   * Create a new build
-   *
    * @generated from rpc ctrl.v1.BuildService.CreateBuild
    */
   createBuild: {
@@ -240,13 +155,11 @@ export const BuildService: GenService<{
     output: typeof CreateBuildResponseSchema;
   };
   /**
-   * Get build details
-   *
-   * @generated from rpc ctrl.v1.BuildService.GetBuild
+   * @generated from rpc ctrl.v1.BuildService.GenerateUploadURL
    */
-  getBuild: {
+  generateUploadURL: {
     methodKind: "unary";
-    input: typeof GetBuildRequestSchema;
-    output: typeof GetBuildResponseSchema;
+    input: typeof GenerateUploadURLRequestSchema;
+    output: typeof GenerateUploadURLResponseSchema;
   };
 }> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_build, 0);

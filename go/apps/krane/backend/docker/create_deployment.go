@@ -18,11 +18,16 @@ import (
 // immediately ready.
 func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kranev1.CreateDeploymentRequest]) (*connect.Response[kranev1.CreateDeploymentResponse], error) {
 	deployment := req.Msg.GetDeployment()
-
 	d.logger.Info("creating deployment",
 		"deployment_id", deployment.GetDeploymentId(),
 		"image", deployment.GetImage(),
 	)
+
+	// Ensure image exists locally (pull if not present)
+	if err := d.ensureImageExists(ctx, deployment.GetImage()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to ensure image exists: %w", err))
+	}
 
 	// Configure port mapping
 	exposedPorts := nat.PortSet{
@@ -44,7 +49,6 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Container configuration
 	containerConfig := &container.Config{
-
 		Image: deployment.GetImage(),
 		Labels: map[string]string{
 			"unkey.deployment.id": deployment.GetDeploymentId(),
@@ -58,7 +62,6 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Host configuration
 	hostConfig := &container.HostConfig{
-
 		PortBindings: portBindings,
 		RestartPolicy: container.RestartPolicy{
 			Name: "unless-stopped",

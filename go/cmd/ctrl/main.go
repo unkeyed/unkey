@@ -71,6 +71,34 @@ var Cmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
+		// Build Configuration
+		cli.String("build-backend", "Build backend to use: 'docker' for local, 'depot' for production. Default: depot",
+			cli.Default("depot"), cli.EnvVar("UNKEY_BUILD_BACKEND")),
+		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts (internal)",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
+		cli.String("build-s3-external-url", "S3 Compatible Endpoint URL for build contexts (external/public)",
+			cli.EnvVar("UNKEY_BUILD_S3_EXTERNAL_URL")),
+		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
+		cli.String("build-s3-access-key-id", "S3 access key ID for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_ID")),
+		cli.String("build-s3-access-key-secret", "S3 secret access key for build contexts",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
+
+		// Depot Build Backend Configuration
+		cli.String("depot-api-url", "Depot API endpoint URL",
+			cli.EnvVar("UNKEY_DEPOT_API_URL")),
+		cli.String("depot-registry-url", "Depot container registry URL",
+			cli.EnvVar("UNKEY_DEPOT_REGISTRY_URL")),
+		cli.String("depot-username", "Depot registry username",
+			cli.EnvVar("UNKEY_DEPOT_USERNAME")),
+		cli.String("depot-access-token", "Depot API access token",
+			cli.EnvVar("UNKEY_DEPOT_ACCESS_TOKEN")),
+		cli.String("depot-build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
+			cli.EnvVar("UNKEY_DEPOT_BUILD_PLATFORM"), cli.Default("linux/amd64")),
+		cli.String("depot-project-region", "Build data will be stored in the chosen region ('us-east-1','eu-central-1')",
+			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
+
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
 		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
@@ -140,6 +168,26 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+		},
+
+		// Build configuration
+		BuildBackend: ctrl.BuildBackend(cmd.String("build-backend")),
+		BuildS3: ctrl.S3Config{
+			URL:             cmd.String("build-s3-url"),
+			ExternalURL:     cmd.String("build-s3-external-url"),
+			Bucket:          cmd.String("build-s3-bucket"),
+			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
+			AccessKeyID:     cmd.String("build-s3-access-key-id"),
+		},
+
+		// Depot build backend configuration
+		Depot: ctrl.DepotConfig{
+			APIUrl:        cmd.String("depot-api-url"),
+			RegistryUrl:   cmd.String("depot-registry-url"),
+			Username:      cmd.String("depot-username"),
+			AccessToken:   cmd.String("depot-access-token"),
+			BuildPlatform: cmd.String("depot-build-platform"),
+			ProjectRegion: cmd.String("depot-project-region"),
 		},
 
 		// Acme configuration

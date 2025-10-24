@@ -59,6 +59,23 @@ type Config struct {
 	// The path must be accessible by the krane process with appropriate permissions.
 	DockerSocketPath string
 
+	// DepotToken is the authentication token for Depot's build infrastructure.
+	// Required when BuildBackend is BuildBackendDepot.
+	// Obtain from https://depot.dev and store securely (e.g., environment variable).
+	DepotToken string
+
+	// RegistryURL is the URL of the container registry for pulling images.
+	// Example: "registry.depot.dev"
+	RegistryURL string
+
+	// RegistryUsername is the username for authenticating with the container registry.
+	// Example: "x-token", "depot", or any registry-specific username.
+	RegistryUsername string
+
+	// RegistryPassword is the password/token for authenticating with the container registry.
+	// Should be stored securely (e.g., environment variable).
+	RegistryPassword string
+
 	// OtelEnabled controls whether OpenTelemetry observability data is collected
 	// and sent to configured collectors. When enabled, the service exports
 	// distributed traces, metrics, and structured logs.

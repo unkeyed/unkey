@@ -21,6 +21,7 @@ export const projects = mysqlTable(
     liveDeploymentId: varchar("live_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
+    depotProjectId: varchar("depot_project_id", { length: 255 }),
     ...deleteProtection,
     ...lifecycleDates,
   },

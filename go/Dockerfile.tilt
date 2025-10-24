@@ -1,7 +1,13 @@
-FROM busybox:latest
+FROM alpine:latest
+
+# Install CA certificates
+RUN apk add --no-cache ca-certificates
 
 # Copy the pre-built binary
 COPY bin/unkey /unkey
+
+# Make it executable
+RUN chmod +x /unkey
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey/go
 LABEL org.opencontainers.image.description="Unkey API"

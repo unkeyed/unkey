@@ -1,64 +1,32 @@
 syntax = "proto3";
-
 package ctrl.v1;
-
-import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
-// Build status enum
-enum BuildStatus {
-  BUILD_STATUS_UNSPECIFIED = 0;
-  BUILD_STATUS_PENDING = 1;
-  BUILD_STATUS_RUNNING = 2;
-  BUILD_STATUS_SUCCEEDED = 3;
-  BUILD_STATUS_FAILED = 4;
-  BUILD_STATUS_CANCELLED = 5;
+service BuildService {
+  rpc CreateBuild(CreateBuildRequest) returns (CreateBuildResponse) {}
+  rpc GenerateUploadURL(GenerateUploadURLRequest) returns (GenerateUploadURLResponse) {}
 }
 
 message CreateBuildRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string version_id = 3;
-  string docker_image = 4;
+  string build_context_path = 1; // S3 key of the uploaded tar file
+  optional string dockerfile_path = 2; // Path to Dockerfile within the tar
+  string unkey_project_id = 3; // Your internal user/project ID
+  string deployment_id = 4;
 }
 
 message CreateBuildResponse {
-  string build_id = 1;
+  string image_name = 1; // Full image tag (registry.depot.dev/project:tag)
+  string build_id = 2; // Depot build ID for tracking
+  string depot_project_id = 3; // Depot project ID
 }
 
-message GetBuildRequest {
-  string build_id = 1;
+message GenerateUploadURLRequest {
+  string unkey_project_id = 1; // Your internal user/project ID
 }
 
-message GetBuildResponse {
-  Build build = 1;
-}
-
-message Build {
-  string id = 1;
-  string workspace_id = 2;
-  string project_id = 3;
-  string version_id = 4;
-
-  // Build details
-  BuildStatus status = 5;
-  string error_message = 6; // For failed builds
-
-  // Timestamps
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp started_at = 8;
-  google.protobuf.Timestamp completed_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
-
-  // Build metadata
-  string rootfs_image_id = 11; // Output rootfs image
-}
-
-service BuildService {
-  // Create a new build
-  rpc CreateBuild(CreateBuildRequest) returns (CreateBuildResponse) {}
-
-  // Get build details
-  rpc GetBuild(GetBuildRequest) returns (GetBuildResponse) {}
+message GenerateUploadURLResponse {
+  string upload_url = 1; // Presigned PUT URL
+  string build_context_path = 2; // S3 key to use in CreateBuild
+  int64 expires_in = 3; // Seconds until URL expires
 }
