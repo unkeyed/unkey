@@ -15,11 +15,11 @@ export const AssignedItemsCell = ({
   const getIcon = () => {
     switch (kind) {
       case "roles":
-        return <Tag size="md-regular" className="opacity-50" />;
+        return <Tag iconSize="md-medium" className="opacity-50" />;
       case "keys":
-        return <Key2 size="md-regular" className="opacity-50" />;
+        return <Key2 iconSize="md-medium" className="opacity-50" />;
       case "slug":
-        return <Page2 size="md-regular" className="opacity-50" />;
+        return <Page2 iconSize="md-medium" className="opacity-50" />;
       default:
         throw new Error(`Invalid type: ${kind}`);
     }

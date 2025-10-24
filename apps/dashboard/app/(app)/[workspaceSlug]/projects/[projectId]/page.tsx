@@ -29,13 +29,16 @@ export default function ProjectDetails() {
     <ProjectContentWrapper centered>
       <Section>
         <SectionHeader
-          icon={<Cloud size="md-regular" className="text-gray-9" />}
+          icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
           title="Active Deployment"
         />
         <ActiveDeploymentCard deploymentId={project?.liveDeploymentId ?? null} />
       </Section>
       <Section>
-        <SectionHeader icon={<Earth size="md-regular" className="text-gray-9" />} title="Domains" />
+        <SectionHeader
+          icon={<Earth iconSize="md-regular" className="text-gray-9" />}
+          title="Domains"
+        />
         <div>
           {isDomainsLoading ? (
             <>
@@ -51,18 +54,18 @@ export default function ProjectDetails() {
       </Section>
       <Section>
         <SectionHeader
-          icon={<FolderCloud size="md-regular" className="text-gray-9" />}
+          icon={<FolderCloud iconSize="md-regular" className="text-gray-9" />}
           title="Environment Variables"
         />
         <div>
           <EnvironmentVariablesSection
-            icon={<Page2 className="text-gray-9" size="sm-medium" />}
+            icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
             title="Production"
             projectId={projectId}
             environment="production"
           />
           <EnvironmentVariablesSection
-            icon={<Page2 className="text-gray-9" size="sm-medium" />}
+            icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
             title="Preview"
             projectId={projectId}
             environment="preview"

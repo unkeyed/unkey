@@ -19,7 +19,7 @@ export const RegionBadges = ({ regions, repository }: RegionBadgesProps) => {
           key={region}
           className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] flex items-center gap-1.5"
         >
-          <Earth size="lg-medium" className="shrink-0" />
+          <Earth iconSize="lg-medium" className="shrink-0" />
           {region}
         </div>
       ))}

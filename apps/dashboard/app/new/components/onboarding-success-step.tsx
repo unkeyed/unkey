@@ -29,7 +29,7 @@ export const OnboardingSuccessStep = ({
     return (
       <div className="rounded-xl bg-grayA-3 dark:bg-black border border-grayA-3 flex items-center gap-4 px-[22px] py-6">
         <div className="bg-gray-1 size-8 rounded-full flex items-center justify-center flex-shrink-0">
-          <TriangleWarning className="text-error-9" size="xl-medium" />
+          <TriangleWarning className="text-error-9" iconSize="xl-medium" />
         </div>
         <div className="text-gray-12 text-[13px] leading-6">
           <span className="font-medium">Error:</span> Missing API or key information. Please go back

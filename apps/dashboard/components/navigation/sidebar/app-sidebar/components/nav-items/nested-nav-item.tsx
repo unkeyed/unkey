@@ -210,7 +210,7 @@ export const NestedNavItem = ({
               subPending[subItem.label as string] ? (
                 <AnimatedLoadingSpinner />
               ) : (
-                <SubIcon size="xl-medium" />
+                <SubIcon iconSize="xl-medium" />
               )
             ) : null}
             <span className="truncate">{subItem.label}</span>
@@ -240,7 +240,13 @@ export const NestedNavItem = ({
           )}
           onClick={handleMenuItemClick}
         >
-          {Icon ? showParentLoader ? <AnimatedLoadingSpinner /> : <Icon size="xl-medium" /> : null}
+          {Icon ? (
+            showParentLoader ? (
+              <AnimatedLoadingSpinner />
+            ) : (
+              <Icon iconSize="xl-medium" />
+            )
+          ) : null}
           <span className="truncate max-w-[180px]">{item.label}</span>
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
           {/* Chevron icon to indicate there are children */}
@@ -251,7 +257,7 @@ export const NestedNavItem = ({
                   "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
                   (isSubItem ? isChildrenOpen : isOpen) ? "rotate-90" : "rotate-0",
                 )}
-                size="sm-bold"
+                iconSize="sm-bold"
               />
             </div>
           )}

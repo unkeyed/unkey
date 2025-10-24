@@ -68,7 +68,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           <StatusBadge
             variant={api.deleteProtection ? "enabled" : "disabled"}
             text={api.deleteProtection ? "Enabled" : "Disabled"}
-            icon={<TriangleWarning2 size="sm-thin" />}
+            icon={<TriangleWarning2 iconSize="sm-thin" />}
           />
         </div>
       }
@@ -144,7 +144,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               target="_blank"
               rel="noopener noreferrer"
               href="https://www.unkey.com/docs/security/delete-protection"
-              icon={<ArrowUpRight size="sm-thin" />}
+              icon={<ArrowUpRight iconSize="sm-thin" />}
             />
           </p>
           <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>

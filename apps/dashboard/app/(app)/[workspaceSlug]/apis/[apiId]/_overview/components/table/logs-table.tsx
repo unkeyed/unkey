@@ -129,7 +129,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                   )}%)`}
                 >
                   <span className="mr-[6px] flex-shrink-0">
-                    <Ban size="sm-regular" />
+                    <Ban iconSize="sm-regular" />
                   </span>
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[45px]">
                     {formatNumber(log.error_count)}

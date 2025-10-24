@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc/client";
 import type { Api, VercelBinding } from "@unkey/db";
+import { XMark } from "@unkey/icons";
 import {
   Button,
   Select,
@@ -18,7 +19,6 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceSwitcher } from "./workspace";
@@ -146,7 +146,7 @@ export const Client: React.FC<Props> = ({
                         });
                       }}
                     >
-                      <X className="w-4 h-4" />
+                      <XMark iconSize="md-regular" />
                     </Button>
                   </div>
                 </div>

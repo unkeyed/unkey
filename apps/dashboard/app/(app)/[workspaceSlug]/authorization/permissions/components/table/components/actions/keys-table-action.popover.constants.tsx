@@ -16,14 +16,14 @@ export const PermissionsTableActions = ({ permission }: PermissionsTableActionsP
       {
         id: "edit-permission",
         label: "Edit permission...",
-        icon: <PenWriting3 size="md-regular" />,
+        icon: <PenWriting3 iconSize="md-medium" />,
         ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
       },
       {
         id: "copy",
         label: "Copy permission",
         className: "mt-1",
-        icon: <Clone size="md-regular" />,
+        icon: <Clone iconSize="md-medium" />,
         onClick: () => {
           navigator.clipboard
             .writeText(JSON.stringify(permission))
@@ -40,7 +40,7 @@ export const PermissionsTableActions = ({ permission }: PermissionsTableActionsP
       {
         id: "delete-permision",
         label: "Delete permission",
-        icon: <Trash size="md-regular" />,
+        icon: <Trash iconSize="md-medium" />,
         ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
       },
     ];

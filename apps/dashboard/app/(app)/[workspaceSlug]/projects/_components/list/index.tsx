@@ -104,7 +104,7 @@ export const ProjectsList = () => {
                     className="mb-auto shrink-0"
                     title="Project actions"
                   >
-                    <Dots size="sm-regular" />
+                    <Dots iconSize="sm-regular" />
                   </Button>
                 </ProjectActions>
               }

@@ -44,7 +44,7 @@ export const KeySecretSection = ({
         <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
         <SecretKey value={keyValue} title="API Key" className={secretKeyClassName} />
         <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-          <CircleInfo className="text-accent-9" size="sm-regular" />
+          <CircleInfo className="text-accent-9" iconSize="sm-regular" />
           <span>
             Copy and save this key secret as it won't be shown again.{" "}
             <a
@@ -75,7 +75,7 @@ export const KeySecretSection = ({
         </div>
         <Alert variant="warn">
           <div className="flex items-start mb-1 gap-2">
-            <CircleInfo size="lg-regular" aria-hidden="true" className="flex-shrink-0" />
+            <CircleInfo iconSize="lg-regular" aria-hidden="true" className="flex-shrink-0" />
             <div>
               <AlertTitle className="mb-1">Root Key Required</AlertTitle>
               <AlertDescription className="text-gray-12">

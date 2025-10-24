@@ -1,7 +1,7 @@
 "use client";
+import { ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { ChevronRight } from "lucide-react";
 import { type PropsWithChildren, useState } from "react";
 import reactElementToJSXString from "react-element-to-jsx-string";
 

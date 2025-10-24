@@ -106,14 +106,14 @@ export function SelectedItemsList<T extends BaseItem>({
                     className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
                     aria-label={`Remove ${renderPrimaryText(item)}`}
                   >
-                    <XMark size="sm-regular" />
+                    <XMark iconSize="sm-regular" />
                   </button>
                 ) : (
                   <div
                     className="p-0.5 rounded text-grayA-6 flex-shrink-0 ml-auto opacity-50"
                     title="Cannot remove - inherited from selected role"
                   >
-                    <XMark size="sm-regular" />
+                    <XMark iconSize="sm-regular" />
                   </div>
                 )}
               </ItemComponent>

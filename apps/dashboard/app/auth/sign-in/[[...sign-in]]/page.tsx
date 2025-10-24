@@ -1,8 +1,8 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
+import { ArrowRight } from "@unkey/icons";
 import { Loading } from "@unkey/ui";
-import { MoveRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -102,7 +102,7 @@ function SignInContent() {
             <p className="text-xs">Account not found, did you mean to sign up?</p>
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}`}>
               <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
-                <MoveRight className="w-4 h-4" />
+                <ArrowRight iconSize="md-regular" />
               </div>
             </Link>
           </div>

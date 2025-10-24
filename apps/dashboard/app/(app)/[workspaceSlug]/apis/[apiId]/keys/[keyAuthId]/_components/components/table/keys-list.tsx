@@ -41,7 +41,7 @@ const KeysTableActionPopover = dynamic(
           "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
         )}
       >
-        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+        <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
       </button>
     ),
   },
@@ -116,9 +116,9 @@ export const KeysList = ({
                     // biome-ignore lint/complexity/noUselessFragments: <explanation>
                     <>
                       {identity ? (
-                        <Focus size="md-regular" className="text-successA-11" />
+                        <Focus iconSize="md-medium" className="text-successA-11" />
                       ) : (
-                        <Key size="md-regular" />
+                        <Key iconSize="md-medium" />
                       )}
                     </>
                   )}

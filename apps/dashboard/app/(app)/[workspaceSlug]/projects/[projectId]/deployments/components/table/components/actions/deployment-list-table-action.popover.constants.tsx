@@ -43,7 +43,7 @@ export const DeploymentListTableActions = ({
       {
         id: "rollback",
         label: "Rollback",
-        icon: <ArrowDottedRotateAnticlockwise size="md-regular" />,
+        icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
         disabled: !canRollbackAndRollback,
         ActionComponent:
           liveDeployment && canRollbackAndRollback
@@ -59,7 +59,7 @@ export const DeploymentListTableActions = ({
       {
         id: "Promote",
         label: "Promote",
-        icon: <ChevronUp size="md-regular" />,
+        icon: <ChevronUp iconSize="md-regular" />,
         disabled: !canRollbackAndRollback,
         ActionComponent:
           liveDeployment && canRollbackAndRollback
@@ -76,7 +76,7 @@ export const DeploymentListTableActions = ({
       {
         id: "gateway-logs",
         label: "Go to Gateway Logs...",
-        icon: <Layers3 size="md-regular" />,
+        icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
           router.push(

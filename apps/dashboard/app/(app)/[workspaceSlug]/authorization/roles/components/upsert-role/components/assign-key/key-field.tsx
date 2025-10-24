@@ -176,7 +176,7 @@ export const KeyField = ({
           }))}
           disabled={disabled}
           onRemoveItem={handleRemoveKey}
-          renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" />}
+          renderIcon={() => <Key2 iconSize="sm-regular" className="text-grayA-11" />}
           enableTransitions
           renderPrimaryText={(key) =>
             key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id

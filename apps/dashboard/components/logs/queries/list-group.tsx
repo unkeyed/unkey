@@ -65,7 +65,7 @@ export function ListGroup({
   const handleToast = (message: ToolTipMessageType) => {
     toast.success(
       <QueriesToast message={message} undoBookmarked={() => changeBookmark(filterList.id)}>
-        <CircleCheck size="xl-regular" className="text-success-9" />
+        <CircleCheck iconSize="xl-regular" className="text-success-9" />
       </QueriesToast>,
     );
   };
@@ -155,7 +155,7 @@ export function ListGroup({
               onKeyUp={(e) => e.key === "Enter"}
               aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
             >
-              <Bookmark size="md-regular" filled={filterList.bookmarked} />
+              <Bookmark iconSize="md-medium" filled={filterList.bookmarked} />
             </button>
           </InfoTooltip>
         </div>

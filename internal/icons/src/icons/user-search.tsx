@@ -13,16 +13,16 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const UserSearch: React.FC<IconProps> = ({ size, filled, ...props }) => {
-  const { size: pixelSize, strokeWidth } = sizeMap[size || "md-regular"];
+export const UserSearch: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize || "md-regular"];
 
   return (
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
       viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill="currentColor">
         <path

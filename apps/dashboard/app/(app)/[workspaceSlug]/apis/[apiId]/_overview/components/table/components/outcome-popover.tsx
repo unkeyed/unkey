@@ -60,7 +60,7 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
               <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
                 +{nonValidOutcomes.length} Outcomes
               </span>
-              <ChevronRight size="sm-regular" className="flex-shrink-0" />
+              <ChevronRight iconSize="sm-regular" className="flex-shrink-0" />
             </div>
           </Button>
         </PopoverTrigger>

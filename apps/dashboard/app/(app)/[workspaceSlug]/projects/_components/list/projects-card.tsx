@@ -58,7 +58,7 @@ export const ProjectCard = ({
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
-            <Cube size="xl-medium" className="shrink-0 size-5" />
+            <Cube iconSize="xl-medium" className="shrink-0 size-5" />
           )}
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
@@ -111,7 +111,7 @@ export const ProjectCard = ({
               No deployments
             </span>
           )}
-          <CodeBranch className="text-gray-12 shrink-0" size="sm-regular" />
+          <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
           <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
             <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
           </InfoTooltip>

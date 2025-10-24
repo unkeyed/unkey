@@ -35,7 +35,7 @@ export const RepoDisplay = ({
           className,
         )}
       >
-        {showIcon && <Github size="lg-medium" className="shrink-0" />}
+        {showIcon && <Github iconSize="lg-medium" className="shrink-0" />}
         {children || <span className="truncate">{repoName}</span>}
       </a>
     </InfoTooltip>

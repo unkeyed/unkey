@@ -184,7 +184,7 @@ export const PermissionField = ({
             }))}
             disabled={disabled}
             onRemoveItem={handleRemovePermission}
-            renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
+            renderIcon={() => <Page2 iconSize="sm-regular" className="text-grayA-11" />}
             renderPrimaryText={(permission) => permission.name}
             enableTransitions
             // This can't cannot happen but we need it to make TS happy

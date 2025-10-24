@@ -13,13 +13,8 @@ export function Avatar({ src, alt, className }: AvatarProps) {
 
   if (!src || hasError) {
     return (
-      <div
-        className={cn(
-          "size-5 border rounded-full border-grayA-5 items-center flex justify-center",
-          className,
-        )}
-      >
-        <User size="md-medium" />
+      <div className="size-5  border rounded-full border-grayA-5 items-center flex justify-center">
+        <User iconSize="md-medium" />
       </div>
     );
   }

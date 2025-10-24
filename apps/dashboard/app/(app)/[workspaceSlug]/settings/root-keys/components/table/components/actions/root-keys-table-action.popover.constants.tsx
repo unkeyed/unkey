@@ -22,7 +22,7 @@ const getRootKeyTableActionItems = (
     {
       id: "edit-root-key",
       label: "Edit root key...",
-      icon: <PenWriting3 size="md-regular" />,
+      icon: <PenWriting3 iconSize="md-medium" />,
       onClick: () => {
         onEditKey?.(rootKey);
       },
@@ -31,7 +31,7 @@ const getRootKeyTableActionItems = (
     {
       id: "delete-root-key",
       label: "Delete root key",
-      icon: <Trash size="md-regular" />,
+      icon: <Trash iconSize="md-medium" />,
       ActionComponent: (props) => <DeleteRootKey {...props} rootKeyDetails={rootKey} />,
     },
   ];

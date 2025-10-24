@@ -11,9 +11,9 @@ export const EmptyQueries = ({ selectedTab, isEmpty }: EmptyQueriesProps) => {
       <Empty>
         <Empty.Icon>
           {selectedTab === 0 ? (
-            <ClockRotateClockwise size="2xl-thin" className="p-0 text-accent-12" />
+            <ClockRotateClockwise iconSize="2xl-thin" className="p-0 text-accent-12" />
           ) : (
-            <Bookmark size="2xl-thin" className="w-full h-full p-0 m-0 text-accent-12" />
+            <Bookmark iconSize="2xl-thin" className="w-full h-full p-0 m-0 text-accent-12" />
           )}
         </Empty.Icon>
         <Empty.Title className="mt-5">
@@ -31,7 +31,7 @@ export const EmptyQueries = ({ selectedTab, isEmpty }: EmptyQueriesProps) => {
             rel="noopener noreferrer"
           >
             <Button variant="outline" size="md" className="flex items-center justify-center px-2">
-              <Book2 size="sm-regular" className="py-[2px]" />
+              <Book2 iconSize="sm-regular" className="py-[2px]" />
               Documentation
             </Button>
           </a>
