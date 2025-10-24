@@ -1,7 +1,7 @@
-import { Magnifier } from "@unkey/icons";
+import { Magnifier, XMark } from "@unkey/icons";
 import { Button, Input } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { Search, X } from "lucide-react";
+// import { Search, XMark } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
 
 // Generic filter type that can work with any filter structure
@@ -138,7 +138,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
         >
           <div className="flex items-center gap-2 w-full flex-1 md:w-80">
             <div className="flex-shrink-0">
-              <Search className="text-accent-9 size-4" />
+              <Magnifier className="text-accent-9 size-4" />
             </div>
             <div className="flex-1">
               <div className="text-accent-11 text-[13px] animate-pulse">Loading...</div>
@@ -167,7 +167,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
               size="icon"
               aria-label="Clear search"
             >
-              <X className="size-4 cursor-pointer" />
+              <XMark className="size-4 cursor-pointer" />
             </Button>
           )
         }

@@ -1,24 +1,37 @@
+"use client";
 import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import { SettingCard } from "@unkey/ui";
 
-export const Usage: React.FC<{ current: number; max: number }> = ({ current, max }) => {
-  return (
-    <SettingCard
-      title="Usage this month"
-      description="Valid key verifications and ratelimits."
-      border="both"
-      className="w-full"
-      contentWidth="w-full lg:w-[320px]"
-    >
-      <div className="w-full flex h-full items-center justify-end gap-4">
-        <p className="text-sm font-semibold text-gray-12">
-          {formatNumber(current)} / {formatNumber(max)} ({Math.round((current / max) * 100)}%)
-        </p>
+export const Usage: React.FC<{
+  quota: number;
+}> = ({ quota }) => {
+  const { data: usage } = trpc.billing.queryUsage.useQuery();
 
-        <ProgressCircle max={max} value={current} />
-      </div>
-    </SettingCard>
-  );
+  if (usage) {
+    const verifications = usage.billableVerifications;
+    const ratelimits = usage.billableRatelimits;
+    const current = verifications + ratelimits;
+    const max = quota;
+
+    return (
+      <SettingCard
+        title="Usage this month"
+        description="Valid key verifications and ratelimits."
+        border="both"
+        className="w-full"
+        contentWidth="w-full lg:w-[320px]"
+      >
+        <div className="w-full flex h-full items-center justify-end gap-4">
+          <p className="text-sm font-semibold text-gray-12">
+            {formatNumber(current)} / {formatNumber(max)} ({Math.round((current / max) * 100)}%)
+          </p>
+
+          <ProgressCircle max={max} value={current} />
+        </div>
+      </SettingCard>
+    );
+  }
 };
 function clamp(min: number, value: number, max: number): number {
   return Math.min(max, Math.max(value, min));
