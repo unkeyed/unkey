@@ -8,8 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-
-	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
 const findIdentityWithRatelimits = `-- name: FindIdentityWithRatelimits :many
@@ -66,15 +64,15 @@ type FindIdentityWithRatelimitsParams struct {
 }
 
 type FindIdentityWithRatelimitsRow struct {
-	ID          string          `db:"id"`
-	ExternalID  string          `db:"external_id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Environment string          `db:"environment"`
-	Meta        dbtype.NullJSON `db:"meta"`
-	Deleted     bool            `db:"deleted"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
-	Ratelimits  interface{}     `db:"ratelimits"`
+	ID          string        `db:"id"`
+	ExternalID  string        `db:"external_id"`
+	WorkspaceID string        `db:"workspace_id"`
+	Environment string        `db:"environment"`
+	Meta        []byte        `db:"meta"`
+	Deleted     bool          `db:"deleted"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	Ratelimits  interface{}   `db:"ratelimits"`
 }
 
 // FindIdentityWithRatelimits

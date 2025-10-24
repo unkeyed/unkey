@@ -76,8 +76,19 @@ func UnmarshalJSONArrayTo[T any](data any) []T {
 //	    return err
 //	}
 //	// use myData
-func UnmarshalNullableJSONTo[T any](n *dbtype.NullJSON) (T, error) {
+func UnmarshalNullableJSONTo[T any](data []byte) (T, error) {
 	var result T
-	err := n.UnmarshalTo(&result)
+
+	// NULL check
+	if data == nil {
+		return result, nil
+	}
+
+	// Empty check
+	if len(data) == 0 {
+		return result, nil
+	}
+
+	err := json.Unmarshal(data, &result)
 	return result, err
 }

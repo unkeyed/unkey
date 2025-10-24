@@ -96,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](&identity.Meta)
+	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Internal("unable to unmarshal metadata"),

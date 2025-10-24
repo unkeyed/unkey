@@ -138,7 +138,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
-		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](&identity.Meta)
+		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
 		require.NoError(t, err)
 		require.Equal(t, *meta, dbMeta)
 	})
@@ -238,7 +238,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
 		// Verify metadata
-		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](&identity.Meta)
+		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
 		require.NoError(t, err)
 		require.Equal(t, *meta, dbMeta)
 
@@ -313,7 +313,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, identity.ExternalID, req.ExternalId)
 
 		// Verify complex metadata is correctly stored and retrieved
-		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](&identity.Meta)
+		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
 		require.NoError(t, err)
 
 		// Convert expected and actual to JSON strings for comparison to handle potential subtle differences in map types
@@ -422,7 +422,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify metadata
-		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](&identity.Meta)
+		dbMeta, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
 		require.NoError(t, err)
 
 		// Convert to JSON for comparison

@@ -37,9 +37,7 @@
             {
               "db_type": "json",
               "go_type": {
-                "type": "NullJSON",
-                "package": "dbtype",
-                "import": "github.com/unkeyed/unkey/go/pkg/db/types"
+                "type": "[]byte"
               },
               "nullable": true
             },

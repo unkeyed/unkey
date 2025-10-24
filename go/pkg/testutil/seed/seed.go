@@ -369,9 +369,9 @@ type CreateIdentityRequest struct {
 }
 
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) db.Identity {
-	metaJSON := dbtype.NullJSON{Data: []byte("{}"), Valid: true}
+	metaBytes := []byte("{}")
 	if len(req.Meta) > 0 {
-		metaJSON = dbtype.NullJSON{Data: req.Meta, Valid: true}
+		metaBytes = req.Meta
 	}
 
 	require.NoError(s.t, assert.NotEmpty(req.ExternalID, "Identity ExternalID must be set"))
@@ -384,7 +384,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		WorkspaceID: req.WorkspaceID,
 		Environment: "",
 		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        metaJSON.Data,
+		Meta:        metaBytes,
 	})
 	require.NoError(s.t, err)
 
@@ -398,7 +398,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
 		Environment: "",
-		Meta:        metaJSON,
+		Meta:        metaBytes,
 		Deleted:     false,
 		CreatedAt:   time.Now().UnixMilli(),
 		UpdatedAt:   sql.NullInt64{Valid: false},

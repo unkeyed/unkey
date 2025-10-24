@@ -303,7 +303,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](&keyData.Identity.Meta)
+		identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
 		if err != nil {
 			h.Logger.Error("failed to unmarshal identity meta", "error", err)
 		} else {
