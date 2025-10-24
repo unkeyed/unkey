@@ -22,7 +22,7 @@ const workspaceSchema = z.object({
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens)."
     ),
 });
 
@@ -100,7 +100,11 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
           ),
         });
       } else if (error.data?.code === "CONFLICT") {
-        form.setError("slug", { message: error.message }, { shouldFocus: true });
+        form.setError(
+          "slug",
+          { message: error.message },
+          { shouldFocus: true }
+        );
       } else {
         toast.error(`Failed to create workspace: ${error.message}`);
       }
@@ -140,10 +144,17 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
                   form.trigger("workspaceName");
 
                   // Only auto-generate if not manually edited
-                  if (!slugManuallyEdited && evt.target.value.length > 3) {
-                    form.setValue("slug", slugify(evt.target.value), {
-                      shouldValidate: true,
-                    });
+                  if (!slugManuallyEdited) {
+                    if (evt.target.value.length >= 3) {
+                      form.setValue("slug", slugify(evt.target.value), {
+                        shouldValidate: true,
+                      });
+                    } else {
+                      // Clear slug when workspace name is too short
+                      form.setValue("slug", "", {
+                        shouldValidate: false,
+                      });
+                    }
                   }
                 },
               })}
