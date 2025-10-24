@@ -71,7 +71,7 @@ func UnmarshalJSONArrayTo[T any](data any) []T {
 //
 // Use this when you want inline assignment with generic type inference:
 //
-//	myData, err := UnmarshalNullableJSONTo[MyStruct](&nullJSON)
+//	myData, err := UnmarshalNullableJSONTo[MyStruct](nullJSON)
 //	if err != nil {
 //	    return err
 //	}
