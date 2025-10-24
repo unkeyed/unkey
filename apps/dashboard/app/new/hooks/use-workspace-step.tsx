@@ -22,13 +22,18 @@ const workspaceSchema = z.object({
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens)."
     ),
 });
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
-export const useWorkspaceStep = (): OnboardingStep => {
+type Props = {
+  // Move to the next step
+  advance: () => void;
+};
+
+export const useWorkspaceStep = (props: Props): OnboardingStep => {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -67,9 +72,10 @@ export const useWorkspaceStep = (): OnboardingStep => {
   });
 
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ organizationId }) => {
+    onSuccess: async ({ orgId }) => {
       setWorkspaceCreated(true);
-      switchOrgMutation.mutate(organizationId);
+      await switchOrgMutation.mutateAsync(orgId);
+      props.advance();
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {
@@ -93,6 +99,12 @@ export const useWorkspaceStep = (): OnboardingStep => {
             </div>
           ),
         });
+      } else if (error.data?.code === "CONFLICT") {
+        form.setError(
+          "slug",
+          { message: error.message },
+          { shouldFocus: true }
+        );
       } else {
         toast.error(`Failed to create workspace: ${error.message}`);
       }
@@ -121,36 +133,10 @@ export const useWorkspaceStep = (): OnboardingStep => {
 
   return {
     name: "Workspace",
-    icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
+    icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
     body: (
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col">
-          {/* <div className="flex flex-row py-1.5 gap-[18px]"> */}
-          {/*   <div className="bg-gradient-to-br from-info-5 to-blue-9 size-20 border rounded-2xl border-grayA-6" /> */}
-          {/*   <div className="flex flex-col gap-2"> */}
-          {/*     <div className="text-gray-11 text-[13px] leading-6">Company workspace logo</div> */}
-          {/*     <div className="flex items-center gap-2"> */}
-          {/*       <Button variant="outline" className="w-fit"> */}
-          {/*         <div className="gap-2 flex items-center text-[13px] leading-4 font-medium"> */}
-          {/*           <Refresh3 className="text-gray-12 !w-3 !h-3 flex-shrink-0" iconSize="sm-regular" /> */}
-          {/*           Upload */}
-          {/*         </div> */}
-          {/*       </Button> */}
-          {/*       <Button variant="outline" className="w-fit"> */}
-          {/*         <div className="gap-2 flex items-center text-[13px] leading-4 font-medium"> */}
-          {/*           <Refresh3 className="text-gray-12 !w-3 !h-3 flex-shrink-0" iconSize="sm-regular" /> */}
-          {/*           Gradient */}
-          {/*         </div> */}
-          {/*       </Button> */}
-          {/*       <Trash iconSize="md-medium" className="text-gray-8 ml-[10px]" /> */}
-          {/*     </div> */}
-          {/*     <div className="text-gray-9 text-xs leading-6"> */}
-          {/*       .png, .jpg, or .svg up to 10MB, and 480×480px */}
-          {/*     </div> */}
-          {/*   </div> */}
-          {/* </div> */}
-          {/* Use this 'pt-7' version when implementing profile photo and slug based onboarding*/}
-          {/* <div className="space-y-4 pt-7"> */}
           <div className="space-y-4 p-1">
             <FormInput
               {...form.register("workspaceName")}
@@ -180,6 +166,9 @@ export const useWorkspaceStep = (): OnboardingStep => {
               prefix="app.unkey.com/"
               maxLength={64}
               onChange={(evt) => {
+                // If we don't clear the manually set error, it will persist even if the user clears
+                // or changes the input
+                form.clearErrors("slug");
                 const v = evt.currentTarget.value;
                 setSlugManuallyEdited(v.length > 0);
               }}
@@ -195,15 +184,15 @@ export const useWorkspaceStep = (): OnboardingStep => {
     description: workspaceCreated
       ? "Workspace created successfully, continue to next step"
       : "Set up your workspace to get started",
-    onStepNext: workspaceCreated
-      ? undefined
-      : () => {
-          if (isLoading) {
-            return;
-          }
-
-          formRef.current?.requestSubmit();
-        },
+    onStepNext: () => {
+      if (workspaceCreated) {
+        props.advance();
+        return;
+      }
+      if (!isLoading) {
+        formRef.current?.requestSubmit();
+      }
+    },
     onStepBack: () => {
       console.info("Going back from workspace step");
     },

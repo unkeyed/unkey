@@ -48,7 +48,11 @@ export const NamespaceList = () => {
             </div>
           </div>
           <Empty.Actions className="mt-4 justify-start">
-            <a href="/docs/ratelimiting/introduction" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://www.unkey.com/docs/ratelimiting/introduction"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button className="flex items-center gap-2">
                 <Bookmark className="w-4 h-4" />
                 Read the docs
