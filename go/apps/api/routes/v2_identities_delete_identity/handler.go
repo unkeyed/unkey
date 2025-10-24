@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -71,30 +71,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+	results, err := db.Query.FindIdentityWithRatelimits(ctx, h.DB.RO(), db.FindIdentityWithRatelimitsParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
 	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("identity not found",
-				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
-			)
-		}
-
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
 		)
 	}
 
-	if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if len(results) == 0 {
 		return fault.New("identity not found",
 			fault.Code(codes.Data.Identity.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("This identity does not exist."),
+			fault.Internal("identity not found"), fault.Public("This identity does not exist."),
 		)
+	}
+
+	identity := results[0]
+
+	// Parse ratelimits JSON
+	var ratelimits []db.RatelimitInfo
+	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
+		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -106,10 +107,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
-			// Delete the old soft-deleted identity and its ratelimits
-			err = db.Query.DeleteOldIdentityWithRatelimits(ctx, tx, db.DeleteOldIdentityWithRatelimitsParams{
+			// Check if this identity is already soft-deleted (could happen with concurrent requests)
+			alreadyDeleted, checkErr := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Identity:    req.Identity,
+				IdentityID:  identity.ID,
+				Deleted:     true,
+			})
+			if checkErr == nil && alreadyDeleted.ID == identity.ID {
+				// Identity is already soft-deleted, this is idempotent, return success
+				// Skip audit logs - they were already created by the request that deleted it
+				return nil
+			}
+
+			// Delete the old soft-deleted identity with the same external_id, excluding the current one
+			err = db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
+				WorkspaceID:       auth.AuthorizedWorkspaceID,
+				ExternalID:        identity.ExternalID,
+				CurrentIdentityID: identity.ID,
 			})
 			if err != nil {
 				return fault.Wrap(err,
@@ -124,6 +138,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Identity:    identity.ID,
 			})
+			if err != nil {
+				// If we still get a duplicate key error after deleting the old identity,
+				// it means another concurrent request already soft-deleted this identity.
+				// This is safe to treat as success (idempotent operation).
+				// Skip audit logs - they were already created by the concurrent request
+				if db.IsDuplicateKeyError(err) {
+					return nil // Skip audit logs
+				}
+			}
 		}
 
 		if err != nil {
@@ -154,14 +177,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			},
-		}
-
-		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
-		if listErr != nil {
-			return fault.Wrap(listErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to load identity ratelimits"), fault.Public("Failed to load Identity ratelimits."),
-			)
 		}
 
 		for _, rl := range ratelimits {
