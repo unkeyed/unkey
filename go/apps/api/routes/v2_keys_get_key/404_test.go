@@ -59,7 +59,7 @@ func TestGetKeyNotFound(t *testing.T) {
 		})
 
 		otherKey := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   otherAPI.KeyAuthID.String,
+			KeySpaceID:  otherAPI.KeyAuthID.String,
 			WorkspaceID: otherWorkspace.ID,
 		})
 

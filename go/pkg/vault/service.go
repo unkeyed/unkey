@@ -43,7 +43,7 @@ func New(cfg Config) (*Service, error) {
 
 	}
 
-	keyring, err := keyring.New(keyring.Config{
+	kr, err := keyring.New(keyring.Config{
 		Store:          cfg.Storage,
 		Logger:         cfg.Logger,
 		DecryptionKeys: decryptionKeys,
@@ -72,7 +72,7 @@ func New(cfg Config) (*Service, error) {
 		decryptionKeys: decryptionKeys,
 
 		encryptionKey: encryptionKey,
-		keyring:       keyring,
+		keyring:       kr,
 	}, nil
 }
 

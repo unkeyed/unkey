@@ -18,7 +18,7 @@ const (
 	APIPrefix                Prefix = "api"
 	RequestPrefix            Prefix = "req"
 	WorkspacePrefix          Prefix = "ws"
-	KeyAuthPrefix            Prefix = "ks" // keyspace
+	KeySpacePrefix           Prefix = "ks" // keyspace
 	VercelBindingPrefix      Prefix = "vb"
 	RolePrefix               Prefix = "role"
 	TestPrefix               Prefix = "test" // for tests only

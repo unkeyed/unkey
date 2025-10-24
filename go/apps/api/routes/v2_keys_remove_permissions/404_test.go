@@ -86,7 +86,7 @@ func TestNotFoundErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -135,9 +135,9 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a test keyring in our workspace
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
+		keySpaceID := uid.New(uid.KeySpacePrefix)
+		err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:                 keySpaceID,
 			WorkspaceID:        workspace.ID,
 			StoreEncryptedKeys: false,
 			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
@@ -151,7 +151,7 @@ func TestNotFoundErrors(t *testing.T) {
 		keyString := "test_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyID,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(keyString),
 			Start:             keyString[:4],
 			WorkspaceID:       workspace.ID,
@@ -196,9 +196,9 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a test keyring in the other workspace
-		otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 otherKeyAuthID,
+		otherKeySpaceID := uid.New(uid.KeySpacePrefix)
+		err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:                 otherKeySpaceID,
 			WorkspaceID:        otherWorkspaceID,
 			StoreEncryptedKeys: false,
 			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
@@ -212,7 +212,7 @@ func TestNotFoundErrors(t *testing.T) {
 		otherKeyString := "test_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                otherKeyID,
-			KeyringID:         otherKeyAuthID,
+			KeySpaceID:        otherKeySpaceID,
 			Hash:              hash.Sha256(otherKeyString),
 			Start:             otherKeyString[:4],
 			WorkspaceID:       otherWorkspaceID,

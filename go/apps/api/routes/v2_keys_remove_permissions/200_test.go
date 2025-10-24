@@ -56,7 +56,7 @@ func TestSuccess(t *testing.T) {
 		permissionDescription := "Write documents permission"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 			Permissions: []seed.CreatePermissionRequest{
 				{
@@ -106,7 +106,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -183,7 +183,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -244,7 +244,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -325,7 +325,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID

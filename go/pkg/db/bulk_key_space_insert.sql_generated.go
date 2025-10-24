@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertKeyring is the base query for bulk insert
-const bulkInsertKeyring = `INSERT INTO ` + "`" + `key_auth` + "`" + ` ( id, workspace_id, created_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at ) VALUES %s`
+// bulkInsertKeySpace is the base query for bulk insert
+const bulkInsertKeySpace = `INSERT INTO ` + "`" + `key_auth` + "`" + ` ( id, workspace_id, created_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at ) VALUES %s`
 
-// InsertKeyrings performs bulk insert in a single query
-func (q *BulkQueries) InsertKeyrings(ctx context.Context, db DBTX, args []InsertKeyringParams) error {
+// InsertKeySpaces performs bulk insert in a single query
+func (q *BulkQueries) InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -24,7 +24,7 @@ func (q *BulkQueries) InsertKeyrings(ctx context.Context, db DBTX, args []Insert
 		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, 0, 0 )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertKeyring, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertKeySpace, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any

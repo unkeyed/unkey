@@ -50,7 +50,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -88,9 +88,9 @@ func TestAuthorizationErrors(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace1.ID, "api.*.update_key")
 
 		// Create a test keyring in workspace2
-		keyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 keyAuthID,
+		keySpaceID := uid.New(uid.KeySpacePrefix)
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:                 keySpaceID,
 			WorkspaceID:        workspace2.ID,
 			StoreEncryptedKeys: false,
 			DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
@@ -104,7 +104,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		keyString := "test_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyID,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(keyString),
 			Start:             keyString[:4],
 			WorkspaceID:       workspace2.ID,
@@ -160,7 +160,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -206,7 +206,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID

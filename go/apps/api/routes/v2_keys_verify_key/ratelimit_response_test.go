@@ -39,7 +39,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("rate limit response fields validation", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "test-limit",
@@ -79,7 +79,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("rate limit exceeded fields", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "strict-limit",
@@ -118,7 +118,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("custom rate limit with cost", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		req := handler.Request{
@@ -151,7 +151,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("multiple rate limits with accurate remaining counters", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "fast-limit",

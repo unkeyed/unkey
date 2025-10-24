@@ -45,7 +45,7 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	softDeleteKeyName := "test-key"
 	softDeleteKeyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &softDeleteKeyName,
 	})
 	softDeleteKeyID := softDeleteKeyResponse.KeyID
@@ -54,7 +54,7 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	hardDeleteKeyName := "test-key"
 	hardDeleteKeyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &hardDeleteKeyName,
 		Permissions: []seed.CreatePermissionRequest{
 			{

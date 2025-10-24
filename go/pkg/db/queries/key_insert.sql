@@ -18,7 +18,7 @@ INSERT INTO `keys` (
     refill_amount
 ) VALUES (
     sqlc.arg(id),
-    sqlc.arg(keyring_id),
+    sqlc.arg(key_space_id),
     sqlc.arg(hash),
     sqlc.arg(start),
     sqlc.arg(workspace_id),

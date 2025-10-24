@@ -64,10 +64,10 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for API in different workspace
 	t.Run("API in different workspace", func(t *testing.T) {
-		// Create a keyAuth for the API in the different workspace
-		otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:            otherKeyAuthID,
+		// Create a keySpace for the API in the different workspace
+		otherKeySpaceID := uid.New(uid.KeySpacePrefix)
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:            otherKeySpaceID,
 			WorkspaceID:   workspace2.ID,
 			CreatedAtM:    time.Now().UnixMilli(),
 			DefaultPrefix: sql.NullString{Valid: false},
@@ -82,7 +82,7 @@ func TestNotFoundErrors(t *testing.T) {
 			Name:        "API in different workspace",
 			WorkspaceID: workspace2.ID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: otherKeyAuthID},
+			KeyAuthID:   sql.NullString{Valid: true, String: otherKeySpaceID},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -105,10 +105,10 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Test case for deleted API
 	t.Run("deleted API", func(t *testing.T) {
-		// Create a keyAuth for the API
-		deletedKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:            deletedKeyAuthID,
+		// Create a keySpace for the API
+		deletedKeySpaceID := uid.New(uid.KeySpacePrefix)
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:            deletedKeySpaceID,
 			WorkspaceID:   workspace1.ID,
 			CreatedAtM:    time.Now().UnixMilli(),
 			DefaultPrefix: sql.NullString{Valid: false},
@@ -123,7 +123,7 @@ func TestNotFoundErrors(t *testing.T) {
 			Name:        "API to be deleted",
 			WorkspaceID: workspace1.ID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: deletedKeyAuthID},
+			KeyAuthID:   sql.NullString{Valid: true, String: deletedKeySpaceID},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -151,22 +151,22 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 	})
 
-	// Test case for API without KeyAuth (should return 412 Precondition Failed)
-	t.Run("API without KeyAuth", func(t *testing.T) {
-		// Create API without KeyAuth
-		noKeyAuthApiID := uid.New("api")
+	// Test case for API without KeySpace (should return 412 Precondition Failed)
+	t.Run("API without KeySpace", func(t *testing.T) {
+		// Create API without KeySpace
+		noKeySpaceApiID := uid.New("api")
 		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          noKeyAuthApiID,
-			Name:        "API without KeyAuth",
+			ID:          noKeySpaceApiID,
+			Name:        "API without KeySpace",
 			WorkspaceID: workspace1.ID,
 			AuthType:    db.NullApisAuthType{Valid: false}, // No auth type
-			KeyAuthID:   sql.NullString{Valid: false},      // No KeyAuth
+			KeyAuthID:   sql.NullString{Valid: false},      // No KeySpace
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
 
 		req := handler.Request{
-			ApiId: noKeyAuthApiID,
+			ApiId: noKeySpaceApiID,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

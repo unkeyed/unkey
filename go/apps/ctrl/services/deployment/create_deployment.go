@@ -129,9 +129,9 @@ func (s *Service) CreateDeployment(
 
 	// Start the deployment workflow directly
 	keyspaceID := req.Msg.GetKeyspaceId()
-	var keyAuthID *string
+	var keySpaceID *string
 	if keyspaceID != "" {
-		keyAuthID = &keyspaceID
+		keySpaceID = &keyspaceID
 	}
 
 	// Send deployment request asynchronously (fire-and-forget)
@@ -140,7 +140,7 @@ func (s *Service) CreateDeployment(
 		Send(ctx, &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			DockerImage:  req.Msg.GetDockerImage(),
-			KeyAuthId:    keyAuthID,
+			KeyAuthId:    keySpaceID,
 		})
 
 	if err != nil {

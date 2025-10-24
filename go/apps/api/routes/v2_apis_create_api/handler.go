@@ -62,9 +62,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	apiId, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
-		keyAuthId := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, tx, db.InsertKeyringParams{
-			ID:                 keyAuthId,
+		keySpaceId := uid.New(uid.KeySpacePrefix)
+		err = db.Query.InsertKeySpace(ctx, tx, db.InsertKeySpaceParams{
+			ID:                 keySpaceId,
 			WorkspaceID:        auth.AuthorizedWorkspaceID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:        req.Name,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: keyAuthId},
+			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
 			IpWhitelist: sql.NullString{Valid: false, String: ""},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
