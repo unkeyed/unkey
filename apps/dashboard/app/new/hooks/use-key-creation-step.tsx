@@ -36,8 +36,11 @@ const extendedFormSchema = formSchema.and(
       .max(50, "API name must not exceed 50 characters"),
   }),
 );
-
-export const useKeyCreationStep = (): OnboardingStep => {
+type Props = {
+  // Move to the next step
+  advance: () => void;
+};
+export const useKeyCreationStep = (props: Props): OnboardingStep => {
   const [apiCreated, setApiCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -94,6 +97,7 @@ export const useKeyCreationStep = (): OnboardingStep => {
       };
 
       await createApiAndKey.mutateAsync(submitData);
+      props.advance();
     } catch (error) {
       console.error("Submit error:", error);
     }
@@ -230,12 +234,12 @@ export const useKeyCreationStep = (): OnboardingStep => {
       router.push("/apis");
     },
     onStepNext: apiCreated
-      ? undefined
+      ? () => true
       : () => {
-          if (isLoading) {
-            return;
+          if (!isLoading) {
+            formRef.current?.requestSubmit();
           }
-          formRef.current?.requestSubmit();
+          return false;
         },
     isLoading,
   };

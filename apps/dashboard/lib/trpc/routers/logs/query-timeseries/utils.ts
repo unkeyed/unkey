@@ -2,14 +2,14 @@ import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import {
-  type RegularTimeseriesGranularity,
   type TimeseriesConfig,
+  type TimeseriesGranularity,
   getTimeseriesGranularity,
 } from "../../utils/granularity";
 
 export function transformFilters(params: TimeseriesRequestSchema): {
   params: Omit<LogsTimeseriesParams, "workspaceId">;
-  granularity: RegularTimeseriesGranularity;
+  granularity: TimeseriesGranularity;
 } {
   let timeConfig: TimeseriesConfig<"forRegular">;
   if (params.since !== "") {
