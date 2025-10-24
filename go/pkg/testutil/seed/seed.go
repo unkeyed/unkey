@@ -369,36 +369,36 @@ type CreateIdentityRequest struct {
 }
 
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) db.Identity {
-	metaBytes := []byte("{}")
+	metaJSON := dbtype.NullJSON{Data: []byte("{}"), Valid: true}
 	if len(req.Meta) > 0 {
-		metaBytes = req.Meta
+		metaJSON = dbtype.NullJSON{Data: req.Meta, Valid: true}
 	}
 
 	require.NoError(s.t, assert.NotEmpty(req.ExternalID, "Identity ExternalID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Identity WorkspaceID must be set"))
 
-	identityId := uid.New(uid.IdentityPrefix)
+	identityID := uid.New(uid.IdentityPrefix)
 	err := db.Query.InsertIdentity(ctx, s.DB.RW(), db.InsertIdentityParams{
-		ID:          identityId,
+		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
 		Environment: "",
 		CreatedAt:   time.Now().UnixMilli(),
-		Meta:        metaBytes,
+		Meta:        metaJSON.Data,
 	})
 	require.NoError(s.t, err)
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.IdentityID = ptr.P(identityId)
+		ratelimit.IdentityID = ptr.P(identityID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
 	return db.Identity{
-		ID:          identityId,
+		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
 		Environment: "",
-		Meta:        metaBytes,
+		Meta:        metaJSON,
 		Deleted:     false,
 		CreatedAt:   time.Now().UnixMilli(),
 		UpdatedAt:   sql.NullInt64{Valid: false},

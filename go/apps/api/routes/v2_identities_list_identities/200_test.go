@@ -369,12 +369,13 @@ func TestSuccess(t *testing.T) {
 					require.Len(t, ptr.SafeDeref(identity.Ratelimits), len(identityRatelimits), "Ratelimits should match the database")
 				}
 
-				if len(dbIdentity.Meta) > 0 {
+				if dbIdentity.Meta.Valid {
 					raw, err := json.Marshal(identity.Meta)
 					require.NoError(t, err)
 					require.NotNil(t, identity.Meta, "Meta should be set")
-					require.JSONEq(t, string(raw), string(dbIdentity.Meta), "Meta should match the database")
+					require.JSONEq(t, string(raw), string(dbIdentity.Meta.Data), "Meta should match the database")
 				}
+
 			}
 		}
 	})

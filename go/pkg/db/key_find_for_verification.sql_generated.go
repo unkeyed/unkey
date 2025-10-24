@@ -8,7 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
 const findKeyForVerification = `-- name: FindKeyForVerification :one
@@ -113,7 +114,7 @@ type FindKeyForVerificationRow struct {
 	Ratelimits          interface{}     `db:"ratelimits"`
 	IdentityID          sql.NullString  `db:"identity_id"`
 	ExternalID          sql.NullString  `db:"external_id"`
-	IdentityMeta        json.RawMessage `db:"identity_meta"`
+	IdentityMeta        dbtype.NullJSON `db:"identity_meta"`
 	KeyAuthDeletedAtM   sql.NullInt64   `db:"key_auth_deleted_at_m"`
 	WorkspaceEnabled    bool            `db:"workspace_enabled"`
 	ForWorkspaceEnabled sql.NullBool    `db:"for_workspace_enabled"`

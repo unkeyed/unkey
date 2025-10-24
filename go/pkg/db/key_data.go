@@ -81,10 +81,10 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 		Workspace:       Workspace{}, // Empty Workspace since not in this query
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           UnmarshalJSONArray[RoleInfo](r.Roles),
-		Permissions:     UnmarshalJSONArray[PermissionInfo](r.Permissions),
-		RolePermissions: UnmarshalJSONArray[PermissionInfo](r.RolePermissions),
-		Ratelimits:      UnmarshalJSONArray[RatelimitInfo](r.Ratelimits),
+		Roles:           UnmarshalJSONArrayTo[RoleInfo](r.Roles),
+		Permissions:     UnmarshalJSONArrayTo[PermissionInfo](r.Permissions),
+		RolePermissions: UnmarshalJSONArrayTo[PermissionInfo](r.RolePermissions),
+		Ratelimits:      UnmarshalJSONArrayTo[RatelimitInfo](r.Ratelimits),
 	}
 
 	if r.IdentityID.Valid {
@@ -131,10 +131,10 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Workspace:       r.Workspace,
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           UnmarshalJSONArray[RoleInfo](r.Roles),
-		Permissions:     UnmarshalJSONArray[PermissionInfo](r.Permissions),
-		RolePermissions: UnmarshalJSONArray[PermissionInfo](r.RolePermissions),
-		Ratelimits:      UnmarshalJSONArray[RatelimitInfo](r.Ratelimits),
+		Roles:           UnmarshalJSONArrayTo[RoleInfo](r.Roles),
+		Permissions:     UnmarshalJSONArrayTo[PermissionInfo](r.Permissions),
+		RolePermissions: UnmarshalJSONArrayTo[PermissionInfo](r.RolePermissions),
+		Ratelimits:      UnmarshalJSONArrayTo[RatelimitInfo](r.Ratelimits),
 	}
 
 	if r.IdentityTableID.Valid {

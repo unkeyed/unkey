@@ -31,7 +31,7 @@ type RatelimitInfo struct {
 	AutoApply  bool              `json:"auto_apply"`
 }
 
-// UnmarshalJSONArray deserializes a JSON byte array into a slice of type T.
+// UnmarshalJSONArrayTo deserializes a JSON byte array into a slice of type T.
 // It handles the common pattern of database queries returning aggregated JSON arrays
 // that need to be unmarshaled into Go structs.
 //
@@ -46,9 +46,9 @@ type RatelimitInfo struct {
 //
 // Example usage:
 //
-//	roles := UnmarshalJSONArray[RoleInfo](row.Roles)
+//	roles := UnmarshalJSONArrayTo[RoleInfo](row.Roles)
 //	// roles is guaranteed to be []RoleInfo, never nil
-func UnmarshalJSONArray[T any](data any) []T {
+func UnmarshalJSONArrayTo[T any](data any) []T {
 	if data == nil {
 		return []T{}
 	}
@@ -63,4 +63,21 @@ func UnmarshalJSONArray[T any](data any) []T {
 		return []T{}
 	}
 	return result
+}
+
+// UnmarshalNullableJSONTo unmarshals the JSON data and returns the result with an error.
+// Returns zero value and nil if the JSON is NULL or invalid.
+// Returns zero value and error if JSON unmarshaling fails.
+//
+// Use this when you want inline assignment with generic type inference:
+//
+//	myData, err := UnmarshalNullableJSONTo[MyStruct](&nullJSON)
+//	if err != nil {
+//	    return err
+//	}
+//	// use myData
+func UnmarshalNullableJSONTo[T any](n *dbtype.NullJSON) (T, error) {
+	var result T
+	err := n.UnmarshalTo(&result)
+	return result, err
 }

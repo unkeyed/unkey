@@ -8,7 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+
+	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
 const listLiveKeysByKeyAuthID = `-- name: ListLiveKeysByKeyAuthID :many
@@ -140,7 +141,7 @@ type ListLiveKeysByKeyAuthIDRow struct {
 	Environment        sql.NullString  `db:"environment"`
 	IdentityTableID    sql.NullString  `db:"identity_table_id"`
 	IdentityExternalID sql.NullString  `db:"identity_external_id"`
-	IdentityMeta       json.RawMessage `db:"identity_meta"`
+	IdentityMeta       dbtype.NullJSON `db:"identity_meta"`
 	EncryptedKey       sql.NullString  `db:"encrypted_key"`
 	EncryptionKeyID    sql.NullString  `db:"encryption_key_id"`
 	Roles              interface{}     `db:"roles"`

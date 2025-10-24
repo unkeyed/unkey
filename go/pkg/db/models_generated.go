@@ -537,7 +537,7 @@ type AuditLog struct {
 	ActorType   string          `db:"actor_type"`
 	ActorID     string          `db:"actor_id"`
 	ActorName   sql.NullString  `db:"actor_name"`
-	ActorMeta   json.RawMessage `db:"actor_meta"`
+	ActorMeta   dbtype.NullJSON `db:"actor_meta"`
 	CreatedAt   int64           `db:"created_at"`
 	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
@@ -561,7 +561,7 @@ type AuditLogTarget struct {
 	Type        string          `db:"type"`
 	ID          string          `db:"id"`
 	Name        sql.NullString  `db:"name"`
-	Meta        json.RawMessage `db:"meta"`
+	Meta        dbtype.NullJSON `db:"meta"`
 	CreatedAt   int64           `db:"created_at"`
 	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
@@ -631,7 +631,7 @@ type Identity struct {
 	ExternalID  string          `db:"external_id"`
 	WorkspaceID string          `db:"workspace_id"`
 	Environment string          `db:"environment"`
-	Meta        json.RawMessage `db:"meta"`
+	Meta        dbtype.NullJSON `db:"meta"`
 	Deleted     bool            `db:"deleted"`
 	CreatedAt   int64           `db:"created_at"`
 	UpdatedAt   sql.NullInt64   `db:"updated_at"`
@@ -823,7 +823,7 @@ type Workspace struct {
 	StripeSubscriptionID sql.NullString     `db:"stripe_subscription_id"`
 	BetaFeatures         json.RawMessage    `db:"beta_features"`
 	Features             json.RawMessage    `db:"features"`
-	Subscriptions        json.RawMessage    `db:"subscriptions"`
+	Subscriptions        dbtype.NullJSON    `db:"subscriptions"`
 	Enabled              bool               `db:"enabled"`
 	DeleteProtection     sql.NullBool       `db:"delete_protection"`
 	CreatedAtM           int64              `db:"created_at_m"`
