@@ -20,7 +20,7 @@ type ProcessedData = {
   }>;
 };
 
-export default function SuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id") ?? null;
 
@@ -187,12 +187,24 @@ export default function SuccessPage() {
   }
 
   return (
-    <Suspense>
-      <SuccessClient
-        workSpaceSlug={processedData.workspaceSlug}
-        showPlanSelection={processedData.showPlanSelection}
-        products={processedData.products}
-      />
+    <SuccessClient
+      workSpaceSlug={processedData.workspaceSlug}
+      showPlanSelection={processedData.showPlanSelection}
+      products={processedData.products}
+    />
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <Empty className="flex items-center justify-center h-screen w-full">
+          <Loading type="spinner" size={40} />
+        </Empty>
+      }
+    >
+      <SuccessContent />
     </Suspense>
   );
 }
