@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
 )
 
 func TestToKeyData_ValidCases(t *testing.T) {
@@ -122,15 +121,17 @@ func TestToKeyData_WithIdentity(t *testing.T) {
 			WorkspaceID:        "workspace-123",
 			IdentityTableID:    sql.NullString{String: "identity-123", Valid: true},
 			IdentityExternalID: sql.NullString{String: "user-456", Valid: true},
-			IdentityMeta:       dbtype.NullJSON{Data: []byte(`{"role": "admin"}`), Valid: true},
+			IdentityMeta:       []byte(`{"role": "admin"}`),
 		}
+
 		result := ToKeyData(row)
+
 		require.NotNil(t, result)
 		require.NotNil(t, result.Identity)
 		require.Equal(t, "identity-123", result.Identity.ID)
 		require.Equal(t, "user-456", result.Identity.ExternalID)
 		require.Equal(t, "workspace-123", result.Identity.WorkspaceID)
-		require.Equal(t, dbtype.NullJSON{Data: []byte(`{"role": "admin"}`), Valid: true}, result.Identity.Meta)
+		require.Equal(t, []byte(`{"role": "admin"}`), result.Identity.Meta)
 	})
 
 	t.Run("without identity data", func(t *testing.T) {
