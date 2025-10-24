@@ -45,15 +45,8 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link href={basePath}>
-            Projects
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href="#"
-            isIdentifier
-            className="group max-md:hidden"
-            noop
-          >
+          <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
             <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -67,9 +60,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube />}>
-        <Navbar.Breadcrumbs.Link href={basePath}>
-          Projects
-        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
           href={`${basePath}/${activeProject.id}`}
           isIdentifier

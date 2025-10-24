@@ -4,11 +4,7 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ChevronUp,
-  Layers3,
-} from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { PromotionDialog } from "./promotion-dialog";
@@ -31,7 +27,7 @@ export const DeploymentListTableActions = ({
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
-      .select(({ domain }) => ({ host: domain.domain }))
+      .select(({ domain }) => ({ host: domain.domain })),
   );
 
   const router = useRouter();
@@ -86,7 +82,7 @@ export const DeploymentListTableActions = ({
           router.push(
             `/${workspace.slug}/projects/${selectedDeployment.projectId}/gateway-logs?host=${data
               .map((item) => `is:${item.host}`)
-              .join(",")}`
+              .join(",")}`,
           );
         },
       },

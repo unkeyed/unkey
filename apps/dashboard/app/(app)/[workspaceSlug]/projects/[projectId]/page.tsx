@@ -5,11 +5,7 @@ import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import type { ReactNode } from "react";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
-import {
-  DomainRow,
-  DomainRowEmpty,
-  DomainRowSkeleton,
-} from "./details/domain-row";
+import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProject } from "./layout-provider";
 
@@ -25,10 +21,8 @@ export default function ProjectDetails() {
     (q) =>
       q
         .from({ domain: collections.domains })
-        .where(({ domain }) =>
-          eq(domain.deploymentId, project?.liveDeploymentId)
-        ),
-    [project?.liveDeploymentId]
+        .where(({ domain }) => eq(domain.deploymentId, project?.liveDeploymentId)),
+    [project?.liveDeploymentId],
   );
 
   return (

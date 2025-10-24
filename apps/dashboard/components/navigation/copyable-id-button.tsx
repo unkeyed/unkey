@@ -7,10 +7,7 @@ type CopyableIDButtonProps = {
   className?: string;
 };
 
-export const CopyableIDButton = ({
-  value,
-  className = "",
-}: CopyableIDButtonProps) => {
+export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProps) => {
   const textRef = useRef<HTMLDivElement>(null);
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const copyButtonRef = useRef<HTMLButtonElement>(null);

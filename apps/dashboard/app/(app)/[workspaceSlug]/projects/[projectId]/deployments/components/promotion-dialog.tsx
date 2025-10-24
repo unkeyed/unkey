@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  type Deployment,
-  collection,
-  collectionManager,
-} from "@/lib/collections";
+import { type Deployment, collection, collectionManager } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
@@ -19,22 +15,13 @@ type DeploymentSectionProps = {
   showSignal?: boolean;
 };
 
-const DeploymentSection = ({
-  title,
-  deployment,
-  isLive,
-  showSignal,
-}: DeploymentSectionProps) => (
+const DeploymentSection = ({ title, deployment, isLive, showSignal }: DeploymentSectionProps) => (
   <div className="space-y-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo iconsize="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard
-      deployment={deployment}
-      isLive={isLive}
-      showSignal={showSignal}
-    />
+    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
   </div>
 );
 
@@ -53,13 +40,13 @@ export const PromotionDialog = ({
 }: PromotionDialogProps) => {
   const utils = trpc.useUtils();
   const domainCollection = collectionManager.getProjectCollections(
-    liveDeployment.projectId
+    liveDeployment.projectId,
   ).domains;
   const domains = useLiveQuery((q) =>
     q
       .from({ domain: domainCollection })
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id))
+      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
   );
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
@@ -137,20 +124,14 @@ export const PromotionDialog = ({
               <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
                 <div className="flex items-center">
                   <Link4 className="text-gray-9" iconsize="sm-medium" />
-                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
-                    {domain.domain}
-                  </div>
+                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
                   <div className="ml-3" />
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <DeploymentSection
-          title="Target Deployment"
-          deployment={targetDeployment}
-          isLive={false}
-        />
+        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
       </div>
     </DialogContainer>
   );
@@ -162,11 +143,7 @@ type DeploymentCardProps = {
   showSignal?: boolean;
 };
 
-const DeploymentCard = ({
-  deployment,
-  isLive,
-  showSignal,
-}: DeploymentCardProps) => (
+const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
   <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -178,16 +155,13 @@ const DeploymentCard = ({
             </span>
             <Badge
               variant={isLive ? "success" : "primary"}
-              className={`px-1.5 capitalize ${
-                isLive ? "text-successA-11" : "text-grayA-11"
-              }`}
+              className={`px-1.5 capitalize ${isLive ? "text-successA-11" : "text-grayA-11"}`}
             >
               {isLive ? "Live" : deployment.status}
             </Badge>
           </div>
           <div className="text-xs text-grayA-9">
-            {deployment.gitCommitMessage ||
-              `${isLive ? "Current active" : "Target"} deployment`}
+            {deployment.gitCommitMessage || `${isLive ? "Current active" : "Target"} deployment`}
           </div>
         </div>
       </div>
