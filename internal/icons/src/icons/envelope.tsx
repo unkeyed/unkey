@@ -13,8 +13,12 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Envelope: React.FC<IconProps> = ({ iconsize = "md-regular", filled, ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const Envelope: React.FC<IconProps> = ({
+  size = "md-regular",
+  filled,
+  ...props
+}) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
   return (
     <svg
       height={pixelSize}

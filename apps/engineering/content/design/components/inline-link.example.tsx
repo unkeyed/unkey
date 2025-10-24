@@ -11,7 +11,8 @@ export const InlineLinkBasic = () => {
 </p>`}
     >
       <p>
-        This is a basic <InlineLink href="https://example.com" label="inline link" /> in a
+        This is a basic{" "}
+        <InlineLink href="https://example.com" label="inline link" /> in a
         paragraph.
       </p>
     </RenderComponentWithSnippet>
@@ -23,12 +24,12 @@ export const InlineLinkWithIcon = () => {
     <RenderComponentWithSnippet
       customCodeSnippet={`<p>
   This is an inline link with an icon on the{" "}
-  <InlineLink href="https://unkey.com" label="right" icon={<ExternalLink iconsize="md-thin" />} /> and
+  <InlineLink href="https://unkey.com" label="right" icon={<ExternalLink size="md-thin" />} /> and
   on the{" "}
   <InlineLink
     href="https://unkey.com"
     label="left"
-    icon={<ExternalLink iconsize="md-thin" />}
+    icon={<ExternalLink size="md-thin" />}
     iconPosition="left"
   />
   .
@@ -39,13 +40,13 @@ export const InlineLinkWithIcon = () => {
         <InlineLink
           href="https://unkey.com"
           label="right"
-          icon={<ExternalLink iconsize="md-thin" />}
+          icon={<ExternalLink size="md-thin" />}
         />{" "}
         and on the{" "}
         <InlineLink
           href="https://unkey.com"
           label="left"
-          icon={<ExternalLink iconsize="md-thin" />}
+          icon={<ExternalLink size="md-thin" />}
           iconPosition="left"
         />
         .
@@ -62,7 +63,7 @@ export const InlineLinkWithTarget = () => {
   <InlineLink
     href="https://unkey.com"
     label="new tab"
-    icon={<ExternalLink iconsize="md-thin" />}
+    icon={<ExternalLink size="md-thin" />}
     target="_blank"
   />
   .
@@ -73,7 +74,7 @@ export const InlineLinkWithTarget = () => {
         <InlineLink
           href="https://unkey.com"
           label="new tab"
-          icon={<ExternalLink iconsize="md-thin" />}
+          icon={<ExternalLink size="md-thin" />}
           target="_blank"
         />
         .

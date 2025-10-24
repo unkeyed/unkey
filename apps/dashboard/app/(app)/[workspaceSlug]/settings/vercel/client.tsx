@@ -18,7 +18,15 @@ import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
-import { Dots, ExternalLink, Link4, Plus, Refresh3, Trash, Unlink } from "@unkey/icons";
+import {
+  Dots,
+  ExternalLink,
+  Link4,
+  Plus,
+  Refresh3,
+  Trash,
+  Unlink,
+} from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -65,7 +73,12 @@ type Props = {
   }[];
 };
 
-export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys }) => {
+export const Client: React.FC<Props> = ({
+  projects,
+  integration,
+  apis,
+  rootKeys,
+}) => {
   projects.sort((a, b) => a.name.localeCompare(b.name));
 
   if (projects.length === 0) {
@@ -117,13 +130,16 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" fill="#000000" />
+                      <path
+                        d="M37.5274 0L75.0548 65H0L37.5274 0Z"
+                        fill="#000000"
+                      />
                     </svg>
                     <span className="font-semibold">{project.name}</span>
                   </h3>
 
                   <Button variant="ghost" shape="square">
-                    <Dots iconsize="md-medium" />
+                    <Dots size="md-medium" />
                   </Button>
                 </div>
 
@@ -139,17 +155,20 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                             "flex flex-col items-center justify-between gap-8 p-4 md:flex-row hover:bg-white ",
                             {
                               "bg-white": binding,
-                              "opacity-50 bg-background-subtle hover:opacity-100 ": !binding,
-                            },
+                              "opacity-50 bg-background-subtle hover:opacity-100 ":
+                                !binding,
+                            }
                           )}
                         >
                           <div className="flex items-center w-full md:w-1/5">
                             {binding ? (
-                              <Link4 iconsize="md-thin" className="rotate-90" />
+                              <Link4 size="md-thin" className="rotate-90" />
                             ) : (
-                              <Unlink iconsize="md-thin" className="rotate-90" />
+                              <Unlink size="md-thin" className="rotate-90" />
                             )}
-                            <span className="text-xs text-content">{envLabel}</span>
+                            <span className="text-xs text-content">
+                              {envLabel}
+                            </span>
                           </div>
 
                           <div className="flex justify-end w-full md:w-2/5">
@@ -206,7 +225,9 @@ const ConnectedResource: React.FC<{
   rootKeys: Record<string, Key>;
 }> = (props) => {
   const router = useRouter();
-  const [selectedResourceId, setSelectedResourceId] = useState(props.binding?.resourceId);
+  const [selectedResourceId, setSelectedResourceId] = useState(
+    props.binding?.resourceId
+  );
 
   const updateApiId = trpc.vercel.upsertApiId.useMutation({
     onSuccess: () => {
@@ -223,7 +244,7 @@ const ConnectedResource: React.FC<{
     onSuccess: () => {
       router.refresh();
       toast.success(
-        "Successfully rolled your root key and updated the environment variable in Vercel",
+        "Successfully rolled your root key and updated the environment variable in Vercel"
       );
     },
     onError(err) {
@@ -242,11 +263,14 @@ const ConnectedResource: React.FC<{
     },
   });
 
-  const isLoading = updateApiId.isLoading || rerollRootKey.isLoading || unbind.isLoading;
+  const isLoading =
+    updateApiId.isLoading || rerollRootKey.isLoading || unbind.isLoading;
 
   return (
     <div className="flex items-center w-full gap-2 ">
-      <Label className="w-1/5 md:w-auto shrink-0 whitespace-nowrap">{props.type}</Label>
+      <Label className="w-1/5 md:w-auto shrink-0 whitespace-nowrap">
+        {props.type}
+      </Label>
       {props.type === "API" ? (
         <Select
           value={selectedResourceId}
@@ -277,10 +301,11 @@ const ConnectedResource: React.FC<{
             <Input disabled value={props.binding?.resourceId} />
           </TooltipTrigger>
           <TooltipContent>
-            Because we don't store the root key itself, you can not select a different existing key.
+            Because we don't store the root key itself, you can not select a
+            different existing key.
             <br />
-            Use the button on the right to generate a new key and update the environment variable in
-            Vercel.
+            Use the button on the right to generate a new key and update the
+            environment variable in Vercel.
           </TooltipContent>
         </Tooltip>
       )}
@@ -288,7 +313,7 @@ const ConnectedResource: React.FC<{
       <DropdownMenu>
         <DropdownMenuTrigger>
           <Button variant="ghost" shape="square" loading={isLoading}>
-            <Dots iconsize="md-medium" />
+            <Dots size="md-medium" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -316,7 +341,9 @@ const ConnectedResource: React.FC<{
                     />
                   )}
                   <AvatarFallback className="w-6 h-6 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
-                    {(props.binding?.updatedBy.name ?? "U").slice(0, 2).toUpperCase()}
+                    {(props.binding?.updatedBy.name ?? "U")
+                      .slice(0, 2)
+                      .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuLabel>
@@ -337,7 +364,8 @@ const ConnectedResource: React.FC<{
                 }
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Go to {props.binding.resourceType === "apiId" ? "API" : "Root Key ID"}
+                Go to{" "}
+                {props.binding.resourceType === "apiId" ? "API" : "Root Key ID"}
               </Link>
             </DropdownMenuItem>
           ) : null}
@@ -357,18 +385,22 @@ const ConnectedResource: React.FC<{
                 <TooltipTrigger className="flex items-center gap-2">
                   {props.binding ? (
                     <>
-                      <Refresh3 iconsize="md-medium" className="transform scale-x-[-1]" />
+                      <Refresh3
+                        size="md-medium"
+                        className="transform scale-x-[-1]"
+                      />
                       Reroll the Key
                     </>
                   ) : (
                     <>
-                      <Plus iconsize="md-medium" />
+                      <Plus size="md-medium" />
                       Generate new Key
                     </>
                   )}
                 </TooltipTrigger>
                 <TooltipContent>
-                  This will generate a new key and update the environment variable in Vercel.
+                  This will generate a new key and update the environment
+                  variable in Vercel.
                 </TooltipContent>
               </Tooltip>
             </DropdownMenuItem>
@@ -378,7 +410,9 @@ const ConnectedResource: React.FC<{
             <DropdownMenuItem
               onClick={() => {
                 if (!props.binding) {
-                  toast.error("Unable to unbind. Please refresh and try again.");
+                  toast.error(
+                    "Unable to unbind. Please refresh and try again."
+                  );
                   return;
                 }
                 unbind.mutate({

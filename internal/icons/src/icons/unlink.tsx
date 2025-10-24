@@ -13,8 +13,11 @@ import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 // Uses Link4 with center removed
-export const Unlink: React.FC<IconProps> = ({ iconsize = "md-regular", ...props }) => {
-  const { iconsize: pixelSize, strokeWidth } = sizeMap[iconsize];
+export const Unlink: React.FC<IconProps> = ({
+  size = "md-regular",
+  ...props
+}) => {
+  const { size: pixelSize, strokeWidth } = sizeMap[size];
 
   return (
     <svg
