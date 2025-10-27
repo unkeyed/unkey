@@ -8,7 +8,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Chats } from "@unkey/icons";
-import { BookOpen, type IconProps } from "@unkey/icons";
+import { BookOpen, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useFeedback } from "./feedback-component";
@@ -71,7 +71,7 @@ const DiscordCommand: React.FC = () => {
 const GenericLinkCommand: React.FC<{
   href: string;
   label: string;
-  icon: React.FC<IconProps>;
+  icon: LucideIcon;
   close: () => void;
 }> = (props) => {
   const router = useRouter();

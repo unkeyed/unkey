@@ -14,7 +14,7 @@ export const getOpenApiDiff = t.procedure
     z.object({
       oldDeploymentId: z.string(),
       newDeploymentId: z.string(),
-    }),
+    })
   )
   .query(async ({ input, ctx }) => {
     const { CTRL_URL, CTRL_API_KEY } = env();
@@ -37,7 +37,7 @@ export const getOpenApiDiff = t.procedure
             return next(req);
           },
         ],
-      }),
+      })
     );
 
     try {
@@ -45,7 +45,7 @@ export const getOpenApiDiff = t.procedure
         where: (table, { and, eq, inArray }) =>
           and(
             eq(table.workspaceId, ctx.workspace.id),
-            inArray(table.id, [input.oldDeploymentId, input.newDeploymentId]),
+            inArray(table.id, [input.oldDeploymentId, input.newDeploymentId])
           ),
       });
       if (deployments.length !== 2) {

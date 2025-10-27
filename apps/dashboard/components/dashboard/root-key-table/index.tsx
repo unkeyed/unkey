@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowOppositeDirectionY, Dots, Minus, Trash } from "@unkey/icons";
 import { Badge, Button, Checkbox, InfoTooltip, toast } from "@unkey/ui";
+import { ArrowUpDown, Minus, MoreHorizontal, MoreVertical, Trash } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -104,7 +104,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Created At
-          <ArrowOppositeDirectionY className="w-4 h-4 ml-2" />
+          <ArrowUpDown className="w-4 h-4 ml-2" />
         </Button>
       ),
       cell: ({ row }) => new Date(row.original.createdAtM).toUTCString(),
@@ -152,7 +152,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
               <DropdownMenuTrigger>
                 <Button variant="ghost" className="w-8 h-8 p-0">
                   <span className="sr-only">Open menu</span>
-                  <Dots className="w-4 h-4" />
+                  <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -161,7 +161,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
                     e.preventDefault();
                   }}
                 >
-                  <Dots className="w-4 h-4 mr-2 rotate-90" />
+                  <MoreVertical className="w-4 h-4 mr-2" />
                   <Link href={`/settings/root-keys/${row.original.id}`}>Details</Link>
                 </DropdownMenuItem>
                 <DialogTrigger asChild>

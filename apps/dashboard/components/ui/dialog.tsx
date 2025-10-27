@@ -1,7 +1,7 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { XMark } from "@unkey/icons";
+import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -95,13 +95,13 @@ const DialogContent = React.forwardRef<
               className={buttonClassNames}
               aria-label="Close dialog with confirmation"
             >
-              <XMark className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
           ) : (
             // Use DialogPrimitive.Close for standard behavior
             <DialogPrimitive.Close asChild>
               <button type="button" className={buttonClassNames} aria-label="Close dialog">
-                <XMark className="w-4 h-4" />
+                <X className="w-4 h-4" />
               </button>
             </DialogPrimitive.Close>
           )}

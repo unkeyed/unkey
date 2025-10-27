@@ -2,7 +2,8 @@
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Empty, Loading } from "@unkey/ui";
+import { Empty } from "@unkey/ui";
+import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 import { z } from "zod";
 import { Results } from "./components/results";
@@ -45,7 +46,7 @@ export default function Page(props: Props) {
             fallback={
               <Empty>
                 <Empty.Title>
-                  <Loading />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 </Empty.Title>
               </Empty>
             }

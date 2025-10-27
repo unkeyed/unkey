@@ -8,9 +8,7 @@ export function ProjectsListNavigation() {
   const workspace = useWorkspaceNavigation();
   return (
     <Navbar>
-      <Navbar.Breadcrumbs
-        icon={<Cube size="md-medium" className="text-gray-12" />}
-      >
+      <Navbar.Breadcrumbs icon={<Cube size="md-medium" className="text-gray-12" />}>
         <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/projects`} active>
           Projects
         </Navbar.Breadcrumbs.Link>

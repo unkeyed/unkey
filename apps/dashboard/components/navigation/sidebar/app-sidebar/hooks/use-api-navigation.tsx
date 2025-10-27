@@ -2,7 +2,8 @@
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { ArrowOppositeDirectionY, Gear, Key2 } from "@unkey/icons";
+import { ArrowOppositeDirectionY, Gear } from "@unkey/icons";
+import { Key } from "lucide-react";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -51,7 +52,7 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
 
         if (api.keyspaceId) {
           const keysItem: NavItem = {
-            icon: Key2,
+            icon: Key,
             href: `/${workspace.slug}/apis/${api.id}/keys/${api.keyspaceId}`,
             label: "Keys",
             active: currentApiActive && segments.at(3) === "keys",

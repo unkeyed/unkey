@@ -18,18 +18,11 @@ import {
 
 export const GatewayLogsTable = () => {
   const { setSelectedLog, selectedLog, isLive } = useGatewayLogsContext();
-  const {
-    realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    hasMore,
-    total,
-  } = useGatewayLogsQuery({
-    startPolling: isLive,
-    pollIntervalMs: 2000,
-  });
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, total } =
+    useGatewayLogsQuery({
+      startPolling: isLive,
+      pollIntervalMs: 2000,
+    });
 
   return (
     <VirtualTable
@@ -42,9 +35,7 @@ export const GatewayLogsTable = () => {
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={(log) =>
-        getRowClassName({ log, selectedLog, isLive, realtimeLogs })
-      }
+      rowClassName={(log) => getRowClassName({ log, selectedLog, isLive, realtimeLogs })}
       selectedClassName={getSelectedClassName}
       loadMoreFooterProps={{
         hide: isLoading,
@@ -52,8 +43,7 @@ export const GatewayLogsTable = () => {
         hasMore,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-accent-12">{historicalLogs.length}</span>
+            <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
             <span>of</span>
             {total}
             <span>requests</span>
@@ -66,9 +56,8 @@ export const GatewayLogsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Logs</Empty.Title>
             <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. We collect all
-              API requests, giving you a clear history to find problems or debug
-              issues.
+              Keep track of all activity within your workspace. We collect all API requests, giving
+              you a clear history to find problems or debug issues.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
@@ -96,7 +85,7 @@ const WarningIcon = ({ status }: { status: number }) => (
       WARNING_ICON_STYLES.base,
       status < 300 && "invisible",
       status >= 400 && status < 500 && WARNING_ICON_STYLES.warning,
-      status >= 500 && WARNING_ICON_STYLES.error
+      status >= 500 && WARNING_ICON_STYLES.error,
     )}
   />
 );
@@ -129,13 +118,11 @@ const columns: Column<Log>[] = [
         <Badge
           className={cn(
             "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-            style.badge.default
+            style.badge.default,
           )}
         >
           {log.response_status}{" "}
-          {extractResponseField(log, "code")
-            ? `| ${extractResponseField(log, "code")}`
-            : ""}
+          {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
         </Badge>
       );
     },
@@ -158,7 +145,7 @@ const columns: Column<Log>[] = [
       <Badge
         className={cn(
           "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-          getStatusStyle(log.response_status).badge.default
+          getStatusStyle(log.response_status).badge.default,
         )}
       >
         {log.method}
@@ -180,10 +167,7 @@ const columns: Column<Log>[] = [
     header: "Response Body",
     width: "300px",
     render: (log) => (
-      <div
-        className="font-mono whitespace-nowrap truncate max-w-[300px]"
-        title={log.response_body}
-      >
+      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.response_body}>
         {log.response_body}
       </div>
     ),
@@ -193,10 +177,7 @@ const columns: Column<Log>[] = [
     header: "Request Body",
     width: "1fr",
     render: (log) => (
-      <div
-        className="font-mono whitespace-nowrap truncate max-w-[300px]"
-        title={log.request_body}
-      >
+      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.request_body}>
         {log.request_body}
       </div>
     ),

@@ -2,8 +2,8 @@
 
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { InputSearch } from "@unkey/icons";
-import { Eye, EyeSlash } from "@unkey/icons";
 import { Input } from "@unkey/ui";
+import { EyeIcon, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 export const InputDefaultVariant = () => {
@@ -68,7 +68,7 @@ export const InputWithPasswordToggle = () => {
             onClick={() => setShowPassword(!showPassword)}
             className="focus:outline-none"
           >
-            {showPassword ? <Eye className="h-4 w-4" /> : <EyeSlash className="h-4 w-4" />}
+            {showPassword ? <EyeIcon className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </button>
         }
       />

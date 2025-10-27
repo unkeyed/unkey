@@ -1,6 +1,6 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { ExternalLink } from "@unkey/icons";
 import { InlineLink } from "@unkey/ui";
+import { ExternalLink } from "lucide-react";
 
 export const InlineLinkBasic = () => {
   return (
@@ -11,8 +11,7 @@ export const InlineLinkBasic = () => {
 </p>`}
     >
       <p>
-        This is a basic{" "}
-        <InlineLink href="https://example.com" label="inline link" /> in a
+        This is a basic <InlineLink href="https://example.com" label="inline link" /> in a
         paragraph.
       </p>
     </RenderComponentWithSnippet>
@@ -24,12 +23,12 @@ export const InlineLinkWithIcon = () => {
     <RenderComponentWithSnippet
       customCodeSnippet={`<p>
   This is an inline link with an icon on the{" "}
-  <InlineLink href="https://unkey.com" label="right" icon={<ExternalLink size="md-thin" />} /> and
+  <InlineLink href="https://unkey.com" label="right" icon={<ExternalLink size={14} />} /> and
   on the{" "}
   <InlineLink
     href="https://unkey.com"
     label="left"
-    icon={<ExternalLink size="md-thin" />}
+    icon={<ExternalLink size={14} />}
     iconPosition="left"
   />
   .
@@ -37,16 +36,12 @@ export const InlineLinkWithIcon = () => {
     >
       <p>
         This is an inline link with an icon on the{" "}
-        <InlineLink
-          href="https://unkey.com"
-          label="right"
-          icon={<ExternalLink size="md-thin" />}
-        />{" "}
-        and on the{" "}
+        <InlineLink href="https://unkey.com" label="right" icon={<ExternalLink size={14} />} /> and
+        on the{" "}
         <InlineLink
           href="https://unkey.com"
           label="left"
-          icon={<ExternalLink size="md-thin" />}
+          icon={<ExternalLink size={14} />}
           iconPosition="left"
         />
         .
@@ -63,7 +58,7 @@ export const InlineLinkWithTarget = () => {
   <InlineLink
     href="https://unkey.com"
     label="new tab"
-    icon={<ExternalLink size="md-thin" />}
+    icon={<ExternalLink size={14} />}
     target="_blank"
   />
   .
@@ -74,7 +69,7 @@ export const InlineLinkWithTarget = () => {
         <InlineLink
           href="https://unkey.com"
           label="new tab"
-          icon={<ExternalLink size="md-thin" />}
+          icon={<ExternalLink size={14} />}
           target="_blank"
         />
         .

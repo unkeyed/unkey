@@ -33,8 +33,8 @@ export const queryUsage = t.procedure
     }
 
     return {
-      billableRatelimits: billableRatelimits || 0,
-      billableVerifications: billableVerifications || 0,
+      billableRatelimits: billableRatelimits,
+      billableVerifications: billableVerifications,
       billableTotal: billableRatelimits + billableVerifications,
     };
   });

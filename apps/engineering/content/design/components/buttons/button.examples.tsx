@@ -1,6 +1,6 @@
 import { RenderComponentWithSnippet } from "@/app/components/render";
-import { Magnifier, Plus, Trash } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { PlusIcon, SearchIcon, TrashIcon } from "lucide-react";
 
 // Basic Variants
 
@@ -1537,14 +1537,14 @@ export const WithIconsExample = () => (
     <div className="flex flex-wrap items-center gap-4">
         <Button>
             <span>Create</span>
-            <Plus />
+            <PlusIcon />
         </Button>
         <Button variant="outline">
-            <Magnifier />
+            <SearchIcon />
             <span>Search</span>
         </Button>
         <Button variant="ghost" color="danger">
-            <Trash />
+            <TrashIcon />
             <span>Delete</span>
         </Button>
     </div>
@@ -1554,14 +1554,14 @@ export const WithIconsExample = () => (
     <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
         <Button>
             <span>Create</span>
-            <Plus />
+            <PlusIcon />
         </Button>
         <Button variant="outline">
-            <Magnifier />
+            <SearchIcon />
             <span>Search</span>
         </Button>
         <Button variant="ghost" color="danger">
-            <Trash />
+            <TrashIcon />
             <span>Delete</span>
         </Button>
     </div>
@@ -1574,14 +1574,14 @@ export const WithIconsExample = () => (
         <div className="flex flex-wrap items-center gap-4">
           <Button>
             <span>Create</span>
-            <Plus />
+            <PlusIcon />
           </Button>
           <Button variant="outline">
-            <Magnifier />
+            <SearchIcon />
             <span>Search</span>
           </Button>
           <Button variant="ghost" color="danger">
-            <Trash />
+            <TrashIcon />
             <span>Delete</span>
           </Button>
         </div>
@@ -1591,14 +1591,14 @@ export const WithIconsExample = () => (
         <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
           <Button>
             <span>Create</span>
-            <Plus />
+            <PlusIcon />
           </Button>
           <Button variant="outline">
-            <Magnifier />
+            <SearchIcon />
             <span>Search</span>
           </Button>
           <Button variant="ghost" color="danger">
-            <Trash />
+            <TrashIcon />
             <span>Delete</span>
           </Button>
         </div>
@@ -1614,13 +1614,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Light</h4>
         <div className="flex items-center gap-4">
             <Button shape="square">
-                <Plus />
+                <PlusIcon />
             </Button>
             <Button shape="square" variant="outline">
-                <Magnifier />
+                <SearchIcon />
             </Button>
             <Button shape="square" variant="ghost" color="danger">
-                <Trash />
+                <TrashIcon />
             </Button>
         </div>
     </div>
@@ -1628,13 +1628,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Dark</h4>
         <div className="bg-black p-4 rounded-md flex items-center gap-4 dark">
             <Button shape="square">
-                <Plus />
+                <PlusIcon />
             </Button>
             <Button shape="square" variant="outline">
-                <Magnifier />
+                <SearchIcon />
             </Button>
             <Button shape="square" variant="ghost" color="danger">
-                <Trash />
+                <TrashIcon />
             </Button>
         </div>
     </div>
@@ -1645,13 +1645,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Light</h4>
         <div className="flex items-center gap-4">
           <Button shape="square">
-            <Plus />
+            <PlusIcon />
           </Button>
           <Button shape="square" variant="outline">
-            <Magnifier />
+            <SearchIcon />
           </Button>
           <Button shape="square" variant="ghost" color="danger">
-            <Trash />
+            <TrashIcon />
           </Button>
         </div>
       </div>
@@ -1659,13 +1659,13 @@ export const ShapeVariantsExample = () => (
         <h4 className="text-sm font-medium mb-2">Dark</h4>
         <div className="bg-black p-4 rounded-md flex items-center gap-4 dark">
           <Button shape="square">
-            <Plus />
+            <PlusIcon />
           </Button>
           <Button shape="square" variant="outline">
-            <Magnifier />
+            <SearchIcon />
           </Button>
           <Button shape="square" variant="ghost" color="danger">
-            <Trash />
+            <TrashIcon />
           </Button>
         </div>
       </div>
