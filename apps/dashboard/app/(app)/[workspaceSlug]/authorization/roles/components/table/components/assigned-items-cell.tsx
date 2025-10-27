@@ -34,9 +34,9 @@ export const AssignedItemsCell = ({
 
   const icon =
     kind === "keys" ? (
-      <Key2 size="md-regular" className="opacity-50" />
+      <Key2 iconSize="md-medium" className="opacity-50" />
     ) : (
-      <Page2 size="md-regular" className="opacity-50" />
+      <Page2 iconSize="md-medium" className="opacity-50" />
     );
 
   const itemClassName = cn(

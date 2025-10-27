@@ -128,7 +128,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
   const isLoading = createWorkspace.isLoading;
   return {
     name: "Workspace",
-    icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
+    icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
     body: (
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col">

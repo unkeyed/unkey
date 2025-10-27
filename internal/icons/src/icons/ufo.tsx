@@ -12,10 +12,17 @@
 
 import type React from "react";
 
-import type { IconProps } from "../props";
-export const Ufo: React.FC<IconProps> = (props) => {
+import { type IconProps, sizeMap } from "../props";
+export const Ufo: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+  const { iconSize: pixelSize } = sizeMap[iconSize || "md-regular"];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor">
         <circle cx="14.75" cy="1.75" fill="currentColor" r=".75" stroke="none" />
         <path

@@ -83,7 +83,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="enabled"
                       text={formatNumber(data?.remainingCredit ?? 0)}
-                      icon={<Coins size="sm-thin" />}
+                      icon={<Coins iconSize="sm-thin" />}
                     />
                   </motion.div>
                 ) : (
@@ -104,7 +104,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="disabled"
                       text="0"
-                      icon={<Coins size="sm-thin" />}
+                      icon={<Coins iconSize="sm-thin" />}
                     />
                   </motion.div>
                 )}

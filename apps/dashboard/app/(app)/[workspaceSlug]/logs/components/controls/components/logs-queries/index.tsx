@@ -24,7 +24,7 @@ export const LogsQueries = () => {
           aria-haspopup="true"
           title="Press 'Q' to toggle queries"
         >
-          <ChartBarAxisY size="md-regular" className="mt-1 ml-[3px] text-gray-9" />
+          <ChartBarAxisY iconSize="md-medium" className="mt-1 ml-[3px] text-gray-9" />
           <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
         </Button>
       </div>

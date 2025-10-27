@@ -44,7 +44,7 @@ const RootKeysTableActions = dynamic(
           "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
         )}
       >
-        <Dots className="group-hover:text-gray-12 text-gray-11" size="sm-regular" />
+        <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
       </button>
     ),
   },
@@ -142,7 +142,13 @@ export const RootKeysList = () => {
 
   // Memoize the renderSkeletonRow function to prevent unnecessary re-renders
   const renderSkeletonRow = useCallback(
-    ({ columns, rowHeight }: { columns: Column<RootKey>[]; rowHeight: number }) =>
+    ({
+      columns,
+      rowHeight,
+    }: {
+      columns: Column<RootKey>[];
+      rowHeight: number;
+    }) =>
       columns.map((column) => (
         <td
           key={column.key}
@@ -197,7 +203,7 @@ export const RootKeysList = () => {
                 isSelected && "bg-grayA-5",
               )}
             >
-              <Key2 size="sm-regular" className="text-gray-12" />
+              <Key2 iconSize="sm-regular" className="text-gray-12" />
             </div>
           );
           return (
