@@ -4,8 +4,8 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
+import { Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
@@ -67,7 +67,7 @@ export const CreateNamespaceButton = ({
         color="default"
         onClick={() => setIsOpen(true)}
       >
-        <Plus size={18} className="w-4 h-4" />
+        <Plus iconSize="md-medium" />
         Create new namespace
       </NavbarActionButton>
 

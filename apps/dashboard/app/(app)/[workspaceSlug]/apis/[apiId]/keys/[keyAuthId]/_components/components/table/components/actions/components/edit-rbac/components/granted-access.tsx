@@ -45,7 +45,7 @@ export const GrantedAccess = ({
         }}
         className="flex gap-2 items-center bg-grayA-3 rounded-md p-1.5"
       >
-        <Page2 size="sm-regular" className="text-grayA-11" />
+        <Page2 iconSize="sm-regular" className="text-grayA-11" />
         <span className="text-gray-11 text-xs font-mono">{slug}</span>
       </motion.div>
     ));
@@ -72,7 +72,7 @@ export const GrantedAccess = ({
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
           className={`
-            rounded-full border bg-grayA-3 border-grayA-3 w-[22px] h-[18px] 
+            rounded-full border bg-grayA-3 border-grayA-3 w-[22px] h-[18px]
             flex items-center justify-center font-medium text-[11px] text-grayA-12
             ${isLoading ? "animate-pulse" : ""}
           `}
