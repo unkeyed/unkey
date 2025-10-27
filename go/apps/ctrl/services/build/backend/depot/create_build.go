@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
@@ -23,6 +24,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
+
+func safeID(id string) string {
+	return strings.ToLower(strings.ReplaceAll(id, "_", "-"))
+}
 
 // CreateBuild orchestrates the container image build process using Depot.
 //
@@ -132,8 +137,7 @@ func (s *Depot) CreateBuild(
 	defer buildkitClient.Close()
 
 	// INFO: "s.registryConfig.URL", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
-	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, req.Msg.GetUnkeyProjectId(), req.Msg.GetDeploymentId())
-
+	imageName := safeID(fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, req.Msg.GetUnkeyProjectId(), req.Msg.GetDeploymentId()))
 	dockerfilePath := req.Msg.GetDockerfilePath()
 	if dockerfilePath == "" {
 		dockerfilePath = "Dockerfile"
