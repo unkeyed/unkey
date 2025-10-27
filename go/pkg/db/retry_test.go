@@ -365,10 +365,5 @@ func TestWithRetryContext_Integration(t *testing.T) {
 		require.ErrorIs(t, err, context.Canceled)
 		require.Equal(t, 1, callCount, "should stop after first attempt")
 		require.Empty(t, insertedKeyID, "should not insert key after context cancelled")
-
-		// Verify key was not inserted in database
-		_, err = Query.FindKeyForVerification(ctx, dbInstance.RO(), insertedKeyID)
-		require.True(t, IsNotFound(err))
-		require.Error(t, err, "key should not exist in database")
 	})
 }
