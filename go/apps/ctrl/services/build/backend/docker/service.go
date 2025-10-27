@@ -8,19 +8,26 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
+type BuildPlatform struct {
+	Platform     string
+	Architecture string
+}
+
 type Docker struct {
 	ctrlv1connect.UnimplementedBuildServiceHandler
-	instanceID string
-	db         db.Database
-	storage    *storage.S3
-	logger     logging.Logger
+	instanceID    string
+	db            db.Database
+	buildPlatform BuildPlatform
+	storage       *storage.S3
+	logger        logging.Logger
 }
 
 type Config struct {
-	InstanceID string
-	DB         db.Database
-	Storage    *storage.S3
-	Logger     logging.Logger
+	InstanceID    string
+	DB            db.Database
+	BuildPlatform BuildPlatform
+	Storage       *storage.S3
+	Logger        logging.Logger
 }
 
 func New(cfg Config) *Docker {
@@ -28,6 +35,7 @@ func New(cfg Config) *Docker {
 		UnimplementedBuildServiceHandler: ctrlv1connect.UnimplementedBuildServiceHandler{},
 		instanceID:                       cfg.InstanceID,
 		db:                               cfg.DB,
+		buildPlatform:                    cfg.BuildPlatform,
 		storage:                          cfg.Storage,
 		logger:                           cfg.Logger,
 	}

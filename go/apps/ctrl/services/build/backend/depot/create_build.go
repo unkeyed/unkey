@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
@@ -47,18 +46,8 @@ func (s *Depot) CreateBuild(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	buildPlatform := strings.TrimPrefix(s.buildPlatform, "/")
-	parts := strings.Split(buildPlatform, "/")
-
-	if err := assert.All(
-		assert.Equal(len(parts), 2, fmt.Sprintf("invalid build platform format: %s (expected format: linux/amd64)", s.buildPlatform)),
-		assert.Equal(parts[0], "linux", fmt.Sprintf("unsupported OS: %s (only linux is supported)", parts[0])),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	platform := buildPlatform
-	architecture := parts[1]
+	platform := s.buildPlatform.Platform
+	architecture := s.buildPlatform.Architecture
 
 	s.logger.Info("Starting build process - getting presigned URL for build context",
 		"build_context_path", req.Msg.BuildContextPath,

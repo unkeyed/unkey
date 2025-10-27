@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -129,7 +130,39 @@ type Config struct {
 	// --- Build Storage Configuration ---
 	BuildBackend BuildBackend
 	BuildS3      S3Config
-	Depot        DepotConfig
+	// BuildPlatform defines the target platform for builds (e.g., "linux/amd64", "linux/arm64")
+	BuildPlatform string
+	Depot         DepotConfig
+}
+
+type BuildPlatform struct {
+	Platform     string
+	Architecture string
+}
+
+// parseBuildPlatform validates and parses a build platform string
+func parseBuildPlatform(buildPlatform string) (BuildPlatform, error) {
+	buildPlatform = strings.TrimPrefix(buildPlatform, "/")
+	parts := strings.Split(buildPlatform, "/")
+
+	if err := assert.All(
+		assert.Equal(len(parts), 2, fmt.Sprintf("invalid build platform format: %s (expected format: linux/amd64)", buildPlatform)),
+		assert.Equal(parts[0], "linux", fmt.Sprintf("unsupported OS: %s (only linux is supported)", parts[0])),
+	); err != nil {
+		return BuildPlatform{}, err
+	}
+
+	return BuildPlatform{
+		Platform:     buildPlatform,
+		Architecture: parts[1],
+	}, nil
+}
+
+// GetBuildPlatform returns the parsed build platform
+// This should only be called after Validate() has been called successfully
+func (c Config) GetBuildPlatform() BuildPlatform {
+	parsed, _ := parseBuildPlatform(c.BuildPlatform)
+	return parsed
 }
 
 func (c Config) Validate() error {
@@ -140,19 +173,25 @@ func (c Config) Validate() error {
 		}
 	}
 
+	// Validate build platform format
+	_, platformErr := parseBuildPlatform(c.BuildPlatform)
+
 	switch c.BuildBackend {
 	case BuildBackendDepot:
 		return assert.All(
+			platformErr,
+			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
 			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"),
 			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"),
 			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
 			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
 			assert.NotEmpty(c.Depot.AccessToken, "Depot access token is required when using Depot backend"),
-			assert.NotEmpty(c.Depot.BuildPlatform, "Depot build platform is required when using Depot backend"), // ADD THIS
-			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"), // ADD THIS TOO
+			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"),
 		)
 	case BuildBackendDocker:
 		return assert.All(
+			platformErr,
+			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
 			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
 			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
 			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),

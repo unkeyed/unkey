@@ -8,6 +8,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
+type BuildPlatform struct {
+	Platform     string
+	Architecture string
+}
+
 type Depot struct {
 	ctrlv1connect.UnimplementedBuildServiceHandler
 	instanceID    string
@@ -17,21 +22,20 @@ type Depot struct {
 	registryUrl   string
 	username      string
 	accessToken   string
-	buildPlatform string
+	buildPlatform BuildPlatform
 	projectRegion string
 	logger        logging.Logger
 }
 
 type Config struct {
-	InstanceID  string
-	DB          db.Database
-	Storage     *storage.S3
-	APIUrl      string
-	RegistryUrl string
-	Username    string
-	AccessToken string
-	// Run builds on this platform ("dynamic", "linux/amd64", "linux/arm64")
-	BuildPlatform string
+	InstanceID    string
+	DB            db.Database
+	Storage       *storage.S3
+	APIUrl        string
+	RegistryUrl   string
+	Username      string
+	AccessToken   string
+	BuildPlatform BuildPlatform
 	// Build data will be stored in the chosen region ("us-east-1","eu-central-1")
 	ProjectRegion string
 	Logger        logging.Logger

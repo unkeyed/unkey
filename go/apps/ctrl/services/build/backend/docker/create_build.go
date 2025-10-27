@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/client"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 type dockerBuildResponse struct {
@@ -35,12 +36,15 @@ func (d *Docker) CreateBuild(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	const architecture = "amd64"
-	platform := fmt.Sprintf("linux/%s", architecture)
+	// Use configured platform from config
+	platform := d.buildPlatform.Platform
+	architecture := d.buildPlatform.Architecture
 
 	d.logger.Info("Getting presigned URL for build context",
 		"build_context_path", req.Msg.BuildContextPath,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", req.Msg.UnkeyProjectId,
+		"platform", platform,
+		"architecture", architecture)
 
 	contextURL, err := d.storage.GetPresignedURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
 	if err != nil {
@@ -65,7 +69,6 @@ func (d *Docker) CreateBuild(
 	}
 	defer dockerClient.Close()
 
-	timestamp := time.Now().UnixMilli()
 	// Docker requires lowercase repository names
 	imageName := strings.ToLower(fmt.Sprintf("%s-%s",
 		req.Msg.UnkeyProjectId,
@@ -81,6 +84,7 @@ func (d *Docker) CreateBuild(
 		"image_name", imageName,
 		"dockerfile", dockerfilePath,
 		"platform", platform,
+		"architecture", architecture,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	buildOptions := build.ImageBuildOptions{
@@ -135,11 +139,13 @@ func (d *Docker) CreateBuild(
 		return nil, connect.NewError(connect.CodeInternal, buildError)
 	}
 
-	buildID := fmt.Sprintf("docker-%d", timestamp)
+	buildID := uid.New(uid.BuildPrefix)
 
 	d.logger.Info("Build completed successfully",
 		"image_name", imageName,
 		"build_id", buildID,
+		"platform", platform,
+		"architecture", architecture,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{

@@ -94,8 +94,8 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_DEPOT_USERNAME")),
 		cli.String("depot-access-token", "Depot API access token",
 			cli.EnvVar("UNKEY_DEPOT_ACCESS_TOKEN")),
-		cli.String("depot-build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
-			cli.EnvVar("UNKEY_DEPOT_BUILD_PLATFORM"), cli.Default("linux/amd64")),
+		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
+			cli.EnvVar("UNKEY_BUILD_PLATFORM"), cli.Default("linux/amd64")),
 		cli.String("depot-project-region", "Build data will be stored in the chosen region ('us-east-1','eu-central-1')",
 			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
 
@@ -138,11 +138,12 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := ctrl.Config{
 		// Basic configuration
-		Platform:   cmd.String("platform"),
-		Image:      cmd.String("image"),
-		HttpPort:   cmd.Int("http-port"),
-		Region:     cmd.String("region"),
-		InstanceID: cmd.String("instance-id"),
+		Platform:      cmd.String("platform"),
+		BuildPlatform: cmd.String("build-platform"),
+		Image:         cmd.String("image"),
+		HttpPort:      cmd.Int("http-port"),
+		Region:        cmd.String("region"),
+		InstanceID:    cmd.String("instance-id"),
 
 		// Database configuration
 		DatabasePrimary:   cmd.String("database-primary"),
@@ -186,7 +187,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			RegistryUrl:   cmd.String("depot-registry-url"),
 			Username:      cmd.String("depot-username"),
 			AccessToken:   cmd.String("depot-access-token"),
-			BuildPlatform: cmd.String("depot-build-platform"),
 			ProjectRegion: cmd.String("depot-project-region"),
 		},
 

@@ -186,9 +186,10 @@ func Run(ctx context.Context, cfg Config) error {
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
 		buildService = docker.New(docker.Config{
-			DB:      database,
-			Logger:  logger,
-			Storage: buildStorage,
+			DB:            database,
+			Logger:        logger,
+			BuildPlatform: docker.BuildPlatform(cfg.GetBuildPlatform()),
+			Storage:       buildStorage,
 		})
 		logger.Info("Using Docker build backend", "presign_url", cfg.BuildS3.ExternalURL)
 
@@ -200,7 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 			RegistryUrl:   cfg.Depot.RegistryUrl,
 			Username:      cfg.Depot.Username,
 			AccessToken:   cfg.Depot.AccessToken,
-			BuildPlatform: cfg.Depot.BuildPlatform,
+			BuildPlatform: depot.BuildPlatform(cfg.GetBuildPlatform()),
 			ProjectRegion: cfg.Depot.ProjectRegion,
 			Logger:        logger,
 			Storage:       buildStorage,

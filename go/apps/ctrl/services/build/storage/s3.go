@@ -116,7 +116,7 @@ func (s *S3) PutPresignedURL(ctx context.Context, key string, expiresIn time.Dur
 
 func (s *S3) presign(ctx context.Context, key string, expiresIn time.Duration, method string) (string, error) {
 	logger := s.logger.With("method", method, "key", key, "expires_in", expiresIn.String())
-	logger.Info("presigning URL")
+	logger.Debug("presigning URL")
 
 	opts := func(o *awsS3.PresignOptions) {
 		o.Expires = expiresIn
