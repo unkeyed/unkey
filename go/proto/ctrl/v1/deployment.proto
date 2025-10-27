@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
@@ -26,23 +25,32 @@ message CreateDeploymentRequest {
   reserved 1; // was workspace_id, now inferred from project_id
   string project_id = 2;
   string branch = 3;
-  // Source information
   string environment_slug = 4;
 
-  SourceType source_type = 5;
+  // Build source, we can either build it from scratch or accept prebuilt image
+  oneof source {
+    BuildContext build_context = 5;
+    string docker_image = 6; // Prebuilt image reference
+  }
 
-  string docker_image = 6;
+  // Git information
+  optional GitCommitInfo git_commit = 7;
 
-  // Extended git information
-  string git_commit_sha = 7; // For git sources
-  string git_commit_message = 8;
-  // TODO: Add GitHub API integration to lookup username/avatar from email
-  string git_commit_author_handle = 9;
-  string git_commit_author_avatar_url = 10;
-  int64 git_commit_timestamp = 11; // Unix epoch milliseconds
+  // Authentication
+  optional string keyspace_id = 8;
+}
 
-  // Keyspace ID for authentication
-  optional string keyspace_id = 12;
+message BuildContext {
+  string build_context_path = 1; // S3 key for uploaded build context
+  optional string dockerfile_path = 2; // Path to Dockerfile within context (default: "Dockerfile")
+}
+
+message GitCommitInfo {
+  string commit_sha = 1;
+  string commit_message = 2;
+  string author_handle = 3;
+  string author_avatar_url = 4;
+  int64 timestamp = 5; // Unix epoch milliseconds
 }
 
 message CreateDeploymentResponse {
