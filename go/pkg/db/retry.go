@@ -11,33 +11,8 @@ const (
 	// DefaultBackoff is the base duration for exponential backoff in database retries
 	DefaultBackoff = 50 * time.Millisecond
 	// DefaultAttempts is the maximum number of retry attempts for database operations
-	DefaultAttempt = 3
+	DefaultAttempts = 3
 )
-
-// WithRetry executes a database operation with optimized retry configuration.
-// It retries transient errors with exponential backoff but skips non-retryable errors
-// like "not found" or "duplicate key" to avoid unnecessary delays.
-//
-// Configuration:
-//   - 3 attempts maximum
-//   - Exponential backoff: 50ms, 100ms, 200ms
-//   - Skips retries for "not found" and "duplicate key" errors
-//
-// Usage:
-//
-//	result, err := db.WithRetry(func() (SomeType, error) {
-//		return db.Query.SomeOperation(ctx, db.RO(), params)
-//	})
-func WithRetry[T any](fn func() (T, error)) (T, error) {
-	return retry.DoWithResult(
-		retry.New(
-			retry.Attempts(DefaultAttempt),
-			retry.Backoff(backoffStrategy),
-			retry.ShouldRetry(shouldRetryError),
-		),
-		fn,
-	)
-}
 
 // WithRetryContext executes a database operation with optimized retry configuration while respecting context cancellation and deadlines.
 // It retries transient errors with exponential backoff but skips non-retryable errors
@@ -61,7 +36,7 @@ func WithRetry[T any](fn func() (T, error)) (T, error) {
 func WithRetryContext[T any](ctx context.Context, fn func() (T, error)) (T, error) {
 	return retry.DoWithResultContext(
 		retry.New(
-			retry.Attempts(DefaultAttempt),
+			retry.Attempts(DefaultAttempts),
 			retry.Backoff(backoffStrategy),
 			retry.ShouldRetry(shouldRetryError),
 		),

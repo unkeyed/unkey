@@ -223,10 +223,12 @@ func (r *retry) DoContext(ctx context.Context, fn func() error) error {
 		}
 
 		if i < r.attempts {
+			timer := time.NewTimer(r.backoff(i))
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return ctx.Err()
-			case <-time.After(r.backoff(i)):
+			case <-timer.C:
 			}
 		}
 	}
