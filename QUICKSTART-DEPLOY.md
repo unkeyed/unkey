@@ -72,6 +72,39 @@ This configures:
 
 **Note:** The token must start with `depot_org_` or the script will fail validation.
 
+### Kubernetes: Additional Setup for Depot and S3
+
+If you're deploying to Kubernetes, you must create secrets for Depot and S3 credentials:
+
+**1. Create Depot credentials secret:**
+
+```bash
+kubectl create secret generic depot-credentials \
+  --from-literal=token=depot_org_YOUR_TOKEN_HERE \
+  --from-literal=s3-url=https://your-s3-endpoint.com \
+  --from-literal=s3-access-key-id=your_access_key \
+  --from-literal=s3-access-key-secret=your_secret_key \
+  --namespace=unkey
+```
+
+**2. Create Depot registry credentials secret:**
+
+```bash
+kubectl create secret docker-registry depot-registry \
+  --docker-server=registry.depot.dev \
+  --docker-username=x-token \
+  --docker-password=depot_org_YOUR_TOKEN_HERE \
+  --namespace=unkey
+```
+
+**Critical:** These secrets must exist before deploying the `ctrl` service to Kubernetes. The `ctrl` deployment references these secrets for:
+
+- Building user code via Depot
+- Storing build contexts in S3
+- Pulling built images from Depot's registry
+
+Without these secrets, deployments will fail with authentication errors.
+
 ## Step 2: Configure API Keys
 
 1. Set up the API key for ctrl service authentication in `go/apps/ctrl/.env`:
@@ -260,6 +293,12 @@ The demo_api already follows this pattern and listens on the PORT environment va
 - **"S3 connection failed"**: Verify S3 credentials in your depot.json or ensure MinIO is running (for docker backend)
 - **Slow builds**: Switch to depot backend for faster builds with layer caching
 - **Stuck builds**: If you are stuck with a deployment go to `http://localhost:9070/ui/invocations` and kill the ongoing invocation.
+
+### Kubernetes Issues
+
+- **"secret not found"**: Ensure you created both `depot-credentials` and `depot-registry` secrets before deploying ctrl
+- **"imagePullBackOff"**: Verify depot-registry secret credentials are correct and token is valid
+- **"build context upload failed"**: Check depot-credentials secret has valid S3 credentials
 
 ### Deployment Issues
 
