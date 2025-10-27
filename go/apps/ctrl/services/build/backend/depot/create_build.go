@@ -55,7 +55,7 @@ func (s *Depot) CreateBuild(
 		"platform", platform,
 		"architecture", architecture)
 
-	contextURL, err := s.storage.GetPresignedURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
+	contextURL, err := s.storage.GenerateDownloadURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
 	if err != nil {
 		s.logger.Error("Failed to get presigned URL",
 			"error", err,

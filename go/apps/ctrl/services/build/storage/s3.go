@@ -106,11 +106,11 @@ func NewS3(config S3Config) (*S3, error) {
 	}, nil
 }
 
-func (s *S3) GetPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+func (s *S3) GenerateDownloadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
 	return s.presign(ctx, key, expiresIn, "GET")
 }
 
-func (s *S3) PutPresignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+func (s *S3) GenerateUploadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
 	return s.presign(ctx, key, expiresIn, "PUT")
 }
 

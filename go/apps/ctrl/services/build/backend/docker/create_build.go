@@ -46,7 +46,7 @@ func (d *Docker) CreateBuild(
 		"platform", platform,
 		"architecture", architecture)
 
-	contextURL, err := d.storage.GetPresignedURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
+	contextURL, err := d.storage.GenerateDownloadURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
 	if err != nil {
 		d.logger.Error("Failed to get presigned URL",
 			"error", err,

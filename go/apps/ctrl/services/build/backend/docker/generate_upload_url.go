@@ -25,7 +25,7 @@ func (s *Docker) GenerateUploadURL(
 		time.Now().UnixNano())
 
 	// Generate presigned URL (15 minutes expiration)
-	uploadURL, err := s.storage.PutPresignedURL(ctx, buildContextPath, 15*time.Minute)
+	uploadURL, err := s.storage.GenerateUploadURL(ctx, buildContextPath, 15*time.Minute)
 	if err != nil {
 		s.logger.Error("Failed to generate presigned URL", "error", err, "context_key", buildContextPath)
 		return nil, connect.NewError(connect.CodeInternal,
