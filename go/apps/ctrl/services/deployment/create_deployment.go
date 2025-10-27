@@ -9,19 +9,18 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"google.golang.org/protobuf/proto"
 )
 
-func trimLength(s string, characters int) string {
-	if len(s) > characters {
-		return s[:characters]
-	}
-	return s
-}
+const (
+	maxCommitMessageLength      = 10240
+	maxCommitAuthorHandleLength = 256
+	maxCommitAuthorAvatarLength = 512
+)
 
 func (s *Service) CreateDeployment(
 	ctx context.Context,
@@ -36,7 +35,6 @@ func (s *Service) CreateDeployment(
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-
 	workspaceID := project.WorkspaceID
 
 	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
@@ -64,8 +62,8 @@ func (s *Service) CreateDeployment(
 	}
 
 	// Validate git commit timestamp if provided (must be Unix epoch milliseconds)
-	if req.Msg.GetGitCommitTimestamp() != 0 {
-		timestamp := req.Msg.GetGitCommitTimestamp()
+	if req.Msg.GetGitCommit() != nil && req.Msg.GetGitCommit().GetTimestamp() != 0 {
+		timestamp := req.Msg.GetGitCommit().GetTimestamp()
 		// Reject timestamps that are clearly in seconds format (< 1_000_000_000_000)
 		// This corresponds to January 1, 2001 in milliseconds
 		if timestamp < 1_000_000_000_000 {
@@ -88,11 +86,49 @@ func (s *Service) CreateDeployment(
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
-	// Sanitize input values before persisting
-	gitCommitSha := req.Msg.GetGitCommitSha()
-	gitCommitMessage := trimLength(req.Msg.GetGitCommitMessage(), 10240)
-	gitCommitAuthorHandle := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorHandle()), 256)
-	gitCommitAuthorAvatarUrl := trimLength(strings.TrimSpace(req.Msg.GetGitCommitAuthorAvatarUrl()), 512)
+	var gitCommitSha, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
+	var gitCommitTimestamp int64
+
+	if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
+		gitCommitSha = gitCommit.GetCommitSha()
+		gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
+		gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
+		gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+		gitCommitTimestamp = gitCommit.GetTimestamp()
+	}
+
+	var buildContextKey string
+	var dockerfilePath string
+	var dockerImage *string
+
+	switch source := req.Msg.GetSource().(type) {
+	case *ctrlv1.CreateDeploymentRequest_BuildContext:
+		buildContextKey = source.BuildContext.GetBuildContextPath()
+		dockerfilePath = source.BuildContext.GetDockerfilePath()
+		if dockerfilePath == "" {
+			dockerfilePath = "./Dockerfile"
+		}
+
+	case *ctrlv1.CreateDeploymentRequest_DockerImage:
+		image := source.DockerImage
+		dockerImage = &image
+
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("source must be specified (either build_context or docker_image)"))
+	}
+
+	// Log deployment source
+	if buildContextKey != "" {
+		s.logger.Info("deployment will build from source",
+			"deployment_id", deploymentID,
+			"context_key", buildContextKey,
+			"dockerfile", dockerfilePath)
+	} else {
+		s.logger.Info("deployment will use prebuilt image",
+			"deployment_id", deploymentID,
+			"image", *dockerImage)
+	}
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
@@ -111,46 +147,54 @@ func (s *Service) CreateDeployment(
 		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
 		GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
 		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
-		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: req.Msg.GetGitCommitMessage() != ""},
-		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: req.Msg.GetGitCommitAuthorHandle() != ""},
-		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: req.Msg.GetGitCommitAuthorAvatarUrl() != ""},
-		GitCommitTimestamp:       sql.NullInt64{Int64: req.Msg.GetGitCommitTimestamp(), Valid: req.Msg.GetGitCommitTimestamp() != 0},
+		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
+		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
+		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
+		GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 	})
 	if err != nil {
 		s.logger.Error("failed to insert deployment", "error", err.Error())
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	s.logger.Info("starting deployment workflow for deployment",
+	s.logger.Info("starting deployment workflow",
 		"deployment_id", deploymentID,
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
 		"environment", env.ID,
+		"context_key", buildContextKey,
+		"docker_image", dockerImage,
 	)
 
-	// Start the deployment workflow directly
+	// Start the deployment workflow
 	keyspaceID := req.Msg.GetKeyspaceId()
 	var keyAuthID *string
 	if keyspaceID != "" {
 		keyAuthID = &keyspaceID
 	}
+
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
-		DockerImage:  req.Msg.GetDockerImage(),
 		KeyAuthId:    keyAuthID,
 	}
-	// this is ugly, but we're waiting for
-	// https://github.com/restatedev/sdk-go/issues/103
-	invocation := restateingress.WorkflowSend[*hydrav1.DeployRequest](
-		s.restate,
-		"hydra.v1.DeploymentService",
-		project.ID,
-		"Deploy",
-	).Send(ctx, deployReq)
-	if invocation.Error != nil {
-		s.logger.Error("failed to start deployment workflow", "error", invocation.Error.Error())
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", invocation.Error))
+
+	switch source := req.Msg.GetSource().(type) {
+	case *ctrlv1.CreateDeploymentRequest_BuildContext:
+		deployReq.BuildContextPath = proto.String(source.BuildContext.GetBuildContextPath())
+		deployReq.DockerfilePath = source.BuildContext.DockerfilePath
+	case *ctrlv1.CreateDeploymentRequest_DockerImage:
+		deployReq.DockerImage = proto.String(source.DockerImage)
 	}
+
+	// Send deployment request asynchronously (fire-and-forget)
+	invocation, err := s.deploymentClient(project.ID).
+		Deploy().
+		Send(ctx, deployReq)
+	if err != nil {
+		s.logger.Error("failed to start deployment workflow", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
+	}
+
 	s.logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,
 		"invocation_id", invocation.Id,
@@ -162,4 +206,11 @@ func (s *Service) CreateDeployment(
 	})
 
 	return res, nil
+}
+
+func trimLength(s string, characters int) string {
+	if len(s) > characters {
+		return s[:characters]
+	}
+	return s
 }

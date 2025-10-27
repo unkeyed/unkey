@@ -164,10 +164,10 @@ services:
     networks:
       - default
     container_name: s3
-    image: bitnamilegacy/minio:2025.4.3
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     ports:
       - 3902:3902
-      - 2903:2903
+      - 3903:3903
     environment:
       MINIO_ROOT_USER: minio_root_user
       MINIO_ROOT_PASSWORD: minio_root_password
@@ -286,11 +286,15 @@ services:
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
       UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
+      UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-}"
+      UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-}"
+      UNKEY_REGISTRY_PASSWORD: "${UNKEY_REGISTRY_PASSWORD:-}"
+
   restate:
     networks:
       - default
     container_name: restate
-    image: docker.io/restatedev/restate:latest
+    image: docker.io/restatedev/restate:1.5.3
     ports:
       - "8081:8080" # Ingress endpoint (host:container)
       - "9070:9070" # Admin endpoint and UI
@@ -355,8 +359,27 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
 
+      # Build configuration
+      UNKEY_BUILD_S3_URL: "${UNKEY_BUILD_S3_URL:-http://s3:3902}"
+      UNKEY_BUILD_S3_EXTERNAL_URL: "${UNKEY_BUILD_S3_EXTERNAL_URL:-}" # For CLI/external access
+      UNKEY_BUILD_S3_BUCKET: "build-contexts"
+      UNKEY_BUILD_S3_ACCESS_KEY_ID: "${UNKEY_BUILD_S3_ACCESS_KEY_ID:-minio_root_user}"
+      UNKEY_BUILD_S3_ACCESS_KEY_SECRET: "${UNKEY_BUILD_S3_ACCESS_KEY_SECRET:-minio_root_password}"
+
       # API key for simple authentication (temporary, will be replaced with JWT)
       UNKEY_API_KEY: "your-local-dev-key"
+      # Build backend configuration
+      UNKEY_BUILD_BACKEND: "${UNKEY_BUILD_BACKEND:-docker}"
+      UNKEY_BUILD_PLATFORM: "linux/amd64"
+      UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
+      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
+      # Registry configuration (used by both Docker and Depot backends)
+      UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-registry.depot.dev}"
+      UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-x-token}"
+      UNKEY_REGISTRY_PASSWORD: "${UNKEY_REGISTRY_PASSWORD:-${DEPOT_TOKEN:-}}"
+      # Depot-specific configuration (only needed when UNKEY_BUILD_BACKEND=depot)
+      UNKEY_DEPOT_API_URL: "https://api.depot.dev"
+      UNKEY_DEPOT_PROJECT_REGION: "us-east-1"
 
   otel:
     networks:

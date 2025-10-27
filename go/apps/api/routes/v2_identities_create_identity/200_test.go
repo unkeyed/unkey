@@ -49,8 +49,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity:    identityID,
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			IdentityID:  identityID,
 			Deleted:     false,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
@@ -72,8 +72,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity:    identityID,
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			IdentityID:  identityID,
 			Deleted:     false,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
@@ -108,9 +108,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
@@ -130,9 +130,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
@@ -171,9 +171,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
@@ -230,9 +230,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
@@ -306,9 +306,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
@@ -347,9 +347,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		// Verify each identity was created with the correct externalId
 		for i, externalID := range externalIDs {
-			identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
-				Identity:    externalID,
+				ExternalID:  externalID,
 				Deleted:     false,
 			})
 			identityIDs = append(identityIDs, identity.ID)
@@ -377,9 +377,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify in database
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
@@ -417,9 +417,9 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		// Verify in database
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Identity:    externalTestID,
+			ExternalID:  externalTestID,
 			Deleted:     false,
 		})
 		require.NoError(t, err)
