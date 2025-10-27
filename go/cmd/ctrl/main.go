@@ -94,6 +94,8 @@ var Cmd = &cli.Command{
 		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
 			cli.EnvVar("UNKEY_BUILD_PLATFORM"), cli.Default("linux/amd64")),
 		// Depot Build Backend Configuration
+		cli.String("depot-api-url", "Depot API endpoint URL",
+			cli.EnvVar("UNKEY_DEPOT_API_URL")),
 		cli.String("depot-project-region", "Build data will be stored in the chosen region ('us-east-1','eu-central-1')",
 			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
 

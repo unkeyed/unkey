@@ -225,7 +225,6 @@ func (c Config) Validate() error {
 	case BuildBackendDocker:
 		return assert.All(
 			platformErr,
-			registryErr,
 			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
 			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
 			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
