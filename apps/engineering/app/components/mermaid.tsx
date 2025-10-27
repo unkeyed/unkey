@@ -15,9 +15,6 @@ export function Mermaid({ chart }: { chart: string }) {
     mermaid.initialize({
       startOnLoad: false,
       theme: resolvedTheme === "dark" ? "dark" : "default",
-      architecture: {
-        useMaxWidth: true,
-      },
     });
 
     void mermaid.run({
