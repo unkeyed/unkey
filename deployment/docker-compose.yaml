@@ -368,19 +368,17 @@ services:
 
       # API key for simple authentication (temporary, will be replaced with JWT)
       UNKEY_API_KEY: "your-local-dev-key"
-      # Depot configuration
+      # Build backend configuration
       UNKEY_BUILD_BACKEND: "${UNKEY_BUILD_BACKEND:-docker}"
+      UNKEY_BUILD_PLATFORM: "linux/amd64"
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
       UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
-
-      # Depot configuration
+      # Registry configuration (used by both Docker and Depot backends)
+      UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-registry.depot.dev}"
+      UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-x-token}"
+      UNKEY_REGISTRY_PASSWORD: "${UNKEY_REGISTRY_PASSWORD:-${DEPOT_TOKEN:-}}"
+      # Depot-specific configuration (only needed when UNKEY_BUILD_BACKEND=depot)
       UNKEY_DEPOT_API_URL: "https://api.depot.dev"
-      UNKEY_DEPOT_REGISTRY_URL: "registry.depot.dev"
-      UNKEY_DEPOT_USERNAME: "x-token"
-      UNKEY_DEPOT_ACCESS_TOKEN: "${DEPOT_TOKEN:-}"
-      # Run builds on this platform ("dynamic", "linux/amd64", "linux/arm64") (default "dynamic")
-      UNKEY_BUILD_PLATFORM: "linux/amd64"
-      # Build data will be stored in the chosen region ("us-east-1","eu-central-1") (default "us-east-1")
       UNKEY_DEPOT_PROJECT_REGION: "us-east-1"
 
   otel:

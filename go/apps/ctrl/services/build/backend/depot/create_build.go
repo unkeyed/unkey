@@ -51,7 +51,9 @@ func (s *Depot) CreateBuild(
 
 	s.logger.Info("Starting build process - getting presigned URL for build context",
 		"build_context_path", req.Msg.BuildContextPath,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", req.Msg.UnkeyProjectId,
+		"platform", platform,
+		"architecture", architecture)
 
 	contextURL, err := s.storage.GetPresignedURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
 	if err != nil {
@@ -78,7 +80,7 @@ func (s *Depot) CreateBuild(
 
 	buildResp, err := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
 		ProjectId: depotProjectID,
-	}, s.accessToken)
+	}, s.registryConfig.Password)
 	if err != nil {
 		s.logger.Error("Creating depot build failed",
 			"error", err,
@@ -98,7 +100,7 @@ func (s *Depot) CreateBuild(
 
 	s.logger.Info("Acquiring build machine",
 		"build_id", buildResp.ID,
-		"platform", architecture,
+		"architecture", architecture,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, architecture)
@@ -129,8 +131,8 @@ func (s *Depot) CreateBuild(
 	}
 	defer buildkitClient.Close()
 
-	// INFO: "s.registryUrl", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
-	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryUrl, depotProjectID, req.Msg.UnkeyProjectId, req.Msg.DeploymentId)
+	// INFO: "s.registryConfig.URL", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
+	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, req.Msg.GetUnkeyProjectId(), req.Msg.GetDeploymentId())
 
 	dockerfilePath := req.Msg.GetDockerfilePath()
 	if dockerfilePath == "" {
@@ -141,6 +143,7 @@ func (s *Depot) CreateBuild(
 		"image_name", imageName,
 		"dockerfile", dockerfilePath,
 		"platform", platform,
+		"architecture", architecture,
 		"build_id", buildResp.ID,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
@@ -155,9 +158,9 @@ func (s *Depot) CreateBuild(
 			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 				ConfigFile: &configfile.ConfigFile{
 					AuthConfigs: map[string]types.AuthConfig{
-						s.registryUrl: {
-							Username: s.username,
-							Password: s.accessToken,
+						s.registryConfig.URL: {
+							Username: s.registryConfig.Username,
+							Password: s.registryConfig.Password,
 						},
 					},
 				},
@@ -191,6 +194,8 @@ func (s *Depot) CreateBuild(
 		"image_name", imageName,
 		"build_id", buildResp.ID,
 		"depot_project_id", depotProjectID,
+		"platform", platform,
+		"architecture", architecture,
 		"unkey_project_id", req.Msg.UnkeyProjectId)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
@@ -217,11 +222,9 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
 		s.logger.Info(
 			"Returning existing depot project",
-			"depot_project_id",
-			project.DepotProjectID,
-			"unkey_project_id",
-			"project_name",
-			projectName,
+			"depot_project_id", project.DepotProjectID,
+			"unkey_project_id", unkeyProjectID,
+			"project_name", projectName,
 		)
 		return project.DepotProjectID.String, nil
 	}
@@ -229,15 +232,15 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	httpClient := &http.Client{}
 	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			req.Header().Set("Authorization", "Bearer "+s.accessToken)
+			req.Header().Set("Authorization", "Bearer "+s.registryConfig.Password)
 			return next(ctx, req)
 		}
 	})
 
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.apiUrl, connect.WithInterceptors(authInterceptor))
+	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.depotConfig.APIUrl, connect.WithInterceptors(authInterceptor))
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
-		RegionId: s.projectRegion,
+		RegionId: s.depotConfig.ProjectRegion,
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   50,
 			KeepDays: 14,
@@ -260,7 +263,10 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
 	}
 
-	s.logger.Info("Created new Depot project", "depot_project_id", createResp.Msg.Project.ProjectId, "unkey_project_id", unkeyProjectID, "project_name", projectName)
+	s.logger.Info("Created new Depot project",
+		"depot_project_id", createResp.Msg.Project.ProjectId,
+		"unkey_project_id", unkeyProjectID,
+		"project_name", projectName)
 
 	return createResp.Msg.Project.ProjectId, nil
 }

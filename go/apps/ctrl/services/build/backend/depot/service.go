@@ -13,32 +13,36 @@ type BuildPlatform struct {
 	Architecture string
 }
 
+type DepotConfig struct {
+	APIUrl        string
+	ProjectRegion string
+}
+
+type RegistryConfig struct {
+	URL      string
+	Username string
+	Password string
+}
+
 type Depot struct {
 	ctrlv1connect.UnimplementedBuildServiceHandler
-	instanceID    string
-	db            db.Database
-	storage       *storage.S3
-	apiUrl        string
-	registryUrl   string
-	username      string
-	accessToken   string
-	buildPlatform BuildPlatform
-	projectRegion string
-	logger        logging.Logger
+	instanceID     string
+	db             db.Database
+	storage        *storage.S3
+	depotConfig    DepotConfig
+	registryConfig RegistryConfig
+	buildPlatform  BuildPlatform
+	logger         logging.Logger
 }
 
 type Config struct {
-	InstanceID    string
-	DB            db.Database
-	Storage       *storage.S3
-	APIUrl        string
-	RegistryUrl   string
-	Username      string
-	AccessToken   string
-	BuildPlatform BuildPlatform
-	// Build data will be stored in the chosen region ("us-east-1","eu-central-1")
-	ProjectRegion string
-	Logger        logging.Logger
+	InstanceID     string
+	DB             db.Database
+	Storage        *storage.S3
+	DepotConfig    DepotConfig
+	RegistryConfig RegistryConfig
+	BuildPlatform  BuildPlatform
+	Logger         logging.Logger
 }
 
 func New(cfg Config) *Depot {
@@ -47,12 +51,9 @@ func New(cfg Config) *Depot {
 		instanceID:                       cfg.InstanceID,
 		db:                               cfg.DB,
 		storage:                          cfg.Storage,
-		apiUrl:                           cfg.APIUrl,
-		registryUrl:                      cfg.RegistryUrl,
-		username:                         cfg.Username,
-		accessToken:                      cfg.AccessToken,
+		depotConfig:                      cfg.DepotConfig,
+		registryConfig:                   cfg.RegistryConfig,
 		buildPlatform:                    cfg.BuildPlatform,
-		projectRegion:                    cfg.ProjectRegion,
 		logger:                           cfg.Logger,
 	}
 }

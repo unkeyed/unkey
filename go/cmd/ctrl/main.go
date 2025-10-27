@@ -85,17 +85,15 @@ var Cmd = &cli.Command{
 		cli.String("build-s3-access-key-secret", "S3 secret access key for build contexts",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 
-		// Depot Build Backend Configuration
-		cli.String("depot-api-url", "Depot API endpoint URL",
-			cli.EnvVar("UNKEY_DEPOT_API_URL")),
-		cli.String("depot-registry-url", "Depot container registry URL",
-			cli.EnvVar("UNKEY_DEPOT_REGISTRY_URL")),
-		cli.String("depot-username", "Depot registry username",
-			cli.EnvVar("UNKEY_DEPOT_USERNAME")),
-		cli.String("depot-access-token", "Depot API access token",
-			cli.EnvVar("UNKEY_DEPOT_ACCESS_TOKEN")),
+		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
+			cli.EnvVar("UNKEY_REGISTRY_URL")),
+		cli.String("registry-username", "Username for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_USERNAME")),
+		cli.String("registry-password", "Password/token for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_PASSWORD")),
 		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
 			cli.EnvVar("UNKEY_BUILD_PLATFORM"), cli.Default("linux/amd64")),
+		// Depot Build Backend Configuration
 		cli.String("depot-project-region", "Build data will be stored in the chosen region ('us-east-1','eu-central-1')",
 			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
 
@@ -138,12 +136,15 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := ctrl.Config{
 		// Basic configuration
-		Platform:      cmd.String("platform"),
-		BuildPlatform: cmd.String("build-platform"),
-		Image:         cmd.String("image"),
-		HttpPort:      cmd.Int("http-port"),
-		Region:        cmd.String("region"),
-		InstanceID:    cmd.String("instance-id"),
+		Platform:         cmd.String("platform"),
+		BuildPlatform:    cmd.String("build-platform"),
+		Image:            cmd.String("image"),
+		HttpPort:         cmd.Int("http-port"),
+		Region:           cmd.String("region"),
+		InstanceID:       cmd.String("instance-id"),
+		RegistryURL:      cmd.String("registry-url"),
+		RegistryUsername: cmd.String("registry-username"),
+		RegistryPassword: cmd.String("registry-password"),
 
 		// Database configuration
 		DatabasePrimary:   cmd.String("database-primary"),
@@ -184,9 +185,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Depot build backend configuration
 		Depot: ctrl.DepotConfig{
 			APIUrl:        cmd.String("depot-api-url"),
-			RegistryUrl:   cmd.String("depot-registry-url"),
-			Username:      cmd.String("depot-username"),
-			AccessToken:   cmd.String("depot-access-token"),
 			ProjectRegion: cmd.String("depot-project-region"),
 		},
 
