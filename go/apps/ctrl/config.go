@@ -1,9 +1,19 @@
 package ctrl
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/tls"
+)
+
+type BuildBackend string
+
+const (
+	BuildBackendDepot  BuildBackend = "depot"
+	BuildBackendDocker BuildBackend = "docker"
 )
 
 type S3Config struct {
@@ -11,6 +21,7 @@ type S3Config struct {
 	Bucket          string
 	AccessKeyID     string
 	AccessKeySecret string
+	ExternalURL     string
 }
 
 type CloudflareConfig struct {
@@ -30,7 +41,6 @@ type AcmeConfig struct {
 }
 
 type RestateConfig struct {
-
 	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
 	IngressURL string
 
@@ -43,6 +53,19 @@ type RestateConfig struct {
 	// RegisterAs is the url of this service, used for self-registration with the Restate platform
 	// ie: http://ctrl:9080
 	RegisterAs string
+}
+
+type DepotConfig struct {
+	// APIUrl is the URL of the Depot API endpoint (e.g., "https://api.depot.dev")
+	APIUrl string
+	// Build data will be stored in the chosen region ("us-east-1","eu-central-1") (default "us-east-1")
+	ProjectRegion string
+}
+
+type RegistryConfig struct {
+	URL      string
+	Username string
+	Password string
 }
 
 type Config struct {
@@ -60,6 +83,18 @@ type Config struct {
 
 	// Region identifies the geographic region where this node is deployed
 	Region string
+
+	// RegistryURL is the URL of the container registry for pulling images.
+	// Example: "registry.depot.dev"
+	RegistryURL string
+
+	// RegistryUsername is the username for authenticating with the container registry.
+	// Example: "x-token", "depot", or any registry-specific username.
+	RegistryUsername string
+
+	// RegistryPassword is the password/token for authenticating with the container registry.
+	// Should be stored securely (e.g., environment variable).
+	RegistryPassword string
 
 	// --- Database configuration ---
 
@@ -101,6 +136,59 @@ type Config struct {
 	DefaultDomain string
 
 	Restate RestateConfig
+
+	// --- Build Storage Configuration ---
+	BuildBackend BuildBackend
+	BuildS3      S3Config
+	// BuildPlatform defines the target platform for builds (e.g., "linux/amd64", "linux/arm64")
+	BuildPlatform string
+	Depot         DepotConfig
+}
+
+type BuildPlatform struct {
+	Platform     string
+	Architecture string
+}
+
+// parseBuildPlatform validates and parses a build platform string
+func parseBuildPlatform(buildPlatform string) (BuildPlatform, error) {
+	buildPlatform = strings.TrimPrefix(buildPlatform, "/")
+	parts := strings.Split(buildPlatform, "/")
+
+	if err := assert.All(
+		assert.Equal(len(parts), 2, fmt.Sprintf("invalid build platform format: %s (expected format: linux/amd64)", buildPlatform)),
+		assert.Equal(parts[0], "linux", fmt.Sprintf("unsupported OS: %s (only linux is supported)", parts[0])),
+	); err != nil {
+		return BuildPlatform{}, err
+	}
+
+	return BuildPlatform{
+		Platform:     buildPlatform,
+		Architecture: parts[1],
+	}, nil
+}
+
+// GetBuildPlatform returns the parsed build platform
+// This should only be called after Validate() has been called successfully
+func (c Config) GetBuildPlatform() BuildPlatform {
+	parsed, _ := parseBuildPlatform(c.BuildPlatform)
+	return parsed
+}
+
+// GetRegistryConfig returns the registry configuration
+// This should only be called after Validate() has been called successfully
+func (c Config) GetRegistryConfig() RegistryConfig {
+	return RegistryConfig{
+		URL:      c.RegistryURL,
+		Username: c.RegistryUsername,
+		Password: c.RegistryPassword,
+	}
+}
+
+// GetDepotConfig returns the depot configuration
+// This should only be called after Validate() has been called successfully
+func (c Config) GetDepotConfig() DepotConfig {
+	return c.Depot
 }
 
 func (c Config) Validate() error {
@@ -111,5 +199,40 @@ func (c Config) Validate() error {
 		}
 	}
 
-	return nil
+	// Validate build platform format
+	_, platformErr := parseBuildPlatform(c.BuildPlatform)
+
+	// Validate registry configuration
+	registryErr := assert.All(
+		assert.NotEmpty(c.RegistryURL, "registry URL is required"),
+		assert.NotEmpty(c.RegistryUsername, "registry username is required"),
+		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
+	)
+
+	switch c.BuildBackend {
+	case BuildBackendDepot:
+		return assert.All(
+			platformErr,
+			registryErr,
+			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
+			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
+			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when using Depot backend"),
+			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"),
+		)
+	case BuildBackendDocker:
+		return assert.All(
+			platformErr,
+			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
+			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"),
+			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"),
+		)
+	default:
+		return fmt.Errorf("build backend must be either 'depot' or 'docker', got: %s", c.BuildBackend)
+	}
 }
