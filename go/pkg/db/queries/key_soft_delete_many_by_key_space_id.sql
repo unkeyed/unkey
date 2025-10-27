@@ -1,4 +1,4 @@
--- name: SoftDeleteManyKeysByKeyAuthID :exec
+-- name: SoftDeleteManyKeysByKeySpaceID :exec
 UPDATE `keys`
 SET deleted_at_m = sqlc.arg(now)
 WHERE key_auth_id = sqlc.arg(key_space_id)

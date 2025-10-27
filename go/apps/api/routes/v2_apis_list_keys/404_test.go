@@ -151,7 +151,7 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 	})
 
-	// Test case for API without KeySpace (should return 412 Precondition Failed)
+	// Test case for API without KeySpace (should return 404 Not Found)
 	t.Run("API without KeySpace", func(t *testing.T) {
 		// Create API without KeySpace
 		noKeySpaceApiID := uid.New("api")
