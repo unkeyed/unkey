@@ -56,12 +56,5 @@ func WithRetry[T any](fn func() (T, error)) (T, error) {
 		}),
 	)
 
-	var result T
-	err := retrier.Do(func() error {
-		var retryErr error
-		result, retryErr = fn()
-		return retryErr
-	})
-
-	return result, err
+	return retry.DoWithResult(retrier, fn)
 }
