@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronExpandY } from "@unkey/icons";
 import type React from "react";
 import { useState } from "react";
 
@@ -101,7 +101,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             </span>
           )}
         </div>
-        <ChevronsUpDown className="hidden w-3 h-3 md:block" />
+        <ChevronExpandY className="hidden w-3 h-3 md:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" className="w-96">
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
