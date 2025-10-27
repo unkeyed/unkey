@@ -12,7 +12,7 @@ type retry struct {
 	attempts int
 
 	// backoff is a function that returns the duration to wait before the next retry
-	// based on the current attempt number (zero-based)
+	// based on the current attempt number (starting at 1)
 	backoff func(n int) time.Duration
 
 	// shouldRetry is a function that determines if an error is retryable
@@ -24,14 +24,14 @@ type retry struct {
 	sleep func(d time.Duration)
 }
 
-// Build creates a new retry instance with default configuration.
+// New creates a new retry instance with default configuration.
 // Default configuration:
 //   - 3 retry attempts
 //   - Linear backoff starting at 100ms, increasing by 100ms per attempt
 //
 // Example:
 //
-//	r := retry.Build()
+//	r := retry.New()
 //	err := r.Do(func() error {
 //		// Simulate an operation that might fail
 //		resp, err := http.Get("https://api.example.com")
@@ -52,7 +52,7 @@ type retry struct {
 //
 // The retry behavior can be customized using Attempts() and Backoff():
 //
-// r := retry.Build(
+// r := retry.New(
 //
 //	retry.Attempts(5),
 //	retry.Backoff(func(n int) time.Duration {
@@ -90,7 +90,6 @@ func Attempts(attempts int) Apply {
 // should return the duration to wait before the next attempt.
 func Backoff(backoff func(n int) time.Duration) Apply {
 	return func(r *retry) *retry {
-
 		r.backoff = backoff
 		return r
 	}
@@ -153,4 +152,27 @@ func (r *retry) Do(fn func() error) error {
 	}
 
 	return err
+}
+
+// DoWithResult executes the given function with configured retry behavior and returns a result.
+// Works like Do() but for functions that return a value along with an error.
+// On failure, returns the result from the last attempt along with the final error.
+//
+// Example:
+//
+//	r := retry.New(retry.Attempts(3))
+//	user, err := retry.DoWithResult(r, func() (*User, error) {
+//		return fetchUserFromAPI(userID)
+//	})
+//	if err != nil {
+//		log.Printf("failed to fetch user after 3 attempts: %v", err)
+//	}
+func DoWithResult[T any](r *retry, fn func() (T, error)) (T, error) {
+	var result T
+	err := r.Do(func() error {
+		var retryErr error
+		result, retryErr = fn()
+		return retryErr
+	})
+	return result, err
 }
