@@ -23,7 +23,7 @@
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
     "@hono/zod-openapi": "^0.11.0",
-    "@hono/zod-validator": "^0.2.1",
+    "@hono/zod-validator": "^0.7.4",
     "@planetscale/database": "^1.16.0",
     "@unkey/cache": "workspace:^",
     "@unkey/clickhouse": "workspace:^",
