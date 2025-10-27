@@ -22,7 +22,7 @@ post:
           basic:
             summary: Get identity
             value:
-              externalId: user_123
+              identity: user_123
     required: true
   responses:
     "200":
