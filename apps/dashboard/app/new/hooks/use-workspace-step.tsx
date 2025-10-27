@@ -22,7 +22,7 @@ const workspaceSchema = z.object({
     .max(64, "Workspace slug must be 64 characters or less")
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens).",
+      "Use lowercase letters, numbers, and single hyphens (no leading/trailing hyphens)."
     ),
 });
 
@@ -100,7 +100,11 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
           ),
         });
       } else if (error.data?.code === "CONFLICT") {
-        form.setError("slug", { message: error.message }, { shouldFocus: true });
+        form.setError(
+          "slug",
+          { message: error.message },
+          { shouldFocus: true }
+        );
       } else {
         toast.error(`Failed to create workspace: ${error.message}`);
       }
@@ -129,7 +133,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
 
   return {
     name: "Workspace",
-    icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
+    icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
     body: (
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col">
