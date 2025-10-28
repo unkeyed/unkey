@@ -93,9 +93,9 @@ jobs:
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
-              - 'go/**'
               - '!go/benchmarks/**'
               - '!go/demo_api/**'
+              - 'go/**'
 
             # ClickHouse schema and related
             clickhouse:
