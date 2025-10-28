@@ -46,6 +46,7 @@ export const fetchKeyPermissions = t.procedure
         where: and(eq(schema.keys.id, input.keyId), isNull(schema.keys.deletedAtM)),
         with: {
           keyAuth: true,
+          credits: true,
           roles: {
             with: {
               role: {
@@ -95,7 +96,7 @@ export const fetchKeyPermissions = t.procedure
             roles: key.workspace.permissions,
           },
         },
-        remainingCredit: key.remaining,
+        remainingCredit: key.remaining || key?.credits?.remaining,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

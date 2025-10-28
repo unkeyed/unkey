@@ -2,6 +2,7 @@ import { creditsSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_compone
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
@@ -23,6 +24,9 @@ export const updateKeyRemaining = t.procedure
               eq(table.id, input.keyId),
               isNull(table.deletedAtM),
             ),
+          with: {
+            credits: true,
+          },
         });
         if (!key) {
           throw new TRPCError({
@@ -32,6 +36,9 @@ export const updateKeyRemaining = t.procedure
           });
         }
 
+        const hasOldCredits = key.remaining !== null;
+        const hasNewCredits = key.credits !== null;
+
         // If limits are disabled, set all values to null
         if (input.limit.enabled) {
           // Get appropriate refill values based on the interval
@@ -39,39 +46,59 @@ export const updateKeyRemaining = t.procedure
           const refillDay = refill.interval === "monthly" ? refill.refillDay : null;
           const refillAmount = refill.interval !== "none" ? refill.amount : null;
 
-          await tx
-            .update(schema.keys)
-            .set({
+          if (hasOldCredits) {
+            await tx
+              .update(schema.keys)
+              .set({
+                remaining: input.limit.data.remaining,
+                refillDay,
+                refillAmount,
+                lastRefillAt: refillAmount ? new Date() : null,
+              })
+              .where(
+                and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)),
+              );
+          } else if (hasNewCredits) {
+            await tx
+              .update(schema.credits)
+              .set({
+                remaining: input.limit.data.remaining,
+                refillDay,
+                refillAmount,
+                refilledAt: Date.now(),
+                updatedAt: Date.now(),
+              })
+              .where(eq(schema.credits.id, key.credits.id));
+          } else {
+            await tx.insert(schema.credits).values({
+              id: newId("credit"),
+              workspaceId: ctx.workspace.id,
+              keyId: key.id,
+              identityId: null,
               remaining: input.limit.data.remaining,
               refillDay,
               refillAmount,
-              lastRefillAt: refillAmount ? new Date() : null,
-            })
-            .where(and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)))
-            .catch((_err) => {
-              throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message:
-                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
-              });
+              refilledAt: Date.now(),
+              updatedAt: Date.now(),
+              createdAt: Date.now(),
             });
+          }
         } else {
-          await tx
-            .update(schema.keys)
-            .set({
-              remaining: null,
-              refillDay: null,
-              refillAmount: null,
-              lastRefillAt: null,
-            })
-            .where(and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)))
-            .catch((_err) => {
-              throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message:
-                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
-              });
-            });
+          if (hasOldCredits) {
+            await tx
+              .update(schema.keys)
+              .set({
+                remaining: null,
+                refillDay: null,
+                refillAmount: null,
+                lastRefillAt: null,
+              })
+              .where(
+                and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)),
+              );
+          } else {
+            await tx.delete(schema.credits).where(eq(schema.credits.id, key.credits.id));
+          }
         }
 
         // Create audit log

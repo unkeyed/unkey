@@ -296,6 +296,7 @@ export async function getAllKeys({
         return filterConditions;
       },
       with: {
+        credits: true,
         ratelimits: {
           columns: {
             id: true,
@@ -326,6 +327,30 @@ export async function getAllKeys({
             external_id: key.identity.externalId,
           }
         : null;
+
+      let creditsData: KeyDetails["key"]["credits"] = {
+        enabled: false,
+        remaining: null,
+        refillAmount: null,
+        refillDay: null,
+      };
+
+      if (key.credits) {
+        creditsData = {
+          enabled: true,
+          remaining: key.credits.remaining,
+          refillAmount: key.credits.refillAmount,
+          refillDay: key.credits.refillDay,
+        };
+      } else if (key.remaining !== null) {
+        creditsData = {
+          enabled: true,
+          remaining: key.remaining,
+          refillAmount: key.refillAmount,
+          refillDay: key.refillDay,
+        };
+      }
+
       return {
         id: key.id,
         name: key.name,
@@ -338,12 +363,7 @@ export async function getAllKeys({
         start: key.start,
         metadata: key.meta,
         key: {
-          credits: {
-            enabled: key.remaining !== null,
-            remaining: key.remaining,
-            refillAmount: key.refillAmount,
-            refillDay: key.refillDay,
-          },
+          credits: creditsData,
           ratelimits: {
             enabled: key.ratelimits.length > 0,
             items: key.ratelimits.map((r) => ({

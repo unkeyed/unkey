@@ -94,7 +94,6 @@ export const vercelRouter = t.router({
             forWorkspaceId: integration.workspace.id,
             expires: null,
             createdAtM: Date.now(),
-            remaining: null,
             deletedAtM: null,
           });
           await insertAuditLogs(tx, {
@@ -415,7 +414,6 @@ export const vercelRouter = t.router({
           forWorkspaceId: integration.workspace.id,
           expires: null,
           createdAtM: Date.now(),
-          remaining: null,
           deletedAtM: null,
         });
         await insertAuditLogs(tx, {

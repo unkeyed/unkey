@@ -101,13 +101,24 @@ export async function createKeyCore(
     expires: input.expires ? new Date(input.expires) : null,
     createdAtM: Date.now(),
     updatedAtM: null,
-    remaining: input.remaining,
-    refillDay: input.refill?.refillDay ?? null,
-    refillAmount: input.refill?.amount ?? null,
-    lastRefillAt: input.refill ? new Date() : null,
     enabled: input.enabled,
     environment: input.environment,
   });
+
+  if (input.remaining) {
+    await tx.insert(schema.credits).values({
+      id: newId("credit"),
+      workspaceId: ctx.workspace.id,
+      keyId,
+      identityId: null,
+      remaining: input.remaining,
+      refillAmount: input.refill?.amount ?? null,
+      refillDay: input.refill?.refillDay ?? null,
+      createdAt: Date.now(),
+      updatedAt: null,
+      refilledAt: null,
+    });
+  }
 
   if (input.storeEncryptedKeys) {
     const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
