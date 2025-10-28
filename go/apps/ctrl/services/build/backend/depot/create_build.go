@@ -24,6 +24,12 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
+const (
+	// Cache policy constants for Depot projects
+	defaultCacheKeepGB   = 50
+	defaultCacheKeepDays = 14
+)
+
 // CreateBuild orchestrates the container image build process using Depot.
 //
 // Steps:
@@ -39,9 +45,14 @@ func (s *Depot) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
+	buildContextPath := req.Msg.GetBuildContextPath()
+	unkeyProjectID := req.Msg.GetUnkeyProjectId()
+	deploymentID := req.Msg.GetDeploymentId()
+
 	if err := assert.All(
-		assert.NotEmpty(req.Msg.BuildContextPath, "build_context_path is required"),
-		assert.NotEmpty(req.Msg.UnkeyProjectId, "unkey_project_id is required"),
+		assert.NotEmpty(buildContextPath, "build_context_path is required"),
+		assert.NotEmpty(unkeyProjectID, "unkey_project_id is required"),
+		assert.NotEmpty(deploymentID, "deploymentID is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -50,33 +61,33 @@ func (s *Depot) CreateBuild(
 	architecture := s.buildPlatform.Architecture
 
 	s.logger.Info("Starting build process - getting presigned URL for build context",
-		"build_context_path", req.Msg.BuildContextPath,
-		"unkey_project_id", req.Msg.UnkeyProjectId,
+		"build_context_path", buildContextPath,
+		"unkey_project_id", unkeyProjectID,
 		"platform", platform,
 		"architecture", architecture)
 
-	contextURL, err := s.storage.GenerateDownloadURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
+	contextURL, err := s.storage.GenerateDownloadURL(ctx, buildContextPath, 15*time.Minute)
 	if err != nil {
 		s.logger.Error("Failed to get presigned URL",
 			"error", err,
-			"build_context_path", req.Msg.BuildContextPath,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"build_context_path", buildContextPath,
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get presigned URL: %w", err))
 	}
 
-	depotProjectID, err := s.getOrCreateDepotProject(ctx, req.Msg.UnkeyProjectId)
+	depotProjectID, err := s.getOrCreateDepotProject(ctx, unkeyProjectID)
 	if err != nil {
 		s.logger.Error("Failed to get/create depot project",
 			"error", err,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get/create depot project: %w", err))
 	}
 
 	s.logger.Info("Creating depot build",
 		"depot_project_id", depotProjectID,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	buildResp, err := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
 		ProjectId: depotProjectID,
@@ -85,7 +96,7 @@ func (s *Depot) CreateBuild(
 		s.logger.Error("Creating depot build failed",
 			"error", err,
 			"depot_project_id", depotProjectID,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create build: %w", err))
 	}
@@ -93,7 +104,7 @@ func (s *Depot) CreateBuild(
 	s.logger.Info("Depot build created",
 		"build_id", buildResp.ID,
 		"depot_project_id", depotProjectID,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	var buildErr error
 	defer buildResp.Finish(buildErr)
@@ -101,7 +112,7 @@ func (s *Depot) CreateBuild(
 	s.logger.Info("Acquiring build machine",
 		"build_id", buildResp.ID,
 		"architecture", architecture,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, architecture)
 	if buildErr != nil {
@@ -109,7 +120,7 @@ func (s *Depot) CreateBuild(
 			"error", buildErr,
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to acquire machine: %w", buildErr))
 	}
@@ -117,7 +128,7 @@ func (s *Depot) CreateBuild(
 
 	s.logger.Info("Build machine acquired, connecting to buildkit",
 		"build_id", buildResp.ID,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	buildkitClient, buildErr := buildkit.Connect(ctx)
 	if buildErr != nil {
@@ -125,14 +136,14 @@ func (s *Depot) CreateBuild(
 			"error", buildErr,
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
 	}
 	defer buildkitClient.Close()
 
 	// INFO: "s.registryConfig.URL", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
-	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, req.Msg.GetUnkeyProjectId(), req.Msg.GetDeploymentId())
+	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, unkeyProjectID, deploymentID)
 
 	dockerfilePath := req.Msg.GetDockerfilePath()
 	if dockerfilePath == "" {
@@ -145,7 +156,7 @@ func (s *Depot) CreateBuild(
 		"platform", platform,
 		"architecture", architecture,
 		"build_id", buildResp.ID,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	solverOptions := client.SolveOpt{
 		Frontend: "dockerfile.v0",
@@ -185,7 +196,7 @@ func (s *Depot) CreateBuild(
 			"image_name", imageName,
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("build failed: %w", buildErr))
 	}
@@ -196,7 +207,7 @@ func (s *Depot) CreateBuild(
 		"depot_project_id", depotProjectID,
 		"platform", platform,
 		"architecture", architecture,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
 		ImageName:      imageName,
@@ -242,18 +253,19 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		Name:     projectName,
 		RegionId: s.depotConfig.ProjectRegion,
 		CachePolicy: &corev1.CachePolicy{
-			KeepGb:   50,
-			KeepDays: 14,
+			KeepGb:   defaultCacheKeepGB,
+			KeepDays: defaultCacheKeepDays,
 		},
 	}))
 	if err != nil {
 		return "", fmt.Errorf("failed to create project: %w", err)
 	}
+	depotProjectID := createResp.Msg.Project.GetProjectId()
 
 	now := time.Now().UnixMilli()
 	err = db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
 		DepotProjectID: sql.NullString{
-			String: createResp.Msg.Project.ProjectId,
+			String: depotProjectID,
 			Valid:  true,
 		},
 		UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
@@ -264,7 +276,7 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	}
 
 	s.logger.Info("Created new Depot project",
-		"depot_project_id", createResp.Msg.Project.ProjectId,
+		"depot_project_id", depotProjectID,
 		"unkey_project_id", unkeyProjectID,
 		"project_name", projectName)
 
