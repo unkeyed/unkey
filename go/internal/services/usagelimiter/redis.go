@@ -2,6 +2,7 @@ package usagelimiter
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -24,7 +25,10 @@ const (
 // CreditChange represents a change to a credit balance that needs to be
 // replayed to the database for eventual consistency with Redis counters.
 type CreditChange struct {
-	// CreditID is the unique identifier of the credits we need to decrement
+	// KeyID for legacy keys.remaining_requests system
+	KeyID string
+
+	// CreditID for new credits table system (takes precedence)
 	CreditID string
 
 	// Cost is the number of credits that we should deduct
@@ -185,7 +189,15 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
 
-	redisKey := s.redisKey(req.CreditID)
+	// Determine which system to use and generate appropriate Redis key
+	var redisKey string
+	if req.CreditID != "" {
+		redisKey = s.creditRedisKey(req.CreditID)
+	} else if req.KeyID != "" {
+		redisKey = s.keyRedisKey(req.KeyID)
+	} else {
+		return UsageResponse{Valid: false, Remaining: 0}, nil
+	}
 
 	// Attempt decrement if key already exists in Redis
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
@@ -202,13 +214,19 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	return s.handleResult(req, remaining, success)
 }
 
-func (s *counterService) Invalidate(ctx context.Context, creditID string) error {
-	return s.counter.Delete(ctx, s.redisKey(creditID))
-
+func (s *counterService) Invalidate(ctx context.Context, identifier string) error {
+	// Try both possible key formats since we don't know which system this is
+	_ = s.counter.Delete(ctx, s.creditRedisKey(identifier))
+	_ = s.counter.Delete(ctx, s.keyRedisKey(identifier))
+	return nil
 }
 
-func (s *counterService) redisKey(creditID string) string {
+func (s *counterService) creditRedisKey(creditID string) string {
 	return fmt.Sprintf("credits:%s", creditID)
+}
+
+func (s *counterService) keyRedisKey(keyID string) string {
+	return fmt.Sprintf("key_remaining:%s", keyID)
 }
 
 // handleResult processes the result of a decrement operation using an explicit success flag.
@@ -217,6 +235,7 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 	if success {
 		// decrement succeeded - buffer the change for async database sync
 		s.replayBuffer.Buffer(CreditChange{
+			KeyID:    req.KeyID,
 			CreditID: req.CreditID,
 			Cost:     req.Cost,
 		})
@@ -238,15 +257,36 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
 
-	limit, err := db.WithRetry(func() (int32, error) {
-		return db.Query.FindRemainingCredits(ctx, s.db.RO(), req.CreditID)
-	})
+	// Load from appropriate database table
+	var limit int32
+	var err error
+
+	if req.CreditID != "" {
+		// New credits system
+		limit, err = db.WithRetry(func() (int32, error) {
+			return db.Query.FindRemainingCredits(ctx, s.db.RO(), req.CreditID)
+		})
+	} else if req.KeyID != "" {
+		// Legacy key.remaining_requests system
+		limit, err = db.WithRetry(func() (int32, error) {
+			remaining, err := db.Query.FindRemainingKey(ctx, s.db.RO(), req.KeyID)
+			if err != nil {
+				return 0, err
+			}
+			if !remaining.Valid {
+				// No usage limit configured - this shouldn't be called
+				return 0, sql.ErrNoRows
+			}
+			return remaining.Int32, nil
+		})
+	} else {
+		return UsageResponse{Valid: false, Remaining: 0}, nil
+	}
 
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
 		}
-
 		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
 
@@ -264,7 +304,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 
 	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, initValue, s.ttl)
 	if err != nil {
-		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "creditID", req.CreditID)
+		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -282,7 +322,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	// Another node already initialized the key, check if we have enough after decrement
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
-		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "creditID", req.CreditID)
+		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -310,12 +350,28 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 		metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
 	}()
 
-	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-		return nil, db.Query.UpdateCreditDecrement(ctx, s.db.RW(), db.UpdateCreditDecrementParams{
-			ID:      change.CreditID,
-			Credits: change.Cost,
+	var err error
+
+	if change.CreditID != "" {
+		// New credits system
+		_, err = s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
+			return nil, db.Query.UpdateCreditDecrement(ctx, s.db.RW(), db.UpdateCreditDecrementParams{
+				ID:      change.CreditID,
+				Credits: change.Cost,
+			})
 		})
-	})
+	} else if change.KeyID != "" {
+		// Legacy key.remaining_requests system
+		_, err = s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
+			return nil, db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
+				ID:      change.KeyID,
+				Credits: sql.NullInt32{Int32: change.Cost, Valid: true},
+			})
+		})
+	} else {
+		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
+		return fmt.Errorf("neither CreditID nor KeyID provided")
+	}
 
 	if err != nil {
 		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()

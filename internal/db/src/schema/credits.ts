@@ -44,26 +44,23 @@ export const credits = mysqlTable(
      */
     refillDay: tinyint("refill_day"),
     refillAmount: int("refill_amount"),
-
-    ...lifecycleDatesV2,
     refilledAt: bigint("refilled_at", {
       mode: "number",
       unsigned: true,
     }),
+    ...lifecycleDatesV2,
   },
   (table) => ({
     workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
     uniquePerKey: uniqueIndex("unique_per_key_idx").on(table.keyId),
-    uniquePerIdentity: uniqueIndex("unique_per_identity_idx").on(
-      table.identityId
-    ),
+    uniquePerIdentity: uniqueIndex("unique_per_identity_idx").on(table.identityId),
     // Index for refill workflow queries
     refillLookupIdx: index("refill_lookup_idx").on(
       table.refillDay,
       table.refillAmount,
-      table.refilledAt
+      table.refilledAt,
     ),
-  })
+  }),
 );
 
 export const creditsRelations = relations(credits, ({ one }) => ({

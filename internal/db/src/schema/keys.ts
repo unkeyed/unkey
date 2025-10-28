@@ -59,7 +59,7 @@ export const keys = mysqlTable(
      * - null = we refill on every day
      */
     refillDay: tinyint("refill_day"),
-    
+
     /**
      * @deprecated
      * You can refill uses to keys at a desired interval
@@ -69,7 +69,7 @@ export const keys = mysqlTable(
      * - 10   = we refill 10 uses
      */
     refillAmount: int("refill_amount"),
-    
+
     /**
      * @deprecated
      * You can refill uses to keys at a desired interval
@@ -84,9 +84,9 @@ export const keys = mysqlTable(
     enabled: boolean("enabled").default(true).notNull(),
 
     /**
+     * @deprecated
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
-
     remaining: int("remaining_requests"),
     ratelimitAsync: boolean("ratelimit_async"),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
@@ -125,7 +125,6 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.workspaceId],
     references: [workspaces.id],
   }),
-
   forWorkspace: one(workspaces, {
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],

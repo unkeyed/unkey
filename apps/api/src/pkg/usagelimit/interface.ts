@@ -1,7 +1,15 @@
 import { z } from "zod";
 
 export const limitRequestSchema = z.object({
-  keyId: z.string(),
+  /**
+   * For legacy key-based credits stored in keys.remaining
+   */
+  keyId: z.string().optional(),
+  /**
+   * For new credits system stored in credits table.
+   * When present, this takes precedence over keyId.
+   */
+  creditId: z.string().optional(),
   cost: z.number(),
 });
 export type LimitRequest = z.infer<typeof limitRequestSchema>;
@@ -13,7 +21,8 @@ export const limitResponseSchema = z.object({
 export type LimitResponse = z.infer<typeof limitResponseSchema>;
 
 export const revalidateRequestSchema = z.object({
-  keyId: z.string(),
+  keyId: z.string().optional(),
+  creditId: z.string().optional(),
 });
 export type RevalidateRequest = z.infer<typeof revalidateRequestSchema>;
 

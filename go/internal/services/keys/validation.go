@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -16,8 +17,7 @@ import (
 )
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
-// Priority: Identity credits > Key credits. If identity has credits, those are used and deducted.
-// Otherwise, key credits are used. Unlimited is indicated by nil credits.
+// Priority: Identity credits > Key credits > Legacy key.remaining_requests
 func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	ctx, span := tracing.Start(ctx, "verify.withCredits")
 	defer span.End()
@@ -26,35 +26,39 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return nil
 	}
 
-	// Determine which credits to use (identity takes priority)
-	var creditID string
+	// Check if any usage limit is configured
+	hasIdentityCredits := k.IdentityCredits != nil
+	hasKeyCredits := k.KeyCredits != nil
+	hasLegacyRemaining := k.Key.RemainingRequests.Valid
 
-	if k.IdentityCredits == nil && k.KeyCredits == nil {
+	if !hasIdentityCredits && !hasKeyCredits && !hasLegacyRemaining {
+		// No usage limit configured
 		return nil
 	}
 
-	if k.IdentityCredits != nil {
-		// Use identity credits
-		creditID = k.IdentityCredits.ID
-	} else if k.KeyCredits != nil {
-		// Fall back to key credits
-		creditID = k.KeyCredits.ID
+	// Determine which credit system to use (priority: identity > key > legacy)
+	req := usagelimiter.UsageRequest{Cost: cost}
+	if hasIdentityCredits {
+		req.CreditID = k.IdentityCredits.ID
+	} else if hasKeyCredits {
+		req.CreditID = k.KeyCredits.ID
+	} else {
+		req.KeyID = k.Key.ID
 	}
 
-	// Use the credit ID for usage limiting
-	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
-		CreditID: creditID,
-		Cost:     cost,
-	})
+	// Limit usage
+	usage, err := k.usageLimiter.Limit(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	// Update the appropriate credit object with the new remaining count
-	if k.IdentityCredits != nil {
+	// Update remaining credits based on which system was used
+	if hasIdentityCredits {
 		k.IdentityCredits.Remaining = usage.Remaining
-	} else if k.KeyCredits != nil {
+	} else if hasKeyCredits {
 		k.KeyCredits.Remaining = usage.Remaining
+	} else {
+		k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
 	}
 
 	if !usage.Valid {

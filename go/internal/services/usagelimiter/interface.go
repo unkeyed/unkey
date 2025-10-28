@@ -16,6 +16,10 @@ type Service interface {
 }
 
 type UsageRequest struct {
+	// For legacy key-based credits stored in keys.remaining_requests
+	KeyID string
+	// For new credits system stored in credits table.
+	// When present, this takes precedence over KeyID.
 	CreditID string
 	Cost     int32
 }

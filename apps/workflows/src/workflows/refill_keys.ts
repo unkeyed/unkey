@@ -1,8 +1,4 @@
-import {
-  WorkflowEntrypoint,
-  type WorkflowEvent,
-  type WorkflowStep,
-} from "cloudflare:workers";
+import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 
 import { newId } from "@unkey/id";
 import { createConnection, eq, schema } from "../lib/db";
@@ -22,11 +18,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
     } catch {}
 
     // Set up last day of month so if refillDay is after last day of month, Key will be refilled today.
-    const lastDayOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0
-    ).getDate();
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const today = now.getUTCDate();
     const db = createConnection({
       host: this.env.DATABASE_HOST,
@@ -43,17 +35,11 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
       let refillConditions = and(
         isNotNull(schema.credits.refillAmount),
         gt(schema.credits.refillAmount, schema.credits.remaining),
-        or(
-          isNull(schema.credits.refillDay),
-          eq(schema.credits.refillDay, today)
-        )
+        or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today)),
       );
 
       if (today === lastDayOfMonth) {
-        refillConditions = and(
-          refillConditions,
-          gt(schema.credits.refillDay, today)
-        );
+        refillConditions = and(refillConditions, gt(schema.credits.refillDay, today));
       }
 
       // Query with joins to filter out deleted keys/identities at DB level
@@ -67,26 +53,17 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
         })
         .from(schema.credits)
         .leftJoin(schema.keys, eq(schema.credits.keyId, schema.keys.id))
-        .leftJoin(
-          schema.identities,
-          eq(schema.credits.identityId, schema.identities.id)
-        )
+        .leftJoin(schema.identities, eq(schema.credits.identityId, schema.identities.id))
         .where(
           and(
             refillConditions,
             // Filter: if it's a key credit, key must not be deleted
             // OR if it's an identity credit, identity must not be deleted
             or(
-              and(
-                isNotNull(schema.credits.keyId),
-                isNull(schema.keys.deletedAtM)
-              ),
-              and(
-                isNotNull(schema.credits.identityId),
-                eq(schema.identities.deleted, false)
-              )
-            )
-          )
+              and(isNotNull(schema.credits.keyId), isNull(schema.keys.deletedAtM)),
+              and(isNotNull(schema.credits.identityId), eq(schema.identities.deleted, false)),
+            ),
+          ),
         );
 
       return results.map((c) => ({
@@ -98,9 +75,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
       }));
     });
 
-    console.info(
-      `found ${creditsToRefill.length} credits with refill set for today`
-    );
+    console.info(`found ${creditsToRefill.length} credits with refill set for today`);
 
     for (const credit of creditsToRefill) {
       const resourceType = credit.keyId ? "key" : "identity";

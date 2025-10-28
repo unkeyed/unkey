@@ -86,7 +86,8 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.usagelimit"),
-    keyId: z.string(),
+    keyId: z.string().optional(),
+    creditId: z.string().optional(),
     latency: z.number(),
   }),
   z.object({

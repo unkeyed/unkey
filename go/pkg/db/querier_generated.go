@@ -305,6 +305,7 @@ type Querier interface {
 	//         k.refill_amount,
 	//         k.last_refill_at,
 	//         k.enabled,
+	//         k.remaining_requests,
 	//         a.ip_whitelist,
 	//         a.workspace_id  as api_workspace_id,
 	//         a.id            as api_id,
@@ -806,6 +807,10 @@ type Querier interface {
 	//
 	//  SELECT remaining FROM `credits` WHERE id = ?
 	FindRemainingCredits(ctx context.Context, db DBTX, id string) (int32, error)
+	//FindRemainingKey
+	//
+	//  SELECT remaining_requests FROM `keys` WHERE id = ?
+	FindRemainingKey(ctx context.Context, db DBTX, id string) (sql.NullInt32, error)
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
@@ -1838,6 +1843,15 @@ type Querier interface {
 	//      updated_at_m = ?
 	//  WHERE id = ?
 	UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error
+	//UpdateKeyCreditsDecrement
+	//
+	//  UPDATE `keys`
+	//  SET remaining_requests = CASE
+	//      WHEN remaining_requests >= ? THEN remaining_requests - ?
+	//      ELSE 0
+	//  END
+	//  WHERE id = ?
+	UpdateKeyCreditsDecrement(ctx context.Context, db DBTX, arg UpdateKeyCreditsDecrementParams) error
 	//UpdateKeyringKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
