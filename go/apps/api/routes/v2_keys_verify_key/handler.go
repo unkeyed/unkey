@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -24,7 +25,7 @@ import (
 type Request = openapi.V2KeysVerifyKeyRequestBody
 type Response = openapi.V2KeysVerifyKeyResponseBody
 
-const DefaultCost = 1
+const DefaultCost int32 = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
@@ -127,11 +128,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
+	cost := DefaultCost
 	if req.Credits != nil {
-		opts = append(opts, keys.WithCredits(req.Credits.Cost))
-	} else if key.Key.RemainingRequests.Valid {
-		opts = append(opts, keys.WithCredits(DefaultCost))
+		cost = req.Credits.Cost
 	}
+	opts = append(opts, keys.WithCredits(cost))
 
 	if req.Ratelimits != nil {
 		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
@@ -141,7 +142,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if req.Permissions != nil {
-		// Parse the permissions query string using the RBAC parser
 		query, parseErr := rbac.ParseQuery(*req.Permissions)
 		if parseErr != nil {
 			return fault.Wrap(parseErr,
@@ -181,10 +181,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keyData.Roles = ptr.P(key.Roles)
 	}
 
-	remaining := key.Key.RemainingRequests
-	if remaining.Valid {
-		keyData.Credits = ptr.P(remaining.Int32)
+	// Return credits from identity if available, otherwise from key (priority logic)
+	if key.IdentityCredits != nil {
+		keyData.Credits = ptr.P(key.IdentityCredits.Remaining)
+	} else if key.KeyCredits != nil {
+		keyData.Credits = ptr.P(key.KeyCredits.Remaining)
 	}
+	// If neither, keyData.Credits remains nil (unlimited)
 
 	if key.Key.Expires.Valid {
 		keyData.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
@@ -234,6 +237,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("unable to unmarshal identity meta"),
 					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
 				)
+			}
+		}
+
+		// Add identity credits if they exist
+		if key.IdentityCredits != nil {
+			keyData.Identity.Credits = &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue(int64(key.IdentityCredits.Remaining)),
+			}
+
+			if key.IdentityCredits.RefillAmount.Valid {
+				var refillDay *int
+				interval := openapi.Daily
+				if key.IdentityCredits.RefillDay.Valid {
+					interval = openapi.Monthly
+					refillDay = ptr.P(int(key.IdentityCredits.RefillDay.Int16))
+				}
+
+				keyData.Identity.Credits.Refill = &openapi.CreditsRefill{
+					Amount:    int64(key.IdentityCredits.RefillAmount.Int32),
+					Interval:  interval,
+					RefillDay: refillDay,
+				}
 			}
 		}
 	}

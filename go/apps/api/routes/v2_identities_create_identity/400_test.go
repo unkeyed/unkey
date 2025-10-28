@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_create_identity"
@@ -214,5 +215,75 @@ func TestBadRequests(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
+	})
+
+	t.Run("invalid credit value - too large", func(t *testing.T) {
+		req := handler.Request{
+			ExternalId: uid.New(""),
+			Credits: &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue[int64](2147483648), // max int32 + 1
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "Credit value must be between 0 and 2147483647")
+	})
+
+	t.Run("invalid credit value - negative", func(t *testing.T) {
+		req := handler.Request{
+			ExternalId: uid.New(""),
+			Credits: &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue[int64](-1),
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/identities.createIdentity' failed to validate schema")
+	})
+
+	t.Run("invalid refill day - too high", func(t *testing.T) {
+		refillDay := 32
+
+		req := handler.Request{
+			ExternalId: uid.New(""),
+			Credits: &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue[int64](100),
+				Refill: &openapi.CreditsRefill{
+					Amount:    50,
+					Interval:  openapi.Monthly,
+					RefillDay: &refillDay,
+				},
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/identities.createIdentity' failed to validate schema")
+	})
+
+	t.Run("invalid refill day - zero", func(t *testing.T) {
+		refillDay := 0
+
+		req := handler.Request{
+			ExternalId: uid.New(""),
+			Credits: &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue[int64](100),
+				Refill: &openapi.CreditsRefill{
+					Amount:    50,
+					Interval:  openapi.Monthly,
+					RefillDay: &refillDay,
+				},
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/identities.createIdentity' failed to validate schema")
 	})
 }

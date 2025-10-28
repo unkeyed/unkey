@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -30,6 +31,7 @@ type Handler struct {
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
+	KeyCache  cache.Cache[string, db.CachedKeyData]
 }
 
 // Method returns the HTTP method this route responds to
@@ -90,10 +92,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Parse ratelimits JSON
-	var ratelimits []db.RatelimitInfo
-	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
-		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
+	if identity.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("identity not found",
+			fault.Code(codes.Data.Identity.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"), fault.Public("This identity does not exist."),
+		)
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -105,23 +108,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
 		// so we can hard delete the "old" deleted version
 		if db.IsDuplicateKeyError(err) {
-			// Check if this identity is already soft-deleted (could happen with concurrent requests)
-			alreadyDeleted, checkErr := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
+			// Delete the old soft-deleted identity and its ratelimits
+			err = db.Query.DeleteOldIdentityWithRatelimits(ctx, tx, db.DeleteOldIdentityWithRatelimitsParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				IdentityID:  identity.ID,
-				Deleted:     true,
-			})
-			if checkErr == nil && alreadyDeleted.ID == identity.ID {
-				// Identity is already soft-deleted, this is idempotent, return success
-				// Skip audit logs - they were already created by the request that deleted it
-				return nil
-			}
-
-			// Delete the old soft-deleted identity with the same external_id, excluding the current one
-			err = db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
-				WorkspaceID:       auth.AuthorizedWorkspaceID,
-				ExternalID:        identity.ExternalID,
-				CurrentIdentityID: identity.ID,
+				Identity:    req.Identity,
 			})
 			if err != nil {
 				return fault.Wrap(err,
@@ -136,15 +126,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Identity:    identity.ID,
 			})
-			if err != nil {
-				// If we still get a duplicate key error after deleting the old identity,
-				// it means another concurrent request already soft-deleted this identity.
-				// This is safe to treat as success (idempotent operation).
-				// Skip audit logs - they were already created by the concurrent request
-				if db.IsDuplicateKeyError(err) {
-					return nil // Skip audit logs
-				}
-			}
 		}
 
 		if err != nil {
@@ -175,6 +156,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			},
+		}
+
+		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{String: identity.ID, Valid: true})
+		if listErr != nil {
+			return fault.Wrap(listErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database failed to load identity ratelimits"), fault.Public("Failed to load Identity ratelimits."),
+			)
 		}
 
 		for _, rl := range ratelimits {

@@ -355,7 +355,7 @@ func TestSuccess(t *testing.T) {
 				// ID fields should never be empty
 				require.NotEmpty(t, identity.ExternalId, "External ID should not be empty")
 
-				dbIdentity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RW(), db.FindIdentityByExternalIDParams{WorkspaceID: workspaceID, ExternalID: identity.ExternalId, Deleted: false})
+				dbIdentity, err := db.Query.FindIdentity(ctx, h.DB.RW(), db.FindIdentityParams{WorkspaceID: workspaceID, Identity: identity.ExternalId, Deleted: false})
 				require.NoError(t, err)
 				require.NotNil(t, dbIdentity, "Identity should be found in the database")
 
