@@ -72,10 +72,6 @@ export const createRootKey = t.procedure
           forWorkspaceId: ctx.workspace.id,
           expires: null,
           createdAtM: Date.now(),
-          remaining: null,
-          refillAmount: null,
-          refillDay: null,
-          lastRefillAt: null,
           enabled: true,
           deletedAtM: null,
         });

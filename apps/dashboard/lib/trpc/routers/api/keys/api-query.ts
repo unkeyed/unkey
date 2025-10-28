@@ -1,17 +1,10 @@
 import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
-import { type InferSelectModel, type SQL, db } from "@/lib/db";
+import { type Credits, type Key, type Permission, type Role, type SQL, db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities } from "@unkey/db/src/schema";
 
-import type { keys } from "@unkey/db/src/schema/keys";
-import type { permissions, roles } from "@unkey/db/src/schema/rbac";
-
-type BaseKey = InferSelectModel<typeof keys>;
-type BaseRole = InferSelectModel<typeof roles>;
-type BasePermission = InferSelectModel<typeof permissions>;
-
 type DatabaseKey = Pick<
-  BaseKey,
+  Key,
   | "id"
   | "keyAuthId"
   | "name"
@@ -24,14 +17,15 @@ type DatabaseKey = Pick<
   | "workspaceId"
 > & {
   permissions: {
-    permission: Pick<BasePermission, "name" | "description" | "createdAtM" | "updatedAtM">;
+    permission: Pick<Permission, "name" | "description" | "createdAtM" | "updatedAtM">;
   }[];
   roles: {
-    role: Pick<BaseRole, "name" | "description" | "createdAtM" | "updatedAtM">;
+    role: Pick<Role, "name" | "description" | "createdAtM" | "updatedAtM">;
   }[];
   identity: {
     externalId: string;
   } | null;
+  credits: Credits;
 };
 
 type KeyDetails = {
@@ -47,16 +41,16 @@ type KeyDetails = {
   workspace_id: DatabaseKey["workspaceId"];
   identity: { external_id: string } | null;
   roles: {
-    name: BaseRole["name"];
-    description: BaseRole["description"];
-    createdAt?: BaseRole["createdAtM"];
-    updatedAt?: BaseRole["updatedAtM"];
+    name: Role["name"];
+    description: Role["description"];
+    createdAt?: Role["createdAtM"];
+    updatedAt?: Role["updatedAtM"];
   }[];
   permissions: {
-    name: BasePermission["name"];
-    description: BasePermission["description"];
-    createdAt?: BasePermission["createdAtM"];
-    updatedAt?: BasePermission["updatedAtM"];
+    name: Permission["name"];
+    description: Permission["description"];
+    createdAt?: Permission["createdAtM"];
+    updatedAt?: Permission["updatedAtM"];
   }[];
 };
 
@@ -99,6 +93,7 @@ export async function queryApiKeys({
           with: {
             keys: {
               with: {
+                credits: true,
                 permissions: {
                   with: {
                     permission: {
@@ -350,7 +345,7 @@ export function createKeyDetailsMap(keys: DatabaseKey[]): Map<string, KeyDetails
       identity_id: key.identityId,
       meta: key.meta,
       enabled: key.enabled,
-      remaining_requests: key.remaining,
+      remaining_requests: key.remaining || key?.credits.remaining,
       environment: key.environment,
       workspace_id: key.workspaceId,
       identity: identityData,
