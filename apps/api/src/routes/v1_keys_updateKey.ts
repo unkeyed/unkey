@@ -456,7 +456,7 @@ export const registerV1KeysUpdate = (app: App) =>
           creditChanges.refilledAt = null;
         } else {
           creditChanges.refillAmount = req.refill.amount;
-          creditChanges.refillDay = req.refill.refillDay ?? 1;
+          creditChanges.refillDay = req.refill.refillDay ?? null;
         }
       }
 
@@ -467,7 +467,7 @@ export const registerV1KeysUpdate = (app: App) =>
           changes.lastRefillAt = null;
         } else {
           changes.refillAmount = req.refill.amount;
-          changes.refillDay = req.refill.refillDay ?? 1;
+          changes.refillDay = req.refill.refillDay ?? null;
         }
       }
     }
