@@ -23,8 +23,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitDeleteOverrideRequestBody
-type Response = openapi.V2RatelimitDeleteOverrideResponseBody
+type (
+	Request  = openapi.V2RatelimitDeleteOverrideRequestBody
+	Response = openapi.V2RatelimitDeleteOverrideResponseBody
+)
 
 type Handler struct {
 	Logger                  logging.Logger
@@ -59,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-			response, err := db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+			response, err := db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
 				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Namespace:   req.Namespace,
@@ -99,7 +101,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		caches.DefaultFindFirstOp,
 	)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("namespace not found",
