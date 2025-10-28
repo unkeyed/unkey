@@ -21,3 +21,17 @@ jobs:
         run: pnpm turbo run build --filter=@unkey/dashboard
         env:
           CI: 1
+          DATABASE_HOST: localhost:8080
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: unkey
+          UNKEY_WORKSPACE_ID: "not-empty"
+          UNKEY_API_ID: "not-empty"
+          UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
+          AGENT_URL: "http://localhost:8080"
+          AGENT_TOKEN: "not-empty"
+          AUTH_PROVIDER: "workos"
+          WORKOS_CLIENT_ID: "client_"
+          WORKOS_API_KEY: "sk_test_"
+          WORKOS_COOKIE_PASSWORD: "IAMACOOKIEPASSWORD"
+          NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/sso-callback"
