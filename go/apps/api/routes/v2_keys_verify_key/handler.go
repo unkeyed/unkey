@@ -229,12 +229,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			keyData.Identity.Ratelimits = ptr.P(identityRatelimits)
 		}
 
-		keyData.Identity.Meta, err = db.UnmarshalNullableJSONTo[*map[string]any](key.Key.IdentityMeta)
-		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to unmarshal identity meta"),
-				fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
-			)
+		if keyData.Identity.Meta != nil && len(*keyData.Identity.Meta) > 0 {
+			keyData.Identity.Meta = db.UnmarshalNullableJSONTo[*map[string]any](key.Key.IdentityMeta, h.Logger)
 		}
 	}
 

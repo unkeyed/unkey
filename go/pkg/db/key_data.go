@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // KeyData represents the complete data for a key including all relationships
@@ -25,31 +27,31 @@ type KeyRow interface {
 }
 
 // ToKeyData converts either query result into KeyData using generics
-func ToKeyData[T KeyRow](row T) *KeyData {
+func ToKeyData[T KeyRow](row T, logger logging.Logger) *KeyData {
 	switch r := any(row).(type) {
 	case FindLiveKeyByHashRow:
-		return buildKeyData(&r)
+		return buildKeyData(&r, logger)
 	case *FindLiveKeyByHashRow:
-		return buildKeyData(r)
+		return buildKeyData(r, logger)
 	case FindLiveKeyByIDRow:
-		return buildKeyDataFromID(&r)
+		return buildKeyDataFromID(&r, logger)
 	case *FindLiveKeyByIDRow:
-		return buildKeyDataFromID(r)
+		return buildKeyDataFromID(r, logger)
 	case ListLiveKeysByKeyAuthIDRow:
-		return buildKeyDataFromKeyAuth(&r)
+		return buildKeyDataFromKeyAuth(&r, logger)
 	case *ListLiveKeysByKeyAuthIDRow:
-		return buildKeyDataFromKeyAuth(r)
+		return buildKeyDataFromKeyAuth(r, logger)
 	default:
 		return nil
 	}
 }
 
-func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
+func buildKeyDataFromID(r *FindLiveKeyByIDRow, logger logging.Logger) *KeyData {
 	hr := FindLiveKeyByHashRow(*r) // safe value copy
-	return buildKeyData(&hr)
+	return buildKeyData(&hr, logger)
 }
 
-func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
+func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow, logger logging.Logger) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -81,10 +83,10 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 		Workspace:       Workspace{}, // Empty Workspace since not in this query
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           UnmarshalJSONArrayTo[RoleInfo](r.Roles),
-		Permissions:     UnmarshalJSONArrayTo[PermissionInfo](r.Permissions),
-		RolePermissions: UnmarshalJSONArrayTo[PermissionInfo](r.RolePermissions),
-		Ratelimits:      UnmarshalJSONArrayTo[RatelimitInfo](r.Ratelimits),
+		Roles:           UnmarshalNullableJSONTo[[]RoleInfo](r.Roles, logger),
+		Permissions:     UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions, logger),
+		RolePermissions: UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions, logger),
+		Ratelimits:      UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits, logger),
 	}
 
 	if r.IdentityID.Valid {
@@ -99,7 +101,7 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 	return kd
 }
 
-func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
+func buildKeyData(r *FindLiveKeyByHashRow, logger logging.Logger) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -131,10 +133,10 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Workspace:       r.Workspace,
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           UnmarshalJSONArrayTo[RoleInfo](r.Roles),
-		Permissions:     UnmarshalJSONArrayTo[PermissionInfo](r.Permissions),
-		RolePermissions: UnmarshalJSONArrayTo[PermissionInfo](r.RolePermissions),
-		Ratelimits:      UnmarshalJSONArrayTo[RatelimitInfo](r.Ratelimits),
+		Roles:           UnmarshalNullableJSONTo[[]RoleInfo](r.Roles, logger),
+		Permissions:     UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions, logger),
+		RolePermissions: UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions, logger),
+		Ratelimits:      UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits, logger),
 	}
 
 	if r.IdentityTableID.Valid {

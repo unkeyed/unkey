@@ -2,11 +2,13 @@ package db
 
 import (
 	"encoding/json"
+	"fmt"
 
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// These types mirror the database models and support JSON serialization and deserialization.
+// RoleInfo  types mirror the database models and support JSON serialization and deserialization.
 // They are used to unmarshal aggregated results (e.g., JSON arrays) returned by database queries.
 type RoleInfo struct {
 	ID          string            `json:"id"`
@@ -31,64 +33,54 @@ type RatelimitInfo struct {
 	AutoApply  bool              `json:"auto_apply"`
 }
 
-// UnmarshalJSONArrayTo deserializes a JSON byte array into a slice of type T.
-// It handles the common pattern of database queries returning aggregated JSON arrays
-// that need to be unmarshaled into Go structs.
+// UnmarshalNullableJSONTo unmarshals JSON data from database columns into Go types.
+// It handles the common pattern where database queries return JSON as []byte that needs
+// to be deserialized into structs, slices, or maps.
 //
-// Returns an empty slice if:
+// The function accepts 'any' type because database drivers return interface{} for JSON columns,
+// even though the underlying value is typically []byte. We perform a type assertion to safely
+// extract the bytes before unmarshaling.
+//
+// Returns zero value if:
 //   - data is nil
-//   - data is not []byte
-//   - the byte slice is empty
-//   - JSON unmarshaling fails
+//   - data is not []byte (logs warning about unexpected type)
+//   - byte slice is empty
+//   - JSON unmarshaling fails (logs error with details)
 //
-// This fail-safe behavior prevents nil pointer panics and simplifies error handling
-// at call sites, allowing callers to always work with a valid slice.
+// This fail-safe behavior prevents panics and allows callers to continue execution with
+// empty values when JSON data is malformed or missing.
 //
 // Example usage:
 //
-//	roles := UnmarshalJSONArrayTo[RoleInfo](row.Roles)
-//	// roles is guaranteed to be []RoleInfo, never nil
-func UnmarshalJSONArrayTo[T any](data any) []T {
+//	roles := UnmarshalNullableJSONTo[[]RoleInfo](row.Roles, logger)
+//	meta := UnmarshalNullableJSONTo[map[string]any](row.Meta, logger)
+func UnmarshalNullableJSONTo[T any](data any, logger logging.Logger) T {
+	var zero T
+
 	if data == nil {
-		return []T{}
+		return zero
 	}
 
 	bytes, ok := data.([]byte)
-	if !ok || len(bytes) == 0 {
-		return []T{}
+	if !ok {
+		logger.Warn("type assertion failed during unmarshal",
+			"expected", "[]byte",
+			"got", fmt.Sprintf("%T", data),
+		)
+		return zero
+	}
+	if len(bytes) == 0 {
+		return zero
 	}
 
-	var result []T
-	if err := json.Unmarshal(bytes, &result); err != nil {
-		return []T{}
-	}
-	return result
-}
-
-// UnmarshalNullableJSONTo unmarshals the JSON data and returns the result with an error.
-// Returns zero value and nil if the JSON is NULL or invalid.
-// Returns zero value and error if JSON unmarshaling fails.
-//
-// Use this when you want inline assignment with generic type inference:
-//
-//	myData, err := UnmarshalNullableJSONTo[MyStruct](nullJSON)
-//	if err != nil {
-//	    return err
-//	}
-//	// use myData
-func UnmarshalNullableJSONTo[T any](data []byte) (T, error) {
 	var result T
-
-	// NULL check
-	if data == nil {
-		return result, nil
+	err := json.Unmarshal(bytes, &result)
+	if err != nil {
+		logger.Error("failed to unmarshal JSON",
+			"error", err,
+		)
+		return zero
 	}
 
-	// Empty check
-	if len(data) == 0 {
-		return result, nil
-	}
-
-	err := json.Unmarshal(data, &result)
-	return result, err
+	return result
 }

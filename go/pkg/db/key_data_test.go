@@ -17,7 +17,7 @@ func TestToKeyData_ValidCases(t *testing.T) {
 			Enabled:     true,
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Equal(t, "test-key-id", result.Key.ID)
@@ -34,7 +34,7 @@ func TestToKeyData_ValidCases(t *testing.T) {
 			Enabled:     false,
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Equal(t, "test-key-id-ptr", result.Key.ID)
@@ -51,7 +51,7 @@ func TestToKeyData_ValidCases(t *testing.T) {
 			Enabled:     true,
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Equal(t, "hash-key-id", result.Key.ID)
@@ -68,7 +68,7 @@ func TestToKeyData_ValidCases(t *testing.T) {
 			Enabled:     false,
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Equal(t, "hash-key-ptr", result.Key.ID)
@@ -82,7 +82,7 @@ func TestToKeyData_EmptyValues(t *testing.T) {
 	t.Run("zero value FindLiveKeyByIDRow", func(t *testing.T) {
 		row := FindLiveKeyByIDRow{} // All zero values
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Equal(t, "", result.Key.ID)
@@ -99,7 +99,7 @@ func TestToKeyData_EmptyValues(t *testing.T) {
 	t.Run("zero value FindLiveKeyByHashRow", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{} // All zero values
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Equal(t, "", result.Key.ID)
@@ -124,7 +124,7 @@ func TestToKeyData_WithIdentity(t *testing.T) {
 			IdentityMeta:       []byte(`{"role": "admin"}`),
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.NotNil(t, result.Identity)
@@ -141,7 +141,7 @@ func TestToKeyData_WithIdentity(t *testing.T) {
 			IdentityTableID: sql.NullString{Valid: false}, // No identity
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Nil(t, result.Identity)
@@ -182,7 +182,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 			Ratelimits:      ratelimitsJSON,
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Len(t, result.Roles, 2)
@@ -208,7 +208,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 			Ratelimits:  []byte(`{"incomplete": true`), // Bad JSON
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		// Should default to empty arrays when JSON unmarshaling fails
@@ -227,7 +227,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 			Ratelimits:      nil,
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		require.Empty(t, result.Roles)
@@ -244,7 +244,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 			RolePermissions: struct{}{},         // Wrong type
 		}
 
-		result := ToKeyData(row)
+		result := ToKeyData(row, nil)
 
 		require.NotNil(t, result)
 		// Should default to empty arrays when type assertion fails

@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyData := db.ToKeyData(key)
+	keyData := db.ToKeyData(key, h.Logger)
 
 	// Validate key belongs to authorized workspace
 	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -164,9 +164,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
-			h.Logger.Error("failed to unmarshal identity meta", "error", err)
-		} else {
+		if len(keyData.Identity.Meta) > 0 {
+			identityMeta := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta, h.Logger)
 			response.Identity.Meta = &identityMeta
 		}
 	}

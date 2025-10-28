@@ -136,13 +136,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Add metadata if available
-		metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to unmarshal identity metadata"),
-				fault.Public("We're unable to parse the metadata for the identity."),
-			)
-		}
+		metaMap := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta, h.Logger)
 		newIdentity.Meta = &metaMap
 
 		// Append the identity to the results
