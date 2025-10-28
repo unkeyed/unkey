@@ -632,7 +632,9 @@ type Querier interface {
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 	//      ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-	//
+	//      i.id as identity_table_id,
+	//      i.external_id as identity_external_id,
+	//      i.meta as identity_meta,
 	//      ek.encrypted as encrypted_key,
 	//      ek.encryption_key_id as encryption_key_id,
 	//
@@ -702,11 +704,6 @@ type Querier interface {
 	//              OR rl.identity_id = i.id),
 	//          JSON_ARRAY()
 	//      ) as ratelimits,
-	//
-	//      -- Identity
-	//      i.id as identity_table_id,
-	//      i.external_id as identity_external_id,
-	//      i.meta as identity_meta,
 	//
 	//      -- Credits Key/Identity based
 	//      kc.id as credit_id,
