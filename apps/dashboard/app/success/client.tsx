@@ -5,15 +5,15 @@ import { useEffect, useState } from "react";
 
 const PlanSelectionModal = dynamic(
   () =>
-    import("../(app)/[workspaceSlug]/settings/billing/components/plan-selection-modal").then(
-      (mod) => ({
-        default: mod.PlanSelectionModal,
-      }),
-    ),
+    import(
+      "../(app)/[workspaceSlug]/settings/billing/components/plan-selection-modal"
+    ).then((mod) => ({
+      default: mod.PlanSelectionModal,
+    })),
   {
     ssr: false,
     loading: () => null,
-  },
+  }
 );
 
 type Props = {
@@ -30,7 +30,11 @@ type Props = {
   }>;
 };
 
-export function SuccessClient({ workSpaceSlug, showPlanSelection, products }: Props) {
+export function SuccessClient({
+  workSpaceSlug,
+  showPlanSelection,
+  products,
+}: Props) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(true);
 
@@ -53,7 +57,6 @@ export function SuccessClient({ workSpaceSlug, showPlanSelection, products }: Pr
         isOpen={showModal}
         onOpenChange={setShowModal}
         products={products}
-        workspaceSlug={workSpaceSlug}
       />
     );
   }
