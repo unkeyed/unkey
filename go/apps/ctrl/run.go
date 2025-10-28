@@ -187,6 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
 		buildService = docker.New(docker.Config{
+			InstanceID:    cfg.InstanceID,
 			DB:            database,
 			Logger:        logger,
 			BuildPlatform: docker.BuildPlatform(cfg.GetBuildPlatform()),

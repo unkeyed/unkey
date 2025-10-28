@@ -171,6 +171,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3: ctrl.S3Config{
+			ExternalURL:     cmd.String(""),
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),

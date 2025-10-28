@@ -92,6 +92,7 @@ func (d *Docker) CreateBuild(
 		"architecture", architecture,
 		"unkey_project_id", unkeyProjectID)
 
+	//nolint: exhaustruct
 	buildOptions := build.ImageBuildOptions{
 		Tags:          []string{imageName},
 		Dockerfile:    dockerfilePath,
@@ -154,7 +155,8 @@ func (d *Docker) CreateBuild(
 		"unkey_project_id", unkeyProjectID)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
-		ImageName: imageName,
-		BuildId:   buildID,
+		DepotProjectId: "",
+		ImageName:      imageName,
+		BuildId:        buildID,
 	}), nil
 }

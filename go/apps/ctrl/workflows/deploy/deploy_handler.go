@@ -128,7 +128,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				DockerfilePath:   proto.String(req.GetDockerfilePath()),
 			})
 
-			buildResp, err := w.buildClient.CreateBuild(stepCtx, buildReq)
+			var buildResp *connect.Response[ctrlv1.CreateBuildResponse]
+			buildResp, err = w.buildClient.CreateBuild(stepCtx, buildReq)
 			if err != nil {
 				return "", fmt.Errorf("build failed: %w", err)
 			}

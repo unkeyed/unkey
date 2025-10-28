@@ -239,7 +239,8 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	} else {
 		// Build from context
 		ui.Print(MsgUploadingBuildContext)
-		buildContextPath, err := controlPlane.UploadBuildContext(ctx, opts.Context)
+		var buildContextPath string
+		buildContextPath, err = controlPlane.UploadBuildContext(ctx, opts.Context)
 		if err != nil {
 			ui.PrintError(MsgFailedToUploadContext)
 			ui.PrintErrorDetails(err.Error())

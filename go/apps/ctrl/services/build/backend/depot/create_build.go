@@ -90,6 +90,7 @@ func (s *Depot) CreateBuild(
 		"unkey_project_id", unkeyProjectID)
 
 	buildResp, err := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
+		Options:   nil,
 		ProjectId: depotProjectID,
 	}, s.registryConfig.Password)
 	if err != nil {
@@ -121,10 +122,22 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
+		buildResp.Finish(buildErr)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to acquire machine: %w", buildErr))
 	}
-	defer buildkit.Release()
+
+	defer func() {
+		if releaseErr := buildkit.Release(); releaseErr != nil {
+			s.logger.Error("Failed to release buildkit",
+				"error", releaseErr,
+				"build_id", buildResp.ID)
+			if buildErr == nil {
+				buildErr = releaseErr
+			}
+		}
+		buildResp.Finish(buildErr)
+	}()
 
 	s.logger.Info("Build machine acquired, connecting to buildkit",
 		"build_id", buildResp.ID,
@@ -158,6 +171,7 @@ func (s *Depot) CreateBuild(
 		"build_id", buildResp.ID,
 		"unkey_project_id", unkeyProjectID)
 
+	//nolint: exhaustruct
 	solverOptions := client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
@@ -166,6 +180,7 @@ func (s *Depot) CreateBuild(
 			"filename": dockerfilePath,
 		},
 		Session: []session.Attachable{
+			//nolint: exhaustruct
 			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 				ConfigFile: &configfile.ConfigFile{
 					AuthConfigs: map[string]types.AuthConfig{
@@ -177,6 +192,7 @@ func (s *Depot) CreateBuild(
 				},
 			}),
 		},
+		//nolint: exhaustruct
 		Exports: []client.ExportEntry{
 			{
 				Type: "image",
@@ -249,9 +265,11 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	})
 
 	projectClient := corev1connect.NewProjectServiceClient(httpClient, s.depotConfig.APIUrl, connect.WithInterceptors(authInterceptor))
+	//nolint: exhaustruct // optional fields
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
 		RegionId: s.depotConfig.ProjectRegion,
+		//nolint: exhaustruct // missing fields is deprecated
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   defaultCacheKeepGB,
 			KeepDays: defaultCacheKeepDays,
@@ -260,7 +278,7 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	if err != nil {
 		return "", fmt.Errorf("failed to create project: %w", err)
 	}
-	depotProjectID := createResp.Msg.Project.GetProjectId()
+	depotProjectID := createResp.Msg.GetProject().GetProjectId()
 
 	now := time.Now().UnixMilli()
 	err = db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
@@ -280,5 +298,5 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		"unkey_project_id", unkeyProjectID,
 		"project_name", projectName)
 
-	return createResp.Msg.Project.ProjectId, nil
+	return depotProjectID, nil
 }

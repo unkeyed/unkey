@@ -356,7 +356,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 		Name:        req.Name,
 		WorkspaceID: req.WorkspaceID,
 		CreatedAt:   createdAt,
-		UpdatedAt:   sql.NullInt64{Valid: false},
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 		KeyID:       sql.NullString{String: ptr.SafeDeref(req.KeyID, ""), Valid: req.KeyID != nil},
 		IdentityID:  sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Limit:       req.Limit,
@@ -405,7 +405,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		Meta:        metaBytes,
 		Deleted:     false,
 		CreatedAt:   time.Now().UnixMilli(),
-		UpdatedAt:   sql.NullInt64{Valid: false},
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 	}
 }
 
@@ -450,7 +450,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 		Name:        req.Name,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
-		UpdatedAtM:  sql.NullInt64{Valid: false},
+		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
 }
 
@@ -486,6 +486,6 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Slug:        req.Slug,
 		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
-		UpdatedAtM:  sql.NullInt64{Valid: false},
+		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
 }

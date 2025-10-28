@@ -421,6 +421,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			}
 
 			// Simulate the mapping logic from create_deployment.go
+			// nolint: all
 			params := db.InsertDeploymentParams{
 				ID:                       "test_deployment_id",
 				WorkspaceID:              "ws_test123",
