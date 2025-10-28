@@ -1,16 +1,13 @@
 type: object
 required:
-  - keyId
+  - identity
   - operation
 properties:
-  keyId:
+  identity:
     type: string
-    description: The ID of the key to update (begins with `key_`). This is the
-      database reference ID for the key, not the actual API key string that
-      users authenticate with. This ID uniquely identifies which key's credits
-      will be updated.
-    example: key_2cGKbMxRyIzhCxo1Idjz8q
     minLength: 3
+    description: The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service). This uniquely identifies which identity's credits will be updated across all associated keys.
+    example: user_123
   value:
     type:
       - integer
@@ -21,10 +18,10 @@ properties:
     description: |
       The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 
-      Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=INSUFFICIENT_CREDITS`.
+      Set to null when using 'set' operation to make the identity unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification for keys associated with this identity, and when credits reach zero, verification fails with `code=INSUFFICIENT_CREDITS`.
 
       Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
-    example: 1000
+    example: 10000
   operation:
     "$ref": "../../../../common/CreditOperation.yaml"
 additionalProperties: false
@@ -33,41 +30,41 @@ examples:
     summary: Upgrade user to higher credit tier
     description: Increase credits when user upgrades to a higher-tier plan
     value:
-      keyId: key_1234abcd
+      identity: user_premium_1234
       operation: set
-      value: 10000
+      value: 50000
   creditPurchase:
     summary: Add purchased credits to existing balance
     description: User bought additional credits to add to their current quota
     value:
-      keyId: key_5678efgh
+      identity: user_5678
       operation: increment
-      value: 5000
+      value: 10000
   unlimitedUpgrade:
     summary: Upgrade to unlimited usage plan
     description: Remove credit restrictions for enterprise tier users
     value:
-      keyId: key_9876wxyz
+      identity: org_enterprise_9876
       operation: set
       value: null
   billingCycleReset:
     summary: Reset monthly quota at billing cycle
     description: Refresh user's monthly credit allocation
     value:
-      keyId: key_cycle_abcd
+      identity: user_monthly_abcd
       operation: set
-      value: 25000
+      value: 100000
   policyViolation:
     summary: Reduce credits for policy violation
     description: Subtract credits as penalty for terms of service violation
     value:
-      keyId: key_violation_123
+      identity: user_violation_123
       operation: decrement
-      value: 1000
+      value: 5000
   refundCredits:
     summary: Refund unused credits
     description: Remove credits when processing a partial refund
     value:
-      keyId: key_refund_789
+      identity: user_refund_789
       operation: decrement
-      value: 3000
+      value: 15000

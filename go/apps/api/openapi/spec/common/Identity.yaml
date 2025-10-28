@@ -15,6 +15,8 @@ properties:
     description: Identity ratelimits
     items:
       "$ref": "./RatelimitResponse.yaml"
+  credits:
+    "$ref": "./Credits.yaml"
 required:
   - externalId
   - id

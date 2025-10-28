@@ -118,7 +118,7 @@ properties:
       Essential for trial periods, temporary access, and security compliance requiring key rotation.
     example: 1704067200000
   credits:
-    "$ref": "../../../../common/KeyCreditsData.yaml"
+    "$ref": "../../../../common/Credits.yaml"
     description: |
       Controls usage-based limits through credit consumption with optional automatic refills.
       Unlike rate limits which control frequency, credits control total usage with global consistency.

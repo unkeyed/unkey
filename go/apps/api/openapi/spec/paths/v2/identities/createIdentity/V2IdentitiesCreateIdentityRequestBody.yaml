@@ -45,3 +45,12 @@ properties:
       - Each named limit can have different thresholds and windows
 
       When verifying keys, you can specify which limits you want to use and all keys attached to this identity will share the limits, regardless of which specific key is used.
+  credits:
+    "$ref": "../../../../common/Credits.yaml"
+    description: |
+      Configure credit limits for this identity that are shared across all associated keys.
+      When a key belonging to this identity is verified, credits are deducted from the identity's balance rather than individual key limits.
+      Essential for implementing usage-based billing and quota management at the user or organization level.
+
+      Identity credits take priority over key-level credits during verification.
+      If not specified, the identity has unlimited credits by default.

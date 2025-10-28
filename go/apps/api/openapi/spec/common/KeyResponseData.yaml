@@ -68,7 +68,7 @@ properties:
       - editor
       - viewer
   credits:
-    "$ref": "./KeyCreditsData.yaml"
+    "$ref": "./Credits.yaml"
   identity:
     "$ref": "./Identity.yaml"
   plaintext:

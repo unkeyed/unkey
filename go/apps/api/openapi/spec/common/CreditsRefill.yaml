@@ -1,0 +1,25 @@
+type: object
+description: Configuration for automatic credit refill behavior.
+properties:
+  interval:
+    "$ref": "./CreditInterval.yaml"
+  amount:
+    type: integer
+    format: int64
+    minimum: 1
+    maximum: 9223372036854775807
+    description: Number of credits to add during each refill cycle.
+    example: 1000
+  refillDay:
+    type: integer
+    minimum: 1
+    maximum: 31
+    description: |
+      Day of the month for monthly refills (1-31).
+      Only required when interval is 'monthly'.
+      For days beyond the month's length, refill occurs on the last day of the month.
+    example: 15
+required:
+  - interval
+  - amount
+additionalProperties: false

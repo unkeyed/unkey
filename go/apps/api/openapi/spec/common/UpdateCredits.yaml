@@ -1,0 +1,21 @@
+type:
+  - object
+  - "null"
+description: |
+  Update credit configuration.
+  Omitting this field preserves existing credits, while setting to null removes credit limits entirely.
+  
+  Use this for adjusting usage quotas when users change subscription plans or purchase additional credits.
+properties:
+  remaining:
+    type:
+      - integer
+      - "null"
+    format: int64
+    minimum: 0
+    maximum: 9223372036854775807
+    description: Number of credits remaining (null for unlimited).
+    example: 1000
+  refill:
+    "$ref": "./UpdateCreditsRefill.yaml"
+additionalProperties: false

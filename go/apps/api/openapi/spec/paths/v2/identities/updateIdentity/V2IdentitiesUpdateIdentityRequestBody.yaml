@@ -33,6 +33,8 @@ properties:
         limit: 1000
         duration: 3600000
         autoApply: true
+  credits:
+    "$ref": "../../../../common/UpdateCredits.yaml"
 additionalProperties: false
 required:
   - identity

@@ -143,6 +143,8 @@ paths:
     $ref: "./spec/paths/v2/identities/listIdentities/index.yaml"
   /v2/identities.updateIdentity:
     $ref: "./spec/paths/v2/identities/updateIdentity/index.yaml"
+  /v2/identities.updateCredits:
+    $ref: "./spec/paths/v2/identities/updateCredits/index.yaml"
 
   # Key Endpoints
   /v2/keys.addPermissions:
