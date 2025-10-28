@@ -229,8 +229,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			keyData.Identity.Ratelimits = ptr.P(identityRatelimits)
 		}
 
-		if keyData.Identity.Meta != nil && len(*keyData.Identity.Meta) > 0 {
-			keyData.Identity.Meta = db.UnmarshalNullableJSONTo[*map[string]any](key.Key.IdentityMeta, h.Logger)
+		if len(key.Key.IdentityMeta) > 0 {
+			meta := db.UnmarshalNullableJSONTo[map[string]any](key.Key.IdentityMeta, h.Logger)
+			if len(meta) > 0 {
+				keyData.Identity.Meta = &meta
+			}
 		}
 	}
 

@@ -63,10 +63,12 @@ func UnmarshalNullableJSONTo[T any](data any, logger logging.Logger) T {
 
 	bytes, ok := data.([]byte)
 	if !ok {
-		logger.Warn("type assertion failed during unmarshal",
-			"expected", "[]byte",
-			"got", fmt.Sprintf("%T", data),
-		)
+		if logger != nil {
+			logger.Warn("type assertion failed during unmarshal",
+				"expected", "[]byte",
+				"got", fmt.Sprintf("%T", data),
+			)
+		}
 		return zero
 	}
 	if len(bytes) == 0 {
@@ -76,9 +78,11 @@ func UnmarshalNullableJSONTo[T any](data any, logger logging.Logger) T {
 	var result T
 	err := json.Unmarshal(bytes, &result)
 	if err != nil {
-		logger.Error("failed to unmarshal JSON",
-			"error", err,
-		)
+		if logger != nil {
+			logger.Error("failed to unmarshal JSON",
+				"error", err,
+			)
+		}
 		return zero
 	}
 

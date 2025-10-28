@@ -137,7 +137,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Add metadata if available
 		metaMap := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta, h.Logger)
-		newIdentity.Meta = &metaMap
+		if len(metaMap) > 0 {
+			newIdentity.Meta = &metaMap
+		}
 
 		// Append the identity to the results
 		data = append(data, newIdentity)
