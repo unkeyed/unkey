@@ -1,8 +1,8 @@
 import { FadeIn } from "@/components/landing/fade-in";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAuth } from "@/lib/auth/get-auth";
+import { Page2 } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
-import { FileText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type React from "react";
@@ -96,10 +96,10 @@ export default async function AuthenticatedLayout({
         </Link>
         <Link
           className="flex items-center h-8 gap-2 px-4 text-sm text-white duration-500 border rounded-lg bg-white/5 hover:bg-white hover:text-black border-white/10"
-          href="/docs"
+          href="https://www.unkey.com/docs"
           target="_blank"
         >
-          <FileText className="w-4 h-4" strokeWidth={1} />
+          <Page2 iconSize="md-thin" />
           Documentation
         </Link>
       </nav>

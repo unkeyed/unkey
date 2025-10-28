@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { Check } from "@unkey/icons";
 import type { KeyboardEvent, PropsWithChildren } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { SuggestionOption } from "./types";
