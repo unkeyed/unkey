@@ -115,35 +115,26 @@ func (s *Depot) CreateBuild(
 		"architecture", architecture,
 		"unkey_project_id", unkeyProjectID)
 
-	buildkit, buildErr := machine.Acquire(ctx, buildResp.ID, buildResp.Token, architecture)
+	var buildkit *machine.Machine
+	buildkit, buildErr = machine.Acquire(ctx, buildResp.ID, buildResp.Token, architecture)
 	if buildErr != nil {
 		s.logger.Error("Acquiring depot build failed",
 			"error", buildErr,
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		buildResp.Finish(buildErr)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to acquire machine: %w", buildErr))
 	}
-
-	defer func() {
-		if releaseErr := buildkit.Release(); releaseErr != nil {
-			s.logger.Error("Failed to release buildkit",
-				"error", releaseErr,
-				"build_id", buildResp.ID)
-			if buildErr == nil {
-				buildErr = releaseErr
-			}
-		}
-		buildResp.Finish(buildErr)
-	}()
+	//nolint: all
+	defer buildkit.Release()
 
 	s.logger.Info("Build machine acquired, connecting to buildkit",
 		"build_id", buildResp.ID,
 		"unkey_project_id", unkeyProjectID)
 
-	buildkitClient, buildErr := buildkit.Connect(ctx)
+	var buildkitClient *client.Client
+	buildkitClient, buildErr = buildkit.Connect(ctx)
 	if buildErr != nil {
 		s.logger.Error("Connection to depot build failed",
 			"error", buildErr,
@@ -155,7 +146,6 @@ func (s *Depot) CreateBuild(
 	}
 	defer buildkitClient.Close()
 
-	// INFO: "s.registryConfig.URL", "depotProjectID" order of these two arg must never change, otherwise depot will decline the registry upload.
 	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, unkeyProjectID, deploymentID)
 
 	dockerfilePath := req.Msg.GetDockerfilePath()

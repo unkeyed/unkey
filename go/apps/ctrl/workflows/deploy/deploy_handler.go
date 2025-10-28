@@ -180,14 +180,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			Deployment: &kranev1.DeploymentRequest{
 				Namespace:     hardcodedNamespace,
 				DeploymentId:  deployment.ID,
-				Image:         req.GetDockerImage(),
+				Image:         dockerImage,
 				Replicas:      1,
 				CpuMillicores: 512,
 				MemorySizeMib: 512,
 			},
 		}))
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", req.GetDockerImage(), err)
+			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", dockerImage, err)
 		}
 
 		return restate.Void{}, nil
