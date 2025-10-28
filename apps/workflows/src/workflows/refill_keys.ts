@@ -28,77 +28,120 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
     const BUCKET_NAME = "unkey_mutations";
 
     // If refillDay is after last day of month, refillDay will be today.
-    const keys = await step.do(
-      "fetch keys",
-      async () =>
-        await db.query.keys.findMany({
-          where: (table, { isNotNull, isNull, and, gt, or, eq }) => {
-            const baseConditions = and(
-              isNull(table.deletedAtM),
-              isNotNull(table.refillAmount),
-              gt(table.refillAmount, table.remaining),
-              or(isNull(table.refillDay), eq(table.refillDay, today)),
-            );
+    const creditsToRefill = await step.do("fetch credits", async () => {
+      const { and, or, eq, isNull, isNotNull, gt } = await import("@unkey/db");
 
-            if (today === lastDayOfMonth) {
-              return and(baseConditions, gt(table.refillDay, today));
-            }
+      // Build the refill conditions
+      let refillConditions = and(
+        isNotNull(schema.credits.refillAmount),
+        gt(schema.credits.refillAmount, schema.credits.remaining),
+        or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today)),
+      );
 
-            return baseConditions;
-          },
-          with: {
-            workspace: true,
-          },
-        }),
-    );
+      if (today === lastDayOfMonth) {
+        refillConditions = and(refillConditions, gt(schema.credits.refillDay, today));
+      }
 
-    console.info(`found ${keys.length} keys with refill set for today`);
+      // Query with joins to filter out deleted keys/identities at DB level
+      const results = await db
+        .select({
+          id: schema.credits.id,
+          workspaceId: schema.credits.workspaceId,
+          keyId: schema.credits.keyId,
+          identityId: schema.credits.identityId,
+          refillAmount: schema.credits.refillAmount,
+        })
+        .from(schema.credits)
+        .leftJoin(schema.keys, eq(schema.credits.keyId, schema.keys.id))
+        .leftJoin(schema.identities, eq(schema.credits.identityId, schema.identities.id))
+        .where(
+          and(
+            refillConditions,
+            // Filter: if it's a key credit, key must not be deleted
+            // OR if it's an identity credit, identity must not be deleted
+            or(
+              and(isNotNull(schema.credits.keyId), isNull(schema.keys.deletedAtM)),
+              and(isNotNull(schema.credits.identityId), eq(schema.identities.deleted, false)),
+            ),
+          ),
+        );
 
-    for (const key of keys) {
-      await step.do(`refilling ${key.id}`, async () => {
+      return results.map((c) => ({
+        id: c.id,
+        workspaceId: c.workspaceId,
+        keyId: c.keyId,
+        identityId: c.identityId,
+        refillAmount: c.refillAmount as number,
+      }));
+    });
+
+    console.info(`found ${creditsToRefill.length} credits with refill set for today`);
+
+    for (const credit of creditsToRefill) {
+      const resourceType = credit.keyId ? "key" : "identity";
+      const resourceId = credit.keyId || credit.identityId;
+      await step.do(`refilling ${credit.id} (${resourceType})`, async () => {
         await db.transaction(async (tx) => {
           await tx
-            .update(schema.keys)
+            .update(schema.credits)
             .set({
-              remaining: key.refillAmount,
-              lastRefillAt: now,
+              remaining: credit.refillAmount,
+              refilledAt: now.getTime(),
+              updatedAt: now.getTime(),
             })
-            .where(eq(schema.keys.id, key.id));
+            .where(eq(schema.credits.id, credit.id));
 
           const auditLogId = newId("auditLog");
+          const auditLogTargets = [
+            {
+              type: "workspace",
+              id: credit.workspaceId,
+              workspaceId: credit.workspaceId,
+              bucket: BUCKET_NAME,
+              bucketId: "dummy",
+              auditLogId,
+              displayName: `workspace ${credit.workspaceId}`,
+            },
+          ];
+
+          if (credit.keyId) {
+            auditLogTargets.push({
+              type: "key",
+              id: credit.keyId,
+              workspaceId: credit.workspaceId,
+              bucket: BUCKET_NAME,
+              bucketId: "dummy",
+              auditLogId,
+              displayName: `key ${credit.keyId}`,
+            });
+          }
+
+          if (credit.identityId) {
+            auditLogTargets.push({
+              type: "identity",
+              id: credit.identityId,
+              workspaceId: credit.workspaceId,
+              bucket: BUCKET_NAME,
+              bucketId: "dummy",
+              auditLogId,
+              displayName: `identity ${credit.identityId}`,
+            });
+          }
+
           await tx.insert(schema.auditLog).values({
             id: auditLogId,
-            workspaceId: key.workspaceId,
+            workspaceId: credit.workspaceId,
             bucket: BUCKET_NAME,
             bucketId: "dummy",
             time: now.getTime(),
-            event: "key.update",
+            event: resourceType === "key" ? "key.update" : "identity.update",
             actorId: "trigger",
             actorType: "system",
-            display: `Refilled ${key.id} to ${key.refillAmount}`,
+            display: `Refilled ${resourceType} ${resourceId} to ${credit.refillAmount} credits`,
           });
-          await tx.insert(schema.auditLogTarget).values([
-            {
-              type: "workspace",
-              id: key.workspaceId,
-              workspaceId: key.workspaceId,
-              bucket: BUCKET_NAME,
-              bucketId: "dummy",
-              auditLogId,
-              displayName: `workspace ${key.workspaceId}`,
-            },
-            {
-              type: "key",
-              id: key.id,
-              workspaceId: key.workspaceId,
-              bucket: BUCKET_NAME,
-              bucketId: "dummy",
-              auditLogId,
-              displayName: `key ${key.id}`,
-            },
-          ]);
+          await tx.insert(schema.auditLogTarget).values(auditLogTargets);
         });
-        return { keyId: key.id };
+        return { creditId: credit.id, resourceType, resourceId };
       });
     }
 
@@ -107,7 +150,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
     });
 
     return {
-      refillKeyIds: keys.map((k) => k.id),
+      refillCreditIds: creditsToRefill.map((c) => c.id),
     };
   }
 }
