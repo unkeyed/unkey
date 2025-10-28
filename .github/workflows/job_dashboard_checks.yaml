@@ -1,0 +1,37 @@
+name: Dashboard Checks
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  dashboard_checks:
+    name: Dashboard Checks
+    runs-on: depot-ubuntu-24.04-4
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: TypeScript Check
+        run: pnpm turbo run typecheck --filter=@unkey/dashboard
+      - name: Lint
+        run: pnpm turbo run lint --filter=@unkey/dashboard
+      - name: Build
+        run: pnpm turbo run build --filter=@unkey/dashboard
+        env:
+          CI: 1
+          DATABASE_HOST: localhost:8080
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: unkey
+          UNKEY_WORKSPACE_ID: "not-empty"
+          UNKEY_API_ID: "not-empty"
+          UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
+          AGENT_URL: "http://localhost:8080"
+          AGENT_TOKEN: "not-empty"
+          AUTH_PROVIDER: "workos"
+          WORKOS_CLIENT_ID: "client_"
+          WORKOS_API_KEY: "sk_test_"
+          WORKOS_COOKIE_PASSWORD: "IAMACOOKIEPASSWORD"
+          NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/sso-callback"
