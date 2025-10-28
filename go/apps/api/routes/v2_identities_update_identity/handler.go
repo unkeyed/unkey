@@ -558,6 +558,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Deleted:     false,
 	})
 	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.Wrap(err,
+				fault.Internal("identity disappeared after update"),
+				fault.Public("We were able to update the identity but unable to retrieve the updated state."),
+			)
+		}
+
 		return fault.Wrap(err,
 			fault.Internal("unable to fetch updated identity"),
 			fault.Public("We were able to update the identity but unable to retrieve the updated state."),

@@ -285,7 +285,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Valid: true,
 					}
 
-					if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
+					if req.Credits.Refill.Interval == openapi.Monthly {
 						if req.Credits.Refill.RefillDay == nil {
 							return fault.New("missing refillDay",
 								fault.Code(codes.App.Validation.InvalidInput.URN()),

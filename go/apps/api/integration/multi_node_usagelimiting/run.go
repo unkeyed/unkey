@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
@@ -46,8 +45,9 @@ func RunUsageLimitTest(
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		//nolint: gosec
-		Remaining: ptr.P(int32(totalCredits)),
+		Credits: &seed.CreditRequest{
+			Remaining: int32(totalCredits),
+		},
 	})
 
 	keyStart := keyResponse.Key
