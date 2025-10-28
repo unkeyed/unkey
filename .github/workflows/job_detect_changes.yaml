@@ -74,11 +74,8 @@ jobs:
 
             # Dashboard application and its dependencies
             dashboard:
-              - 'apps/dashboard/**'
-              - '!apps/dashboard/*.md'
-              - '!apps/dashboard/**/*.md'
-              - '!apps/dashboard/*.txt'
-              - '!apps/dashboard/**/*.txt'
+              - 'apps/dashboard/**/!(*.md|*.txt)'
+              - 'apps/dashboard/!(*.md|*.txt)'
               - 'internal/ui/**'
               - 'internal/icons/**'
               - 'internal/resend/**'
@@ -95,9 +92,8 @@ jobs:
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
-              - 'go/**'
-              - '!go/benchmarks/**'
-              - '!go/demo_api/**'
+              - 'go/!(benchmarks|demo_api)/**'
+              - 'go/!(benchmarks|demo_api)'
 
             # ClickHouse schema and related
             clickhouse:
