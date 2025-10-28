@@ -3,6 +3,7 @@ package retry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -214,6 +215,18 @@ func (r *retry) DoContext(ctx context.Context, fn func() error) error {
 		err = fn()
 		if err == nil {
 			return nil
+		}
+
+		// Without this check there is no way to catch derived context cancellations. E.g.
+		//
+		// ctx := context.Background()
+		// err := retrier.DoContext(ctx, func() error {
+		// 	derivedCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond) ----> We can't catch this
+		// 	defer cancel()
+		// 	return derivedCtx.Err()
+		// })
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
 		}
 
 		// Check if we should retry this error
