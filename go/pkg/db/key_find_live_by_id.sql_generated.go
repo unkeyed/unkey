@@ -16,7 +16,9 @@ SELECT
     a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
     ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
     ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-
+    i.id as identity_table_id,
+    i.external_id as identity_external_id,
+    i.meta as identity_meta,
     ek.encrypted as encrypted_key,
     ek.encryption_key_id as encryption_key_id,
 
@@ -142,6 +144,9 @@ type FindLiveKeyByIDRow struct {
 	Api                        Api            `db:"api"`
 	KeyAuth                    KeyAuth        `db:"key_auth"`
 	Workspace                  Workspace      `db:"workspace"`
+	IdentityTableID            sql.NullString `db:"identity_table_id"`
+	IdentityExternalID         sql.NullString `db:"identity_external_id"`
+	IdentityMeta               []byte         `db:"identity_meta"`
 	EncryptedKey               sql.NullString `db:"encrypted_key"`
 	EncryptionKeyID            sql.NullString `db:"encryption_key_id"`
 	Roles                      interface{}    `db:"roles"`
@@ -167,7 +172,9 @@ type FindLiveKeyByIDRow struct {
 //	    a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 //	    ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 //	    ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-//
+//	    i.id as identity_table_id,
+//	    i.external_id as identity_external_id,
+//	    i.meta as identity_meta,
 //	    ek.encrypted as encrypted_key,
 //	    ek.encryption_key_id as encryption_key_id,
 //
@@ -328,6 +335,9 @@ func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (Find
 		&i.Workspace.CreatedAtM,
 		&i.Workspace.UpdatedAtM,
 		&i.Workspace.DeletedAtM,
+		&i.IdentityTableID,
+		&i.IdentityExternalID,
+		&i.IdentityMeta,
 		&i.EncryptedKey,
 		&i.EncryptionKeyID,
 		&i.Roles,
