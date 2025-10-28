@@ -350,15 +350,17 @@ export const registerV1KeysUpdate = (app: App) =>
     const changes: Partial<Key> = {};
     const creditChanges: Partial<Credits> = {};
 
-    const hasOldCredits = key.remaining != null;
-    const hasNewCredits = key.credits != null;
+    const hasOldCredits = key.remaining !== null;
+    const hasNewCredits = key.credits !== null;
 
     if (typeof req.name !== "undefined") {
       changes.name = req.name;
     }
+
     if (typeof req.meta !== "undefined") {
       changes.meta = req.meta === null ? null : JSON.stringify(req.meta);
     }
+
     if (typeof req.externalId !== "undefined") {
       if (req.externalId === null) {
         changes.identityId = null;
@@ -378,9 +380,11 @@ export const registerV1KeysUpdate = (app: App) =>
         changes.ownerId = req.ownerId;
       }
     }
+
     if (typeof req.expires !== "undefined") {
       changes.expires = req.expires === null ? null : new Date(req.expires);
     }
+
     if (typeof req.remaining !== "undefined") {
       // Key has new credit system.
       if (hasNewCredits) {
