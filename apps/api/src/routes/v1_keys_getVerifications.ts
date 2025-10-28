@@ -102,6 +102,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
           with: {
             identity: true,
             encrypted: true,
+            credits: true,
             permissions: { with: { permission: true } },
             roles: { with: { role: true } },
             keyAuth: {
@@ -119,6 +120,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         return {
           key: dbRes,
           api: dbRes.keyAuth.api,
+          credits: dbRes.credits,
           permissions: dbRes.permissions.map((p) => p.permission.name),
           roles: dbRes.roles.map((p) => p.role.name),
           identity: dbRes.identity
