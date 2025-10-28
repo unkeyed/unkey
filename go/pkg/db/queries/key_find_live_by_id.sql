@@ -4,9 +4,7 @@ SELECT
     sqlc.embed(a),
     sqlc.embed(ka),
     sqlc.embed(ws),
-    i.id as identity_table_id,
-    i.external_id as identity_external_id,
-    i.meta as identity_meta,
+
     ek.encrypted as encrypted_key,
     ek.encryption_key_id as encryption_key_id,
 
