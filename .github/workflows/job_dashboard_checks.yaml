@@ -1,0 +1,23 @@
+name: Dashboard Checks
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  dashboard_checks:
+    name: Dashboard Checks
+    runs-on: depot-ubuntu-24.04-4
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: TypeScript Check
+        run: pnpm turbo run typecheck --filter=@unkey/dashboard
+      - name: Lint
+        run: pnpm turbo run lint --filter=@unkey/dashboard
+      - name: Build
+        run: pnpm turbo run build --filter=@unkey/dashboard
+        env:
+          CI: 1
