@@ -15,7 +15,24 @@ export const mapProduct = (p: Stripe.Product) => {
     throw new Error(`Product ${p.id} price is missing unit_amount`);
   }
 
-  const quotaValue = Number.parseInt(p.metadata.quota_requests_per_month, 10);
+  const quotaRaw = p.metadata?.quota_requests_per_month;
+
+  // Validate that the metadata value is a non-empty string of digits
+  if (!quotaRaw || typeof quotaRaw !== "string" || !/^\d+$/.test(quotaRaw)) {
+    throw new Error(
+      `Product ${p.id} metadata.quota_requests_per_month must be a non-empty string of digits, got: ${quotaRaw}`,
+    );
+  }
+
+  // Parse into integer only after regex validation
+  const quotaValue = Number.parseInt(quotaRaw, 10);
+
+  // Ensure the parsed integer is >= 0
+  if (quotaValue < 0) {
+    throw new Error(
+      `Product ${p.id} metadata.quota_requests_per_month must be >= 0, got: ${quotaRaw}`,
+    );
+  }
 
   return {
     id: p.id,

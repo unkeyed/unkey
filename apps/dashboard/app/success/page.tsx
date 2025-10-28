@@ -81,15 +81,6 @@ function SuccessContent() {
           workspaceId: workspaceId,
         });
 
-        // if (workspace) {
-        //   trpcUtils.workspace.getCurrent.invalidate();
-        // } else {
-        //   console.warn("Workspace not found");
-        //   setProcessedData({});
-        //   setLoading(false);
-        //   return;
-        // }
-
         // Check if we have customer and setup intent
         if (!sessionResponse.customer || !sessionResponse.setup_intent) {
           console.warn("Stripe customer or setup intent not found");
