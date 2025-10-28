@@ -222,7 +222,7 @@ func TestSuccess(t *testing.T) {
 		headersWithWrongIP := http.Header{
 			"Content-Type":   {"application/json"},
 			"Authorization":  {fmt.Sprintf("Bearer %s", rootKey)},
-			"True-Client-Ip": {"192.168.1.1"},
+			"X-Forwarded-For": {"192.168.1.1"},
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithWrongIP, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -234,7 +234,7 @@ func TestSuccess(t *testing.T) {
 		headersWithCorrectIP := http.Header{
 			"Content-Type":   {"application/json"},
 			"Authorization":  {fmt.Sprintf("Bearer %s", rootKey)},
-			"True-Client-Ip": {"123.123.123.123"},
+			"X-Forwarded-For": {"123.123.123.123"},
 		}
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithCorrectIP, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
