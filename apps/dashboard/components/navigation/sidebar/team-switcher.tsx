@@ -16,9 +16,8 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { ChevronExpandY } from "@unkey/icons";
+import { Check, ChevronExpandY, Plus, UserPlus } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
-import { Check, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
 import { useMemo, useState } from "react";
@@ -154,14 +153,14 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           <DropdownMenuSeparator />
           <DropdownMenuItem>
             <Link href="/new" className="flex items-center">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus iconSize="md-regular" className="w-4 h-4 mr-2" />
               <span>Create Workspace</span>
             </Link>
           </DropdownMenuItem>
           {currentOrgMembership?.role === "admin" ? (
             <Link href="/settings/team">
               <DropdownMenuItem>
-                <UserPlus className="w-4 h-4 mr-2 " />
+                <UserPlus iconSize="md-regular" className="w-4 h-4 mr-2 " />
                 <span className="cursor-pointer">Invite Member</span>
               </DropdownMenuItem>
             </Link>

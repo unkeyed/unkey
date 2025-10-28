@@ -12,15 +12,15 @@
 import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Lock: React.FC<IconProps> = ({ size = "xl-thin", ...props }) => {
-  const { size: pixelSize } = sizeMap[size];
+export const Lock: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+  const { iconSize: pixelSize } = sizeMap[iconSize];
   return (
     <svg
       height={pixelSize}
       width={pixelSize}
-      {...props}
       viewBox="0 0 12 12"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <g fill="currentColor">
         <line

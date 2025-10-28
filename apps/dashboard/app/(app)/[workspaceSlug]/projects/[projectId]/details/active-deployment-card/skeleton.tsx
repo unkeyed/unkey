@@ -40,17 +40,17 @@ export const ActiveDeploymentCardSkeleton = () => (
           <div className="h-2.5 w-16 bg-grayA-3 rounded animate-pulse" />
           <div className="flex items-center gap-1.5">
             <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-              <CodeBranch size="sm-regular" className="text-gray-12 opacity-50" />
+              <CodeBranch iconSize="sm-regular" className="text-gray-12 opacity-50" />
               <div className="h-2 w-12 bg-grayA-4 rounded" />
             </div>
             <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-              <CodeCommit size="sm-regular" className="text-gray-12 opacity-50" />
+              <CodeCommit iconSize="sm-regular" className="text-gray-12 opacity-50" />
               <div className="h-2 w-16 bg-grayA-4 rounded" />
             </div>
           </div>
           <div className="text-grayA-9 text-xs">using image</div>
           <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-            <FolderCloud size="sm-regular" className="text-gray-12 opacity-50" />
+            <FolderCloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
             <div className="h-2 w-24 bg-grayA-4 rounded" />
           </div>
         </div>

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
+import { Dots, ExternalLink, Link4, Plus, Refresh3, Trash, Unlink } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -33,7 +34,6 @@ import {
   toast,
 } from "@unkey/ui";
 import { formatDistanceToNow } from "date-fns";
-import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -123,7 +123,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                   </h3>
 
                   <Button variant="ghost" shape="square">
-                    <MoreHorizontal className="w-4 h-4" />
+                    <Dots iconSize="md-medium" />
                   </Button>
                 </div>
 
@@ -145,9 +145,9 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                         >
                           <div className="flex items-center w-full md:w-1/5">
                             {binding ? (
-                              <Link2 className="w-4 h-4 mr-2 text-primary shrink-0" />
+                              <Link4 iconSize="md-thin" className="rotate-90" />
                             ) : (
-                              <Unlink2 className="w-4 h-4 mr-2 text-primary shrink-0" />
+                              <Unlink iconSize="md-thin" className="rotate-90" />
                             )}
                             <span className="text-xs text-content">{envLabel}</span>
                           </div>
@@ -288,7 +288,7 @@ const ConnectedResource: React.FC<{
       <DropdownMenu>
         <DropdownMenuTrigger>
           <Button variant="ghost" shape="square" loading={isLoading}>
-            <MoreHorizontal className="w-4 h-4" />
+            <Dots iconSize="md-medium" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -357,12 +357,12 @@ const ConnectedResource: React.FC<{
                 <TooltipTrigger className="flex items-center gap-2">
                   {props.binding ? (
                     <>
-                      <RefreshCw className="w-4 h-4" />
+                      <Refresh3 iconSize="md-medium" className="transform scale-x-[-1]" />
                       Reroll the Key
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4" />
+                      <Plus iconSize="md-medium" />
                       Generate new Key
                     </>
                   )}

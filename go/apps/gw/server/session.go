@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -117,20 +118,26 @@ func (s *Session) UserAgent() string {
 	return s.r.UserAgent()
 }
 
-// Location returns the client's IP address, checking True-Client-IP header first,
+// Location returns the client's IP address, checking X-Forwarded-For header first,
 // then falling back to RemoteAddr.
 func (s *Session) Location() string {
-	location := s.r.Header.Get("True-Client-Ip")
-	if location == "" {
-		host, _, err := net.SplitHostPort(s.r.RemoteAddr)
-		if err == nil {
-			location = host
-		} else {
-			location = s.r.RemoteAddr
+	xff := s.r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		for _, ip := range ips {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				return ip
+			}
 		}
 	}
 
-	return location
+	// Fall back to RemoteAddr
+	host, _, err := net.SplitHostPort(s.r.RemoteAddr)
+	if err == nil {
+		return host
+	}
+	return s.r.RemoteAddr
 }
 
 // ReadBody reads and returns the request body.
