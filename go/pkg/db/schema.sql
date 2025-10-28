@@ -123,6 +123,22 @@ CREATE TABLE `keys` (
 	CONSTRAINT `hash_idx` UNIQUE(`hash`)
 );
 
+CREATE TABLE `credits` (
+	`id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`key_id` varchar(256),
+	`identity_id` varchar(256),
+	`remaining` int NOT NULL,
+	`refill_day` tinyint,
+	`refill_amount` int,
+	`refilled_at` bigint unsigned,
+	`created_at` bigint NOT NULL DEFAULT 0,
+	`updated_at` bigint,
+	CONSTRAINT `credits_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_per_key_idx` UNIQUE(`key_id`),
+	CONSTRAINT `unique_per_identity_idx` UNIQUE(`identity_id`)
+);
+
 CREATE TABLE `vercel_bindings` (
 	`id` varchar(256) NOT NULL,
 	`integration_id` varchar(256) NOT NULL,
@@ -415,6 +431,8 @@ CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
 CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
+CREATE INDEX `workspace_id_idx` ON `credits` (`workspace_id`);
+CREATE INDEX `refill_lookup_idx` ON `credits` (`refill_day`,`refill_amount`,`refilled_at`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);

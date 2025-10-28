@@ -66,12 +66,29 @@ select k.id,
        i.meta          as identity_meta,
        ka.deleted_at_m as key_auth_deleted_at_m,
        ws.enabled      as workspace_enabled,
-       fws.enabled     as for_workspace_enabled
+       fws.enabled     as for_workspace_enabled,
+
+       -- Key-level credits
+       key_credits.id as key_credit_id,
+       key_credits.remaining as key_credit_remaining,
+       key_credits.refill_amount as key_credit_refill_amount,
+       key_credits.refill_day as key_credit_refill_day,
+       key_credits.refilled_at as key_credit_refilled_at,
+
+       -- Identity-level credits
+       identity_credits.id as identity_credit_id,
+       identity_credits.remaining as identity_credit_remaining,
+       identity_credits.refill_amount as identity_credit_refill_amount,
+       identity_credits.refill_day as identity_credit_refill_day,
+       identity_credits.refilled_at as identity_credit_refilled_at
+
 from `keys` k
          JOIN apis a USING (key_auth_id)
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+         LEFT JOIN credits key_credits ON key_credits.key_id = k.id
+         LEFT JOIN credits identity_credits ON identity_credits.identity_id = i.id
 where k.hash = ?
   and k.deleted_at_m is null;

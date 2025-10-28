@@ -26,6 +26,10 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteCredit
+	//
+	//  DELETE FROM credits WHERE id = ?
+	DeleteCredit(ctx context.Context, db DBTX, id string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -153,6 +157,14 @@ type Querier interface {
 	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
 	//  WHERE workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
+	//FindCreditsByIdentityID
+	//
+	//  SELECT id, workspace_id, key_id, identity_id, remaining, refill_day, refill_amount, refilled_at, created_at, updated_at FROM `credits` WHERE identity_id = ?
+	FindCreditsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) (Credit, error)
+	//FindCreditsByKeyID
+	//
+	//  SELECT id, workspace_id, key_id, identity_id, remaining, refill_day, refill_amount, refilled_at, created_at, updated_at FROM `credits` WHERE key_id = ?
+	FindCreditsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) (Credit, error)
 	//FindDeploymentById
 	//
 	//  SELECT
@@ -278,6 +290,45 @@ type Querier interface {
 	//   AND deleted = ?
 	//   AND (external_id IN(/*SLICE:identities*/?) OR id IN (/*SLICE:identities*/?))
 	FindIdentities(ctx context.Context, db DBTX, arg FindIdentitiesParams) ([]Identity, error)
+	//FindIdentity
+	//
+	//  SELECT
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      c.id AS credit_id,
+	//      c.remaining AS credit_remaining,
+	//      c.refill_amount AS credit_refill_amount,
+	//      c.refill_day AS credit_refill_day,
+	//      c.refilled_at AS credit_refilled_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', rl.id,
+	//                  'name', rl.name,
+	//                  'key_id', rl.key_id,
+	//                  'identity_id', rl.identity_id,
+	//                  'limit', rl.`limit`,
+	//                  'duration', rl.duration,
+	//                  'auto_apply', rl.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  LEFT JOIN credits c ON c.identity_id = i.id
+	//  WHERE i.id = (
+	//      SELECT id FROM identities sub1
+	//      WHERE sub1.workspace_id = ?
+	//        AND sub1.id = ?
+	//        AND sub1.deleted = ?
+	//      UNION ALL
+	//      SELECT id FROM identities sub2
+	//      WHERE sub2.workspace_id = ?
+	//        AND sub2.external_id = ?
+	//        AND sub2.deleted = ?
+	//      LIMIT 1
+	//  )
+	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -294,53 +345,6 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
-	//FindIdentityWithRatelimits
-	//
-	//  SELECT
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//  FROM identities i
-	//  WHERE i.workspace_id = ?
-	//    AND i.id = ?
-	//    AND i.deleted = ?
-	//  UNION ALL
-	//  SELECT
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//  FROM identities i
-	//  WHERE i.workspace_id = ?
-	//    AND i.external_id = ?
-	//    AND i.deleted = ?
-	//  LIMIT 1
-	FindIdentityWithRatelimits(ctx context.Context, db DBTX, arg FindIdentityWithRatelimitsParams) ([]FindIdentityWithRatelimitsRow, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -443,13 +447,30 @@ type Querier interface {
 	//         i.meta          as identity_meta,
 	//         ka.deleted_at_m as key_auth_deleted_at_m,
 	//         ws.enabled      as workspace_enabled,
-	//         fws.enabled     as for_workspace_enabled
+	//         fws.enabled     as for_workspace_enabled,
+	//
+	//         -- Key-level credits
+	//         key_credits.id as key_credit_id,
+	//         key_credits.remaining as key_credit_remaining,
+	//         key_credits.refill_amount as key_credit_refill_amount,
+	//         key_credits.refill_day as key_credit_refill_day,
+	//         key_credits.refilled_at as key_credit_refilled_at,
+	//
+	//         -- Identity-level credits
+	//         identity_credits.id as identity_credit_id,
+	//         identity_credits.remaining as identity_credit_remaining,
+	//         identity_credits.refill_amount as identity_credit_refill_amount,
+	//         identity_credits.refill_day as identity_credit_refill_day,
+	//         identity_credits.refilled_at as identity_credit_refilled_at
+	//
 	//  from `keys` k
 	//           JOIN apis a USING (key_auth_id)
 	//           JOIN key_auth ka ON ka.id = k.key_auth_id
 	//           JOIN workspaces ws ON ws.id = k.workspace_id
 	//           LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
 	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+	//           LEFT JOIN credits key_credits ON key_credits.key_id = k.id
+	//           LEFT JOIN credits identity_credits ON identity_credits.identity_id = i.id
 	//  where k.hash = ?
 	//    and k.deleted_at_m is null
 	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
@@ -464,6 +485,29 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	//FindKeysWithoutCredits
+	//
+	//  SELECT
+	//      k.id,
+	//      k.workspace_id,
+	//      k.remaining_requests,
+	//      k.refill_day,
+	//      k.refill_amount,
+	//      CASE
+	//          WHEN k.last_refill_at IS NULL THEN NULL
+	//          ELSE UNIX_TIMESTAMP(k.last_refill_at) * 1000
+	//      END as last_refill_at_unix,
+	//      k.created_at_m,
+	//      k.updated_at_m
+	//  FROM `keys` k
+	//  LEFT JOIN `credits` c ON c.key_id = k.id
+	//  WHERE k.deleted_at_m IS NULL
+	//      AND k.remaining_requests IS NOT NULL
+	//      AND c.id IS NULL
+	//  ORDER BY k.created_at_m DESC
+	//  LIMIT ?
+	//  OFFSET ?
+	FindKeysWithoutCredits(ctx context.Context, db DBTX, arg FindKeysWithoutCreditsParams) ([]FindKeysWithoutCreditsRow, error)
 	//FindLiveApiByID
 	//
 	//  SELECT apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
@@ -551,7 +595,21 @@ type Querier interface {
 	//          FROM ratelimits rl
 	//          WHERE rl.key_id = k.id OR rl.identity_id = i.id),
 	//          JSON_ARRAY()
-	//      ) as ratelimits
+	//      ) as ratelimits,
+	//
+	//      -- Key credits
+	//      kc.id as credit_id,
+	//      kc.remaining as credit_remaining,
+	//      kc.refill_amount as credit_refill_amount,
+	//      kc.refill_day as credit_refill_day,
+	//      kc.refilled_at as credit_refilled_at,
+	//
+	//      -- Identity credits
+	//      ic.id as identity_credit_id,
+	//      ic.remaining as identity_credit_remaining,
+	//      ic.refill_amount as identity_credit_refill_amount,
+	//      ic.refill_day as identity_credit_refill_day,
+	//      ic.refilled_at as identity_credit_refilled_at
 	//
 	//  FROM `keys` k
 	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
@@ -559,6 +617,8 @@ type Querier interface {
 	//  JOIN workspaces ws ON ws.id = k.workspace_id
 	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  LEFT JOIN credits kc ON kc.key_id = k.id
+	//  LEFT JOIN credits ic ON ic.identity_id = i.id
 	//  WHERE k.hash = ?
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
@@ -572,9 +632,7 @@ type Querier interface {
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 	//      ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-	//      i.id as identity_table_id,
-	//      i.external_id as identity_external_id,
-	//      i.meta as identity_meta,
+	//
 	//      ek.encrypted as encrypted_key,
 	//      ek.encryption_key_id as encryption_key_id,
 	//
@@ -643,7 +701,25 @@ type Querier interface {
 	//          WHERE rl.key_id = k.id
 	//              OR rl.identity_id = i.id),
 	//          JSON_ARRAY()
-	//      ) as ratelimits
+	//      ) as ratelimits,
+	//
+	//      -- Identity
+	//      i.id as identity_table_id,
+	//      i.external_id as identity_external_id,
+	//      i.meta as identity_meta,
+	//
+	//      -- Credits Key/Identity based
+	//      kc.id as credit_id,
+	//      kc.remaining as credit_remaining,
+	//      kc.refill_amount as credit_refill_amount,
+	//      kc.refill_day as credit_refill_day,
+	//      kc.refilled_at as credit_refilled_at,
+	//
+	//      ic.id as identity_credit_id,
+	//      ic.remaining as identity_credit_remaining,
+	//      ic.refill_amount as identity_credit_refill_amount,
+	//      ic.refill_day as identity_credit_refill_day,
+	//      ic.refilled_at as identity_credit_refilled_at
 	//
 	//  FROM `keys` k
 	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
@@ -651,6 +727,8 @@ type Querier interface {
 	//  JOIN workspaces ws ON ws.id = k.workspace_id
 	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  LEFT JOIN credits kc ON kc.key_id = k.id
+	//  LEFT JOIN credits ic ON ic.identity_id = i.id
 	//  WHERE k.id = ?
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
@@ -813,6 +891,14 @@ type Querier interface {
 	//      AND namespace_id = ?
 	//      AND identifier = ?
 	FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error)
+	//FindRemainingCredits
+	//
+	//  SELECT remaining FROM `credits` WHERE id = ?
+	FindRemainingCredits(ctx context.Context, db DBTX, id string) (int32, error)
+	//FindRemainingKey
+	//
+	//  SELECT remaining_requests FROM `keys` WHERE id = ?
+	FindRemainingKey(ctx context.Context, db DBTX, id string) (sql.NullInt32, error)
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
@@ -1029,6 +1115,21 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
+	//InsertCredit
+	//
+	//  INSERT INTO `credits` (
+	//      id,
+	//      workspace_id,
+	//      key_id,
+	//      identity_id,
+	//      remaining,
+	//      refill_day,
+	//      refill_amount,
+	//      created_at,
+	//      updated_at,
+	//      refilled_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertCredit(ctx context.Context, db DBTX, arg InsertCreditParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1458,14 +1559,20 @@ type Querier interface {
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//  AND deleted = ?
-	//  AND id >= ?
-	//  ORDER BY id ASC
+	//  SELECT
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      c.id as credit_id,
+	//      c.remaining as credit_remaining,
+	//      c.refill_amount as credit_refill_amount,
+	//      c.refill_day as credit_refill_day
+	//  FROM identities i
+	//  LEFT JOIN credits c ON c.identity_id = i.id
+	//  WHERE i.workspace_id = ?
+	//  AND i.deleted = ?
+	//  AND i.id >= ?
+	//  ORDER BY i.id ASC
 	//  LIMIT ?
-	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
+	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
 	//ListIdentityRatelimits
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
@@ -1828,6 +1935,30 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateCreditDecrement
+	//
+	//  UPDATE `credits`
+	//  SET remaining = CASE
+	//      WHEN remaining >= ? THEN remaining - ?
+	//      ELSE 0
+	//  END,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCreditDecrement(ctx context.Context, db DBTX, arg UpdateCreditDecrementParams) error
+	//UpdateCreditIncrement
+	//
+	//  UPDATE `credits`
+	//  SET remaining = remaining + ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCreditIncrement(ctx context.Context, db DBTX, arg UpdateCreditIncrementParams) error
+	//UpdateCreditSet
+	//
+	//  UPDATE `credits`
+	//  SET remaining = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCreditSet(ctx context.Context, db DBTX, arg UpdateCreditSetParams) error
 	//UpdateDeploymentOpenapiSpec
 	//
 	//  UPDATE deployments
@@ -1967,6 +2098,35 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertCredit
+	//
+	//  INSERT INTO `credits` (
+	//      id,
+	//      workspace_id,
+	//      key_id,
+	//      identity_id,
+	//      remaining,
+	//      refill_day,
+	//      refill_amount,
+	//      created_at,
+	//      updated_at,
+	//      refilled_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      remaining = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(remaining)
+	//          ELSE remaining
+	//      END,
+	//      refill_day = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refill_day)
+	//          ELSE refill_day
+	//      END,
+	//      refill_amount = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refill_amount)
+	//          ELSE refill_amount
+	//      END,
+	//      updated_at = VALUES(updated_at)
+	UpsertCredit(ctx context.Context, db DBTX, arg UpsertCreditParams) error
 }
 
 var _ Querier = (*Queries)(nil)

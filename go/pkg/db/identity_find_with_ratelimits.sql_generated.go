@@ -13,6 +13,11 @@ import (
 const findIdentityWithRatelimits = `-- name: FindIdentityWithRatelimits :many
 SELECT
     i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    c.id AS credit_id,
+    c.remaining AS credit_remaining,
+    c.refill_amount AS credit_refill_amount,
+    c.refill_day AS credit_refill_day,
+    c.refilled_at AS credit_refilled_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -29,12 +34,18 @@ SELECT
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
+LEFT JOIN credits c ON c.identity_id = i.id
 WHERE i.workspace_id = ?
   AND i.id = ?
   AND i.deleted = ?
 UNION ALL
 SELECT
     i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    c.id AS credit_id,
+    c.remaining AS credit_remaining,
+    c.refill_amount AS credit_refill_amount,
+    c.refill_day AS credit_refill_day,
+    c.refilled_at AS credit_refilled_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -51,6 +62,7 @@ SELECT
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
+LEFT JOIN credits c ON c.identity_id = i.id
 WHERE i.workspace_id = ?
   AND i.external_id = ?
   AND i.deleted = ?
@@ -64,21 +76,31 @@ type FindIdentityWithRatelimitsParams struct {
 }
 
 type FindIdentityWithRatelimitsRow struct {
-	ID          string        `db:"id"`
-	ExternalID  string        `db:"external_id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Environment string        `db:"environment"`
-	Meta        []byte        `db:"meta"`
-	Deleted     bool          `db:"deleted"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-	Ratelimits  interface{}   `db:"ratelimits"`
+	ID                 string         `db:"id"`
+	ExternalID         string         `db:"external_id"`
+	WorkspaceID        string         `db:"workspace_id"`
+	Environment        string         `db:"environment"`
+	Meta               []byte         `db:"meta"`
+	Deleted            bool           `db:"deleted"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
+	CreditID           sql.NullString `db:"credit_id"`
+	CreditRemaining    sql.NullInt32  `db:"credit_remaining"`
+	CreditRefillAmount sql.NullInt32  `db:"credit_refill_amount"`
+	CreditRefillDay    sql.NullInt16  `db:"credit_refill_day"`
+	CreditRefilledAt   sql.NullInt64  `db:"credit_refilled_at"`
+	Ratelimits         interface{}    `db:"ratelimits"`
 }
 
 // FindIdentityWithRatelimits
 //
 //	SELECT
 //	    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    c.id AS credit_id,
+//	    c.remaining AS credit_remaining,
+//	    c.refill_amount AS credit_refill_amount,
+//	    c.refill_day AS credit_refill_day,
+//	    c.refilled_at AS credit_refilled_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            JSON_OBJECT(
@@ -95,12 +117,18 @@ type FindIdentityWithRatelimitsRow struct {
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
+//	LEFT JOIN credits c ON c.identity_id = i.id
 //	WHERE i.workspace_id = ?
 //	  AND i.id = ?
 //	  AND i.deleted = ?
 //	UNION ALL
 //	SELECT
 //	    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    c.id AS credit_id,
+//	    c.remaining AS credit_remaining,
+//	    c.refill_amount AS credit_refill_amount,
+//	    c.refill_day AS credit_refill_day,
+//	    c.refilled_at AS credit_refilled_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            JSON_OBJECT(
@@ -117,6 +145,7 @@ type FindIdentityWithRatelimitsRow struct {
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
+//	LEFT JOIN credits c ON c.identity_id = i.id
 //	WHERE i.workspace_id = ?
 //	  AND i.external_id = ?
 //	  AND i.deleted = ?
@@ -146,6 +175,11 @@ func (q *Queries) FindIdentityWithRatelimits(ctx context.Context, db DBTX, arg F
 			&i.Deleted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreditID,
+			&i.CreditRemaining,
+			&i.CreditRefillAmount,
+			&i.CreditRefillDay,
+			&i.CreditRefilledAt,
 			&i.Ratelimits,
 		); err != nil {
 			return nil, err

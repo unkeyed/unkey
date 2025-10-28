@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { credits } from "./credits";
 import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
@@ -48,6 +49,7 @@ export const keys = mysqlTable(
     ...lifecycleDatesMigration,
 
     /**
+     * @deprecated
      * You can refill uses to keys at a desired interval
      *
      * Specify the day on which we should refill.
@@ -57,17 +59,34 @@ export const keys = mysqlTable(
      * - null = we refill on every day
      */
     refillDay: tinyint("refill_day"),
+
+    /**
+     * @deprecated
+     * You can refill uses to keys at a desired interval
+     *
+     * Specify the amount of uses we should refill.
+     * - 1    = we refill 1 use
+     * - 10   = we refill 10 uses
+     */
     refillAmount: int("refill_amount"),
+
+    /**
+     * @deprecated
+     * You can refill uses to keys at a desired interval
+     *
+     * Specify the last time we refilled the key.
+     */
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
+
     /**
      * sets if key is enabled or disabled
      */
     enabled: boolean("enabled").default(true).notNull(),
 
     /**
+     * @deprecated
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
-
     remaining: int("remaining_requests"),
     ratelimitAsync: boolean("ratelimit_async"),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
@@ -106,7 +125,6 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     fields: [keys.workspaceId],
     references: [workspaces.id],
   }),
-
   forWorkspace: one(workspaces, {
     fields: [keys.forWorkspaceId],
     references: [workspaces.id],
@@ -119,6 +137,10 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   }),
   encrypted: one(encryptedKeys),
   ratelimits: many(ratelimits),
+  credits: one(credits, {
+    fields: [keys.id],
+    references: [credits.keyId],
+  }),
   identity: one(identities, {
     fields: [keys.identityId],
     references: [identities.id],

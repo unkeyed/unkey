@@ -580,6 +580,19 @@ type ClickhouseWorkspaceSetting struct {
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 }
 
+type Credit struct {
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	KeyID        sql.NullString `db:"key_id"`
+	IdentityID   sql.NullString `db:"identity_id"`
+	Remaining    int32          `db:"remaining"`
+	RefillDay    sql.NullInt16  `db:"refill_day"`
+	RefillAmount sql.NullInt32  `db:"refill_amount"`
+	RefilledAt   sql.NullInt64  `db:"refilled_at"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
+}
+
 type Deployment struct {
 	ID                       string            `db:"id"`
 	WorkspaceID              string            `db:"workspace_id"`

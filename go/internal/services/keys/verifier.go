@@ -48,6 +48,10 @@ type KeyVerifier struct {
 	session *zen.Session // The current request session
 	region  string       // Geographic region identifier
 
+	// Credits - identity credits take priority over key credits
+	IdentityCredits *db.Credit // Identity-level credits (shared across all keys for this identity)
+	KeyCredits      *db.Credit // Key-level credits (specific to this key)
+
 	// Services
 	rateLimiter  ratelimit.Service     // Rate limiting service
 	usageLimiter usagelimiter.Service  // Usage limiting service

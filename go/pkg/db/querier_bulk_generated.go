@@ -12,6 +12,8 @@ type BulkQuerier interface {
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
+	InsertCredits(ctx context.Context, db DBTX, args []InsertCreditParams) error
+	UpsertCredit(ctx context.Context, db DBTX, args []UpsertCreditParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error
