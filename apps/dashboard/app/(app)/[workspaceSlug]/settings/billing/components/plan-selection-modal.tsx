@@ -129,14 +129,6 @@ export const PlanSelectionModal = ({
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
-  const handleCloseAttempt = () => {
-    toast.info(
-      isChangingPlan
-        ? "Please select a plan or click 'Cancel' to close"
-        : "Please select a plan or choose 'I'll choose later' to continue",
-    );
-  };
-
   // Don't render modal content until after hydration
   if (!hasMounted) {
     return (
@@ -175,7 +167,7 @@ export const PlanSelectionModal = ({
           : "Select a plan to get started with your new payment method"
       }
       showCloseWarning={true}
-      onAttemptClose={handleCloseAttempt}
+      onAttemptClose={handleSkip}
       footer={
         <div className="w-full flex flex-col gap-6">
           <Button
