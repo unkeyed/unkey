@@ -205,7 +205,6 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 
 func (s *counterService) Invalidate(ctx context.Context, keyID string) error {
 	return s.counter.Delete(ctx, s.redisKey(keyID))
-
 }
 
 func (s *counterService) redisKey(keyID string) string {
@@ -239,10 +238,9 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
 
-	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
+	limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
 		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
 	})
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
@@ -302,7 +300,6 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 func (s *counterService) replayRequests() {
 	for change := range s.replayBuffer.Consume() {
 		err := s.syncWithDB(context.Background(), change)
-
 		if err != nil {
 			s.logger.Error("failed to replay credit change", "error", err)
 		}
@@ -324,7 +321,6 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 			Credits: sql.NullInt32{Int32: change.Cost, Valid: true},
 		})
 	})
-
 	if err != nil {
 		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
 		return err
@@ -393,5 +389,4 @@ func (s *counterService) Close() error {
 		s.logger.Debug("usage limiter replay buffer drained successfully")
 		return nil
 	}
-
 }
