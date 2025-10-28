@@ -62,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
 			var response db.FindRatelimitNamespaceRow
-			response, err = db.WithRetry(func() (db.FindRatelimitNamespaceRow, error) {
+			response, err = db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
 				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Namespace:   req.Namespace,

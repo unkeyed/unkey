@@ -71,7 +71,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
 		var row db.FindKeyForVerificationRow
-		row, err = db.WithRetry(func() (db.FindKeyForVerificationRow, error) {
+		row, err = db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
 			return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 		})
 		if err != nil {
