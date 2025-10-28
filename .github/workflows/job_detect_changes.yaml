@@ -75,7 +75,9 @@ jobs:
             # Dashboard application and its dependencies
             dashboard:
               - 'apps/dashboard/**'
+              - '!apps/dashboard/*.md'
               - '!apps/dashboard/**/*.md'
+              - '!apps/dashboard/*.txt'
               - '!apps/dashboard/**/*.txt'
               - 'internal/ui/**'
               - 'internal/icons/**'
