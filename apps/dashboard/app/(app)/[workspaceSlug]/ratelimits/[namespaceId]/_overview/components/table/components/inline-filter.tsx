@@ -48,7 +48,7 @@ export const InlineFilter = ({
       >
         <BarsFilter
           className="text-gray-12 invisible group-hover/identifier:visible"
-          size="md-regular"
+          iconSize="md-medium"
         />
       </button>
     </InfoTooltip>

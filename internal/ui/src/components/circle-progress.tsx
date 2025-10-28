@@ -3,7 +3,7 @@ import * as React from "react";
 import { type VariantProps, cva } from "class-variance-authority";
 import { forwardRef } from "react";
 import { cn } from "../lib/utils";
-import { type IconSize, sizeMap } from "@unkey/icons";
+import { type iconSize as IconSize, sizeMap } from "@unkey/icons";
 
 const circleProgressVariants = cva("inline-flex items-center justify-center", {
   variants: {
@@ -35,7 +35,7 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
    * @default "md-regular"
    * @example "sm-thin", "lg-bold", "xl-medium"
    */
-  size?: IconSize;
+  iconSize?: IconSize;
 } & VariantProps<typeof circleProgressVariants>;
 
 /**
@@ -55,19 +55,19 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
  *   value={validFields}
  *   total={requiredFields}
  *   variant="success"
- *   size="lg-medium"
+ *   iconSize="lg-medium"
  * />
  *
  * // Small thin progress indicator
  * <CircleProgress
  *   value={progress}
  *   total={100}
- *   size="sm-thin"
+ *   iconSize="sm-thin"
  * />
  * ```
  */
 export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
-  ({ value, total, size = "md-regular", className, variant, ...props }, ref) => {
+  ({ value, total, iconSize = "md-regular", className, variant, ...props }, ref) => {
     // Early error validation
     if (total <= 0) {
       throw new Error("CircleProgress: total must be greater than 0");
@@ -79,7 +79,7 @@ export const CircleProgress = forwardRef<HTMLDivElement, CircleProgressProps>(
       throw new Error("CircleProgress: value and total must be finite numbers");
     }
 
-    const { size: actualSize, strokeWidth } = sizeMap[size];
+    const { iconSize: actualSize, strokeWidth } = sizeMap[iconSize];
 
     const radius = (actualSize - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;

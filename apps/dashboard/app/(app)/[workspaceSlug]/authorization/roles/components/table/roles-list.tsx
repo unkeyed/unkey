@@ -60,7 +60,7 @@ export const RolesList = () => {
               onMouseEnter={() => setHoveredRoleName(role.name)}
               onMouseLeave={() => setHoveredRoleName(null)}
             >
-              {!isSelected && !isHovered && <Tag size="sm-regular" className="text-gray-12" />}
+              {!isSelected && !isHovered && <Tag iconSize="sm-regular" className="text-gray-12" />}
               {(isSelected || isHovered) && (
                 <Checkbox
                   checked={isSelected}

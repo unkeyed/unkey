@@ -101,7 +101,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
         />
       )}
       <Icon
-        size={config.icon === Nut ? "md-bold" : "md-regular"}
+        iconSize={config.icon === Nut ? "md-bold" : "md-regular"}
         className={cn(iconColor, animated && "relative z-5")}
       />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>

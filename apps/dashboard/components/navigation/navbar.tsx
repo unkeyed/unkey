@@ -1,6 +1,6 @@
+import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
@@ -141,7 +141,7 @@ Breadcrumbs.Ellipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <li ref={ref} className={cn("flex gap-3 items-end", className)} {...props}>
       <span className="text-sm text-accent-10" aria-label="More pages">
-        <MoreHorizontal className="h-4 w-4 text-accent-10" />
+        <Dots className="h-4 w-4 text-accent-10" />
       </span>
       <div className="text-accent-10" aria-hidden="true">
         /
