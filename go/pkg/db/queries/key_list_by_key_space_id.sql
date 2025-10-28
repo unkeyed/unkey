@@ -1,4 +1,4 @@
--- name: ListKeysByKeyAuthID :many
+-- name: ListKeysByKeySpaceID :many
 SELECT
   sqlc.embed(k),
   i.id as identity_id,

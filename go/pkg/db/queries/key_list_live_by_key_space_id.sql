@@ -1,4 +1,4 @@
--- name: ListLiveKeysByKeyAuthID :many
+-- name: ListLiveKeysByKeySpaceID :many
 SELECT k.*,
        i.id                 as identity_table_id,
        i.external_id        as identity_external_id,

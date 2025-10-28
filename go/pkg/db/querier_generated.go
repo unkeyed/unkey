@@ -1388,7 +1388,7 @@ type Querier interface {
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
 	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
-	//ListKeysByKeyAuthID
+	//ListKeysByKeySpaceID
 	//
 	//  SELECT
 	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
@@ -1407,8 +1407,8 @@ type Querier interface {
 	//  AND k.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
-	ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error)
-	//ListLiveKeysByKeyAuthID
+	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
+	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
 	//         i.id                 as identity_table_id,
@@ -1503,7 +1503,7 @@ type Querier interface {
 	//    AND ws.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
-	ListLiveKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListLiveKeysByKeyAuthIDParams) ([]ListLiveKeysByKeyAuthIDRow, error)
+	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -1660,13 +1660,13 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
-	//SoftDeleteManyKeysByKeyAuthID
+	//SoftDeleteManyKeysByKeySpaceID
 	//
 	//  UPDATE `keys`
 	//  SET deleted_at_m = ?
 	//  WHERE key_auth_id = ?
 	//  AND deleted_at_m IS NULL
-	SoftDeleteManyKeysByKeyAuthID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeyAuthIDParams) error
+	SoftDeleteManyKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeySpaceIDParams) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
