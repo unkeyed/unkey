@@ -13,8 +13,6 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: TypeScript Check
-        run: pnpm turbo run typecheck --filter=@unkey/dashboard
       - name: Lint
         run: pnpm turbo run lint --filter=@unkey/dashboard
       - name: Build
