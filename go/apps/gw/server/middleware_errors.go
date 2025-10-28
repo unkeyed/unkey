@@ -55,26 +55,92 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 
 			// Determine status code based on error type
 			status := http.StatusInternalServerError
-
-			//nolint: exhaustive
 			switch urn {
+			// Internal Server Error (500)
 			case codes.UnkeyGatewayErrorsInternalInternalServerError,
-				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed:
+				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed,
+				codes.UnkeyAppErrorsInternalUnexpectedError,
+				codes.UnkeyAppErrorsInternalServiceUnavailable,
+				codes.UnkeyAppErrorsValidationAssertionFailed,
+				codes.UnkeyGatewayErrorsRoutingVMSelectionFailed:
 				status = http.StatusInternalServerError
+
+			// Bad Request (400)
 			case codes.UnkeyGatewayErrorsValidationRequestInvalid,
-				codes.UnkeyGatewayErrorsValidationResponseInvalid:
+				codes.UnkeyGatewayErrorsValidationResponseInvalid,
+				codes.UnkeyAppErrorsValidationInvalidInput,
+				codes.UnkeyAuthErrorsAuthenticationMissing,
+				codes.UnkeyAuthErrorsAuthenticationMalformed,
+				codes.UserErrorsBadRequestPermissionsQuerySyntaxError:
 				status = http.StatusBadRequest
-			case codes.UnkeyGatewayErrorsAuthUnauthorized:
+
+			// Unauthorized (401)
+			case codes.UnkeyGatewayErrorsAuthUnauthorized,
+				codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
 				status = http.StatusUnauthorized
+
+			// Forbidden (403)
+			case codes.UnkeyAuthErrorsAuthorizationForbidden,
+				codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions,
+				codes.UnkeyAuthErrorsAuthorizationKeyDisabled,
+				codes.UnkeyAuthErrorsAuthorizationWorkspaceDisabled:
+				status = http.StatusForbidden
+
+			// Not Found (404)
+			case codes.UnkeyGatewayErrorsRoutingConfigNotFound,
+				codes.UnkeyDataErrorsKeyNotFound,
+				codes.UnkeyDataErrorsWorkspaceNotFound,
+				codes.UnkeyDataErrorsApiNotFound,
+				codes.UnkeyDataErrorsPermissionNotFound,
+				codes.UnkeyDataErrorsRoleNotFound,
+				codes.UnkeyDataErrorsKeyAuthNotFound,
+				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
+				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
+				codes.UnkeyDataErrorsIdentityNotFound,
+				codes.UnkeyDataErrorsAuditLogNotFound:
+				status = http.StatusNotFound
+
+			// Request Timeout (408)
+			case codes.UserErrorsBadRequestRequestTimeout:
+				status = http.StatusRequestTimeout
+
+			// Conflict (409)
+			case codes.UnkeyDataErrorsIdentityDuplicate,
+				codes.UnkeyDataErrorsRoleDuplicate,
+				codes.UnkeyDataErrorsPermissionDuplicate:
+				status = http.StatusConflict
+
+			// Gone (410)
+			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
+				status = http.StatusGone
+
+			// Precondition Failed (412)
+			case codes.UnkeyAppErrorsProtectionProtectedResource,
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+				status = http.StatusPreconditionFailed
+
+			// Request Entity Too Large (413)
+			case codes.UserErrorsBadRequestRequestBodyTooLarge:
+				status = http.StatusRequestEntityTooLarge
+
+			// Too Many Requests (429)
 			case codes.UnkeyGatewayErrorsAuthRateLimited:
 				status = http.StatusTooManyRequests
-			// Gateway errors - 404, 502, 503, 504
-			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
-				status = http.StatusNotFound
-			case codes.UnkeyGatewayErrorsProxyBadGateway:
+
+			// Client Closed Request (499)
+			case codes.UserErrorsBadRequestClientClosedRequest:
+				status = 499
+
+			// Bad Gateway (502)
+			case codes.UnkeyGatewayErrorsProxyBadGateway,
+				codes.UnkeyGatewayErrorsProxyProxyForwardFailed:
 				status = http.StatusBadGateway
+
+			// Service Unavailable (503)
 			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
 				status = http.StatusServiceUnavailable
+
+			// Gateway Timeout (504)
 			case codes.UnkeyGatewayErrorsProxyGatewayTimeout:
 				status = http.StatusGatewayTimeout
 			}
@@ -105,6 +171,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
    <a href="/">Return to homepage</a>
 </body>
 </html>`))
+
 			case codes.UnkeyGatewayErrorsProxyBadGateway,
 				codes.UnkeyGatewayErrorsProxyProxyForwardFailed:
 				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
@@ -154,6 +221,46 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 </body>
 </html>`))
 
+			// All other errors (including App, Auth, Data errors) return JSON
+			case codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
+				codes.UserErrorsBadRequestRequestBodyTooLarge,
+				codes.UserErrorsBadRequestRequestTimeout,
+				codes.UserErrorsBadRequestClientClosedRequest,
+				codes.UnkeyAuthErrorsAuthenticationMissing,
+				codes.UnkeyAuthErrorsAuthenticationMalformed,
+				codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
+				codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions,
+				codes.UnkeyAuthErrorsAuthorizationForbidden,
+				codes.UnkeyAuthErrorsAuthorizationKeyDisabled,
+				codes.UnkeyAuthErrorsAuthorizationWorkspaceDisabled,
+				codes.UnkeyDataErrorsKeyNotFound,
+				codes.UnkeyDataErrorsWorkspaceNotFound,
+				codes.UnkeyDataErrorsApiNotFound,
+				codes.UnkeyDataErrorsPermissionDuplicate,
+				codes.UnkeyDataErrorsPermissionNotFound,
+				codes.UnkeyDataErrorsRoleDuplicate,
+				codes.UnkeyDataErrorsRoleNotFound,
+				codes.UnkeyDataErrorsKeyAuthNotFound,
+				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
+				codes.UnkeyDataErrorsRatelimitNamespaceGone,
+				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
+				codes.UnkeyDataErrorsIdentityNotFound,
+				codes.UnkeyDataErrorsIdentityDuplicate,
+				codes.UnkeyDataErrorsAuditLogNotFound,
+				codes.UnkeyAppErrorsInternalUnexpectedError,
+				codes.UnkeyAppErrorsInternalServiceUnavailable,
+				codes.UnkeyAppErrorsValidationInvalidInput,
+				codes.UnkeyAppErrorsValidationAssertionFailed,
+				codes.UnkeyAppErrorsProtectionProtectedResource,
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed,
+				codes.UnkeyGatewayErrorsValidationRequestInvalid,
+				codes.UnkeyGatewayErrorsValidationResponseInvalid,
+				codes.UnkeyGatewayErrorsAuthUnauthorized,
+				codes.UnkeyGatewayErrorsAuthRateLimited,
+				codes.UnkeyGatewayErrorsInternalInternalServerError,
+				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed,
+				codes.UnkeyGatewayErrorsRoutingVMSelectionFailed:
+				// Return JSON for these errors
 			}
 
 			// Create error response
