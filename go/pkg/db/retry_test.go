@@ -341,7 +341,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 			keyID := uid.New(uid.KeyPrefix)
 			err := Query.InsertKey(ctx, dbInstance.RW(), InsertKeyParams{
 				ID:                keyID,
-				KeyringID:         keyringID,
+				KeySpaceID:        keySpaceID,
 				Hash:              hash.Sha256(keyID),
 				Start:             "cancelled_key",
 				WorkspaceID:       workspaceID,
