@@ -8,6 +8,7 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { KeyV1 } from "@unkey/keys";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 test("creates key", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -648,9 +649,166 @@ describe("with externalId", () => {
 
       const key = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
+        with: {
+          credits: true,
+        },
       });
       expect(key).toBeDefined();
-      expect(key!.refillDay).toEqual(1);
+      // Since key has remaining, it uses the new credits table
+      expect(key!.credits).toBeDefined();
+      expect(key!.credits!.refillDay).toEqual(1);
     });
+  });
+});
+
+describe("creates key with new credits table", () => {
+  test("creates credits table entry when remaining is specified", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        remaining: 100,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        credits: true,
+      },
+    });
+
+    expect(key).toBeDefined();
+    expect(key!.remaining).toBeNull();
+
+    // Verify credits table entry was created
+    expect(key!.credits).toBeDefined();
+    expect(key!.credits!.remaining).toEqual(100);
+    expect(key!.credits!.keyId).toEqual(res.body.keyId);
+    expect(key!.credits!.workspaceId).toEqual(h.resources.userWorkspace.id);
+    expect(key!.credits!.identityId).toBeNull();
+  });
+
+  test("creates credits with refill configuration", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        remaining: 50,
+        refill: {
+          interval: "monthly",
+          amount: 100,
+          refillDay: 15,
+        },
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        credits: true,
+      },
+    });
+
+    expect(key).toBeDefined();
+    expect(key!.credits).toBeDefined();
+    expect(key!.credits!.remaining).toEqual(50);
+    expect(key!.credits!.refillAmount).toEqual(100);
+    expect(key!.credits!.refillDay).toEqual(15);
+    expect(key!.credits!.refilledAt).toBeDefined();
+  });
+
+  test("does not create credits table entry when remaining is not specified", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        credits: true,
+      },
+    });
+
+    expect(key).toBeDefined();
+    expect(key!.remaining).toBeNull();
+    expect(key!.credits).toBeNull();
+  });
+
+  test("creates key with remaining and can verify it", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        remaining: 5,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    // Verify we can use the key
+    const verifyRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key: res.body.key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(verifyRes.status, `expected 200, received: ${JSON.stringify(verifyRes, null, 2)}`).toBe(
+      200,
+    );
+    expect(verifyRes.body.valid).toBe(true);
+    expect(verifyRes.body.remaining).toEqual(4);
+
+    // Verify the credits table was updated
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        credits: true,
+      },
+    });
+
+    expect(key!.credits!.remaining).toEqual(4);
   });
 });

@@ -5,6 +5,7 @@ import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { eq, schema, sql } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -74,6 +75,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     const key = await db.readonly.query.keys.findFirst({
       where: (table, { eq, isNull, and }) => and(eq(table.id, req.keyId), isNull(table.deletedAtM)),
       with: {
+        credits: true,
         keyAuth: {
           with: {
             api: true,
@@ -88,12 +90,14 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         message: `key ${req.keyId} not found`,
       });
     }
+
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) =>
         or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
       ),
     );
+
     if (key.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
@@ -101,72 +105,122 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       });
     }
 
+    const hasNewCredits = key.credits !== null;
+    const hasOldCredits = key.remaining !== null;
+
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
     switch (req.op) {
       case "increment": {
-        if (key.remaining === null) {
+        if (key.remaining === null && key.credits === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message:
               "cannot increment a key with unlimited remaining requests, please 'set' a value instead.",
           });
         }
+
         if (req.value === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: "cannot increment a key by null.",
           });
         }
-        await db.primary
-          .update(schema.keys)
-          .set({
-            remaining: sql`remaining_requests + ${req.value}`,
-          })
-          .where(eq(schema.keys.id, req.keyId));
+
+        if (hasNewCredits) {
+          await db.primary
+            .update(schema.credits)
+            .set({
+              remaining: sql`remaining + ${req.value}`,
+            })
+            .where(eq(schema.credits.id, key.credits.id));
+        } else {
+          await db.primary
+            .update(schema.keys)
+            .set({
+              remaining: sql`remaining_requests + ${req.value}`,
+            })
+            .where(eq(schema.keys.id, req.keyId));
+        }
+
         break;
       }
       case "decrement": {
-        if (key.remaining === null) {
+        if (key.remaining === null && key.credits === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message:
               "cannot decrement a key with unlimited remaining requests, please 'set' a value instead.",
           });
         }
+
         if (req.value === null) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: "cannot decrement a key by null.",
           });
         }
-        await db.primary
-          .update(schema.keys)
-          .set({
-            remaining: sql`remaining_requests - ${req.value}`,
-          })
-          .where(eq(schema.keys.id, req.keyId));
+
+        if (hasNewCredits) {
+          await db.primary
+            .update(schema.credits)
+            .set({
+              remaining: sql`remaining - ${req.value}`,
+            })
+            .where(eq(schema.credits.id, key.credits.id));
+        } else {
+          await db.primary
+            .update(schema.keys)
+            .set({
+              remaining: sql`remaining_requests - ${req.value}`,
+            })
+            .where(eq(schema.keys.id, req.keyId));
+        }
+
         break;
       }
       case "set": {
-        await db.primary
-          .update(schema.keys)
-          .set({
+        if (hasOldCredits) {
+          await db.primary
+            .update(schema.keys)
+            .set({
+              remaining: req.value,
+            })
+            .where(eq(schema.keys.id, req.keyId));
+        } else if (hasNewCredits) {
+          if (req.value === null) {
+            await db.primary.delete(schema.credits).where(eq(schema.credits.id, key.credits.id));
+          } else {
+            await db.primary
+              .update(schema.credits)
+              .set({
+                remaining: req.value,
+              })
+              .where(eq(schema.credits.id, key.credits.id));
+          }
+        } else if (req.value !== null) {
+          await db.primary.insert(schema.credits).values({
+            id: newId("credit"),
+            keyId: req.keyId,
             remaining: req.value,
-          })
-          .where(eq(schema.keys.id, req.keyId));
+            workspaceId: auth.authorizedWorkspaceId,
+            createdAt: Date.now(),
+            refilledAt: Date.now(),
+            identityId: null,
+            refillAmount: null,
+            refillDay: null,
+            updatedAt: null,
+          });
+        }
         break;
       }
     }
 
-    await Promise.all([
-      usageLimiter.revalidate({ keyId: key.id }),
-      cache.keyByHash.remove(key.hash),
-      cache.keyById.remove(key.id),
-    ]);
-
     const keyAfterUpdate = await db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
+      with: {
+        credits: true,
+      },
     });
     if (!keyAfterUpdate) {
       throw new UnkeyApiError({
@@ -175,6 +229,18 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       });
     }
 
+    await Promise.all([
+      usageLimiter.revalidate(
+        keyAfterUpdate.credits
+          ? { creditId: keyAfterUpdate.credits.id }
+          : { keyId: keyAfterUpdate.id },
+      ),
+      cache.keyByHash.remove(key.hash),
+      cache.keyById.remove(key.id),
+    ]);
+
+    const actualRemaining = keyAfterUpdate.credits?.remaining ?? keyAfterUpdate.remaining;
+
     await insertUnkeyAuditLog(c, undefined, {
       actor: {
         type: "key",
@@ -182,7 +248,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       },
       event: "key.update",
       workspaceId: authorizedWorkspaceId,
-      description: `Changed remaining to ${keyAfterUpdate.remaining}`,
+      description: `Changed remaining to ${actualRemaining}`,
       resources: [
         {
           type: "keyAuth",
@@ -200,6 +266,6 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     });
 
     return c.json({
-      remaining: keyAfterUpdate.remaining,
+      remaining: actualRemaining,
     });
   });

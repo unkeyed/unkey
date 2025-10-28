@@ -8,6 +8,7 @@ import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
 import {
   DrizzleQueryError,
+  type InsertCredits,
   type InsertEncryptedKey,
   type InsertIdentity,
   type InsertKey,
@@ -324,6 +325,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
     const createIdentities: Array<InsertIdentity> = [];
     const keys: Array<InsertKey> = [];
     const encryptedKeys: Array<InsertEncryptedKey> = [];
+    const credits: Array<InsertCredits> = [];
     const roleConnections: Array<InsertKeyRole> = [];
     const permissionConnections: Array<InsertKeyPermission> = [];
 
@@ -474,9 +476,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,
-          remaining: key.remaining ?? null,
-          refillDay: key.refill?.interval === "daily" ? null : (key?.refill?.refillDay ?? 1),
-          refillAmount: key.refill?.amount ?? null,
           deletedAtM: null,
           enabled: key.enabled ?? true,
           environment: key.environment ?? null,
@@ -484,6 +483,21 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           updatedAtM: null,
           lastRefillAt: null,
         });
+
+        if (key.remaining) {
+          credits.push({
+            id: newId("credit"),
+            remaining: key.remaining,
+            workspaceId: authorizedWorkspaceId,
+            createdAt: Date.now(),
+            keyId: key.keyId,
+            identityId: null,
+            refillAmount: key.refill?.amount ?? null,
+            refillDay: key.refill?.interval === "daily" ? null : (key?.refill?.refillDay ?? 1),
+            refilledAt: key.refill?.interval ? Date.now() : null,
+            updatedAt: null,
+          });
+        }
 
         for (const role of key.roles ?? []) {
           const roleId = roles[role];
@@ -495,6 +509,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             workspaceId: authorizedWorkspaceId,
           });
         }
+
         for (const permission of key.permissions ?? []) {
           const permissionId = permissions[permission];
           permissionConnections.push({
@@ -571,9 +586,15 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       if (encryptedKeys.length > 0) {
         await tx.insert(schema.encryptedKeys).values(encryptedKeys);
       }
+
+      if (credits.length > 0) {
+        await tx.insert(schema.credits).values(credits);
+      }
+
       if (roleConnections.length > 0) {
         await tx.insert(schema.keysRoles).values(roleConnections);
       }
+
       if (permissionConnections.length > 0) {
         await tx.insert(schema.keysPermissions).values(permissionConnections);
       }

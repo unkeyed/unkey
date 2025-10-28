@@ -58,6 +58,7 @@ export const registerV1KeysGetKey = (app: App) =>
           encrypted: true,
           permissions: { with: { permission: true } },
           roles: { with: { role: true } },
+          credits: true,
           keyAuth: {
             with: {
               api: true,
@@ -73,6 +74,7 @@ export const registerV1KeysGetKey = (app: App) =>
       return {
         key: dbRes,
         api: dbRes.keyAuth.api,
+        credits: dbRes.credits,
         permissions: dbRes.permissions.map((p) => p.permission.name),
         roles: dbRes.roles.map((p) => p.role.name),
         ratelimits: dbRes.ratelimits,
@@ -146,6 +148,21 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const ratelimit = key.ratelimits.find((rl) => rl.name === "default");
 
+    // Prefer new credits table over legacy fields
+    const refillAmount = data.credits?.refillAmount ?? key.refillAmount;
+    const refillDay = data.credits?.refillDay ?? key.refillDay;
+    const lastRefillAt = data.credits?.refilledAt ?? key.lastRefillAt?.getTime();
+
+    let refill = undefined;
+    if (refillAmount) {
+      refill = {
+        interval: refillDay ? ("monthly" as const) : ("daily" as const),
+        amount: refillAmount,
+        refillDay: refillDay ?? null,
+        lastRefillAt: lastRefillAt ?? undefined,
+      };
+    }
+
     return c.json({
       id: key.id,
       start: key.start,
@@ -157,15 +174,8 @@ export const registerV1KeysGetKey = (app: App) =>
       createdAt: key.createdAtM,
       updatedAt: key.updatedAtM ?? undefined,
       expires: key.expires?.getTime() ?? undefined,
-      remaining: key.remaining ?? undefined,
-      refill: key.refillAmount
-        ? {
-            interval: key.refillDay ? ("monthly" as const) : ("daily" as const),
-            amount: key.refillAmount,
-            refillDay: key.refillDay,
-            lastRefillAt: key.lastRefillAt?.getTime(),
-          }
-        : undefined,
+      remaining: data.credits?.remaining ?? key.remaining ?? undefined,
+      refill: refill,
       ratelimit: ratelimit
         ? {
             async: false,

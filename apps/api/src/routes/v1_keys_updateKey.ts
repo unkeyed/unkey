@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { type Key, and, schema } from "@unkey/db";
+import { type Credits, type Key, and, schema } from "@unkey/db";
 import { eq } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -289,6 +289,7 @@ export const registerV1KeysUpdate = (app: App) =>
     const key = await db.primary.query.keys.findFirst({
       where: (table, { eq, and, isNull }) => and(eq(table.id, req.keyId), isNull(table.deletedAtM)),
       with: {
+        credits: true,
         keyAuth: {
           with: {
             api: true,
@@ -347,12 +348,19 @@ export const registerV1KeysUpdate = (app: App) =>
     const rootKeyId = auth.key.id;
 
     const changes: Partial<Key> = {};
+    const creditChanges: Partial<Credits> = {};
+
+    const hasOldCredits = key.remaining !== null;
+    const hasNewCredits = key.credits !== null;
+
     if (typeof req.name !== "undefined") {
       changes.name = req.name;
     }
+
     if (typeof req.meta !== "undefined") {
       changes.meta = req.meta === null ? null : JSON.stringify(req.meta);
     }
+
     if (typeof req.externalId !== "undefined") {
       if (req.externalId === null) {
         changes.identityId = null;
@@ -372,12 +380,46 @@ export const registerV1KeysUpdate = (app: App) =>
         changes.ownerId = req.ownerId;
       }
     }
+
     if (typeof req.expires !== "undefined") {
       changes.expires = req.expires === null ? null : new Date(req.expires);
     }
+
+    let creditDeleted = false;
+
     if (typeof req.remaining !== "undefined") {
-      changes.remaining = req.remaining;
+      // Key has new credit system.
+      if (hasNewCredits) {
+        if (req.remaining === null) {
+          await db.primary.delete(schema.credits).where(eq(schema.credits.id, key.credits.id));
+          creditDeleted = true;
+        } else {
+          creditChanges.remaining = req.remaining as number;
+        }
+      } else if (hasOldCredits) {
+        // Key has old credit system, so we work based off that
+        changes.remaining = req.remaining;
+      } else {
+        // Key doesn't have old system so we use new system from the getgo
+        await db.primary.insert(schema.credits).values({
+          id: newId("credit"),
+          keyId: key.id,
+          workspaceId: auth.authorizedWorkspaceId,
+          createdAt: Date.now(),
+          refilledAt: Date.now(),
+          remaining: req.remaining as number,
+          identityId: null,
+          refillAmount: req.refill?.amount ?? null,
+          refillDay: req.refill
+            ? req.refill.interval === "monthly"
+              ? (req.refill.refillDay ?? 1)
+              : null
+            : null,
+          updatedAt: null,
+        });
+      }
     }
+
     if (typeof req.ratelimit !== "undefined") {
       if (req.ratelimit === null) {
         await db.primary
@@ -414,21 +456,48 @@ export const registerV1KeysUpdate = (app: App) =>
     }
 
     if (typeof req.refill !== "undefined") {
-      if (req.refill === null) {
-        changes.refillAmount = null;
-        changes.refillDay = null;
-        changes.lastRefillAt = null;
-      } else {
-        changes.refillAmount = req.refill.amount;
-        changes.refillDay = req.refill.refillDay ?? 1;
+      if (hasNewCredits || !hasOldCredits) {
+        if (req.refill === null) {
+          creditChanges.refillAmount = null;
+          creditChanges.refillDay = null;
+          creditChanges.refilledAt = null;
+        } else {
+          creditChanges.refillAmount = req.refill.amount;
+          creditChanges.refillDay =
+            req.refill.interval === "monthly" ? (req.refill.refillDay ?? 1) : null;
+        }
+      }
+
+      if (hasOldCredits) {
+        if (req.refill === null) {
+          changes.refillAmount = null;
+          changes.refillDay = null;
+          changes.lastRefillAt = null;
+        } else {
+          changes.refillAmount = req.refill.amount;
+          changes.refillDay =
+            req.refill.interval === "monthly" ? (req.refill.refillDay ?? 1) : null;
+        }
       }
     }
+
     if (typeof req.enabled !== "undefined") {
       changes.enabled = req.enabled;
     }
-    if (Object.keys(changes).length > 0) {
+
+    if (Object.keys(changes).length) {
       await db.primary.update(schema.keys).set(changes).where(eq(schema.keys.id, key.id));
     }
+
+    // Since we don't know if we already have a row for this key we just update on keyId
+    // Skip if we deleted the credits row earlier
+    if (Object.keys(creditChanges).length && !creditDeleted) {
+      await db.primary
+        .update(schema.credits)
+        .set(creditChanges)
+        .where(eq(schema.credits.keyId, key.id));
+    }
+
     await insertUnkeyAuditLog(c, undefined, {
       workspaceId: authorizedWorkspaceId,
       event: "key.update",
@@ -458,7 +527,19 @@ export const registerV1KeysUpdate = (app: App) =>
         userAgent: c.get("userAgent"),
       },
     });
-    c.executionCtx.waitUntil(usageLimiter.revalidate({ keyId: key.id }));
+
+    // Revalidate usage limiter with appropriate ID based on which credit system is in use
+    const keyAfterUpdate = await db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.id),
+      with: {
+        credits: true,
+      },
+    });
+    c.executionCtx.waitUntil(
+      usageLimiter.revalidate(
+        keyAfterUpdate?.credits ? { creditId: keyAfterUpdate.credits.id } : { keyId: key.id },
+      ),
+    );
     c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));
     c.executionCtx.waitUntil(cache.keyById.remove(key.id));
 

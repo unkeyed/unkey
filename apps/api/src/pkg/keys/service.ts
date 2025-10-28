@@ -211,6 +211,7 @@ export class KeyService {
       where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAtM)),
       with: {
         encrypted: true,
+        credits: true,
         workspace: {
           columns: {
             id: true,
@@ -278,7 +279,7 @@ export class KeyService {
     }
 
     /**
-     * Createa a unique set of all permissions, whether they're attached directly or connected
+     * Create a unique set of all permissions, whether they're attached directly or connected
      * through a role.
      */
     const permissions = new Set<string>([
@@ -290,7 +291,7 @@ export class KeyService {
 
     /**
      * Merge ratelimits from the identity and the key
-     * Key limits take pecedence
+     * Key limits take precedence
      */
     const ratelimits: {
       [name: string]: Pick<Ratelimit, "name" | "limit" | "duration" | "autoApply">;
@@ -299,11 +300,13 @@ export class KeyService {
     for (const rl of dbRes.identity?.ratelimits ?? []) {
       ratelimits[rl.name] = rl;
     }
+
     for (const rl of dbRes.ratelimits ?? []) {
       ratelimits[rl.name] = rl;
     }
 
     return {
+      credits: dbRes.credits,
       workspace: dbRes.workspace,
       forWorkspace: dbRes.forWorkspace,
       key: dbRes,
@@ -320,6 +323,7 @@ export class KeyService {
     if (cached) {
       return cached;
     }
+
     const hash = await sha256(key);
     this.hashCache.set(key, hash);
     return hash;
@@ -616,11 +620,30 @@ export class KeyService {
     }
 
     let remaining: number | undefined = undefined;
-    if (data.key.remaining !== null) {
+    if (data.key.remaining !== null || data.credits != null) {
       const t0 = performance.now();
       const cost = req.remaining?.cost ?? DEFAULT_REMAINING_COST;
+
+      // V1 Migration: Priority order for credits
+      // 1. Key credits (credits table with keyId)
+      // 2. key.remaining (legacy system)
+      const keyCredits = data.credits;
+      const legacyRemaining = data.key.remaining;
+
+      let creditId: string | undefined = undefined;
+      let keyId: string | undefined = undefined;
+
+      if (keyCredits != null) {
+        // Use key-based credits (credits table)
+        creditId = keyCredits.id;
+      } else if (legacyRemaining !== null) {
+        // Use legacy key.remaining
+        keyId = data.key.id;
+      }
+
       const limited = await this.usageLimiter.limit({
-        keyId: data.key.id,
+        creditId,
+        keyId,
         cost,
       });
 

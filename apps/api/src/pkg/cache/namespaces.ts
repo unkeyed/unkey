@@ -1,5 +1,6 @@
 import type {
   Api,
+  Credits,
   EncryptedKey,
   Identity,
   Key,
@@ -17,6 +18,7 @@ export type CacheNamespaces = {
   keyById: {
     key: Key & { encrypted: EncryptedKey | null; ratelimits: Ratelimit[] };
     api: Api;
+    credits: Credits | null;
     permissions: string[];
     roles: string[];
     identity: CachedIdentity | null;
@@ -30,11 +32,14 @@ export type CacheNamespaces = {
       id: string;
       enabled: boolean;
     } | null;
+    credits: Credits | null;
     key: Key & { encrypted: EncryptedKey | null; ratelimits: Ratelimit[] };
     api: Api;
     permissions: string[];
     roles: string[];
-    ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration" | "autoApply"> };
+    ratelimits: {
+      [name: string]: Pick<Ratelimit, "name" | "limit" | "duration" | "autoApply">;
+    };
     identity: CachedIdentity | null;
   } | null;
   apiById: (Api & { keyAuth: KeyAuth | null }) | null;
@@ -59,6 +64,7 @@ export type CacheNamespaces = {
         roles: string[];
         identity: CachedIdentity | null;
         ratelimits: Ratelimit[];
+        credits: Credits | null;
       }
     >;
     total: number;

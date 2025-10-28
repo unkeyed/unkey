@@ -90,13 +90,78 @@ test("update all", async (t) => {
     where: (table, { eq }) => eq(table.id, key.id),
     with: {
       ratelimits: true,
+      credits: true,
     },
   });
   expect(found).toBeDefined();
   expect(found?.name).toEqual("newName");
   expect(found?.ownerId).toEqual("newOwnerId");
   expect(found?.meta).toEqual(JSON.stringify({ new: "meta" }));
-  expect(found?.remaining).toEqual(0);
+  // Since key didn't have legacy remaining, the new credits table is used
+  expect(found?.remaining).toBeNull();
+  expect(found?.credits).toBeDefined();
+  expect(found?.credits?.remaining).toEqual(0);
+  expect(found!.ratelimits.length).toBe(1);
+  expect(found!.ratelimits[0].name).toBe("default");
+  expect(found!.ratelimits[0].limit).toBe(10);
+  expect(found!.ratelimits[0].duration).toBe(1000);
+});
+
+test("update all with legacy remaining", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const key = {
+    id: newId("test"),
+    keyAuthId: h.resources.userKeyAuth.id,
+    workspaceId: h.resources.userWorkspace.id,
+    start: "test",
+    name: "test",
+    hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+    remaining: 100,
+    createdAtM: Date.now(),
+  };
+  await h.db.primary.insert(schema.keys).values(key);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+    url: "/v1/keys.updateKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      keyId: key.id,
+      name: "newName",
+      ownerId: "newOwnerId",
+      expires: null,
+      meta: { new: "meta" },
+      ratelimit: {
+        type: "fast",
+        limit: 10,
+        refillRate: 5,
+        refillInterval: 1000,
+      },
+      remaining: 50,
+      enabled: true,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const found = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, key.id),
+    with: {
+      ratelimits: true,
+      credits: true,
+    },
+  });
+  expect(found).toBeDefined();
+  expect(found?.name).toEqual("newName");
+  expect(found?.ownerId).toEqual("newOwnerId");
+  expect(found?.meta).toEqual(JSON.stringify({ new: "meta" }));
+  // Since key has legacy remaining, it should stay in legacy system
+  expect(found?.remaining).toEqual(50);
+  expect(found?.credits).toBeNull();
   expect(found!.ratelimits.length).toBe(1);
   expect(found!.ratelimits[0].name).toBe("default");
   expect(found!.ratelimits[0].limit).toBe(10);
@@ -1029,6 +1094,7 @@ test("update ratelimit should not disable it", async (t) => {
   expect(verify.body.ratelimit!.limit).toBe(5);
   expect(verify.body.ratelimit!.remaining).toBe(4);
 });
+
 describe("When refillDay is omitted.", () => {
   test("should provide default value", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -1145,5 +1211,225 @@ describe("update name", () => {
     expect(verify.body.ratelimit).toBeDefined();
     expect(verify.body.ratelimit!.limit).toBe(10);
     expect(verify.body.ratelimit!.remaining).toBe(9);
+  });
+});
+
+describe("update remaining with new credits table", () => {
+  test("updates credits table when key has new credits", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const keyId = newId("test");
+    const key = {
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      workspaceId: h.resources.userWorkspace.id,
+      start: "test",
+      name: "test",
+      hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+      createdAtM: Date.now(),
+    };
+    await h.db.primary.insert(schema.keys).values(key);
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 100,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.id,
+        remaining: 200,
+        enabled: true,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    // Verify the credits table was updated
+    const updatedCredit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.id, creditId),
+    });
+    expect(updatedCredit?.remaining).toEqual(200);
+
+    // Verify the keys table was NOT updated (should remain null)
+    const updatedKey = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+    });
+    expect(updatedKey?.remaining).toBeNull();
+  });
+
+  test("creates new credits table entry when key has no credits", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const keyId = newId("test");
+    const key = {
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      workspaceId: h.resources.userWorkspace.id,
+      start: "test",
+      name: "test",
+      hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+      createdAtM: Date.now(),
+    };
+    await h.db.primary.insert(schema.keys).values(key);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.id,
+        remaining: 150,
+        enabled: true,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    // Verify a new credits table entry was created
+    const credit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.keyId, keyId),
+    });
+    expect(credit).toBeDefined();
+    expect(credit?.remaining).toEqual(150);
+    expect(credit?.keyId).toEqual(keyId);
+    expect(credit?.workspaceId).toEqual(h.resources.userWorkspace.id);
+
+    // Verify the keys table was NOT updated (should remain null)
+    const updatedKey = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+    });
+    expect(updatedKey?.remaining).toBeNull();
+  });
+
+  test("updates legacy key.remaining when it exists", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const keyId = newId("test");
+    const key = {
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      workspaceId: h.resources.userWorkspace.id,
+      start: "test",
+      name: "test",
+      hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+      remaining: 100,
+      createdAtM: Date.now(),
+    };
+    await h.db.primary.insert(schema.keys).values(key);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.id,
+        remaining: 50,
+        enabled: true,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    // Verify the keys table was updated
+    const updatedKey = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+    });
+    expect(updatedKey?.remaining).toEqual(50);
+
+    // Verify NO credits table entry was created (we should stay in legacy system)
+    const credit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.keyId, keyId),
+    });
+    expect(credit).toBeUndefined();
+  });
+
+  test("updates refill in credits table when key has new credits", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const keyId = newId("test");
+    const key = {
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      workspaceId: h.resources.userWorkspace.id,
+      start: "test",
+      name: "test",
+      hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+      createdAtM: Date.now(),
+    };
+    await h.db.primary.insert(schema.keys).values(key);
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 100,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.id,
+        refill: {
+          interval: "monthly",
+          amount: 500,
+          refillDay: 15,
+        },
+        enabled: true,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    // Verify the credits table was updated
+    const updatedCredit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.id, creditId),
+    });
+    expect(updatedCredit?.refillAmount).toEqual(500);
+    expect(updatedCredit?.refillDay).toEqual(15);
+
+    // Verify the keys table was NOT updated
+    const updatedKey = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+    });
+    expect(updatedKey?.refillAmount).toBeNull();
+    expect(updatedKey?.refillDay).toBeNull();
   });
 });

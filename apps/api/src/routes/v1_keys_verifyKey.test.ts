@@ -491,6 +491,45 @@ describe("with default ratelimit", () => {
 });
 
 describe("with remaining", () => {
+  test("works with legacy keys.remaining", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+      remaining: 10,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(9);
+
+    // Verify the legacy keys.remaining was decremented
+    const updatedKey = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        credits: true,
+      },
+    });
+    expect(updatedKey?.remaining).toEqual(9);
+    expect(updatedKey?.credits).toBeNull();
+  });
+
   test("custom cost works", async (t) => {
     const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -547,6 +586,316 @@ describe("with remaining", () => {
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
     expect(res.body.remaining).toEqual(0);
+  });
+
+  test("rejects when cost exceeds remaining with legacy keys", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+      remaining: 50,
+    });
+
+    // Try to use 100 credits when only 50 are remaining
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 100 },
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toEqual("USAGE_EXCEEDED");
+
+    // Verify the legacy keys.remaining was not decremented
+    const updatedKey = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+    });
+    expect(updatedKey?.remaining).toEqual(50);
+  });
+});
+
+describe("with remaining in new credits table", () => {
+  test("usage limiting works correctly with new credits table", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+    });
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 100,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(99);
+
+    // Verify the credits table was decremented
+    const updatedCredit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.id, creditId),
+    });
+    expect(updatedCredit?.remaining).toEqual(99);
+  });
+
+  test("custom cost works with new credits table", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+    });
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 50,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 5 },
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(45);
+
+    // Verify the credits table was decremented by the custom cost
+    const updatedCredit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.id, creditId),
+    });
+    expect(updatedCredit?.remaining).toEqual(45);
+  });
+
+  test("cost=0 works with new credits table when remaining=0", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+    });
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 0,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 0 },
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(0);
+
+    // Verify the credits table was not decremented
+    const updatedCredit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.id, creditId),
+    });
+    expect(updatedCredit?.remaining).toEqual(0);
+  });
+
+  test("key becomes invalid when credits run out", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+    });
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 1,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    // First request should succeed and use the last credit
+    const firstRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(firstRes.status, `expected 200, received: ${JSON.stringify(firstRes, null, 2)}`).toBe(
+      200,
+    );
+    expect(firstRes.body.valid).toBe(true);
+    expect(firstRes.body.remaining).toEqual(0);
+
+    // Second request should fail with no credits remaining
+    const secondRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(secondRes.status, `expected 200, received: ${JSON.stringify(secondRes, null, 2)}`).toBe(
+      200,
+    );
+    expect(secondRes.body.valid).toBe(false);
+    expect(secondRes.body.code).toEqual("USAGE_EXCEEDED");
+  });
+
+  test("rejects when cost exceeds remaining credits", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const keyId = newId("test");
+
+    await h.db.primary.insert(schema.keys).values({
+      id: keyId,
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+    });
+
+    const creditId = newId("credit");
+    await h.db.primary.insert(schema.credits).values({
+      id: creditId,
+      keyId: keyId,
+      workspaceId: h.resources.userWorkspace.id,
+      remaining: 99,
+      createdAt: Date.now(),
+      refilledAt: Date.now(),
+      identityId: null,
+      refillAmount: null,
+      refillDay: null,
+      updatedAt: null,
+    });
+
+    // Try to use 101 credits when only 99 are remaining
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 101 },
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toEqual("USAGE_EXCEEDED");
+
+    // Verify the credits were not decremented
+    const updatedCredit = await h.db.primary.query.credits.findFirst({
+      where: (table, { eq }) => eq(table.id, creditId),
+    });
+    expect(updatedCredit?.remaining).toEqual(99);
   });
 });
 

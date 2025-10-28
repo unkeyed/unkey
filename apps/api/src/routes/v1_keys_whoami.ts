@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import type { Ratelimit } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -106,29 +107,105 @@ export const registerV1KeysWhoAmI = (app: App) =>
     const { cache, db } = c.get("services");
     const hash = await sha256(secret);
     const { val: data, err } = await cache.keyByHash.swr(hash, async () => {
-      const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAtM)),
+      const query = db.readonly.query.keys.findFirst({
+        where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAtM)),
         with: {
+          encrypted: true,
+          credits: true,
+          workspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
+          forWorkspace: {
+            columns: {
+              id: true,
+              enabled: true,
+            },
+          },
+          roles: {
+            with: {
+              role: {
+                with: {
+                  permissions: {
+                    with: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          permissions: {
+            with: {
+              permission: true,
+            },
+          },
           keyAuth: {
             with: {
               api: true,
             },
           },
-          identity: true,
+          ratelimits: true,
+          identity: {
+            with: {
+              ratelimits: true,
+            },
+          },
         },
       });
 
-      if (!dbRes) {
+      const dbRes = await query;
+
+      if (!dbRes?.keyAuth?.api) {
+        return null;
+      }
+      if (dbRes.keyAuth.deletedAtM) {
+        return null;
+      }
+      if (dbRes.keyAuth.api.deletedAtM) {
         return null;
       }
 
+      /**
+       * Create a unique set of all permissions, whether they're attached directly or connected
+       * through a role.
+       */
+      const permissions = new Set<string>([
+        ...dbRes.permissions.filter((p) => p.permission).map((p) => p.permission.slug),
+        ...dbRes.roles.flatMap((r) =>
+          r.role.permissions.filter((p) => p.permission).map((p) => p.permission.slug),
+        ),
+      ]);
+
+      /**
+       * Merge ratelimits from the identity and the key
+       * Key limits take precedence
+       */
+      const ratelimits: {
+        [name: string]: Pick<Ratelimit, "name" | "limit" | "duration" | "autoApply">;
+      } = {};
+
+      for (const rl of dbRes.identity?.ratelimits ?? []) {
+        ratelimits[rl.name] = rl;
+      }
+
+      for (const rl of dbRes.ratelimits ?? []) {
+        ratelimits[rl.name] = rl;
+      }
+
       return {
-        key: {
-          ...dbRes,
-        },
-        api: dbRes.keyAuth.api,
+        credits: dbRes.credits,
+        workspace: dbRes.workspace,
+        forWorkspace: dbRes.forWorkspace,
+        key: dbRes,
         identity: dbRes.identity,
-      } as any; // this was necessary so that we don't need to return the workspace and other types defined in keyByHash
+        api: dbRes.keyAuth.api,
+        permissions: Array.from(permissions.values()),
+        roles: dbRes.roles.map((r) => r.role.name),
+        ratelimits,
+      };
     });
 
     if (err) {
@@ -137,12 +214,14 @@ export const registerV1KeysWhoAmI = (app: App) =>
         message: `unable to load key: ${err.message}`,
       });
     }
+
     if (!data) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: "Key not found",
       });
     }
+
     const { api, key } = data;
     const auth = await rootKeyAuth(
       c,
@@ -155,6 +234,7 @@ export const registerV1KeysWhoAmI = (app: App) =>
         message: "Key not found",
       });
     }
+
     let meta = key.meta ? JSON.parse(key.meta) : undefined;
     if (!meta || Object.keys(meta).length === 0) {
       meta = undefined;
@@ -163,7 +243,7 @@ export const registerV1KeysWhoAmI = (app: App) =>
     return c.json({
       id: key.id,
       name: key.name ?? undefined,
-      remaining: key.remaining ?? undefined,
+      remaining: data?.credits?.remaining ?? key.remaining ?? undefined,
       identity: data.identity
         ? {
             id: data.identity.id,

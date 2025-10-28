@@ -318,12 +318,14 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: "remaining must be greater than 0.",
       });
     }
+
     if ((req.remaining === null || req.remaining === undefined) && req.refill?.interval) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "remaining must be set if you are using refill.",
       });
     }
+
     if (req.refill?.refillDay && req.refill.interval === "daily") {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
@@ -336,7 +338,6 @@ export const registerV1KeysCreateKey = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-
     const externalId = req.externalId ?? req.ownerId;
 
     const [permissionIds, roleIds, identity] = await Promise.all([
@@ -377,14 +378,30 @@ export const registerV1KeysCreateKey = (app: App) =>
         expires: req.expires ? new Date(req.expires) : null,
         createdAtM: Date.now(),
         updatedAtM: null,
-        remaining: req.remaining,
-        refillDay: req.refill?.interval === "daily" ? null : (req?.refill?.refillDay ?? 1),
-        refillAmount: req.refill?.amount,
-        lastRefillAt: req.refill?.interval ? new Date() : null,
         enabled: req.enabled,
         environment: req.environment ?? null,
         identityId: identity?.id,
       });
+
+      if (req.remaining) {
+        await db.primary.insert(schema.credits).values({
+          id: newId("credit"),
+          remaining: req.remaining,
+          workspaceId: authorizedWorkspaceId,
+          createdAt: Date.now(),
+          keyId: kId,
+          identityId: null,
+          refillAmount: req.refill?.amount,
+          refillDay: req.refill
+            ? req.refill.interval === "daily"
+              ? null
+              : (req.refill.refillDay ?? 1)
+            : null,
+          refilledAt: req.refill?.interval ? Date.now() : null,
+          updatedAt: null,
+        });
+      }
+
       if (req.ratelimit) {
         await db.primary.insert(schema.ratelimits).values({
           id: newId("ratelimit"),
@@ -582,7 +599,10 @@ async function getPermissionIds(
     });
   }
   if (!val.valid) {
-    throw new UnkeyApiError({ code: "INSUFFICIENT_PERMISSIONS", message: val.message });
+    throw new UnkeyApiError({
+      code: "INSUFFICIENT_PERMISSIONS",
+      message: val.message,
+    });
   }
 
   const missingPermissionSlugs = permissionsSlugs.filter(
@@ -634,7 +654,10 @@ async function getRoleIds(
     });
   }
   if (!val.valid) {
-    throw new UnkeyApiError({ code: "INSUFFICIENT_PERMISSIONS", message: val.message });
+    throw new UnkeyApiError({
+      code: "INSUFFICIENT_PERMISSIONS",
+      message: val.message,
+    });
   }
 
   const missingRoles = roleNames.filter((name) => !roles.some((role) => role.name === name));

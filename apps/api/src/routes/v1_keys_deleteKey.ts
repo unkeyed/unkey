@@ -70,6 +70,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
         with: {
           identity: true,
           encrypted: true,
+          credits: true,
           permissions: {
             with: {
               permission: true,
@@ -93,6 +94,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       }
       return {
         key: dbRes,
+        credits: dbRes.credits,
         api: dbRes.keyAuth.api,
         permissions: dbRes.permissions.map((p) => p.permission.name),
         roles: dbRes.roles.map((r) => r.role.name),
@@ -114,7 +116,10 @@ export const registerV1KeysDeleteKey = (app: App) =>
       });
     }
     if (!data.val) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${keyId} not found`,
+      });
     }
     const { key, api } = data.val;
 
@@ -136,6 +141,11 @@ export const registerV1KeysDeleteKey = (app: App) =>
     await db.primary.transaction(async (tx) => {
       if (permanent) {
         await tx.delete(schema.keys).where(eq(schema.keys.id, key.id));
+        await tx.delete(schema.credits).where(eq(schema.credits.keyId, key.id));
+        await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.keyId, key.id));
+        await tx.delete(schema.encryptedKeys).where(eq(schema.encryptedKeys.keyId, key.id));
+        await tx.delete(schema.keysPermissions).where(eq(schema.keysPermissions.keyId, key.id));
+        await tx.delete(schema.keysRoles).where(eq(schema.keysRoles.keyId, key.id));
       } else {
         await tx
           .update(schema.keys)
