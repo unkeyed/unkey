@@ -251,11 +251,25 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Rate Limited errors
+			case codes.UnkeyGatewayErrorsAuthRateLimited:
+				return s.JSON(http.StatusTooManyRequests, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Too Many Requests",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusTooManyRequests,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
 			// Internal errors
 			case codes.UnkeyAppErrorsInternalUnexpectedError,
 				codes.UnkeyGatewayErrorsProxyGatewayTimeout,
 				codes.UnkeyGatewayErrorsProxyBadGateway,
-				codes.UnkeyGatewayErrorsAuthRateLimited,
 				codes.UnkeyGatewayErrorsProxyServiceUnavailable,
 				codes.UnkeyAppErrorsInternalServiceUnavailable,
 				codes.UnkeyAppErrorsValidationAssertionFailed,
