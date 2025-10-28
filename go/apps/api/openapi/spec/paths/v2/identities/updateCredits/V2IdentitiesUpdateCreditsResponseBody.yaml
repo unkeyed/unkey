@@ -16,10 +16,10 @@ examples:
       meta:
         requestId: req_upgrade_1234
       data:
-        remaining: 10000
+        remaining: 50000
         refill:
           interval: monthly
-          amount: 10000
+          amount: 50000
           refillDay: 1
   creditPurchaseSuccess:
     summary: Credit purchase completed
@@ -28,10 +28,10 @@ examples:
       meta:
         requestId: req_purchase_5678
       data:
-        remaining: 8500
+        remaining: 35000
         refill:
           interval: monthly
-          amount: 5000
+          amount: 25000
           refillDay: 15
   unlimitedUpgradeSuccess:
     summary: Unlimited upgrade completed
@@ -49,8 +49,8 @@ examples:
       meta:
         requestId: req_reset_abcd
       data:
-        remaining: 25000
+        remaining: 100000
         refill:
           interval: monthly
-          amount: 25000
+          amount: 100000
           refillDay: 1

@@ -1,25 +1,27 @@
 post:
   tags:
-    - keys
-  summary: Update key credits
+    - identities
+  summary: Update identity credits
   description: |
-    Update credit quotas in response to plan changes, billing cycles, or usage purchases.
+    Update credit quotas for an identity in response to plan changes, billing cycles, or usage purchases.
 
     Use this for user upgrades/downgrades, monthly quota resets, credit purchases, or promotional bonuses. Supports three operations: set, increment, or decrement credits. Set to null for unlimited usage.
+
+    Identity credits are shared across all keys belonging to the identity and take priority over key-level credits during verification.
 
     **Important**: Setting unlimited credits automatically clears existing refill configurations.
 
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `api.*.update_key` (to update keys in any API)
-    - `api.<api_id>.update_key` (to update keys in a specific API)
+    - `identity.*.update_identity` (to update any identity)
+    - `identity.<identity_id>.update_identity` (to update a specific identity)
 
     **Side Effects**
 
-    Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
-  operationId: updateKeyCredits
-  x-speakeasy-name-override: updateKeyCredits
+    Credit updates take effect immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes propagate instantly but may take up to 30 seconds to reach all edge regions.
+  operationId: updateIdentityCredits
+  x-speakeasy-name-override: updateIdentityCredits
   security:
     - rootKey: []
   requestBody:
@@ -27,7 +29,7 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./V2KeysUpdateCreditsRequestBody.yaml"
+          "$ref": "./V2IdentitiesUpdateCreditsRequestBody.yaml"
   responses:
     "200":
       description: |
@@ -35,7 +37,7 @@ post:
       content:
         application/json:
           schema:
-            "$ref": "./V2KeysUpdateCreditsResponseBody.yaml"
+            "$ref": "./V2IdentitiesUpdateCreditsResponseBody.yaml"
     "400":
       description: Bad request
       content:

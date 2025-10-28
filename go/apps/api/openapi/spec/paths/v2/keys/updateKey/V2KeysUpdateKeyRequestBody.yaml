@@ -77,7 +77,7 @@ properties:
       Active sessions continue until their next verification attempt after expiry.
     example: 1704067200000
   credits:
-    "$ref": "./UpdateKeyCreditsData.yaml"
+    "$ref": "../../../../common/UpdateCredits.yaml"
     description: |
       Controls usage-based limits for this key through credit consumption.
       Omitting this field preserves current credit settings, while setting null enables unlimited usage.
