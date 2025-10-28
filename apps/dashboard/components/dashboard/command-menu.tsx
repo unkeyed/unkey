@@ -8,7 +8,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Chats } from "@unkey/icons";
-import { BookOpen, type LucideIcon } from "lucide-react";
+import { BookOpen, type IconProps } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useFeedback } from "./feedback-component";
@@ -37,7 +37,7 @@ export function CommandMenu() {
           <DiscordCommand />
           <GenericLinkCommand
             close={() => setOpen(false)}
-            href="/docs"
+            href="https://www.unkey.com/docs"
             label="Documentation"
             icon={BookOpen}
           />
@@ -71,7 +71,7 @@ const DiscordCommand: React.FC = () => {
 const GenericLinkCommand: React.FC<{
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: React.FC<IconProps>;
   close: () => void;
 }> = (props) => {
   const router = useRouter();

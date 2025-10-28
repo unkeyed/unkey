@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package hydra.v1;
 
 import "dev/restate/sdk/go.proto";
@@ -15,8 +14,11 @@ service DeploymentService {
 
 message DeployRequest {
   string deployment_id = 1;
-  string docker_image = 2;
-  optional string key_auth_id = 3;
+  optional string key_auth_id = 2;
+  // Build source fields, exactly one of (context_key, docker_image) must be set
+  optional string build_context_path = 3;
+  optional string dockerfile_path = 4;
+  optional string docker_image = 5;
 }
 
 message DeployResponse {}

@@ -211,9 +211,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				// Try to find existing identity
 				var identity db.Identity
-				identity, err = db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+				identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Identity:    externalID,
+					ExternalID:  externalID,
 					Deleted:     false,
 				})
 

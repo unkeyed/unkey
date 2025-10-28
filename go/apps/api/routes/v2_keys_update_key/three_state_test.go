@@ -274,8 +274,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		require.True(t, key.IdentityID.Valid)
 
 		// Check that the identity exists
-		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity:    key.IdentityID.String,
+		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			IdentityID:  key.IdentityID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)
@@ -321,8 +321,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		require.True(t, key.IdentityID.Valid)
 
 		// Check that the identity exists with correct external ID
-		identity, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-			Identity:    key.IdentityID.String,
+		identity, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+			IdentityID:  key.IdentityID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)

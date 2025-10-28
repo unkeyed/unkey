@@ -37,14 +37,11 @@ const (
 
 	// Step messages
 	MsgPreparingDeployment      = "Preparing deployment"
+	MsgUploadingBuildContext    = "Uploading build context"
+	MsgBuildContextUploaded     = "Build context uploaded"
 	MsgCreatingDeployment       = "Creating deployment"
-	MsgSkippingRegistryPush     = "Skipping registry push"
-	MsgUsingPreBuiltImage       = "Using pre-built Docker image"
-	MsgPushingToRegistry        = "Pushing to registry"
-	MsgImageBuiltSuccessfully   = "Image built successfully"
-	MsgImagePushedSuccessfully  = "Image pushed successfully"
-	MsgPushFailedContinuing     = "Push failed but continuing deployment"
-	MsgDockerNotFound           = "Docker not found - please install Docker"
+	MsgDeploymentCreated        = "Deployment created"
+	MsgFailedToUploadContext    = "Failed to upload build context"
 	MsgFailedToCreateDeployment = "Failed to create deployment"
 	MsgDeploymentFailed         = "Deployment failed"
 	MsgDeploymentCompleted      = "Deployment completed successfully"
@@ -74,8 +71,8 @@ type DeployOptions struct {
 	ProjectID       string
 	KeyspaceID      string
 	Context         string
-	Branch          string
 	DockerImage     string
+	Branch          string
 	Dockerfile      string
 	Commit          string
 	Registry        string
@@ -186,8 +183,8 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		KeyspaceID:      finalConfig.KeyspaceID,
 		ProjectID:       finalConfig.ProjectID,
 		Context:         finalConfig.Context,
-		Branch:          cmd.String("branch"),
 		DockerImage:     cmd.String("docker-image"),
+		Branch:          cmd.String("branch"),
 		Dockerfile:      cmd.String("dockerfile"),
 		Commit:          cmd.String("commit"),
 		Registry:        cmd.String("registry"),
@@ -223,58 +220,42 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	ui.Print(MsgPreparingDeployment)
 
-	var dockerImage string
-
-	// Build or use pre-built Docker image
-	if opts.DockerImage == "" {
-		// Check Docker availability using updated function
-		if err := isDockerAvailable(); err != nil {
-			ui.PrintError(MsgDockerNotFound)
-			return err
-		}
-
-		// Generate image tag and full image name
-		imageTag := generateImageTag(opts, gitInfo)
-		dockerImage = fmt.Sprintf("%s:%s", opts.Registry, imageTag)
-
-		ui.Print(fmt.Sprintf("Building image: %s", dockerImage))
-
-		if err := buildImage(ctx, opts, dockerImage, ui); err != nil {
-			// Don't print additional error, buildImage already reported it with proper hierarchy
-			return err
-		}
-		ui.PrintSuccess(MsgImageBuiltSuccessfully)
-	} else {
-		dockerImage = opts.DockerImage
-		ui.Print(MsgUsingPreBuiltImage)
-	}
-
-	// Push to registry, unless skipped or using pre-built image
-	if !opts.SkipPush && opts.DockerImage == "" {
-		ui.Print(MsgPushingToRegistry)
-		if err := pushImage(ctx, dockerImage, opts.Registry); err != nil {
-			ui.PrintError(MsgPushFailedContinuing)
-			ui.PrintErrorDetails(err.Error())
-			// NOTE: Currently ignoring push failures for local development
-			// For production deployment, uncomment the line below:
-			// return err
-		} else {
-			ui.PrintSuccess(MsgImagePushedSuccessfully)
-		}
-	} else if opts.SkipPush {
-		ui.Print(MsgSkippingRegistryPush)
-	}
-
-	// Create deployment
-	ui.Print(MsgCreatingDeployment)
 	controlPlane := NewControlPlaneClient(opts)
-	deploymentID, err := controlPlane.CreateDeployment(ctx, dockerImage)
-	if err != nil {
-		ui.PrintError(MsgFailedToCreateDeployment)
-		ui.PrintErrorDetails(err.Error())
-		return err
+
+	var deploymentID string
+	var err error
+
+	// Determine deployment source: prebuilt image or build from context
+	if opts.DockerImage != "" {
+		// Use prebuilt Docker image
+		ui.Print(MsgCreatingDeployment)
+		deploymentID, err = controlPlane.CreateDeployment(ctx, "", opts.DockerImage)
+		if err != nil {
+			ui.PrintError(MsgFailedToCreateDeployment)
+			ui.PrintErrorDetails(err.Error())
+			return err
+		}
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
+	} else {
+		// Build from context
+		ui.Print(MsgUploadingBuildContext)
+		buildContextPath, err := controlPlane.UploadBuildContext(ctx, opts.Context)
+		if err != nil {
+			ui.PrintError(MsgFailedToUploadContext)
+			ui.PrintErrorDetails(err.Error())
+			return err
+		}
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgBuildContextUploaded, buildContextPath))
+
+		ui.Print(MsgCreatingDeployment)
+		deploymentID, err = controlPlane.CreateDeployment(ctx, buildContextPath, "")
+		if err != nil {
+			ui.PrintError(MsgFailedToCreateDeployment)
+			ui.PrintErrorDetails(err.Error())
+			return err
+		}
+		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
 	}
-	ui.PrintSuccess(fmt.Sprintf("Deployment created: %s", deploymentID))
 
 	// Track final deployment for completion info
 	var finalDeployment *ctrlv1.Deployment
@@ -331,10 +312,10 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 		fmt.Printf("    %s: %s\n", LabelCommit, commitInfo)
 	}
 
-	fmt.Printf("    %s: %s\n", LabelContext, opts.Context)
-
 	if opts.DockerImage != "" {
 		fmt.Printf("    %s: %s\n", LabelImage, opts.DockerImage)
+	} else {
+		fmt.Printf("    %s: %s\n", LabelContext, opts.Context)
 	}
 
 	fmt.Printf("\n")

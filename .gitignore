@@ -24,5 +24,6 @@ dist
 .secrets.json
 certs/
 deployment/data/*
+deployment/config/depot.json
 metald.db
 bin/

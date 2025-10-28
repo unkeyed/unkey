@@ -31,7 +31,7 @@ const getProjectActionItems = (
     {
       id: "favorite-project",
       label: "Add favorite",
-      icon: <Gear size="md-regular" />,
+      icon: <Gear iconSize="md-medium" />,
       onClick: () => {},
       divider: true,
     },
@@ -39,7 +39,7 @@ const getProjectActionItems = (
       id: "copy-project-id",
       label: "Copy project ID",
       className: "mt-1",
-      icon: <Clone size="md-regular" />,
+      icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(projectId)
@@ -56,7 +56,7 @@ const getProjectActionItems = (
     {
       id: "view-log",
       label: "View gateway logs",
-      icon: <Layers3 size="md-regular" />,
+      icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
         router.push(`/${workspaceSlug}/projects/${projectId}/gateway-logs`);
       },
@@ -64,7 +64,7 @@ const getProjectActionItems = (
     {
       id: "project-settings",
       label: "Project settings",
-      icon: <Gear size="md-regular" />,
+      icon: <Gear iconSize="md-medium" />,
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
@@ -75,7 +75,7 @@ const getProjectActionItems = (
     {
       id: "delete-project",
       label: "Delete project",
-      icon: <Trash size="md-regular" />,
+      icon: <Trash iconSize="md-medium" />,
       ActionComponent: () => null,
     },
   ];

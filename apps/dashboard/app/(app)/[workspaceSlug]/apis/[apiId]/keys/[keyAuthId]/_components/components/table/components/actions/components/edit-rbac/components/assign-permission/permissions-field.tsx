@@ -230,7 +230,7 @@ export const PermissionField = ({
         disabled={disabled}
         onRemoveItem={handleRemovePermission}
         isItemRemovable={(permission) => !permission.isInherited}
-        renderIcon={() => <Page2 size="sm-regular" className="text-grayA-11" />}
+        renderIcon={() => <Page2 iconSize="sm-regular" className="text-grayA-11" />}
         renderPrimaryText={(permission) => permission.name}
         enableTransitions
         renderSecondaryText={(permission) => permission.slug}

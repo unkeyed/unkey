@@ -124,9 +124,9 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
               loading={isSecretLoading}
             >
               {isDecrypted ? (
-                <EyeSlash className="!size-[14px]" size="sm-medium" />
+                <EyeSlash className="!size-[14px]" iconSize="sm-medium" />
               ) : (
-                <Eye className="!size-[14px]" size="sm-medium" />
+                <Eye className="!size-[14px]" iconSize="sm-medium" />
               )}
             </Button>
           )}
@@ -141,10 +141,10 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
           }}
           className="size-7 text-gray-9"
         >
-          <PenWriting3 className="!size-[14px]" size="sm-medium" />
+          <PenWriting3 className="!size-[14px]" iconSize="sm-medium" />
         </Button>
         <Button size="icon" variant="outline" onClick={handleDelete} className="size-7 text-gray-9">
-          <Trash className="!size-[14px]" size="sm-medium" />
+          <Trash className="!size-[14px]" iconSize="sm-medium" />
         </Button>
       </div>
     </div>

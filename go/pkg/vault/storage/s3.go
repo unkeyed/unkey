@@ -51,7 +51,6 @@ func NewS3(config S3Config) (Storage, error) {
 		awsConfig.WithRetryMode(aws.RetryModeStandard),
 		awsConfig.WithRetryMaxAttempts(3),
 	)
-
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to load aws config"), fault.Public("failed to load aws config"))
 	}
@@ -79,7 +78,6 @@ func (s *s3) Latest(workspaceId string) string {
 }
 
 func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
-
 	_, err := s.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
@@ -92,7 +90,6 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
 }
 
 func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
-
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
@@ -113,7 +110,6 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 }
 
 func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
-
 	input := &awsS3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.S3Bucket),
 	}
@@ -122,7 +118,6 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error
 	}
 
 	o, err := s.client.ListObjectsV2(ctx, input)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to list objects: %w", err)
 	}

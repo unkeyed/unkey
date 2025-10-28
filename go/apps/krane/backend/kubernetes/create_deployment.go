@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
@@ -84,7 +85,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			// I believe going forward we need to re-evaluate that cause it's the wrong abstraction.
 			//nolint:exhaustruct
 			&corev1.Service{
-				//nolint:exhaustruct
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      k8sDeploymentID,
 					Namespace: req.Msg.GetDeployment().GetNamespace(),
@@ -154,6 +154,17 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						Annotations: map[string]string{},
 					},
 					Spec: corev1.PodSpec{
+						ImagePullSecrets: func() []corev1.LocalObjectReference {
+							// Only add imagePullSecrets if using Depot registry
+							if strings.HasPrefix(req.Msg.GetDeployment().GetImage(), "registry.depot.dev/") {
+								return []corev1.LocalObjectReference{
+									{
+										Name: "depot-registry",
+									},
+								}
+							}
+							return nil
+						}(),
 						RestartPolicy: corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
 							{

@@ -13,6 +13,9 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/docker"
+	buildStorage "github.com/unkeyed/unkey/go/apps/ctrl/services/build/storage"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -168,10 +171,47 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
 
+	buildStorage, err := buildStorage.NewS3(buildStorage.S3Config{
+		Logger:            logger,
+		S3URL:             cfg.BuildS3.URL,
+		S3PresignURL:      cfg.BuildS3.ExternalURL, // Empty for Depot, set for Docker
+		S3Bucket:          cfg.BuildS3.Bucket,
+		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
+		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create build storage: %w", err)
+	}
+
+	var buildService ctrlv1connect.BuildServiceClient
+	switch cfg.BuildBackend {
+	case BuildBackendDocker:
+		buildService = docker.New(docker.Config{
+			DB:            database,
+			Logger:        logger,
+			BuildPlatform: docker.BuildPlatform(cfg.GetBuildPlatform()),
+			Storage:       buildStorage,
+		})
+		logger.Info("Using Docker build backend", "presign_url", cfg.BuildS3.ExternalURL)
+
+	case BuildBackendDepot:
+		buildService = depot.New(depot.Config{
+			InstanceID:     cfg.InstanceID,
+			DB:             database,
+			RegistryConfig: depot.RegistryConfig(cfg.GetRegistryConfig()),
+			BuildPlatform:  depot.BuildPlatform(cfg.GetBuildPlatform()),
+			DepotConfig:    depot.DepotConfig(cfg.GetDepotConfig()),
+			Logger:         logger,
+			Storage:        buildStorage,
+		})
+		logger.Info("Using Depot build backend")
+
+	default:
+		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
+	}
+
 	// Restate Client and Server
-
 	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
-
 	restateSrv := restateServer.NewRestate()
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
@@ -179,6 +219,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
+		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
@@ -270,13 +311,14 @@ func Run(ctx context.Context, cfg Config) error {
 	connectOptions := []connect.HandlerOption{
 		connect.WithInterceptors(authInterceptor),
 	}
-
+	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService, connectOptions...))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
-		Database:    database,
-		PartitionDB: partitionDB,
-		Restate:     restateClient,
-		Logger:      logger,
+		Database:     database,
+		PartitionDB:  partitionDB,
+		Restate:      restateClient,
+		BuildService: buildService,
+		Logger:       logger,
 	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{

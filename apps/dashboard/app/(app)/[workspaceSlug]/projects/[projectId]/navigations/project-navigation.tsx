@@ -88,7 +88,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
         {activeProject.gitRepositoryUrl && (
           <>
             <div className="text-gray-11 text-xs flex items-center gap-2.5">
-              <Refresh3 className="text-gray-12" size="sm-regular" />
+              <Refresh3 className="text-gray-12" iconSize="sm-regular" />
               <span>Auto-deploys from pushes to </span>
               <RepoDisplay
                 url={activeProject.gitRepositoryUrl}
@@ -101,13 +101,13 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
         <div className="gap-2.5 items-center flex">
           <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
           <Button className="size-7" variant="outline">
-            <ListRadio size="sm-regular" />
+            <ListRadio iconSize="sm-regular" />
           </Button>
           <Button className="size-7" variant="outline">
-            <ArrowDottedRotateAnticlockwise size="sm-regular" />
+            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
           </Button>
           <Button className="size-7" variant="outline">
-            <Dots size="sm-regular" />
+            <Dots iconSize="sm-regular" />
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -25,6 +26,7 @@ type Workflow struct {
 	partitionDB   db.Database
 	logger        logging.Logger
 	krane         kranev1connect.DeploymentServiceClient
+	buildClient   ctrlv1connect.BuildServiceClient
 	defaultDomain string
 }
 
@@ -44,6 +46,9 @@ type Config struct {
 	// Krane is the client for container orchestration operations.
 	Krane kranev1connect.DeploymentServiceClient
 
+	// BuildClient is the client for building Docker images from source.
+	BuildClient ctrlv1connect.BuildServiceClient
+
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string
 }
@@ -56,6 +61,7 @@ func New(cfg Config) *Workflow {
 		partitionDB:                          cfg.PartitionDB,
 		logger:                               cfg.Logger,
 		krane:                                cfg.Krane,
+		buildClient:                          cfg.BuildClient,
 		defaultDomain:                        cfg.DefaultDomain,
 	}
 }
