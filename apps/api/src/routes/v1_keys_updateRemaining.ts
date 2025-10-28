@@ -187,6 +187,13 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
               remaining: req.value,
             })
             .where(eq(schema.keys.id, req.keyId));
+        } else if(hasNewCredits) {
+          await db.primary
+            .update(schema.keys)
+            .set({
+              remaining: req.value,
+            })
+            .where(eq(schema.keys.id, req.keyId));
         } else {
           await db.primary.insert(schema.credits).values({
             id: newId("credit"),
