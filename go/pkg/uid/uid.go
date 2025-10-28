@@ -27,6 +27,7 @@ const (
 	PermissionPrefix         Prefix = "perm"
 	IdentityPrefix           Prefix = "id"
 	RatelimitPrefix          Prefix = "rl"
+	CreditPrefix             Prefix = "cr"
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"

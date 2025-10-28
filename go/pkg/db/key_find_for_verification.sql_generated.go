@@ -78,44 +78,71 @@ select k.id,
        i.meta          as identity_meta,
        ka.deleted_at_m as key_auth_deleted_at_m,
        ws.enabled      as workspace_enabled,
-       fws.enabled     as for_workspace_enabled
+       fws.enabled     as for_workspace_enabled,
+
+       -- Key-level credits
+       key_credits.id as key_credit_id,
+       key_credits.remaining as key_credit_remaining,
+       key_credits.refill_amount as key_credit_refill_amount,
+       key_credits.refill_day as key_credit_refill_day,
+       key_credits.refilled_at as key_credit_refilled_at,
+
+       -- Identity-level credits
+       identity_credits.id as identity_credit_id,
+       identity_credits.remaining as identity_credit_remaining,
+       identity_credits.refill_amount as identity_credit_refill_amount,
+       identity_credits.refill_day as identity_credit_refill_day,
+       identity_credits.refilled_at as identity_credit_refilled_at
+
 from ` + "`" + `keys` + "`" + ` k
          JOIN apis a USING (key_auth_id)
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+         LEFT JOIN credits key_credits ON key_credits.key_id = k.id
+         LEFT JOIN credits identity_credits ON identity_credits.identity_id = i.id
 where k.hash = ?
   and k.deleted_at_m is null
 `
 
 type FindKeyForVerificationRow struct {
-	ID                  string         `db:"id"`
-	KeyAuthID           string         `db:"key_auth_id"`
-	WorkspaceID         string         `db:"workspace_id"`
-	ForWorkspaceID      sql.NullString `db:"for_workspace_id"`
-	Name                sql.NullString `db:"name"`
-	Meta                sql.NullString `db:"meta"`
-	Expires             sql.NullTime   `db:"expires"`
-	DeletedAtM          sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay           sql.NullInt16  `db:"refill_day"`
-	RefillAmount        sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt        sql.NullTime   `db:"last_refill_at"`
-	Enabled             bool           `db:"enabled"`
-	RemainingRequests   sql.NullInt32  `db:"remaining_requests"`
-	IpWhitelist         sql.NullString `db:"ip_whitelist"`
-	ApiWorkspaceID      string         `db:"api_workspace_id"`
-	ApiID               string         `db:"api_id"`
-	ApiDeletedAtM       sql.NullInt64  `db:"api_deleted_at_m"`
-	Roles               interface{}    `db:"roles"`
-	Permissions         interface{}    `db:"permissions"`
-	Ratelimits          interface{}    `db:"ratelimits"`
-	IdentityID          sql.NullString `db:"identity_id"`
-	ExternalID          sql.NullString `db:"external_id"`
-	IdentityMeta        []byte         `db:"identity_meta"`
-	KeyAuthDeletedAtM   sql.NullInt64  `db:"key_auth_deleted_at_m"`
-	WorkspaceEnabled    bool           `db:"workspace_enabled"`
-	ForWorkspaceEnabled sql.NullBool   `db:"for_workspace_enabled"`
+	ID                         string         `db:"id"`
+	KeyAuthID                  string         `db:"key_auth_id"`
+	WorkspaceID                string         `db:"workspace_id"`
+	ForWorkspaceID             sql.NullString `db:"for_workspace_id"`
+	Name                       sql.NullString `db:"name"`
+	Meta                       sql.NullString `db:"meta"`
+	Expires                    sql.NullTime   `db:"expires"`
+	DeletedAtM                 sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay                  sql.NullInt16  `db:"refill_day"`
+	RefillAmount               sql.NullInt32  `db:"refill_amount"`
+	LastRefillAt               sql.NullTime   `db:"last_refill_at"`
+	Enabled                    bool           `db:"enabled"`
+	RemainingRequests          sql.NullInt32  `db:"remaining_requests"`
+	IpWhitelist                sql.NullString `db:"ip_whitelist"`
+	ApiWorkspaceID             string         `db:"api_workspace_id"`
+	ApiID                      string         `db:"api_id"`
+	ApiDeletedAtM              sql.NullInt64  `db:"api_deleted_at_m"`
+	Roles                      interface{}    `db:"roles"`
+	Permissions                interface{}    `db:"permissions"`
+	Ratelimits                 interface{}    `db:"ratelimits"`
+	IdentityID                 sql.NullString `db:"identity_id"`
+	ExternalID                 sql.NullString `db:"external_id"`
+	IdentityMeta               []byte         `db:"identity_meta"`
+	KeyAuthDeletedAtM          sql.NullInt64  `db:"key_auth_deleted_at_m"`
+	WorkspaceEnabled           bool           `db:"workspace_enabled"`
+	ForWorkspaceEnabled        sql.NullBool   `db:"for_workspace_enabled"`
+	KeyCreditID                sql.NullString `db:"key_credit_id"`
+	KeyCreditRemaining         sql.NullInt32  `db:"key_credit_remaining"`
+	KeyCreditRefillAmount      sql.NullInt32  `db:"key_credit_refill_amount"`
+	KeyCreditRefillDay         sql.NullInt16  `db:"key_credit_refill_day"`
+	KeyCreditRefilledAt        sql.NullInt64  `db:"key_credit_refilled_at"`
+	IdentityCreditID           sql.NullString `db:"identity_credit_id"`
+	IdentityCreditRemaining    sql.NullInt32  `db:"identity_credit_remaining"`
+	IdentityCreditRefillAmount sql.NullInt32  `db:"identity_credit_refill_amount"`
+	IdentityCreditRefillDay    sql.NullInt16  `db:"identity_credit_refill_day"`
+	IdentityCreditRefilledAt   sql.NullInt64  `db:"identity_credit_refilled_at"`
 }
 
 // FindKeyForVerification
@@ -187,13 +214,30 @@ type FindKeyForVerificationRow struct {
 //	       i.meta          as identity_meta,
 //	       ka.deleted_at_m as key_auth_deleted_at_m,
 //	       ws.enabled      as workspace_enabled,
-//	       fws.enabled     as for_workspace_enabled
+//	       fws.enabled     as for_workspace_enabled,
+//
+//	       -- Key-level credits
+//	       key_credits.id as key_credit_id,
+//	       key_credits.remaining as key_credit_remaining,
+//	       key_credits.refill_amount as key_credit_refill_amount,
+//	       key_credits.refill_day as key_credit_refill_day,
+//	       key_credits.refilled_at as key_credit_refilled_at,
+//
+//	       -- Identity-level credits
+//	       identity_credits.id as identity_credit_id,
+//	       identity_credits.remaining as identity_credit_remaining,
+//	       identity_credits.refill_amount as identity_credit_refill_amount,
+//	       identity_credits.refill_day as identity_credit_refill_day,
+//	       identity_credits.refilled_at as identity_credit_refilled_at
+//
 //	from `keys` k
 //	         JOIN apis a USING (key_auth_id)
 //	         JOIN key_auth ka ON ka.id = k.key_auth_id
 //	         JOIN workspaces ws ON ws.id = k.workspace_id
 //	         LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
 //	         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+//	         LEFT JOIN credits key_credits ON key_credits.key_id = k.id
+//	         LEFT JOIN credits identity_credits ON identity_credits.identity_id = i.id
 //	where k.hash = ?
 //	  and k.deleted_at_m is null
 func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error) {
@@ -226,6 +270,16 @@ func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash stri
 		&i.KeyAuthDeletedAtM,
 		&i.WorkspaceEnabled,
 		&i.ForWorkspaceEnabled,
+		&i.KeyCreditID,
+		&i.KeyCreditRemaining,
+		&i.KeyCreditRefillAmount,
+		&i.KeyCreditRefillDay,
+		&i.KeyCreditRefilledAt,
+		&i.IdentityCreditID,
+		&i.IdentityCreditRemaining,
+		&i.IdentityCreditRefillAmount,
+		&i.IdentityCreditRefillDay,
+		&i.IdentityCreditRefilledAt,
 	)
 	return i, err
 }

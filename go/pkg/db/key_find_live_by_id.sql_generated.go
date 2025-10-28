@@ -16,9 +16,7 @@ SELECT
     a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
     ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
     ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-    i.id as identity_table_id,
-    i.external_id as identity_external_id,
-    i.meta as identity_meta,
+
     ek.encrypted as encrypted_key,
     ek.encryption_key_id as encryption_key_id,
 
@@ -87,7 +85,25 @@ SELECT
         WHERE rl.key_id = k.id
             OR rl.identity_id = i.id),
         JSON_ARRAY()
-    ) as ratelimits
+    ) as ratelimits,
+
+    -- Identity
+    i.id as identity_table_id,
+    i.external_id as identity_external_id,
+    i.meta as identity_meta,
+
+    -- Credits Key/Identity based
+    kc.id as credit_id,
+    kc.remaining as credit_remaining,
+    kc.refill_amount as credit_refill_amount,
+    kc.refill_day as credit_refill_day,
+    kc.refilled_at as credit_refilled_at,
+
+    ic.id as identity_credit_id,
+    ic.remaining as identity_credit_remaining,
+    ic.refill_amount as identity_credit_refill_amount,
+    ic.refill_day as identity_credit_refill_day,
+    ic.refilled_at as identity_credit_refilled_at
 
 FROM ` + "`" + `keys` + "`" + ` k
 JOIN apis a ON a.key_auth_id = k.key_auth_id
@@ -95,6 +111,8 @@ JOIN key_auth ka ON ka.id = k.key_auth_id
 JOIN workspaces ws ON ws.id = k.workspace_id
 LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+LEFT JOIN credits kc ON kc.key_id = k.id
+LEFT JOIN credits ic ON ic.identity_id = i.id
 WHERE k.id = ?
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
@@ -103,41 +121,51 @@ WHERE k.id = ?
 `
 
 type FindLiveKeyByIDRow struct {
-	ID                 string         `db:"id"`
-	KeyAuthID          string         `db:"key_auth_id"`
-	Hash               string         `db:"hash"`
-	Start              string         `db:"start"`
-	WorkspaceID        string         `db:"workspace_id"`
-	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
-	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
-	IdentityID         sql.NullString `db:"identity_id"`
-	Meta               sql.NullString `db:"meta"`
-	Expires            sql.NullTime   `db:"expires"`
-	CreatedAtM         int64          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
-	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
-	Environment        sql.NullString `db:"environment"`
-	Api                Api            `db:"api"`
-	KeyAuth            KeyAuth        `db:"key_auth"`
-	Workspace          Workspace      `db:"workspace"`
-	IdentityTableID    sql.NullString `db:"identity_table_id"`
-	IdentityExternalID sql.NullString `db:"identity_external_id"`
-	IdentityMeta       []byte         `db:"identity_meta"`
-	EncryptedKey       sql.NullString `db:"encrypted_key"`
-	EncryptionKeyID    sql.NullString `db:"encryption_key_id"`
-	Roles              interface{}    `db:"roles"`
-	Permissions        interface{}    `db:"permissions"`
-	RolePermissions    interface{}    `db:"role_permissions"`
-	Ratelimits         interface{}    `db:"ratelimits"`
+	ID                         string         `db:"id"`
+	KeyAuthID                  string         `db:"key_auth_id"`
+	Hash                       string         `db:"hash"`
+	Start                      string         `db:"start"`
+	WorkspaceID                string         `db:"workspace_id"`
+	ForWorkspaceID             sql.NullString `db:"for_workspace_id"`
+	Name                       sql.NullString `db:"name"`
+	OwnerID                    sql.NullString `db:"owner_id"`
+	IdentityID                 sql.NullString `db:"identity_id"`
+	Meta                       sql.NullString `db:"meta"`
+	Expires                    sql.NullTime   `db:"expires"`
+	CreatedAtM                 int64          `db:"created_at_m"`
+	UpdatedAtM                 sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM                 sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay                  sql.NullInt16  `db:"refill_day"`
+	RefillAmount               sql.NullInt32  `db:"refill_amount"`
+	LastRefillAt               sql.NullTime   `db:"last_refill_at"`
+	Enabled                    bool           `db:"enabled"`
+	RemainingRequests          sql.NullInt32  `db:"remaining_requests"`
+	RatelimitAsync             sql.NullBool   `db:"ratelimit_async"`
+	RatelimitLimit             sql.NullInt32  `db:"ratelimit_limit"`
+	RatelimitDuration          sql.NullInt64  `db:"ratelimit_duration"`
+	Environment                sql.NullString `db:"environment"`
+	Api                        Api            `db:"api"`
+	KeyAuth                    KeyAuth        `db:"key_auth"`
+	Workspace                  Workspace      `db:"workspace"`
+	EncryptedKey               sql.NullString `db:"encrypted_key"`
+	EncryptionKeyID            sql.NullString `db:"encryption_key_id"`
+	Roles                      interface{}    `db:"roles"`
+	Permissions                interface{}    `db:"permissions"`
+	RolePermissions            interface{}    `db:"role_permissions"`
+	Ratelimits                 interface{}    `db:"ratelimits"`
+	IdentityTableID            sql.NullString `db:"identity_table_id"`
+	IdentityExternalID         sql.NullString `db:"identity_external_id"`
+	IdentityMeta               []byte         `db:"identity_meta"`
+	CreditID                   sql.NullString `db:"credit_id"`
+	CreditRemaining            sql.NullInt32  `db:"credit_remaining"`
+	CreditRefillAmount         sql.NullInt32  `db:"credit_refill_amount"`
+	CreditRefillDay            sql.NullInt16  `db:"credit_refill_day"`
+	CreditRefilledAt           sql.NullInt64  `db:"credit_refilled_at"`
+	IdentityCreditID           sql.NullString `db:"identity_credit_id"`
+	IdentityCreditRemaining    sql.NullInt32  `db:"identity_credit_remaining"`
+	IdentityCreditRefillAmount sql.NullInt32  `db:"identity_credit_refill_amount"`
+	IdentityCreditRefillDay    sql.NullInt16  `db:"identity_credit_refill_day"`
+	IdentityCreditRefilledAt   sql.NullInt64  `db:"identity_credit_refilled_at"`
 }
 
 // FindLiveKeyByID
@@ -147,9 +175,7 @@ type FindLiveKeyByIDRow struct {
 //	    a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 //	    ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 //	    ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-//	    i.id as identity_table_id,
-//	    i.external_id as identity_external_id,
-//	    i.meta as identity_meta,
+//
 //	    ek.encrypted as encrypted_key,
 //	    ek.encryption_key_id as encryption_key_id,
 //
@@ -218,7 +244,25 @@ type FindLiveKeyByIDRow struct {
 //	        WHERE rl.key_id = k.id
 //	            OR rl.identity_id = i.id),
 //	        JSON_ARRAY()
-//	    ) as ratelimits
+//	    ) as ratelimits,
+//
+//	    -- Identity
+//	    i.id as identity_table_id,
+//	    i.external_id as identity_external_id,
+//	    i.meta as identity_meta,
+//
+//	    -- Credits Key/Identity based
+//	    kc.id as credit_id,
+//	    kc.remaining as credit_remaining,
+//	    kc.refill_amount as credit_refill_amount,
+//	    kc.refill_day as credit_refill_day,
+//	    kc.refilled_at as credit_refilled_at,
+//
+//	    ic.id as identity_credit_id,
+//	    ic.remaining as identity_credit_remaining,
+//	    ic.refill_amount as identity_credit_refill_amount,
+//	    ic.refill_day as identity_credit_refill_day,
+//	    ic.refilled_at as identity_credit_refilled_at
 //
 //	FROM `keys` k
 //	JOIN apis a ON a.key_auth_id = k.key_auth_id
@@ -226,6 +270,8 @@ type FindLiveKeyByIDRow struct {
 //	JOIN workspaces ws ON ws.id = k.workspace_id
 //	LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 //	LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+//	LEFT JOIN credits kc ON kc.key_id = k.id
+//	LEFT JOIN credits ic ON ic.identity_id = i.id
 //	WHERE k.id = ?
 //	    AND k.deleted_at_m IS NULL
 //	    AND a.deleted_at_m IS NULL
@@ -295,15 +341,25 @@ func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (Find
 		&i.Workspace.CreatedAtM,
 		&i.Workspace.UpdatedAtM,
 		&i.Workspace.DeletedAtM,
-		&i.IdentityTableID,
-		&i.IdentityExternalID,
-		&i.IdentityMeta,
 		&i.EncryptedKey,
 		&i.EncryptionKeyID,
 		&i.Roles,
 		&i.Permissions,
 		&i.RolePermissions,
 		&i.Ratelimits,
+		&i.IdentityTableID,
+		&i.IdentityExternalID,
+		&i.IdentityMeta,
+		&i.CreditID,
+		&i.CreditRemaining,
+		&i.CreditRefillAmount,
+		&i.CreditRefillDay,
+		&i.CreditRefilledAt,
+		&i.IdentityCreditID,
+		&i.IdentityCreditRemaining,
+		&i.IdentityCreditRefillAmount,
+		&i.IdentityCreditRefillDay,
+		&i.IdentityCreditRefilledAt,
 	)
 	return i, err
 }

@@ -7,15 +7,22 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listIdentities = `-- name: ListIdentities :many
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-FROM identities
-WHERE workspace_id = ?
-AND deleted = ?
-AND id >= ?
-ORDER BY id ASC
+SELECT 
+    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    c.id as credit_id,
+    c.remaining as credit_remaining,
+    c.refill_amount as credit_refill_amount,
+    c.refill_day as credit_refill_day
+FROM identities i
+LEFT JOIN credits c ON c.identity_id = i.id
+WHERE i.workspace_id = ?
+AND i.deleted = ?
+AND i.id >= ?
+ORDER BY i.id ASC
 LIMIT ?
 `
 
@@ -26,16 +33,37 @@ type ListIdentitiesParams struct {
 	Limit       int32  `db:"limit"`
 }
 
+type ListIdentitiesRow struct {
+	ID                 string         `db:"id"`
+	ExternalID         string         `db:"external_id"`
+	WorkspaceID        string         `db:"workspace_id"`
+	Environment        string         `db:"environment"`
+	Meta               []byte         `db:"meta"`
+	Deleted            bool           `db:"deleted"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
+	CreditID           sql.NullString `db:"credit_id"`
+	CreditRemaining    sql.NullInt32  `db:"credit_remaining"`
+	CreditRefillAmount sql.NullInt32  `db:"credit_refill_amount"`
+	CreditRefillDay    sql.NullInt16  `db:"credit_refill_day"`
+}
+
 // ListIdentities
 //
-//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-//	FROM identities
-//	WHERE workspace_id = ?
-//	AND deleted = ?
-//	AND id >= ?
-//	ORDER BY id ASC
+//	SELECT
+//	    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    c.id as credit_id,
+//	    c.remaining as credit_remaining,
+//	    c.refill_amount as credit_refill_amount,
+//	    c.refill_day as credit_refill_day
+//	FROM identities i
+//	LEFT JOIN credits c ON c.identity_id = i.id
+//	WHERE i.workspace_id = ?
+//	AND i.deleted = ?
+//	AND i.id >= ?
+//	ORDER BY i.id ASC
 //	LIMIT ?
-func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error) {
+func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error) {
 	rows, err := db.QueryContext(ctx, listIdentities,
 		arg.WorkspaceID,
 		arg.Deleted,
@@ -46,9 +74,9 @@ func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitie
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Identity
+	var items []ListIdentitiesRow
 	for rows.Next() {
-		var i Identity
+		var i ListIdentitiesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ExternalID,
@@ -58,6 +86,10 @@ func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitie
 			&i.Deleted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreditID,
+			&i.CreditRemaining,
+			&i.CreditRefillAmount,
+			&i.CreditRefillDay,
 		); err != nil {
 			return nil, err
 		}
