@@ -57,6 +57,7 @@ export function SuccessClient({
         isOpen={showModal}
         onOpenChange={setShowModal}
         products={products}
+        workspaceSlug={workSpaceSlug}
       />
     );
   }

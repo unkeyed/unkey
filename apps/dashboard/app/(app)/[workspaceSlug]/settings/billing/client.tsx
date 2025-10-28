@@ -101,6 +101,7 @@ export const Client: React.FC = () => {
               onOpenChange={setShowPlanModal}
               products={products}
               currentProductId={currentProductId}
+              workspaceSlug={workspace.slug}
               isChangingPlan={true}
             />
           </>

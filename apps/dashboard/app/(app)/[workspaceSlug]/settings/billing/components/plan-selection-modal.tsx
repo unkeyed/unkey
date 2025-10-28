@@ -1,6 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
@@ -20,6 +19,7 @@ type PlanSelectionModalProps = {
       requestsPerMonth: number;
     };
   }>;
+  workspaceSlug: string;
   currentProductId?: string;
   isChangingPlan?: boolean;
 };
@@ -28,10 +28,10 @@ export const PlanSelectionModal = ({
   isOpen,
   onOpenChange,
   products,
+  workspaceSlug,
   currentProductId,
   isChangingPlan = false,
 }: PlanSelectionModalProps) => {
-  const workspace = useWorkspaceNavigation();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     null
   );
@@ -71,7 +71,7 @@ export const PlanSelectionModal = ({
       toast.success("Plan activated successfully!");
       await revalidateData();
       await trpcUtils.workspace.getCurrent.refetch();
-      router.push(`/${workspace.slug}/settings/billing`);
+      router.push(`/${workspaceSlug}/settings/billing`);
     },
     onError: (err) => {
       setIsLoading(false);
@@ -120,7 +120,7 @@ export const PlanSelectionModal = ({
       toast.info(
         "Payment method added - you can upgrade anytime from billing settings!"
       );
-      router.push(`/${workspace.slug}/settings/billing`);
+      router.push(`/${workspaceSlug}/settings/billing`);
     }
     handleOpenChange(false);
   };
@@ -177,9 +177,7 @@ export const PlanSelectionModal = ({
             className="w-full"
             onClick={handleSelectPlan}
           >
-            {selectedProductId === "free" && !isChangingPlan
-              ? "Continue with Free Plan"
-              : selectedProduct
+            {selectedProduct
               ? `${isChangingPlan ? "Change to" : "Start"} ${
                   selectedProduct.name
                 } Plan - $${selectedProduct.dollar}/mo`
