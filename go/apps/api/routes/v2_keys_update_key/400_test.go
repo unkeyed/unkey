@@ -53,10 +53,10 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 		t.Parallel()
 		req := handler.Request{
 			KeyId: keyResponse.KeyID,
-			Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 				Remaining: nullable.NewNullableWithValue(int64(100)),
-				Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
-					Interval:  openapi.UpdateKeyCreditsRefillIntervalDaily,
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
+					Interval:  openapi.Daily,
 					Amount:    100,
 					RefillDay: ptr.P(int(4)), // Invalid: can't set refillDay for daily
 

@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
@@ -49,7 +50,9 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
-		Remaining:   &initialCredits,
+		Credits: &seed.CreditRequest{
+			Remaining: initialCredits,
+		},
 	})
 	keyID := keyResponse.KeyID
 
@@ -62,23 +65,25 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 	// This also tests that we have the correct data for the key.
 	t.Run("update key set to unlimited credits", func(t *testing.T) {
+		nullValue := nullable.Nullable[int64]{}
+		nullValue.SetNull()
+
 		req := handler.Request{
 			KeyId:     keyID,
 			Operation: openapi.Set,
-			Value:     nullable.Nullable[int64]{},
+			Value:     nullValue,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, res.Body.Data.Remaining.IsNull(), true)
+		t.Logf("Request Operation: %v, Value.IsNull(): %v", req.Operation, req.Value.IsNull())
+		t.Logf("Remaining: %+v, IsNull: %v, IsSpecified: %v", res.Body.Data.Remaining, res.Body.Data.Remaining.IsNull(), res.Body.Data.Remaining.IsSpecified())
+		t.Logf("Refill: %+v", res.Body.Data.Refill)
+		require.True(t, res.Body.Data.Remaining.IsNull())
 
-		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		require.NotNil(t, key)
-		require.Equal(t, key.RemainingRequests.Valid, false)
-		require.Equal(t, key.RefillAmount.Valid, false)
-		require.Equal(t, key.RefillDay.Valid, false)
+		_, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyID, Valid: true})
+		require.True(t, db.IsNotFound(err))
 	})
 
 	setTo := int64(rand.IntN(50) + 1)
@@ -97,20 +102,17 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, remaining, setTo)
 
-		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyID, Valid: true})
 		require.NoError(t, err)
-		require.NotNil(t, key)
-		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, setTo)
+		require.EqualValues(t, credits.Remaining, setTo)
 	})
 
 	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
 		// Get current credits before decrement
-		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyID, Valid: true})
 		require.NoError(t, err)
-		require.True(t, currentKey.RemainingRequests.Valid)
-		currentCredits := int64(currentKey.RemainingRequests.Int32)
+		currentCredits := int64(credits.Remaining)
 
 		req := handler.Request{
 			KeyId:     keyID,
@@ -126,20 +128,17 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, remaining, currentCredits+increaseBy)
 
-		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		credits, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyID, Valid: true})
 		require.NoError(t, err)
-		require.NotNil(t, key)
-		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, currentCredits+increaseBy)
+		require.EqualValues(t, credits.Remaining, currentCredits+increaseBy)
 	})
 
 	decreaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("decrease credits by %d", decreaseBy), func(t *testing.T) {
 		// Get current credits before decrement
-		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyID, Valid: true})
 		require.NoError(t, err)
-		require.True(t, currentKey.RemainingRequests.Valid)
-		currentCredits := int64(currentKey.RemainingRequests.Int32)
+		currentCredits := int64(credits.Remaining)
 
 		// If we are decreasing credits into the negative, it will be automatically set to 0
 		shouldBeRemaining := int64(0)
@@ -161,11 +160,9 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, remaining, shouldBeRemaining)
 
-		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		credits, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyID, Valid: true})
 		require.NoError(t, err)
-		require.NotNil(t, key)
-		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, shouldBeRemaining)
+		require.EqualValues(t, credits.Remaining, shouldBeRemaining)
 	})
 
 	t.Run("counter cache invalidation after credit update", func(t *testing.T) {
@@ -175,7 +172,9 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
-			Remaining:   &initialCredits,
+			Credits: &seed.CreditRequest{
+				Remaining: initialCredits,
+			},
 		})
 
 		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, cacheTestKey.Key)
@@ -184,8 +183,8 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		err = authBefore.Verify(ctx, keys.WithCredits(1))
 		require.NoError(t, err)
 
-		require.True(t, authBefore.Key.RemainingRequests.Valid)
-		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+		require.NotNil(t, authBefore.KeyCredits)
+		require.EqualValues(t, initialCredits-1, authBefore.KeyCredits.Remaining)
 
 		// Update the key's credits
 		newCredits := int64(50)
@@ -211,8 +210,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		err = authAfter.Verify(ctx, keys.WithCredits(1))
 		require.NoError(t, err)
 
-		require.True(t, authAfter.Key.RemainingRequests.Valid)
-		require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
-
+		require.NotNil(t, authAfter.KeyCredits)
+		require.EqualValues(t, newCredits-1, authAfter.KeyCredits.Remaining)
 	})
 }

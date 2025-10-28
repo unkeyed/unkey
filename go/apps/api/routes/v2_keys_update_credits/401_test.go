@@ -43,7 +43,9 @@ func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
-		Remaining:   &remainingRequests,
+		Credits: &seed.CreditRequest{
+			Remaining: remainingRequests,
+		},
 	})
 	keyID := keyResponse.KeyID
 

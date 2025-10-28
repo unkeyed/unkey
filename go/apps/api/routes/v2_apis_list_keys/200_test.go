@@ -152,18 +152,17 @@ func TestSuccess(t *testing.T) {
 		key := keyData.start + uid.New("")
 
 		insertParams := db.InsertKeyParams{
-			ID:                keyData.id,
-			KeySpaceID:        keySpaceID,
-			Hash:              hash.Sha256(key),
-			Start:             keyData.start,
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: keyData.name},
-			Meta:              sql.NullString{Valid: true, String: string(metaBytes)},
-			Expires:           sql.NullTime{Valid: false},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           keyData.enabled,
-			RemainingRequests: sql.NullInt32{Valid: false},
+			ID:             keyData.id,
+			KeySpaceID:     keySpaceID,
+			Hash:           hash.Sha256(key),
+			Start:          keyData.start,
+			WorkspaceID:    workspace.ID,
+			ForWorkspaceID: sql.NullString{Valid: false},
+			Name:           sql.NullString{Valid: true, String: keyData.name},
+			Meta:           sql.NullString{Valid: true, String: string(metaBytes)},
+			Expires:        sql.NullTime{Valid: false},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        keyData.enabled,
 		}
 
 		if keyData.identityID != nil {

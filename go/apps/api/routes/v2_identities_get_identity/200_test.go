@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -89,7 +90,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
 
 		// Verify ratelimits
-		require.Len(t, *res.Body.Data.Ratelimits, 2)
+		require.Len(t, ptr.SafeDeref(res.Body.Data.Ratelimits), 2)
 	})
 
 	t.Run("metadata is empty object when not set", func(t *testing.T) {

@@ -26,6 +26,7 @@ import (
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_delete_identity"
 	v2IdentitiesGetIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_get_identity"
 	v2IdentitiesListIdentities "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_list_identities"
+	v2IdentitiesUpdateCredits "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_credits"
 	v2IdentitiesUpdateIdentity "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_identity"
 
 	v2PermissionsCreatePermission "github.com/unkeyed/unkey/go/apps/api/routes/v2_permissions_create_permission"
@@ -226,10 +227,24 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2IdentitiesUpdateIdentity.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			UsageLimiter: svc.UsageLimiter,
+		},
+	)
+
+	// v2/identities.updateCredits
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2IdentitiesUpdateCredits.Handler{
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			UsageLimiter: svc.UsageLimiter,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
 		},
 	)
 

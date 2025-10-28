@@ -80,7 +80,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	keyData := db.ToKeyData(key)
-
 	checks := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -174,21 +173,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
-			ID:                keyID,
-			KeySpaceID:        key.KeyAuthID,
-			Hash:              keyResult.Hash,
-			Start:             keyResult.Start,
-			WorkspaceID:       key.WorkspaceID,
-			ForWorkspaceID:    key.ForWorkspaceID,
-			CreatedAtM:        now,
-			Enabled:           key.Enabled,
-			RemainingRequests: key.RemainingRequests,
-			RefillDay:         key.RefillDay,
-			RefillAmount:      key.RefillAmount,
-			Name:              key.Name,
-			IdentityID:        key.IdentityID,
-			Meta:              key.Meta,
-			Expires:           key.Expires,
+			ID:             keyID,
+			KeySpaceID:     key.KeyAuthID,
+			Hash:           keyResult.Hash,
+			Start:          keyResult.Start,
+			WorkspaceID:    key.WorkspaceID,
+			ForWorkspaceID: key.ForWorkspaceID,
+			CreatedAtM:     now,
+			Enabled:        key.Enabled,
+			Name:           key.Name,
+			IdentityID:     key.IdentityID,
+			Meta:           key.Meta,
+			Expires:        key.Expires,
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -282,6 +278,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"), fault.Public("Failed to create key permission."),
+				)
+			}
+		}
+
+		// Copy credits from the old key to the new key
+		if keyData.KeyCredits != nil {
+			err = db.Query.InsertCredit(ctx, tx, db.InsertCreditParams{
+				ID:           uid.New(uid.CreditPrefix),
+				WorkspaceID:  key.WorkspaceID,
+				KeyID:        sql.NullString{Valid: true, String: keyID},
+				IdentityID:   sql.NullString{Valid: false},
+				Remaining:    keyData.KeyCredits.Remaining,
+				RefillDay:    keyData.KeyCredits.RefillDay,
+				RefillAmount: keyData.KeyCredits.RefillAmount,
+				CreatedAt:    now,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+				RefilledAt:   sql.NullInt64{Valid: false}, // Don't copy refill timestamp - this is a new key
+			})
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to copy key credits."),
 				)
 			}
 		}

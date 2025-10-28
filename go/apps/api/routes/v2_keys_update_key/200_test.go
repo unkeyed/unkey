@@ -170,10 +170,10 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
 		Enabled:    ptr.P(true),
-		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+		Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 			Remaining: nullable.NewNullableWithValue(int64(100)),
-			Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
-				Interval: openapi.UpdateKeyCreditsRefillIntervalDaily,
+			Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
+				Interval: openapi.Daily,
 				Amount:   50,
 			}),
 		}),
@@ -191,12 +191,18 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "newName", key.Name.String)
 	require.True(t, key.IdentityID.Valid, "Should have identity ID set")
-	require.Equal(t, int32(100), key.RemainingRequests.Int32)
-	require.Equal(t, int32(50), key.RefillAmount.Int32)
+
+	// Verify credits were created
+	credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+	require.NoError(t, err)
+	require.Equal(t, int32(100), credits.Remaining)
+	require.True(t, credits.RefillAmount.Valid)
+	require.Equal(t, int32(50), credits.RefillAmount.Int32)
+	require.False(t, credits.RefillDay.Valid, "daily interval should not have refill day")
 
 	// Verify identity was created with correct external ID
-	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-		IdentityID:  key.IdentityID.String,
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		Identity:    key.IdentityID.String,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 	require.NoError(t, err)
@@ -234,7 +240,9 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
-		Remaining:   &initialCredits,
+		Credits: &seed.CreditRequest{
+			Remaining: initialCredits,
+		},
 	})
 
 	// Create a root key with appropriate permissions
@@ -250,17 +258,17 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	err = authBefore.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)
 
-	require.True(t, authBefore.Key.RemainingRequests.Valid)
-	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+	require.NotNil(t, authBefore.KeyCredits)
+	require.Equal(t, int32(initialCredits)-1, authBefore.KeyCredits.Remaining)
 
 	// Update the key's credits
 	newCredits := int64(50)
 
 	req := handler.Request{
 		KeyId: key.KeyID,
-		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-			Refill:    nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
-			Remaining: nullable.NewNullableWithValue[int64](newCredits),
+		Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+			Refill:    nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
+			Remaining: nullable.NewNullableWithValue(newCredits),
 		}),
 	}
 
@@ -274,6 +282,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	err = authAfter.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)
 
-	require.True(t, authAfter.Key.RemainingRequests.Valid)
-	require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+	require.NotNil(t, authAfter.KeyCredits)
+	require.EqualValues(t, newCredits-1, authAfter.KeyCredits.Remaining)
+
 }

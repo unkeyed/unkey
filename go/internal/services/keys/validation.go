@@ -17,7 +17,7 @@ import (
 )
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
-// It updates the key's remaining request count and marks the key as invalid if the limit is exceeded.
+// Priority: Identity credits > Key credits > Legacy key.remaining_requests
 func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	ctx, span := tracing.Start(ctx, "verify.withCredits")
 	defer span.End()
@@ -26,23 +26,43 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 		return nil
 	}
 
-	// Key has unlimited requests if set to NULL
-	if !k.Key.RemainingRequests.Valid {
+	// Check if any usage limit is configured
+	hasIdentityCredits := k.IdentityCredits != nil
+	hasKeyCredits := k.KeyCredits != nil
+	hasLegacyRemaining := k.Key.RemainingRequests.Valid
+
+	if !hasIdentityCredits && !hasKeyCredits && !hasLegacyRemaining {
+		// No usage limit configured
 		return nil
 	}
 
-	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
-		KeyId: k.Key.ID,
-		Cost:  cost,
-	})
+	// Determine which credit system to use (priority: identity > key > legacy)
+	req := usagelimiter.UsageRequest{Cost: cost}
+	if hasIdentityCredits {
+		req.CreditID = k.IdentityCredits.ID
+	} else if hasKeyCredits {
+		req.CreditID = k.KeyCredits.ID
+	} else {
+		req.KeyID = k.Key.ID
+	}
+
+	// Limit usage
+	usage, err := k.usageLimiter.Limit(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	// Always update remaining requests with the accurate count from the usageLimiter
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
+	// Update remaining credits based on which system was used
+	if hasIdentityCredits {
+		k.IdentityCredits.Remaining = usage.Remaining
+	} else if hasKeyCredits {
+		k.KeyCredits.Remaining = usage.Remaining
+	} else {
+		k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
+	}
+
 	if !usage.Valid {
-		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
+		k.setInvalid(StatusUsageExceeded, "Credit limit exceeded.")
 	}
 
 	return nil

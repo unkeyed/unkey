@@ -8,9 +8,10 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
-	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
+	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_credits"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestKeyUpdateCreditsForbidden(t *testing.T) {
@@ -21,34 +22,19 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 		Keys:         h.Keys,
 		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
-		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
+		KeyCache:     h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)
 
-	// Create API for testing using testutil helper
-	apiName := "test-api"
-	api := h.CreateApi(seed.CreateApiRequest{
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Name:        &apiName,
-	})
-
-	diffApi := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		Name:        &apiName,
-	})
-
-	key := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: api.WorkspaceID,
-		KeySpaceID:  api.KeyAuthID.String,
-		Credits: &seed.CreditRequest{
-			Remaining: 100,
-		},
+		ExternalID:  uid.New(""),
 	})
 
 	req := handler.Request{
-		KeyId:     key.KeyID,
+		Identity:  identity.ID,
 		Operation: openapi.Increment,
 		Value:     nullable.NewNullableWithValue(int64(10)),
 	}
@@ -95,21 +81,6 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("cross api access", func(t *testing.T) {
-		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.update_key", diffApi.ID))
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-
-		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
 	})
 }

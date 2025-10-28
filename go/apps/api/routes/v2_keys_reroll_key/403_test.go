@@ -99,21 +99,19 @@ func TestRerollKeyForbidden(t *testing.T) {
 	})
 
 	encryptedKey := h.CreateKey(seed.CreateKeyRequest{
-		Disabled:     false,
-		Recoverable:  true,
-		WorkspaceID:  h.Resources().UserWorkspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:    nil,
-		IdentityID:   nil,
-		Meta:         nil,
-		Expires:      nil,
-		Name:         nil,
-		Deleted:      false,
-		RefillAmount: nil,
-		RefillDay:    nil,
-		Permissions:  nil,
-		Roles:        nil,
-		Ratelimits:   nil,
+		Disabled:    false,
+		Recoverable: true,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Credits:     nil,
+		IdentityID:  nil,
+		Meta:        nil,
+		Expires:     nil,
+		Name:        nil,
+		Deleted:     false,
+		Permissions: nil,
+		Roles:       nil,
+		Ratelimits:  nil,
 	})
 
 	t.Run("reroll recoverable key without perms", func(t *testing.T) {

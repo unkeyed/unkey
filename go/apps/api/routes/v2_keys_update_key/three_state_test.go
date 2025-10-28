@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -274,8 +275,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		require.True(t, key.IdentityID.Valid)
 
 		// Check that the identity exists
-		identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			IdentityID:  key.IdentityID.String,
+		identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			Identity:    key.IdentityID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)
@@ -321,8 +322,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		require.True(t, key.IdentityID.Valid)
 
 		// Check that the identity exists with correct external ID
-		identity, err = db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-			IdentityID:  key.IdentityID.String,
+		identity, err = db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+			Identity:    key.IdentityID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)
@@ -335,67 +336,67 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		t.Run("Set credits object to null clears everything", func(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("credits-null-test"),
-				Remaining:    ptr.P(int32(100)),
-				RefillAmount: ptr.P(int32(50)),
-				RefillDay:    ptr.P(int16(15)),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				Name:        ptr.P("credits-null-test"),
+				Credits: &seed.CreditRequest{
+					Remaining:    100,
+					RefillAmount: ptr.P(int32(50)),
+					RefillDay:    ptr.P(int16(15)),
+				},
 			})
 
 			// Verify initial state
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 100, key.RemainingRequests.Int32)
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 50, key.RefillAmount.Int32)
-			require.True(t, key.RefillDay.Valid)
-			require.EqualValues(t, 15, key.RefillDay.Int16)
+			require.EqualValues(t, 100, credits.Remaining)
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 50, credits.RefillAmount.Int32)
+			require.True(t, credits.RefillDay.Valid)
+			require.EqualValues(t, 15, credits.RefillDay.Int16)
 
 			// Set credits to null
 			req := handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Credits: nullable.NewNullNullable[openapi.UpdateKeyCreditsData](),
+				Credits: nullable.NewNullNullable[openapi.UpdateCredits](),
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 
-			// Verify everything is cleared
-			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
-			require.NoError(t, err)
-			require.False(t, key.RemainingRequests.Valid, "remaining should be cleared")
-			require.False(t, key.RefillAmount.Valid, "refill amount should be cleared")
-			require.False(t, key.RefillDay.Valid, "refill day should be cleared")
+			// Verify everything is cleared (credits record deleted)
+			_, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+			require.Error(t, err, "credits should be deleted")
+			require.True(t, db.IsNotFound(err), "should return not found error")
 		})
 
 		// Test Case 2: Set credits.remaining to null => everything is gone (remaining + refill)
 		t.Run("Set credits.remaining to null clears everything", func(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("remaining-null-test"),
-				Remaining:    ptr.P(int32(200)),
-				RefillAmount: ptr.P(int32(75)),
-				RefillDay:    ptr.P(int16(10)),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				Name:        ptr.P("remaining-null-test"),
+				Credits: &seed.CreditRequest{
+					Remaining:    200,
+					RefillAmount: ptr.P(int32(75)),
+					RefillDay:    ptr.P(int16(10)),
+				},
 			})
 
 			// Verify initial state
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 200, key.RemainingRequests.Int32)
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 75, key.RefillAmount.Int32)
-			require.True(t, key.RefillDay.Valid)
-			require.EqualValues(t, 10, key.RefillDay.Int16)
+			require.EqualValues(t, 200, credits.Remaining)
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 75, credits.RefillAmount.Int32)
+			require.True(t, credits.RefillDay.Valid)
+			require.EqualValues(t, 10, credits.RefillDay.Int16)
 
 			// Set credits.remaining to null
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 					Remaining: nullable.NewNullNullable[int64](),
 				}),
 			}
@@ -403,41 +404,40 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 
-			// Verify everything is cleared
-			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
-			require.NoError(t, err)
-			require.False(t, key.RemainingRequests.Valid, "remaining should be cleared")
-			require.False(t, key.RefillAmount.Valid, "refill amount should be cleared")
-			require.False(t, key.RefillDay.Valid, "refill day should be cleared")
+			// Verify everything is cleared (credits record deleted)
+			_, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+			require.Error(t, err, "credits should be deleted")
+			require.True(t, db.IsNotFound(err), "should return not found error")
 		})
 
 		// Test Case 3: Set credits.refill to null => ONLY clears refill (amount and day), keeps remaining
 		t.Run("Set credits.refill to null only clears refill, keeps remaining", func(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("refill-null-test"),
-				Remaining:    ptr.P(int32(300)),
-				RefillAmount: ptr.P(int32(100)),
-				RefillDay:    ptr.P(int16(25)),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				Name:        ptr.P("refill-null-test"),
+				Credits: &seed.CreditRequest{
+					Remaining:    300,
+					RefillAmount: ptr.P(int32(100)),
+					RefillDay:    ptr.P(int16(25)),
+				},
 			})
 
 			// Verify initial state
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 300, key.RemainingRequests.Int32)
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 100, key.RefillAmount.Int32)
-			require.True(t, key.RefillDay.Valid)
-			require.EqualValues(t, 25, key.RefillDay.Int16)
+			require.EqualValues(t, 300, credits.Remaining)
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 100, credits.RefillAmount.Int32)
+			require.True(t, credits.RefillDay.Valid)
+			require.EqualValues(t, 25, credits.RefillDay.Int16)
 
 			// Set credits.refill to null
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
 				}),
 			}
 
@@ -445,33 +445,34 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			require.Equal(t, 200, res.Status)
 
 			// Verify only refill is cleared, remaining stays
-			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid, "remaining should be preserved")
-			require.EqualValues(t, 300, key.RemainingRequests.Int32, "remaining value should be unchanged")
-			require.False(t, key.RefillAmount.Valid, "refill amount should be cleared")
-			require.False(t, key.RefillDay.Valid, "refill day should be cleared")
+			require.EqualValues(t, 300, credits.Remaining, "remaining value should be unchanged")
+			require.False(t, credits.RefillAmount.Valid, "refill amount should be cleared")
+			require.False(t, credits.RefillDay.Valid, "refill day should be cleared")
 		})
 
 		// Test Case 4: Update refill without touching remaining
 		t.Run("Update refill without touching remaining", func(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("update-refill-only"),
-				Remaining:    ptr.P(int32(500)),
-				RefillAmount: ptr.P(int32(50)),
-				RefillDay:    ptr.P(int16(5)),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				Name:        ptr.P("update-refill-only"),
+				Credits: &seed.CreditRequest{
+					Remaining:    500,
+					RefillAmount: ptr.P(int32(50)),
+					RefillDay:    ptr.P(int16(5)),
+				},
 			})
 
 			// Update only refill
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:    150,
-						Interval:  openapi.UpdateKeyCreditsRefillIntervalMonthly,
+						Interval:  openapi.Monthly,
 						RefillDay: ptr.P(20),
 					}),
 				}),
@@ -481,32 +482,33 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			require.Equal(t, 200, res.Status)
 
 			// Verify refill updated, remaining unchanged
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 500, key.RemainingRequests.Int32, "remaining should be unchanged")
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 150, key.RefillAmount.Int32, "refill amount should be updated")
-			require.True(t, key.RefillDay.Valid)
-			require.EqualValues(t, 20, key.RefillDay.Int16, "refill day should be updated")
+			require.EqualValues(t, 500, credits.Remaining, "remaining should be unchanged")
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 150, credits.RefillAmount.Int32, "refill amount should be updated")
+			require.True(t, credits.RefillDay.Valid)
+			require.EqualValues(t, 20, credits.RefillDay.Int16, "refill day should be updated")
 		})
 
 		// Test Case 5: Update remaining without touching refill
 		t.Run("Update remaining without touching refill", func(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("update-remaining-only"),
-				Remaining:    ptr.P(int32(100)),
-				RefillAmount: ptr.P(int32(200)),
-				RefillDay:    ptr.P(int16(12)),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				Name:        ptr.P("update-remaining-only"),
+				Credits: &seed.CreditRequest{
+					Remaining:    100,
+					RefillAmount: ptr.P(int32(200)),
+					RefillDay:    ptr.P(int16(12)),
+				},
 			})
 
 			// Update only remaining
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 					Remaining: nullable.NewNullableWithValue(int64(999)),
 				}),
 			}
@@ -515,26 +517,27 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			require.Equal(t, 200, res.Status)
 
 			// Verify remaining updated, refill unchanged
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 999, key.RemainingRequests.Int32, "remaining should be updated")
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 200, key.RefillAmount.Int32, "refill amount should be unchanged")
-			require.True(t, key.RefillDay.Valid)
-			require.EqualValues(t, 12, key.RefillDay.Int16, "refill day should be unchanged")
+			require.EqualValues(t, 999, credits.Remaining, "remaining should be updated")
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 200, credits.RefillAmount.Int32, "refill amount should be unchanged")
+			require.True(t, credits.RefillDay.Valid)
+			require.EqualValues(t, 12, credits.RefillDay.Int16, "refill day should be unchanged")
 		})
 
 		// Test Case 6: Undefined credits (not specified) keeps everything
 		t.Run("Undefined credits keeps everything", func(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
-				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("undefined-credits-test"),
-				Remaining:    ptr.P(int32(777)),
-				RefillAmount: ptr.P(int32(111)),
-				RefillDay:    ptr.P(int16(28)),
+				WorkspaceID: h.Resources().UserWorkspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				Name:        ptr.P("undefined-credits-test"),
+				Credits: &seed.CreditRequest{
+					Remaining:    777,
+					RefillAmount: ptr.P(int32(111)),
+					RefillDay:    ptr.P(int16(28)),
+				},
 			})
 
 			// Update something else without specifying credits
@@ -551,12 +554,14 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.False(t, key.Enabled, "enabled should be updated")
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 777, key.RemainingRequests.Int32, "remaining should be unchanged")
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 111, key.RefillAmount.Int32, "refill amount should be unchanged")
-			require.True(t, key.RefillDay.Valid)
-			require.EqualValues(t, 28, key.RefillDay.Int16, "refill day should be unchanged")
+
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+			require.NoError(t, err)
+			require.EqualValues(t, 777, credits.Remaining, "remaining should be unchanged")
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 111, credits.RefillAmount.Int32, "refill amount should be unchanged")
+			require.True(t, credits.RefillDay.Valid)
+			require.EqualValues(t, 28, credits.RefillDay.Int16, "refill day should be unchanged")
 		})
 
 		// Test Case 7: Daily refill (no refillDay)
@@ -566,16 +571,18 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
 				Name:        ptr.P("daily-refill-test"),
-				Remaining:   ptr.P(int32(50)),
+				Credits: &seed.CreditRequest{
+					Remaining: 50,
+				},
 			})
 
 			// Set daily refill
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:   25,
-						Interval: openapi.UpdateKeyCreditsRefillIntervalDaily,
+						Interval: openapi.Daily,
 						// No RefillDay for daily
 					}),
 				}),
@@ -585,13 +592,12 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			require.Equal(t, 200, res.Status)
 
 			// Verify daily refill set correctly
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 50, key.RemainingRequests.Int32)
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 25, key.RefillAmount.Int32)
-			require.False(t, key.RefillDay.Valid, "refill day should be null for daily interval")
+			require.EqualValues(t, 50, credits.Remaining)
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 25, credits.RefillAmount.Int32)
+			require.False(t, credits.RefillDay.Valid, "refill day should be null for daily interval")
 		})
 
 		// Test Case 8: Complex sequence of updates
@@ -606,11 +612,11 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Step 1: Add credits with refill
 			req := handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 					Remaining: nullable.NewNullableWithValue(int64(1000)),
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:    500,
-						Interval:  openapi.UpdateKeyCreditsRefillIntervalMonthly,
+						Interval:  openapi.Monthly,
 						RefillDay: ptr.P(1),
 					}),
 				}),
@@ -621,52 +627,49 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			// Step 2: Clear refill only
 			req = handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
 				}),
 			}
 			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 
-			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 1000, key.RemainingRequests.Int32, "remaining should still be 1000")
-			require.False(t, key.RefillAmount.Valid, "refill should be cleared")
+			require.EqualValues(t, 1000, credits.Remaining, "remaining should still be 1000")
+			require.False(t, credits.RefillAmount.Valid, "refill should be cleared")
 
 			// Step 3: Add back refill without changing remaining
 			req = handler.Request{
 				KeyId: keyResponse.KeyID,
-				Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
+				Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+					Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
 						Amount:   250,
-						Interval: openapi.UpdateKeyCreditsRefillIntervalDaily,
+						Interval: openapi.Daily,
 					}),
 				}),
 			}
 			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 
-			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+			credits, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 			require.NoError(t, err)
-			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 1000, key.RemainingRequests.Int32, "remaining should still be 1000")
-			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 250, key.RefillAmount.Int32, "refill should be 250")
+			require.EqualValues(t, 1000, credits.Remaining, "remaining should still be 1000")
+			require.True(t, credits.RefillAmount.Valid)
+			require.EqualValues(t, 250, credits.RefillAmount.Int32, "refill should be 250")
 
 			// Step 4: Clear everything
 			req = handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Credits: nullable.NewNullNullable[openapi.UpdateKeyCreditsData](),
+				Credits: nullable.NewNullNullable[openapi.UpdateCredits](),
 			}
 			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 
-			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
-			require.NoError(t, err)
-			require.False(t, key.RemainingRequests.Valid, "remaining should be cleared")
-			require.False(t, key.RefillAmount.Valid, "refill should be cleared")
-			require.False(t, key.RefillDay.Valid, "refill day should be cleared")
+			// Verify everything is cleared (credits record deleted)
+			_, err = db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+			require.Error(t, err, "credits should be deleted")
+			require.True(t, db.IsNotFound(err), "should return not found error")
 		})
 	})
 

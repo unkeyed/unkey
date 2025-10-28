@@ -44,20 +44,19 @@ func TestAuthorizationErrors(t *testing.T) {
 	})
 
 	key := h.CreateKey(seed.CreateKeyRequest{
-		Disabled:     false,
-		WorkspaceID:  workspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:    nil,
-		IdentityID:   nil,
-		Meta:         nil,
-		Expires:      nil,
-		Name:         nil,
-		Deleted:      false,
-		RefillAmount: nil,
-		RefillDay:    nil,
-		Permissions:  nil,
-		Roles:        nil,
-		Ratelimits:   nil,
+		Disabled:    false,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Credits:     nil,
+		IdentityID:  nil,
+		Meta:        nil,
+		Expires:     nil,
+		Name:        nil,
+		Deleted:     false,
+
+		Permissions: nil,
+		Roles:       nil,
+		Ratelimits:  nil,
 	})
 
 	permissionID := uid.New(uid.TestPrefix)
@@ -131,20 +130,18 @@ func TestAuthorizationErrors(t *testing.T) {
 		})
 
 		diffKey := h.CreateKey(seed.CreateKeyRequest{
-			Disabled:     false,
-			WorkspaceID:  diffWorkspace.ID,
-			KeySpaceID:   diffApi.KeyAuthID.String,
-			Remaining:    nil,
-			IdentityID:   nil,
-			Meta:         nil,
-			Expires:      nil,
-			Name:         nil,
-			Deleted:      false,
-			RefillAmount: nil,
-			RefillDay:    nil,
-			Permissions:  nil,
-			Roles:        nil,
-			Ratelimits:   nil,
+			Disabled:    false,
+			WorkspaceID: diffWorkspace.ID,
+			KeySpaceID:  diffApi.KeyAuthID.String,
+			Credits:     nil,
+			IdentityID:  nil,
+			Meta:        nil,
+			Expires:     nil,
+			Name:        nil,
+			Deleted:     false,
+			Permissions: nil,
+			Roles:       nil,
+			Ratelimits:  nil,
 		})
 
 		// Create root key for original workspace (authorized for workspace.ID, not otherWorkspaceID)

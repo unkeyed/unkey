@@ -210,10 +210,12 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 
 	t.Run("key with credits and daily refill", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID:  workspace.ID,
-			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int32(50)),
-			RefillAmount: ptr.P(int32(100)),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Credits: &seed.CreditRequest{
+				Remaining:    50,
+				RefillAmount: ptr.P(int32(100)),
+			},
 		})
 
 		req := handler.Request{
@@ -233,11 +235,13 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 
 	t.Run("key with monthly refill", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID:  workspace.ID,
-			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int32(50)),
-			RefillAmount: ptr.P(int32(100)),
-			RefillDay:    ptr.P(int16(1)),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Credits: &seed.CreditRequest{
+				Remaining:    50,
+				RefillAmount: ptr.P(int32(100)),
+				RefillDay:    ptr.P(int16(1)),
+			},
 		})
 
 		req := handler.Request{
