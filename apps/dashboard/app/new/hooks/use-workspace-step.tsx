@@ -168,8 +168,9 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
                   form.clearErrors("slug");
                   const v = evt.currentTarget.value;
                   setSlugManuallyEdited(v.length > 0);
-
-                  // Re-validate on change to update validFieldCount
+                  form.setValue("slug", slugify(v), {
+                    shouldValidate: true,
+                  });
                   form.trigger("slug");
                 },
               })}
@@ -179,17 +180,6 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
               error={form.formState.errors.slug?.message}
               prefix="app.unkey.com/"
               maxLength={64}
-              onChange={(evt) => {
-                // If we don't clear the manually set error, it will persist even if the user clears
-                // or changes the input
-                form.clearErrors("slug");
-                const v = evt.currentTarget.value;
-                setSlugManuallyEdited(v.length > 0);
-                form.setValue("slug", slugify(v), {
-                  shouldValidate: true,
-                });
-                form.trigger("slug");
-              }}
             />
           </div>
         </div>
