@@ -6,7 +6,12 @@ import { SettingCard } from "@unkey/ui";
 export const Usage: React.FC<{
   quota: number;
 }> = ({ quota }) => {
-  const { data: usage, isLoading, error, refetch } = trpc.billing.queryUsage.useQuery(undefined, {
+  const {
+    data: usage,
+    isLoading,
+    error,
+    refetch,
+  } = trpc.billing.queryUsage.useQuery(undefined, {
     // Cache for 30 seconds to reduce unnecessary refetches
     // TRPC automatically scopes by workspace via requireWorkspace middleware
     staleTime: 30_000, // 30 seconds
@@ -39,7 +44,9 @@ export const Usage: React.FC<{
         contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
-          <p className="text-sm text-red-11">Failed to load usage: {error.message}</p>
+          <p className="text-sm text-red-11">
+            Failed to load usage: {error.message}
+          </p>
           <button
             type="button"
             onClick={() => refetch()}
@@ -61,27 +68,28 @@ export const Usage: React.FC<{
         className="w-full"
         contentWidth="w-full lg:w-[320px]"
       >
-        <div className="w-full flex flex-col gap-2" role="status" aria-live="polite">
+        <div
+          className="w-full flex flex-col gap-2"
+          role="status"
+          aria-live="polite"
+        >
           <p className="text-sm text-gray-11">No usage data available</p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="text-sm text-accent-11 hover:text-accent-12 transition-colors text-left"
-          >
-            Retry
-          </button>
         </div>
       </SettingCard>
     );
   }
 
   // Safely extract and validate numeric values with fallbacks
-  const verifications = typeof usage.billableVerifications === "number" && !Number.isNaN(usage.billableVerifications)
-    ? usage.billableVerifications
-    : 0;
-  const ratelimits = typeof usage.billableRatelimits === "number" && !Number.isNaN(usage.billableRatelimits)
-    ? usage.billableRatelimits
-    : 0;
+  const verifications =
+    typeof usage.billableVerifications === "number" &&
+    !Number.isNaN(usage.billableVerifications)
+      ? usage.billableVerifications
+      : 0;
+  const ratelimits =
+    typeof usage.billableRatelimits === "number" &&
+    !Number.isNaN(usage.billableRatelimits)
+      ? usage.billableRatelimits
+      : 0;
   const current = verifications + ratelimits;
   const max = quota;
   const percent = max > 0 ? Math.round((current / max) * 100) : 0;
@@ -118,7 +126,8 @@ export const ProgressCircle: React.FC<{
   const strokeWidth = 3;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const offset = max > 0 ? circumference - (safeValue / max) * circumference : circumference;
+  const offset =
+    max > 0 ? circumference - (safeValue / max) * circumference : circumference;
   return (
     <>
       <div className="relative flex items-center justify-center">
